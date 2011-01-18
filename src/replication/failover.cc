@@ -22,11 +22,11 @@ void failover_script_callback_t::on_failure() {
 }
 
 /* Failover_t implementation */
-void Failover_t::add_callback(failover_callback_t *cb) {
+void failover_t::add_callback(failover_callback_t *cb) {
     callbacks.push_back(cb);
 }
 
-void Failover_t::on_failure() {
+void failover_t::on_failure() {
     for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
         (*it).on_failure();
 }
