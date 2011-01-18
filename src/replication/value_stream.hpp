@@ -1,6 +1,11 @@
 #ifndef __REPLICATION_VALUE_STREAM_HPP__
 #define __REPLICATION_VALUE_STREAM_HPP__
 
+#include <stddef.h>
+#include <vector>
+
+#include "utils2.hpp"
+
 namespace replication {
 
 // Right now this is super-dumb and WILL need to be
@@ -17,25 +22,37 @@ struct value_stream_read_external_callback_t {
 class cookie_t {
 public:
     friend class value_stream_t;
-private:
+protected:
     cookie_t() : acknowledged(false) { }
 
+private:
     bool acknowledged;
     DISABLE_COPYING(cookie_t);
 };
 
+struct value_stream_read_fixed_buffered_callback_t {
+    virtual void on_read_fixed_buffered(const char *data, cookie_t *cookie) = 0;
+    virtual void on_read_close() = 0;
+    virtual ~value_stream_read_fixed_buffered_callback_t() { }
+};
+
+
+
 class write_cookie_t : private cookie_t {
+public:
+    friend class value_stream_t;
 private:
     write_cookie_t(size_t allocated) : cookie_t(), space_allocated(allocated) { }
     size_t space_allocated;
     DISABLE_COPYING(write_cookie_t);
 };
 
-struct value_stream_read_fixed_buffered_callback_t {
-    virtual void on_read_fixed_buffered(const char *data, fixed_reader_cookie_t *cookie) = 0;
-    virtual void on_read_close() = 0;
-    virtual ~value_tream_read_fixed_buffered_callback_t() { }
+struct value_stream_writing_action_t {
+    virtual void write_and_inform(char *buf, size_t size, write_cookie_t *cookie) = 0;
+    virtual ~value_stream_writing_action_t() { }
 };
+
+
 
 class value_stream_t {
 public:
@@ -65,7 +82,7 @@ private:
     enum {
         read_mode_none,
         read_mode_external,
-        read_mode_buffered,
+        read_mode_fixed,
     } read_mode;
 
     bool closed;

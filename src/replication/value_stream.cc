@@ -1,12 +1,14 @@
 #include "value_stream.hpp"
 
+#include <string.h>
+
 namespace replication {
 
 value_stream_t::value_stream_t()
     : read_mode(read_mode_none), closed(false), buffer() { }
 
 value_stream_t::value_stream_t(const char *beg, const char *end)
-    : read_mode(read_mode_none), closed(false), buffer(beg, end) { }
+    : read_mode(read_mode_none), closed(true), buffer(beg, end) { }
 
 void value_stream_t::read_external(char *buf, size_t size, value_stream_read_external_callback_t *cb) {
     guarantee(read_mode == read_mode_none);

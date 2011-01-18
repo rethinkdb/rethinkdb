@@ -8,11 +8,14 @@ using boost::scoped_ptr;
 
 namespace replication {
 
+// The 16 bytes include the \0 at the end.
+// 13 is the length of the string.
+const char parser_t::STANDARD_HELLO_MAGIC[16] = "13rethinkdbrepl";
+
 // TODO unit test offsets
 
-enum role_t { master = 0, new_slave = 1, slave = 2 };
 bool valid_role(uint32_t val) {
-    return val >= master && val <= slave;
+    return val == master || val == new_slave || val == slave;
 }
 
 
@@ -22,11 +25,6 @@ parser_t::parser_t(net_conn_t *conn, message_callback_t *receiver)
     : conn_(conn), receiver_(receiver), hello_message_received_(false) {
     // Kick things off...
     conn->read_buffered(this);
-}
-
-parser_t::~parser_t() {
-    conn_ = NULL;
-    receiver_ = NULL;
 }
 
 void parser_t::on_net_conn_close() {
@@ -48,7 +46,7 @@ void parser_t::on_net_conn_read_buffered(const char *buffer, size_t size) {
 
 void parser_t::handle_hello_message(const char *buffer, size_t size) {
     if (size >= sizeof(net_hello_t)) {
-        const net_hello_t *p = reinterpret_cast<net_hello_t *>(buffer);
+        const net_hello_t *p = reinterpret_cast<const net_hello_t *>(buffer);
 
         assert(16 == sizeof(p->hello_magic));
         if (0 != memcmp(p->hello_magic, STANDARD_HELLO_MAGIC, sizeof(p->hello_magic))) {
@@ -61,15 +59,19 @@ void parser_t::handle_hello_message(const char *buffer, size_t size) {
                     report_protocol_error("bad role");
                 } else {
                     assert(32 == sizeof(p->informal_name));
-                    scoped_ptr<hello_message_t> msg(new hello_message_t(p->role, p->database_magic, p->informal_name, p->informal_name + sizeof(p->informal_name)));
+                    scoped_ptr<hello_message_t> msg(new hello_message_t(role_t(p->role), p->database_magic, p->informal_name, p->informal_name + sizeof(p->informal_name)));
                     receiver_->hello(msg);
 
-                    conn_->accept_buffer(buffer, sizeof(net_hello_t));
+                    conn_->accept_buffer(sizeof(net_hello_t));
                     ask_for_a_message();
                 }
             }
         }
     }
+}
+
+void parser_t::ask_for_a_message() {
+    conn_->read_buffered(this);
 }
 
 template <class struct_type>
@@ -86,21 +88,24 @@ bool fits<net_small_set_t>(const char *buffer, size_t size) {
 
 template <class message_type>
 void parser_t::try_parsing(const char *buffer, size_t size) {
-    if (fits<message_type::net_struct_type>(buffer, size)) {
-        const message_type::net_struct_type *p = reinterpret_cast<message_type::net_struct_type *>(buffer);
+    typedef typename message_type::net_struct_type net_struct_type;
+    if (fits<net_struct_type>(buffer, size)) {
+        const net_struct_type *p = reinterpret_cast<const net_struct_type *>(buffer);
 
-        scoped_ptr<message_type> msg(new message_type(message_type::net_struct_type));
+        scoped_ptr<message_type> msg(new message_type(p));
         receiver_->send(msg);
-        conn_->accept_buffer(buffer, sizeof(message_type::net_struct_type));
+        conn_->accept_buffer(sizeof(net_struct_type));
         ask_for_a_message();
     }
 }
 
 void parser_t::handle_nonhello_message(const char *buffer, size_t size) {
     if (size > sizeof(net_header_t)) {
-        const net_header_t *hdr = reinterpret_cast<net_header_t *>(buffer);
+        const net_header_t *hdr = reinterpret_cast<const net_header_t *>(buffer);
 
-        hdr->message_multipart_aspect;
+        // TODO: handle non-small messages.
+
+        int multipart_aspect = hdr->message_multipart_aspect;
 
         if (multipart_aspect == SMALL) {
             switch (hdr->msgcode) {
@@ -108,8 +113,8 @@ void parser_t::handle_nonhello_message(const char *buffer, size_t size) {
                 try_parsing<backfill_message_t>(buffer, size);
             } break;
 
-            case BACKFILLING: {
-                try_parsing<backfilling_message_t>(buffer, size);
+            case ANNOUNCE: {
+                try_parsing<announce_message_t>(buffer, size);
             } break;
 
             case NOP: {

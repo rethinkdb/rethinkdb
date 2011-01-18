@@ -169,7 +169,7 @@ public:
 #ifdef SEMANTIC_SERIALIZER_CHECK
     void set_last_semantic_file(const char* value);
 #endif
-    void set_master_addr(const char *value);
+    void set_master_addr(char *value);
     void push_private_config(const char* value);
     
 private:

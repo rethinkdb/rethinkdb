@@ -69,15 +69,16 @@ as the "home_thread" variable. */
 class home_thread_mixin_t {
 public:
     int home_thread;
-protected:
-    home_thread_mixin_t() : home_thread(get_thread_id()) { }
-    ~home_thread_mixin_t() { assert_thread(); }
-    
+
 #ifndef NDEBUG
     void assert_thread() { assert(home_thread == get_thread_id()); }
 #else
     void assert_thread() { }
 #endif
+
+protected:
+    home_thread_mixin_t() : home_thread(get_thread_id()) { }
+    ~home_thread_mixin_t() { assert_thread(); }
 };
 
 struct on_thread_t :

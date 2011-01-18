@@ -625,7 +625,7 @@ void parsing_cmd_config_t::set_coroutine_stack_size(const char* value) {
     coro_t::set_coroutine_stack_size(parse_int(optarg));
 }
 
-void parsing_cmd_config_t::set_master_addr(const char *value) {
+void parsing_cmd_config_t::set_master_addr(char *value) {
     char *token = strtok(value, ":");
     if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN)
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
