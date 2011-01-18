@@ -6,7 +6,7 @@
 // #define DEBUG_MAX_LEAF 10
 
 bool leaf_pair_fits(const btree_leaf_pair *pair, size_t size) {
-    return 3 < size && 1 + pair->key.size + 2 <= size && 1 + pair->key.size + pair->value().mem_size() <= size;
+    return 3 < size && 1 + size_t(pair->key.size) + 2 <= size && size_t(1 + pair->key.size + pair->value()->mem_size()) <= size;
 }
 
 void leaf_node_handler::init(block_size_t block_size, leaf_node_t *node, repli_timestamp modification_time) {
