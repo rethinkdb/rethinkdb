@@ -4,18 +4,18 @@
 #include "perfmon.hpp"
 
 conn_acceptor_t::conn_acceptor_t(int port, handler_t *handler)
-    : handler(handler), listener(new net_listener_t(port)), next_thread(0)
+    : handler(handler), listener(new tcp_listener_t(port)), next_thread(0)
 {
     listener->set_callback(this);
     if (listener->defunct) throw address_in_use_exc_t();
 }
 
-void conn_acceptor_t::on_net_listener_accept(net_conn_t *conn) {
+void conn_acceptor_t::on_tcp_listener_accept(tcp_conn_t *conn) {
 
     new conn_agent_t(this, conn);
 }
 
-conn_acceptor_t::conn_agent_t::conn_agent_t(conn_acceptor_t *parent, net_conn_t *conn)
+conn_acceptor_t::conn_agent_t::conn_agent_t(conn_acceptor_t *parent, tcp_conn_t *conn)
     : parent(parent), conn(conn)
 {
     coro_t::spawn(&conn_agent_t::run, this);

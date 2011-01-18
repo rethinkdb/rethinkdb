@@ -78,6 +78,22 @@ class default_empty_timeseries_dict(dict):
         copy.update(self)
         return copy
 
+    # Hack to enforce a specific ordering of RethinkDB and competitors
+    def iteritems(self):
+        sorted_keys = self.keys()
+        sorted_keys.sort()
+        sorted_keys.reverse()
+        result = []
+        # Put RethinkDB to the beginning
+        if 'RethinkDB' in self:
+            result.append(('RethinkDB', self['RethinkDB']))
+        for x in sorted_keys:
+            if x != 'RethinkDB':
+                result.append((x, self[x]))
+
+        return iter(result)
+
+
 class default_empty_plot_dict(dict):
     def __getitem__(self, key):
         if key in self:

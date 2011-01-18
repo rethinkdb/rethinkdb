@@ -15,13 +15,10 @@ struct linux_io_config_t {
     typedef linux_nondirect_file_t nondirect_file_t;
     typedef linux_iocallback_t iocallback_t;
 
-    typedef linux_net_listener_t net_listener_t;
-    typedef linux_net_listener_callback_t net_listener_callback_t;
+    typedef linux_tcp_listener_t tcp_listener_t;
+    typedef linux_tcp_listener_callback_t tcp_listener_callback_t;
     
-    typedef linux_net_conn_t net_conn_t;
-    typedef linux_net_conn_read_external_callback_t net_conn_read_external_callback_t;
-    typedef linux_net_conn_read_buffered_callback_t net_conn_read_buffered_callback_t;
-    typedef linux_net_conn_write_external_callback_t net_conn_write_external_callback_t;
+    typedef linux_tcp_conn_t tcp_conn_t;
     
     typedef linux_thread_message_t thread_message_t;
     
