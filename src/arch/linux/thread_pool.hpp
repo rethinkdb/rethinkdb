@@ -5,9 +5,9 @@
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/disk.hpp"
-#include "arch/linux/timer.hpp"
 #include "arch/linux/message_hub.hpp"
 #include "arch/linux/coroutines.hpp"
+#include "timer.hpp"
 
 struct linux_thread_message_t;
 struct linux_thread_t;
@@ -66,7 +66,7 @@ class linux_thread_t :
     public linux_event_callback_t,
     public linux_queue_parent_t
 {
-    linux_timer_token_t *perfmon_stats_timer;
+    timer_token_t *perfmon_stats_timer;
     
 public:
     linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id);
@@ -74,7 +74,7 @@ public:
     
     linux_event_queue_t queue;
     linux_message_hub_t message_hub;
-    linux_timer_handler_t timer_handler;
+    timer_handler_t timer_handler;
     linux_io_calls_t iosys;
     
     /* Never accessed; its constructor and destructor set up and tear down thread-local variables

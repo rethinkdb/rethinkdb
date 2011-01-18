@@ -734,8 +734,6 @@ void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
     rh->writef("END\r\n");
 };
 
-/* Main connection loop */
-
 perfmon_duration_sampler_t
     pm_conns_reading("conns_reading", secs_to_ticks(1)),
     pm_conns_writing("conns_writing", secs_to_ticks(1)),
@@ -769,7 +767,13 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
         }
 
         // Keep trying until we get a complete line.
-        conn->read_more_buffered();
+
+        // TODO: do we need this is_read_open() check?
+        if (conn->is_read_open()) {
+            conn->read_more_buffered();
+        } else {
+            throw tcp_conn_t::read_closed_exc_t();
+        }
     }
 
 };

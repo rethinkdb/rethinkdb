@@ -3,7 +3,7 @@
 #include <linux/fs.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/eventfd.h>
+#include "arch/linux/eventfd.hpp"
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>

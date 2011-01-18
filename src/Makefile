@@ -1,5 +1,12 @@
 ##### Configuring stuff
 
+prefix?=/usr
+bindir=$(prefix)/bin
+docdir=$(prefix)/share/doc/rethinkdb
+mandir=$(prefix)/share/man
+man1dir=$(mandir)/man1
+bashcompletiondir=/etc/bash_completion.d
+
 SERVER_EXEC_NAME:=rethinkdb
 SERVER_UNIT_TEST_NAME:=rethinkdb-unittest
 
@@ -33,9 +40,16 @@ else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
+MAN_PAGES:=$(wildcard ../docs/man/*)
+
+PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
+RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
+DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
+
 # Define configuration variables
 CXX:=g++
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
 ifeq ($(UNIT_TESTS),0)
 CXXFLAGS+=-Wswitch-default
@@ -54,6 +68,10 @@ else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
+endif
+
+ifeq (${STATIC_LIBGCC},1)
+LDFLAGS+=-static-libgcc -static-libstdc++
 endif
 
 ifeq ($(OPROFILE),1)
@@ -97,6 +115,12 @@ ifneq ($(MEMCACHED_STRICT), 0)
 CXXFLAGS+=-DMEMCACHED_STRICT
 endif
 
+ifeq ($(LEGACY_LINUX),1)
+CXX=g++44
+CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL
+BUILD_DIR:=$(BUILD_DIR)-legacy
+endif
+
 ifeq ($(NO_EPOLL),1)
 CXXFLAGS+=-DNO_EPOLL
 BUILD_DIR:=$(BUILD_DIR)-noepoll
@@ -106,7 +130,7 @@ ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 else
-LDFLAGS+=-ltcmalloc_minimal
+LDFLAGS+=-Wl,-Bstatic --ltcmalloc_minimal -Wl,-Bdynamic
 endif
 
 # Should makefile be noisy?
@@ -144,6 +168,7 @@ SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
 #### Version number handling
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
+RETHINKDB_VERSION_RPM:=$(subst -,_,$(RETHINKDB_VERSION))
 CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 
 ##### Build targets
@@ -154,6 +179,119 @@ ifeq ($(UNIT_TESTS),1)
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
 else
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
+endif
+
+ifeq ($(PACKAGING),1)
+RPM_BUILD_ROOT=$(RPM_PACKAGE_DIR)/BUILD
+DEB_CONTROL_ROOT=$(DEB_PACKAGE_DIR)/DEBIAN
+RPM_SPEC_FILE=$(RPM_PACKAGE_DIR)/SPECS/rethinkdb.spec
+
+prepare_deb_package_dirs:
+	$(QUIET) mkdir -p $(DEB_PACKAGE_DIR)
+	$(QUIET) mkdir -p $(DEB_CONTROL_ROOT)
+
+prepare_rpm_package_dirs:
+	$(QUIET) mkdir -p $(RPM_PACKAGE_DIR)
+	$(QUIET) for d in BUILD RPMS/x86_64 SOURCES SPECS SRPMS; do mkdir -p $(RPM_PACKAGE_DIR)/$$d; done
+
+install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	$(QUIET) install -m755 -d $(DESTDIR)$(bindir)
+	$(QUIET) install -m755 $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(bindir)
+	$(QUIET) strip --strip-unneeded $(DESTDIR)$(bindir)/$(SERVER_EXEC_NAME)
+
+install-manpages: $(MAN_PAGES)
+	$(QUIET) install -m755 -d $(DESTDIR)$(man1dir)
+# TODO: support other man sections
+	$(QUIET) for manpage in $(MAN_PAGES); do \
+			gzip -9 < $$manpage | install -m644 -T /dev/stdin $(DESTDIR)$(man1dir)/$$(basename $$manpage).gz; \
+		done
+
+install-tools: ../scripts/rethinkdb.bash
+	$(QUIET) install -m755 -d $(DESTDIR)$(bashcompletiondir)
+	$(QUIET) install -m644 ../scripts/rethinkdb.bash $(DESTDIR)$(bashcompletiondir)/rethinkdb
+
+install-docs:
+	$(QUIET) install -m755 -d $(DESTDIR)$(docdir)
+	$(QUIET) install -m644 -T ../docs/LICENSE $(DESTDIR)$(docdir)/copyright
+
+install: install-binaries install-manpages install-docs install-tools
+install-rpm: install
+install-deb: install
+	$(QUIET) install -m755 -d $(DESTDIR)$(docdir)
+	$(QUIET) sed	-e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION)/' ../docs/changelog.Debian | \
+		gzip -c9 | \
+		install -m644 -T /dev/stdin $(DESTDIR)$(docdir)/changelog.Debian.gz
+
+
+deb: all prepare_deb_package_dirs
+	@echo Building DEB package for RethinkDB version $(RETHINKDB_VERSION)
+
+# Copy files to their correct places
+	$(QUIET) $(MAKE) DESTDIR=$(DEB_PACKAGE_DIR) install-deb
+
+# Produce md5sum file in control directory
+	$(QUIET) find $(DEB_PACKAGE_DIR) -path $(DEB_CONTROL_ROOT) -prune -o -path $(DEB_PACKAGE_DIR)/etc -prune -o -type f -printf "%P\\0" | \
+		(cd $(DEB_PACKAGE_DIR) && xargs -0 md5sum) \
+		> $(DEB_CONTROL_ROOT)/md5sums
+
+# List configuration files in conffiles
+	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | grep '^/etc/' > $(DEB_CONTROL_ROOT)/conffiles
+
+# Copy {pre,post}{inst,rm} scripts
+	$(QUIET) for script in preinst postinst prerm postrm; do		\
+			cp ../packaging/debian/$${script} $(DEB_CONTROL_ROOT);	\
+			chmod 0755 $(DEB_CONTROL_ROOT)/$${script};							\
+		done
+
+# Replace version/size fields in the deb control file
+	$(QUIET) disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1);		\
+		sed																														\
+				-e "s/VERSION/$(RETHINKDB_VERSION)/"											\
+				-e "s/DISK_SIZE/$${disk_size}/"														\
+			../packaging/debian/control >$(DEB_CONTROL_ROOT)/control
+
+# Finally, produce a debian package
+	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
+
+# Print a nice message with the location of the created package
+	$(QUIET) echo
+	$(QUIET) echo "Your DEB packages are here (with lintian output following each package):"
+	$(QUIET) for f in $(PACKAGES_DIR)/*.deb; do \
+			deb_name=$(realpath $(PACKAGES_DIR))/$$(basename $$f); \
+			echo "  $${deb_name}"; \
+			lintian --color auto $${deb_name}; \
+		done
+	$(QUIET) echo
+
+rpm: all prepare_rpm_package_dirs
+	@echo Building RPM package for RethinkDB version $(RETHINKDB_VERSION)
+
+# Replace version/topdir fields in the spec file
+	$(QUIET) sed 																				\
+			-e "s/VERSION/$(RETHINKDB_VERSION_RPM)/"				\
+			-e " s:TOPDIR:$(realpath $(RPM_PACKAGE_DIR)):"	\
+		../packaging/rpm.spec >$(RPM_SPEC_FILE)
+
+# Copy files to their correct places
+	$(QUIET) $(MAKE) DESTDIR=$(RPM_BUILD_ROOT) install-rpm
+
+# Produce RPM package
+# FIXME: write rpmbuild output out to stderr if there's an error
+	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot $(realpath $(RPM_BUILD_ROOT)) $(RPM_SPEC_FILE) > /tmp/rpmbuild.stdout
+
+# Print a nice message with the location of the created package
+	$(QUIET) echo
+	$(QUIET) echo "Your RPM packages are here:"
+	$(QUIET) for f in $(RPM_PACKAGE_DIR)/RPMS/x86_64/*.rpm; do \
+			mv $$f $(PACKAGES_DIR)/; \
+			echo "  $(realpath $(PACKAGES_DIR))/$$(basename $$f)"; \
+		done
+	$(QUIET) echo
+else
+deb: clean
+	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 deb
+rpm: clean
+	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 rpm
 endif
 
 

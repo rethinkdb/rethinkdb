@@ -2,6 +2,8 @@
 import glob
 from cloud_retester import do_test, do_test_cloud, report_cloud, setup_testing_nodes, terminate_testing_nodes
 
+ec2 = 4
+
 # Clean the repo
 do_test("cd ../src/; make clean")
 
@@ -76,7 +78,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "chunk-size"  : 10000 if (mode == "release" and not checker) else 100,
                     "num-ints"    : 1000000 if (mode == "release" and not checker) else 1000,
                     "sigint-timeout" : sigint_timeout },
-                  repeat=3, timeout = 180)
+                  repeat=3, timeout = 180 * ec2)
     
     # Don't run the corruption test in mockio or mockcache mode because in those modes
     # we don't flush to disk at all until the server is shut down, so obviously the
@@ -92,7 +94,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                             "slices"        : slices,
                             "duration"      : dur,
                             "verify-timeout": dur },
-                          repeat=2, timeout=dur * 4)
+                          repeat=2, timeout=dur * 4 * ec2)
 
 # Running all tests
 def run_all_tests(mode, checker, protocol, cores, slices):
@@ -119,7 +121,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 1800,
                     "fsck"        : False},
-                  repeat=3, timeout=2400)
+                  repeat=3, timeout=2400 * ec2)
 
     # Run an modify-heavy workload for half hour
     do_test_cloud("integration/stress_load.py",
@@ -163,7 +165,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "duration"    : 340 },
-                  repeat=5, timeout=460)
+                  repeat=5, timeout=460 * ec2)
     
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
@@ -293,7 +295,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=5, timeout = 120)
+                  repeat=5, timeout = 120 * ec2)
 
     do_test_cloud("integration/fuzz.py",
                   { "auto"        : True,
@@ -359,7 +361,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices},
-                  repeat=10, timeout=30)
+                  repeat=10, timeout=30 * ec2)
 
     for suite_test in glob.glob('integration/memcached_suite/*.t'):
         do_test_cloud("integration/memcached_suite.py",
