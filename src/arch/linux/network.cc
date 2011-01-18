@@ -105,7 +105,14 @@ void linux_tcp_conn_t::peek_until(peek_callback_t *cb) {
     assert(!read_cond);
     if (read_was_shut_down) throw read_closed_exc_t();
 
-    while (!cb->check(read_buffer.data(), read_buffer.size())) {
+    for (;;) {
+        ssize_t code = cb->check(read_buffer.data(), read_buffer.size());
+
+        if (code != -1) {
+            assert(size_t(code) <= read_buffer.size());
+            read_buffer.erase(read_buffer.begin(), read_buffer.begin() + code);
+            return;
+        }
 
         // cb->check() might have closed the connection
         if (read_was_shut_down) throw read_closed_exc_t();

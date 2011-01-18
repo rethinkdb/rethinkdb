@@ -65,14 +65,11 @@ struct net_goodbye_t {
     repli_timestamp timestamp;
 } __attribute__((__packed__));
 
-struct net_small_operation_t {
-    net_size_header_t header;
-    repli_timestamp timestamp;
-} __attribute__((__packed__));
-
+// TODO: Add a uint16_t size field, create net_small_operation_t {
+// header, size, timestamp }, create a btree_value that lacks the
+// 8-bit size field.
 struct net_small_set_t {
     net_header_t header;
-    uint16_t size;
     repli_timestamp timestamp;
     char btree_pair[];
 

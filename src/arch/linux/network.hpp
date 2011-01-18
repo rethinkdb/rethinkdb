@@ -34,7 +34,7 @@ public:
     repeatedly call the given callback with larger and larger buffers until the callback returns
     true. If the connection is closed, throws read_closed_exc_t. */
     struct peek_callback_t {
-        virtual bool check(const void *buf, size_t size) throw () = 0;
+        virtual ssize_t check(const void *buf, size_t size) throw () = 0;
     };
     void peek_until(peek_callback_t *cb);
 

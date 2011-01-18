@@ -744,8 +744,9 @@ perfmon_duration_sampler_t
 void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 
     struct : public tcp_conn_t::peek_callback_t {
-        int line_size;   // On output, the size of the line without the CRLF, or -1 on error
-        bool check(const void *buffer, size_t size) throw () {
+        bool fail;
+        std::vector<char> *dest;
+        ssize_t check(const void *buffer, size_t size) throw () {
 
             /* Look for a line terminator */
             void *crlf_loc = memmem(buffer, size, "\r\n", 2);
@@ -753,9 +754,12 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 
             if (crlf_loc) {
                 /* We have a valid line */
-                line_size = (char*)crlf_loc - (char*)buffer;
-                return true;
+                size_t line_size = (char *)crlf_loc - (char *)buffer;
 
+                dest->resize(line_size + 2);  // +2 for CRLF
+                memcpy(dest->data(), buffer, line_size + 2);
+                fail = false;
+                return line_size + 2;
             } else if ((int)size > threshold) {
                 /* If a horribly malfunctioning client sends a lot of data without sending a
                 CRLF, our buffer will just grow and grow and grow. If this happens, then close the
@@ -764,24 +768,21 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
                 */
                 logERR("Aborting connection %p because we got more than %d bytes without a CRLF\n",
                     this, (int)threshold);
-                line_size = -1;
-                return true;
+                fail = true;
+                return 0;
 
             } else {
                 /* Keep trying until we get a complete line */
-                return false;
+                return -1;
             }
         }
     } peeker;
 
     conn->peek_until(&peeker);
-    if (peeker.line_size == -1) {
+    if (peeker.fail) {
         conn->shutdown_read();
         throw tcp_conn_t::read_closed_exc_t();
     }
-
-    dest->resize(peeker.line_size + 2);   // +2 for CRLF
-    conn->read(dest->data(), peeker.line_size + 2);
 };
 
 void serve_memcache(tcp_conn_t *conn, server_t *server) {

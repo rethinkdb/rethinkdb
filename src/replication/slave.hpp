@@ -25,41 +25,7 @@ public:
     void conn_closed();
 };
 
-class parser_t : public linux_net_conn_read_external_callback_t, public linux_net_conn_read_buffered_callback_t {
-public:
-    parser_t(net_conn_t *conn, message_callback_t *receiver);
-
-    void on_net_conn_read_external();
-    void on_net_conn_read_buffered(const char *buffer, size_t size);
-    void on_net_conn_close();
-
-    void report_protocol_error(const char *msg);
-
-private:
-    void ask_for_a_message();
-
-    template <class struct_type>
-    void try_parsing(const char *buffer, size_t size);
-
-    void handle_hello_message(const char *buffer, size_t size);
-    void handle_nonhello_message(const char *buffer, size_t size);
-
-
-    net_conn_t * const conn_;
-    message_callback_t * const receiver_;
-
-    bool hello_message_received_;
-    static const int PARSER_BUFFER_SIZE = 1024;
-    char buf_[PARSER_BUFFER_SIZE];
-
-    void *fillee_;
-
-    static const char STANDARD_HELLO_MAGIC[16];
-    static const uint32_t ACCEPTED_PROTOCOL_VERSION = 1;
-
-    DISABLE_COPYING(parser_t);
-};
-
+void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
 
 
 }  // namespace replication
