@@ -88,14 +88,6 @@ bool is_sorted(ForwardIterator first, ForwardIterator last,
     return true;
 }
 
-//network conversion
-inline uint16_t ntoh(uint16_t val) { return be16toh(val); }
-inline uint32_t ntoh(uint32_t val) { return be32toh(val); }
-inline uint64_t ntoh(uint64_t val) { return be64toh(val); }
-inline uint16_t hton(uint16_t val) { return htobe16(val); }
-inline uint32_t hton(uint32_t val) { return htobe32(val); }
-inline uint64_t hton(uint64_t val) { return htobe64(val); }
-
 /* API to allow a nicer way of performing jobs on other cores than subclassing
 from thread_message_t. Call do_on_thread() with an object and a method for that object.
 The method will be called on the other thread. If the thread to call the method on is

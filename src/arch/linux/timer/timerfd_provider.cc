@@ -1,3 +1,5 @@
+#ifndef LEGACY_LINUX // So the build system doesn't try to compile this file otherwise.
+
 #include <sys/timerfd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -52,3 +54,4 @@ void timerfd_provider_t::on_event(int events) {
     callback->on_timer(nexpirations);
 }
 
+#endif

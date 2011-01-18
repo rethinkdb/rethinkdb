@@ -34,7 +34,7 @@ BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
 # Define configuration variables
-CXX:=g++
+CXX:=g++44
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
 ifeq ($(UNIT_TESTS),0)
@@ -97,14 +97,14 @@ ifneq ($(MEMCACHED_STRICT), 0)
 CXXFLAGS+=-DMEMCACHED_STRICT
 endif
 
+ifeq ($(LEGACY_LINUX),1)
+CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL
+BUILD_DIR:=$(BUILD_DIR)-legacy
+endif
+
 ifeq ($(NO_EPOLL),1)
 CXXFLAGS+=-DNO_EPOLL
 BUILD_DIR:=$(BUILD_DIR)-noepoll
-endif
-
-ifeq ($(NO_EVENTFD),1)
-CXXFLAGS+=-DNO_EVENTFD
-BUILD_DIR:=$(BUILD_DIR)-noeventfd
 endif
 
 ifeq ($(VALGRIND),1)

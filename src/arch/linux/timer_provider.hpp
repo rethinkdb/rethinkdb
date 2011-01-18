@@ -1,4 +1,3 @@
-
 #ifndef __ARCH_LINUX_TIMER_PROVIDER_HPP__
 #define __ARCH_LINUX_TIMER_PROVIDER_HPP__
 
@@ -6,7 +5,7 @@
 // interface) depending on which system we're on. Some older kernels
 // don't support fdtimers, so we have to resort to signals.
 
-#ifdef NO_EVENTFD
+#ifdef LEGACY_LINUX
 #include "timer/timer_signal_provider.hpp"
 typedef timer_signal_provider_t timer_provider_t;
 #else
@@ -15,4 +14,3 @@ typedef timerfd_provider_t timer_provider_t;
 #endif
 
 #endif // __ARCH_LINUX_TIMER_PROVIDER_HPP__
-

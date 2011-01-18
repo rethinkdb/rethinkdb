@@ -1,3 +1,4 @@
+#ifndef NO_EPOLL // To make the build system happy.
 
 #include <unistd.h>
 #include <sched.h>
@@ -14,9 +15,6 @@
 #include "arch/linux/event_queue/epoll.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "logger.hpp"
-
-/* Declared here but NOT in poll.cc; this instance provides for either one */
-perfmon_sampler_t pm_events_per_loop("events_per_loop", secs_to_ticks(1));
 
 int user_to_epoll(int mode) {
 
@@ -54,16 +52,11 @@ epoll_event_queue_t::epoll_event_queue_t(linux_queue_parent_t *parent)
 
 void epoll_event_queue_t::run() {
     int res;
-
-    // Create an empty sigmask for epoll
-    sigset_t sigmask;
-    res = sigemptyset(&sigmask);
-    guarantee_err(res == 0, "Could not create an empty signal mask");
     
     // Now, start the loop
     while (!parent->should_shut_down()) {
         // Grab the events from the kernel!
-        res = epoll_pwait(epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, -1, &sigmask);
+        res = epoll_wait(epoll_fd, events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, -1);
         
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
@@ -81,7 +74,6 @@ void epoll_event_queue_t::run() {
 
         // nevents might be used by forget_resource during the loop
         nevents = res;
-        pm_events_per_loop.record(nevents);
 
         // TODO: instead of processing the events immediately, we
         // might want to queue them up and then process the queue in
@@ -107,10 +99,6 @@ void epoll_event_queue_t::run() {
         
         parent->pump();
     }
-
-    // Unblock all events
-    res = pthread_sigmask(SIG_BLOCK, &sigmask, NULL);
-    guarantee_err(res == 0, "Could not block signal");
 }
 
 epoll_event_queue_t::~epoll_event_queue_t() {
@@ -170,3 +158,4 @@ void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t 
     }
 }
 
+#endif
