@@ -8,15 +8,15 @@
 template<class value_t>
 struct value_cond_t;
 
-/* linux_net_conn_t provides a nice wrapper around a TCP network connection. */
+/* linux_tcp_conn__t provides a nice wrapper around a TCP network connection. */
 
-struct linux_net_conn_t :
+struct linux_tcp_conn_t :
     public linux_event_callback_t
 {
-    friend class linux_net_listener_t;
+    friend class linux_tcp_listener_t;
 
 public:
-    linux_net_conn_t(const char *host, int port);
+    linux_tcp_conn_t(const char *host, int port);
 
     /* Reading */
 
@@ -65,8 +65,7 @@ public:
     void flush_buffer();
 
     /* Call shutdown_write() to close the half of the pipe that goes from us to the peer. If there
-    are any outstanding write_external() commands, they will get on_net_conn_closed() called. Further
-    calls to write_* will fail. */
+    is a write currently happening, it will get write_closed_exc_t. */
     void shutdown_write();
 
     /* Returns true if the half of the pipe that goes from us to the peer has been closed. */
@@ -74,10 +73,10 @@ public:
 
     /* Note that is_read_open() and is_write_open() must both be false1 before the socket is
     destroyed. */
-    ~linux_net_conn_t();
+    ~linux_tcp_conn_t();
 
 private:
-    explicit linux_net_conn_t(fd_t sock);   // Used by net_listener_t
+    explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
     fd_t sock;
 
     /* Before we are being watched by any event loop, registration_thread is -1. Once an
@@ -91,7 +90,7 @@ private:
     and with false if the read end is closed. Same with write_cond and writing. */
     value_cond_t<bool> *read_cond, *write_cond;
 
-    // True when the half of the connection has been shut down but the linux_net_conn_t has not
+    // True when the half of the connection has been shut down but the linux_tcp_conn_t has not
     // been deleted yet
     bool read_was_shut_down;
     bool write_was_shut_down;
@@ -114,26 +113,26 @@ private:
     std::vector<char> write_buffer;
 };
 
-/* The linux_net_listener_t is used to listen on a network port for incoming
-connections. Create a linux_net_listener_t with some port and then call set_callback();
+/* The linux_tcp_listener_t is used to listen on a network port for incoming
+connections. Create a linux_tcp_listener_t with some port and then call set_callback();
 the provided callback will be called every time something connects. */
 
-struct linux_net_listener_callback_t {
-    virtual void on_net_listener_accept(linux_net_conn_t *conn) = 0;
-    virtual ~linux_net_listener_callback_t() {}
+struct linux_tcp_listener_callback_t {
+    virtual void on_tcp_listener_accept(linux_tcp_conn_t *conn) = 0;
+    virtual ~linux_tcp_listener_callback_t() {}
 };
 
-class linux_net_listener_t : public linux_event_callback_t {
+class linux_tcp_listener_t : public linux_event_callback_t {
 public:
-    explicit linux_net_listener_t(int port);
-    void set_callback(linux_net_listener_callback_t *cb);
-    ~linux_net_listener_t();
+    explicit linux_tcp_listener_t(int port);
+    void set_callback(linux_tcp_listener_callback_t *cb);
+    ~linux_tcp_listener_t();
     
     bool defunct;
 
 private:
     fd_t sock;
-    linux_net_listener_callback_t *callback;
+    linux_tcp_listener_callback_t *callback;
     
     void on_event(int events);
 };

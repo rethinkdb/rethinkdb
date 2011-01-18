@@ -10,11 +10,11 @@
 
 /* Network connection object */
 
-linux_net_conn_t::linux_net_conn_t(const char *host, int port) {
+linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) {
     not_implemented();
 }
 
-linux_net_conn_t::linux_net_conn_t(fd_t sock)
+linux_tcp_conn_t::linux_tcp_conn_t(fd_t sock)
     : sock(sock),
       registration_thread(-1),
       read_cond(NULL), write_cond(NULL),
@@ -26,7 +26,7 @@ linux_net_conn_t::linux_net_conn_t(fd_t sock)
     guarantee_err(res == 0, "Could not make socket non-blocking");
 }
 
-void linux_net_conn_t::register_with_event_loop() {
+void linux_tcp_conn_t::register_with_event_loop() {
     /* Register ourself to receive notifications from the event loop if we have not
     already done so. */
 
@@ -36,11 +36,11 @@ void linux_net_conn_t::register_with_event_loop() {
 
     } else if (registration_thread != linux_thread_pool_t::thread_id) {
         guarantee(registration_thread == linux_thread_pool_t::thread_id,
-            "Must always use a net_conn_t on the same thread.");
+            "Must always use a tcp_conn_t on the same thread.");
     }
 }
 
-size_t linux_net_conn_t::read_internal(void *buffer, size_t size) {
+size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 
     while (true) {
         int res = ::read(sock, buffer, size);
@@ -77,7 +77,7 @@ size_t linux_net_conn_t::read_internal(void *buffer, size_t size) {
     }
 }
 
-void linux_net_conn_t::read(void *buf, size_t size) {
+void linux_tcp_conn_t::read(void *buf, size_t size) {
 
     register_with_event_loop();
     assert(!read_cond);   // Is there a read already in progress?
@@ -99,7 +99,7 @@ void linux_net_conn_t::read(void *buf, size_t size) {
     }
 }
 
-void linux_net_conn_t::peek_until(peek_callback_t *cb) {
+void linux_tcp_conn_t::peek_until(peek_callback_t *cb) {
 
     register_with_event_loop();
     assert(!read_cond);
@@ -123,7 +123,7 @@ void linux_net_conn_t::peek_until(peek_callback_t *cb) {
     }
 }
 
-void linux_net_conn_t::shutdown_read() {
+void linux_tcp_conn_t::shutdown_read() {
 
     int res = ::shutdown(sock, SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
@@ -133,7 +133,7 @@ void linux_net_conn_t::shutdown_read() {
     on_shutdown_read();
 }
 
-void linux_net_conn_t::on_shutdown_read() {
+void linux_tcp_conn_t::on_shutdown_read() {
 
     assert(!read_was_shut_down);
     read_was_shut_down = true;
@@ -156,11 +156,11 @@ void linux_net_conn_t::on_shutdown_read() {
     }
 }
 
-bool linux_net_conn_t::is_read_open() {
+bool linux_tcp_conn_t::is_read_open() {
     return !read_was_shut_down;
 }
 
-void linux_net_conn_t::write_internal(const void *buf, size_t size) {
+void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
 
     while (size > 0) {
         int res = ::write(sock, buf, size);
@@ -204,7 +204,7 @@ void linux_net_conn_t::write_internal(const void *buf, size_t size) {
     }
 }
 
-void linux_net_conn_t::write(const void *buf, size_t size) {
+void linux_tcp_conn_t::write(const void *buf, size_t size) {
 
     register_with_event_loop();
     assert(!write_cond);
@@ -217,7 +217,7 @@ void linux_net_conn_t::write(const void *buf, size_t size) {
     write_internal(buf, size);
 }
 
-void linux_net_conn_t::write_buffered(const void *buf, size_t size) {
+void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
 
     register_with_event_loop();
     assert(!write_cond);
@@ -229,7 +229,7 @@ void linux_net_conn_t::write_buffered(const void *buf, size_t size) {
     memcpy(write_buffer.data() + old_size, buf, size);
 }
 
-void linux_net_conn_t::flush_buffer() {
+void linux_tcp_conn_t::flush_buffer() {
 
     register_with_event_loop();
     assert(!write_cond);
@@ -239,7 +239,7 @@ void linux_net_conn_t::flush_buffer() {
     write_buffer.clear();
 }
 
-void linux_net_conn_t::shutdown_write() {
+void linux_tcp_conn_t::shutdown_write() {
 
     int res = ::shutdown(sock, SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
@@ -249,7 +249,7 @@ void linux_net_conn_t::shutdown_write() {
     on_shutdown_write();
 }
 
-void linux_net_conn_t::on_shutdown_write() {
+void linux_tcp_conn_t::on_shutdown_write() {
 
     assert(!write_was_shut_down);
     write_was_shut_down = true;
@@ -272,11 +272,11 @@ void linux_net_conn_t::on_shutdown_write() {
     }
 }
 
-bool linux_net_conn_t::is_write_open() {
+bool linux_tcp_conn_t::is_write_open() {
     return !write_was_shut_down;
 }
 
-linux_net_conn_t::~linux_net_conn_t() {
+linux_tcp_conn_t::~linux_tcp_conn_t() {
 
     assert(read_was_shut_down);
     assert(write_was_shut_down);
@@ -287,7 +287,7 @@ linux_net_conn_t::~linux_net_conn_t() {
     }
 }
 
-void linux_net_conn_t::on_event(int events) {
+void linux_tcp_conn_t::on_event(int events) {
 
     if ((events & poll_event_err) && (events & poll_event_hup)) {
         /* We get this when the socket is closed but there is still data we are trying to send.
@@ -328,7 +328,7 @@ void linux_net_conn_t::on_event(int events) {
 
 /* Network listener object */
 
-linux_net_listener_t::linux_net_listener_t(int port)
+linux_tcp_listener_t::linux_tcp_listener_t(int port)
     : callback(NULL)
 {
     defunct = false;
@@ -381,7 +381,7 @@ linux_net_listener_t::linux_net_listener_t(int port)
     guarantee_err(res == 0, "Could not make socket non-blocking");
 }
 
-void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
+void linux_tcp_listener_t::set_callback(linux_tcp_listener_callback_t *cb) {
     if (defunct)
         return;
 
@@ -392,7 +392,7 @@ void linux_net_listener_t::set_callback(linux_net_listener_callback_t *cb) {
     linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
 }
 
-void linux_net_listener_t::on_event(int events) {
+void linux_tcp_listener_t::on_event(int events) {
     if (defunct)
         return;
 
@@ -426,12 +426,12 @@ void linux_net_listener_t::on_event(int events) {
                 }
             }
         } else {
-            callback->on_net_listener_accept(new linux_net_conn_t(new_sock));
+            callback->on_tcp_listener_accept(new linux_tcp_conn_t(new_sock));
         }
     }
 }
 
-linux_net_listener_t::~linux_net_listener_t() {
+linux_tcp_listener_t::~linux_tcp_listener_t() {
     if (defunct)
         return;
 

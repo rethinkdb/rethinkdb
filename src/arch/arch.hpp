@@ -41,10 +41,10 @@ typedef io_config_t::direct_file_t direct_file_t;
 typedef io_config_t::nondirect_file_t nondirect_file_t;
 typedef io_config_t::iocallback_t iocallback_t;
 
-typedef io_config_t::net_listener_t net_listener_t;
-typedef io_config_t::net_listener_callback_t net_listener_callback_t;
+typedef io_config_t::tcp_listener_t tcp_listener_t;
+typedef io_config_t::tcp_listener_callback_t tcp_listener_callback_t;
 
-typedef io_config_t::net_conn_t net_conn_t;
+typedef io_config_t::tcp_conn_t tcp_conn_t;
 
 typedef io_config_t::thread_message_t thread_message_t;
 

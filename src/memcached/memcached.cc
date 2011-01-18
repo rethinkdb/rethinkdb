@@ -12,10 +12,10 @@ around to do_get(), do_storage(), and the like. */
 
 struct txt_memcached_handler_t {
 
-    net_conn_t *conn;
+    tcp_conn_t *conn;
     server_t *server;
 
-    txt_memcached_handler_t(net_conn_t *conn, server_t *server) :
+    txt_memcached_handler_t(tcp_conn_t *conn, server_t *server) :
         conn(conn),
         server(server),
         requests_out_sem(MAX_CONCURRENT_QUERIES_PER_CONNECTION)
@@ -26,7 +26,7 @@ struct txt_memcached_handler_t {
     void write(const char *buffer, size_t bytes) {
         try {
             conn->write_buffered(buffer, bytes);
-        } catch (net_conn_t::write_closed_exc_t) {
+        } catch (tcp_conn_t::write_closed_exc_t) {
         }
     }
     void writef(const char *format, ...) {
@@ -41,7 +41,7 @@ struct txt_memcached_handler_t {
     void write_unbuffered(const char *buffer, size_t bytes) {
         try {
             conn->write(buffer, bytes);
-        } catch (net_conn_t::write_closed_exc_t) {
+        } catch (tcp_conn_t::write_closed_exc_t) {
         }
     }
 
@@ -189,7 +189,7 @@ private:
 };
 
 /* The memcached_streaming_data_provider_t is a data_provider_t that gets its data by
-reading from a net_conn_t. In general it is used for big values that would be expensive
+reading from a tcp_conn_t. In general it is used for big values that would be expensive
 to buffer in memory. The disadvantage is that it requires going back and forth between
 the core where the cache is and the core where the request handler is.
 
@@ -244,7 +244,7 @@ public:
                 char crlf[2];
                 rh->conn->read(crlf, 2);
                 success = (memcmp(crlf, "\r\n", 2) == 0);
-            } catch (net_conn_t::read_closed_exc_t) {
+            } catch (tcp_conn_t::read_closed_exc_t) {
                 success = false;
             }
         }
@@ -486,7 +486,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 
         try {
             rh->conn->read(value_buffer, value_size + 2);
-        } catch (net_conn_t::read_closed_exc_t) {
+        } catch (tcp_conn_t::read_closed_exc_t) {
             return;    // serve_memcached() will see it is closed
         }
 
@@ -741,9 +741,9 @@ perfmon_duration_sampler_t
     pm_conns_writing("conns_writing", secs_to_ticks(1)),
     pm_conns_acting("conns_acting", secs_to_ticks(1));
 
-void read_line(net_conn_t *conn, std::vector<char> *dest) {
+void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 
-    struct : public net_conn_t::peek_callback_t {
+    struct : public tcp_conn_t::peek_callback_t {
         int line_size;   // On output, the size of the line without the CRLF, or -1 on error
         bool check(const void *buffer, size_t size) throw () {
 
@@ -777,14 +777,14 @@ void read_line(net_conn_t *conn, std::vector<char> *dest) {
     conn->peek_until(&peeker);
     if (peeker.line_size == -1) {
         conn->shutdown_read();
-        throw net_conn_t::read_closed_exc_t();
+        throw tcp_conn_t::read_closed_exc_t();
     }
 
     dest->resize(peeker.line_size + 2);   // +2 for CRLF
     conn->read(dest->data(), peeker.line_size + 2);
 };
 
-void serve_memcache(net_conn_t *conn, server_t *server) {
+void serve_memcache(tcp_conn_t *conn, server_t *server) {
 
     logINF("Opened connection %p\n", coro_t::self());
 
@@ -801,7 +801,7 @@ void serve_memcache(net_conn_t *conn, server_t *server) {
         block_pm_duration flush_timer(&pm_conns_writing);
         try {
             conn->flush_buffer();
-        } catch (net_conn_t::write_closed_exc_t) {
+        } catch (tcp_conn_t::write_closed_exc_t) {
             /* Ignore errors; it's OK for the write end of the connection to be closed. */
         }
         flush_timer.end();
@@ -810,7 +810,7 @@ void serve_memcache(net_conn_t *conn, server_t *server) {
         block_pm_duration read_timer(&pm_conns_reading);
         try {
             read_line(conn, &line);
-        } catch (net_conn_t::read_closed_exc_t) {
+        } catch (tcp_conn_t::read_closed_exc_t) {
             break;
         }
         read_timer.end();
