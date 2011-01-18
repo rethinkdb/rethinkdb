@@ -78,40 +78,41 @@ struct node_t {
 template <>
 bool check_magic<node_t>(block_magic_t magic);
 
-class node_handler {
-    public:
-        static bool is_leaf(const node_t *node) {
-            assert(check_magic<node_t>(node->magic));
-            return check_magic<leaf_node_t>(node->magic);
-        }
+namespace node_handler {
 
-        static bool is_internal(const node_t *node) {
-            assert(check_magic<node_t>(node->magic));
-            return check_magic<internal_node_t>(node->magic);
-        }
+inline bool is_leaf(const node_t *node) {
+    assert(check_magic<node_t>(node->magic));
+    return check_magic<leaf_node_t>(node->magic);
+}
 
-        static bool str_to_key(char *str, btree_key *buf) {
-            int len = strlen(str);
-            if (len <= MAX_KEY_SIZE) {
-                memcpy(buf->contents, str, len);
-                buf->size = (uint8_t) len;
-                return true;
-            } else {
-                return false;
-            }
-        }
+inline bool is_internal(const node_t *node) {
+    assert(check_magic<node_t>(node->magic));
+    return check_magic<internal_node_t>(node->magic);
+}
 
-        static bool is_underfull(block_size_t block_size, const node_t *node);
-        static bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const internal_node_t *parent);
-        static int nodecmp(const node_t *node1, const node_t *node2);
-        static void split(block_size_t block_size, node_t *node, node_t *rnode, btree_key *median);
-        static void merge(block_size_t block_size, const node_t *node, node_t *rnode, btree_key *key_to_remove, internal_node_t *parent);
-        static bool level(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, internal_node_t *parent);
+inline bool str_to_key(char *str, btree_key *buf) {
+    int len = strlen(str);
+    if (len <= MAX_KEY_SIZE) {
+        memcpy(buf->contents, str, len);
+        buf->size = (uint8_t) len;
+        return true;
+    } else {
+        return false;
+    }
+}
 
-        static void print(const node_t *node);
+bool is_underfull(block_size_t block_size, const node_t *node);
+bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const internal_node_t *parent);
+int nodecmp(const node_t *node1, const node_t *node2);
+void split(block_size_t block_size, node_t *node, node_t *rnode, btree_key *median);
+void merge(block_size_t block_size, const node_t *node, node_t *rnode, btree_key *key_to_remove, internal_node_t *parent);
+bool level(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, internal_node_t *parent);
 
-        static void validate(block_size_t block_size, const node_t *node);
-};
+void print(const node_t *node);
+
+void validate(block_size_t block_size, const node_t *node);
+
+}  // namespace node_handler
 
 inline void keycpy(btree_key *dest, const btree_key *src) {
     memcpy(dest, src, sizeof(btree_key) + src->size);
