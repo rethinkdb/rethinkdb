@@ -67,7 +67,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
         } else if (res == -1) {
             /* Unknown error. This is not expected, but it will probably happen sometime so we
             shouldn't crash. */
-            logERR("Could not read from socket: %s", strerror(errno));
+            logERR("Could not read from socket: %s\n", strerror(errno));
             on_shutdown_read();
             throw read_closed_exc_t();
         } else {
@@ -127,7 +127,7 @@ void linux_tcp_conn_t::shutdown_read() {
 
     int res = ::shutdown(sock, SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for reading: %s", strerror(errno));
+        logERR("Could not shutdown socket for reading: %s\n", strerror(errno));
     }
 
     on_shutdown_read();
@@ -187,13 +187,13 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
         } else if (res == -1) {
             /* In theory this should never happen, but it probably will. So we write a log message
             and then shut down normally. */
-            logERR("Could not write to socket: %s", strerror(errno));
+            logERR("Could not write to socket: %s\n", strerror(errno));
             on_shutdown_write();
             throw write_closed_exc_t();
         } else if (res == 0) {
             /* This should never happen either, but it's better to write an error message than to
             crash completely. */
-            logERR("Didn't expect write() to return 0.");
+            logERR("Didn't expect write() to return 0.\n");
             on_shutdown_write();
             throw write_closed_exc_t();
         } else {
@@ -243,7 +243,7 @@ void linux_tcp_conn_t::shutdown_write() {
 
     int res = ::shutdown(sock, SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for writing: %s", strerror(errno));
+        logERR("Could not shutdown socket for writing: %s\n", strerror(errno));
     }
 
     on_shutdown_write();
@@ -283,7 +283,7 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
 
     int res = ::close(sock);
     if (res != 0) {
-        logERR("close() failed: %s", strerror(errno));
+        logERR("close() failed: %s\n", strerror(errno));
     }
 }
 
