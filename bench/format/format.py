@@ -1,5 +1,5 @@
 #TODO make an index.html version that uses a href tags rather than cid tags (email embedding)
-import sys, os
+import sys, os, io
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir + '/oprofile')))
 from plot import *
 from oprofile import *
@@ -21,12 +21,33 @@ class Run(object):
         self.data = data
         self.server_meta = server_meta
         self.client_meta = client_meta
+        self.description = None
+        self.description_run = None
 
 class Multirun(object):
     def __init__(self, name = '', runs = {}, unit = None):
         self.name = name.replace('_', ' ')
         self.runs = runs
         self.unit = unit
+        self.description = None
+        self.description_run = None
+
+class Description():
+    def __init__(self):
+        self.description = None
+
+    def read(self, file_name):
+        try:
+            self.description = io.open(file_name).read()
+        except IOError:
+            self.description = None
+
+    def generateHtml(self):
+        if self.description:
+            return self.description.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("[h]", "<b>").replace("[/h]", "</b>").replace("\n", "<br>")
+        else:
+            return ""
+
 
 class dbench():
     log_file = 'bench_log.txt'
@@ -67,11 +88,6 @@ class dbench():
         except:
             print 'No competitors found in: '+self.competitor_dir
 
-        # For now: enforce that MySQL is in the list ahead of Membase, as we have all benchs working for MySQL, but just some for Membase.
-        #    Not doing so results in different color coding of MySQL in tests where Membase is available and tests where it is not.
-        competitor_dirs.sort()
-        competitor_dirs.reverse()
-
         for dir in competitor_dirs:
             self.competitors[dir] = self.bench_stats(os.path.join(self.competitor_dir, dir, self.bench_dir))
 
@@ -89,6 +105,8 @@ class dbench():
         rdbstat_path    = 'rdbstat/output.txt'
         server_meta_path= 'server/output.txt'
         client_meta_path= 'client/output.txt'
+        description_path= 'DESCRIPTION'
+        description_run_path='DESCRIPTION_RUN'
         multirun_flag   = 'multirun'        
 
         def __init__(self, dir):
@@ -141,6 +159,10 @@ class dbench():
             # Collect and built single data and metadata
             for singlerun in singlerun_dirs:
                 collect_run_data(singlerun, os.path.join(dir,singlerun,'1'), self.single_runs)
+                self.single_runs[singlerun].description = Description()
+                self.single_runs[singlerun].description.read(os.path.join(dir,singlerun,self.description_path))
+                self.single_runs[singlerun].description_run = Description()
+                self.single_runs[singlerun].description_run.read(os.path.join(dir,singlerun,self.description_run_path))
 
             # Collect and built multirun data and metadata
             for multirun in multirun_dirs:
@@ -170,6 +192,12 @@ class dbench():
 
                 # Create a new Multirun with the collected data
                 self.multi_runs[multirun] = Multirun(multirun, runs, unit)
+
+                # Read description files
+                self.multi_runs[multirun].description = Description()
+                self.multi_runs[multirun].description.read(os.path.join(dir,singlerun,self.description_path))
+                self.multi_runs[multirun].description_run = Description()
+                self.multi_runs[multirun].description_run.read(os.path.join(dir,singlerun,self.description_run_path))
                 
                 # Determine the mean of each run, create a new TimeSeriesMeans object so we can plot the means later
                 multirun_data = []
@@ -328,10 +356,15 @@ class dbench():
             data = {}
             data['RethinkDB'] = reduce(lambda x, y: x + y, run.data)
 
+            competitor_keys = self.competitors.keys()
+
             # Accumulating data for competitors' run
-            for competitor in self.competitors.iteritems():
+            per_competitor_descriptions = [('RethinkDB', run.description_run)]
+            for competitor_key in competitor_keys:
+                competitor = (competitor_key, self.competitors[competitor_key])
                 try:
                     data[competitor[0]] = reduce(lambda x, y: x + y, competitor[1].single_runs[run_name].data)
+                    per_competitor_descriptions.append((competitor_key, competitor[1].single_runs[run_name].description_run))
                 except KeyError:
                     print 'Competitor: %s did not report data for run %s' % (competitor[0], run.name)
 
@@ -339,6 +372,14 @@ class dbench():
             data['RethinkDB'].json(self.out_dir + '/' + self.dir_str + '/' + flot_data + run_name,'Server:' + server_meta + 'Client:' + client_meta)
             print >>res, '<span style="display: inline;">', flot('/' + self.prof_dir + '/' + self.dir_str + '/' + flot_data + run_name + '.js', '(explore data)</span>')
             
+            # Print a description for this workload (first general, then for each competitor)
+            print >>res, '<br><br>'
+            print >>res, run.description.generateHtml()
+            for (name, description_run) in per_competitor_descriptions:
+                if description_run:
+                    print >>res, '<br><b>%s</b><br>' % name
+                    print >>res, description_run.generateHtml()
+
             # Build data for the qps plot
             qps_data = TimeSeriesCollection()
 
@@ -389,12 +430,17 @@ class dbench():
 
             # Get the data for the multirun mean scatter plot
             mean_data = {}
-            # For now we just collect RethinkDB's multirun data. In the future, we'll have to add competitors TODO
             mean_data['RethinkDB'] = multirun.data
 
-            for competitor in self.competitors.iteritems():
+            competitor_keys = self.competitors.keys()
+
+            # Accumulating data for competitors' run
+            per_competitor_descriptions = [('RethinkDB', multirun.description_run)]
+            for competitor_key in competitor_keys:
+                competitor = (competitor_key, self.competitors[competitor_key])
                 try:
                     mean_data[competitor[0]] = competitor[1].multi_runs[multirun_name].data
+                    per_competitor_descriptions.append((competitor_key, competitor[1].multi_runs[multirun_name].description_run))
                 except KeyError:
                     print 'Competitor: %s did not report mean data for multirun %s' % (competitor[0], multirun.name) 
                 except AttributeError:
@@ -413,6 +459,14 @@ class dbench():
                     print >>res, ' | '
 
             print >>res, ')</span>'
+
+            # Print a description for this workload (first general, then for each competitor)
+            print >>res, '<br><br>'
+            print >>res, multirun.description.generateHtml()
+            for (name, description_run) in per_competitor_descriptions:
+                if description_run:
+                    print >>res, '<br><b>%s</b><br>' % name
+                    print >>res, description_run.generateHtml()
 
             # Check if we can use the labels as x values (i.e. they are all numeric)
             labels_are_x_values = True
@@ -468,9 +522,11 @@ class dbench():
                 except AttributeError:
                     print 'Competitor: %s has no multiruns.' % competitor_name
 
+            competitors_with_multiruns_keys = competitors_with_multiruns.keys()
             # Determine if any competitors have matching data for each run, then add them to the data set as needed. Add them to the summary table for each run as well.
             for run_name in multiplot_data.keys():
-                for competitor_name, competitor_multirun in competitors_with_multiruns.iteritems():
+                for competitor_name in competitors_with_multiruns_keys:
+                    competitor_multirun = competitors_with_multiruns[competitor_name]
                     try:
                         competitor_multirun_data = competitor_multirun.runs[run_name].data
                         multiplot_data[run_name] += competitor_multirun_data.select('qps').remap('qps',competitor_name)
