@@ -34,7 +34,7 @@ BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
 # Define configuration variables
-CXX:=g++44
+CXX:=g++
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
 ifeq ($(UNIT_TESTS),0)
@@ -98,6 +98,7 @@ CXXFLAGS+=-DMEMCACHED_STRICT
 endif
 
 ifeq ($(LEGACY_LINUX),1)
+CXX=g++44
 CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL
 BUILD_DIR:=$(BUILD_DIR)-legacy
 endif
