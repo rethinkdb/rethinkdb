@@ -10,7 +10,7 @@ Introduction
 RethinkDB is an industrial strength, high performance, durable data
 store. It supports a wide variety of operations on a set of key/value
 pairs, and is exposed to the network via a Memcached protocol. The
-engine is designed to be robust in a large range of scenarios and
+engine is designed to be robust in a wide range of scenarios and
 operates efficiently on various hardware configurations, workloads,
 and dataset sizes. It is capable of operating in highly concurrent,
 high throughput, low latency environments, and in many cases can
@@ -22,18 +22,18 @@ maintain efficient operation:
 
 - Various dataset sizes, including datasets that fit into main memory,
   large datasets with *active* datasets that fit into main memory, and
-  datasets require disk access for every operation.
-- Workloads with different, very large and very small read/write
+  datasets that require disk access for every operation.
+- Workloads with very large, very small, and mixed read/write
   ratios.
 - A wide range of key and value sizes.
-- Thousands of network connections.
+- Thousands of concurrent network connections.
 - Pipelined as well as blocking operation requests.
 
 In addition to supporting legacy hardware, RethinkDB takes full
 advantage of modern architectures, including multicore servers,
 solid-state drives, NUMA architectures, and fast Ethernet. It ships
 with tools that help easily perform data migration and recovery, run
-data consistency checks, do performance tuning, etc.
+data consistency checks, do performance tuning, and more.
 
 This manual describes the features exposed by RethinkDB in significant
 detail. For additional questions, please contact RethinkDB support_.
@@ -42,9 +42,7 @@ detail. For additional questions, please contact RethinkDB support_.
 Quick start guide
 =================
 
-Install RethinkDB::
-
-  yum install http://www.rethinkdb.com/rethinkdb-0.1.yum
+Install RethinkDB from http://rethinkdb.com/download/zzxcawe.
 
 Start it::
 
@@ -64,17 +62,19 @@ Getting started
 Prerequisites
 -------------
 
-RethinkDB requires the following software to operate:
+RethinkDB works on modern 64-bit distributions of Linux. We support the following distributions:
 
-- A Linux distribution with a 64 bit, recent 2.6 kernel
+- Ubuntu 10.04.1 x86_64
+- Ubuntu 10.10 x86_64
 
 ------------
 Installation
 ------------
 
-``````
-CentOS
-``````
+````````````
+TODO: Ubuntu
+````````````
+
 Use the standard package manager to install RethinkDB from a remote
 URL::
 
@@ -84,27 +84,27 @@ URL::
 Running the server
 ------------------
 
-Once RethinkDB is installed, you can run the server::
+Once RethinkDB is installed, start the server::
 
   $ rethinkdb
 
-This is equivalent to running RethinkDB with a ``serve`` command::
+This is equivalent to running RethinkDB with the ``serve`` command::
 
   $ rethinkdb serve
 
 This command will look for a database file named ``rethinkdb_data`` in
 the current directory, create it if it's missing, and start the server
-on port ``11211``. Alternatively, we can specify the database file and
+on port ``11211``. Alternatively, specify the database file and
 the port explicitly::
 
   $ rethinkdb -f mydb.file -p 8080
 
-To test that the server is operating correctly, we can telnet into the
+To test that the server is operating correctly, we can ``telnet`` into the
 appropriate port and type Memcached commands directly. In the
 following telnet session we set a value for a key, get it back, and
 quit the connection::
 
-  $ telnet localhost 8080
+  $ telnet localhost 11211
   Trying ::1...
   Trying 127.0.0.1...
   Connected to localhost.
@@ -119,32 +119,46 @@ quit the connection::
   quit
   Connection closed by foreign host.
 
+To stop the server, type ``CTRL + C``.
+
 -----------------
 Language bindings
 -----------------
 
-RethinkDB is binary compatible with Memcached protocol, and can be
+RethinkDB is binary compatible with the Memcached protocol, and can be
 used as a drop in replacement for an existing solution without any
-changes to the application. Client libraries that implemented
+changes to the application. Client libraries that support the
 Memcached protocol will also work with RethinkDB. The following page
 contains a list of client libraries for various languages:
 http://code.google.com/p/memcached/wiki/Clients.
 
-Note that many clients do not implement full support for Memcached
-protocol, and you may encounter issues with clients that aren't
-commonly supported.
+Note that many existing clients have not implemented full support for the Memcached
+protocol. You may encounter subtle issues with clients that aren't
+in mainstream use.
   
+For example, if you're using Python with the `pylibmc` library, you can set and get keys in the following way::
+
+  >>> import pylibmc
+  >>> conn = pylibmc.Client(["localhost:11211"])
+  >>> conn.set("some_key", "some_value")
+  True
+  >>> conn.get("some_key")
+  'some_value'
+
 ---------------
 Additional help
 ---------------
 
-To get additional help on specific usage, you can use the built-in
-help command::
+To get additional help on specific usage of RethinkDB, use the built-in
+``help`` command. For example, to learn more about the ``serve`` command::
 
-  $ rethinkdb -h
   $ rethinkdb help serve
 
-Alternatively, you can get help from a RethinkDB man page that comes
+To get a full list of commands available within RethinkDB::
+
+  $ rethinkdb help
+
+Alternatively, you can get help from the RethinkDB man page that comes
 with the installation::
 
   $ man rethinkdb
@@ -159,11 +173,11 @@ Features
 Memcached protocol
 ------------------
 
-RethinkDB implements Memcached protocol as described on the following
+RethinkDB implements the Memcached protocol as described on the following
 page:
 http://code.sixapart.com/svn/memcached/trunk/server/doc/protocol.txt. All
 specified commands should work as expected, and clients that work with
-Memcached implementations should continue working with RethinkDB. The
+Memcached implementations should continue working with RethinkDB without modification. The
 following is a list of known discrepancies with the Memcached
 protocol:
 
@@ -181,7 +195,7 @@ Performance
 -----------
 
 RethinkDB has a number of features intended to increase
-performance. Common performance problems involve disk I/O bottlenecks
+performance. Common performance problems encountered with database systems involve disk I/O bottlenecks
 (number of possible operations per second, throughput, latency, etc.),
 CPU lock contention, and network bottlenecks. The following features
 are designed to mitigate performance problems associated with hardware
@@ -195,12 +209,11 @@ Disk
 Striping
 """"""""
 
-Modern RAID controllers implement efficient striping across disks but
-synchronizing rotational disk spindles. Unfortunately in the case of
-solid-state drives no synchronization is possible, and because these
-drives often have varying latency the entire array works as fast as
-the slowest operation at any given time. This significantly increases
-latency on write operation. RethinkDB implements disk striping that
+Modern RAID controllers implement efficient striping across disks by
+synchronizing rotational disk spindles. Unfortunately, in the case of
+solid-state drives, no synchronization is possible. Because these
+drives often have varying latency, the entire array is limited to the speed of the slowest-operating drive at any given time.
+This significantly increases latency on write operations. RethinkDB implements disk striping that
 gets around this problem by writing to each disk independently. In
 order to take advantage of this feature you can partition a RethinkDB
 database across multiple files (located on one or many disks), and
@@ -210,10 +223,10 @@ automatically::
   $ rethinkdb -f file1.db -f file2.db
 
 If the files ``file1.db`` and ``file2.db`` are located on different
-disks, the I/O performance will double without using the RAID
-controller and without any sacrifice of latency.
+disks, the I/O performance will double without needing to use a RAID
+controller and without sacrificing latency.
 
-Note, this feature does not implement mirroring and parity guarantees
+Note that this feature does not implement mirroring and parity guarantees
 implemented by advanced RAID controllers. The intention is not to
 entirely replace RAID, but to support an alternative partitioning
 method which can be very useful in certain situations.
@@ -222,17 +235,17 @@ method which can be very useful in certain situations.
 Active extents
 """"""""""""""
 
-Rotational disks are fundamentally sequential machines - they have a
-single head that can read from and write to one location at a
-time. Many solid-state storage devices are fundamentally parallel -
-they have multiple flash memory chips and can often benefit from
-software that expects writes to multiple location in
-parallel. RethinkDB supports allows for tuning the number of active
-concurrent locations on disk being written to at once::
+Rotational disks are fundamentally sequential machines—they have a
+single head that can read from, and write to a single location at a
+time. Many solid-state storage devices are fundamentally parallel—they
+have multiple flash memory chips and improve in performance if software distributes writes to multiple disk locations concurrently.
+
+RethinkDB divides disk space into blocks of space called *extents*.
+Specify the number of concurrent extents by starting the server with the following flag::
 
   $ rethinkdb --active-data-extents 4
 
-For rotational drives and storage systems based on rotational drives
+For storage systems based on rotational drives,
 the value of ``active-data-extents`` should be set to ``1``. On
 write-heavy workloads, many solid-state drives will perform more
 efficiently if this value is between ``2`` and ``16``.
@@ -243,29 +256,28 @@ Multicore
 
 RethinkDB has full support for machines with multiple CPUs and for
 CPUs with multiple cores. By default, the server takes advantage of
-all available cores on the machine. The number of cores the server
+all available cores on a machine. The number of cores the server
 should use can be specified explicitly::
 
   $ rethinkdb --cores 8
 
 This will limit the server to using eight cores. It is OK to
 over-provision cores (passing a larger number than the machine has),
-which may or may not increase performance in a real-world scenario.
+which may or may not affect performance in a real-world scenario.
 
 ``````
 Memory
 ``````
 
 The amount of available main memory can drastically affect performance
-of the database system because main memory is used to cache data and
-allows avoiding going to disk, which is orders of magnitude slower. By
-default, RethinkDB will use as much memory as necessary (and as the
+of a database system because main memory is used to cache data and delays the need to go to disk, which is orders of magnitude slower.
+By default, RethinkDB will use as much memory as necessary (and as the
 system has available) to operate efficiently. However, this number can
 be specified explicitly::
 
   $ rethinkdb --max-cache-size 8192
 
-The cache size is specified in megabytes - the above command limits
+The cache size is specified in megabytes—the above command limits
 the cache size to 8GB.
 
 ----------
@@ -278,14 +290,14 @@ Flush interval
 
 For increased performance, RethinkDB delays flushing data to disk in
 order to batch updates and write them to disk more efficiently. The
-amount of time between flushes can be controlled explicitly::
+amount of time between flushes can be controlled explicitly (in milliseconds)::
 
   $ rethinkdb --flush-timer 1000
 
 This tells the server to flush data to disk every second. A longer
 flush timer allows the server to batch writes more effectively and
 increase performance. A shorter flush timer flushes the data more
-often but ensures that less data can be lost in the event of a power
+often, but ensures that less data can be lost in the event of a power
 failure.
 
 ``````````````````
@@ -296,22 +308,21 @@ In environments that operate under extremely high load, the network
 component is often significantly faster than the disk, which means
 commands arrive at a faster rate than the storage system can
 satisfy. In these situations RethinkDB implements throughput
-throttling - if the disk gets saturated, RethinkDB slows down its
-responses to the command to give the disk a chance to catch up.
+throttling—if the disk gets saturated, RethinkDB slows down its
+responses to commands to give the disk time to catch up.
 
 To maintain high performance, RethinkDB often allows the commands to
 proceed despite the fact that the disk cannot catch up. This allows
-the changes to batch up in memory and get flushed to disk later. In
+the changes to batch in memory and get flushed to disk later. In
 cases of power failure, this means large amounts of data can be
-lost. RethinkDB allows controlling precisely how much data may be
-cached in RAM without being flushed to disk::
+lost. RethinkDB allows controlling precisely how much data is allowed to be
+cached in RAM without flushing to disk (in megabytes)::
 
   $ rethinkdb --unsaved-data-limit 1024
 
-This allows RethinkDB to cache up to one GB of unsaved data in RAM. In
-the event of a power failure, no more than one GB of data will be
-lost. Adjust this limit to set the durability and performance trade
-off to an acceptable level.
+This allows RethinkDB to cache up to one gigabyte of unsaved data in RAM. In
+the event of a power failure, no more than one gigabyte of data will be
+lost. Adjust this limit to set the durability and performance trade-off to an acceptable level.
 
 `````````````
 Response mode
@@ -319,8 +330,8 @@ Response mode
 
 By default, RethinkDB responds to write commands before they get
 committed to disk. This significantly decreases the latency and allows
-for increased throughput, but leaves a possibility of data loss in the
-event of a power failure. It is possible to ensure no data loss in the
+for increased throughput, but leaves the  possibility of data loss in the
+event of power failure. It is possible to ensure no data loss in the
 event of a power failure by telling the server not to acknowledge
 writes until they are safely committed to disk::
 
@@ -335,7 +346,7 @@ Data migration and recovery
 ---------------------------
 
 RethinkDB provides tools for migrating into different solutions by
-converting it into open formats. The following command extracts the
+exporting its data to the open Memcached format. The following command extracts the
 contents of a RethinkDB database::
 
   $ rethinkdb extract -f file.db -o memcached.out
@@ -347,13 +358,13 @@ different server that supports the Memcached protocol, or
 programmatically converted to other formats. For example, if we have a
 different server that supports a Memcached interface (including
 RethinkDB) running on a port ``8080`` we can fill it with the contents
-of the database with the following Unix command::
+of the exported file with the following Unix command::
 
   $ cat memcached.out | nc localhost 8080 -q 0
 
 The ``extract`` command works even in cases when the data has been
-corrupted and RethinkDB server cannot open the database file. In this
-case ``extract`` will try to recover as much data as possible and
+corrupted and  server cannot open the database file. In this
+case, ``extract`` will try to recover as much data as possible and
 ignore the corrupted parts of the database file.
 
 =================  
@@ -373,7 +384,7 @@ Block device support
 ````````````````````
 
 RethinkDB can bypass the file system and run directly on the block
-device. In order for RethinkDB to run on a block device, the device
+device. In order for server to use a block device, the device
 first needs to be formatted::
 
   $ rethinkdb create -f /dev/sdb
@@ -382,8 +393,8 @@ The database can be sharded across multiple devices::
 
   $ rethinkdb create -f /dev/sdb -f /dev/sdc
 
-If a database already exists on a device, RethinkDB will output an
-error message. The block device can be reformatted by using a
+If an existing database was previously created on the device, the server will output an
+error message. The block device can be reformatted by using the
 ``force`` argument::
 
   $ rethinkdb create -f /dev/sdb -f /dev/sdc --force
@@ -400,7 +411,7 @@ Block size
 By default, RethinkDB uses a 4KB block size. In some cases larger
 block sizes (8KB to 64KB) can yield higher performance. When the
 database is created, the block size can be specified explicitly as
-follows::
+follows (in bytes)::
 
   $ rethinkdb create --block-size 8192 -f file.db
 
@@ -411,7 +422,7 @@ Extent size
 Data blocks are grouped into ``extents``. Large extents often allow
 for more efficient disk usage but may lower the performance of the
 garbage collector. An extent size can be specified explicitly during
-database creation as follows::
+database creation as follows (in bytes)::
 
   $ rethinkdb create --extent-size 1048576 -f file.db
 
@@ -447,13 +458,12 @@ on startup as follows::
   $ rethinkdb --gc-range 0.6-0.8
 
 The above argument configures the garbage collector to kick in when
-the file contains more than 80% of unused blocks, and to stop
-collecting when the number of unused blocks becomes lower than 60% of
-the file.
+80% of the file contains unused blocks, and to stop
+collecting when less than 60% of the file contains unused blocks.
 
 An aggressive garbage collection setting will keep a larger proportion
 of the disk available for live data, but may decrease performance of
-the system because of larger load on the disk.
+the system because of higher load on the disk.
 
 ------------------
 Consistency checks
@@ -471,11 +481,10 @@ error explaining the source of corruption.
 Advanced data recovery
 ----------------------
 
-The recovery tool described in `data migration and recovery`_ allows
-advanced options to recover data in situations where metadata has been
-sufficiently corrupted so that the tool cannot run automatically. In
-such cases, block size, extent size, and slice numbers can be
-specified explicitly to allows the tool to proceed::
+The recovery tool described in the `data migration and recovery`_ section
+exposes options to recover data in situations where the tool cannot be run automatically because of substantial metadata corruption.
+In such cases, block size, extent size, and slice numbers can be
+specified explicitly to allow the tool to proceed::
 
   $ rethinkdb extract -f file.db --force-block-size 4096      \
                                  --force-extent-size 1048576  \
@@ -492,11 +501,11 @@ an issue, please try to include the following pieces of information:
   system, kernel version, hardware, etc).
 - A description of the problem, how it came about, and how it can be
   reproduced.
-- RethinkDB log file. By default, log messages are written to standard
+- The RethinkDB log file. By default, log messages are written to standard
   output. In a production environment you may want to point them to a
   file on disk for easy collection using ``--log-file`` argument.
 - If the problem involves a crash, please include the core dump file
-  associated with the error. The core dump is usually named ``core``
-  and is placed into the directory where the server was run. If you do
+  associated with the error. Core dumps are usually named ``core``
+  and are placed into the directory where the server was run. If you do
   not see a core dump file, you may need to enable core dumps by
   running the ``ulimit -c unlimited`` command.
