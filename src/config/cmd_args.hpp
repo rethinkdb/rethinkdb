@@ -114,6 +114,12 @@ struct replication_config_t {
     int port;
 };
 
+/* Configuration for failover */
+struct failover_static_config_t {
+    char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
+    int     heartbeat_timeout; /* noncommunicative period after which the other server is considered to be unreachable */
+};
+
 /* All the configuration together */
 
 struct cmd_config_t {
@@ -144,6 +150,9 @@ struct cmd_config_t {
     //replication configuration
     replication_config_t replication_config;
 
+    // Configuration for failover
+    failover_static_config_t failover_config;
+
     bool verbose;
 };
 
@@ -170,6 +179,8 @@ public:
     void set_last_semantic_file(const char* value);
 #endif
     void set_master_addr(char *value);
+    void set_failover_file(const char* value);
+    void set_heartbeat_timeout(const char* value);
     void push_private_config(const char* value);
     
 private:

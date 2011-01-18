@@ -1,6 +1,9 @@
 #!/bin/bash
 
 mkdir -p "$BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)"
+. `dirname "$0"`/DESCRIPTION_RUN > "$BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)/DESCRIPTION_RUN"
+
+mkdir -p "$BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)"
 echo CPU Cores > "$BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)/multirun"
 
 # Fake a 0-cores result for nicer graphs
@@ -12,5 +15,6 @@ if [ $DATABASE == "rethinkdb" ]; then
 fi
 
 if [ $DATABASE == "mysql" ]; then
+    . `dirname "$0"`/DESCRIPTION > "$BENCH_DIR/bench_output/Number_of_cores_scalability_(canonical_workload)/DESCRIPTION"
     sudo set-corecount 24
 fi
