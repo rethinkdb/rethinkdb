@@ -93,66 +93,37 @@ ssize_t try_parsing(message_callback_t *receiver, const char *buffer, size_t siz
 
 void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver) {
 
-    struct : public linux_tcp_conn_t::peek_callback_t {
-        message_callback_t *rece;
-
-        ssize_t check(const void *buf, size_t size) throw() {
-            const char *buffer = reinterpret_cast<const char *>(buf);
-            const net_header_t *hdr = reinterpret_cast<const net_header_t *>(buf);
+    for (;;) {
+        tcp_conn_t::bufslice sl = conn->peek();
+        if (sl.len >= sizeof(net_header_t)) {
+            const char *buffer = reinterpret_cast<const char *>(sl.buf);
+            const net_header_t *hdr = reinterpret_cast<const net_header_t *>(sl.buf);
 
             int multipart_aspect = hdr->message_multipart_aspect;
 
             if (multipart_aspect == SMALL) {
+
                 switch (hdr->msgcode) {
-                case BACKFILL: {
-                    return try_parsing<backfill_message_t>(rece, buffer, size);
-                } break;
-
-                case ANNOUNCE: {
-                    return try_parsing<announce_message_t>(rece, buffer, size);
-                } break;
-
-                case NOP: {
-                    return try_parsing<nop_message_t>(rece, buffer, size);
-                } break;
-
-                case ACK: {
-                    return try_parsing<ack_message_t>(rece, buffer, size);
-                } break;
-
-                case SHUTTING_DOWN: {
-                    return try_parsing<shutting_down_message_t>(rece, buffer, size);
-                } break;
-
-                case GOODBYE: {
-                    return try_parsing<goodbye_message_t>(rece, buffer, size);
-                } break;
-
-                case SET: {
-                    return try_parsing<set_message_t>(rece, buffer, size);
-                } break;
-
-                case APPEND: {
-                    return try_parsing<append_message_t>(rece, buffer, size);
-                } break;
-
-                case PREPEND: {
-                    return try_parsing<prepend_message_t>(rece, buffer, size);
-                } break;
-
-                default: {
-                    throw protocol_exc_t("invalid message code");
+                case BACKFILL: { if (try_parsing<backfill_message_t>(receiver, buffer, sl.len)) return; } break;
+                case ANNOUNCE: { if (try_parsing<announce_message_t>(receiver, buffer, sl.len)) return; } break;
+                case NOP: { if (try_parsing<nop_message_t>(receiver, buffer, sl.len)) return; } break;
+                case ACK: { if (try_parsing<ack_message_t>(receiver, buffer, sl.len)) return; } break;
+                case SHUTTING_DOWN: { if (try_parsing<shutting_down_message_t>(receiver, buffer, sl.len)) return; } break;
+                case GOODBYE: { if (try_parsing<goodbye_message_t>(receiver, buffer, sl.len)) return; } break;
+                case SET: { if (try_parsing<set_message_t>(receiver, buffer, sl.len)) return; } break;
+                case APPEND: { if (try_parsing<append_message_t>(receiver, buffer, sl.len)) return; } break;
+                case PREPEND: { if (try_parsing<prepend_message_t>(receiver, buffer, sl.len)) return; } break;
+                default: { throw protocol_exc_t("invalid message code"); }
                 }
-                }
+
+            } else {
+                throw protocol_exc_t("invalid multipart_aspect (small messages only supported)");
+
             }
-
-            throw protocol_exc_t("invalid multipart_aspect (small messages only supported)");
         }
-    } peeker;
 
-    peeker.rece = receiver;
-
-    conn->peek_until(&peeker);
+        conn->read_more_buffered();
+    }
 }
 
 

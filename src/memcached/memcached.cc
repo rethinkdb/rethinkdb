@@ -743,46 +743,35 @@ perfmon_duration_sampler_t
 
 void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 
-    struct : public tcp_conn_t::peek_callback_t {
-        bool fail;
-        std::vector<char> *dest;
-        ssize_t check(const void *buffer, size_t size) throw () {
+    for (;;) {
+        tcp_conn_t::bufslice sl = conn->peek();
+        void *crlf_loc = memmem(sl.buf, sl.len, "\r\n", 2);
+        size_t threshold = MEGABYTE;
 
-            /* Look for a line terminator */
-            void *crlf_loc = memmem(buffer, size, "\r\n", 2);
-            int threshold = MEGABYTE;
+        if (crlf_loc) {
+            // We have a valid line.
+            size_t line_size = (char *)crlf_loc - (char *)sl.buf;
 
-            if (crlf_loc) {
-                /* We have a valid line */
-                size_t line_size = (char *)crlf_loc - (char *)buffer;
-
-                dest->resize(line_size + 2);  // +2 for CRLF
-                memcpy(dest->data(), buffer, line_size + 2);
-                fail = false;
-                return line_size + 2;
-            } else if ((int)size > threshold) {
-                /* If a horribly malfunctioning client sends a lot of data without sending a
-                CRLF, our buffer will just grow and grow and grow. If this happens, then close the
-                connection. (This doesn't apply to large values because they are read from the
-                socket via a different mechanism.) Is there a better way to handle this situation?
-                */
-                logERR("Aborting connection %p because we got more than %d bytes without a CRLF\n",
-                    this, (int)threshold);
-                fail = true;
-                return 0;
-
-            } else {
-                /* Keep trying until we get a complete line */
-                return -1;
-            }
+            dest->resize(line_size + 2);  // +2 for CRLF
+            memcpy(dest->data(), sl.buf, line_size + 2);
+            conn->pop(line_size + 2);
+            return;
+        } else if (sl.len > threshold) {
+            // If a malfunctioning client sends a lot of data without a
+            // CRLF, we cut them off.  (This doesn't apply to large values
+            // because they are read from the socket via a different
+            // mechanism.)  There are better ways to handle this
+            // situation.
+            logERR("Aborting connection %p because we got more than %u bytes without a CRLF\n",
+                   coro_t::self(), threshold);
+            conn->shutdown_read();
+            throw tcp_conn_t::read_closed_exc_t();
         }
-    } peeker;
 
-    conn->peek_until(&peeker);
-    if (peeker.fail) {
-        conn->shutdown_read();
-        throw tcp_conn_t::read_closed_exc_t();
+        // Keep trying until we get a complete line.
+        conn->read_more_buffered();
     }
+
 };
 
 void serve_memcache(tcp_conn_t *conn, server_t *server) {

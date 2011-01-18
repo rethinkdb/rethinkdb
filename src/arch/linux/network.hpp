@@ -30,13 +30,15 @@ public:
     Returns when the buffer is full, or throws read_closed_exc_t. */
     void read(void *buf, size_t size);
 
-    /* If you don't know how many bytes you want to read, use peek_until(). peek_until() will
-    repeatedly call the given callback with larger and larger buffers until the callback returns
-    true. If the connection is closed, throws read_closed_exc_t. */
-    struct peek_callback_t {
-        virtual ssize_t check(const void *buf, size_t size) throw () = 0;
-    };
-    void peek_until(peek_callback_t *cb);
+    // If you don't know how many bytes you want to read, use peek()
+    // and then, if you're satisfied, pop what you've read, or if
+    // you're unsatisfied, read_more_buffered() and then try again.
+    struct bufslice { const char *buf; size_t len; bufslice(const char *b, size_t n) : buf(b), len(n) { } };
+    bufslice peek() const;
+    void pop(size_t len);
+
+    void read_more_buffered();
+
 
     /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
     is an outstanding read() or peek_until() operation, it will throw read_closed_exc_t. */

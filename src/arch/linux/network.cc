@@ -43,7 +43,7 @@ void linux_tcp_conn_t::register_with_event_loop() {
 size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 
     while (true) {
-        int res = ::read(sock, buffer, size);
+        ssize_t res = ::read(sock, buffer, size);
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             /* There's no data available right now, so we must wait for a notification from the
             epoll queue */
@@ -99,35 +99,28 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
     }
 }
 
-void linux_tcp_conn_t::peek_until(peek_callback_t *cb) {
-
-    register_with_event_loop();
+void linux_tcp_conn_t::read_more_buffered() {
     assert(!read_cond);
-    if (read_was_shut_down) throw read_closed_exc_t();
 
-    for (;;) {
-        ssize_t code = cb->check(read_buffer.data(), read_buffer.size());
+    // WTF is this
+    register_with_event_loop();
 
-        if (code != -1) {
-            assert(size_t(code) <= read_buffer.size());
-            read_buffer.erase(read_buffer.begin(), read_buffer.begin() + code);
-            return;
-        }
 
-        // cb->check() might have closed the connection
-        if (read_was_shut_down) throw read_closed_exc_t();
+    size_t old_size = read_buffer.size();
+    read_buffer.resize(old_size + IO_BUFFER_SIZE);
+    size_t delta = read_internal(read_buffer.data() + old_size, IO_BUFFER_SIZE);
 
-        // Grow the peek buffer so we have some space to put what we're about to insert
-        int old_size = read_buffer.size();
-        read_buffer.resize(old_size + IO_BUFFER_SIZE);
+    read_buffer.resize(old_size + delta);
+}
 
-        // Insert more data into the peek buffer. This may throw read_closed_exc_t, but we're OK
-        // with that.
-        size_t delta = read_internal(read_buffer.data() + old_size, IO_BUFFER_SIZE);
+linux_tcp_conn_t::bufslice linux_tcp_conn_t::peek() const {
+    return bufslice(read_buffer.data(), read_buffer.size());
+}
 
-        // Shrink again to the size of the actual amount of data we read
-        read_buffer.resize(old_size + delta);
-    }
+void linux_tcp_conn_t::pop(size_t len) {
+    assert(!read_cond);
+    assert(len <= read_buffer.size());
+    read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
 }
 
 void linux_tcp_conn_t::shutdown_read() {
