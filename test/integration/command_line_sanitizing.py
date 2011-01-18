@@ -3,6 +3,8 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
+ec2 = 4
+
 # returns (return_value, stdout, stderr) or None in case the process did not terminate within timeout seconds
 # run_rethinkdb() automatically fills in -f, -s, -c and -p if not specified in flags
 def run_rethinkdb(opts, test_dir, flags = [], timeout = 10):
@@ -56,14 +58,14 @@ def run_rethinkdb(opts, test_dir, flags = [], timeout = 10):
 def check_rethinkdb_flags(opts, flags, expected_return_value):
     assert opts["database"] == "rethinkdb"
     
-    create_db_timeout = 15
+    create_db_timeout = 15 * ec2
     rethinkdb_check_timeout = 10
     
     test_dir = TestDir()
     # Create an empty database file
     create_result = run_rethinkdb(opts, test_dir, ["create", "--force"], create_db_timeout)
     if create_result is None:
-        raise ValueError("Server took longer than %d seconds to create database." % server_create_time)
+        raise ValueError("Server took too longer than %d seconds to create database." % create_db_timeout)
     if create_result[0] != 0:
         raise ValueError("Server failed to create database.")
     
