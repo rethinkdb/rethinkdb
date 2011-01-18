@@ -1,10 +1,10 @@
 Package: rethinkdb
 Version: VERSION
 Architecture: amd64
-Maintainer: Package Maintainer <package-maintainer@rethinkdb.com>
+Maintainer: Package Maintainer <support@rethinkdb.com>
 Installed-Size: DISK_SIZE
 Pre-Depends: adduser (>= 3.40)
-Depends: libc6 (>= 2.5), libaio1 (>= 0.3.107) 
+Depends: libc6 (>= 2.10.1), libaio1 (>= 0.3.107) 
 Recommends: 
 Section: database
 Priority: optional
