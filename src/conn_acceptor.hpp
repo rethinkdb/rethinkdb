@@ -9,11 +9,11 @@
 
 /* The conn_acceptor_t is responsible for accepting incoming network connections, creating
 objects to deal with them, and shutting down the network connections when the server
-shuts down. It uses net_listener_t to actually accept the connections. Each conn_acceptor_t
+shuts down. It uses tcp_listener_t to actually accept the connections. Each conn_acceptor_t
 lasts for the entire lifetime of the server. */
 
 class conn_acceptor_t :
-    public net_listener_callback_t,
+    public tcp_listener_callback_t,
     public home_thread_mixin_t
 {
 public:
@@ -27,7 +27,7 @@ public:
     will close the read end of the socket and then continue waiting for handle() to return. This
     behavior may not be flexible enough in the future. */
     struct handler_t {
-        virtual void handle(net_conn_t *) = 0;
+        virtual void handle(tcp_conn_t *) = 0;
     };
 
     /* The constructor can throw this exception */
@@ -47,8 +47,8 @@ public:
 private:
     handler_t *handler;
 
-    boost::scoped_ptr<net_listener_t> listener;
-    void on_net_listener_accept(net_conn_t *conn);
+    boost::scoped_ptr<tcp_listener_t> listener;
+    void on_tcp_listener_accept(tcp_conn_t *conn);
 
     int next_thread;
 
@@ -58,8 +58,8 @@ private:
         public intrusive_list_node_t<conn_agent_t>
     {
         conn_acceptor_t *parent;
-        net_conn_t *conn;
-        conn_agent_t(conn_acceptor_t *, net_conn_t *);
+        tcp_conn_t *conn;
+        conn_agent_t(conn_acceptor_t *, tcp_conn_t *);
         void run();
     };
     intrusive_list_t<conn_agent_t> conn_agents[MAX_THREADS];

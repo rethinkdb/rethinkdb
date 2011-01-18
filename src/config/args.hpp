@@ -190,8 +190,15 @@
 // XXX: I increased this from 65536; make sure it's actually needed.
 #define COROUTINE_STACK_SIZE                      131072
 
+
+// TODO: It would be nice if we didn't need MAX_HOSTNAME_LEN and
+// MAX_PATH_LEN.. just because we're storing stuff in the database.
+
 // Maximum length of a hostname we communicate with
 #define MAX_HOSTNAME_LEN                          100
+
+//max length of a path that we have to store during run time
+#define MAX_PATH_LEN                              200
 
 #endif // __CONFIG_ARGS_H__
 

@@ -159,6 +159,8 @@ enum {
     coroutine_stack_size,
     print_version,
     slave_of,
+    failover_script,
+    heartbeat_timeout,
 };
 
 enum rethinkdb_cmd {
@@ -278,6 +280,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"version",              no_argument, &do_version, 1},
                 {"help",                 no_argument, &do_help, 1},
                 {"slave_of",             required_argument, 0, slave_of},
+                {"failover-script",      required_argument, 0, failover_script}, //TODO document this @jdoliner
+                {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO document this @jdoliner
                 {0, 0, 0, 0}
             };
 
@@ -340,6 +344,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 print_version_message(); break;
             case slave_of:
                 config.set_master_addr(optarg); break;
+            case failover_script:
+                break;
+            case heartbeat_timeout:
+                break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -637,6 +645,19 @@ void parsing_cmd_config_t::set_master_addr(char *value) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
 
     replication_config.port = parse_int(token);
+}
+
+void parsing_cmd_config_t::set_failover_file(const char* value) {
+    if (strlen(value) > MAX_PATH_LEN)
+        fail_due_to_user_error("Failover script path is too long");
+
+    strcpy(failover_config.failover_script_path, value);
+}
+void parsing_cmd_config_t::set_heartbeat_timeout(const char* value) {
+    failover_config.heartbeat_timeout = parse_int(value);
+
+    if (failover_config.heartbeat_timeout < 0)
+        fail_due_to_user_error("Heartbeat cannot be negative");
 }
 
 long long int parsing_cmd_config_t::parse_longlong(const char* value) {

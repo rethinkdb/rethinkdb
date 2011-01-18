@@ -16,13 +16,10 @@ struct mock_io_config_t {
     typedef mock_nondirect_file_t<inner_io_config_t> nondirect_file_t;
     typedef mock_iocallback_t iocallback_t;
     
-    typedef typename inner_io_config_t::net_listener_t net_listener_t;
-    typedef typename inner_io_config_t::net_listener_callback_t net_listener_callback_t;
+    typedef typename inner_io_config_t::tcp_listener_t tcp_listener_t;
+    typedef typename inner_io_config_t::tcp_listener_callback_t tcp_listener_callback_t;
     
-    typedef typename inner_io_config_t::net_conn_t net_conn_t;
-    typedef typename inner_io_config_t::net_conn_read_external_callback_t net_conn_read_external_callback_t;
-    typedef typename inner_io_config_t::net_conn_read_buffered_callback_t net_conn_read_buffered_callback_t;
-    typedef typename inner_io_config_t::net_conn_write_external_callback_t net_conn_write_external_callback_t;
+    typedef typename inner_io_config_t::tcp_conn_t tcp_conn_t;
     
     typedef typename inner_io_config_t::thread_message_t thread_message_t;
     

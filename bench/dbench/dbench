@@ -686,4 +686,5 @@ class DBench(object):
                 self.one_run()
 
 if __name__ == '__main__':
-    DBench().run()
+    if not os.getenv("MOCKBENCH", False):
+        DBench().run()
