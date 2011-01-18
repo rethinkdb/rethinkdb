@@ -40,7 +40,7 @@ else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
-MAN_PAGES:=$(wildcard ../docs/*.1)
+MAN_PAGES:=$(wildcard ../docs/man/*)
 
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
@@ -191,27 +191,32 @@ install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 install-manpages: $(MAN_PAGES)
 	$(QUIET) install -m755 -d $(DESTDIR)$(man1dir)
 # TODO: support other man sections
-	$(QUIET) man_tmp=$$(mktemp -d); \
-		for manpage in $(MAN_PAGES); do \
-			manname=$$(basename $$manpage); \
-			gzip -9 < $$manpage > $${man_tmp}/$${manname}.gz; \
-			install -m644  $${man_tmp}/$${manname}.gz $(DESTDIR)$(man1dir); \
-		done; \
-		rm -r $$man_tmp
+	$(QUIET) for manpage in $(MAN_PAGES); do \
+			gzip -9 < $$manpage | install -m644 -T /dev/stdin $(DESTDIR)$(man1dir)/$$(basename $$manpage).gz; \
+		done
 
 install-tools: ../scripts/rethinkdb.bash
 	$(QUIET) install -m755 -d $(DESTDIR)$(bashcompletiondir)
 	$(QUIET) install -m644 ../scripts/rethinkdb.bash $(DESTDIR)$(bashcompletiondir)/rethinkdb
 
 install-docs:
+	$(QUIET) install -m755 -d $(DESTDIR)$(docdir)
+	$(QUIET) install -m644 -T ../docs/LICENSE $(DESTDIR)$(docdir)/copyright
 
 install: install-binaries install-manpages install-docs install-tools
+install-rpm: install
+install-deb: install
+	$(QUIET) install -m755 -d $(DESTDIR)$(docdir)
+	$(QUIET) sed	-e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION)/' ../docs/changelog.Debian | \
+		gzip -c9 | \
+		install -m644 -T /dev/stdin $(DESTDIR)$(docdir)/changelog.Debian.gz
+
 
 deb: all prepare_deb_package_dirs
 	@echo Building DEB package for RethinkDB version $(RETHINKDB_VERSION)
 
 # Copy files to their correct places
-	$(QUIET) $(MAKE) DESTDIR=$(DEB_PACKAGE_DIR) install
+	$(QUIET) $(MAKE) DESTDIR=$(DEB_PACKAGE_DIR) install-deb
 
 # Produce md5sum file in control directory
 	$(QUIET) find $(DEB_PACKAGE_DIR) -path $(DEB_CONTROL_ROOT) -prune -o -path $(DEB_PACKAGE_DIR)/etc -prune -o -type f -printf "%P\\0" | \
@@ -239,9 +244,11 @@ deb: all prepare_deb_package_dirs
 
 # Print a nice message with the location of the created package
 	$(QUIET) echo
-	$(QUIET) echo "Your DEB packages are here:"
+	$(QUIET) echo "Your DEB packages are here (with lintian output following each package):"
 	$(QUIET) for f in $(PACKAGES_DIR)/*.deb; do \
-			echo "  $(realpath $(PACKAGES_DIR))/$$(basename $$f)"; \
+			deb_name=$(realpath $(PACKAGES_DIR))/$$(basename $$f); \
+			echo "  $${deb_name}"; \
+			lintian --color auto $${deb_name}; \
 		done
 	$(QUIET) echo
 
@@ -255,7 +262,7 @@ rpm: all prepare_rpm_package_dirs
 		../packaging/rpm.spec >$(TEMP_SPEC)
 
 # Copy files to their correct places
-	$(QUIET) $(MAKE) DESTDIR=$(RPM_BUILD_ROOT) install
+	$(QUIET) $(MAKE) DESTDIR=$(RPM_BUILD_ROOT) install-rpm
 
 # Produce RPM package
 # FIXME: write rpmbuild output out to stderr if there's an error
