@@ -42,7 +42,7 @@ detail. For additional questions, please contact RethinkDB support_.
 Quick start guide
 =================
 
-Install RethinkDB from http://rethinkdb.com/download/zzxcawe.
+Install RethinkDB from http://rethinkdb.com/zWef3q/download/.
 
 Start it::
 
@@ -71,14 +71,18 @@ RethinkDB works on modern 64-bit distributions of Linux. We support the followin
 Installation
 ------------
 
-````````````
-TODO: Ubuntu
-````````````
+``````
+Ubuntu
+``````
 
-Use the standard package manager to install RethinkDB from a remote
-URL::
+Download the latest package of RethinkDB for Ubuntu from http://rethinkdb.com/zWef3q/download/.
 
-  yum install http://www.rethinkdb.com/rethinkdb-0.1.yum
+Navigate to the directory the package was downloaded to and install RethinkDB and its dependencies::
+
+  # Get dependencies for RethinkDB
+  sudo apt-get install libaio1
+  # Install RethinkDB
+  dpkg -i rethinkdb_0.1_amd64.deb 
 
 ------------------
 Running the server
