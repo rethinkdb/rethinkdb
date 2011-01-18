@@ -185,7 +185,7 @@ prepare_rpm_package_dirs:
 
 install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) install -m755 -d $(DESTDIR)$(bindir)
-	$(QUIET) install -m644 $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(bindir)
+	$(QUIET) install -m755 $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(bindir)
 	$(QUIET) strip --strip-unneeded $(DESTDIR)$(bindir)/$(SERVER_EXEC_NAME)
 
 install-manpages: $(MAN_PAGES)
@@ -194,7 +194,7 @@ install-manpages: $(MAN_PAGES)
 	$(QUIET) man_tmp=$$(mktemp -d); \
 		for manpage in $(MAN_PAGES); do \
 			manname=$$(basename $$manpage); \
-			gzip < $$manpage > $${man_tmp}/$${manname}.gz; \
+			gzip -9 < $$manpage > $${man_tmp}/$${manname}.gz; \
 			install -m644  $${man_tmp}/$${manname}.gz $(DESTDIR)$(man1dir); \
 		done; \
 		rm -r $$man_tmp
@@ -214,10 +214,12 @@ deb: all prepare_deb_package_dirs
 	$(QUIET) $(MAKE) DESTDIR=$(DEB_PACKAGE_DIR) install
 
 # Produce md5sum file in control directory
-	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -print0 | xargs -0 md5sum > $(DEB_CONTROL_ROOT)/md5sums
+	$(QUIET) find $(DEB_PACKAGE_DIR) -path $(DEB_CONTROL_ROOT) -prune -o -path $(DEB_PACKAGE_DIR)/etc -prune -o -type f -printf "%P\\0" | \
+		(cd $(DEB_PACKAGE_DIR) && xargs -0 md5sum) \
+		> $(DEB_CONTROL_ROOT)/md5sums
 
-# We don't have any configuration files yet
-#	$(QUIET) echo /etc/rethinkdb.conf >> $(DEB_CONTROL_ROOT)/conffiles
+# List configuration files in conffiles
+	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | grep '^/etc/' > $(DEB_CONTROL_ROOT)/conffiles
 
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		\
@@ -233,7 +235,7 @@ deb: all prepare_deb_package_dirs
 			../packaging/debian/control >$(DEB_CONTROL_ROOT)/control
 
 # Finally, produce a debian package
-	$(QUIET) dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
+	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
 # Print a nice message with the location of the created package
 	$(QUIET) echo
