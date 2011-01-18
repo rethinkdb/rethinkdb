@@ -5,6 +5,6 @@
 
 struct server_t;
 
-void serve_memcache(net_conn_t *conn, server_t *server);
+void serve_memcache(tcp_conn_t *conn, server_t *server);
 
 #endif /* __MEMCACHED_MEMCACHED_HPP__ */
