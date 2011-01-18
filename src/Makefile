@@ -48,7 +48,8 @@ DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 # Define configuration variables
 CXX:=g++
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -static-libgcc -static-libstdc++
+LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
 ifeq ($(UNIT_TESTS),0)
 CXXFLAGS+=-Wswitch-default
@@ -67,6 +68,10 @@ else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
+endif
+
+ifeq (${STATIC_LIBGCC},1)
+LDFLAGS+=-static-libgcc -static-libstdc++
 endif
 
 ifeq ($(OPROFILE),1)
@@ -177,9 +182,9 @@ all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)
 endif
 
 ifeq ($(PACKAGING),1)
-TEMP_SPEC:=$(shell mktemp -t XXXX.spec)
 RPM_BUILD_ROOT=$(RPM_PACKAGE_DIR)/BUILD
 DEB_CONTROL_ROOT=$(DEB_PACKAGE_DIR)/DEBIAN
+RPM_SPEC_FILE=$(RPM_PACKAGE_DIR)/SPECS/rethinkdb.spec
 
 prepare_deb_package_dirs:
 	$(QUIET) mkdir -p $(DEB_PACKAGE_DIR)
@@ -265,15 +270,14 @@ rpm: all prepare_rpm_package_dirs
 	$(QUIET) sed 																				\
 			-e "s/VERSION/$(RETHINKDB_VERSION_RPM)/"				\
 			-e " s:TOPDIR:$(realpath $(RPM_PACKAGE_DIR)):"	\
-		../packaging/rpm.spec >$(TEMP_SPEC)
+		../packaging/rpm.spec >$(RPM_SPEC_FILE)
 
 # Copy files to their correct places
 	$(QUIET) $(MAKE) DESTDIR=$(RPM_BUILD_ROOT) install-rpm
 
 # Produce RPM package
 # FIXME: write rpmbuild output out to stderr if there's an error
-	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot $(realpath $(RPM_BUILD_ROOT)) $(TEMP_SPEC) > /tmp/rpmbuild.stdout 2> /tmp/rpmbuild.stderr
-	$(QUIET) rm $(TEMP_SPEC)
+	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot $(realpath $(RPM_BUILD_ROOT)) $(RPM_SPEC_FILE) > /tmp/rpmbuild.stdout
 
 # Print a nice message with the location of the created package
 	$(QUIET) echo

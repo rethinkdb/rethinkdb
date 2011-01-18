@@ -1,4 +1,3 @@
-
 #include <unistd.h>
 #include <sched.h>
 #include <stdio.h>
@@ -61,7 +60,7 @@ void poll_event_queue_t::run() {
 #ifdef LEGACY_LINUX
         res = ppoll(&watched_fds[0], watched_fds.size(), NULL, &sigmask);
 #else
-        res = poll(&watched_fds[0], watched_fds.size(), NULL);
+        res = poll(&watched_fds[0], watched_fds.size(), 0);
 #endif
         
         // epoll_wait might return with EINTR in some cases (in

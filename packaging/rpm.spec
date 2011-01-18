@@ -33,4 +33,5 @@ RethinkDB - the database for solid drives
 
 %attr(0444,root,root) /etc/bash_completion.d/rethinkdb
 %doc %attr(0444,root,root) /usr/share/man/man1/rethinkdb.1.gz
+%doc %attr(0444,root,root) /usr/share/doc/rethinkdb/copyright
 
