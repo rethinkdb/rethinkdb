@@ -48,22 +48,31 @@ poll_event_queue_t::poll_event_queue_t(linux_queue_parent_t *parent)
 void poll_event_queue_t::run() {
     int res;
     
+#ifdef LEGACY_LINUX
+    // Create an empty sigmask for ppoll
+    sigset_t sigmask;
+    res = sigemptyset(&sigmask);
+    guarantee_err(res == 0, "Could not create an empty signal mask");
+#endif
+
     // Now, start the loop
     while (!parent->should_shut_down()) {
         // Grab the events from the kernel!
-        res = poll(&watched_fds[0], watched_fds.size(), -1);
+#ifdef LEGACY_LINUX
+        res = ppoll(&watched_fds[0], watched_fds.size(), NULL, &sigmask);
+#else
+        res = poll(&watched_fds[0], watched_fds.size(), NULL);
+#endif
         
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
         if (res == -1 && errno == EINTR) {
-            continue;
+            res = 0;
         }
 
         // The only likely poll error here is ENOMEM, which we
         // have no way of handling, and it's probably fatal.
         guarantee_err(res != -1, "Waiting for poll events failed");
-        
-        pm_events_per_loop.record(res);
         
         int count = 0;
         for (unsigned int i = 0; i < watched_fds.size(); i++) {
@@ -78,6 +87,12 @@ void poll_event_queue_t::run() {
         
         parent->pump();
     }
+
+#ifdef LEGACY_LINUX
+    // Unblock all events
+    res = pthread_sigmask(SIG_BLOCK, &sigmask, NULL);
+    guarantee_err(res == 0, "Could not block signal");
+#endif
 }
 
 poll_event_queue_t::~poll_event_queue_t() {

@@ -8,7 +8,7 @@
 #include "perfmon.hpp"
 
 // Event queue structure
-struct epoll_event_queue_t {
+struct epoll_event_queue_t : public event_queue_base_t {
 public:
     explicit epoll_event_queue_t(linux_queue_parent_t *parent);
     void run();
@@ -26,7 +26,8 @@ private:
     int nevents;
 
 public:
-    // These should only be called by the event queue itself or by the linux_* classes
+    // These should only be called by the event queue itself or by the
+    // linux_* classes
     void watch_resource(fd_t resource, int events, linux_event_callback_t *cb);
     void adjust_resource(fd_t resource, int events, linux_event_callback_t *cb);
     void forget_resource(fd_t resource, linux_event_callback_t *cb);
