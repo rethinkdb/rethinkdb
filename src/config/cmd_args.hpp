@@ -108,6 +108,12 @@ struct btree_key_value_store_static_config_t {
     btree_config_t btree;
 };
 
+/* Configuration for failover */
+struct failover_static_config_t {
+    char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
+    int     heartbeat_timeout; /* noncommunicative period after which the other server is considered to be unreachable */
+};
+
 /* All the configuration together */
 
 struct cmd_config_t {
@@ -135,6 +141,9 @@ struct cmd_config_t {
     btree_key_value_store_static_config_t store_static_config;
     bool create_store, force_create, shutdown_after_creation;
 
+    // Configuration for failover
+    failover_static_config_t failover_config;
+
     bool verbose;
 };
 
@@ -160,6 +169,8 @@ public:
 #ifdef SEMANTIC_SERIALIZER_CHECK
     void set_last_semantic_file(const char* value);
 #endif
+    void set_failover_file(const char* value);
+    void set_heartbeat_timeout(const char* value);
     void push_private_config(const char* value);
     
 private:
