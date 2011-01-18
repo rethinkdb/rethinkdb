@@ -6,6 +6,7 @@
 class failover_callback_t : 
     public intrusive_list_node_t<failover_callback_t>
 {
+public:
     virtual ~failover_callback_t() {}
     virtual void on_failure() = 0;
 };
@@ -19,6 +20,6 @@ private:
     intrusive_list_t<failover_callback_t> callbacks;
     void add_callback(failover_callback_t *cb);
     void on_failure();
-}
+};
 
 #endif  // __FAILOVER_HPP__
