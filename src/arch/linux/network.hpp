@@ -5,28 +5,10 @@
 #include "utils2.hpp"
 #include "arch/linux/event_queue.hpp"
 
-/* linux_net_conn_t provides a nice wrapper around a network connection. */
+template<class value_t>
+struct value_cond_t;
 
-struct linux_net_conn_read_external_callback_t
-{
-    virtual void on_net_conn_read_external() = 0;
-    virtual void on_net_conn_close() = 0;
-    virtual ~linux_net_conn_read_external_callback_t() { }
-};
-
-struct linux_net_conn_read_buffered_callback_t
-{
-    virtual void on_net_conn_read_buffered(const char *buffer, size_t size) = 0;
-    virtual void on_net_conn_close() = 0;
-    virtual ~linux_net_conn_read_buffered_callback_t() { }
-};
-
-struct linux_net_conn_write_external_callback_t
-{
-    virtual void on_net_conn_write_external() = 0;
-    virtual void on_net_conn_close() = 0;
-    virtual ~linux_net_conn_write_external_callback_t() { }
-};
+/* linux_net_conn_t provides a nice wrapper around a TCP network connection. */
 
 struct linux_net_conn_t :
     public linux_event_callback_t
@@ -36,34 +18,51 @@ struct linux_net_conn_t :
 public:
     linux_net_conn_t(const char *host, int port);
 
-    /* If you know beforehand how many bytes you want to read, use read_external() with a byte
-    buffer. cb->on_net_conn_read_external() will be called when exactly that many bytes have been
-    read. If the connection is closed, then cb->on_net_conn_close() will be called. */
-    void read_external(void *buf, size_t size, linux_net_conn_read_external_callback_t *cb);
+    /* Reading */
 
-    /* If you don't know how many bytes you want to read, use read_buffered().
-    cb->on_net_conn_read_buffered() will be called with some bytes. If there are enough bytes,
-    call accept_buffer() with how many of the bytes you want to consume. If there are not enough,
-    then return from cb->on_net_conn_read_buffered() without calling accept_buffer(), and the
-    net_conn_t will later call on_net_conn_read_buffered() again with more bytes. If the connection
-    is closed before an acceptable amount of data is read, then cb->on_net_conn_close() is called.
-    This is useful for reading until you reach some delimiter, such as if you want to read until
-    you hit a newline. */
-    void read_buffered(linux_net_conn_read_buffered_callback_t *cb);
-    void accept_buffer(size_t size);
+    struct read_closed_exc_t : public std::exception {
+        const char *what() throw () {
+            return "Network connection read end closed";
+        }
+    };
+
+    /* If you know beforehand how many bytes you want to read, use read() with a byte buffer.
+    Returns when the buffer is full, or throws read_closed_exc_t. */
+    void read(void *buf, size_t size);
+
+    /* If you don't know how many bytes you want to read, use peek_until(). peek_until() will
+    repeatedly call the given callback with larger and larger buffers until the callback returns
+    true. If the connection is closed, throws read_closed_exc_t. */
+    struct peek_callback_t {
+        virtual bool check(const void *buf, size_t size) throw () = 0;
+    };
+    void peek_until(peek_callback_t *cb);
 
     /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
-    are any outstanding read_*() commands, then they will get on_net_conn_closed() called. Further
-    calls to read_*() will fail. */
+    is an outstanding read() or peek_until() operation, it will throw read_closed_exc_t. */
     void shutdown_read();
 
     /* Returns true if the half of the pipe that goes from the peer to us has been closed. */
     bool is_read_open();
 
-    /* write_external() writes 'size' bytes from 'buf' to the socket and calls
-    cb->on_net_conn_write_external() when it's done. If the connection is closed before all the
-    bytes can be written, cb->on_net_conn_close() is called. */
-    void write_external(const void *buf, size_t size, linux_net_conn_write_external_callback_t *cb);
+    /* Writing */
+
+    struct write_closed_exc_t : public std::exception {
+        const char *what() throw () {
+            return "Network connection write end closed";
+        }
+    };
+
+    /* write() writes 'size' bytes from 'buf' to the socket and blocks until it is done. Throws
+    write_closed_exc_t if the write end of the pipe is closed before we can finish. */
+    void write(const void *buf, size_t size);
+
+    /* write_buffered() is like write(), but it might not send the data until flush_buffer() or
+    write() is called. The advantage of this is that sometimes you want to build a message
+    piece-by-piece, but if you don't buffer it then Nagle's algorithm will screw with your
+    latency. */
+    void write_buffered(const void *buf, size_t size);
+    void flush_buffer();
 
     /* Call shutdown_write() to close the half of the pipe that goes from us to the peer. If there
     are any outstanding write_external() commands, they will get on_net_conn_closed() called. Further
@@ -73,7 +72,7 @@ public:
     /* Returns true if the half of the pipe that goes from us to the peer has been closed. */
     bool is_write_open();
 
-    /* Note that closed_reading() and closed_writing() must both be true before the socket is
+    /* Note that is_read_open() and is_write_open() must both be false1 before the socket is
     destroyed. */
     ~linux_net_conn_t();
 
@@ -87,47 +86,32 @@ private:
     void register_with_event_loop();
 
     void on_event(int events);
-    bool *set_me_true_on_delete;   // In case we get deleted by a callback
 
-    enum {
-        read_mode_none,
-        read_mode_external,
-        read_mode_buffered
-    } read_mode;
-
-    // Used in read_mode_external
-    char *external_read_buf;
-    size_t external_read_size;
-    linux_net_conn_read_external_callback_t *read_external_cb;
-    void try_to_read_external_buf();
-
-    // Used in read_mode_buffered
-    std::vector<char> peek_buffer;
-    linux_net_conn_read_buffered_callback_t *read_buffered_cb;
-    bool in_read_buffered_cb;
-    bool see_if_callback_is_satisfied();
-    void put_more_data_in_peek_buffer();
-
-    enum {
-        write_mode_none,
-        write_mode_external
-    } write_mode;
-
-    // Used in write_mode_external
-    const char *external_write_buf;
-    size_t external_write_size;
-    linux_net_conn_write_external_callback_t *write_external_cb;
-    void try_to_write_external_buf();
-
-    // Called when one half of connection dies for any reason, either via shutdown_*() or by the
-    // remote host
-    void on_shutdown_read();
-    void on_shutdown_write();
+    /* If read_cond is non-NULL, it will be signalled with true if there is data on the read end
+    and with false if the read end is closed. Same with write_cond and writing. */
+    value_cond_t<bool> *read_cond, *write_cond;
 
     // True when the half of the connection has been shut down but the linux_net_conn_t has not
     // been deleted yet
     bool read_was_shut_down;
     bool write_was_shut_down;
+
+    void on_shutdown_read();
+    void on_shutdown_write();
+
+    /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
+    ::read(). Returns the number of bytes read or throws read_closed_exc_t. Bypasses read_buffer. */
+    size_t read_internal(void *buffer, size_t size);
+
+    /* Holds data that we read from the socket but hasn't been consumed yet */
+    std::vector<char> read_buffer;
+
+    /* Writes exactly the given number of bytes--like write(), but bypasses write_buffer. If the
+    write end of the connection is closed, throws write_closed_exc_t. */
+    void write_internal(const void *buffer, size_t size);
+
+    /* Holds data that was given to us but we haven't sent to the kernel yet */
+    std::vector<char> write_buffer;
 };
 
 /* The linux_net_listener_t is used to listen on a network port for incoming

@@ -45,9 +45,6 @@ typedef io_config_t::net_listener_t net_listener_t;
 typedef io_config_t::net_listener_callback_t net_listener_callback_t;
 
 typedef io_config_t::net_conn_t net_conn_t;
-typedef io_config_t::net_conn_read_external_callback_t net_conn_read_external_callback_t;
-typedef io_config_t::net_conn_read_buffered_callback_t net_conn_read_buffered_callback_t;
-typedef io_config_t::net_conn_write_external_callback_t net_conn_write_external_callback_t;
 
 typedef io_config_t::thread_message_t thread_message_t;
 
@@ -98,27 +95,5 @@ inline void cancel_timer(timer_token_t *timer) {
 
 void co_read(direct_file_t *file, size_t offset, size_t length, void *buf);
 void co_write(direct_file_t *file, size_t offset, size_t length, void *buf);
-
-
-struct net_conn_read_external_result_t {
-    enum result_t {
-        success,
-        closed
-    } result;
-};
-
-net_conn_read_external_result_t co_read_external(net_conn_t *conn, void *buf, size_t size);
-
-
-struct net_conn_write_external_result_t {
-    enum result_t {
-        success,
-        closed
-    } result;
-};
-
-net_conn_write_external_result_t co_write_external(net_conn_t *conn, const void *buf, size_t size);
-
-//Add something for buffered read external too
 
 #endif /* __ARCH_ARCH_HPP__ */

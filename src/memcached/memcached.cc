@@ -1,6 +1,5 @@
 #include <stdarg.h>
 #include "memcached/memcached.hpp"
-#include "memcached/send_buffer.hpp"
 #include "concurrency/task.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/rwi_lock.hpp"
@@ -19,14 +18,16 @@ struct txt_memcached_handler_t {
     txt_memcached_handler_t(net_conn_t *conn, server_t *server) :
         conn(conn),
         server(server),
-        send_buffer(conn),
         requests_out_sem(MAX_CONCURRENT_QUERIES_PER_CONNECTION)
     { }
 
-    /* TODO: The send_buffer_t should really be folded into net_conn_t. */
-    send_buffer_t send_buffer;
+    /* Wrappers around conn->write*() that ignore write errors, because we want to continue
+    processing requests even if the client is no longer listening for replies */
     void write(const char *buffer, size_t bytes) {
-        send_buffer.write(bytes, buffer);
+        try {
+            conn->write_buffered(buffer, bytes);
+        } catch (net_conn_t::write_closed_exc_t) {
+        }
     }
     void writef(const char *format, ...) {
         va_list args;
@@ -34,8 +35,14 @@ struct txt_memcached_handler_t {
         char buffer[1000];
         size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
         assert(bytes < sizeof(buffer));
-        send_buffer.write(bytes, buffer);
+        write(buffer, bytes);
         va_end(args);
+    }
+    void write_unbuffered(const char *buffer, size_t bytes) {
+        try {
+            conn->write(buffer, bytes);
+        } catch (net_conn_t::write_closed_exc_t) {
+        }
     }
 
     // Used to limit number of concurrent noreply requests
@@ -127,22 +134,15 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
 
                 /* Write the value itself. If the value is small, write it into the send buffer;
                 otherwise, stream it. */
-                if (res.buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
-                    for (int i = 0; i < (signed)res.buffer->buffers.size(); i++) {
-                        const_buffer_group_t::buffer_t b = res.buffer->buffers[i];
+                for (int i = 0; i < (signed)res.buffer->buffers.size(); i++) {
+                    const_buffer_group_t::buffer_t b = res.buffer->buffers[i];
+                    if (res.buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
                         rh->write((const char *)b.data, b.size);
+                    } else {
+                        rh->write_unbuffered((const char *)b.data, b.size);
                     }
-                    rh->writef("\r\n");
-
-                } else {
-                    bool ok = true;
-                    for (int i = 0; i < (signed)res.buffer->buffers.size(); i++) {
-                        const_buffer_group_t::buffer_t b = res.buffer->buffers[i];
-                        ok = rh->send_buffer.co_write_external(b.size, (const char *)b.data);
-                        if (!ok) break;
-                    }
-                    if (ok) rh->writef("\r\n");
                 }
+                rh->writef("\r\n");
             }
         }
 
@@ -198,173 +198,58 @@ buffered_data_provider_t doesn't do that). */
 
 class memcached_streaming_data_provider_t :
     public data_provider_t,
-    public thread_message_t,
-    public home_thread_mixin_t,
-    public net_conn_read_external_callback_t
+    public home_thread_mixin_t
 {
 private:
-    typedef buffer_t<IO_BUFFER_SIZE> iobuf_t;
-
-    /* Mode goes from unused->fill->check_crlf->done or unused->consume->check_crlf->done */
-    enum {
-        mode_unused,   // mode = mode_unused before get_value() has been called
-        mode_fill,   // Fill some buffers with the data from the socket
-        mode_consume,   // Discard the data from the socket
-        mode_check_crlf,   // Make sure that the terminator is legal (after either mode_fill or mode_consume)
-        mode_done
-    } mode;
-
-    int requestor_thread;   // thread that callback must be called on
-    data_provider_t::done_callback_t *cb;
-
-    /* false if the CRLF was not found or the connection was closed as we read */
-    bool success;
-
     txt_memcached_handler_t *rh;   // Request handler for us to read from
     size_t length;   // Our length
 
-    buffer_group_t *bg;   // Buffers to read into in fill mode
-    int bg_seg, bg_seg_pos;   // Segment we're currently reading into and how many bytes are in it
-
-    char *dummy_buf;   // Dummy buf used in consume mode
-    size_t bytes_consumed;
-
-    char crlf[2];   // Buf used to hold what should be CRLF
-
 public:
     memcached_streaming_data_provider_t(txt_memcached_handler_t *rh, uint32_t length)
-        : mode(mode_unused), rh(rh), length(length)
+        : rh(rh), length(length)
     {
     }
-    
+
     ~memcached_streaming_data_provider_t() {
-        assert(mode == mode_done);
-        if (dummy_buf) {
-            delete[] dummy_buf;
-        }
     }
-    
+
     size_t get_size() {
         return length;
     }
-    
+
     void get_value(buffer_group_t *b, data_provider_t::done_callback_t *c) {
-        assert(mode == mode_unused);
-        if (b) {
-            mode = mode_fill;
-            dummy_buf = NULL;
-            bg = b;
-            bg_seg = bg_seg_pos = 0;
-        } else {
-            /* We are to read the data off the socket but not do anything with it. */
-            mode = mode_consume;
-            dummy_buf = new char[IO_BUFFER_SIZE];   // Space to put the garbage data
-            bytes_consumed = 0;
-        }
-        requestor_thread = get_thread_id();
-        cb = c;
-        
-        if (continue_on_thread(home_thread, this)) on_thread_switch();
+        coro_t::spawn(&memcached_streaming_data_provider_t::run, this, b, c);
     }
 
-    void on_thread_switch() {
-        switch (mode) {
-            case mode_fill:
-            case mode_consume:
-                /* We're arriving on the thread with the request handler */
-                assert_thread();
-                on_net_conn_read_external();  // Start the read cycle
-                break;
-            case mode_done:
-                /* We're delivering our response to the btree-FSM that asked for the value */
-                assert(get_thread_id() == requestor_thread);
-                if (success) cb->have_provided_value();
-                else cb->have_failed();
-                break;
-            case mode_unused:
-            case mode_check_crlf:
-            default:
-                unreachable();
-        }
-    }
-
-private:
-    void on_net_conn_read_external() {
-        switch (mode) {
-            case mode_fill:
-                do_fill();
-                break;
-            case mode_consume:
-                do_consume();
-                break;
-            case mode_check_crlf:
-                do_check_crlf();
-                break;
-            case mode_unused:
-            case mode_done:
-            default:
-                unreachable();
-        }
-    }
-
-    void on_net_conn_close() {
-        /* We get this callback if the connection is closed while we are reading the data
-        from the socket. */
-        success = false;
-        mode = mode_done;
-        if (continue_on_thread(requestor_thread, this)) on_thread_switch();
-    }
-
-    void do_consume() {
-        if (bytes_consumed < length) {
-            size_t bytes_to_transfer = std::min(IO_BUFFER_SIZE, (long int)length - (long int)bytes_consumed);
-            bytes_consumed += bytes_to_transfer;
-            if (rh->conn->is_read_open()) {
-                rh->conn->read_external(dummy_buf, bytes_to_transfer, this);
-            } else {
-                on_net_conn_close();
+    void run(buffer_group_t *b, data_provider_t::done_callback_t *c) {
+        bool success;
+        {
+            on_thread_t thread_switcher(home_thread);
+            try {
+                if (b) {
+                    for (int i = 0; i < (int)b->buffers.size(); i++) {
+                        rh->conn->read(b->buffers[i].data, b->buffers[i].size);
+                    }
+                } else {
+                    /* Allocate a buffer from the heap instead of the stack because we are in a
+                    coroutine */
+                    std::vector<char> dummy(IO_BUFFER_SIZE);
+                    int consumed = 0;
+                    while (consumed < (int)length) {
+                        int chunk = std::min((int)length - consumed, (int)IO_BUFFER_SIZE);
+                        rh->conn->read(dummy.data(), chunk);
+                        consumed += chunk;
+                    }
+                }
+                char crlf[2];
+                rh->conn->read(crlf, 2);
+                success = (memcmp(crlf, "\r\n", 2) == 0);
+            } catch (net_conn_t::read_closed_exc_t) {
+                success = false;
             }
-        } else {
-            check_crlf();
         }
-    }
-
-    void do_fill() {
-        if (bg_seg < (signed)bg->buffers.size()) {
-            buffer_group_t::buffer_t *bg_buf = &bg->buffers[bg_seg];
-            uint16_t start_pos = bg_seg_pos;
-            uint16_t bytes_to_transfer = std::min(bg_buf->size - start_pos, (ssize_t)length);
-            bg_seg_pos += bytes_to_transfer;
-            if (bg_seg_pos == (signed)bg_buf->size) {
-                bg_seg++;
-                bg_seg_pos = 0;
-            }
-            if (rh->conn->is_read_open()) {
-                rh->conn->read_external((char*)bg_buf->data + start_pos, bytes_to_transfer, this);
-            } else {
-                on_net_conn_close();
-            }
-        } else {
-            check_crlf();
-        }
-    }
-
-    void check_crlf() {
-        /* This is called to start checking the CRLF, *before* we have filled the CRLF buffer. */
-        mode = mode_check_crlf;
-        if (rh->conn->is_read_open()) {
-            rh->conn->read_external(crlf, 2, this);
-        } else {
-            on_net_conn_close();
-        }
-    }
-
-    void do_check_crlf() {
-        /* This is called in the process of checking the CRLF, *after* we have filled the CRLF
-        buffer. */
-        success = (memcmp(crlf, "\r\n", 2) == 0);
-        mode = mode_done;
-        if (continue_on_thread(requestor_thread, this)) on_thread_switch();
+        if (success) c->have_provided_value();
+        else c->have_failed();
     }
 };
 
@@ -599,9 +484,10 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
         /* Buffer the value */
         char value_buffer[value_size+2];   // +2 for the CRLF
 
-        if (co_read_external(rh->conn, value_buffer, value_size+2).result ==
-                net_conn_read_external_result_t::closed) {
-            return;
+        try {
+            rh->conn->read(value_buffer, value_size + 2);
+        } catch (net_conn_t::read_closed_exc_t) {
+            return;    // serve_memcached() will see it is closed
         }
 
         /* The buffered_data_provider_t doesn't check the CRLF, so we must check it here.
@@ -855,28 +741,20 @@ perfmon_duration_sampler_t
     pm_conns_writing("conns_writing", secs_to_ticks(1)),
     pm_conns_acting("conns_acting", secs_to_ticks(1));
 
-bool read_line(net_conn_t *conn, std::vector<char> *dest) {
+void read_line(net_conn_t *conn, std::vector<char> *dest) {
 
-    /* Callback/cond object as wrapper around net_conn_read_buffered_callback_t */
-    struct : public net_conn_read_buffered_callback_t, public value_cond_t<bool> {
-
-        /* Parameters from containing function, copied in */
-        net_conn_t *conn;
-        std::vector<char> *dest;
-
-        void on_net_conn_read_buffered(const char *buffer, size_t size) {
+    struct : public net_conn_t::peek_callback_t {
+        int line_size;   // On output, the size of the line without the CRLF, or -1 on error
+        bool check(const void *buffer, size_t size) throw () {
 
             /* Look for a line terminator */
             void *crlf_loc = memmem(buffer, size, "\r\n", 2);
             int threshold = MEGABYTE;
 
             if (crlf_loc) {
-                /* We have a valid line, yay. */
-                int line_size = (char*)crlf_loc - buffer + 2;
-                dest->resize(line_size);
-                memcpy(dest->data(), buffer, line_size);
-                conn->accept_buffer(line_size);
-                pulse(true);
+                /* We have a valid line */
+                line_size = (char*)crlf_loc - (char*)buffer;
+                return true;
 
             } else if ((int)size > threshold) {
                 /* If a horribly malfunctioning client sends a lot of data without sending a
@@ -886,34 +764,24 @@ bool read_line(net_conn_t *conn, std::vector<char> *dest) {
                 */
                 logERR("Aborting connection %p because we got more than %d bytes without a CRLF\n",
                     this, (int)threshold);
-                conn->accept_buffer(0);   // So that we can legally call shutdown_*()
-                conn->shutdown_read();
-                pulse(false);
+                line_size = -1;
+                return true;
 
             } else {
-                /* If we return from on_net_conn_read_buffered() without calling accept_buffer(),
-                then the net_conn_t will call on_net_conn_read_buffered() again with a bigger buffer
-                when the data is available. This way we keep reading until we get a complete line. */
-                return;
+                /* Keep trying until we get a complete line */
+                return false;
             }
         }
+    } peeker;
 
-        void on_net_conn_close() {
-
-            pulse(false);
-        }
-    } cb;
-
-    /* Oh C++, why dost thou not give me closures? Grumble mumble... */
-    cb.conn = conn;
-    cb.dest = dest;
-
-    if (conn->is_read_open()) {
-        conn->read_buffered(&cb);
-        return cb.wait();
-    } else {
-        return false;
+    conn->peek_until(&peeker);
+    if (peeker.line_size == -1) {
+        conn->shutdown_read();
+        throw net_conn_t::read_closed_exc_t();
     }
+
+    dest->resize(peeker.line_size + 2);   // +2 for CRLF
+    conn->read(dest->data(), peeker.line_size + 2);
 };
 
 void serve_memcache(net_conn_t *conn, server_t *server) {
@@ -931,17 +799,20 @@ void serve_memcache(net_conn_t *conn, server_t *server) {
         /* Flush if necessary (no reason to do this the first time around, but it's easier
         to put it here than after every thing that could need to flush */
         block_pm_duration flush_timer(&pm_conns_writing);
-        /* co_flush() may block */
-        if (!conn->is_write_open() || !rh.send_buffer.co_flush()) {
-            /* Ignore errors; it's OK for the write end of the connection to be closed. Just
-            discard any data that would have been written and move on. */
-            rh.send_buffer.discard();
+        try {
+            conn->flush_buffer();
+        } catch (net_conn_t::write_closed_exc_t) {
+            /* Ignore errors; it's OK for the write end of the connection to be closed. */
         }
         flush_timer.end();
 
         /* Read a line off the socket */
         block_pm_duration read_timer(&pm_conns_reading);
-        if (!read_line(conn, &line)) break;
+        try {
+            read_line(conn, &line);
+        } catch (net_conn_t::read_closed_exc_t) {
+            break;
+        }
         read_timer.end();
 
         block_pm_duration action_timer(&pm_conns_acting);
