@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include "arch/linux/eventfd.hpp"
 #include "arch/linux/event_queue.hpp"
-#include "timer.hpp"
+#include "arch/timer.hpp"
 #include "logger.hpp"
 
 /* Timer token */
