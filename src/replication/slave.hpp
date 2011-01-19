@@ -6,7 +6,7 @@
 
 #include "arch/arch.hpp"
 #include "replication/messages.hpp"
-#include "config/cmd_args.hpp"
+#include "server/cmd_args.hpp"
 #include "store.hpp"
 #include "failover.hpp"
 

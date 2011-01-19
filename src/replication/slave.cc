@@ -95,7 +95,13 @@ bool parse_and_pop(tcp_conn_t *conn, message_callback_t *receiver, const char *b
     }
 }
 
-void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver) {
+template <class message_type>
+bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, tcp_conn_t::bufslice sl, std::vector<value_stream_t *>& streams) {
+
+    return false;
+}
+
+void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams) {
 
     for (;;) {
         tcp_conn_t::bufslice sl = conn->peek();
@@ -122,14 +128,16 @@ void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver) {
 
             } else if (multipart_aspect == FIRST) {
 
-                throw protocol_exc_t("invalid multipart_aspect (small messages only supported)");
-
-
                 if (sl.len >= sizeof(net_large_operation_first_t)) {
-                    /*                    const net_large_operation_first_t *firstheader
+                    const net_large_operation_first_t *firstheader
                         = reinterpret_cast<const net_large_operation_first_t *>(buffer);
-                    */
 
+                    switch (firstheader->header.header.msgcode) {
+                    case SET: { if (parse_and_stream<set_message_t>(conn, receiver, sl, streams)) return; } break;
+                    case APPEND: { if (parse_and_stream<append_message_t>(conn, receiver, sl, streams)) return; } break;
+                    case PREPEND: { if (parse_and_stream<prepend_message_t>(conn, receiver, sl, streams)) return; } break;
+                    default: { throw protocol_exc_t("invalid message code on FIRST message"); }
+                    }
 
                 }
 
@@ -148,8 +156,9 @@ void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver) {
 void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
     do_parse_hello_message(conn, receiver);
 
+    std::vector<value_stream_t *> placeholder;
     for (;;) {
-        do_parse_normal_message(conn, receiver);
+        do_parse_normal_message(conn, receiver, placeholder);
     }
 }
 
