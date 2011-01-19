@@ -1,7 +1,5 @@
 #include "slave.hpp"
-
 #include <stdint.h>
-
 #include "net_structs.hpp"
 
 using boost::scoped_ptr;
@@ -174,9 +172,50 @@ bool valid_role(uint32_t val) {
     return val == master || val == new_slave || val == slave;
 }
 
+btree_replica_t::btree_replica_t(store_t *internal_store, standard_serializer_t::shutdown_callback_t *shutdown_callback, replication_config_t *config) 
+    : internal_store(internal_store), shutdown_callback(shutdown_callback), conn(config->hostname, config->port), respond_to_queries(false)
+{}
 
+btree_replica_t::~btree_replica_t() {}
 
+void btree_replica_t::get(store_key_t *key, get_callback_t *cb)
+ {}
+void btree_replica_t::get_cas(store_key_t *key, get_callback_t *cb)
+ {}
+void btree_replica_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
+ {}
+void btree_replica_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
+ {}
+void btree_replica_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
+ {}
+void btree_replica_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb)
+ {}
+void btree_replica_t::incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb)
+ {}
+void btree_replica_t::decr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb)
+ {}
+void btree_replica_t::append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb)
+ {}
+void btree_replica_t::prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb)
+ {}
+void btree_replica_t::delete_key(store_key_t *key, delete_callback_t *cb)
+ {}
+void btree_replica_t::replicate(replicant_t *cb, repli_timestamp cutoff)
+ {}
+void btree_replica_t::stop_replicating(replicant_t *cb)
+ {}
+    
+/* failover callback */
+void btree_replica_t::on_failure() {
+    respond_to_queries = true;
+}
 
+/* state for failover */
+bool respond_to_queries;
 
+/* shutdown callback */
+void btree_replica_t::on_serializer_shutdown(standard_serializer_t *serializer) {
+    shutdown_callback->on_serializer_shutdown(serializer);
+}
 
 }  // namespace replication
