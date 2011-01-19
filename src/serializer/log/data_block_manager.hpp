@@ -3,7 +3,7 @@
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
 #include "arch/arch.hpp"
-#include "config/cmd_args.hpp"
+#include "server/cmd_args.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
 #include "containers/bitset.hpp"

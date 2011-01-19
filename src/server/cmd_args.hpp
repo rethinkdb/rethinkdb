@@ -195,7 +195,8 @@ private:
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]);
-
+void usage_serve();
+void usage_create();
 
 #endif // __CMD_ARGS_HPP__
 

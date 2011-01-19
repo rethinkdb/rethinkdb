@@ -11,7 +11,7 @@
 #include <set>
 
 #include "logger.hpp"
-#include "config/cmd_args.hpp"
+#include "server/cmd_args.hpp"
 
 const char *partitions_path = "/proc/partitions";
 const char *hdparm_path = "/sbin/hdparm";
