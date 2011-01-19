@@ -18,47 +18,47 @@ struct btree_internal_pair {
 
 class internal_key_comp;
 
-class internal_node_handler {
-    friend class internal_key_comp;
-public:
-    static void init(block_size_t block_size, internal_node_t *node);
-    static void init(block_size_t block_size, internal_node_t *node, const internal_node_t *lnode, const uint16_t *offsets, int numpairs);
+namespace internal_node_handler {
+void init(block_size_t block_size, internal_node_t *node);
+void init(block_size_t block_size, internal_node_t *node, const internal_node_t *lnode, const uint16_t *offsets, int numpairs);
 
-    static block_id_t lookup(const internal_node_t *node, const btree_key *key);
-    static bool insert(block_size_t block_size, internal_node_t *node, const btree_key *key, block_id_t lnode, block_id_t rnode);
-    static bool remove(block_size_t block_size, internal_node_t *node, const btree_key *key);
-    static void split(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *median);
-    static void merge(block_size_t block_size, const internal_node_t *node, internal_node_t *rnode, btree_key *key_to_remove, internal_node_t *parent);
-    static bool level(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, internal_node_t *parent);
-    static int sibling(const internal_node_t *node, const btree_key *key, block_id_t *sib_id);
-    static void update_key(internal_node_t *node, const btree_key *key_to_replace, const btree_key *replacement_key);
-    static int nodecmp(const internal_node_t *node1, const internal_node_t *node2);
-    static bool is_full(const internal_node_t *node);
-    static bool is_underfull(block_size_t block_size, const internal_node_t *node);
-    static bool change_unsafe(const internal_node_t *node);
-    static bool is_mergable(block_size_t block_size, const internal_node_t *node, const internal_node_t *sibling, const internal_node_t *parent);
-    static bool is_singleton(const internal_node_t *node);
+block_id_t lookup(const internal_node_t *node, const btree_key *key);
+bool insert(block_size_t block_size, internal_node_t *node, const btree_key *key, block_id_t lnode, block_id_t rnode);
+bool remove(block_size_t block_size, internal_node_t *node, const btree_key *key);
+void split(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *median);
+void merge(block_size_t block_size, const internal_node_t *node, internal_node_t *rnode, btree_key *key_to_remove, internal_node_t *parent);
+bool level(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, internal_node_t *parent);
+int sibling(const internal_node_t *node, const btree_key *key, block_id_t *sib_id);
+void update_key(internal_node_t *node, const btree_key *key_to_replace, const btree_key *replacement_key);
+int nodecmp(const internal_node_t *node1, const internal_node_t *node2);
+bool is_full(const internal_node_t *node);
+bool is_underfull(block_size_t block_size, const internal_node_t *node);
+bool change_unsafe(const internal_node_t *node);
+bool is_mergable(block_size_t block_size, const internal_node_t *node, const internal_node_t *sibling, const internal_node_t *parent);
+bool is_singleton(const internal_node_t *node);
 
-    static void validate(block_size_t block_size, const internal_node_t *node);
-    static void print(const internal_node_t *node);
+void validate(block_size_t block_size, const internal_node_t *node);
+void print(const internal_node_t *node);
 
-    static size_t pair_size(const btree_internal_pair *pair);
-    static const btree_internal_pair *get_pair(const internal_node_t *node, uint16_t offset);
+size_t pair_size(const btree_internal_pair *pair);
+const btree_internal_pair *get_pair(const internal_node_t *node, uint16_t offset);
+btree_internal_pair *get_pair(internal_node_t *node, uint16_t offset);
 
-protected:
-    static btree_internal_pair *get_pair(internal_node_t *node, uint16_t offset);
-    static size_t pair_size_with_key(const btree_key *key);
-    static size_t pair_size_with_key_size(uint8_t size);
+// We can't use "internal" for internal stuff obviously.
+namespace impl {
+size_t pair_size_with_key(const btree_key *key);
+size_t pair_size_with_key_size(uint8_t size);
 
-    static void delete_pair(internal_node_t *node, uint16_t offset);
-    static uint16_t insert_pair(internal_node_t *node, const btree_internal_pair *pair);
-    static uint16_t insert_pair(internal_node_t *node, block_id_t lnode, const btree_key *key);
-    static int get_offset_index(const internal_node_t *node, const btree_key *key);
-    static void delete_offset(internal_node_t *node, int index);
-    static void insert_offset(internal_node_t *node, uint16_t offset, int index);
-    static void make_last_pair_special(internal_node_t *node);
-    static bool is_equal(const btree_key *key1, const btree_key *key2);
-};
+void delete_pair(internal_node_t *node, uint16_t offset);
+uint16_t insert_pair(internal_node_t *node, const btree_internal_pair *pair);
+uint16_t insert_pair(internal_node_t *node, block_id_t lnode, const btree_key *key);
+int get_offset_index(const internal_node_t *node, const btree_key *key);
+void delete_offset(internal_node_t *node, int index);
+void insert_offset(internal_node_t *node, uint16_t offset, int index);
+void make_last_pair_special(internal_node_t *node);
+bool is_equal(const btree_key *key1, const btree_key *key2);
+}  // namespace impl
+}  // namespace internal_node_handler
 
 class internal_key_comp {
     const internal_node_t *node;
