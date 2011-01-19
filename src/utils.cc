@@ -146,7 +146,7 @@ precise_time_t get_time_now() {
 
 void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars) {
     int res = snprintf(buf, max_chars,
-        "%04d-%02d-%02d %02d:%02d:%02d.%06d",
+        "%04d-%02d-%02dT%02d:%02d:%02d.%06d",
         time.tm_year+1900,
         time.tm_mon+1,
         time.tm_mday,
