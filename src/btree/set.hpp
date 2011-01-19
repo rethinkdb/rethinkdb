@@ -15,7 +15,7 @@ public:
         set_type_cas
     };
 
-    explicit btree_set_oper_t(data_provider_t *data, set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb)
+    explicit btree_set_oper_t(data_provider_t *data, set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas, store_t::set_callback_t *cb)
         : btree_modify_oper_t(), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas), large_value(NULL), callback(cb)
     {
         pm_cmd_set.begin(&start_time);
@@ -57,15 +57,19 @@ public:
             return true;
         }
         
-        value.metadata_flags = 0;
         value.value_size(0);
-        value.set_mcflags(mcflags);
-        value.set_exptime(exptime);
-        value.value_size(data->get_size());
         if (type == set_type_cas || (old_value && old_value->has_cas())) {
-            value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. run_btree_modify_oper() will set an actual CAS later. TODO: We should probably have a separate function for this.
+            // Turns the flag on and makes
+            // room. run_btree_modify_oper() will set an actual CAS
+            // later. TODO: We should probably have a separate
+            // function for this.
+            metadata_write(&value.metadata_flags, value.contents, mcflags, exptime, 0xCA5ADDED);
+        } else {
+            metadata_write(&value.metadata_flags, value.contents, mcflags, exptime);
         }
-        
+
+        value.value_size(data->get_size());
+
         assert(data->get_size() <= MAX_VALUE_SIZE);
         if (data->get_size() <= MAX_IN_NODE_VALUE_SIZE) {
             buffer_group.add_buffer(data->get_size(), value.value());
@@ -129,7 +133,7 @@ private:
     set_type_t type;
     mcflags_t mcflags;
     exptime_t exptime;
-    btree_value::cas_t req_cas;
+    cas_t req_cas;
     
     enum result_t {
         result_stored,
@@ -141,7 +145,7 @@ private:
     } result;
 
     union {
-        char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+        char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
     large_buf_t *large_value;
@@ -150,12 +154,12 @@ private:
     store_t::set_callback_t *callback;
 };
 
-void co_btree_set(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
+void co_btree_set(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas, store_t::set_callback_t *cb) {
     btree_set_oper_t *oper = new btree_set_oper_t(data, type, mcflags, exptime, req_cas, cb);
     run_btree_modify_oper(oper, store, key);
 }
 
-void btree_set(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, btree_value::mcflags_t mcflags, btree_value::exptime_t exptime, btree_value::cas_t req_cas, store_t::set_callback_t *cb) {
+void btree_set(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas, store_t::set_callback_t *cb) {
     coro_t::spawn(co_btree_set, key, store, data, type, mcflags, exptime, req_cas, cb);
 }
 

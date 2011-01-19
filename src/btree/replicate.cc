@@ -167,10 +167,10 @@ struct branch_walker_t :
     
     void on_block_available(buf_t *b) {
         buf = b;
-        if (node_handler::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
+        if (node::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
             const internal_node_t *node = ptr_cast<internal_node_t>(buf->get_data_read());
             for (int i = 0; i < (int)node->npairs; i++) {
-                const btree_internal_pair *pair = internal_node_handler::get_pair(node, node->pair_offsets[i]);
+                const btree_internal_pair *pair = internal_node::get_pair(node, node->pair_offsets[i]);
                 walk_branch(parent, pair->lnode);
             }
             delete this;
@@ -193,7 +193,7 @@ struct branch_walker_t :
         if (current_pair == node->npairs) {
             delete this;
         } else {
-            current_timestamp = leaf_node_handler::get_timestamp_value(parent->txn->cache->get_block_size(), node, current_pair);
+            current_timestamp = leaf::get_timestamp_value(parent->txn->cache->get_block_size(), node, current_pair);
 
             // TODO: right now we're walking through in order of key.
             // If we walked through in order of offset (by starting at
@@ -203,7 +203,7 @@ struct branch_walker_t :
             // ordering).
 
             if (repli_compare(current_timestamp, parent->parent->cutoff_recency) >= 0) {
-                const btree_leaf_pair *pair = leaf_node_handler::get_pair(node, node->pair_offsets[current_pair]);
+                const btree_leaf_pair *pair = leaf::get_pair(node, node->pair_offsets[current_pair]);
                 current_key = &pair->key;
                 current_value = pair->value();
 

@@ -50,7 +50,7 @@ public:
             fclose(fp);
         }
     }
-    void dump(const btree_key *key, btree_value::mcflags_t flags, btree_value::exptime_t exptime,
+    void dump(const btree_key *key, mcflags_t flags, exptime_t exptime,
               byteslice *slices, size_t num_slices) {
         int len = 0;
         for (size_t i = 0; i < num_slices; ++i) {
@@ -205,7 +205,7 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
                     for (int j = 0; j < num_pairs; ++j) {
                         uint16_t pair_offset = leaf->pair_offsets[j];
                         if (pair_offset >= pair_offsets_back_offset && pair_offset <= cfg.block_size().value()) {
-                            const btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[j]);
+                            const btree_leaf_pair *pair = leaf::get_pair(leaf, leaf->pair_offsets[j]);
                             dump_pair_value(dumper, file, cfg, offsets, pair, block_id, cfg.block_size().value() - pair_offset);
                         }
                     }
@@ -288,26 +288,15 @@ bool get_large_buf_segments(const btree_key *key, nondirect_file_t& file, const 
 
 // Dumps the values for a given pair.
 void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter) {
-    const btree_key *key = &pair->key;
-
-    // TODO: move this functionality to btree_leaf_pair, give it a
-    // "fits(int size_limiter)" method so that we ourselves don't have
-    // to carefully parse our way through without stepping too far.
-
-    if (int(int(key->size) + sizeof(btree_key) + sizeof(btree_value)) > pair_size_limiter) {
-        logERR("(In block %u, offset %lu) A pair's key juts off the end of the block.  Partial key: '%.*s'", this_block, offsets[this_block.value], std::min<int>(pair_size_limiter - 1, key->size), key->contents);
-        return;
+    if (pair_size_limiter < 0 || !leaf_pair_fits(pair, pair_size_limiter)) {
+        logERR("(In block %u, offset %lu) A pair juts off the end of the block.\n");
     }
 
+    const btree_key *key = &pair->key;
     const btree_value *value = pair->value();
 
-    if (key->size + 1 + value->full_size() > pair_size_limiter) {
-        logERR("(In block %u, offset %lu) A pair's value juts off the end of the block.  The key is '%.*s'", this_block, offsets[this_block.value], key->size, key->contents);
-        return;
-    }
-
-    btree_value::mcflags_t flags = value->mcflags();
-    btree_value::exptime_t exptime = value->exptime();
+    mcflags_t flags = value->mcflags();
+    exptime_t exptime = value->exptime();
     // We can't save the cas right now.
 
     const byte *valuebuf = value->value();

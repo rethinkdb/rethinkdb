@@ -11,7 +11,7 @@ namespace unittest {
 // TODO: Sperg out and make these tests much more brutal.
 
 void expect_valid_value_shallowly(const btree_value *value) {
-    EXPECT_EQ(0, value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
+    EXPECT_EQ(0, value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
     size_t size = value->value_size();
 
@@ -39,13 +39,13 @@ void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_s
     for (std::vector<uint16_t>::const_iterator p = offsets.begin(), e = offsets.end(); p < e; ++p) {
         ASSERT_LE(expected, block_size.value());
         ASSERT_EQ(expected, *p);
-        expected += leaf_node_handler::pair_size(leaf_node_handler::get_pair(buf, *p));
+        expected += leaf::pair_size(leaf::get_pair(buf, *p));
     }
     ASSERT_EQ(block_size.value(), expected);
 
     const btree_key *last_key = NULL;
     for (const uint16_t *p = buf->pair_offsets, *e = p + buf->npairs; p < e; ++p) {
-        const btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, *p);
+        const btree_leaf_pair *pair = leaf::get_pair(buf, *p);
         const btree_key *next_key = &pair->key;
 
         if (last_key != NULL) {
@@ -87,6 +87,12 @@ TEST(LeafNodeTest, Offsets) {
     EXPECT_EQ(1, sizeof(btree_key));
     EXPECT_EQ(1, offsetof(btree_key, contents));
     EXPECT_EQ(2, sizeof(btree_value));
+
+    EXPECT_EQ(1, sizeof(metadata_flags_t));
+
+    EXPECT_EQ(4, sizeof(exptime_t));
+    EXPECT_EQ(4, sizeof(mcflags_t));
+    EXPECT_EQ(8, sizeof(cas_t));
 }
 
 class Value {
@@ -100,15 +106,16 @@ public:
 
     void WriteBtreeValue(btree_value *out) const {
         out->size = 0;
-        out->metadata_flags = 0;
+        out->metadata_flags.flags = 0;
 
         ASSERT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
-        out->value_size(data_.size());
-        out->set_mcflags(mcflags_);
-        out->set_exptime(exptime_);
         if (has_cas_) {
-            out->set_cas(cas_);
+            metadata_write(&out->metadata_flags, out->contents, mcflags_, exptime_, cas_);
+        } else {
+            metadata_write(&out->metadata_flags, out->contents, mcflags_, exptime_);
         }
+
+        out->value_size(data_.size());
         memcpy(out->value(), data_.c_str(), data_.size());
     }
 
@@ -196,7 +203,7 @@ public:
     }
 private:
     union {
-        byte val_padding[sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE];
+        byte val_padding[MAX_BTREE_VALUE_SIZE];
         btree_value val;
     };
 };
@@ -224,7 +231,7 @@ public:
 
     void init() {
         SCOPED_TRACE("init");
-        leaf_node_handler::init(bs, node, repli_timestamp::invalid);
+        leaf::init(bs, node, repli_timestamp::invalid);
         initialized = true;
         validate();
     }
@@ -246,9 +253,9 @@ public:
         StackValue sval(v);
 
         if (expected_space() < int((1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets))) {
-            ASSERT_FALSE(leaf_node_handler::insert(bs, node, skey.look(), sval.look(), repli_timestamp::invalid));
+            ASSERT_FALSE(leaf::insert(bs, node, skey.look(), sval.look(), repli_timestamp::invalid));
         } else {
-            ASSERT_TRUE(leaf_node_handler::insert(bs, node, skey.look(), sval.look(), repli_timestamp::invalid));
+            ASSERT_TRUE(leaf::insert(bs, node, skey.look(), sval.look(), repli_timestamp::invalid));
 
             std::pair<expected_t::iterator, bool> res = expected.insert(std::make_pair(k, v));
             if (res.second) {
@@ -291,9 +298,9 @@ public:
         StackKey skey(k);
         StackValue sval;
 
-        ASSERT_TRUE(leaf_node_handler::lookup(node, skey.look(), sval.look_write()));
+        ASSERT_TRUE(leaf::lookup(node, skey.look(), sval.look_write()));
 
-        leaf_node_handler::remove(bs, node, skey.look());
+        leaf::remove(bs, node, skey.look());
         expected.erase(p);
         expected_frontmost_offset += (1 + k.size()) + sval.look()->full_size();
         -- expected_npairs;
@@ -354,7 +361,7 @@ public:
             // in two mutually exclusive intervals.
 
             StackKey skey;
-            leaf_node_handler::merge(bs, lnode.node, node, skey.look_write());
+            leaf::merge(bs, lnode.node, node, skey.look_write());
 
             for (expected_t::const_iterator p = lnode.expected.begin(), e = lnode.expected.end();
                  p != e;
@@ -378,12 +385,12 @@ public:
         StackKey key_to_replace;
         StackKey replacement_key;
 
-        int cmp = leaf_node_handler::nodecmp(node, sibling.node);
+        int cmp = leaf::nodecmp(node, sibling.node);
 
         int fo_sum = expected_frontmost_offset + sibling.expected_frontmost_offset;
         int npair_sum = expected_npairs + sibling.expected_npairs;
 
-        leaf_node_handler::level(bs, node, sibling.node, key_to_replace.look_write(), replacement_key.look_write());
+        leaf::level(bs, node, sibling.node, key_to_replace.look_write(), replacement_key.look_write());
 
         // Sanity check that npairs and frontmost_offset are in sane ranges.
 
@@ -443,7 +450,7 @@ public:
         expected_npairs = node->npairs;
 
         // TODO: We don't really check that leveling happens.
-        // leaf_node_handler::level could be a no-op and would pass
+        // leaf::level could be a no-op and would pass
         // this test.
 
         validate();
@@ -462,7 +469,7 @@ private:
     void lookup(const std::string& k, const Value& expected) const {
         StackKey skey(k);
         StackValue sval;
-        ASSERT_TRUE(leaf_node_handler::lookup(node, skey.look(), sval.look_write()));
+        ASSERT_TRUE(leaf::lookup(node, skey.look(), sval.look_write()));
         ASSERT_EQ(expected, Value::Make(sval.look()));
     }
 
@@ -501,7 +508,7 @@ btree_value *malloc_value(const char *s) {
 
     btree_value *v = reinterpret_cast<btree_value *>(malloc(sizeof(btree_value) + len));
     v->size = len;
-    v->metadata_flags = 0;
+    v->metadata_flags.flags = 0;
     memcpy(v->value(), s, len);
     return v;
 }

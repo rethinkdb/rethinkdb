@@ -152,7 +152,7 @@ private:
     store_t::append_prepend_callback_t *callback;
 
     union {
-        byte value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+        byte value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
     bool is_old_large_value;

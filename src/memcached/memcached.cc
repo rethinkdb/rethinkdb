@@ -90,7 +90,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
     gets.reserve(argc - 1);
     for (int i = 1; i < argc; i++) {
         gets.push_back(get_t());
-        if (!node_handler::str_to_key(argv[i], &gets.back().key)) {
+        if (!node::str_to_key(argv[i], &gets.back().key)) {
             rh->writef("CLIENT_ERROR bad command line format\r\n");
             return;
         }
@@ -411,7 +411,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 
     /* First parse the key */
     store_key_and_buffer_t key;
-    if (!node_handler::str_to_key(argv[1], &key.key)) {
+    if (!node::str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }
@@ -596,7 +596,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 
     /* Parse key */
     store_key_and_buffer_t key;
-    if (!node_handler::str_to_key(argv[1], &key.key)) {
+    if (!node::str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }
@@ -676,7 +676,7 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
 
     /* Parse key */
     store_key_and_buffer_t key;
-    if (!node_handler::str_to_key(argv[1], &key.key)) {
+    if (!node::str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }

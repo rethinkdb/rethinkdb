@@ -11,7 +11,7 @@
 
 void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
     union {
-        char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+        char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
     (void)value_memory;
@@ -55,15 +55,15 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
         }
 
 #ifndef NDEBUG
-	node_handler::validate(cache->get_block_size(), ptr_cast<node_t>(buf_lock.buf()->get_data_read()));
+	node::validate(cache->get_block_size(), ptr_cast<node_t>(buf_lock.buf()->get_data_read()));
 #endif
 
 	const node_t *node = ptr_cast<node_t>(buf_lock.buf()->get_data_read());
-	if (!node_handler::is_internal(node)) {
+	if (!node::is_internal(node)) {
             break;
         }
 
-	block_id_t next_node_id = internal_node_handler::lookup(ptr_cast<internal_node_t>(node), key);
+	block_id_t next_node_id = internal_node::lookup(ptr_cast<internal_node_t>(node), key);
 	assert(next_node_id != NULL_BLOCK_ID);
 	assert(next_node_id != SUPERBLOCK_ID);
 
@@ -72,7 +72,7 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
 
 
     // Got down to the leaf, now examine it
-    bool found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(buf_lock.buf()->get_data_read()), key, &value);
+    bool found = leaf::lookup(ptr_cast<leaf_node_t>(buf_lock.buf()->get_data_read()), key, &value);
     buf_lock.release();
 
     if (found && value.expired()) {

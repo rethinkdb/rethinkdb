@@ -65,7 +65,7 @@ template <>
 ssize_t objsize<net_small_set_t>(const char *buffer) {
     const net_small_set_t *p = reinterpret_cast<const net_small_set_t *>(buffer);
 
-    return sizeof(net_small_set_t) + leaf_node_handler::pair_size(p->leaf_pair());
+    return sizeof(net_small_set_t) + leaf::pair_size(p->leaf_pair());
 }
 
 template <>
