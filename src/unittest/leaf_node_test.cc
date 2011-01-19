@@ -196,7 +196,7 @@ public:
     }
 private:
     union {
-        byte val_padding[sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE];
+        byte val_padding[MAX_BTREE_VALUE_SIZE];
         btree_value val;
     };
 };

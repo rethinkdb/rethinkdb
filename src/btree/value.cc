@@ -35,8 +35,6 @@ bool metadata_memcached_cas(const btree_value_metadata *m, cas_t *cas_out) {
     }
 }
 
-
-
-
-
-
+bool metadata_large_value_bit(const btree_value_metadata *m) {
+    return (m->flags & LARGE_VALUE) != 0;
+}

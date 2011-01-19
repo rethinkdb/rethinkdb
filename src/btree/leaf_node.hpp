@@ -8,7 +8,7 @@
 // See leaf_node_t in node.hpp
 
 /* EPSILON to prevent split then merge bug */
-#define LEAF_EPSILON (sizeof(btree_key) + MAX_KEY_SIZE + sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE)
+#define LEAF_EPSILON (sizeof(btree_key) + MAX_KEY_SIZE + MAX_BTREE_VALUE_SIZE)
 
 
 // Note: This struct is stored directly on disk.  Changing it

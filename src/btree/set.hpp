@@ -141,7 +141,7 @@ private:
     } result;
 
     union {
-        char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+        char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
     large_buf_t *large_value;

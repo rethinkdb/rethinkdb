@@ -84,7 +84,7 @@ private:
     /* Used as temporary storage, so that the value we return from operate() doesn't become invalid
     before run_btree_modify_oper is done with it. */
     union {
-        char temp_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+        char temp_value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value temp_value;
     };
     

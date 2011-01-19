@@ -11,7 +11,7 @@
 
 void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
     union {
-        char value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+        char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
     (void)value_memory;

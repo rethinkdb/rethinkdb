@@ -162,7 +162,7 @@ buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size) {
 // Runs a btree_modify_oper_t.
 void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *store, const btree_key *key) {
     union {
-        byte old_value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+        byte old_value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value old_value;
     };
     (void) old_value_memory;

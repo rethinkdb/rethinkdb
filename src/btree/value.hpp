@@ -4,6 +4,8 @@
 #include "buffer_cache/large_buf.hpp"
 
 
+// Note: The metadata values are stored in the order
+// [FLAGS][EXPTIME][CAS] while the flags are in a different order.
 enum metadata_flags {
     MEMCACHED_FLAGS   = 0x01,
     MEMCACHED_CAS     = 0x02,
@@ -31,7 +33,7 @@ int metadata_size(const btree_value_metadata *metadata);
 mcflags_t metadata_memcached_flags(const btree_value_metadata *metadata);
 exptime_t metadata_memcached_exptime(const btree_value_metadata *metadata);
 bool metadata_memcached_cas(const btree_value_metadata *metadata, cas_t *cas_out);
-
+bool metadata_large_value_bit(const btree_value_metadata *metadata);
 
 
 // Note: This struct is stored directly on disk.
@@ -123,7 +125,7 @@ public:
 
     // This assumes there's enough space allocated to move the value into.
     void make_space(byte *faddr, uint8_t fsize) {
-        assert(full_size() + fsize <= sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE);
+        assert(full_size() + fsize <= MAX_BTREE_VALUE_SIZE);
         memmove(faddr + fsize, faddr, full_size() - (faddr - (byte *)this));
     }
 
