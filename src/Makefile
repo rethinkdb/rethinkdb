@@ -1,3 +1,6 @@
+space=$(eval) $(eval)
+comma=,
+
 ##### Pretty-printing
 
 ANSI_BOLD_ON:=[1m
@@ -195,11 +198,14 @@ all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)
 endif
 
 ifeq ($(PACKAGING),1)
+SUPPRESSED_LINTIAN_TAGS:=new-package-should-close-itp-bug
 RPM_BUILD_ROOT=$(RPM_PACKAGE_DIR)/BUILD
 DEB_CONTROL_ROOT=$(DEB_PACKAGE_DIR)/DEBIAN
 RPM_SPEC_FILE=$(RPM_PACKAGE_DIR)/SPECS/rethinkdb.spec
 
 RETHINKDB_VERSION_RPM=$(subst -,_,$(RETHINKDB_PACKAGING_VERSION))
+DEB_PACKAGE_REVISION?=1
+RETHINKDB_VERSION_DEB=$(RETHINKDB_PACKAGING_VERSION)-$(DEB_PACKAGE_REVISION)
 
 prepare_deb_package_dirs:
 	$(QUIET) mkdir -p $(DEB_PACKAGE_DIR)
@@ -235,7 +241,7 @@ install: install-binaries install-manpages install-docs install-tools
 install-rpm: install
 install-deb: install
 	$(QUIET) install -m755 -d $(DESTDIR)$(docdir)
-	$(QUIET) sed	-e 's/PACKAGING_VERSION/$(RETHINKDB_PACKAGING_VERSION)/' ../docs/changelog.Debian | \
+	$(QUIET) sed	-e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION_DEB)/' ../docs/changelog.Debian | \
 		gzip -c9 | \
 		install -m644 -T /dev/stdin $(DESTDIR)$(docdir)/changelog.Debian.gz
 
@@ -265,7 +271,7 @@ build-deb: all prepare_deb_package_dirs
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1);		\
 		sed																														\
-				-e "s/VERSION/$(RETHINKDB_PACKAGING_VERSION)/"						\
+				-e "s/VERSION/$(RETHINKDB_VERSION_DEB)/"									\
 				-e "s/DISK_SIZE/$${disk_size}/"														\
 			../packaging/debian/control >$(DEB_CONTROL_ROOT)/control
 
@@ -282,7 +288,7 @@ deb: all prepare_deb_package_dirs
 	$(QUIET) for f in $(PACKAGES_DIR)/*.deb; do \
 			deb_name=$(realpath $(PACKAGES_DIR))/$$(basename $$f); \
 			echo "  $(ANSI_UL_ON)$${deb_name}$(ANSI_UL_OFF)"; \
-			lintian --color auto $${deb_name}; \
+			lintian --color auto --suppress-tags "$(subst $(space),$(comma),$(SUPPRESSED_LINTIAN_TAGS))" $${deb_name} || true; \
 		done
 	$(QUIET) echo
 
