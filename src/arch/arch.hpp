@@ -81,8 +81,6 @@ continue processing immediately if we are already on the correct thread, but
 at the time it didn't seem worth rewriting it, so call_later_on_this_thread()
 was added to make it easy to simulate the old semantics. */
 
-typedef io_config_t::timer_token_t timer_token_t;
-
 inline timer_token_t *add_timer(long ms, void (*callback)(void *), void *ctx) {
     return io_config_t::add_timer(ms, callback, ctx);
 }

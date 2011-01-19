@@ -7,7 +7,7 @@
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/translator.hpp"
-#include "config/cmd_args.hpp"
+#include "server/cmd_args.hpp"
 #include "concurrency/rwi_lock.hpp"
 
 /* The mock cache, mock_cache_t, is a drop-in replacement for mc_cache_t that keeps all of

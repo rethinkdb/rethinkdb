@@ -5,7 +5,7 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "arch/arch.hpp"
-#include "server.hpp"
+#include "server/server.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
@@ -90,7 +90,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
     gets.reserve(argc - 1);
     for (int i = 1; i < argc; i++) {
         gets.push_back(get_t());
-        if (!node_handler::str_to_key(argv[i], &gets.back().key)) {
+        if (!node::str_to_key(argv[i], &gets.back().key)) {
             rh->writef("CLIENT_ERROR bad command line format\r\n");
             return;
         }
@@ -411,7 +411,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 
     /* First parse the key */
     store_key_and_buffer_t key;
-    if (!node_handler::str_to_key(argv[1], &key.key)) {
+    if (!node::str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }
@@ -596,7 +596,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 
     /* Parse key */
     store_key_and_buffer_t key;
-    if (!node_handler::str_to_key(argv[1], &key.key)) {
+    if (!node::str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }
@@ -676,7 +676,7 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
 
     /* Parse key */
     store_key_and_buffer_t key;
-    if (!node_handler::str_to_key(argv[1], &key.key)) {
+    if (!node::str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }
@@ -734,8 +734,6 @@ void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
     rh->writef("END\r\n");
 };
 
-/* Main connection loop */
-
 perfmon_duration_sampler_t
     pm_conns_reading("conns_reading", secs_to_ticks(1)),
     pm_conns_writing("conns_writing", secs_to_ticks(1)),
@@ -769,7 +767,13 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
         }
 
         // Keep trying until we get a complete line.
-        conn->read_more_buffered();
+
+        // TODO: do we need this is_read_open() check?
+        if (conn->is_read_open()) {
+            conn->read_more_buffered();
+        } else {
+            throw tcp_conn_t::read_closed_exc_t();
+        }
     }
 
 };

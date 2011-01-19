@@ -9,7 +9,7 @@
 #include <map>
 
 #include "serializer/serializer.hpp"
-#include "config/cmd_args.hpp"
+#include "server/cmd_args.hpp"
 #include "utils.hpp"
 
 #include "metablock/metablock_manager.hpp"

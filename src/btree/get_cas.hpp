@@ -83,7 +83,7 @@ public:
 private:
     store_t::get_callback_t *callback;
     union {
-        byte value_memory[MAX_TOTAL_NODE_CONTENTS_SIZE+sizeof(btree_value)];
+        byte value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
     large_buf_t *large_value;

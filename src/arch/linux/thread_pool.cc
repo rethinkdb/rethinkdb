@@ -4,7 +4,7 @@
 #include "errors.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/coroutines.hpp"
-#include <sys/eventfd.h>
+#include "arch/linux/eventfd.hpp"
 #include <signal.h>
 #include <fcntl.h>
 #include "logger.hpp"
@@ -12,7 +12,9 @@
 const int SEGV_STACK_SIZE = 8126;
 
 /* Defined in perfmon_system.cc */
+#ifndef LEGACY_LINUX
 void poll_system_stats(void *);
+#endif
 
 __thread linux_thread_pool_t *linux_thread_pool_t::thread_pool;
 __thread int linux_thread_pool_t::thread_id;
@@ -60,6 +62,18 @@ struct thread_data_t {
 };
 
 void *linux_thread_pool_t::start_thread(void *arg) {
+#ifdef LEGACY_LINUX
+    // Block all signals (will be unblocked by the event queue).
+    {
+        sigset_t sigmask;
+        int res = sigfillset(&sigmask);
+        guarantee_err(res == 0, "Could not get a full sigmask");
+
+        res = pthread_sigmask(SIG_BLOCK, &sigmask, NULL);
+        guarantee_err(res == 0, "Could not block signal");
+    }
+#endif
+
     thread_data_t *tdata = (thread_data_t*)arg;
     
     // Set thread-local variables
@@ -302,11 +316,15 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
     
     // Start the stats timer
     
+#ifndef LEGACY_LINUX
     perfmon_stats_timer = timer_handler.add_timer_internal(1000, poll_system_stats, NULL, false);
+#endif
 }
 
 linux_thread_t::~linux_thread_t() {
+#ifndef LEGACY_LINUX
     timer_handler.cancel_timer(perfmon_stats_timer);
+#endif
     
     int res;
     

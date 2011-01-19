@@ -7,6 +7,12 @@
 #include "conn_acceptor.hpp"
 #include "utils.hpp"
 #include "perfmon.hpp"
+#include "server/cmd_args.hpp"
+
+/* run_server() is called by main() once it determines that the subprogram to be run
+is 'serve' or 'create'. */
+
+int run_server(int argc, char *argv[]);
 
 /* server_main() is meant to be run in a coroutine. It should be started at server
 start. It will return right when the server shuts down. */

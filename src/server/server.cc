@@ -3,6 +3,46 @@
 #include "memcached/memcached.hpp"
 #include "diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
+#include "logger.hpp"
+#include "server/cmd_args.hpp"
+
+int run_server(int argc, char *argv[]) {
+
+    // Parse command line arguments
+    cmd_config_t config = parse_cmd_args(argc, argv);
+
+    // Open the log file, if necessary.
+    if (config.log_file_name[0]) {
+        log_file = fopen(config.log_file_name, "w");
+    }
+
+    // Initial thread message to start server
+    struct server_starter_t :
+        public thread_message_t
+    {
+        cmd_config_t *cmd_config;
+        thread_pool_t *thread_pool;
+        void on_thread_switch() {
+            coro_t::spawn(&server_main, cmd_config, thread_pool);
+        }
+    } starter;
+    starter.cmd_config = &config;
+
+    // Run the server.
+    thread_pool_t thread_pool(config.n_workers);
+    starter.thread_pool = &thread_pool;
+    thread_pool.run(&starter);
+
+    logINF("Server is shut down.\n");
+
+    // Close the log file if necessary.
+    if (config.log_file_name[0]) {
+        fclose(log_file);
+        log_file = stderr;
+    }
+
+    return 0;
+}
 
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 

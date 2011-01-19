@@ -3,42 +3,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "config/cmd_args.hpp"
-#include "fsck/fsck.hpp"
-#include "extract/extract.hpp"
+#include "server/cmd_args.hpp"
 #include "utils.hpp"
 #include "help.hpp"
 #include "arch/arch.hpp"
 
-void print_version_message() {
-    printf("rethinkdb " RETHINKDB_VERSION
-#ifndef NDEBUG
-           " (debug)"
-#endif
-           "\n");
-    exit(0);
-}
+/* Note that this file only parses arguments for the 'serve' and 'create' subcommands. */
 
-void usage(const char *name) {
-    Help_Pager *help = Help_Pager::instance();
-    help->pagef("Usage: rethinkdb COMMAND ...\n"
-                "Commands:\n"
-                "    help        Display help about rethinkdb and rethinkdb commands.\n"
-                "\n"
-                "Creating and serving databases:\n"
-                "    create      Create an empty database.\n"
-                "    serve       Serve an existing database.\n"
-                "\n"
-                "Administrating databases:\n"
-                "    extract     Extract as much data as possible from a corrupted database.\n"
-                "    fsck        Check a database for corruption.\n"
-                "\n"
-                "Use 'rethinkdb help COMMAND' for help on a single command.\n"
-                "Use 'rethinkdb --version' for the current version of rethinkdb.\n");
-    exit(0);
-}
-
-void usage_serve(const char *name) {
+void usage_serve() {
     Help_Pager *help = Help_Pager::instance();
     help->pagef("Usage:\n"
                 "        rethinkdb serve [OPTIONS] [-f <file_1> -f <file_2> ...]\n"
@@ -116,7 +88,7 @@ void usage_serve(const char *name) {
     exit(0);
 }
 
-void usage_create(const char *name) {
+void usage_create() {
     Help_Pager *help = Help_Pager::instance();
     help->pagef("Usage:\n"
                 "        rethinkdb create [OPTIONS] -f <file_1> [-f <file_2> ...]\n"
@@ -157,104 +129,32 @@ enum {
     extent_size,
     force_create,
     coroutine_stack_size,
-    print_version,
     slave_of,
     failover_script,
     heartbeat_timeout,
 };
-
-enum rethinkdb_cmd {
-    cmd_extract,
-    cmd_create,
-    cmd_fsck,
-    cmd_help,
-    cmd_serve,
-    cmd_none
-};
-
-enum rethinkdb_cmd parse_cmd(char *arg) {
-    if      (!strcmp("extract", arg)) return cmd_extract;
-    else if (!strcmp("create",  arg)) return cmd_create;
-    else if (!strcmp("help",    arg)) return cmd_help;
-    else if (!strcmp("fsck",    arg)) return cmd_fsck;
-    else if (!strcmp("serve",   arg)) return cmd_serve;
-    else                                  return cmd_none;
-}
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     parsing_cmd_config_t config;
 
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
 
+    /* main() will have automatically inserted "serve" if no argument was specified */
+    assert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create"));
 
-    /* First, check to see if we're running a sub-command:
-     * one of serve, create, fsck, help, extract. */
-
-
-    enum rethinkdb_cmd cmd = cmd_none;
-    if (argc >= 2) {
-        cmd = parse_cmd(argv[1]);
-        enum rethinkdb_cmd help_cmd;
-
-        switch (cmd) {
-            case cmd_extract:
-                exit(run_extract(argc - 1, argv + 1));
-                break;
-            case cmd_create:
-                if (argc >= 3) {
-                    if (!strncmp("help", argv[2], 4)) {
-                        usage_create(argv[0]);
-                    }
-                }
-                config.create_store = true;
-                config.shutdown_after_creation = true;
-                argc--;
-                argv++;
-                break;
-            case cmd_fsck:
-                exit(run_fsck(argc - 1, argv + 1));
-                break;
-            case cmd_help:
-                if (argc >= 3) {
-                    help_cmd = parse_cmd(argv[2]);
-                    switch (help_cmd) {
-                        case cmd_extract:
-                            extract::usage(argv[0]);
-                            break;
-                        case cmd_create:
-                            usage_create(argv[0]);
-                            break;
-                        case cmd_fsck:
-                            fsck::usage(argv[0]);
-                            break;
-                        case cmd_serve:
-                            usage_serve(argv[0]);
-                            break;
-                        case cmd_none:
-                            printf("No such command %s.\n", argv[2]);
-                            break;
-                        case cmd_help:
-                            break;
-                        default: crash("default");
-                    }
-                }
-                usage(argv[0]);
-                break;
-            case cmd_serve:
-                argc--;
-                argv++;
-                break;
-            case cmd_none: break;
-            default: crash("default");
+    if (!strcmp(argv[0], "create")) {
+        if (argc >= 2 && !strcmp(argv[1], "help")) {
+            usage_create();
         }
+        config.create_store = true;
+        config.shutdown_after_creation = true;
     }
-    
+
     bool slices_set_by_user = false;
     optind = 1; // reinit getopt
     while(1)
     {
         int do_help = 0;
-        int do_version = 0;
         int do_force_create = 0;
         struct option long_options[] =
             {
@@ -277,7 +177,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"port",                 required_argument, 0, 'p'},
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
-                {"version",              no_argument, &do_version, 1},
                 {"help",                 no_argument, &do_help, 1},
                 {"slave_of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script}, //TODO document this @jdoliner
@@ -290,8 +189,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
 
         if (do_help)
             c = 'h';
-        if (do_version)
-            c = print_version;
         if (do_force_create)
             c = force_create;
      
@@ -340,8 +237,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_coroutine_stack_size(optarg); break;
             case force_create:
                 config.force_create = true; break;
-            case print_version:
-                print_version_message(); break;
             case slave_of:
                 config.set_master_addr(optarg); break;
             case failover_script:
@@ -352,11 +247,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             default:
                 /* getopt_long already printed an error message. */
                 if (config.create_store) {
-                    usage_create(argv[0]);
-                } else if (cmd == cmd_serve) {
-                    usage_serve(argv[0]);
+                    usage_create();
                 } else {
-                    usage(argv[0]);
+                    usage_serve();
                 }
         }
     }
@@ -388,7 +281,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         }
     } else if (private_configs.empty() && config.create_store) {
         fprintf(stderr, "You must explicitly specify one or more paths with -f.\n");
-        usage_create(argv[0]);
+        usage_create();
     }
     
     /* Sanity-check the input */
