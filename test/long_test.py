@@ -8,13 +8,15 @@ from retester import send_email, do_test
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'common')))
 from test_common import *
 from git_util import *
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'long_test')))
+from statsDBCollector import *
 
 long_test_branch = "long-test"
 no_checkout_arg = "--no-checkout"
 long_test_logs_dir = "~/long_test_logs"
 
 rdb_num_threads = 12
-rdb_db_files = ["/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde"] 
+rdb_db_files = ["/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde"]
 rdb_cache_size = 25000
 
 rdbstat_path = "bench/dbench/rdbstat"
@@ -76,6 +78,10 @@ def parse_arguments(args):
     op['reporting_interval']   = IntFlag("--rinterval", 28800)
     op['emailfrom'] = StringFlag("--emailfrom", 'buildbot@rethinkdb.com:allspark')
     op['recipient'] = StringFlag("--email", 'all@rethinkdb.com')
+    op['db_server'] = StringFlag("--db-server", 'newton')
+    op['db_user'] = StringFlag("--db-user", 'longtest')
+    op['db_password'] = StringFlag("--db-password", 'rethinkdb2010')
+    op['db_database'] = StringFlag("--db-database", 'longtest')
 
     opts = op.parse(args)
     opts["netrecord"] = False   # We don't want to slow down the network
@@ -88,17 +94,21 @@ def parse_arguments(args):
 server = None
 rdbstat = None
 stats_sender = None
+stats_collector = None
 
 def long_test_function(opts, test_dir):
     global server
     global rdbstat
     global stats_sender
+    global stats_collector
 
     print 'Starting server...'
     server = Server(opts, extra_flags=[], test_dir=test_dir)
     server.start()
 
     stats_sender = StatsSender(opts, server)
+    
+    stats_collector = StatsDBCollector(opts, server)
 
     stats_file = test_dir.make_file("stats.gz")
     print "Collecting stats data into '%s'..." % stats_file
@@ -126,15 +136,29 @@ def shutdown():
     global server
     global rdbstat
     global stats_sender
+    global stats_collector
+    if stats_collector:
+        stats_collector.stop()
+        stats_collector = None
+    errors = []
     if server:
-        server.shutdown()   # this also stops stress_client
+        try:
+            server.shutdown()   # this also stops stress_client
+        except Exception as e:
+            errors.append(e)
         server = None
     if rdbstat:
-        rdbstat.stop()
+        try:
+            rdbstat.stop()
+        except Exception as e:
+            errors.append(e)
         rdbstat = None
     if stats_sender:
-        stats_sender.stop()
-        stats_sender.post_results()
+        try:
+            stats_sender.stop()
+        except Exception as e:
+            errors.append(e)
+        stats_sender.post_results(errors=errors)
         stats_sender = None
 
 def set_signal_handler():
@@ -145,18 +169,10 @@ def set_signal_handler():
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGQUIT, signal_handler)
 
-def simple_plotter(name, multiplier = 1):
-    return lambda (old, new): new[name]*multiplier if new[name] else None
 
-def differential_plotter(name):
-    return lambda (old, new): (new[name]-old[name])/(new['uptime']-old['uptime']) if new[name] and old[name] else None
+from statsPlotter import *
 
-def two_stats_diff_plotter(stat1, stat2):
-    return lambda (old, new): new[stat1]-new[stat2] if new[stat1] and new[stat2] else None
-
-def two_stats_ratio_plotter(dividend, divisor):
-    return lambda (old, new): new[dividend]/new[divisor] if new[dividend] and new[divisor] and new[divisor] != 0 else None
-
+# TODO: Use Plot from statsPlotter to generate individual plot images and put them in an HTML e-mail
 class StatsSender(object):
     monitoring = [
         'blocks_dirty[blocks]',
@@ -184,8 +200,9 @@ class StatsSender(object):
         'serializer_data_extents_gced[dexts]',
         'transactions_starting_avg',
         'uptime',
+        'timestamp'
     ]
-    bucket_size = 100
+    bucket_size = 10
     single_plot_height = 128
     plot_style_quantile = 'quantile %d 0.05,0.5,0.95' % bucket_size
     plot_style_quantile_log = 'quantilel %d 0.05,0.5,0.95' % bucket_size
@@ -242,7 +259,7 @@ class StatsSender(object):
         self.stats = []
         return old_stats
 
-    def post_results(self):
+    def post_results(self, errors=[]):
         all_stats = self.reset_stats()
         if len(all_stats) > 0:
             from email.mime.image import MIMEImage
@@ -253,10 +270,26 @@ class StatsSender(object):
             msg['From'] = 'buildbot@rethinkdb.com'
             msg['To'] = self.opts['recipient']
 
-            msg.preamble = 'Preamble is here'
-
-            for img in self.generate_plots(all_stats):
+            start_timestamp = all_stats[0]['timestamp']
+            img_number = 0
+            images = self.generate_plots(all_stats)
+            for img in images:
+                msg_img.add_header('Content-ID', '<'+str(img_number)+'.png>')
+                msg_img.add_header('Content-Disposition', 'inline; filename=%s-%d.png;' % (start_timestamp, img_number))
                 msg.attach(MIMEImage(img))
+
+                img_number = img_number + 1
+
+            html = """\
+<html>
+    <head>
+    </head>
+    <body>
+        <img src="cid=0.png">
+    </body>
+</html>
+"""
+            msg.attach(MIMEText(html, 'html'))
 
             os.environ['RETESTER_EMAIL_SENDER'] = self.opts['emailfrom']
             send_email(None, msg, self.opts['recipient'])
