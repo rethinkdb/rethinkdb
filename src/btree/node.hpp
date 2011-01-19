@@ -78,7 +78,7 @@ struct node_t {
 template <>
 bool check_magic<node_t>(block_magic_t magic);
 
-namespace node_handler {
+namespace node {
 
 inline bool is_leaf(const node_t *node) {
     assert(check_magic<node_t>(node->magic));
@@ -112,7 +112,7 @@ void print(const node_t *node);
 
 void validate(block_size_t block_size, const node_t *node);
 
-}  // namespace node_handler
+}  // namespace node
 
 inline void keycpy(btree_key *dest, const btree_key *src) {
     memcpy(dest, src, sizeof(btree_key) + src->size);

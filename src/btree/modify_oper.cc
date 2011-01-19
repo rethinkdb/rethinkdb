@@ -37,12 +37,12 @@ void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, b
     const node_t *node = ptr_cast<node_t>((*buf)->get_data_read());
 
     // If the node isn't full, we don't need to split, so we're done.
-    if (node_handler::is_leaf(node)) { // This should only be called when update_needed.
+    if (node::is_leaf(node)) { // This should only be called when update_needed.
         assert(new_value);
-        if (!leaf_node_handler::is_full(ptr_cast<leaf_node_t>(node), key, new_value)) return;
+        if (!leaf::is_full(ptr_cast<leaf_node_t>(node), key, new_value)) return;
     } else {
         assert(!new_value);
-        if (!internal_node_handler::is_full(ptr_cast<internal_node_t>(node))) return;
+        if (!internal_node::is_full(ptr_cast<internal_node_t>(node))) return;
     }
 
     // Allocate a new node to split into, and some temporary memory to keep
@@ -51,14 +51,14 @@ void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, b
     byte median_memory[sizeof(btree_key) + MAX_KEY_SIZE];
     btree_key *median = reinterpret_cast<btree_key *>(median_memory);
 
-    node_handler::split(block_size, ptr_cast<node_t>((*buf)->get_data_write()), ptr_cast<node_t>(rbuf->get_data_write()), median);
+    node::split(block_size, ptr_cast<node_t>((*buf)->get_data_write()), ptr_cast<node_t>(rbuf->get_data_write()), median);
 
     // Insert the key that sets the two nodes apart into the parent.
     internal_node_t *last_node;
     if (*last_buf == NULL) { // We're splitting what was previously the root, so create a new root to use as the parent.
         *last_buf = txn->allocate();
         last_node = ptr_cast<internal_node_t>((*last_buf)->get_data_write());
-        internal_node_handler::init(block_size, last_node);
+        internal_node::init(block_size, last_node);
 
         insert_root((*last_buf)->get_block_id(), sb_buf);
         pm_btree_depth++;
@@ -66,7 +66,7 @@ void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, b
         last_node = ptr_cast<internal_node_t>((*last_buf)->get_data_write());
     }
 
-    bool success __attribute__((unused)) = internal_node_handler::insert(block_size, last_node, median, (*buf)->get_block_id(), rbuf->get_block_id());
+    bool success __attribute__((unused)) = internal_node::insert(block_size, last_node, median, (*buf)->get_block_id(), rbuf->get_block_id());
     assert(success, "could not insert internal btree node");
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
@@ -84,42 +84,42 @@ void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, b
 void check_and_handle_underfull(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
                                                     const btree_key *key, block_size_t block_size) {
     const node_t *node = ptr_cast<node_t>((*buf)->get_data_read());
-    if (*last_buf && node_handler::is_underfull(block_size, node)) { // The root node is never underfull.
+    if (*last_buf && node::is_underfull(block_size, node)) { // The root node is never underfull.
 
         node_t *node = ptr_cast<node_t>((*buf)->get_data_write());
         internal_node_t *parent_node = ptr_cast<internal_node_t>((*last_buf)->get_data_write());
 
         // Acquire a sibling to merge or level with.
         block_id_t sib_node_id;
-        int nodecmp_node_with_sib = internal_node_handler::sibling(parent_node, key, &sib_node_id);
+        int nodecmp_node_with_sib = internal_node::sibling(parent_node, key, &sib_node_id);
 
         // Now decide whether to merge or level.
         buf_t *sib_buf = co_acquire_block(txn, sib_node_id, rwi_write);
         node_t *sib_node = ptr_cast<node_t>(sib_buf->get_data_write());
 
 #ifndef NDEBUG
-        node_handler::validate(block_size, sib_node);
+        node::validate(block_size, sib_node);
 #endif
 
-        if (node_handler::is_mergable(block_size, node, sib_node, parent_node)) { // Merge.
+        if (node::is_mergable(block_size, node, sib_node, parent_node)) { // Merge.
 
             // This is the key that we remove.
             char key_to_remove_buf[sizeof(btree_key) + MAX_KEY_SIZE];
             btree_key *key_to_remove = ptr_cast<btree_key>(key_to_remove_buf);
 
             if (nodecmp_node_with_sib < 0) { // Nodes must be passed to merge in ascending order.
-                node_handler::merge(block_size, node, sib_node, key_to_remove, parent_node);
+                node::merge(block_size, node, sib_node, key_to_remove, parent_node);
                 (*buf)->mark_deleted();
                 (*buf)->release();
                 *buf = sib_buf;
             } else {
-                node_handler::merge(block_size, sib_node, node, key_to_remove, parent_node);
+                node::merge(block_size, sib_node, node, key_to_remove, parent_node);
                 sib_buf->mark_deleted();
                 sib_buf->release();
             }
 
-            if (!internal_node_handler::is_singleton(parent_node)) {
-                internal_node_handler::remove(block_size, parent_node, key_to_remove);
+            if (!internal_node::is_singleton(parent_node)) {
+                internal_node::remove(block_size, parent_node, key_to_remove);
             } else {
                 // The parent has only 1 key after the merge (which means that
                 // it's the root and our node is its only child). Insert our
@@ -134,10 +134,10 @@ void check_and_handle_underfull(transaction_t *txn, buf_t **buf, buf_t **last_bu
             byte replacement_key_buf[sizeof(btree_key) + MAX_KEY_SIZE];
             btree_key *replacement_key = ptr_cast<btree_key>(replacement_key_buf);
 
-            bool leveled = node_handler::level(block_size, node, sib_node, key_to_replace, replacement_key, parent_node);
+            bool leveled = node::level(block_size, node, sib_node, key_to_replace, replacement_key, parent_node);
 
             if (leveled) {
-                internal_node_handler::update_key(parent_node, key_to_replace, replacement_key);
+                internal_node::update_key(parent_node, key_to_replace, replacement_key);
             }
             sib_buf->release();
         }
@@ -152,7 +152,7 @@ buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size) {
         return co_acquire_block(txn, node_id, rwi_write);
     } else { // Make a new block.
         buf_t *buf = txn->allocate();
-        leaf_node_handler::init(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), current_time());
+        leaf::init(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), current_time());
         insert_root(buf->get_block_id(), sb_buf);
         pm_btree_depth++;
         return buf;
@@ -184,7 +184,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
         buf_t *buf = get_root(txn, &sb_buf, block_size);
 
         // Walk down the tree to the leaf.
-        while (node_handler::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
+        while (node::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
             // Check if the node is overfull and proactively split it if it is (since this is an internal node).
             check_and_handle_split(txn, &buf, &last_buf, &sb_buf, key, NULL, block_size);
             // Check if the node is underfull, and merge/level if it is.
@@ -205,13 +205,13 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
             last_buf = buf;
 
             // Look up and acquire the next node.
-            block_id_t node_id = internal_node_handler::lookup(ptr_cast<internal_node_t>(buf->get_data_read()), key);
+            block_id_t node_id = internal_node::lookup(ptr_cast<internal_node_t>(buf->get_data_read()), key);
             assert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
             buf = co_acquire_block(txn, node_id, rwi_write);
         }
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
-        bool key_found = leaf_node_handler::lookup(ptr_cast<leaf_node_t>(buf->get_data_read()), key, &old_value);
+        bool key_found = leaf::lookup(ptr_cast<leaf_node_t>(buf->get_data_read()), key, &old_value);
 
         // If there's a large value, acquire that too.
         large_buf_t *old_large_buf = NULL;
@@ -268,11 +268,11 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
 
                 repli_timestamp new_value_timestamp = current_time(); // TODO: When the replication code is put back in this'll probably need to be changed.
 
-                bool success = leaf_node_handler::insert(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), key, new_value, new_value_timestamp);
+                bool success = leaf::insert(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), key, new_value, new_value_timestamp);
                 guarantee(success, "could not insert leaf btree node");
             } else { // Delete the value if it's there.
                 if (key_found || expired) {
-                    leaf_node_handler::remove(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), key);
+                    leaf::remove(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), key);
                 } else {
                      // operate() told us to delete a value (update_needed && !new_value), but the
                      // key wasn't in the node (!key_found && !expired), so we do nothing.

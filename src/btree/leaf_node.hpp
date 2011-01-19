@@ -30,7 +30,7 @@ bool leaf_pair_fits(const btree_leaf_pair *pair, size_t size);
 
 class leaf_key_comp;
 
-namespace leaf_node_handler {
+namespace leaf {
     void init(block_size_t block_size, leaf_node_t *node, repli_timestamp modification_time);
     void init(block_size_t block_size, leaf_node_t *node, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp modification_time);
 
@@ -95,9 +95,9 @@ namespace impl {
     // NUM_LEAF_NODE_EARLIER_TIMES) for the key-value pair at the
     // given offset.
     int get_timestamp_offset(block_size_t block_size, const leaf_node_t *node, uint16_t offset);
-}  // namespace leaf_node_handler::impl
+}  // namespace leaf::impl
 
-}  // namespace leaf_node_handler
+}  // namespace leaf
 
 class leaf_key_comp {
     const leaf_node_t *node;
@@ -109,8 +109,8 @@ public:
     leaf_key_comp(const leaf_node_t *_node, const btree_key *_key) : node(_node), key(_key)  { }
 
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
-        const btree_key *key1 = offset1 == faux_offset ? key : &leaf_node_handler::get_pair(node, offset1)->key;
-        const btree_key *key2 = offset2 == faux_offset ? key : &leaf_node_handler::get_pair(node, offset2)->key;
+        const btree_key *key1 = offset1 == faux_offset ? key : &leaf::get_pair(node, offset1)->key;
+        const btree_key *key2 = offset2 == faux_offset ? key : &leaf::get_pair(node, offset2)->key;
         int cmp = leaf_key_comp::compare(key1, key2);
 
         return cmp < 0;

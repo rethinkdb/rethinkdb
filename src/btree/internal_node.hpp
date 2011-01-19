@@ -18,7 +18,9 @@ struct btree_internal_pair {
 
 class internal_key_comp;
 
-namespace internal_node_handler {
+// In a perfect world, this namespace would be 'branch'.
+namespace internal_node {
+
 void init(block_size_t block_size, internal_node_t *node);
 void init(block_size_t block_size, internal_node_t *node, const internal_node_t *lnode, const uint16_t *offsets, int numpairs);
 
@@ -57,8 +59,8 @@ void delete_offset(internal_node_t *node, int index);
 void insert_offset(internal_node_t *node, uint16_t offset, int index);
 void make_last_pair_special(internal_node_t *node);
 bool is_equal(const btree_key *key1, const btree_key *key2);
-}  // namespace impl
-}  // namespace internal_node_handler
+}  // namespace internal_node::impl
+}  // namespace internal_node
 
 class internal_key_comp {
     const internal_node_t *node;
@@ -69,8 +71,8 @@ public:
     explicit internal_key_comp(const internal_node_t *_node) : node(_node), key(NULL)  { }
     internal_key_comp(const internal_node_t *_node, const btree_key *_key) : node(_node), key(_key)  { }
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
-        const btree_key *key1 = offset1 == 0 ? key : &internal_node_handler::get_pair(node, offset1)->key;
-        const btree_key *key2 = offset2 == 0 ? key : &internal_node_handler::get_pair(node, offset2)->key;
+        const btree_key *key1 = offset1 == 0 ? key : &internal_node::get_pair(node, offset1)->key;
+        const btree_key *key2 = offset2 == 0 ? key : &internal_node::get_pair(node, offset2)->key;
         return compare(key1, key2) < 0;
     }
     static int compare(const btree_key *key1, const btree_key *key2) {

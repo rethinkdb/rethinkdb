@@ -205,7 +205,7 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
                     for (int j = 0; j < num_pairs; ++j) {
                         uint16_t pair_offset = leaf->pair_offsets[j];
                         if (pair_offset >= pair_offsets_back_offset && pair_offset <= cfg.block_size().value()) {
-                            const btree_leaf_pair *pair = leaf_node_handler::get_pair(leaf, leaf->pair_offsets[j]);
+                            const btree_leaf_pair *pair = leaf::get_pair(leaf, leaf->pair_offsets[j]);
                             dump_pair_value(dumper, file, cfg, offsets, pair, block_id, cfg.block_size().value() - pair_offset);
                         }
                     }

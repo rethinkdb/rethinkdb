@@ -9,7 +9,7 @@ bool leaf_pair_fits(const btree_leaf_pair *pair, size_t size) {
     return 3 < size && 1 + size_t(pair->key.size) + 2 <= size && size_t(1 + pair->key.size + pair->value()->mem_size()) <= size;
 }
 
-namespace leaf_node_handler {
+namespace leaf {
 
 void init(block_size_t block_size, leaf_node_t *node, repli_timestamp modification_time) {
     node->magic = leaf_node_t::expected_magic;
@@ -96,7 +96,7 @@ void remove(block_size_t block_size, leaf_node_t *node, const btree_key *key) {
 
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
-    leaf_node_handler::print(node);
+    leaf::print(node);
 #endif
 
     validate(block_size, node);
@@ -151,7 +151,7 @@ void split(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree
 
     node->npairs = median_index;
 
-    // TODO: this could be less coarse (if we made leaf_node_handler::init less coarse).
+    // TODO: this could be less coarse (if we made leaf::init less coarse).
     impl::initialize_times(&node->times, node->times.last_modified);
 
     // Equality takes the left branch, so the median should be from this node.
@@ -166,9 +166,9 @@ void merge(block_size_t block_size, const leaf_node_t *node, leaf_node_t *rnode,
 #ifdef BTREE_DEBUG
     printf("merging\n");
     printf("node:\n");
-    leaf_node_handler::print(node);
+    leaf::print(node);
     printf("rnode:\n");
-    leaf_node_handler::print(rnode);
+    leaf::print(rnode);
 #endif
 
     guarantee(sizeof(leaf_node_t) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
@@ -190,9 +190,9 @@ void merge(block_size_t block_size, const leaf_node_t *node, leaf_node_t *rnode,
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     printf("node:\n");
-    leaf_node_handler::print(node);
+    leaf::print(node);
     printf("rnode:\n");
-    leaf_node_handler::print(rnode);
+    leaf::print(rnode);
 #endif
 
 #ifndef NDEBUG
@@ -206,9 +206,9 @@ bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btr
 #ifdef BTREE_DEBUG
     printf("leveling\n");
     printf("node:\n");
-    leaf_node_handler::print(node);
+    leaf::print(node);
     printf("sibling:\n");
-    leaf_node_handler::print(sibling);
+    leaf::print(sibling);
 #endif
 
 #ifndef DEBUG_MAX_LEAF
@@ -217,7 +217,7 @@ bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btr
     int sibling_size = block_size.value() - sibling->frontmost_offset;
 
     if (sibling_size < node_size + 2) {
-        logWRN("leaf_node_handler::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<buf_data_t *>(reinterpret_cast<byte *>(node) - sizeof(buf_data_t))->block_id);
+        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<buf_data_t *>(reinterpret_cast<byte *>(node) - sizeof(buf_data_t))->block_id);
         return false;
     }
 
@@ -342,9 +342,9 @@ bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btr
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     printf("node:\n");
-    leaf_node_handler::print(node);
+    leaf::print(node);
     printf("sibling:\n");
-    leaf_node_handler::print(sibling);
+    leaf::print(sibling);
 #endif
 
 #ifndef NDEBUG
@@ -610,6 +610,6 @@ int get_timestamp_offset(block_size_t block_size, const leaf_node_t *node, uint1
     }
 }
 
-}  // namespace leaf_node_handler::impl
+}  // namespace leaf::impl
 
-}  // namespace leaf_node_handler
+}  // namespace leaf

@@ -6,7 +6,7 @@
 
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
-namespace internal_node_handler {
+namespace internal_node {
 
 using namespace impl;
 
@@ -31,7 +31,7 @@ block_id_t lookup(const internal_node_t *node, const btree_key *key) {
     printf("Look up:");
     key->print();
     printf("\n");
-    internal_node_handler::print(node);
+    internal_node::print(node);
     printf("\t");
     for (int i = 0; i < index; i++)
         printf("\t\t");
@@ -69,7 +69,7 @@ bool insert(block_size_t block_size, internal_node_t *node, const btree_key *key
 bool remove(block_size_t block_size, internal_node_t *node, const btree_key *key) {
 #ifdef BTREE_DEBUG
     printf("removing key\n");
-    internal_node_handler::print(node);
+    internal_node::print(node);
 #endif
     int index = get_offset_index(node, key);
     delete_pair(node, node->pair_offsets[index]);
@@ -79,7 +79,7 @@ bool remove(block_size_t block_size, internal_node_t *node, const btree_key *key
         make_last_pair_special(node);
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
-    internal_node_handler::print(node);
+    internal_node::print(node);
 #endif
 
     validate(block_size, node);
@@ -89,7 +89,7 @@ bool remove(block_size_t block_size, internal_node_t *node, const btree_key *key
 void split(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key *median) {
 #ifdef BTREE_DEBUG
     printf("splitting key\n");
-    internal_node_handler::print(node);
+    internal_node::print(node);
 #endif
     uint16_t total_pairs = block_size.value() - node->frontmost_offset;
     uint16_t first_pairs = 0;
@@ -117,7 +117,7 @@ void split(block_size_t block_size, internal_node_t *node, internal_node_t *rnod
     make_last_pair_special(node);
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
-    internal_node_handler::print(node);
+    internal_node::print(node);
 #endif
     validate(block_size, node);
     validate(block_size, rnode);
@@ -127,9 +127,9 @@ void merge(block_size_t block_size, const internal_node_t *node, internal_node_t
 #ifdef BTREE_DEBUG
     printf("merging\n");
     printf("node:\n");
-    internal_node_handler::print(node);
+    internal_node::print(node);
     printf("rnode:\n");
-    internal_node_handler::print(rnode);
+    internal_node::print(rnode);
 #endif
     validate(block_size, node);
     validate(block_size, rnode);
@@ -152,9 +152,9 @@ void merge(block_size_t block_size, const internal_node_t *node, internal_node_t
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     printf("node:\n");
-    internal_node_handler::print(node);
+    internal_node::print(node);
     printf("rnode:\n");
-    internal_node_handler::print(rnode);
+    internal_node::print(rnode);
 #endif
     validate(block_size, rnode);
 }
@@ -165,9 +165,9 @@ bool level(block_size_t block_size, internal_node_t *node, internal_node_t *sibl
 #ifdef BTREE_DEBUG
     printf("levelling\n");
     printf("node:\n");
-    internal_node_handler::print(node);
+    internal_node::print(node);
     printf("sibling:\n");
-    internal_node_handler::print(sibling);
+    internal_node::print(sibling);
 #endif
 
     if (nodecmp(node, sibling) < 0) {
@@ -231,9 +231,9 @@ bool level(block_size_t block_size, internal_node_t *node, internal_node_t *sibl
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     printf("node:\n");
-    internal_node_handler::print(node);
+    internal_node::print(node);
     printf("sibling:\n");
-    internal_node_handler::print(sibling);
+    internal_node::print(sibling);
 #endif
     validate(block_size, node);
     validate(block_size, sibling);
@@ -260,7 +260,7 @@ int sibling(const internal_node_t *node, const btree_key *key, block_id_t *sib_i
 void update_key(internal_node_t *node, const btree_key *key_to_replace, const btree_key *replacement_key) {
 #ifdef BTREE_DEBUG
     printf("updating key\n");
-    internal_node_handler::print(node);
+    internal_node::print(node);
 #endif
     int index = get_offset_index(node, key_to_replace);
     block_id_t tmp_lnode = get_pair(node, node->pair_offsets[index])->lnode;
@@ -272,7 +272,7 @@ void update_key(internal_node_t *node, const btree_key *key_to_replace, const bt
     node->pair_offsets[index] = insert_pair(node, tmp_lnode, replacement_key);
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
-    internal_node_handler::print(node);
+    internal_node::print(node);
 #endif
 
     guarantee(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
@@ -462,6 +462,6 @@ bool is_equal(const btree_key *key1, const btree_key *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
 }
 
-}  // namespace internal_node_handler::impl
+}  // namespace internal_node::impl
 
-}  // namespace internal_node_handler
+}  // namespace internal_node
