@@ -431,7 +431,8 @@ void linux_tcp_listener_t::on_event(int events) {
                 }
             }
         } else {
-            callback->on_tcp_listener_accept(new linux_tcp_conn_t(new_sock));
+            coro_t::spawn(&linux_tcp_listener_callback_t::on_tcp_listener_accept,
+                callback, new linux_tcp_conn_t(new_sock));
         }
     }
 }

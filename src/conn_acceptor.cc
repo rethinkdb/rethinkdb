@@ -12,13 +12,13 @@ conn_acceptor_t::conn_acceptor_t(int port, handler_t *handler)
 
 void conn_acceptor_t::on_tcp_listener_accept(tcp_conn_t *conn) {
 
-    new conn_agent_t(this, conn);
+    conn_agent_t agent(this, conn);
+    agent.run();
 }
 
 conn_acceptor_t::conn_agent_t::conn_agent_t(conn_acceptor_t *parent, tcp_conn_t *conn)
     : parent(parent), conn(conn)
 {
-    coro_t::spawn(&conn_agent_t::run, this);
 }
 
 perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600));
@@ -47,7 +47,6 @@ void conn_acceptor_t::conn_agent_t::run() {
     }
 
     delete conn;
-    delete this;
 }
 
 conn_acceptor_t::~conn_acceptor_t() {
