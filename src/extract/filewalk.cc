@@ -50,7 +50,7 @@ public:
             fclose(fp);
         }
     }
-    void dump(const btree_key *key, btree_value::mcflags_t flags, btree_value::exptime_t exptime,
+    void dump(const btree_key *key, mcflags_t flags, exptime_t exptime,
               byteslice *slices, size_t num_slices) {
         int len = 0;
         for (size_t i = 0; i < num_slices; ++i) {
@@ -306,8 +306,8 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
         return;
     }
 
-    btree_value::mcflags_t flags = value->mcflags();
-    btree_value::exptime_t exptime = value->exptime();
+    mcflags_t flags = value->mcflags();
+    exptime_t exptime = value->exptime();
     // We can't save the cas right now.
 
     const byte *valuebuf = value->value();

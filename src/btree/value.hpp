@@ -17,6 +17,23 @@ enum metadata_flags {
     LARGE_VALUE       = 0x80
 };
 
+typedef uint32_t mcflags_t;
+typedef uint64_t cas_t;
+// TODO: We assume that time_t can be converted to an exptime_t,
+// which is 32 bits.  We may run into problems in 2038 or 2106, or
+// 68 years from the creation of the database, or something, if we
+// do timestamp comparisons wrong.
+typedef uint32_t exptime_t;
+
+struct btree_value_metadata;
+
+int metadata_size(const btree_value_metadata *metadata);
+mcflags_t metadata_memcached_flags(const btree_value_metadata *metadata);
+exptime_t metadata_memcached_exptime(const btree_value_metadata *metadata);
+bool metadata_memcached_cas(const btree_value_metadata *metadata, cas_t *cas_out);
+
+
+
 // Note: This struct is stored directly on disk.
 struct btree_value {
     uint8_t size;
@@ -25,8 +42,6 @@ private:
     byte contents[0];
 
 public:
-    void init() { }
-
     // The full size of the value.  This is 2 greater than mem_size().
     uint16_t full_size() const {
         return mem_size() + sizeof(btree_value);
@@ -62,22 +77,18 @@ public:
         }
     }
 
-    typedef uint32_t mcflags_t;
-    typedef uint64_t cas_t;
-
-    // TODO: We assume that time_t can be converted to an exptime_t,
-    // which is 32 bits.  We may run into problems in 2038 or 2106, or
-    // 68 years from the creation of the database, or something, if we
-    // do timestamp comparisons wrong.
-    typedef uint32_t exptime_t;
-
     // Every value has mcflags, but they're very often 0, in which case we just
     // store a bit instead of 4 bytes.
+private:
     bool has_mcflags() const { return metadata_flags & MEMCACHED_FLAGS;   }
+public:
     bool has_cas()     const { return metadata_flags & MEMCACHED_CAS;     }
+private:
     bool has_exptime() const { return metadata_flags & MEMCACHED_EXPTIME; }
+public:
     bool is_large()    const { return metadata_flags & LARGE_VALUE;       }
 
+private:
     uint8_t mcflags_offset() const { return 0;                                                    }
     uint8_t exptime_offset() const { return mcflags_offset() + sizeof(mcflags_t) * has_mcflags(); }
     uint8_t cas_offset()     const { return exptime_offset() + sizeof(exptime_t) * has_exptime(); }
@@ -89,6 +100,7 @@ public:
     const exptime_t *exptime_addr() const { return ptr_cast<exptime_t>(contents + exptime_offset()); }
     cas_t           *cas_addr()           { return ptr_cast<cas_t>(contents + cas_offset()); }
     const cas_t     *cas_addr()     const { return ptr_cast<cas_t>(contents + cas_offset()); }
+public:
     byte            *value()              { return ptr_cast<byte>(contents + value_offset()); }
     const byte      *value()        const { return ptr_cast<byte>(contents + value_offset()); }
 
