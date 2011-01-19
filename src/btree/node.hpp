@@ -119,7 +119,7 @@ inline void keycpy(btree_key *dest, const btree_key *src) {
 }
 
 inline void valuecpy(btree_value *dest, const btree_value *src) {
-    memcpy(dest, src, sizeof(btree_value) + src->mem_size());
+    memcpy(dest, src, src->full_size());
 }
 
 #endif // __BTREE_NODE_HPP__

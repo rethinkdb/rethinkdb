@@ -6,7 +6,7 @@
 // #define DEBUG_MAX_LEAF 10
 
 bool leaf_pair_fits(const btree_leaf_pair *pair, size_t size) {
-    return 3 < size && 1 + size_t(pair->key.size) + 2 <= size && size_t(1 + pair->key.size + pair->value()->mem_size()) <= size;
+    return 3 < size && 1 + size_t(pair->key.size) + 2 <= size && size_t(1 + pair->key.size + pair->value()->full_size()) <= size;
 }
 
 namespace leaf {
@@ -368,7 +368,7 @@ bool is_full(const leaf_node_t *node, const btree_key *key, const btree_value *v
 
     assert(value);
 #ifdef BTREE_DEBUG
-    printf("sizeof(leaf_node_t): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets):%ld, key->size: %d, value->mem_size(): %d, value->full_size(): %d, node->frontmost_offset: %d\n", sizeof(leaf_node_t), (node->npairs + 1), sizeof(*node->pair_offsets), key->size, value->mem_size(), value->full_size(), node->frontmost_offset);
+    printf("sizeof(leaf_node_t): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets):%ld, key->size: %d, value->full_size(): %d, node->frontmost_offset: %d\n", sizeof(leaf_node_t), (node->npairs + 1), sizeof(*node->pair_offsets), key->size, value->full_size(), node->frontmost_offset);
 #endif
     return sizeof(leaf_node_t) + (node->npairs + 1)*sizeof(*node->pair_offsets) +
         key->full_size() + value->full_size() >=

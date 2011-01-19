@@ -42,15 +42,8 @@ private:
     byte contents[0];
 
 public:
-    // The full size of the value.  This is 2 greater than mem_size().
     uint16_t full_size() const {
-        return mem_size() + sizeof(btree_value);
-    }
-
-    // The size of the contents array.  This is 2 less than full_size().
-    // TODO: this is horribly named.
-    uint16_t mem_size() const {
-        return value_offset() + size;
+        return value_offset() + size + sizeof(btree_value);
     }
 
     // The size of the actual value, which might be the size of the large buf.
@@ -125,13 +118,13 @@ public:
     }
 
     void clear_space(byte *faddr, uint8_t fsize) {
-        memmove(faddr, faddr + fsize, mem_size() - (faddr - contents) - fsize);
+        memmove(faddr, faddr + fsize, full_size() - (faddr - (byte *)this) - fsize);
     }
 
     // This assumes there's enough space allocated to move the value into.
     void make_space(byte *faddr, uint8_t fsize) {
-        assert(mem_size() + fsize <= MAX_TOTAL_NODE_CONTENTS_SIZE);
-        memmove(faddr + fsize, faddr, mem_size() - (faddr - contents));
+        assert(full_size() + fsize <= sizeof(btree_value) + MAX_TOTAL_NODE_CONTENTS_SIZE);
+        memmove(faddr + fsize, faddr, full_size() - (faddr - (byte *)this));
     }
 
     void set_mcflags(mcflags_t new_mcflags) {

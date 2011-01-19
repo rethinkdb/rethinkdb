@@ -706,7 +706,7 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
         uint32_t value_offset = (ptr_cast<byte>(value) - ptr_cast<byte>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
         if (value_offset <= cx.knog->static_config->block_size().value() - 2) {
-            uint32_t tot_offset = value_offset + value->mem_size();
+            uint32_t tot_offset = value_offset + value->full_size();
             return (cx.knog->static_config->block_size().value() >= tot_offset);
         }
     }
