@@ -6,7 +6,7 @@
 
 // Note: The metadata values are stored in the order
 // [FLAGS][EXPTIME][CAS] while the flags are in a different order.
-enum metadata_flags {
+enum metadata_flags_enum_t {
     MEMCACHED_FLAGS   = 0x01,
     MEMCACHED_CAS     = 0x02,
     MEMCACHED_EXPTIME = 0x04,
@@ -27,25 +27,36 @@ typedef uint64_t cas_t;
 // do timestamp comparisons wrong.
 typedef uint32_t exptime_t;
 
-struct btree_value_metadata;
+struct metadata_flags_t {
+    uint8_t flags;
+};
 
-int metadata_size(const btree_value_metadata *metadata);
-mcflags_t metadata_memcached_flags(const btree_value_metadata *metadata);
-exptime_t metadata_memcached_exptime(const btree_value_metadata *metadata);
-bool metadata_memcached_cas(const btree_value_metadata *metadata, cas_t *cas_out);
-bool metadata_large_value_bit(const btree_value_metadata *metadata);
+int metadata_size(metadata_flags_t flags);
+
+mcflags_t metadata_memcached_flags(metadata_flags_t mf, const char *buf);
+exptime_t metadata_memcached_exptime(metadata_flags_t mf, const char *buf);
+bool metadata_memcached_cas(metadata_flags_t mf, const char *buf, cas_t *cas_out);
+
+// If there's not already a cas_t there must be sizeof(cas_t) bytes
+// available _after_ buf_growable_end.
+cas_t *metadata_force_memcached_casptr(metadata_flags_t *mf, char *buf, char *buf_growable_end);
+
+bool metadata_large_value_bit(metadata_flags_t mf);
+char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, exptime_t exptime);
+char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, exptime_t exptime, cas_t cas);
+void metadata_set_large_value_bit(metadata_flags_t *mf, bool bit);
+
 
 
 // Note: This struct is stored directly on disk.
 struct btree_value {
     uint8_t size;
-    uint8_t metadata_flags;
-private:
-    byte contents[0];
+    metadata_flags_t metadata_flags;
+    byte contents[];
 
 public:
     uint16_t full_size() const {
-        return value_offset() + size + sizeof(btree_value);
+        return sizeof(btree_value) + metadata_size(metadata_flags) + size;
     }
 
     // The size of the actual value, which might be the size of the large buf.
@@ -63,48 +74,30 @@ public:
     // a large buf.
     void value_size(int64_t new_size) {
         if (new_size <= MAX_IN_NODE_VALUE_SIZE) {
-            metadata_flags &= ~LARGE_VALUE;
+            metadata_set_large_value_bit(&metadata_flags, false);
             size = new_size;
         } else {
-            metadata_flags |= LARGE_VALUE;
+            metadata_set_large_value_bit(&metadata_flags, true);
             size = sizeof(large_buf_ref);
+
+            // This is kind of fake, kind of paranoid, doing this
+            // here.  The fact that we have this is a sign of scary
+            // bad code.
             large_buf_ref_ptr()->size = new_size;
         }
     }
 
-    // Every value has mcflags, but they're very often 0, in which case we just
-    // store a bit instead of 4 bytes.
-private:
-    bool has_mcflags() const { return metadata_flags & MEMCACHED_FLAGS;   }
-public:
-    bool has_cas()     const { return metadata_flags & MEMCACHED_CAS;     }
-private:
-    bool has_exptime() const { return metadata_flags & MEMCACHED_EXPTIME; }
-public:
-    bool is_large()    const { return metadata_flags & LARGE_VALUE;       }
+    bool is_large() const { return metadata_flags.flags & LARGE_VALUE; }
 
-private:
-    uint8_t mcflags_offset() const { return 0;                                                    }
-    uint8_t exptime_offset() const { return mcflags_offset() + sizeof(mcflags_t) * has_mcflags(); }
-    uint8_t cas_offset()     const { return exptime_offset() + sizeof(exptime_t) * has_exptime(); }
-    uint8_t value_offset()   const { return     cas_offset() + sizeof(cas_t)     * has_cas();     }
+    byte *value() { return contents + metadata_size(metadata_flags); }
+    const byte *value() const { return contents + metadata_size(metadata_flags); }
 
-    mcflags_t       *mcflags_addr()       { return ptr_cast<mcflags_t>(contents + mcflags_offset()); }
-    const mcflags_t *mcflags_addr() const { return ptr_cast<mcflags_t>(contents + mcflags_offset()); }
-    exptime_t       *exptime_addr()       { return ptr_cast<exptime_t>(contents + exptime_offset()); }
-    const exptime_t *exptime_addr() const { return ptr_cast<exptime_t>(contents + exptime_offset()); }
-    cas_t           *cas_addr()           { return ptr_cast<cas_t>(contents + cas_offset()); }
-    const cas_t     *cas_addr()     const { return ptr_cast<cas_t>(contents + cas_offset()); }
-public:
-    byte            *value()              { return ptr_cast<byte>(contents + value_offset()); }
-    const byte      *value()        const { return ptr_cast<byte>(contents + value_offset()); }
-
-    large_buf_ref *large_buf_ref_ptr() { return ptr_cast<large_buf_ref>(value()); }
+    large_buf_ref *large_buf_ref_ptr() { return reinterpret_cast<large_buf_ref *>(value()); }
 
     const large_buf_ref& lb_ref() const {
         assert(is_large());
         assert(size == sizeof(large_buf_ref));
-        return *ptr_cast<large_buf_ref>(value());
+        return *reinterpret_cast<const large_buf_ref *>(value());
     }
     void set_lb_ref(const large_buf_ref& ref) {
         assert(is_large());
@@ -112,47 +105,17 @@ public:
         *reinterpret_cast<large_buf_ref *>(value()) = ref;
     }
 
-    mcflags_t mcflags() const { return has_mcflags() ? *mcflags_addr() : 0; }
-    exptime_t exptime() const { return has_exptime() ? *exptime_addr() : 0; }
-    cas_t         cas() const { // We shouldn't be asking for a value's CAS unless we know it has one.
-        assert(has_cas());
-        return *cas_addr();
+    mcflags_t mcflags() const { return metadata_memcached_flags(metadata_flags, contents); }
+    exptime_t exptime() const { return metadata_memcached_exptime(metadata_flags, contents); }
+    bool has_cas() const {
+        return metadata_flags.flags & MEMCACHED_CAS;
     }
-
-    void clear_space(byte *faddr, uint8_t fsize) {
-        memmove(faddr, faddr + fsize, full_size() - (faddr - (byte *)this) - fsize);
-    }
-
-    // This assumes there's enough space allocated to move the value into.
-    void make_space(byte *faddr, uint8_t fsize) {
-        assert(full_size() + fsize <= MAX_BTREE_VALUE_SIZE);
-        memmove(faddr + fsize, faddr, full_size() - (faddr - (byte *)this));
-    }
-
-    void set_mcflags(mcflags_t new_mcflags) {
-        if (has_mcflags() && new_mcflags == 0) { // Flags is being set to 0, so we clear the 4 bytes we kept for it.
-            clear_space(reinterpret_cast<byte *>(mcflags_addr()), sizeof(mcflags_t));
-            metadata_flags &= ~MEMCACHED_FLAGS;
-        } else if (!has_mcflags() && new_mcflags) { // Make space for non-zero mcflags.
-            metadata_flags |= MEMCACHED_FLAGS;
-            make_space(reinterpret_cast<byte *>(mcflags_addr()), sizeof(mcflags_t));
-        }
-        if (new_mcflags) { // We've made space, so copy the mcflags over.
-            *mcflags_addr() = new_mcflags;
-        }
-    }
-
-    void set_exptime(exptime_t new_exptime) {
-        if (has_exptime() && new_exptime == 0) { // Exptime is being set to 0, so we clear the 4 bytes we kept for it.
-            clear_space(reinterpret_cast<byte *>(exptime_addr()), sizeof(exptime_t));
-            metadata_flags &= ~MEMCACHED_EXPTIME;
-        } else if (!has_exptime() && new_exptime) { // Make space for non-zero exptime.
-            metadata_flags |= MEMCACHED_EXPTIME;
-            make_space(reinterpret_cast<byte *>(exptime_addr()), sizeof(exptime_t));
-        }
-        if (new_exptime) {
-            *exptime_addr() = new_exptime;
-        }
+    cas_t cas() const {
+        // We shouldn't be asking for a value's CAS unless we know it has one.
+        cas_t ret;
+        bool hascas = metadata_memcached_cas(metadata_flags, contents, &ret);
+        assert(hascas);
+        return ret;
     }
 
     bool expired() {
@@ -163,15 +126,8 @@ public:
     // have a CAS; once it's added, though, we assume it's there for good. An
     // existing CAS should never be set to 0.
     void set_cas(cas_t new_cas) {
-        if (!new_cas) {
-            assert(!has_cas());
-            return;
-        }
-        if (!has_cas()) { // Make space for CAS.
-            metadata_flags |= MEMCACHED_CAS;
-            make_space(reinterpret_cast<byte *>(cas_addr()), sizeof(cas_t));
-        }
-        *cas_addr() = new_cas;
+        cas_t *ptr = metadata_force_memcached_casptr(&metadata_flags, contents, contents + full_size());
+        *ptr = new_cas;
     }
 
     void print() const {

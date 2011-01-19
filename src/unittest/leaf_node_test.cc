@@ -11,7 +11,7 @@ namespace unittest {
 // TODO: Sperg out and make these tests much more brutal.
 
 void expect_valid_value_shallowly(const btree_value *value) {
-    EXPECT_EQ(0, value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
+    EXPECT_EQ(0, value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
     size_t size = value->value_size();
 
@@ -87,6 +87,12 @@ TEST(LeafNodeTest, Offsets) {
     EXPECT_EQ(1, sizeof(btree_key));
     EXPECT_EQ(1, offsetof(btree_key, contents));
     EXPECT_EQ(2, sizeof(btree_value));
+
+    EXPECT_EQ(1, sizeof(metadata_flags_t));
+
+    EXPECT_EQ(4, sizeof(exptime_t));
+    EXPECT_EQ(4, sizeof(mcflags_t));
+    EXPECT_EQ(8, sizeof(cas_t));
 }
 
 class Value {
@@ -100,15 +106,16 @@ public:
 
     void WriteBtreeValue(btree_value *out) const {
         out->size = 0;
-        out->metadata_flags = 0;
+        out->metadata_flags.flags = 0;
 
         ASSERT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
-        out->value_size(data_.size());
-        out->set_mcflags(mcflags_);
-        out->set_exptime(exptime_);
         if (has_cas_) {
-            out->set_cas(cas_);
+            metadata_write(&out->metadata_flags, out->contents, mcflags_, exptime_, cas_);
+        } else {
+            metadata_write(&out->metadata_flags, out->contents, mcflags_, exptime_);
         }
+
+        out->value_size(data_.size());
         memcpy(out->value(), data_.c_str(), data_.size());
     }
 
@@ -501,7 +508,7 @@ btree_value *malloc_value(const char *s) {
 
     btree_value *v = reinterpret_cast<btree_value *>(malloc(sizeof(btree_value) + len));
     v->size = len;
-    v->metadata_flags = 0;
+    v->metadata_flags.flags = 0;
     memcpy(v->value(), s, len);
     return v;
 }

@@ -57,15 +57,19 @@ public:
             return true;
         }
         
-        value.metadata_flags = 0;
         value.value_size(0);
-        value.set_mcflags(mcflags);
-        value.set_exptime(exptime);
-        value.value_size(data->get_size());
         if (type == set_type_cas || (old_value && old_value->has_cas())) {
-            value.set_cas(0xCA5ADDED); // Turns the flag on and makes room. run_btree_modify_oper() will set an actual CAS later. TODO: We should probably have a separate function for this.
+            // Turns the flag on and makes
+            // room. run_btree_modify_oper() will set an actual CAS
+            // later. TODO: We should probably have a separate
+            // function for this.
+            metadata_write(&value.metadata_flags, value.contents, mcflags, exptime, 0xCA5ADDED);
+        } else {
+            metadata_write(&value.metadata_flags, value.contents, mcflags, exptime);
         }
-        
+
+        value.value_size(data->get_size());
+
         assert(data->get_size() <= MAX_VALUE_SIZE);
         if (data->get_size() <= MAX_IN_NODE_VALUE_SIZE) {
             buffer_group.add_buffer(data->get_size(), value.value());

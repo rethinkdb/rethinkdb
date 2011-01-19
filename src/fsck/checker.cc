@@ -682,7 +682,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
 }
 
 void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_errs, value_error *errs) {
-    errs->bad_metadata_flags = !!(value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
+    errs->bad_metadata_flags = !!(value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
     size_t size = value->value_size();
     if (!value->is_large()) {
