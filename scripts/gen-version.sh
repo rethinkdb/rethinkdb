@@ -5,7 +5,7 @@
 # 2. If we are in a git repository:
 # 2.a. if VERSION.OVERRIDE file exists at the top of the repository, it's first word is the version (unless it's empty)
 # 2.b. otherwise, use git-describe to generate a version number, using the closest 'v[0-9]*' tag
-# 2.c. "_dirty" is appended to the version if there are local changes
+# 2.c. "-dirty" is appended to the version if there are local changes
 # 3. otherwise, if VERSION file exists in current directory, it's first word is the version (unless it's empty)
 # 4. otherwise, use default_version variable (defined below) as the version
 # 5. 'v' at the beginning of the version number is stripped
@@ -49,7 +49,7 @@ if [ -z "$version" -a "$repo_available" = 1 ]; then
       exit 1 ;;
     v[0-9]*)
       git update-index -q --refresh || true
-      [ -n "$(git diff-index --name-only HEAD -- || true)" ] && version="${version}_dirty"
+      [ -n "$(git diff-index --name-only HEAD -- || true)" ] && version="${version}-dirty"
       ;;
   esac
 fi
