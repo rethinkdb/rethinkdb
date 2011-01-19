@@ -48,7 +48,12 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t sock)
 
 void linux_tcp_conn_t::register_with_event_loop() {
     /* Register ourself to receive notifications from the event loop if we have not
-    already done so. */
+    already done so. We won't get any calls to on_event() until we do this. We can't
+    do this at startup because once we're registered on one thread we can't re-register
+    on a different thread, but the thread that the user wants to use us on might not be
+    the thread we were created on. So we call register_with_event_loop() before every
+    read_* or write_* function, and that locks us in to the thread that the first call
+    to read_* or write_* was on. */
 
     if (registration_thread == -1) {
         registration_thread = linux_thread_pool_t::thread_id;
@@ -122,9 +127,9 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
 void linux_tcp_conn_t::read_more_buffered() {
     assert(!read_cond);
 
-    // WTF is this
+    /* Put ourselves into the epoll object so that we will receive notifications when we need them.
+    See the note in register_with_event_loop() if this doesn't make sense. */
     register_with_event_loop();
-
 
     size_t old_size = read_buffer.size();
     read_buffer.resize(old_size + IO_BUFFER_SIZE);
@@ -446,7 +451,8 @@ void linux_tcp_listener_t::on_event(int events) {
                 }
             }
         } else {
-            callback->on_tcp_listener_accept(new linux_tcp_conn_t(new_sock));
+            coro_t::spawn(&linux_tcp_listener_callback_t::on_tcp_listener_accept,
+                callback, new linux_tcp_conn_t(new_sock));
         }
     }
 }

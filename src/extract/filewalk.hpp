@@ -2,7 +2,7 @@
 #define __EXTRACT_FILEWALK_HPP__
 
 #include "utils.hpp"
-#include "config/cmd_args.hpp"
+#include "serializer/types.hpp"
 
 #define EXTRACT_CONFIG_DEFAULT_OUTPUT_FILE "memcached_dump_file.out"
 

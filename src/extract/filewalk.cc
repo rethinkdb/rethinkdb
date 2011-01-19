@@ -5,7 +5,6 @@
 #include "btree/leaf_node.hpp"
 #include "btree/key_value_store.hpp"
 #include "buffer_cache/large_buf.hpp"
-#include "config/cmd_args.hpp"
 #include "serializer/log/static_header.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "utils.hpp"

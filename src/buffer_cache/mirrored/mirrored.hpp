@@ -10,7 +10,7 @@
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/translator.hpp"
-#include "config/cmd_args.hpp"
+#include "server/cmd_args.hpp"
 #include "buffer_cache/stats.hpp"
 #include <boost/crc.hpp>
 

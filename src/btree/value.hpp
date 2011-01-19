@@ -114,6 +114,7 @@ public:
         // We shouldn't be asking for a value's CAS unless we know it has one.
         cas_t ret;
         bool hascas = metadata_memcached_cas(metadata_flags, contents, &ret);
+        (void)hascas;
         assert(hascas);
         return ret;
     }

@@ -123,7 +123,7 @@ private:
 
 /* The linux_tcp_listener_t is used to listen on a network port for incoming
 connections. Create a linux_tcp_listener_t with some port and then call set_callback();
-the provided callback will be called every time something connects. */
+the provided callback will be called in a new coroutine every time something connects. */
 
 struct linux_tcp_listener_callback_t {
     virtual void on_tcp_listener_accept(linux_tcp_conn_t *conn) = 0;

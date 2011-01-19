@@ -7,7 +7,7 @@
 #include "arch/linux/disk.hpp"
 #include "arch/linux/message_hub.hpp"
 #include "arch/linux/coroutines.hpp"
-#include "timer.hpp"
+#include "arch/timer.hpp"
 
 struct linux_thread_message_t;
 struct linux_thread_t;

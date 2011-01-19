@@ -5,7 +5,7 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "arch/arch.hpp"
-#include "server.hpp"
+#include "server/server.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */

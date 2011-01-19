@@ -6,7 +6,6 @@
 #include <string.h>
 #include <time.h>
 #include "btree/value.hpp"
-#include "config/cmd_args.hpp"
 #include "utils.hpp"
 #include "buffer_cache/types.hpp"
 #include "store.hpp"

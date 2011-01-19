@@ -4,6 +4,9 @@
 #include "containers/intrusive_list.hpp"
 #include "arch/linux/timer_provider.hpp"
 
+// TODO: This file is still heavily dependent on linux. If we want to use the same timer-provider
+// logic with a different OS then we would have to make this more generic.
+
 /* Timer token */
 struct timer_token_t;
 

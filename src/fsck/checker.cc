@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "config/cmd_args.hpp"
 #include "containers/segmented_vector.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "btree/key_value_store.hpp"

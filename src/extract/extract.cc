@@ -4,7 +4,6 @@
 #include <getopt.h>
 
 #include "extract/filewalk.hpp"
-#include "config/cmd_args.hpp"
 #include "errors.hpp"
 #include "logger.hpp"
 #include "help.hpp"
