@@ -1,3 +1,10 @@
+##### Pretty-printing
+
+ANSI_BOLD_ON:=[1m
+ANSI_BOLD_OFF:=[0m
+ANSI_UL_ON:=[4m
+ANSI_UL_OFF:=[0m
+
 ##### Configuring stuff
 
 prefix?=/usr
@@ -49,6 +56,7 @@ DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 # Define configuration variables
 CXX:=g++
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+STATIC_LIBRARIES:=
 
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
 ifeq ($(UNIT_TESTS),0)
@@ -58,9 +66,11 @@ endif
 # Configure libcoroutine
 CXXFLAGS+=-DUSE_UCONTEXT
 
+STRIP_ON_INSTALL?=1
+
 # Configure debug vs. release
 ifeq ($(DEBUG),1)
-SYMBOLS=1
+SYMBOLS:=1
 CXXFLAGS+=-O0
 # -rdynamic is necessary so that backtrace_symbols() works properly
 LDFLAGS+=-rdynamic
@@ -130,8 +140,11 @@ ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 else
-LDFLAGS+=-Wl,-Bstatic --ltcmalloc_minimal -Wl,-Bdynamic
+STATIC_LIBRARIES+=tcmalloc_minimal
 endif
+
+# look for the static library in the same directory as the .so file
+STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
 # Should makefile be noisy?
 ifeq ($(VERBOSE),1)
@@ -168,7 +181,7 @@ SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
 #### Version number handling
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
-RETHINKDB_VERSION_RPM:=$(subst -,_,$(RETHINKDB_VERSION))
+RETHINKDB_PACKAGING_VERSION?=$(RETHINKDB_VERSION)
 CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 
 ##### Build targets
@@ -186,6 +199,8 @@ RPM_BUILD_ROOT=$(RPM_PACKAGE_DIR)/BUILD
 DEB_CONTROL_ROOT=$(DEB_PACKAGE_DIR)/DEBIAN
 RPM_SPEC_FILE=$(RPM_PACKAGE_DIR)/SPECS/rethinkdb.spec
 
+RETHINKDB_VERSION_RPM=$(subst -,_,$(RETHINKDB_PACKAGING_VERSION))
+
 prepare_deb_package_dirs:
 	$(QUIET) mkdir -p $(DEB_PACKAGE_DIR)
 	$(QUIET) mkdir -p $(DEB_CONTROL_ROOT)
@@ -196,8 +211,10 @@ prepare_rpm_package_dirs:
 
 install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) install -m755 -d $(DESTDIR)$(bindir)
-	$(QUIET) install -m755 $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(bindir)
+	$(QUIET) install -m755 -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(bindir)/$(SERVER_EXEC_NAME)
+ifeq ($(STRIP_ON_INSTALL),1)
 	$(QUIET) strip --strip-unneeded $(DESTDIR)$(bindir)/$(SERVER_EXEC_NAME)
+endif
 
 install-manpages: $(MAN_PAGES)
 	$(QUIET) install -m755 -d $(DESTDIR)$(man1dir)
@@ -218,13 +235,15 @@ install: install-binaries install-manpages install-docs install-tools
 install-rpm: install
 install-deb: install
 	$(QUIET) install -m755 -d $(DESTDIR)$(docdir)
-	$(QUIET) sed	-e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION)/' ../docs/changelog.Debian | \
+	$(QUIET) sed	-e 's/PACKAGING_VERSION/$(RETHINKDB_PACKAGING_VERSION)/' ../docs/changelog.Debian | \
 		gzip -c9 | \
 		install -m644 -T /dev/stdin $(DESTDIR)$(docdir)/changelog.Debian.gz
 
 
-deb: all prepare_deb_package_dirs
-	@echo Building DEB package for RethinkDB version $(RETHINKDB_VERSION)
+build-deb: all prepare_deb_package_dirs
+	@echo
+	@echo "$(ANSI_BOLD_ON)Building DEB package for RethinkDB version $(RETHINKDB_PACKAGING_VERSION)$(ANSI_BOLD_OFF)"
+	@echo
 
 # Copy files to their correct places
 	$(QUIET) $(MAKE) DESTDIR=$(DEB_PACKAGE_DIR) install-deb
@@ -246,30 +265,36 @@ deb: all prepare_deb_package_dirs
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1);		\
 		sed																														\
-				-e "s/VERSION/$(RETHINKDB_VERSION)/"											\
+				-e "s/VERSION/$(RETHINKDB_PACKAGING_VERSION)/"						\
 				-e "s/DISK_SIZE/$${disk_size}/"														\
 			../packaging/debian/control >$(DEB_CONTROL_ROOT)/control
 
 # Finally, produce a debian package
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
+deb: all prepare_deb_package_dirs
+	$(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
+	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) build-deb
+
 # Print a nice message with the location of the created package
-	$(QUIET) echo
-	$(QUIET) echo "Your DEB packages are here (with lintian output following each package):"
+	@echo
+	@echo "$(ANSI_BOLD_ON)Your DEB packages are here (with lintian output following each package):$(ANSI_BOLD_OFF)"
 	$(QUIET) for f in $(PACKAGES_DIR)/*.deb; do \
 			deb_name=$(realpath $(PACKAGES_DIR))/$$(basename $$f); \
-			echo "  $${deb_name}"; \
+			echo "  $(ANSI_UL_ON)$${deb_name}$(ANSI_UL_OFF)"; \
 			lintian --color auto $${deb_name}; \
 		done
 	$(QUIET) echo
 
-rpm: all prepare_rpm_package_dirs
-	@echo Building RPM package for RethinkDB version $(RETHINKDB_VERSION)
+build-rpm: all prepare_rpm_package_dirs
+	@echo
+	@echo "$(ANSI_BOLD_ON)Building RPM package for RethinkDB version $(RETHINKDB_PACKAGING_VERSION)$(ANSI_BOLD_OFF)"
+	@echo
 
 # Replace version/topdir fields in the spec file
 	$(QUIET) sed 																				\
 			-e "s/VERSION/$(RETHINKDB_VERSION_RPM)/"				\
-			-e " s:TOPDIR:$(realpath $(RPM_PACKAGE_DIR)):"	\
+			-e "s:TOPDIR:$(realpath $(RPM_PACKAGE_DIR)):"		\
 		../packaging/rpm.spec >$(RPM_SPEC_FILE)
 
 # Copy files to their correct places
@@ -279,12 +304,17 @@ rpm: all prepare_rpm_package_dirs
 # FIXME: write rpmbuild output out to stderr if there's an error
 	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot $(realpath $(RPM_BUILD_ROOT)) $(RPM_SPEC_FILE) > /tmp/rpmbuild.stdout
 
+rpm: all prepare_rpm_package_dirs
+	$(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_VERSION=$(RETHINKDB_VERSION)-unstripped build-rpm
+	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_VERSION=$(RETHINKDB_VERSION) build-rpm
+
 # Print a nice message with the location of the created package
-	$(QUIET) echo
-	$(QUIET) echo "Your RPM packages are here:"
-	$(QUIET) for f in $(RPM_PACKAGE_DIR)/RPMS/x86_64/*.rpm; do \
-			mv $$f $(PACKAGES_DIR)/; \
-			echo "  $(realpath $(PACKAGES_DIR))/$$(basename $$f)"; \
+	@echo
+	@echo "$(ANSI_BOLD_ON)Your RPM packages are here:$(ANSI_BOLD_OFF)"
+	$(QUIET) for f in $(RPM_PACKAGE_DIR)/RPMS/x86_64/*.rpm; do	\
+			rpm_name=$(realpath $(PACKAGES_DIR))/$$(basename $$f);	\
+			mv $$f $$rpm_name;																			\
+			echo "  $(ANSI_UL_ON)$${rpm_name}$(ANSI_UL_OFF)";				\
 		done
 	$(QUIET) echo
 else
@@ -299,14 +329,15 @@ $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
-	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
 $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
-	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_UNIT_TEST_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+
 
 
 

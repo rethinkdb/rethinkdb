@@ -140,15 +140,26 @@ def shutdown():
     if stats_collector:
         stats_collector.stop()
         stats_collector = None
+
+    errors = []
     if server:
-        server.shutdown()   # this also stops stress_client
+        try:
+            server.shutdown()   # this also stops stress_client
+        except Exception as e:
+            errors.append(e)
         server = None
     if rdbstat:
-        rdbstat.stop()
+        try:
+            rdbstat.stop()
+        except Exception as e:
+            errors.append(e)
         rdbstat = None
     if stats_sender:
-        stats_sender.stop()
-        stats_sender.post_results()
+        try:
+            stats_sender.stop()
+        except Exception as e:
+            errors.append(e)
+        stats_sender.post_results(errors=errors)
         stats_sender = None
 
 def set_signal_handler():
@@ -190,8 +201,9 @@ class StatsSender(object):
         'serializer_data_extents_gced[dexts]',
         'transactions_starting_avg',
         'uptime',
+        'timestamp'
     ]
-    bucket_size = 100
+    bucket_size = 10
     single_plot_height = 128
     plot_style_quantile = 'quantile %d 0.05,0.5,0.95' % bucket_size
     plot_style_quantile_log = 'quantilel %d 0.05,0.5,0.95' % bucket_size
@@ -248,7 +260,7 @@ class StatsSender(object):
         self.stats = []
         return old_stats
 
-    def post_results(self):
+    def post_results(self, errors=[]):
         all_stats = self.reset_stats()
         if len(all_stats) > 0:
             from email.mime.image import MIMEImage
@@ -259,10 +271,26 @@ class StatsSender(object):
             msg['From'] = 'buildbot@rethinkdb.com'
             msg['To'] = self.opts['recipient']
 
-            msg.preamble = 'Preamble is here'
-
-            for img in self.generate_plots(all_stats):
+            start_timestamp = all_stats[0]['timestamp']
+            img_number = 0
+            images = self.generate_plots(all_stats)
+            for img in images:
+                msg_img.add_header('Content-ID', '<'+str(img_number)+'.png>')
+                msg_img.add_header('Content-Disposition', 'inline; filename=%s-%d.png;' % (start_timestamp, img_number))
                 msg.attach(MIMEImage(img))
+
+                img_number = img_number + 1
+
+            html = """\
+<html>
+    <head>
+    </head>
+    <body>
+        <img src="cid=0.png">
+    </body>
+</html>
+"""
+            msg.attach(MIMEText(html, 'html'))
 
             os.environ['RETESTER_EMAIL_SENDER'] = self.opts['emailfrom']
             send_email(None, msg, self.opts['recipient'])
