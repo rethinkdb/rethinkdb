@@ -12,7 +12,7 @@ Packager:  Package Maintainer <package-maintainer@mail.rethinkdb.com>
 URL:       http://rethinkdb.com/
 Group:     Productivity/Databases/Servers
 Provides:  memcached
-Requires:  glibc >= 2.5, google-perftools >= 1.6, libaio >= 0.3.106 
+Requires:  glibc >= 2.5, libaio >= 0.3.106 
 
 %description
 RethinkDB - the database for solid drives
