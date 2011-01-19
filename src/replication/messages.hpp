@@ -77,6 +77,7 @@ public:
 class set_message_t {
 public:
     typedef net_small_set_t net_struct_type;
+    typedef net_large_set_t first_struct_type;
     set_message_t(const net_small_set_t *p)
         : timestamp_(p->timestamp),
           key_(p->key()->contents, p->key()->contents + p->key()->size),
@@ -116,6 +117,7 @@ private:
 class append_prepend_message_t {
 public:
     typedef net_small_append_prepend_t net_struct_type;
+    typedef net_large_append_prepend_t first_struct_type;
 protected:
     append_prepend_message_t(const net_small_append_prepend_t *p)
         : timestamp_(p->timestamp),

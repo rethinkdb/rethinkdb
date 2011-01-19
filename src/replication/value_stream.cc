@@ -79,6 +79,14 @@ void value_stream_t::acknowledge_fixed(cookie_t *cookie) {
     cookie->acknowledged = true;
 }
 
+void value_stream_t::open_space_for_writing(size_t size, value_stream_writing_action_t *action) {
+    size_t origsize = buffer.size();
+    buffer.resize(origsize + size, 0);
+    write_cookie_t cookie(size);
+    action->write_and_inform(buffer.data() + origsize, size, &cookie);
+    guarantee(cookie.acknowledged);
+}
+
 void value_stream_t::inform_space_written(size_t amount_written, write_cookie_t *cookie) {
     guarantee(cookie->acknowledged == false);
     guarantee(amount_written <= cookie->space_allocated);

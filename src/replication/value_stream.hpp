@@ -79,6 +79,7 @@ private:
     void try_report_fixed();
     void try_report_new_data();
 
+    // TODO rename this.
     enum {
         read_mode_none,
         read_mode_external,
