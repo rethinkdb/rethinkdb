@@ -18,6 +18,12 @@ struct linux_tcp_conn_t :
 public:
     linux_tcp_conn_t(const char *host, int port);
 
+    struct connect_failed_exc_t : public std::exception {
+        const char *what() throw () {
+            return "Could not make connection";
+        }
+    };
+
     /* Reading */
 
     struct read_closed_exc_t : public std::exception {

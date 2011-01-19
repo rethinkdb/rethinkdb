@@ -7,11 +7,31 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 /* Network connection object */
 
 linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) {
-    not_implemented();
+    struct addrinfo *res;
+
+    /* make a sacrifice to the elders honor by converting port to a string, why
+     * can't we just sacrifice a virgin for them (lord knows we have enough
+     * virgins in Silicon Valley */
+    char port_str[10]; /* god is it dumb that we have to do this */
+    fail_due_to_user_error("Port is too big", (snprintf(port_str, 10, "%d", port) == 10));
+
+    /* make the connection */
+    getaddrinfo(host, port_str, NULL, &res);
+    sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (connect(sock, res->ai_addr, res->ai_addrlen) != 0) {
+        /* for some reason the connection failed */
+        logINF("Failed to make a connection with error: %s", strerror(errno));
+        throw connect_failed_exc_t();
+    }
+
+    freeaddrinfo(res);
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t sock)
