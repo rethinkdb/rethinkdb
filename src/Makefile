@@ -1,9 +1,9 @@
 ##### Pretty-printing
 
-ANSI_BOLD_ON:=\033[1m
-ANSI_BOLD_OFF:=\033[0m
-ANSI_UL_ON:=\033[4m
-ANSI_UL_OFF:=\033[0m
+ANSI_BOLD_ON:=[1m
+ANSI_BOLD_OFF:=[0m
+ANSI_UL_ON:=[4m
+ANSI_UL_OFF:=[0m
 
 ##### Configuring stuff
 
