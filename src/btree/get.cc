@@ -55,19 +55,19 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
         }
 
 #ifndef NDEBUG
-	node::validate(cache->get_block_size(), ptr_cast<node_t>(buf_lock.buf()->get_data_read()));
+        node::validate(cache->get_block_size(), ptr_cast<node_t>(buf_lock.buf()->get_data_read()));
 #endif
 
-	const node_t *node = ptr_cast<node_t>(buf_lock.buf()->get_data_read());
-	if (!node::is_internal(node)) {
+        const node_t *node = ptr_cast<node_t>(buf_lock.buf()->get_data_read());
+        if (!node::is_internal(node)) {
             break;
         }
 
-	block_id_t next_node_id = internal_node::lookup(ptr_cast<internal_node_t>(node), key);
-	assert(next_node_id != NULL_BLOCK_ID);
-	assert(next_node_id != SUPERBLOCK_ID);
+        block_id_t next_node_id = internal_node::lookup(ptr_cast<internal_node_t>(node), key);
+        assert(next_node_id != NULL_BLOCK_ID);
+        assert(next_node_id != SUPERBLOCK_ID);
 
-	node_id = next_node_id;
+        node_id = next_node_id;
     }
 
 
@@ -76,8 +76,8 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
     buf_lock.release();
 
     if (found && value.expired()) {
-	btree_delete_expired(key, store);
-	found = false;
+        btree_delete_expired(key, store);
+        found = false;
     }
     
     /* get() has two paths it takes: one for large values and one for small ones. For large
