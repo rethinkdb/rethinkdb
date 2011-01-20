@@ -33,14 +33,8 @@ struct co_data_provider_done_callback_t : public data_provider_t::done_callback_
 
 bool co_get_data_provider_value(data_provider_t *data, buffer_group_t *dest);
 
-// co_value()
-struct value_done_t : public store_t::get_callback_t::done_callback_t {
-    coro_t *self;
-    value_done_t() : self(coro_t::self()) { }
-    void have_copied_value() { self->notify(); }
-};
-
-void co_value(store_t::get_callback_t *cb, const_buffer_group_t *value_buffers, mcflags_t flags, cas_t cas);
+void co_deliver_get_result(const_buffer_group_t *bg, mcflags_t flags, cas_t cas,
+    value_cond_t<store_t::get_result_t> *dest);
 
 // XXX
 // co_replicant_value()

@@ -34,7 +34,7 @@ public:
     }
 
     void unlock() {
-        assert(locked);
+        rassert(locked);
         if (lock_request_t *h = waiters.head()) {
             waiters.remove(h);
             call_later_on_this_thread(h);
@@ -44,7 +44,7 @@ public:
     }
 
     void lock_now() {
-        assert(!locked);
+        rassert(!locked);
         locked = true;
     }
 };

@@ -33,7 +33,7 @@ bool value_stream_t::read_wait(read_token_t tok) {
 }
 
 bool value_stream_t::read_fixed_buffered(ssize_t threshold, charslice *slice_out) {
-    assert(fixed_buffered_threshold == -1);
+    rassert(fixed_buffered_threshold == -1);
     if (local_buffer_size >= threshold) {
         *slice_out = charslice(local_buffer.data(), local_buffer.data() + local_buffer.size());
         return true;
@@ -51,8 +51,8 @@ bool value_stream_t::read_fixed_buffered(ssize_t threshold, charslice *slice_out
 }
 
 void value_stream_t::pop_buffer(ssize_t amount) {
-    assert(fixed_buffered_threshold == -1);
-    assert(amount <= local_buffer_size);
+    rassert(fixed_buffered_threshold == -1);
+    rassert(amount <= local_buffer_size);
     local_buffer.erase(local_buffer.begin(), local_buffer.begin() + amount);
     local_buffer_size -= amount;
 }
@@ -69,7 +69,7 @@ charslice value_stream_t::buf_for_filling(ssize_t desired_size) {
 
 void value_stream_t::data_written(ssize_t amount) {
     if (reader_list.empty()) {
-        assert(ssize_t(local_buffer.size() - local_buffer_size) >= amount);
+        rassert(ssize_t(local_buffer.size() - local_buffer_size) >= amount);
         local_buffer_size += amount;
         if (fixed_buffered_threshold != -1 && local_buffer_size >= fixed_buffered_threshold) {
             fixed_buffered_cond.pulse(true);
@@ -77,7 +77,7 @@ void value_stream_t::data_written(ssize_t amount) {
     } else {
         reader_node_t *node = reader_list.head();
         charslice *buf = &node->buf;
-        assert(buf->end - buf->beg >= amount);
+        rassert(buf->end - buf->beg >= amount);
         buf->beg += amount;
         if (buf->beg == buf->end) {
             reader_list.remove(node);

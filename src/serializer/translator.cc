@@ -19,9 +19,9 @@ ser_block_id_t translator_serializer_t::xlate(block_id_t id) {
 
 translator_serializer_t::translator_serializer_t(serializer_t *inner_, int mod_count_, int mod_id_, config_block_id_t cfgid_)
     : inner(inner_), mod_count(mod_count_), mod_id(mod_id_), cfgid(cfgid_) {
-    assert(mod_count > 0);
-    assert(mod_id >= 0);
-    assert(mod_id < mod_count);
+    rassert(mod_count > 0);
+    rassert(mod_id >= 0);
+    rassert(mod_id < mod_count);
 }
 
 void *translator_serializer_t::malloc() {
@@ -63,7 +63,7 @@ block_id_t translator_serializer_t::max_block_id() {
         while (x % mod_count != mod_id) x++;
         x /= mod_count;
     }
-    assert(xlate(x).value >= inner->max_block_id().value);
+    rassert(xlate(x).value >= inner->max_block_id().value);
 
     while (x > 0) {
         --x;

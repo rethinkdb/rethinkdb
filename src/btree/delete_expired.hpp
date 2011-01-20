@@ -12,8 +12,6 @@ public:
          * delete the expired key if necessary. */
         return false;
     }
-
-    void call_callback() { }
 };
 
 // This function is called when doing a btree_get() and finding an expired key.
@@ -22,8 +20,8 @@ public:
 // of the key and then free it when delete_expired is done.
 
 void co_btree_delete_expired(btree_key *key_copy, btree_key_value_store_t *store) {
-    btree_delete_expired_oper_t *oper = new btree_delete_expired_oper_t();
-    run_btree_modify_oper(oper, store, key_copy);
+    btree_delete_expired_oper_t oper;
+    run_btree_modify_oper(&oper, store, key_copy);
     free(key_copy);
 }
 

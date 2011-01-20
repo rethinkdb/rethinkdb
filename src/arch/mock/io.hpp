@@ -61,7 +61,7 @@ protected:
     }
     
     void set_size(size_t size) {
-        assert(size % DEVICE_BLOCK_SIZE == 0);
+        rassert(size % DEVICE_BLOCK_SIZE == 0);
         blocks.set_size(size / DEVICE_BLOCK_SIZE);
     }
     
@@ -75,21 +75,21 @@ protected:
     /* These always return 'false'; the reason they return bool instead of void
     is for consistency with other asynchronous-callback methods */
     bool read_async(size_t offset, size_t length, void *buf, mock_iocallback_t *cb) {
-        assert(mode & mode_read);
+        rassert(mode & mode_read);
         read_blocking(offset, length, buf);
         random_delay(cb, &mock_iocallback_t::on_io_complete);
         return false;
     }
     
     bool write_async(size_t offset, size_t length, void *buf, mock_iocallback_t *cb) {
-        assert(mode & mode_write);
+        rassert(mode & mode_write);
         write_blocking(offset, length, buf);
         random_delay(cb, &mock_iocallback_t::on_io_complete);
         return false;
     }
     
     void read_blocking(size_t offset, size_t length, void *buf) {
-        assert(mode & mode_read);
+        rassert(mode & mode_read);
         verify(offset, length, buf);
         for (unsigned i = 0; i < length / DEVICE_BLOCK_SIZE; i += 1) {
             memcpy((char*)buf + i*DEVICE_BLOCK_SIZE, blocks[offset/DEVICE_BLOCK_SIZE + i].data, DEVICE_BLOCK_SIZE);
@@ -97,7 +97,7 @@ protected:
     }
     
     void write_blocking(size_t offset, size_t length, void *buf) {
-        assert(mode & mode_write);
+        rassert(mode & mode_write);
         verify(offset, length, buf);
         for (unsigned i = 0; i < length / DEVICE_BLOCK_SIZE; i += 1) {
             memcpy(blocks[offset/DEVICE_BLOCK_SIZE + i].data, (char*)buf + i*DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
@@ -140,11 +140,11 @@ private:
     segmented_vector_t<block_t, 10*GIGABYTE/DEVICE_BLOCK_SIZE> blocks;
     
     void verify(size_t offset, size_t length, void *buf) {
-        assert(buf);
-        assert(offset + length <= get_size());
-        assert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
-        assert(offset % DEVICE_BLOCK_SIZE == 0);
-        assert(length % DEVICE_BLOCK_SIZE == 0);
+        rassert(buf);
+        rassert(offset + length <= get_size());
+        rassert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
+        rassert(offset % DEVICE_BLOCK_SIZE == 0);
+        rassert(length % DEVICE_BLOCK_SIZE == 0);
     }
 
     DISABLE_COPYING(mock_file_t);

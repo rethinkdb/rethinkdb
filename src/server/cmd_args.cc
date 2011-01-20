@@ -140,7 +140,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
 
     /* main() will have automatically inserted "serve" if no argument was specified */
-    assert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create"));
+    rassert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create"));
 
     if (!strcmp(argv[0], "create")) {
         if (argc >= 2 && !strcmp(argv[1], "help")) {

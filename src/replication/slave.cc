@@ -22,7 +22,7 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
     net_hello_t buf;
     conn->read(&buf, sizeof(buf));
 
-    assert(16 == sizeof(STANDARD_HELLO_MAGIC));
+    rassert(16 == sizeof(STANDARD_HELLO_MAGIC));
     if (0 != memcmp(buf.hello_magic, STANDARD_HELLO_MAGIC, sizeof(STANDARD_HELLO_MAGIC))) {
         throw protocol_exc_t("bad hello magic");  // TODO details
     }
@@ -31,7 +31,7 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
         throw protocol_exc_t("bad protocol version");  // TODO details
     }
 
-    assert(32 == sizeof(buf.informal_name));
+    rassert(32 == sizeof(buf.informal_name));
     scoped_ptr<hello_message_t> msg(new hello_message_t(role_t(buf.role), buf.database_magic, buf.informal_name, buf.informal_name + sizeof(buf.informal_name)));
     receiver->hello(msg);
 }
@@ -196,32 +196,21 @@ slave_t::~slave_t() {}
 
 /* store interface */
 
-void slave_t::get(store_key_t *key, get_callback_t *cb)
-{}
-void slave_t::get_cas(store_key_t *key, get_callback_t *cb)
-{}
-void slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
-{}
-void slave_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
-{}
-void slave_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
-{}
-void slave_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb)
-{}
-void slave_t::incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb)
-{}
-void slave_t::decr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb)
-{}
-void slave_t::append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb)
-{}
-void slave_t::prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb)
-{}
-void slave_t::delete_key(store_key_t *key, delete_callback_t *cb)
-{}
-void slave_t::replicate(replicant_t *cb, repli_timestamp cutoff)
-{}
-void slave_t::stop_replicating(replicant_t *cb)
-{}
+// TODO implement all of these!
+store_t::get_result_t slave_t::get(store_key_t *key) { crash("slave_t unimplemented method"); }
+store_t::get_result_t slave_t::get_cas(store_key_t *key) { crash("slave_t unimplemented method"); }
+store_t::set_result_t slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) { crash("slave_t unimplemented method"); }
+store_t::set_result_t slave_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) { crash("slave_t unimplemented method"); }
+store_t::set_result_t slave_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) { crash("slave_t unimplemented method"); }
+store_t::set_result_t slave_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique) { crash("slave_t unimplemented method"); }
+store_t::incr_decr_result_t slave_t::incr(store_key_t *key, unsigned long long amount) { crash("slave_t unimplemented method"); }
+store_t::incr_decr_result_t slave_t::decr(store_key_t *key, unsigned long long amount) { crash("slave_t unimplemented method"); }
+store_t::append_prepend_result_t slave_t::append(store_key_t *key, data_provider_t *data) { crash("slave_t unimplemented method"); }
+store_t::append_prepend_result_t slave_t::prepend(store_key_t *key, data_provider_t *data) { crash("slave_t unimplemented method"); }
+store_t::delete_result_t slave_t::delete_key(store_key_t *key) { crash("slave_t unimplemented method"); }
+void slave_t::replicate(replicant_t *cb, repli_timestamp cutoff) { crash("slave_t unimplemented method"); }
+void slave_t::stop_replicating(replicant_t *cb) { crash("slave_t unimplemented method"); }
+
 
  /* message_callback_t interface */
 void slave_t::hello(boost::scoped_ptr<hello_message_t>& message)

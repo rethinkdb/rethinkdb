@@ -16,16 +16,16 @@ bool static_header_check(direct_file_t *file) {
 
 void co_static_header_write(direct_file_t *file, void *data, size_t data_size) {
     static_header_t *buffer = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-    assert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
+    rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
         
     file->set_size_at_least(DEVICE_BLOCK_SIZE);
     
     bzero(buffer, DEVICE_BLOCK_SIZE);
     
-    assert(sizeof(SOFTWARE_NAME_STRING) < 16);
+    rassert(sizeof(SOFTWARE_NAME_STRING) < 16);
     memcpy(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING));
     
-    assert(sizeof(VERSION_STRING) < 16);
+    rassert(sizeof(VERSION_STRING) < 16);
     memcpy(buffer->version, VERSION_STRING, sizeof(VERSION_STRING));
     
     memcpy(buffer->data, data, data_size);
@@ -46,7 +46,7 @@ bool static_header_write(direct_file_t *file, void *data, size_t data_size, stat
 }
 
 void co_static_header_read(direct_file_t *file, static_header_read_callback_t *callback, void *data_out, size_t data_size) {
-    assert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
+    rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
     static_header_t *buffer = (static_header_t*)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     co_read(file, 0, DEVICE_BLOCK_SIZE, buffer);
     if (memcmp(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) != 0) {

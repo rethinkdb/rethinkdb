@@ -80,12 +80,12 @@ bool check_magic<node_t>(block_magic_t magic);
 namespace node {
 
 inline bool is_leaf(const node_t *node) {
-    assert(check_magic<node_t>(node->magic));
+    rassert(check_magic<node_t>(node->magic));
     return check_magic<leaf_node_t>(node->magic);
 }
 
 inline bool is_internal(const node_t *node) {
-    assert(check_magic<node_t>(node->magic));
+    rassert(check_magic<node_t>(node->magic));
     return check_magic<internal_node_t>(node->magic);
 }
 

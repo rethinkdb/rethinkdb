@@ -30,7 +30,7 @@ btree_replicant_t::btree_replicant_t(store_t::replicant_t *cb, btree_key_value_s
 
 void btree_replicant_t::slice_walker_done() {
     active_slice_walkers--;
-    assert(active_slice_walkers >= 0);
+    rassert(active_slice_walkers >= 0);
 
     // If the shutdown was blocked on the slice walkers, unblock it
     if (stopping && active_slice_walkers == 0 && active_uninstallations == 0) {
@@ -55,7 +55,7 @@ void btree_replicant_t::stop() {
 }
 
 bool btree_replicant_t::uninstall(btree_slice_t *slice) {
-    assert(stopping);
+    rassert(stopping);
 
     std::vector<btree_replicant_t *>::iterator it;
     for (it = slice->replicants.begin(); it != slice->replicants.end(); it++) {
@@ -69,9 +69,9 @@ bool btree_replicant_t::uninstall(btree_slice_t *slice) {
 }
 
 bool btree_replicant_t::have_uninstalled() {
-    assert(stopping);
+    rassert(stopping);
     active_uninstallations--;
-    assert(active_uninstallations >= 0);
+    rassert(active_uninstallations >= 0);
     if (active_uninstallations == 0 && active_slice_walkers == 0) {
         done();
     }
@@ -79,7 +79,7 @@ bool btree_replicant_t::have_uninstalled() {
 }
 
 void btree_replicant_t::done() {
-    assert(stopping);
+    rassert(stopping);
     callback->stopped();
     delete this;
 }
@@ -102,7 +102,7 @@ struct slice_walker_t :
     }
     bool start() {
         txn = slice->cache.begin_transaction(rwi_read, NULL);
-        assert(txn);   // Read-only transactions begin right away
+        rassert(txn);   // Read-only transactions begin right away
         buf_t *buf = txn->acquire(SUPERBLOCK_ID, rwi_read, this);
         if (buf) on_block_available(buf);
         return true;
@@ -118,7 +118,7 @@ struct slice_walker_t :
     }
     void done() {
         bool committed __attribute__((unused)) = txn->commit(NULL);
-        assert(committed);
+        rassert(committed);
         do_on_thread(home_thread, this, &slice_walker_t::report);
     }
     bool report() {

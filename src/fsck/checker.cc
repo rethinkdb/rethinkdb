@@ -914,7 +914,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
 
                 errs->orphan_blocks.push_back(desc);
             } else if (info.offset.parts.is_delete) {
-                assert(info.transaction_id == NULL_SER_TRANSACTION_ID);
+                rassert(info.transaction_id == NULL_SER_TRANSACTION_ID);
                 rogue_block_description desc;
                 desc.block_id = id;
 

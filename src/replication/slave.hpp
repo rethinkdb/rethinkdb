@@ -50,17 +50,17 @@ private:
 public:
     /* store_t interface. */
 
-    void get(store_key_t *key, get_callback_t *cb);
-    void get_cas(store_key_t *key, get_callback_t *cb);
-    void set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
-    void add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
-    void replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb);
-    void cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb);
-    void incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb);
-    void decr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb);
-    void append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
-    void prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb);
-    void delete_key(store_key_t *key, delete_callback_t *cb);
+    get_result_t get(store_key_t *key);
+    get_result_t get_cas(store_key_t *key);
+    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
+    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
+    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
+    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique);
+    incr_decr_result_t incr(store_key_t *key, unsigned long long amount);
+    incr_decr_result_t decr(store_key_t *key, unsigned long long amount);
+    append_prepend_result_t append(store_key_t *key, data_provider_t *data);
+    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data);
+    delete_result_t delete_key(store_key_t *key);
     void replicate(replicant_t *cb, repli_timestamp cutoff);
     void stop_replicating(replicant_t *cb);
 

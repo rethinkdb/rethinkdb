@@ -44,7 +44,7 @@ public:
     // array to grow to that size (e.g. one hundred elements might be
     // initialized even though the array might be of size 1).
     void set_size(size_t new_size) {
-        assert(new_size <= max_size);
+        rassert(new_size <= max_size);
         
         size_t num_segs = size ? ((size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
         size_t new_num_segs = new_size ? ((new_size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
@@ -75,10 +75,10 @@ private:
         if (!(i < size)) {
             printf("i is %lu, size is %lu\n", i, size);
         }
-        assert(i < size);
+        rassert(i < size);
         
         segment_t *segment = segments[i / ELEMENTS_PER_SEGMENT];
-        assert(segment);
+        rassert(segment);
         return segment->elements[i % ELEMENTS_PER_SEGMENT];
     }
 

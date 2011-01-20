@@ -146,9 +146,9 @@ template<class T, class Less>
 void priority_queue_t<T, Less>::validate() {
     for (unsigned int i = 0; i < heap.size(); i++) {
         if(i != 0)
-            assert(!Less()(heap[parent(i)]->data, heap[i]->data));
+            rassert(!Less()(heap[parent(i)]->data, heap[i]->data));
         
-        assert(heap[i]->index == (int) i);
-        assert(heap[i]->pq == this);
+        rassert(heap[i]->index == (int) i);
+        rassert(heap[i]->pq == this);
     }
 }
