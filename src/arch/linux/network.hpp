@@ -4,6 +4,7 @@
 
 #include "utils2.hpp"
 #include "arch/linux/event_queue.hpp"
+#include "arch/address.hpp"
 
 template<class value_t>
 struct value_cond_t;
@@ -16,7 +17,13 @@ struct linux_tcp_conn_t :
     friend class linux_tcp_listener_t;
 
 public:
-    linux_tcp_conn_t(const char *host, int port);
+    struct connect_failed_exc_t : public std::exception {
+        const char *what() throw () {
+            return "Could not make connection";
+        }
+    };
+
+    linux_tcp_conn_t(const ip_address_t &host, int port);
 
     /* Reading */
 
@@ -120,6 +127,7 @@ connections. Create a linux_tcp_listener_t with some port and then call set_call
 the provided callback will be called in a new coroutine every time something connects. */
 
 struct linux_tcp_listener_callback_t {
+    /* Do not call 'delete' on 'conn'; it will be deleted when on_tcp_listener_accept() returns */
     virtual void on_tcp_listener_accept(linux_tcp_conn_t *conn) = 0;
     virtual ~linux_tcp_listener_callback_t() {}
 };
@@ -135,8 +143,8 @@ public:
 private:
     fd_t sock;
     linux_tcp_listener_callback_t *callback;
-    
     void on_event(int events);
+    void handle(fd_t sock);
 };
 
 #endif // __ARCH_LINUX_NETWORK_HPP__
