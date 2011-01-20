@@ -10,6 +10,8 @@
 #include "store.hpp"
 #include "failover.hpp"
 
+#define RETRY_ATTEMPTS 10 //TODO move me
+
 namespace replication {
 
 class message_callback_t {
@@ -31,8 +33,8 @@ public:
 struct btree_replica_t :
     public home_thread_mixin_t,
     public store_t,
-    public standard_serializer_t::shutdown_callback_t,
-    public failover_callback_t
+    public failover_callback_t,
+    public message_callback_t
 {
 public:
     btree_replica_t(store_t *, standard_serializer_t::shutdown_callback_t *, replication_config_t *);
@@ -40,9 +42,10 @@ public:
 
 private:
     store_t *internal_store;
-    shutdown_callback_t *shutdown_callback;
     replication_config_t *config;
     tcp_conn_t conn;
+
+    failover_t failover;
 
 public:
     /* store_t interface. */
@@ -60,17 +63,29 @@ public:
     void delete_key(store_key_t *key, delete_callback_t *cb);
     void replicate(replicant_t *cb, repli_timestamp cutoff);
     void stop_replicating(replicant_t *cb);
+
+public:
+    /* message_callback_t interface */
+    void hello(boost::scoped_ptr<hello_message_t>& message);
+    void send(boost::scoped_ptr<backfill_message_t>& message);
+    void send(boost::scoped_ptr<announce_message_t>& message);
+    void send(boost::scoped_ptr<set_message_t>& message);
+    void send(boost::scoped_ptr<append_message_t>& message);
+    void send(boost::scoped_ptr<prepend_message_t>& message);
+    void send(boost::scoped_ptr<nop_message_t>& message);
+    void send(boost::scoped_ptr<ack_message_t>& message);
+    void send(boost::scoped_ptr<shutting_down_message_t>& message);
+    void send(boost::scoped_ptr<goodbye_message_t>& message);
+    void conn_closed();
     
 public:
     /* failover callback */
     void on_failure();
+
 private:
     /* state for failover */
     bool respond_to_queries;
-
-public:
-    /* shutdown callback */
-    void on_serializer_shutdown(standard_serializer_t *serializer);   // we may not need this actually
+    int n_retries;
 };
 
 void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
