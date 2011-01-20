@@ -1,12 +1,6 @@
 #include "btree/coro_wrappers.hpp"
 #include "concurrency/cond_var.hpp"
 
-bool co_get_data_provider_value(data_provider_t *data, buffer_group_t *dest) {
-    co_data_provider_done_callback_t cb;
-    data->get_value(dest, &cb);
-    return cb.join();
-}
-
 void co_deliver_get_result(const_buffer_group_t *bg, mcflags_t flags, cas_t cas,
         value_cond_t<store_t::get_result_t> *dest) {
 

@@ -173,7 +173,7 @@ struct buffered_data_provider_t :
     size_t get_size() {
         return length;
     }
-    void get_value(buffer_group_t *bg, data_provider_t::done_callback_t *cb) {
+    bool get_value(buffer_group_t *bg) {
         if (bg) {
             int pos = 0;
             for (int i = 0; i < (signed)bg->buffers.size(); i++) {
@@ -182,7 +182,7 @@ struct buffered_data_provider_t :
             }
             rassert(pos == (signed)length);
         }
-        cb->have_provided_value();
+        return true;   // Copying from a buffer never fails...
     }
 private:
     void *buffer;
@@ -218,39 +218,30 @@ public:
         return length;
     }
 
-    void get_value(buffer_group_t *b, data_provider_t::done_callback_t *c) {
-        coro_t::spawn(&memcached_streaming_data_provider_t::run, this, b, c);
-    }
-
-    void run(buffer_group_t *b, data_provider_t::done_callback_t *c) {
-        bool success;
-        {
-            on_thread_t thread_switcher(home_thread);
-            try {
-                if (b) {
-                    for (int i = 0; i < (int)b->buffers.size(); i++) {
-                        rh->conn->read(b->buffers[i].data, b->buffers[i].size);
-                    }
-                } else {
-                    /* Allocate a buffer from the heap instead of the stack because we are in a
-                    coroutine */
-                    std::vector<char> dummy(IO_BUFFER_SIZE);
-                    int consumed = 0;
-                    while (consumed < (int)length) {
-                        int chunk = std::min((int)length - consumed, (int)IO_BUFFER_SIZE);
-                        rh->conn->read(dummy.data(), chunk);
-                        consumed += chunk;
-                    }
+    bool get_value(buffer_group_t *b) {
+        on_thread_t thread_switcher(home_thread);
+        try {
+            if (b) {
+                for (int i = 0; i < (int)b->buffers.size(); i++) {
+                    rh->conn->read(b->buffers[i].data, b->buffers[i].size);
                 }
-                char crlf[2];
-                rh->conn->read(crlf, 2);
-                success = (memcmp(crlf, "\r\n", 2) == 0);
-            } catch (tcp_conn_t::read_closed_exc_t) {
-                success = false;
+            } else {
+                /* Allocate a buffer from the heap instead of the stack because we are in a
+                coroutine */
+                std::vector<char> dummy(IO_BUFFER_SIZE);
+                int consumed = 0;
+                while (consumed < (int)length) {
+                    int chunk = std::min((int)length - consumed, (int)IO_BUFFER_SIZE);
+                    rh->conn->read(dummy.data(), chunk);
+                    consumed += chunk;
+                }
             }
+            char crlf[2];
+            rh->conn->read(crlf, 2);
+            return (memcmp(crlf, "\r\n", 2) == 0);
+        } catch (tcp_conn_t::read_closed_exc_t) {
+            return false;
         }
-        if (success) c->have_provided_value();
-        else c->have_failed();
     }
 };
 

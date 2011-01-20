@@ -71,12 +71,7 @@ struct const_buffer_group_t {
 struct data_provider_t {
     virtual ~data_provider_t() { }
     virtual size_t get_size() = 0;
-    struct done_callback_t {
-        virtual void have_provided_value() = 0;
-        virtual void have_failed() = 0;
-        virtual ~done_callback_t() {}
-    };
-    virtual void get_value(buffer_group_t *dest, done_callback_t *cb) = 0;
+    virtual bool get_value(buffer_group_t *dest) = 0;
 };
 
 struct store_t {

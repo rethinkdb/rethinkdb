@@ -15,14 +15,14 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
         if (!old_value) {
             result = store_t::apr_not_found;
-            co_get_data_provider_value(data, NULL);
+            if (!data->get_value(NULL)) result = store_t::apr_data_provider_failed;
             return false;
         }
 
         size_t new_size = old_value->value_size() + data->get_size();
         if (new_size > MAX_VALUE_SIZE) {
             result = store_t::apr_too_large;
-            co_get_data_provider_value(data, NULL);
+            if (!data->get_value(NULL)) result = store_t::apr_data_provider_failed;
             return false;
         }
 
@@ -82,7 +82,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         // Dispatch the data request
         
         result = store_t::apr_success;
-        bool success = co_get_data_provider_value(data, &buffer_group);
+        bool success = data->get_value(&buffer_group);
         if (!success) {
             if (large_value) {
                 if (is_old_large_value) {

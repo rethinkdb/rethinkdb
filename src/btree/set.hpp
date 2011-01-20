@@ -30,26 +30,26 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
             result = store_t::sr_not_stored;
             // TODO: If the value is too large, we should reply with TOO_LARGE rather than NOT_STORED, like memcached.
-            co_get_data_provider_value(data, NULL);
+            if (!data->get_value(NULL)) result = store_t::sr_data_provider_failed;
             return false;
         }
         
         if (type == set_type_cas) { // TODO: CAS stats
             if (!old_value) {
                 result = store_t::sr_not_found;
-                co_get_data_provider_value(data, NULL);
+                if (!data->get_value(NULL)) result = store_t::sr_data_provider_failed;
                 return false;
             }
             if (!old_value->has_cas() || old_value->cas() != req_cas) {
                 result = store_t::sr_exists;
-                co_get_data_provider_value(data, NULL);
+                if (!data->get_value(NULL)) result = store_t::sr_data_provider_failed;
                 return false;
             }
         }
         
         if (data->get_size() > MAX_VALUE_SIZE) {
             result = store_t::sr_too_large;
-            co_get_data_provider_value(data, NULL);
+            if (!data->get_value(NULL)) result = store_t::sr_data_provider_failed;
             /* To be standards-compliant we must delete the old value when an effort is made to
             replace it with a value that is too large. */
             *new_value = NULL;
@@ -84,7 +84,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
         
         result = store_t::sr_stored;
-        bool success = co_get_data_provider_value(data, &buffer_group);
+        bool success = data->get_value(&buffer_group);
         if (!success) {
             if (large_value) {
                 large_value->mark_deleted();
