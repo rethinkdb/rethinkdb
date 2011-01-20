@@ -1008,13 +1008,13 @@ txt_memcached_handler_t::txt_memcached_handler_t(conn_acceptor_t *acc, net_conn_
       requests_out_sem(MAX_CONCURRENT_QUERIES_PER_CONNECTION),
       shutting_down(false)
 {
-    logINF("Opened connection %p\n", this);
+    //logINF("Opened connection %p\n", this);
     pm_conns_acting.begin(&start_time);
     read_next_command();
 }
 
 txt_memcached_handler_t::~txt_memcached_handler_t() {
-    logINF("Closed connection %p\n", this);
+    //logINF("Closed connection %p\n", this);
 
     if (conn->is_write_open()) conn->shutdown_write();
     assert(!conn->is_read_open());
