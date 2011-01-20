@@ -93,7 +93,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                             "cores"         : cores,
                             "slices"        : slices,
                             "duration"      : dur,
-                            "verify-timeout": dur },
+                            "verify-timeout": dur * 4 * ec2 },
                           repeat=2, timeout=dur * 4 * ec2)
 
 # Running all tests
@@ -189,9 +189,9 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 400 },
                   repeat=3, timeout=600)
     
-    # Run the serial mix test also with the other valgrind tools, drd and helgrind
+    # Run the serial mix test also with drd
     if checker == "valgrind":
-        for valgrind_tool in ["drd", "helgrind"]:
+        for valgrind_tool in ["drd"]:
             # Use do_test() instead of do_test_cloud() because DRD produces hundreds of apparently
             # bogus errors when run on EC2, but runs just fine locally.
             do_test("integration/serial_mix.py",
