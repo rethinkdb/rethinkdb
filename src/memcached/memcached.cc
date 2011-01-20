@@ -816,7 +816,7 @@ bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
 
 void serve_memcache(tcp_conn_t *conn, server_t *server) {
 
-    logINF("Opened connection %p\n", coro_t::self());
+    // logINF("Opened connection %p\n", coro_t::self());
 
     /* Object that we pass around to subroutines (is there a better way to do this?) */
     txt_memcached_handler_t rh(conn, server);
@@ -923,6 +923,6 @@ void serve_memcache(tcp_conn_t *conn, server_t *server) {
     done by now */
     rh.prevent_shutdown_lock.co_lock(rwi_write);
 
-    logINF("Closed connection %p\n", coro_t::self());
+    // logINF("Closed connection %p\n", coro_t::self());
 }
 
