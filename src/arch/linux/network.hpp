@@ -40,12 +40,14 @@ public:
     // If you don't know how many bytes you want to read, use peek()
     // and then, if you're satisfied, pop what you've read, or if
     // you're unsatisfied, read_more_buffered() and then try again.
+    // Note that you should always call peek() before calling
+    // read_more_buffered(), because there might be leftover data in
+    // the peek buffer that might be enough for you.
     struct bufslice { const char *buf; size_t len; bufslice(const char *b, size_t n) : buf(b), len(n) { } };
     bufslice peek() const;
     void pop(size_t len);
 
     void read_more_buffered();
-
 
     /* Call shutdown_read() to close the half of the pipe that goes from the peer to us. If there
     is an outstanding read() or peek_until() operation, it will throw read_closed_exc_t. */

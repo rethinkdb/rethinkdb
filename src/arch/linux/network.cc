@@ -64,6 +64,8 @@ void linux_tcp_conn_t::register_with_event_loop() {
 
 size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 
+    assert(!read_was_shut_down);
+
     while (true) {
         ssize_t res = ::read(sock, buffer, size);
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
@@ -122,11 +124,12 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::read_more_buffered() {
-    assert(!read_cond);
 
     /* Put ourselves into the epoll object so that we will receive notifications when we need them.
     See the note in register_with_event_loop() if this doesn't make sense. */
     register_with_event_loop();
+    assert(!read_cond);
+    if (read_was_shut_down) throw read_closed_exc_t();
 
     size_t old_size = read_buffer.size();
     read_buffer.resize(old_size + IO_BUFFER_SIZE);
@@ -183,6 +186,8 @@ bool linux_tcp_conn_t::is_read_open() {
 }
 
 void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
+
+    assert(!write_was_shut_down);
 
     while (size > 0) {
         int res = ::write(sock, buf, size);

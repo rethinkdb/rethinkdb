@@ -767,13 +767,7 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
         }
 
         // Keep trying until we get a complete line.
-
-        // TODO: do we need this is_read_open() check?
-        if (conn->is_read_open()) {
-            conn->read_more_buffered();
-        } else {
-            throw tcp_conn_t::read_closed_exc_t();
-        }
+        conn->read_more_buffered();
     }
 
 };
