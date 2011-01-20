@@ -7,14 +7,6 @@ namespace replication {
 value_stream_t::value_stream_t()
     : local_buffer_size(0), fixed_buffered_threshold(-1) { }
 
-// TODO: Get rid of this constructor, and just call the methods.
-value_stream_t::value_stream_t(const char *beg, const char *end)
-    : local_buffer_size(0), fixed_buffered_threshold(-1) {
-    charslice sl = buf_for_filling(end - beg);
-    memcpy(sl.beg, beg, end - beg);
-    data_written(end - beg);
-}
-
 value_stream_t::read_token_t value_stream_t::read_external(charslice buf) {
     reader_node_t *node = new reader_node_t();
     node->buf = buf;
@@ -87,7 +79,15 @@ void value_stream_t::data_written(ssize_t amount) {
     }
 }
 
-
+void write_charslice(value_stream_t& stream, const_charslice r) {
+    while (r.beg < r.end) {
+        charslice w = stream.buf_for_filling(r.end - r.beg);
+        ssize_t n = std::min(w.end - w.beg, r.end - r.beg);
+        memcpy(w.beg, r.beg, n);
+        stream.data_written(n);
+        r.beg += n;
+    }
+}
 
 
 

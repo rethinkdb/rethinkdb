@@ -21,8 +21,33 @@ struct charslice {
     charslice() : beg(NULL), end(NULL) { }
 };
 
-// A value_stream_t is only designed to have one reader and one
-// writer.  This is not useful for every purpose.
+struct const_charslice {
+    const char *beg, *end;
+    const_charslice(const char *beg_, const char *end_) : beg(beg_), end(end_) { }
+    const_charslice() : beg(NULL), end(NULL) { }
+};
+
+
+
+// A value_stream_t is only designed to have one reader and one writer
+// on the same thread.
+//
+// The reading end consists of a queue of buffers, waiting to be
+// filled, with a growable "local_buffer" behind them, which gets
+// filled if the queue is empty.
+//
+// You can use read_fixed_buffered which waits for the local_buffer to
+// reach a certain size.  Use pop_buffer to consume data from the
+// local_buffer.
+//
+// The writing end works by asking for a buf to fill, and then telling
+// how much data has been written.  Thus the reader can supply a buf
+// to be filled, and the writer can fill it directly.
+//
+// However, the writer cannot give up ownership of a buffer to the
+// value_stream_t and have that passed on to the reader.
+
+
 class value_stream_t {
 
     // A node in a list of nodes from which supply external buffers
@@ -37,7 +62,7 @@ public:
     typedef reader_node_t* read_token_t;
 
     value_stream_t();
-    value_stream_t(const char *beg, const char *end);
+    //     value_stream_t(const char *beg, const char *end);
 
     // Pushes an external buf onto the reading queue.
     read_token_t read_external(charslice buf);
@@ -54,7 +79,7 @@ public:
 
     // Gets a buf into which to write data.  You must call
     // data_written without any coroutine switching.
-    charslice buf_for_filling(ssize_t desired_size = IO_BUFFER_SIZE);
+    charslice buf_for_filling(ssize_t desired_size);
     // Writes the data.
     void data_written(ssize_t amount);
 
@@ -77,6 +102,8 @@ private:
 
     DISABLE_COPYING(value_stream_t);
 };
+
+void write_charslice(value_stream_t& stream, const_charslice sl);
 
 
 }  // namespace replication
