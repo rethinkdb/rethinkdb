@@ -66,6 +66,8 @@ RethinkDB works on modern 64-bit distributions of Linux. We support the followin
 
 - Ubuntu 10.04.1 x86_64
 - Ubuntu 10.10 x86_64
+- Red Hat Enterprise Linux 5 x86_64
+- CentOS 5 x86_64
 
 ------------
 Installation
