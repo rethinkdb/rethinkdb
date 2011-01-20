@@ -87,7 +87,7 @@ struct store_t {
     the parameter 'cas' will be undefined and should be ignored. Note that the callback (value() or
     not_found() may be called on any core, so you are responsible for switching to the request
     handler core. */
-    
+
     //Non-coroutine interface
     struct get_callback_t {
         struct done_callback_t {
@@ -206,7 +206,7 @@ public:
         virtual ~delete_callback_t() {}
     };
     virtual void delete_key(store_key_t *key, delete_callback_t *cb) = 0;
-    
+
     /* To start replicating, call replicate() with a replicant_t.
     
     The replicant_t's value() method will be called for every key in the database at the time that

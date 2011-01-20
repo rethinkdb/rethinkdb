@@ -185,73 +185,73 @@ bool valid_role(uint32_t val) {
     return val == master || val == new_slave || val == slave;
 }
 
-btree_replica_t::btree_replica_t(store_t *internal_store, replication_config_t *config) 
-    : internal_store(internal_store), conn(config->hostname, config->port), respond_to_queries(false), n_retries(RETRY_ATTEMPTS)
+slave_t::slave_t(store_t *internal_store, replication_config_t config) 
+    : internal_store(internal_store), config(config), conn(config.hostname, config.port), respond_to_queries(false), n_retries(RETRY_ATTEMPTS)
 {
     parse_messages(&conn, this);
     failover.add_callback(this);
 }
 
-btree_replica_t::~btree_replica_t() {}
+slave_t::~slave_t() {}
 
 /* store interface */
 
-void btree_replica_t::get(store_key_t *key, get_callback_t *cb)
+void slave_t::get(store_key_t *key, get_callback_t *cb)
 {}
-void btree_replica_t::get_cas(store_key_t *key, get_callback_t *cb)
+void slave_t::get_cas(store_key_t *key, get_callback_t *cb)
 {}
-void btree_replica_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
+void slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
 {}
-void btree_replica_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
+void slave_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
 {}
-void btree_replica_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
+void slave_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb)
 {}
-void btree_replica_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb)
+void slave_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb)
 {}
-void btree_replica_t::incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb)
+void slave_t::incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb)
 {}
-void btree_replica_t::decr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb)
+void slave_t::decr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb)
 {}
-void btree_replica_t::append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb)
+void slave_t::append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb)
 {}
-void btree_replica_t::prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb)
+void slave_t::prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb)
 {}
-void btree_replica_t::delete_key(store_key_t *key, delete_callback_t *cb)
+void slave_t::delete_key(store_key_t *key, delete_callback_t *cb)
 {}
-void btree_replica_t::replicate(replicant_t *cb, repli_timestamp cutoff)
+void slave_t::replicate(replicant_t *cb, repli_timestamp cutoff)
 {}
-void btree_replica_t::stop_replicating(replicant_t *cb)
+void slave_t::stop_replicating(replicant_t *cb)
 {}
 
  /* message_callback_t interface */
-void btree_replica_t::hello(boost::scoped_ptr<hello_message_t>& message)
+void slave_t::hello(boost::scoped_ptr<hello_message_t>& message)
 {}
-void btree_replica_t::send(boost::scoped_ptr<backfill_message_t>& message)
+void slave_t::send(boost::scoped_ptr<backfill_message_t>& message)
 {}
-void btree_replica_t::send(boost::scoped_ptr<announce_message_t>& message)
+void slave_t::send(boost::scoped_ptr<announce_message_t>& message)
 {}
-void btree_replica_t::send(boost::scoped_ptr<set_message_t>& message)
+void slave_t::send(boost::scoped_ptr<set_message_t>& message)
 {}
-void btree_replica_t::send(boost::scoped_ptr<append_message_t>& message)
+void slave_t::send(boost::scoped_ptr<append_message_t>& message)
 {}
-void btree_replica_t::send(boost::scoped_ptr<prepend_message_t>& message)
+void slave_t::send(boost::scoped_ptr<prepend_message_t>& message)
 {}
-void btree_replica_t::send(boost::scoped_ptr<nop_message_t>& message)
+void slave_t::send(boost::scoped_ptr<nop_message_t>& message)
 {}
-void btree_replica_t::send(boost::scoped_ptr<ack_message_t>& message)
+void slave_t::send(boost::scoped_ptr<ack_message_t>& message)
 {}
-void btree_replica_t::send(boost::scoped_ptr<shutting_down_message_t>& message)
+void slave_t::send(boost::scoped_ptr<shutting_down_message_t>& message)
 {}
-void btree_replica_t::send(boost::scoped_ptr<goodbye_message_t>& message)
+void slave_t::send(boost::scoped_ptr<goodbye_message_t>& message)
 {}
-void btree_replica_t::conn_closed()
+void slave_t::conn_closed()
 {
     int reconnects_done = 0;
     bool success = false;
 
     while (reconnects_done++ < n_retries) {
         try {
-            conn = tcp_conn_t(config->hostname, config->port);
+            conn = tcp_conn_t(config.hostname, config.port);
             logINF("Successfully reconnected to the server");
             success = true;
             parse_messages(&conn, this);
@@ -265,7 +265,7 @@ void btree_replica_t::conn_closed()
 }
 
 /* failover callback */
-void btree_replica_t::on_failure() {
+void slave_t::on_failure() {
     respond_to_queries = true;
 }
 

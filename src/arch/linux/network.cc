@@ -20,7 +20,8 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) {
      * can't we just sacrifice a virgin for them (lord knows we have enough
      * virgins in Silicon Valley */
     char port_str[10]; /* god is it dumb that we have to do this */
-    fail_due_to_user_error("Port is too big", (snprintf(port_str, 10, "%d", port) == 10));
+    snprintf(port_str, 10, "%d", port);
+    //fail_due_to_user_error("Port is too big", (snprintf(port_str, 10, "%d", port) == 10));
 
     /* make the connection */
     getaddrinfo(host, port_str, NULL, &res);

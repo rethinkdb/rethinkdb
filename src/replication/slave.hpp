@@ -30,19 +30,19 @@ public:
     virtual void conn_closed() = 0;
 };
 
-struct btree_replica_t :
+struct slave_t :
     public home_thread_mixin_t,
     public store_t,
     public failover_callback_t,
     public message_callback_t
 {
 public:
-    btree_replica_t(store_t *, replication_config_t *);
-    ~btree_replica_t();
+    slave_t(store_t *, replication_config_t);
+    ~slave_t();
 
 private:
     store_t *internal_store;
-    replication_config_t *config;
+    replication_config_t config;
     tcp_conn_t conn;
 
     failover_t failover;

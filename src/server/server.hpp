@@ -4,6 +4,8 @@
 
 #include "logger.hpp"
 #include "btree/key_value_store.hpp"
+#include "utils.hpp"
+#include "store.hpp"
 #include "conn_acceptor.hpp"
 #include "utils.hpp"
 #include "perfmon.hpp"
@@ -27,7 +29,7 @@ class server_t :
 {
 public:
     server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
-        : cmd_config(cmd_config), thread_pool(thread_pool), toggler(this)
+        : cmd_config(cmd_config), thread_pool(thread_pool)/* , toggler(this) */
     {
     }
 
@@ -54,36 +56,9 @@ public:
     bool do_enable_gc(all_gc_enabled_callback_t *cb);
 
     cmd_config_t *cmd_config;
-    btree_key_value_store_t *store;
+    store_t *store;
     thread_pool_t *thread_pool;
 
-private:
-    class gc_toggler_t : public standard_serializer_t::gc_disable_callback_t {
-    public:
-        explicit gc_toggler_t(server_t *server);
-        bool disable_gc(all_gc_disabled_callback_t *cb);
-        bool enable_gc(all_gc_enabled_callback_t *cb);
-        
-        void on_gc_disabled();
-
-    private:
-
-        enum toggle_state_t {
-            enabled,
-            disabling,
-            disabled
-        };
-
-        toggle_state_t state_;
-        int num_disabled_serializers_;
-        typedef std::vector<all_gc_disabled_callback_t *> callback_vector_t;
-        callback_vector_t callbacks_;
-
-        server_t *server_;
-
-        DISABLE_COPYING(gc_toggler_t);
-
-    } toggler;
 };
 
 #endif // __SERVER_HPP__
