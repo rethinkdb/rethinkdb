@@ -96,6 +96,10 @@ struct store_t {
         };
         virtual void value(const_buffer_group_t *value, done_callback_t *cb, mcflags_t flags, cas_t cas) = 0;
         virtual void not_found() = 0;
+
+        /* Called if the action is not allowed on the current store. For example if the store is a slave_t */
+        virtual void not_allowed() = 0;
+
         virtual ~get_callback_t() {}
     };
     virtual void get(store_key_t *key, get_callback_t *cb) = 0;
@@ -123,6 +127,11 @@ private:
         }
         virtual void not_found() {
             result.buffer = NULL;
+            self->notify();
+        }
+
+        virtual void not_allowed() {
+            result.buffer = NULL; //TODO @jdoliner there should be a distinction of why this failed
             self->notify();
         }
     };
@@ -165,6 +174,9 @@ public:
         /* Called if the data_provider_t that you gave returned have_failed(). */
         virtual void data_provider_failed() = 0;
 
+        /* Called if the action is not allowed on the current store. For example if the store is a slave_t */
+        virtual void not_allowed() = 0;
+
         virtual ~set_callback_t() {}
     };
     virtual void set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) = 0;
@@ -179,6 +191,9 @@ public:
         virtual void not_found() = 0;
         virtual void not_numeric() = 0;
 
+        /* Called if the action is not allowed on the current store. For example if the store is a slave_t */
+        virtual void not_allowed() = 0;
+
         virtual ~incr_decr_callback_t() {}
     };
     virtual void incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb) = 0;
@@ -192,6 +207,9 @@ public:
         virtual void not_found() = 0;
         virtual void data_provider_failed() = 0;
 
+        /* Called if the action is not allowed on the current store. For example if the store is a slave_t */
+        virtual void not_allowed() = 0;
+
         virtual ~append_prepend_callback_t() {}
     };
     virtual void append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb) = 0;
@@ -202,6 +220,9 @@ public:
     struct delete_callback_t {
         virtual void deleted() = 0;
         virtual void not_found() = 0;
+
+        /* Called if the action is not allowed on the current store. For example if the store is a slave_t */
+        virtual void not_allowed() = 0;
 
         virtual ~delete_callback_t() {}
     };
