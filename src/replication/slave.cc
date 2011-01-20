@@ -185,7 +185,7 @@ bool valid_role(uint32_t val) {
     return val == master || val == new_slave || val == slave;
 }
 
-btree_replica_t::btree_replica_t(store_t *internal_store, standard_serializer_t::shutdown_callback_t *shutdown_callback, replication_config_t *config) 
+btree_replica_t::btree_replica_t(store_t *internal_store, replication_config_t *config) 
     : internal_store(internal_store), conn(config->hostname, config->port), respond_to_queries(false), n_retries(RETRY_ATTEMPTS)
 {
     parse_messages(&conn, this);

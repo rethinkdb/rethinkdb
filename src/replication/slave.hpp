@@ -37,7 +37,7 @@ struct btree_replica_t :
     public message_callback_t
 {
 public:
-    btree_replica_t(store_t *, standard_serializer_t::shutdown_callback_t *, replication_config_t *);
+    btree_replica_t(store_t *, replication_config_t *);
     ~btree_replica_t();
 
 private:

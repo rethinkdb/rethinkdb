@@ -92,7 +92,10 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             if (!store.start_existing(&store_ready_cb)) store_ready_cb.wait();
         }
 
-        server.store = &store;   /* So things can access it */
+        if (cmd_config->replication_config.active) {
+        } else {
+            server.store = &store;   /* So things can access it */
+        }
 
         /* Record information about disk drives to log file */
         log_disk_info(cmd_config->store_dynamic_config.serializer_private);
