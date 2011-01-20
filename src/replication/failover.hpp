@@ -26,8 +26,8 @@ private:
 
 class failover_t {
 public:
-    failover_t() {}
-    ~failover_t() {}
+    failover_t();
+    ~failover_t();
 
 private:
     intrusive_list_t<failover_callback_t> callbacks;
