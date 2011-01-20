@@ -1,4 +1,3 @@
-#TODO make an index.html version that uses a href tags rather than cid tags (email embedding)
 import sys, os, io
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir + '/oprofile')))
 from plot import *
@@ -49,6 +48,23 @@ class Description():
             return ""
 
 
+class tee:
+    def __init__(self, _strio1, _strio2):
+        self.strio1 = _strio1
+        self.strio2 = _strio2
+
+    def __del__(self):
+        self.strio1.close()
+        self.strio2.close()
+
+    def write(self, text):
+        self.strio1.write(text)
+        self.strio2.write(text)
+
+    def flush(self):
+        self.strio1.flush()
+        self.strio2.flush()
+
 class dbench():
     log_file = 'bench_log.txt'
     hostname = 'newton'
@@ -92,7 +108,7 @@ class dbench():
             self.competitors[dir] = self.bench_stats(os.path.join(self.competitor_dir, dir, self.bench_dir))
 
     def report(self):
-        self.html = self.report_as_html()
+        (self.html, self.email) = self.report_as_html()
         self.push_html_to_host()
         self.send_email(self.email_addr)
         os.system('rm -rf %s' % self.out_dir)
@@ -242,11 +258,22 @@ class dbench():
         os.system('ssh "%s" ln -s -f "%s" "%s"' % (self.hostname, self.www_dir + self.prof_dir + "/" + self.dir_str, self.www_dir + self.prof_dir + "/" + "latest"))
 
     def report_as_html(self):
-        def image(name):
+        def image(name, html_output, email_output):
             # Construct the path to the high-resolution version of the plot, append the plot image to the list of images to be attached.
             large_img_path = 'http://'+os.path.join(self.hostname, self.prof_dir, self.dir_str, name+'_large.png')
+            small_img_path = 'http://'+os.path.join(self.hostname, self.prof_dir, self.dir_str, name+'.png')
             self.images_used.append(name)
-            return "<a href=\"%s\"> <img border=\"0\" src=\"%s\" width=\"450\" /> </a>" % (large_img_path, 'cid:'+name)
+            print >>html_output, "<a href=\"%s\"> <img border=\"0\" src=\"%s\" width=\"450\" /> </a>" % (large_img_path, small_img_path)
+            print >>email_output, "<a href=\"%s\"> <img border=\"0\" src=\"%s\" width=\"450\" /> </a>" % (large_img_path, 'cid:'+name)
+
+        def hr():
+            return '<hr style="height: 8px; width: 910px; background-color: #222; margin-top: 40px; margin-bottom: 15px; margin-left: 0; text-align: left;" />'
+
+        def run_title(title):
+            return """<h2 style="font-size: x-large; font-family: 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif; display: inline;">%s</h2>""" % title
+
+        def plot_title(title):
+            return """<h3 style="text-align: center; font-family: 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;">%s</h3>""" % title
 
         def flot(source, text):
             return "<a href=\"%s\">%s</a>" % ('http://' + self.hostname + self.flot_script_location + '#' + source, text)
@@ -256,7 +283,7 @@ class dbench():
 
         def summary_table(datatype, dataset):
             table = """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: auto; margin-right: auto; margin-top: 20px;">
-                                <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
+                                <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #333;">
                                     <th style="padding: 0.5em 0.8em; font-size: small;"></th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Mean %s</th>
                                     <th style="padding: 0.5em 0.8em; font-size: small;">Standard deviation</th>
@@ -279,12 +306,12 @@ class dbench():
                     upper_percentile = "N/A"
                     lower_percentile = "N/A"
 
-                table += """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF;">
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em; font-weight: bold;">%s</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>
-                                    <td style="background: #DBE2F1; padding: 0.5em 0.8em;">%s</td>    
+                table += """<tr style="text-align: left; border-bottom: 2px solid #FFFFFF; background: #E0E0E0;">
+                                    <td style="padding: 0.5em 0.8em; font-size: small; font-weight: bold;">%s</td>
+                                    <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>
+                                    <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>
+                                    <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>
+                                    <td style="padding: 0.5em 0.8em; font-size: small;">%s</td>    
                                 </tr>""" % (competitor_name, mean_data, standard_dev, upper_percentile, lower_percentile)
             table += "</table>"
             return table
@@ -294,7 +321,7 @@ class dbench():
             stat_types = ['mean','stdev','upper_5_percentile','lower_5_percentile']
 
             table = """<table style="border-spacing: 0px; border-collapse: collapse; margin-left: 30px; margin-right: 30px; margin-top: 20px;">
-                           <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #556270;">
+                           <tr style="font-weight: bold; text-align: left; border-bottom: 2px solid #FFFFFF; color: #FFFFFF; background: #333;">
                                <th style="padding: 0.5em 0.8em; font-size: small;"></th>"""
             for d in datatypes:
                 table +="""    <th style="padding: 0.5em 0.8em; font-size: small;">Mean %s</th>
@@ -303,8 +330,8 @@ class dbench():
                                <th style="padding: 0.5em 0.8em; font-size: small;">Upper 5%% for %s</th>""" % (d,d,d,d)
             table += "     </tr>"
             for run_name, run in dataset.iteritems():
-                table += """<tr style="background: #B3BEC6; text-align: left; border-bottom: 2px solid #FFFFFF">
-                                <th style="background: #B3BEC6; padding: 0.5em 0.8em; font-weight: bold;" colspan="%s">%s</td>
+                table += """<tr style="background: #E0E0E0; text-align: left; border-bottom: 2px solid #FFFFFF">
+                                <th style="padding: 0.5em 0.8em; font-weight: bold; font-size: small;" colspan="%s">%s</td>
                             </tr>""" % (str(len(datatypes) * len(stat_types) + 1), run_name + " " + unit)
                 for competitor_name, competitor in run.iteritems():
                     stats = {}
@@ -330,15 +357,25 @@ class dbench():
             table += "</table>"
             return table
 
-        res = StringIO.StringIO()
+        res_html = StringIO.StringIO()
+        res_email = StringIO.StringIO()
+        res = tee(res_html,res_email)
 
 
         # Set up basic html, and body tags. Note that the style tag must be under the body tag for email clients to parse it (head gets stripped by most clients).
 
-        print >>res, '<table style="width: 910px; margin-top: 20px; margin-bottom: 20px;"><tr><td style="vertical-align: top;"><h1 style="margin: 0px">RethinkDB performance report</h1></td>'
         report_date = strptime(self.dir_str.replace('_',' '),'%a %b %d %H %M %S %Y')
-        print >>res, '<td style="vertical-align: top;"><p style="text-align: right; font-style:italic; margin: 0px;">Report generated on %s</p></td>' % strftime('%A %b. %d, %-I:%M %p', report_date)
-        print >>res, '</td></tr></table>'
+
+        print >>res, """<table style="width: 910px; margin-top: 20px; margin-bottom: 20px;">
+                            <tr>
+                                <td style="vertical-align: top;">
+                                    <h1 style="margin: 0px; font-family: 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;">RethinkDB performance report</h1>
+                                </td>
+                                <td style="vertical-align: top;">
+                                    <p style="text-align: right; font-style:italic; font-family: 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif; margin: 0px;">Report generated on %s</p>
+                                </td>
+                            </tr>
+                        </table>""" % strftime('%A %b. %d, %-I:%M %p', report_date)
 
         flot_data = 'data'
 
@@ -348,10 +385,10 @@ class dbench():
             server_meta = run.server_meta
             client_meta = run.client_meta
 
-            if run_name != self.rdb_stats.single_runs.keys()[0]:
-                print >>res, '<hr style="height: 1px; width: 910px; border-top: 1px solid #999; margin: 30px 0px; padding: 0px 30px;" />'
+            #if run_name != self.rdb_stats.single_runs.keys()[0]:
+            print >>res, hr()
             print >>res, '<div class="run">'
-            print >>res, '<h2 style="font-size: xx-large; display: inline;">', run.name,'</h2>'
+            print >>res, run_title(run.name) 
 
             # Accumulating data for the run
             data = {}
@@ -391,13 +428,6 @@ class dbench():
             qps_data.plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name))
             qps_data.plot(os.path.join(self.out_dir, self.dir_str, 'qps' + run_name + '_large'), True)
 
-            # Add the qps plot image metadata
-            print >>res, '<table style="width: 910px;" class="runPlots">'
-            print >>res, '<tr><td valign="top"><h3 style="text-align: center">Queries per second</h3>'
-            print >>res, image('qps' + run_name)
-            print >>res, summary_table('qps', data)
-            print >>res, """</td>"""
-
             # Build data for the latency histogram
             lat_data = TimeSeriesCollection()
 
@@ -406,36 +436,50 @@ class dbench():
             
             # Plot the latency histogram
             lat_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name))
+            lat_data.histogram(os.path.join(self.out_dir, self.dir_str, 'latency' + run_name + '_large'), True)
 
-            # Add the latency histogram image and metadata
-            print >>res, '<td valign="top"><h3 style="text-align: center">Latency in microseconds</h3>'
-            print >>res, image('latency' + run_name)
+            # Add the qps plot image and latency histogram image
+            print >>res, """<table style="width: 910px;" class="runPlots">
+                                <tr>
+                                    <td valign="top">"""
+            print >>res, plot_title('Queries per second')
+            image('qps' + run_name, res_html, res_email)
+            print >>res, '          </td>'
+
+
+            # Add the latency histogram image
+            print >>res, '      <td valign="top">'
+            print >>res, plot_title('Latency in microseconds')
+            image('latency' + run_name, res_html, res_email)
+            print >>res, """        </td>
+                                </tr>
+                                <tr>
+                                    <td>"""
+            print >>res, summary_table('qps', data)
+            print >>res, """        </td>
+                                    <td>"""
             print >>res, summary_table('latency', data)
-            print >>res, """</td>"""
-
-            # Metadata about the server and client
-#            print >>res, '<table style="table-layout: fixed; width: 910px;" class="meta">'
-#            print >>res, '<tr><td style="vertical-align: top; width: 50%; padding-right: 40px;"><pre style="font-size: x-small; color: #888;">', server_meta, '</pre></td>'
-#            print >>res, '<td style="vertical-align: top; width: 50%; padding-right: 40px;"><pre style="font-size: x-small; color: #888;">', client_meta, '</pre></td></tr>'
-#            print >>res, '</table>'
-
-            print >>res, '</div>'
+            print >>res, """        </td> 
+                                </tr>
+                            </table>
+                        </div>"""
         
         # Report stats for each multirun
         for multirun_name in self.rdb_stats.multi_runs.keys():
             multirun = self.rdb_stats.multi_runs[multirun_name]
 
-            print >>res, '<hr style="height: 1px; width: 910px; border-top: 1px solid #999; margin: 30px 0px; padding: 0px 30px;" />'
+            print >>res, hr()
             print >>res, '<div class="multirun">'
-            print >>res, '<h2 style="font-size: xx-large; display: inline;">', multirun.name,'</h2>'
+            print >>res, run_title(multirun.name)
 
             # Get the data for the multirun mean scatter plot
             mean_data = {}
+            # Collect RethinkDB's multirun data
             mean_data['RethinkDB'] = multirun.data
 
             competitor_keys = self.competitors.keys()
 
-            # Accumulating data for competitors' run
+            # Collect the multirun data for each competitor, if it is available
             per_competitor_descriptions = [('RethinkDB', multirun.description_run)]
             for competitor_key in competitor_keys:
                 competitor = (competitor_key, self.competitors[competitor_key])
@@ -497,10 +541,12 @@ class dbench():
             scatter.plot(os.path.join(self.out_dir, self.dir_str, 'mean' + multirun_name + '_large'), True)
 
             # Add the mean run plot image and metadata
-            print >>res, '<table style="width: 910px;" class="runPlots">'
-            print >>res, '<tr><td><h3 style="text-align: center">Average queries per second across runs</h3>'
-            print >>res, image('mean' + multirun_name)
-            print >>res, '</td>'
+            print >>res, """<table style="width: 910px;" class="runPlots">
+                                <tr>
+                                    <td>"""
+            print >>res, plot_title('Average queries per second across runs')
+            image('mean' + multirun_name, res_html, res_email)
+            print >>res, 'i         </td>'
 
             # Plot the multiplot; each subplot shows one of the runs of the multirun 
             multiplot_data = {}
@@ -542,18 +588,16 @@ class dbench():
             multiplot.plot(os.path.join(self.out_dir, self.dir_str, 'multiplot' + multirun_name + '_large'), True)
 
             # Add the multiplot plot image and metadata
-            print >>res, '<td><h3 style="text-align: center">Queries per second across runs</h3>'
-            print >>res, image('multiplot' + multirun_name)
-
-            # Metadata about the server and client
-#            print >>res, '<table style="table-layout: fixed; width: 910px;" class="meta">'
-#            print >>res, '<tr><td style="vertical-align: top; width: 50%; padding-right: 40px;"><pre style="font-size: x-small; color: #888;">', server_meta, '</pre></td>'
-#            print >>res, '<td style="vertical-align: top; width: 50%; padding-right: 40px;"><pre style="font-size: x-small; color: #888;">', client_meta, '</pre></td></tr>'
-#            print >>res, '</table>'
-            print >>res, '</td>'
-            print >>res, '</div>'
+            print >>res, '          <td>'
+            print >>res, plot_title('Queries per second across runs')
+            image('multiplot' + multirun_name, res_html, res_email)
+            print >>res, """            </td>
+                                     </tr>
+                                </table>
+                            </div>"""
             
             print >>res, multirun_summary_table(summary_table_data, multirun.unit)
+
         # Add oprofile data
 #        print >> res, '<div class="oprofile">' 
 #        if self.prof_stats:
@@ -565,7 +609,7 @@ class dbench():
 #        print >> res, '</div>' 
           
 
-        return res.getvalue()
+        return res_html.getvalue(), res_email.getvalue()
 
     def send_email(self, recipient):
         print "Sending email to %r..." % recipient
@@ -578,7 +622,7 @@ class dbench():
 
         # Attach both a plain-text and html version of the message
         msg.attach(MIMEText('Profiling reports can only be viewed by a client that supports HTML.', 'plain'))
-        msg.attach(MIMEText(self.html, 'html'))
+        msg.attach(MIMEText(self.email, 'html'))
 
         for image in self.images_used:
             fp = open(os.path.join(self.out_dir,self.dir_str,image+'.png'), 'rb')
