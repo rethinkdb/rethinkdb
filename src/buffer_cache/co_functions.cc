@@ -22,7 +22,7 @@ buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_
     if (!value) {
         value = cb.join();
     }
-    assert(value);
+    rassert(value);
     return value;
 }
 
@@ -81,7 +81,7 @@ transaction_t *co_begin_transaction(cache_t *cache, access_t access) {
     if (!value) {
         value = cb.join();
     }
-    assert(value);
+    rassert(value);
     return value;
 }
 

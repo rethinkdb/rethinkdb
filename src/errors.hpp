@@ -21,18 +21,21 @@
  *  crash(msg, ...)                 always fails and reports line number and such. Never returns.
  *  crash_or_trap(msg, ...)         same as above, but traps into debugger if it is present instead of terminating.
  *                                  That means that it possibly can return, and one can continue stepping through the code in the debugger.
- *                                  All off the assert/guarantee functions use crash_or_trap.
- *  assert(cond)                    makes sure cond is true and is a no-op in release mode
- *  assert(cond, msg, ...)          ditto, with additional message and possibly some arguments used for formatting
- *  assert_err(cond)                same as assert(cond), but also print errno error description
- *  assert_err(cond, msg, ...)      same as assert(cond, msg, ...), but also print errno error description
- *  guarantee(cond)                 same as assert(cond), but the check is still done in release mode. Do not use for expensive checks!
- *  guarantee(cond, msg, ...)       same as assert(cond, msg, ...), but the check is still done in release mode. Do not use for expensive checks!
+ *                                  All off the rassert/guarantee functions use crash_or_trap.
+ *  rassert(cond)                   makes sure cond is true and is a no-op in release mode
+ *  rassert(cond, msg, ...)         ditto, with additional message and possibly some arguments used for formatting
+ *  rassert_err(cond)               same as rassert(cond), but also print errno error description
+ *  rassert_err(cond, msg, ...)     same as rassert(cond, msg, ...), but also print errno error description
+ *  guarantee(cond)                 same as rassert(cond), but the check is still done in release mode. Do not use for expensive checks!
+ *  guarantee(cond, msg, ...)       same as rassert(cond, msg, ...), but the check is still done in release mode. Do not use for expensive checks!
  *  guarantee_err(cond)             same as guarantee(cond), but also print errno error description
  *  guarantee_err(cond, msg, ...)   same as guarantee(cond, msg, ...), but also print errno error description
  *  guarantee_xerr(cond, err, msg, ...) same as guarantee_err(cond, msg, ...), but also allows to specify errno as err argument
  *                                  (useful for async io functions, which return negated errno)
-*/
+ *
+ * The names rassert* are used instead of assert* because /usr/include/assert.h undefines assert macro and redefines it with its own version
+ * every single time it gets included.
+ */
 
 #ifdef __linux__
 #if defined __i386 || defined __x86_64
@@ -84,15 +87,15 @@ void report_user_error(const char*, ...);
 #define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
 
 #ifdef NDEBUG
-#define assert(cond, msg...) ((void)(0))
-#define assert_err(cond, msg...) ((void)(0))
+#define rassert(cond, msg...) ((void)(0))
+#define rassert_err(cond, msg...) ((void)(0))
 #else
-#define assert(cond, msg...) do {   \
-        if (!(cond)) {              \
-            crash_or_trap(format_assert_message("Assertion", cond) msg); \
+#define rassert(cond, msg...) do {                                        \
+        if (!(cond)) {                                                    \
+            crash_or_trap(format_assert_message("Assertion", cond) msg);  \
         }                           \
     } while (0)
-#define assert_err(cond, msg, args...) do {                                 \
+#define rassert_err(cond, msg, args...) do {                                \
         if (!(cond)) {                                                      \
             if (errno == 0) {                                               \
                 crash_or_trap(format_assert_message("Assert", cond) msg);   \

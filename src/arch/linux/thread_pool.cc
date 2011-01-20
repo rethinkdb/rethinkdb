@@ -24,8 +24,8 @@ linux_thread_pool_t::linux_thread_pool_t(int n_threads)
     : interrupt_message(NULL),
       n_threads(n_threads + 1) // we create an extra utility thread
 {
-    assert(n_threads > 0);
-    assert(n_threads <= MAX_THREADS);
+    rassert(n_threads > 0);
+    rassert(n_threads <= MAX_THREADS);
     
     int res;
     

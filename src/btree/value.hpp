@@ -63,7 +63,7 @@ public:
     int64_t value_size() const {
         if (is_large()) {
             int64_t ret = lb_ref().size;
-            assert(ret > MAX_IN_NODE_VALUE_SIZE);
+            rassert(ret > MAX_IN_NODE_VALUE_SIZE);
             return ret;
         } else {
             return size;
@@ -95,13 +95,13 @@ public:
     large_buf_ref *large_buf_ref_ptr() { return reinterpret_cast<large_buf_ref *>(value()); }
 
     const large_buf_ref& lb_ref() const {
-        assert(is_large());
-        assert(size == sizeof(large_buf_ref));
+        rassert(is_large());
+        rassert(size == sizeof(large_buf_ref));
         return *reinterpret_cast<const large_buf_ref *>(value());
     }
     void set_lb_ref(const large_buf_ref& ref) {
-        assert(is_large());
-        assert(size == sizeof(large_buf_ref));
+        rassert(is_large());
+        rassert(size == sizeof(large_buf_ref));
         *reinterpret_cast<large_buf_ref *>(value()) = ref;
     }
 
@@ -115,7 +115,7 @@ public:
         cas_t ret;
         bool hascas = metadata_memcached_cas(metadata_flags, contents, &ret);
         (void)hascas;
-        assert(hascas);
+        rassert(hascas);
         return ret;
     }
 

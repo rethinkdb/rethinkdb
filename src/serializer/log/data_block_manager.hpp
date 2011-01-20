@@ -40,13 +40,13 @@ public:
           gc_state(extent_manager->extent_size)//,
 //          garbage_ratio_reporter(this)
     {
-        assert(dynamic_config);
-        assert(static_config);
-        assert(serializer);
-        assert(extent_manager);
+        rassert(dynamic_config);
+        rassert(static_config);
+        rassert(serializer);
+        rassert(extent_manager);
     }
     ~data_block_manager_t() {
-        assert(state == state_unstarted || state == state_shut_down);
+        rassert(state == state_unstarted || state == state_shut_down);
     }
 
 public:
@@ -198,7 +198,7 @@ private:
               g_array(parent->static_config->blocks_per_extent()),
               timestamp(current_timestamp())
         {
-            assert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
+            rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
             parent->entries.set(offset / parent->extent_manager->extent_size, this);
             g_array.set();
             
@@ -214,7 +214,7 @@ private:
               timestamp(current_timestamp())
         {
             parent->extent_manager->reserve_extent(offset);
-            assert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
+            rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
             parent->entries.set(offset / parent->extent_manager->extent_size, this);
             g_array.set();
             
@@ -227,7 +227,7 @@ private:
         }
         
         ~gc_entry() {
-            assert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
+            rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == this);
             parent->entries.set(offset / parent->extent_manager->extent_size, NULL);
             
             pm_serializer_data_extents--;
@@ -247,7 +247,7 @@ private:
         // Returns the current timestamp in microseconds.
         static timestamp_t current_timestamp() {
             struct timeval t;
-            assert(0 == gettimeofday(&t, NULL));
+            rassert(0 == gettimeofday(&t, NULL));
             return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
         }
     };
@@ -332,7 +332,7 @@ private:
         // Sets step_, and calls gc_disable_callback if relevant.
         void set_step(gc_step next_step) {
             if (should_be_stopped && next_step == gc_ready && (step_ == gc_read || step_ == gc_write)) {
-                assert(gc_disable_callback);
+                rassert(gc_disable_callback);
                 gc_disable_callback->on_gc_disabled();
                 gc_disable_callback = NULL;
             }

@@ -272,8 +272,8 @@ public:
         bool in_use = inner_serializer.block_in_use(id);
         switch (blocks.get(id.value).state) {
             case block_info_t::state_unknown: break;
-            case block_info_t::state_deleted: assert(!in_use); break;
-            case block_info_t::state_have_crc: assert(in_use); break;
+            case block_info_t::state_deleted: rassert(!in_use); break;
+            case block_info_t::state_have_crc: rassert(in_use); break;
             default: unreachable();
         }
         return in_use;

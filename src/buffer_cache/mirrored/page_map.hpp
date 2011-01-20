@@ -23,7 +23,7 @@ public:
     array_map_t() { }
     
     ~array_map_t() {
-        assert(array.size() == 0);
+        rassert(array.size() == 0);
     }
 
     inner_buf_t* find(block_id_t block_id) {

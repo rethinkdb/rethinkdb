@@ -94,7 +94,7 @@ size_t linux_file_t::get_size() {
 }
 
 void linux_file_t::set_size(size_t size) {
-    assert(!is_block);
+    rassert(!is_block);
     int res = ftruncate(fd, size);
     guarantee_err(res == 0, "Could not ftruncate()");
     file_size = size;
@@ -102,7 +102,7 @@ void linux_file_t::set_size(size_t size) {
 
 void linux_file_t::set_size_at_least(size_t size) {
     if (is_block) {
-        assert(file_size >= size);
+        rassert(file_size >= size);
     } else {
         /* Grow in large chunks at a time */
         if (file_size < size) {
@@ -172,7 +172,7 @@ void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
     if (res == -1 && errno == EINTR) {
         goto tryagain;
     }
-    assert(size_t(res) == length, "Blocking read failed");
+    rassert(size_t(res) == length, "Blocking read failed");
     (void)res;
 }
 
@@ -183,7 +183,7 @@ void linux_file_t::write_blocking(size_t offset, size_t length, void *buf) {
     if (res == -1 && errno == EINTR) {
         goto tryagain;
     }
-    assert(size_t(res) == length, "Blocking write failed");
+    rassert(size_t(res) == length, "Blocking write failed");
     (void)res;
 }
 
@@ -192,11 +192,11 @@ linux_file_t::~linux_file_t() {
 }
 
 void linux_file_t::verify(size_t offset, size_t length, void *buf) {
-    assert(buf);
-    assert(offset + length <= file_size);
-    assert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
-    assert(offset % DEVICE_BLOCK_SIZE == 0);
-    assert(length % DEVICE_BLOCK_SIZE == 0);
+    rassert(buf);
+    rassert(offset + length <= file_size);
+    rassert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
+    rassert(offset % DEVICE_BLOCK_SIZE == 0);
+    rassert(length % DEVICE_BLOCK_SIZE == 0);
 }
 
 /* Async IO scheduler */
@@ -230,7 +230,7 @@ linux_io_calls_t::~linux_io_calls_t()
 {
     int res;
     
-    assert(n_pending == 0);
+    rassert(n_pending == 0);
     
     res = close(aio_notify_fd);
     guarantee_err(res == 0, "Could not close aio_notify_fd");
@@ -343,5 +343,5 @@ int linux_io_calls_t::queue_t::process_request_batch() {
 }
 
 linux_io_calls_t::queue_t::~queue_t() {
-    assert(queue.size() == 0);
+    rassert(queue.size() == 0);
 }

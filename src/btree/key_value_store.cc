@@ -23,8 +23,8 @@ btree_key_value_store_t::btree_key_value_store_t(
       n_files(dynamic_config->serializer_private.size()),
       state(state_off)
 {
-    assert(n_files > 0);
-    assert(n_files <= MAX_SERIALIZERS);
+    rassert(n_files > 0);
+    rassert(n_files <= MAX_SERIALIZERS);
     for (int i = 0; i < n_files; i++) {
         serializers[i] = NULL;
     }
@@ -82,7 +82,7 @@ bool btree_key_value_store_t::start_existing(ready_callback_t *cb) {
 }
 
 bool btree_key_value_store_t::start(ready_callback_t *cb) {
-    assert(state == state_off);
+    rassert(state == state_off);
     state = state_starting_up;
     
     ready_callback = NULL;
@@ -177,13 +177,13 @@ struct bkvs_start_existing_serializer_fsm_t :
                 store->dynamic_config->serializer_private[i].db_filename.c_str(), (int)c->n_files, (int)store->n_files);
         }
 
-        assert(check_magic<serializer_config_block_t>(c->magic));
-        assert(c->this_serializer >= 0 && c->this_serializer < store->n_files);
+        rassert(check_magic<serializer_config_block_t>(c->magic));
+        rassert(c->this_serializer >= 0 && c->this_serializer < store->n_files);
 
         store->serializer_magics[c->this_serializer] = c->database_magic;
         store->btree_static_config = c->btree_config;
 
-        assert(!store->serializers[c->this_serializer]);
+        rassert(!store->serializers[c->this_serializer]);
 
         store->serializers[c->this_serializer] = serializer;
         serializer->free(config_block);
@@ -321,7 +321,7 @@ bool btree_key_value_store_t::have_created_a_slice() {
 
 void btree_key_value_store_t::finish_start() {
     assert_thread();
-    assert(state == state_starting_up);
+    rassert(state == state_starting_up);
     state = state_ready;
     
     if (ready_callback) {
@@ -450,13 +450,13 @@ void btree_key_value_store_t::stop_replicating(replicant_t *cb) {
 }
 
 void btree_key_value_store_t::started_a_query() {
-    assert(state == state_ready);
-    assert(!waiting_for_queries_out[get_thread_id()]);
+    rassert(state == state_ready);
+    rassert(!waiting_for_queries_out[get_thread_id()]);
     queries_out[get_thread_id()]++;
 }
 
 void btree_key_value_store_t::finished_a_query() {
-    assert(queries_out[get_thread_id()] > 0);
+    rassert(queries_out[get_thread_id()] > 0);
     queries_out[get_thread_id()]--;
     if (queries_out[get_thread_id()] == 0 && waiting_for_queries_out[get_thread_id()]) {
         do_on_thread(home_thread, this, &btree_key_value_store_t::shutdown_have_finished_queries_on_thread);
@@ -466,7 +466,7 @@ void btree_key_value_store_t::finished_a_query() {
 /* Process of shutting down */
 
 bool btree_key_value_store_t::shutdown(shutdown_callback_t *cb) {
-    assert(state == state_ready);
+    rassert(state == state_ready);
     assert_thread();
     state = state_shutting_down;
     
@@ -572,14 +572,14 @@ bool btree_key_value_store_t::have_shutdown_a_serializer() {
 }
 
 void btree_key_value_store_t::finish_shutdown() {
-    assert(state == state_shutting_down);
+    rassert(state == state_shutting_down);
     state = state_off;
     
     if (shutdown_callback) shutdown_callback->on_store_shutdown();
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {
-    assert(state == state_off);
+    rassert(state == state_off);
 }
 
 // Stats

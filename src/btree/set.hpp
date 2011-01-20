@@ -70,7 +70,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 
         value.value_size(data->get_size());
 
-        assert(data->get_size() <= MAX_VALUE_SIZE);
+        rassert(data->get_size() <= MAX_VALUE_SIZE);
         if (data->get_size() <= MAX_IN_NODE_VALUE_SIZE) {
             buffer_group.add_buffer(data->get_size(), value.value());
         } else {

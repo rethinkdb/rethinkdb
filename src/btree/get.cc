@@ -34,7 +34,7 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
     buf_lock_t buf_lock(transactor, SUPERBLOCK_ID, rwi_read);
 
     block_id_t node_id = ptr_cast<btree_superblock_t>(buf_lock.buf()->get_data_read())->root_block;
-    assert(node_id != SUPERBLOCK_ID);
+    rassert(node_id != SUPERBLOCK_ID);
 
     //Acquire the root
     if (node_id == NULL_BLOCK_ID) {
@@ -66,8 +66,8 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
         }
 
         block_id_t next_node_id = internal_node::lookup(ptr_cast<internal_node_t>(node), key);
-        assert(next_node_id != NULL_BLOCK_ID);
-        assert(next_node_id != SUPERBLOCK_ID);
+        rassert(next_node_id != NULL_BLOCK_ID);
+        rassert(next_node_id != SUPERBLOCK_ID);
 
         node_id = next_node_id;
     }
@@ -100,13 +100,13 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
     } else if (value.is_large()) {
         // Don't commit transaction yet because we need to keep holding onto
         // the large buf until it's been read.
-        assert(value.is_large());
+        rassert(value.is_large());
 
         large_buf_t *large_value = new large_buf_t(transactor.transaction());
 
         co_acquire_large_value(large_value, value.lb_ref(), rwi_read);
-        assert(large_value->state == large_buf_t::loaded);
-        assert(large_value->get_root_ref().block_id == value.lb_ref().block_id);
+        rassert(large_value->state == large_buf_t::loaded);
+        rassert(large_value->get_root_ref().block_id == value.lb_ref().block_id);
 
         const_buffer_group_t value_buffers;
         for (int i = 0; i < large_value->get_num_segments(); i++) {

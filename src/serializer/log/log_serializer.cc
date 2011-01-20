@@ -23,9 +23,9 @@ log_serializer_t::log_serializer_t(dynamic_config_t *config, private_dynamic_con
 }
 
 log_serializer_t::~log_serializer_t() {
-    assert(state == state_unstarted || state == state_shut_down);
-    assert(last_write == NULL);
-    assert(active_write_count == 0);
+    rassert(state == state_unstarted || state == state_shut_down);
+    rassert(last_write == NULL);
+    rassert(active_write_count == 0);
 }
 
 void ls_check_existing(const char *filename, log_serializer_t::check_callback_t *cb) {
@@ -43,7 +43,7 @@ handle its own startup process. It is done this way to make it clear which parts
 are involved in startup and which parts are not. */
 
 void log_serializer_t::ls_start_new(static_config_t *config, ready_callback_t *ready_cb) {
-    assert(state == log_serializer_t::state_unstarted);
+    rassert(state == log_serializer_t::state_unstarted);
     state = log_serializer_t::state_starting_up;
     static_config = *config;
     dbfile = new direct_file_t(db_path, file_t::mode_read | file_t::mode_write | file_t::mode_create);
@@ -72,14 +72,14 @@ void log_serializer_t::ls_start_new(static_config_t *config, ready_callback_t *r
     
     metablock_manager->co_write_metablock(&metablock_buffer);
     
-    assert(state == log_serializer_t::state_starting_up);
+    rassert(state == log_serializer_t::state_starting_up);
     state = log_serializer_t::state_ready;
 
     ready_cb->on_serializer_ready(this);
 };
 
 bool log_serializer_t::start_new(static_config_t *config, ready_callback_t *ready_cb) {
-    assert(state == state_unstarted);
+    rassert(state == state_unstarted);
     assert_thread();
     coro_t::spawn(&log_serializer_t::ls_start_new, this, config, ready_cb);
     return false;
@@ -98,8 +98,8 @@ struct ls_start_existing_fsm_t :
     }
     
     bool run(log_serializer_t::ready_callback_t *ready_cb) {
-        assert(state == state_start);
-        assert(ser->state == log_serializer_t::state_unstarted);
+        rassert(state == state_start);
+        rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
         
         ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write);
@@ -175,7 +175,7 @@ struct ls_start_existing_fsm_t :
         
         if (state == state_finish) {
             state = state_done;
-            assert(ser->state == log_serializer_t::state_starting_up);
+            rassert(ser->state == log_serializer_t::state_starting_up);
             ser->state = log_serializer_t::state_ready;
             if(ready_callback)
                 ready_callback->on_serializer_ready(ser);
@@ -186,7 +186,7 @@ struct ls_start_existing_fsm_t :
                 ser->prepare_metablock(&debug_mb_buffer);
                 // Make sure that the metablock has not changed since the last
                 // time we recorded it
-                assert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+                rassert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
             }
 #endif
    
@@ -198,19 +198,19 @@ struct ls_start_existing_fsm_t :
     }
     
     void on_static_header_read() {
-        assert(state == state_waiting_for_static_header);
+        rassert(state == state_waiting_for_static_header);
         state = state_find_metablock;
         next_starting_up_step();
     }
     
     void on_metablock_read() {
-        assert(state == state_waiting_for_metablock);
+        rassert(state == state_waiting_for_metablock);
         state = state_start_lba;
         next_starting_up_step();
     }
     
     void on_lba_ready() {
-        assert(state == state_waiting_for_lba);
+        rassert(state == state_waiting_for_lba);
         state = state_reconstruct;
         next_starting_up_step();
     }
@@ -236,7 +236,7 @@ struct ls_start_existing_fsm_t :
 };
 
 bool log_serializer_t::start_existing(ready_callback_t *ready_cb) {
-    assert(state == state_unstarted);
+    rassert(state == state_unstarted);
     assert_thread();
     
     ls_start_existing_fsm_t *s = new ls_start_existing_fsm_t(this);
@@ -244,7 +244,7 @@ bool log_serializer_t::start_existing(ready_callback_t *ready_cb) {
 }
 
 void *log_serializer_t::malloc() {
-    assert(state == state_ready || state == state_shutting_down);
+    rassert(state == state_ready || state == state_shutting_down);
     
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
@@ -257,7 +257,7 @@ void *log_serializer_t::malloc() {
 }
 
 void *log_serializer_t::clone(void *_data) {
-    assert(state == state_ready || state == state_shutting_down);
+    rassert(state == state_ready || state == state_shutting_down);
     
     // TODO: we shouldn't use malloc_aligned here, we should use our
     // custom allocation system instead (and use corresponding
@@ -271,7 +271,7 @@ void *log_serializer_t::clone(void *_data) {
 }
 
 void log_serializer_t::free(void *ptr) {
-    assert(state == state_ready || state == state_shutting_down);
+    rassert(state == state_ready || state == state_shutting_down);
     
     char *data = (char *)ptr;
     data -= sizeof(buf_data_t);
@@ -351,7 +351,7 @@ struct ls_block_writer_t :
             // It doesn't make sense for a write to not specify a
             // recency _or_ a buffer, since such a write does not
             // actually do anything.
-            assert(write.recency_specified);
+            rassert(write.recency_specified);
 
             if (write.recency_specified) {
                 ser->lba_index->set_block_offset(write.block_id, write.recency, ser->lba_index->get_block_offset(write.block_id));
@@ -411,12 +411,12 @@ struct ls_write_fsm_t :
     }
     
     ~ls_write_fsm_t() {
-        assert(state == state_start || state == state_done);
+        rassert(state == state_start || state == state_done);
         pm_serializer_writes.end(&start_time);
     }
     
     bool run(log_serializer_t::write_txn_callback_t *cb) {
-        assert(state == state_start);
+        rassert(state == state_start);
         
         callback = NULL;
         if (do_start_writes_and_lba()) {
@@ -477,22 +477,22 @@ struct ls_write_fsm_t :
     }
     
     void on_io_complete() {
-        assert(state == state_waiting_for_data_and_lba);
-        assert(num_writes_waited_for > 0);
+        rassert(state == state_waiting_for_data_and_lba);
+        rassert(num_writes_waited_for > 0);
         num_writes_waited_for--;
         maybe_write_metablock();
     }
     
     void on_lba_sync() {
-        assert(state == state_waiting_for_data_and_lba);
-        assert(!offsets_were_written);
+        rassert(state == state_waiting_for_data_and_lba);
+        rassert(!offsets_were_written);
         offsets_were_written = true;
         maybe_write_metablock();
     }
     
     void on_prev_write_submitted_metablock() {
-        assert(state == state_waiting_for_data_and_lba);
-        assert(waiting_for_prev_write);
+        rassert(state == state_waiting_for_data_and_lba);
+        rassert(waiting_for_prev_write);
         waiting_for_prev_write = false;
         maybe_write_metablock();
     }
@@ -515,7 +515,7 @@ struct ls_write_fsm_t :
         if (next_write) {
             next_write->on_prev_write_submitted_metablock();
         } else {
-            assert(this == ser->last_write);
+            rassert(this == ser->last_write);
             ser->last_write = NULL;
         }
         
@@ -524,7 +524,7 @@ struct ls_write_fsm_t :
     }
     
     void on_metablock_write() {
-        assert(state == state_waiting_for_metablock);
+        rassert(state == state_waiting_for_metablock);
         do_finish();
     }
     
@@ -579,7 +579,7 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
         prepare_metablock(&_debug_mb_buffer);
         // Make sure that the metablock has not changed since the last
         // time we recorded it
-        assert(memcmp(&_debug_mb_buffer, &debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+        rassert(memcmp(&_debug_mb_buffer, &debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
     }
 #endif
 
@@ -630,7 +630,7 @@ struct ls_read_fsm_t :
     bool do_read() {
         
         flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
-        assert(!offset.parts.is_delete);   // Make sure the block actually exists
+        rassert(!offset.parts.is_delete);   // Make sure the block actually exists
         
         if (ser->data_block_manager->read(offset.parts.value, buf, this)) {
             return done();
@@ -651,7 +651,7 @@ struct ls_read_fsm_t :
 };
 
 bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
-    assert(state == state_ready);
+    rassert(state == state_ready);
     assert_thread();
     
     ls_read_fsm_t *fsm = new ls_read_fsm_t(this, block_id, buf);
@@ -663,7 +663,7 @@ block_size_t log_serializer_t::get_block_size() {
 }
 
 ser_block_id_t log_serializer_t::max_block_id() {
-    assert(state == state_ready);
+    rassert(state == state_ready);
     assert_thread();
     
     return lba_index->max_block_id();
@@ -673,7 +673,7 @@ bool log_serializer_t::block_in_use(ser_block_id_t id) {
     
     // State is state_shutting_down if we're called from the data block manager during a GC
     // during shutdown.
-    assert(state == state_ready || state == state_shutting_down);
+    rassert(state == state_ready || state == state_shutting_down);
     
     assert_thread();
     
@@ -685,8 +685,8 @@ repli_timestamp log_serializer_t::get_recency(ser_block_id_t id) {
 }
 
 bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
-    assert(cb);
-    assert(state == state_ready);
+    rassert(cb);
+    rassert(state == state_ready);
     assert_thread();
     shutdown_callback = cb;
 

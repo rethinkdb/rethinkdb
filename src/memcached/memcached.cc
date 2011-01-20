@@ -35,7 +35,7 @@ struct txt_memcached_handler_t {
         va_start(args, format);
         char buffer[1000];
         size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
-        assert(bytes < sizeof(buffer));
+        rassert(bytes < sizeof(buffer));
         write(buffer, bytes);
         va_end(args);
     }
@@ -81,8 +81,8 @@ struct get_t {
 
 void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
 
-    assert(argc >= 1);
-    assert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
+    rassert(argc >= 1);
+    rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
     /* Vector to store the keys and the task-objects */
     std::vector<get_t> gets;
@@ -128,7 +128,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
                     rh->writef("VALUE %*.*s %u %u %llu\r\n",
                         key.size, key.size, key.contents, res.flags, res.buffer->get_size(), res.cas);
                 } else {
-                    assert(res.cas == 0);
+                    rassert(res.cas == 0);
                     rh->writef("VALUE %*.*s %u %u\r\n",
                         key.size, key.size, key.contents, res.flags, res.buffer->get_size());
                 }
@@ -180,7 +180,7 @@ struct buffered_data_provider_t :
                 memcpy(bg->buffers[i].data, (char*)buffer + pos, bg->buffers[i].size);
                 pos += bg->buffers[i].size;
             }
-            assert(pos == (signed)length);
+            rassert(pos == (signed)length);
         }
         cb->have_provided_value();
     }
@@ -689,7 +689,7 @@ bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
 
 void serve_memcache(tcp_conn_t *conn, server_t *server) {
 
-    logINF("Opened connection %p\n", coro_t::self());
+    // logINF("Opened connection %p\n", coro_t::self());
 
     /* Object that we pass around to subroutines (is there a better way to do this?) */
     txt_memcached_handler_t rh(conn, server);
@@ -796,6 +796,6 @@ void serve_memcache(tcp_conn_t *conn, server_t *server) {
     done by now */
     rh.prevent_shutdown_lock.co_lock(rwi_write);
 
-    logINF("Closed connection %p\n", coro_t::self());
+    // logINF("Closed connection %p\n", coro_t::self());
 }
 

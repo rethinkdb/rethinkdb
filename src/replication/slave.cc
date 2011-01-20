@@ -25,7 +25,7 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
     net_hello_t buf;
     conn->read(&buf, sizeof(buf));
 
-    assert(16 == sizeof(STANDARD_HELLO_MAGIC));
+    rassert(16 == sizeof(STANDARD_HELLO_MAGIC));
     if (0 != memcmp(buf.hello_magic, STANDARD_HELLO_MAGIC, sizeof(STANDARD_HELLO_MAGIC))) {
         throw protocol_exc_t("bad hello magic");  // TODO details
     }
@@ -34,7 +34,7 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
         throw protocol_exc_t("bad protocol version");  // TODO details
     }
 
-    assert(32 == sizeof(buf.informal_name));
+    rassert(32 == sizeof(buf.informal_name));
     scoped_ptr<hello_message_t> msg(new hello_message_t(role_t(buf.role), buf.database_magic, buf.informal_name, buf.informal_name + sizeof(buf.informal_name)));
     receiver->hello(msg);
 }

@@ -84,7 +84,7 @@ struct rand_initter_t {
 } rand_initter;
 
 int randint(int n) {
-    assert(n > 0 && n < RAND_MAX);
+    rassert(n > 0 && n < RAND_MAX);
     return rand() % n;
 }
 

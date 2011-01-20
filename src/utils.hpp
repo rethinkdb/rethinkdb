@@ -71,7 +71,7 @@ public:
     int home_thread;
 
 #ifndef NDEBUG
-    void assert_thread() { assert(home_thread == get_thread_id()); }
+    void assert_thread() { rassert(home_thread == get_thread_id()); }
 #else
     void assert_thread() { }
 #endif

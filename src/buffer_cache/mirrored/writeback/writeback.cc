@@ -66,9 +66,9 @@ writeback_t::writeback_t(
 }
 
 writeback_t::~writeback_t() {
-    assert(!flush_timer);
-    assert(outstanding_disk_writes == 0);
-    assert(active_write_transactions == 0);
+    rassert(!flush_timer);
+    rassert(outstanding_disk_writes == 0);
+    rassert(active_write_transactions == 0);
 }
 
 bool writeback_t::sync(sync_callback_t *callback) {
@@ -160,7 +160,7 @@ void writeback_t::possibly_unthrottle_transactions() {
 
         /* green_light() should never have an immediate effect; the most it can do is push the
         transaction onto the event queue. */
-        assert(!too_many_dirty_blocks());
+        rassert(!too_many_dirty_blocks());
     }
 }
 
@@ -207,7 +207,7 @@ void writeback_t::flush_timer_callback(void *ctx) {
     writeback_t *self = static_cast<writeback_t *>(ctx);
     self->flush_timer = NULL;
     
-    /* Don't sync if we're in the shutdown process, because if we do that we'll trip an assert() on
+    /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on
     the cache, and besides we're about to sync anyway. */
     if (self->cache->state != cache_t::state_shutting_down_waiting_for_transactions) {
         self->sync(NULL);
@@ -215,7 +215,7 @@ void writeback_t::flush_timer_callback(void *ctx) {
 }
 
 bool writeback_t::writeback_start_and_acquire_lock() {
-    assert(!writeback_in_progress);
+    rassert(!writeback_in_progress);
     writeback_in_progress = true;
     pm_flushes_locking.begin(&start_time);
     cache->assert_thread();
@@ -231,7 +231,7 @@ bool writeback_t::writeback_start_and_acquire_lock() {
     }
     
     /* Start a read transaction so we can request bufs. */
-    assert(transaction == NULL);
+    rassert(transaction == NULL);
     if (cache->state == cache_t::state_shutting_down_start_flush ||
         cache->state == cache_t::state_shutting_down_waiting_for_flush) {
         // Backdoor around "no new transactions" assert.
@@ -239,7 +239,7 @@ bool writeback_t::writeback_start_and_acquire_lock() {
     }
     transaction = cache->begin_transaction(rwi_read, NULL);
     cache->shutdown_transaction_backdoor = false;
-    assert(transaction != NULL); // Read txns always start immediately.
+    rassert(transaction != NULL); // Read txns always start immediately.
 
     /* Request exclusive flush_lock, forcing all write txns to complete. */
     if (flush_lock.lock(rwi_write, this)) return writeback_acquire_bufs();
@@ -247,7 +247,7 @@ bool writeback_t::writeback_start_and_acquire_lock() {
 }
 
 void writeback_t::on_lock_available() {
-    assert(writeback_in_progress);
+    rassert(writeback_in_progress);
     writeback_acquire_bufs();
 }
 
@@ -275,7 +275,7 @@ struct buf_writer_t :
 };
 
 bool writeback_t::writeback_acquire_bufs() {
-    assert(writeback_in_progress);
+    rassert(writeback_in_progress);
     cache->assert_thread();
     
     pm_flushes_locking.end(&start_time);
@@ -307,7 +307,7 @@ bool writeback_t::writeback_acquire_bufs() {
             inner_buf->do_delete = false; /* Backdoor around acquire()'s assertion */  // TODO: backdoor?
             access_t buf_access_mode = do_delete ? rwi_read : rwi_read_outdated_ok;
             buf_t *buf = transaction->acquire(inner_buf->block_id, buf_access_mode, NULL);
-            assert(buf);         // Acquire must succeed since we hold the flush_lock.
+            rassert(buf);         // Acquire must succeed since we hold the flush_lock.
 
             // Fill the serializer structure
             if (!do_delete) {
@@ -327,7 +327,7 @@ bool writeback_t::writeback_acquire_bufs() {
                     NULL
                     ));
 
-                assert(buf_access_mode != rwi_read_outdated_ok);
+                rassert(buf_access_mode != rwi_read_outdated_ok);
                 buf->release();
 
                 cache->free_list.release_block_id(inner_buf->block_id);
@@ -335,7 +335,7 @@ bool writeback_t::writeback_acquire_bufs() {
                 delete inner_buf;
             }
         } else {
-            assert(recency_dirty);
+            rassert(recency_dirty);
 
             // No need to acquire the block.
             serializer_writes.push_back(translator_serializer_t::write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency, NULL));
@@ -356,7 +356,7 @@ bool writeback_t::writeback_do_write() {
     // chunks, we may want to worry about submitting more heavily contended
     // bufs earlier in the process so more write FSMs can proceed sooner.
     
-    assert(writeback_in_progress);
+    rassert(writeback_in_progress);
     cache->serializer->assert_thread();
     
     if (serializer_writes.empty() ||
@@ -370,19 +370,19 @@ bool writeback_t::writeback_do_write() {
 }
 
 void writeback_t::on_serializer_write_txn() {
-    assert(writeback_in_progress);
+    rassert(writeback_in_progress);
     cache->serializer->assert_thread();
     do_on_thread(cache->home_thread, this, &writeback_t::writeback_do_cleanup);
 }
 
 bool writeback_t::writeback_do_cleanup() {
-    assert(writeback_in_progress);
+    rassert(writeback_in_progress);
     cache->assert_thread();
     
     /* We are done writing all of the buffers */
     
     bool committed __attribute__((unused)) = transaction->commit(NULL);
-    assert(committed); // Read-only transactions commit immediately.
+    rassert(committed); // Read-only transactions commit immediately.
     transaction = NULL;
 
     serializer_writes.clear();
