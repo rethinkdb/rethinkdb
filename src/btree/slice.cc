@@ -16,11 +16,11 @@ public:
         : state(state_unstarted), cache(cache), sb_buf(NULL), txn(NULL)
         {}
     ~initialize_superblock_fsm_t() {
-        assert(state == state_unstarted || state == state_done);
+        rassert(state == state_unstarted || state == state_done);
     }
     
     bool initialize_superblock_if_necessary(btree_slice_t *cb) {
-        assert(state == state_unstarted);
+        rassert(state == state_unstarted);
         state = state_begin_transaction;
         callback = NULL;
         if (next_initialize_superblock_step()) {
@@ -98,20 +98,20 @@ private:
     }
     
     void on_txn_begin(transaction_t *t) {
-        assert(state == state_beginning_transaction);
+        rassert(state == state_beginning_transaction);
         txn = t;
         state = state_acquire_superblock;
         next_initialize_superblock_step();
     }
     
     void on_txn_commit(transaction_t *t) {
-        assert(state == state_committing_transaction);
+        rassert(state == state_committing_transaction);
         state = state_finish;
         next_initialize_superblock_step();
     }
     
     void on_block_available(buf_t *buf) {
-        assert(state == state_acquiring_superblock);
+        rassert(state == state_acquiring_superblock);
         sb_buf = buf;
         state = state_make_change;
         next_initialize_superblock_step();
@@ -127,7 +127,7 @@ btree_slice_t::btree_slice_t(
     { }
 
 btree_slice_t::~btree_slice_t() {
-    assert(state == state_unstarted || state == state_shut_down);
+    rassert(state == state_unstarted || state == state_shut_down);
 }
 
 bool btree_slice_t::start_new(ready_callback_t *cb) {
@@ -141,7 +141,7 @@ bool btree_slice_t::start_existing(ready_callback_t *cb) {
 }
 
 bool btree_slice_t::start(ready_callback_t *cb) {
-    assert(state == state_unstarted);
+    rassert(state == state_unstarted);
     state = state_starting_up_start_cache;
     ready_callback = NULL;
     if (next_starting_up_step()) {
@@ -192,13 +192,13 @@ bool btree_slice_t::next_starting_up_step() {
 }
 
 void btree_slice_t::on_cache_ready() {
-    assert(state == state_starting_up_waiting_for_cache);
+    rassert(state == state_starting_up_waiting_for_cache);
     state = state_starting_up_initialize_superblock;
     next_starting_up_step();
 }
 
 void btree_slice_t::on_initialize_superblock() {
-    assert(state == state_starting_up_waiting_for_superblock);
+    rassert(state == state_starting_up_waiting_for_superblock);
     state = state_starting_up_finish;
     next_starting_up_step();
 }
@@ -210,7 +210,7 @@ cas_t btree_slice_t::gen_cas() {
 }
 
 bool btree_slice_t::shutdown(shutdown_callback_t *cb) {
-    assert(state == state_ready);
+    rassert(state == state_ready);
     state = state_shutting_down_shutdown_cache;
     shutdown_callback = NULL;
     if (next_shutting_down_step()) {
@@ -241,7 +241,7 @@ bool btree_slice_t::next_shutting_down_step() {
 }
 
 void btree_slice_t::on_cache_shutdown() {
-    assert(state == state_shutting_down_waiting_for_cache);
+    rassert(state == state_shutting_down_waiting_for_cache);
     state = state_shutting_down_finish;
     next_shutting_down_step();
 }

@@ -51,7 +51,7 @@ public:
         
         valuecpy(&temp_value, old_value);
         int chars_written = sprintf(temp_value.value(), "%llu", (unsigned long long)new_number);
-        assert(chars_written <= MAX_IN_NODE_VALUE_SIZE); // Not really necessary.
+        rassert(chars_written <= MAX_IN_NODE_VALUE_SIZE); // Not really necessary.
         temp_value.value_size(chars_written);
         
         result = result_success;

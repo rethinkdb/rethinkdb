@@ -30,7 +30,7 @@ public:
     }
 
     bool test(unsigned int place) const {
-        assert(place < size());
+        rassert(place < size());
         return bits[place / 64] & (uint64_t(1) << (place % 64));
     }
 
@@ -41,7 +41,7 @@ public:
     }
 
     void set(unsigned int place, bool value = true) {
-        assert(place < size());
+        rassert(place < size());
         if (value) {
             if (!test(place)) _count++;
             bits[place / 64] |= (uint64_t(1) << (place % 64));
@@ -68,7 +68,7 @@ public:
         for (unsigned i = 0; i < _size; i++) {
             if (test(i)) c++;
         }
-        assert(c == _count);
+        rassert(c == _count);
     }
 #endif
 };

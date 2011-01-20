@@ -10,7 +10,7 @@ const char *raw_block::error_name(error code) {
 raw_block::raw_block() : err(none), buf(NULL), realbuf(NULL) { }
 
 void raw_block::init(int64_t size, nondirect_file_t *file, off64_t offset) {
-    assert(!realbuf);
+    rassert(!realbuf);
     realbuf = (buf_data_t *)malloc_aligned(size, DEVICE_BLOCK_SIZE);
     file->read_blocking(offset, size, realbuf);
     buf = (void *)(realbuf + 1);

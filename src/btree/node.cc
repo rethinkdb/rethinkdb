@@ -21,7 +21,7 @@ bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibl
 
 
 int nodecmp(const node_t *node1, const node_t *node2) {
-    assert(is_leaf(node1) == is_leaf(node2));
+    rassert(is_leaf(node1) == is_leaf(node2));
     if (is_leaf(node1)) {
         return leaf::nodecmp(ptr_cast<leaf_node_t>(node1), ptr_cast<leaf_node_t>(node2));
     } else {

@@ -47,7 +47,7 @@ public:
     }
 
     void unlock() {
-        assert(current > 0);
+        rassert(current > 0);
         if (lock_request_t *h = waiters.head()) {
             waiters.remove(h);
             call_later_on_this_thread(h);
@@ -57,7 +57,7 @@ public:
     }
 
     void lock_now() {
-        assert(current < capacity);
+        rassert(current < capacity);
         current++;
     }
 };

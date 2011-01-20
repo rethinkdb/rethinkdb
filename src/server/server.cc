@@ -198,10 +198,10 @@ bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb
     // We _always_ call the callback.
 
     if (state_ == enabled) {
-        assert(callbacks_.size() == 0);
+        rassert(callbacks_.size() == 0);
 
         int num_serializers = server_->cmd_config->store_dynamic_config.serializer_private.size();
-        assert(num_serializers > 0);
+        rassert(num_serializers > 0);
 
         state_ = disabling;
 
@@ -215,16 +215,16 @@ bool server_t::gc_toggler_t::disable_gc(server_t::all_gc_disabled_callback_t *cb
 
         return (state_ == disabled);
     } else if (state_ == disabling) {
-        assert(callbacks_.size() > 0);
+        rassert(callbacks_.size() > 0);
         callbacks_.push_back(cb);
         return false;
     } else if (state_ == disabled) {
-        assert(state_ == disabled);
+        rassert(state_ == disabled);
         cb->multiple_users_seen = true;
         cb->on_gc_disabled();
         return true;
     } else {
-        assert(0);
+        rassert(0);
         return false;  // Make compiler happy.
     }
 }
@@ -266,11 +266,11 @@ bool server_t::gc_toggler_t::enable_gc(all_gc_enabled_callback_t *cb) {
 }
 
 void server_t::gc_toggler_t::on_gc_disabled() {
-    assert(state_ == disabling);
+    rassert(state_ == disabling);
 
     int num_serializers = server_->cmd_config->store_dynamic_config.serializer_private.size();
 
-    assert(num_disabled_serializers_ < num_serializers);
+    rassert(num_disabled_serializers_ < num_serializers);
 
     num_disabled_serializers_++;
     if (num_disabled_serializers_ == num_serializers) {

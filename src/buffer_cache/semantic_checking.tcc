@@ -30,7 +30,7 @@ void scc_buf_t<inner_cache_t>::mark_deleted() {
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::release() {
     if (!inner_buf->is_dirty() && cache->crc_map.get(inner_buf->get_block_id())) {
-        assert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
+        rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
     } else {
         cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
     }
@@ -41,10 +41,10 @@ void scc_buf_t<inner_cache_t>::release() {
 
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::on_block_available(typename inner_cache_t::buf_t *buf) {
-    assert(!inner_buf);
+    rassert(!inner_buf);
     inner_buf = buf;
     if (cache->crc_map.get(inner_buf->get_block_id())) {
-        assert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
+        rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
     } else {
         cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
     }
@@ -75,9 +75,9 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t b
     buf->cache = this->cache;
     if (typename inner_cache_t::buf_t *inner_buf = inner_transaction->acquire(block_id, mode, buf)) {
         buf->inner_buf = inner_buf;
-        assert(block_id == buf->get_block_id());
+        rassert(block_id == buf->get_block_id());
         if (cache->crc_map.get(block_id)) {
-            assert(buf->compute_crc() == cache->crc_map.get(block_id));
+            rassert(buf->compute_crc() == cache->crc_map.get(block_id));
         } else {
             cache->crc_map.set(block_id, buf->compute_crc());
         }
@@ -107,7 +107,7 @@ scc_transaction_t<inner_cache_t>::scc_transaction_t(access_t _access, scc_cache_
 
 template<class inner_cache_t>
 void scc_transaction_t<inner_cache_t>::on_txn_begin(typename inner_cache_t::transaction_t *txn) {
-    assert(!inner_transaction);
+    rassert(!inner_transaction);
     inner_transaction = txn;
     if (begin_cb) begin_cb->on_txn_begin(this);
 }

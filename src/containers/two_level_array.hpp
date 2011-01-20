@@ -45,7 +45,7 @@ private:
 
     static unsigned int chunk_for_key(key_t key) {
         unsigned int chunk_id = key / chunk_size;
-        assert(chunk_id < num_chunks);
+        rassert(chunk_id < num_chunks);
         return chunk_id;
     }
     static unsigned int index_for_key(key_t key) {

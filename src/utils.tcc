@@ -68,7 +68,7 @@ struct thread_doer_t :
     }
     
     bool do_perform_job() {
-        assert(thread == get_thread_id());
+        rassert(thread == get_thread_id());
         bool done = callable();
         do_return_home();
         return done;

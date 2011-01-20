@@ -108,7 +108,7 @@ timespec get_uptime() {
     timespec now;
 
     int err = clock_gettime(CLOCK_MONOTONIC, &now);
-    assert_err(err == 0, "Failed to get monotonic clock value");
+    rassert_err(err == 0, "Failed to get monotonic clock value");
     if (err == 0) {
         // Compute time difference between now and origin of time
         now.tv_sec -= time_sync_data.hi_res_clock.tv_sec;
@@ -155,7 +155,7 @@ void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars
         time.tm_sec,
         (int) (time.ns/1e3));
     (void) res;
-    assert(0 <= res);
+    rassert(0 <= res);
 }
 
 std::string format_precise_time(const precise_time_t& time) {

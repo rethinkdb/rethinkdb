@@ -34,7 +34,7 @@ public:
         // Figure out where the data is going to need to go and prepare a place for it
         
         if (new_size <= MAX_IN_NODE_VALUE_SIZE) { // small -> small
-            assert(!old_value->is_large());
+            rassert(!old_value->is_large());
             // XXX This does unnecessary copying now.
             if (append) {
                 buffer_group.add_buffer(data->get_size(), value.value() + old_value->value_size());
@@ -70,7 +70,7 @@ public:
                 uint16_t seg_len;
                 byte_t *seg = large_value->get_segment_write(ix, &seg_len);
 
-                assert(seg_len >= seg_pos);
+                rassert(seg_len >= seg_pos);
                 uint16_t seg_bytes_to_fill = std::min((uint32_t)(seg_len - seg_pos), fill_size);
                 buffer_group.add_buffer(seg_bytes_to_fill, seg + seg_pos);
                 fill_size -= seg_bytes_to_fill;

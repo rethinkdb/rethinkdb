@@ -10,7 +10,7 @@ struct cond_t {
 
     cond_t() : ready(false) { }
     void pulse() {
-        assert(!ready);
+        rassert(!ready);
         ready = true;
         for (int i = 0; i < (int)waiters.size(); i++) {
             waiters[i]->notify();
@@ -21,7 +21,7 @@ struct cond_t {
             waiters.push_back(coro_t::self());
             coro_t::wait();
         }
-        assert(ready);
+        rassert(ready);
     }
 
 private:
