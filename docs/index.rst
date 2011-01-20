@@ -81,8 +81,28 @@ Navigate to the directory the package was downloaded to and install RethinkDB an
 
   # Get dependencies for RethinkDB
   sudo apt-get install libaio1
+
   # Install RethinkDB
-  dpkg -i rethinkdb_0.1_amd64.deb 
+  dpkg -i rethinkdb_0.1.2-1_amd64.deb 
+
+`````````````````
+RHEL 5 / CentOS 5
+`````````````````
+
+Download the latest package of RethinkDB for RHEL 5 / CentOS 5 from http://rethinkdb.com/zWef3q/download/.
+
+Navigate to the directory the package was downloaded to and install RethinkDB and its dependencies::
+
+  # Install RethinkDB
+  rpm -i rethinkdb_0.1.2-1.x86_64.rpm
+
+~~~~~~~~~~~
+Limitations
+~~~~~~~~~~~
+
+RHEL 5 and CentOS 5 kernels are missing certain system calls; this may affect performance in highly concurrent environments. 
+
+In these environments, server-side software will not scale to a large number of concurrent connections. In database environments this normally does not affect real-world performance, but may affect the results of some artificial benchmarks.
 
 ------------------
 Running the server
