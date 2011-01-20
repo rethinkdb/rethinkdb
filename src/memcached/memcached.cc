@@ -1,3 +1,4 @@
+#include <stdexcept>
 #include <stdarg.h>
 #include "memcached/memcached.hpp"
 #include "concurrency/task.hpp"
@@ -778,6 +779,47 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 
 };
 
+#ifndef NDEBUG
+typedef union {
+    char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
+    btree_key key;
+} key_with_memory;
+
+std::vector<key_with_memory> key_array_to_btree_keys_vector(int argc, char **argv) {
+    std::vector<key_with_memory> keys(argc);
+    for (int i = 0; i < argc; i++) {
+        if (!node::str_to_key(argv[i], &keys[i].key)) {
+            throw std::runtime_error("bad key");
+        }
+    }
+    return keys;
+}
+
+bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
+    if (argc < 1)
+        return false;
+
+    if (!strcmp(argv[0], ".h") && argc >= 2) {  // .h prints hash and slice of the passed keys
+        try {
+            std::vector<key_with_memory> keys = key_array_to_btree_keys_vector(argc-1, argv+1);
+            for (std::vector<key_with_memory>::iterator it = keys.begin(); it != keys.end(); ++it) {
+                btree_key& k = (*it).key;
+                uint32_t hash = btree_key_value_store_t::hash(&k);
+                uint32_t slice = rh->server->store->slice_nr(&k);
+                rh->writef("%*s: %08lx [%lu]\r\n", k.size, k.contents, hash, slice);
+            }
+            rh->writef("END\r\n");
+            return true;
+        } catch (std::runtime_error& e) {
+            rh->writef("CLIENT_ERROR bad command line format\r\n");
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
+#endif
+
 void serve_memcache(tcp_conn_t *conn, server_t *server) {
 
     logINF("Opened connection %p\n", coro_t::self());
@@ -872,7 +914,11 @@ void serve_memcache(tcp_conn_t *conn, server_t *server) {
             } else {
                 rh.writef("ERROR\r\n");
             }
+#ifndef NDEBUG
+        } else if (!parse_debug_command(&rh, args.size(), args.data())) {
+#else
         } else {
+#endif
             rh.writef("ERROR\r\n");
         }
 
