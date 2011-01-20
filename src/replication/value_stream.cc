@@ -5,117 +5,93 @@
 namespace replication {
 
 value_stream_t::value_stream_t()
-    : read_mode(read_mode_none), closed(false), buffer() { }
+    : local_buffer_size(0), fixed_buffered_threshold(-1) { }
 
+// TODO: Get rid of this constructor, and just call the methods.
 value_stream_t::value_stream_t(const char *beg, const char *end)
-    : read_mode(read_mode_none), closed(true), buffer(beg, end) { }
-
-void value_stream_t::read_external(char *buf, size_t size, value_stream_read_external_callback_t *cb) {
-    guarantee(read_mode == read_mode_none);
-    guarantee(buf != NULL);
-
-    read_mode = read_mode_external;
-    external_buf = buf;
-    external_buf_size = size;
-    external_cb = cb;
-
-    try_report_external();
+    : local_buffer_size(0), fixed_buffered_threshold(-1) {
+    charslice sl = buf_for_filling(end - beg);
+    memcpy(sl.beg, beg, end - beg);
+    data_written(end - beg);
 }
 
-void value_stream_t::try_report_external() {
-    guarantee(read_mode == read_mode_external);
+value_stream_t::read_token_t value_stream_t::read_external(charslice buf) {
+    reader_node_t *node = new reader_node_t();
+    node->buf = buf;
+    reader_list.push_back(node);
 
-    size_t copy_size = std::min(external_buf_size, buffer.size());
+    return node;
+}
 
-    memcpy(external_buf, buffer.data(), copy_size);
+bool value_stream_t::read_wait(read_token_t tok) {
+    bool success = tok->var.wait();
+    if (success) {
+        zombie_reader_list.remove(tok);
+    }
 
-    external_buf += copy_size;
-    external_buf_size -= copy_size;
-    buffer.erase(buffer.begin(), buffer.begin() + copy_size);  // INEFFICIENT
+    return success;
+}
 
-    if (external_buf_size == 0 || closed) {
-        value_stream_read_external_callback_t *cb = external_cb;
+bool value_stream_t::read_fixed_buffered(ssize_t threshold, charslice *slice_out) {
+    assert(fixed_buffered_threshold == -1);
+    if (local_buffer_size >= threshold) {
+        *slice_out = charslice(local_buffer.data(), local_buffer.data() + local_buffer.size());
+        return true;
+    }
+    fixed_buffered_threshold = threshold;
+    bool success = fixed_buffered_cond.wait();
+    if (success) {
+        *slice_out = charslice(local_buffer.data(), local_buffer.data() + local_buffer.size());
+    } else {
+        *slice_out = charslice(NULL, NULL);
+    }
+    fixed_buffered_cond.reset();
+    fixed_buffered_threshold = -1;
+    return success;
+}
 
-        read_mode = read_mode_none;
-        external_buf = NULL;
-        external_buf_size = 0;
-        external_cb = NULL;
+void value_stream_t::pop_buffer(ssize_t amount) {
+    assert(fixed_buffered_threshold == -1);
+    assert(amount <= local_buffer_size);
+    local_buffer.erase(local_buffer.begin(), local_buffer.begin() + amount);
+    local_buffer_size -= amount;
+}
 
-        if (external_buf_size == 0) {
-            cb->on_read_external();
-        } else {
-            cb->on_read_close(copy_size);
+charslice value_stream_t::buf_for_filling(ssize_t desired_size) {
+    if (reader_list.empty()) {
+        local_buffer.resize(local_buffer_size + desired_size);
+        char *front = local_buffer.data() + local_buffer_size;
+        return charslice(front, front + desired_size);
+    } else {
+        return reader_list.head()->buf;
+    }
+}
+
+void value_stream_t::data_written(ssize_t amount) {
+    if (reader_list.empty()) {
+        assert(ssize_t(local_buffer.size() - local_buffer_size) >= amount);
+        local_buffer_size += amount;
+        if (fixed_buffered_threshold != -1 && local_buffer_size >= fixed_buffered_threshold) {
+            fixed_buffered_cond.pulse(true);
+        }
+    } else {
+        reader_node_t *node = reader_list.head();
+        charslice *buf = &node->buf;
+        assert(buf->end - buf->beg >= amount);
+        buf->beg += amount;
+        if (buf->beg == buf->end) {
+            reader_list.remove(node);
+            zombie_reader_list.push_back(node);
+            node->var.pulse(true);
         }
     }
 }
 
-void value_stream_t::read_fixed_buffered(size_t size, value_stream_read_fixed_buffered_callback_t *cb) {
-    guarantee(read_mode == read_mode_none);
 
-    read_mode = read_mode_fixed;
-    desired_fixed_size = size;
-    fixed_cb = cb;
 
-    try_report_fixed();
-}
 
-void value_stream_t::try_report_fixed() {
-    guarantee(read_mode == read_mode_fixed);
 
-    if (desired_fixed_size < buffer.size()) {
-        cookie_t cookie;
-        fixed_cb->on_read_fixed_buffered(buffer.data(), &cookie);
-        guarantee(cookie.acknowledged);
-    }
-}
 
-void value_stream_t::acknowledge_fixed(cookie_t *cookie) {
-    guarantee(read_mode == read_mode_fixed);
-    guarantee(cookie->acknowledged == false);
-
-    buffer.erase(buffer.begin(), buffer.begin() + desired_fixed_size);
-    read_mode = read_mode_none;
-    desired_fixed_size = 0;
-    cookie->acknowledged = true;
-}
-
-void value_stream_t::open_space_for_writing(size_t size, value_stream_writing_action_t *action) {
-    size_t origsize = buffer.size();
-    buffer.resize(origsize + size, 0);
-    write_cookie_t cookie(size);
-    action->write_and_inform(buffer.data() + origsize, size, &cookie);
-    guarantee(cookie.acknowledged);
-}
-
-void value_stream_t::inform_space_written(size_t amount_written, write_cookie_t *cookie) {
-    guarantee(cookie->acknowledged == false);
-    guarantee(amount_written <= cookie->space_allocated);
-    guarantee(cookie->space_allocated <= buffer.size());
-
-    buffer.erase(buffer.end() - cookie->space_allocated + amount_written, buffer.end());
-    cookie->acknowledged = true;
-
-    try_report_new_data();
-}
-
-void value_stream_t::inform_closed(write_cookie_t *cookie) {
-    guarantee(cookie->acknowledged == false);
-    guarantee(cookie->space_allocated <= buffer.size());
-
-    buffer.erase(buffer.end() - cookie->space_allocated, buffer.end());
-    cookie->acknowledged = true;
-
-    try_report_new_data();
-}
-
-void value_stream_t::try_report_new_data() {
-    if (read_mode == read_mode_fixed) {
-        try_report_fixed();
-    }
-    if (read_mode == read_mode_external) {
-        try_report_external();
-    }
-}
 
 
 }  // namespace replication
