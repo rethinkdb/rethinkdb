@@ -11,7 +11,7 @@
 #include "utils.hpp"
 #include "arch/arch.hpp"
 #include "config/args.hpp"
-#include "config/cmd_args.hpp"
+#include "server/cmd_args.hpp"
 #include "containers/segmented_vector.hpp"
 #include "logger.hpp"
 

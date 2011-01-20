@@ -24,10 +24,10 @@ private:
     char *script_path;
 };
 
-struct Failover_t {
+class failover_t {
 public:
-    Failover_t() {}
-    ~Failover_t() {}
+    failover_t() {}
+    ~failover_t() {}
 
 private:
     intrusive_list_t<failover_callback_t> callbacks;

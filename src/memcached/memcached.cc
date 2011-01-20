@@ -1,3 +1,4 @@
+#include <stdexcept>
 #include <stdarg.h>
 #include "memcached/memcached.hpp"
 #include "concurrency/task.hpp"
@@ -5,7 +6,7 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "arch/arch.hpp"
-#include "server.hpp"
+#include "server/server.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
@@ -90,7 +91,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
     gets.reserve(argc - 1);
     for (int i = 1; i < argc; i++) {
         gets.push_back(get_t());
-        if (!node_handler::str_to_key(argv[i], &gets.back().key)) {
+        if (!node::str_to_key(argv[i], &gets.back().key)) {
             rh->writef("CLIENT_ERROR bad command line format\r\n");
             return;
         }
@@ -411,7 +412,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 
     /* First parse the key */
     store_key_and_buffer_t key;
-    if (!node_handler::str_to_key(argv[1], &key.key)) {
+    if (!node::str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }
@@ -596,7 +597,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 
     /* Parse key */
     store_key_and_buffer_t key;
-    if (!node_handler::str_to_key(argv[1], &key.key)) {
+    if (!node::str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }
@@ -676,7 +677,7 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
 
     /* Parse key */
     store_key_and_buffer_t key;
-    if (!node_handler::str_to_key(argv[1], &key.key)) {
+    if (!node::str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }
@@ -734,8 +735,6 @@ void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
     rh->writef("END\r\n");
 };
 
-/* Main connection loop */
-
 perfmon_duration_sampler_t
     pm_conns_reading("conns_reading", secs_to_ticks(1)),
     pm_conns_writing("conns_writing", secs_to_ticks(1)),
@@ -769,10 +768,57 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
         }
 
         // Keep trying until we get a complete line.
-        conn->read_more_buffered();
+
+        // TODO: do we need this is_read_open() check?
+        if (conn->is_read_open()) {
+            conn->read_more_buffered();
+        } else {
+            throw tcp_conn_t::read_closed_exc_t();
+        }
     }
 
 };
+
+#ifndef NDEBUG
+typedef union {
+    char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
+    btree_key key;
+} key_with_memory;
+
+std::vector<key_with_memory> key_array_to_btree_keys_vector(int argc, char **argv) {
+    std::vector<key_with_memory> keys(argc);
+    for (int i = 0; i < argc; i++) {
+        if (!node::str_to_key(argv[i], &keys[i].key)) {
+            throw std::runtime_error("bad key");
+        }
+    }
+    return keys;
+}
+
+bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
+    if (argc < 1)
+        return false;
+
+    if (!strcmp(argv[0], ".h") && argc >= 2) {  // .h prints hash and slice of the passed keys
+        try {
+            std::vector<key_with_memory> keys = key_array_to_btree_keys_vector(argc-1, argv+1);
+            for (std::vector<key_with_memory>::iterator it = keys.begin(); it != keys.end(); ++it) {
+                btree_key& k = (*it).key;
+                uint32_t hash = btree_key_value_store_t::hash(&k);
+                uint32_t slice = rh->server->store->slice_nr(&k);
+                rh->writef("%*s: %08lx [%lu]\r\n", k.size, k.contents, hash, slice);
+            }
+            rh->writef("END\r\n");
+            return true;
+        } catch (std::runtime_error& e) {
+            rh->writef("CLIENT_ERROR bad command line format\r\n");
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
+#endif
 
 void serve_memcache(tcp_conn_t *conn, server_t *server) {
 
@@ -868,7 +914,11 @@ void serve_memcache(tcp_conn_t *conn, server_t *server) {
             } else {
                 rh.writef("ERROR\r\n");
             }
+#ifndef NDEBUG
+        } else if (!parse_debug_command(&rh, args.size(), args.data())) {
+#else
         } else {
+#endif
             rh.writef("ERROR\r\n");
         }
 

@@ -5,7 +5,7 @@
 #include "btree/node.hpp"
 #include "utils.hpp"
 #include "concurrency/access.hpp"
-#include "config/cmd_args.hpp"
+#include "server/cmd_args.hpp"
 #include "arch/arch.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
@@ -126,6 +126,7 @@ public:
     void started_a_query();   // Called by btree functions
     void finished_a_query();
     
+    uint32_t slice_nr(const btree_key *key);
     btree_slice_t *slice_for_key(const btree_key *key);
     
     // TODO: How should replicants interact with shutdown?

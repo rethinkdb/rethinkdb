@@ -29,13 +29,13 @@ void verify(block_size_t block_size, const internal_node_t *buf) {
     for (std::vector<uint16_t>::const_iterator p = offsets.begin(), e = offsets.end(); p < e; ++p) {
         ASSERT_LE(expected, block_size.value());
         ASSERT_EQ(expected, *p);
-        expected += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, *p));
+        expected += internal_node::pair_size(internal_node::get_pair(buf, *p));
     }
     ASSERT_EQ(block_size.value(), expected);
 
     const btree_key *last_key = NULL;
     for (const uint16_t *p = buf->pair_offsets, *e = p + buf->npairs; p < e; ++p) {
-        const btree_internal_pair *pair = internal_node_handler::get_pair(buf, *p);
+        const btree_internal_pair *pair = internal_node::get_pair(buf, *p);
         const btree_key *next_key = &pair->key;
 
         if (last_key != NULL) {
@@ -45,7 +45,7 @@ void verify(block_size_t block_size, const internal_node_t *buf) {
         last_key = next_key;
     }
 
-    EXPECT_EQ(0, internal_node_handler::get_pair(buf, last_pair_offset)->key.size);
+    EXPECT_EQ(0, internal_node::get_pair(buf, last_pair_offset)->key.size);
 }
 
 TEST(InternalNodeTest, Offsets) {

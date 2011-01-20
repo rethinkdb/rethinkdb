@@ -3,7 +3,6 @@
 
 #include "buffer_cache/buffer_cache.hpp"
 #include "config/args.hpp"
-#include "btree/node.hpp"
 
 class large_buf_t;
 

@@ -10,7 +10,7 @@
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/translator.hpp"
-#include "config/cmd_args.hpp"
+#include "server/cmd_args.hpp"
 #include "buffer_cache/stats.hpp"
 #include <boost/crc.hpp>
 
@@ -278,11 +278,6 @@ private:
     shutdown_transaction_backdoor to true before it starts the transaction and to false immediately
     afterwards. */
     bool shutdown_transaction_backdoor;
-    
-#ifndef NDEBUG
-	// Prints debugging information designed to resolve deadlocks
-	void deadlock_debug();
-#endif
 
 private:
     void on_transaction_commit(transaction_t *txn);

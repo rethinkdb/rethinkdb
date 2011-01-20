@@ -3,7 +3,7 @@
 #define __SERIALIZER_HPP__
 
 #include "serializer/types.hpp"
-#include "config/cmd_args.hpp"
+#include "server/cmd_args.hpp"
 
 #include "utils2.hpp"
 #include "utils.hpp"
@@ -11,9 +11,6 @@
 /* serializer_t is an abstract interface that describes how each serializer should
 behave. It is implemented by log_serializer_t, semantic_checking_serializer_t, and
 others. */
-
-
-
 
 struct serializer_t :
     /* Except as otherwise noted, the serializer's methods should only be called from the

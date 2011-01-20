@@ -1,11 +1,35 @@
 #include <sys/resource.h>
-#include "config/cmd_args.hpp"
+#include "server/server.hpp"
+#include "fsck/fsck.hpp"
+#include "extract/extract.hpp"
 #include "utils.hpp"
-#include "arch/arch.hpp"
-#include "server.hpp"
-#include "side_executable.hpp"
-#include "logger.hpp"
+#include "help.hpp"
 
+void print_version_message() {
+    printf("rethinkdb " RETHINKDB_VERSION
+#ifndef NDEBUG
+           " (debug)"
+#endif
+           "\n");
+}
+
+void usage() {
+    Help_Pager *help = Help_Pager::instance();
+    help->pagef("Usage: rethinkdb COMMAND ...\n"
+                "Commands:\n"
+                "    help        Display help about rethinkdb and rethinkdb commands.\n"
+                "\n"
+                "Creating and serving databases:\n"
+                "    create      Create an empty database.\n"
+                "    serve       Serve an existing database.\n"
+                "\n"
+                "Administrating databases:\n"
+                "    extract     Extract as much data as possible from a corrupted database.\n"
+                "    fsck        Check a database for corruption.\n"
+                "\n"
+                "Use 'rethinkdb help COMMAND' for help on a single command.\n"
+                "Use 'rethinkdb --version' for the current version of rethinkdb.\n");
+}
 
 int main(int argc, char *argv[]) {
     // Before we do anything, we look at the first argument and
@@ -22,38 +46,49 @@ int main(int argc, char *argv[]) {
     setrlimit(RLIMIT_CORE, &core_limit);
 #endif
 
-    // Parse command line arguments
-    cmd_config_t config = parse_cmd_args(argc, argv);
-
-    // Open the log file, if necessary.
-    if (config.log_file_name[0]) {
-        log_file = fopen(config.log_file_name, "w");
+    /* Put arguments into a vector so we can modify them if convenient */
+    std::vector<char *> args(argc);
+    for (int i = 0; i < argc; i++) {
+        args[i] = argv[i];
     }
 
-    // Initial thread message to start server
-    struct server_starter_t :
-        public thread_message_t
-    {
-        cmd_config_t *cmd_config;
-        thread_pool_t *thread_pool;
-        void on_thread_switch() {
-            coro_t::spawn(&server_main, cmd_config, thread_pool);
+    /* Default to "rethinkdb serve" */
+    if (args.size() == 1) args.push_back(const_cast<char *>("serve"));
+
+    /* Switch based on subcommand, then dispatch to the appropriate function */
+    if (!strcmp(args[1], "serve") || !strcmp(args[1], "create")) {
+        return run_server(args.size() - 1, args.data() + 1);
+
+    } else if (!strcmp(args[1], "extract")) {
+        return run_extract(args.size() - 1, args.data() + 1);
+
+    } else if (!strcmp(args[1], "fsck")) {
+        return run_fsck(args.size() - 1, args.data() + 1);
+
+    } else if (!strcmp(args[1], "help") || !strcmp(args[1], "-h") || !strcmp(args[1], "--help")) {
+        if (args.size() >= 3) {
+            if (!strcmp(args[2], "serve")) {
+                usage_serve();
+            } else if (!strcmp(args[2], "create")) {
+                usage_create();
+            } else if (!strcmp(args[2], "extract")) {
+                extract::usage(argv[1]);
+            } else if (!strcmp(args[2], "fsck")) {
+                fsck::usage(argv[1]);
+            } else {
+                printf("No such command %s.\n", args[2]);
+            }
+        } else {
+            usage();
         }
-    } starter;
-    starter.cmd_config = &config;
 
-    // Run the server.
-    thread_pool_t thread_pool(config.n_workers);
-    starter.thread_pool = &thread_pool;
-    thread_pool.run(&starter);
+    } else if (!strcmp(args[1], "--version")) {
+        print_version_message();
 
-    logINF("Server is shut down.\n");
-
-    // Close the log file if necessary.
-    if (config.log_file_name[0]) {
-        fclose(log_file);
-        log_file = stderr;
+    } else {
+        /* Default to "rethinkdb serve"; we get here if we are run without an explicit subcommand
+        but with at least one flag */
+        args.insert(args.begin() + 1, const_cast<char *>("serve"));
+        return run_server(args.size() - 1, args.data() + 1);
     }
-
-    return 0;
 }

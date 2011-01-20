@@ -28,7 +28,12 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t sock)
 
 void linux_tcp_conn_t::register_with_event_loop() {
     /* Register ourself to receive notifications from the event loop if we have not
-    already done so. */
+    already done so. We won't get any calls to on_event() until we do this. We can't
+    do this at startup because once we're registered on one thread we can't re-register
+    on a different thread, but the thread that the user wants to use us on might not be
+    the thread we were created on. So we call register_with_event_loop() before every
+    read_* or write_* function, and that locks us in to the thread that the first call
+    to read_* or write_* was on. */
 
     if (registration_thread == -1) {
         registration_thread = linux_thread_pool_t::thread_id;
@@ -67,7 +72,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
         } else if (res == -1) {
             /* Unknown error. This is not expected, but it will probably happen sometime so we
             shouldn't crash. */
-            logERR("Could not read from socket: %s", strerror(errno));
+            logERR("Could not read from socket: %s\n", strerror(errno));
             on_shutdown_read();
             throw read_closed_exc_t();
         } else {
@@ -102,9 +107,9 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
 void linux_tcp_conn_t::read_more_buffered() {
     assert(!read_cond);
 
-    // WTF is this
+    /* Put ourselves into the epoll object so that we will receive notifications when we need them.
+    See the note in register_with_event_loop() if this doesn't make sense. */
     register_with_event_loop();
-
 
     size_t old_size = read_buffer.size();
     read_buffer.resize(old_size + IO_BUFFER_SIZE);
@@ -127,7 +132,7 @@ void linux_tcp_conn_t::shutdown_read() {
 
     int res = ::shutdown(sock, SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for reading: %s", strerror(errno));
+        logERR("Could not shutdown socket for reading: %s\n", strerror(errno));
     }
 
     on_shutdown_read();
@@ -187,13 +192,13 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
         } else if (res == -1) {
             /* In theory this should never happen, but it probably will. So we write a log message
             and then shut down normally. */
-            logERR("Could not write to socket: %s", strerror(errno));
+            logERR("Could not write to socket: %s\n", strerror(errno));
             on_shutdown_write();
             throw write_closed_exc_t();
         } else if (res == 0) {
             /* This should never happen either, but it's better to write an error message than to
             crash completely. */
-            logERR("Didn't expect write() to return 0.");
+            logERR("Didn't expect write() to return 0.\n");
             on_shutdown_write();
             throw write_closed_exc_t();
         } else {
@@ -243,7 +248,7 @@ void linux_tcp_conn_t::shutdown_write() {
 
     int res = ::shutdown(sock, SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for writing: %s", strerror(errno));
+        logERR("Could not shutdown socket for writing: %s\n", strerror(errno));
     }
 
     on_shutdown_write();
@@ -283,7 +288,7 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
 
     int res = ::close(sock);
     if (res != 0) {
-        logERR("close() failed: %s", strerror(errno));
+        logERR("close() failed: %s\n", strerror(errno));
     }
 }
 
@@ -426,7 +431,8 @@ void linux_tcp_listener_t::on_event(int events) {
                 }
             }
         } else {
-            callback->on_tcp_listener_accept(new linux_tcp_conn_t(new_sock));
+            coro_t::spawn(&linux_tcp_listener_callback_t::on_tcp_listener_accept,
+                callback, new linux_tcp_conn_t(new_sock));
         }
     }
 }

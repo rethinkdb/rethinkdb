@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "config/cmd_args.hpp"
 #include "containers/segmented_vector.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "btree/key_value_store.hpp"
@@ -682,7 +681,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
 }
 
 void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_errs, value_error *errs) {
-    errs->bad_metadata_flags = !!(value->metadata_flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
+    errs->bad_metadata_flags = !!(value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
     size_t size = value->value_size();
     if (!value->is_large()) {
@@ -701,12 +700,12 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
     // pair->key.size, pair->value()->size, pair->value()->metadata_flags.
     if (cx.knog->static_config->block_size().value() - 3 >= offset
         && offset >= buf->frontmost_offset) {
-        const btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
+        const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
         const btree_value *value = pair->value();
         uint32_t value_offset = (ptr_cast<byte>(value) - ptr_cast<byte>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
         if (value_offset <= cx.knog->static_config->block_size().value() - 2) {
-            uint32_t tot_offset = value_offset + value->mem_size();
+            uint32_t tot_offset = value_offset + value->full_size();
             return (cx.knog->static_config->block_size().value() >= tot_offset);
         }
     }
@@ -730,7 +729,7 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
                 errs->value_out_of_buf = true;
                 return;
             }
-            expected_offset += leaf_node_handler::pair_size(leaf_node_handler::get_pair(buf, sorted_offsets[i]));
+            expected_offset += leaf::pair_size(leaf::get_pair(buf, sorted_offsets[i]));
         }
         errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size().value());
 
@@ -739,7 +738,7 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
     const btree_key *prev_key = lo;
     for (uint16_t i = 0; i < buf->npairs; ++i) {
         uint16_t offset = buf->pair_offsets[i];
-        const btree_leaf_pair *pair = leaf_node_handler::get_pair(buf, offset);
+        const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
 
         errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
         errs->keys_in_wrong_slice |= !is_valid_hash(cx, &pair->key);
@@ -783,7 +782,7 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const 
                 errs->value_out_of_buf = true;
                 return;
             }
-            expected_offset += internal_node_handler::pair_size(internal_node_handler::get_pair(buf, sorted_offsets[i]));
+            expected_offset += internal_node::pair_size(internal_node::get_pair(buf, sorted_offsets[i]));
         }
         errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size().value());
     }
@@ -793,7 +792,7 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const 
     const btree_key *prev_key = lo;
     for (uint16_t i = 0; i < buf->npairs; ++i) {
         uint16_t offset = buf->pair_offsets[i];
-        const btree_internal_pair *pair = internal_node_handler::get_pair(buf, offset);
+        const btree_internal_pair *pair = internal_node::get_pair(buf, offset);
 
         errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
 
@@ -838,7 +837,7 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_
 
     if (lo != NULL && hi != NULL) {
         // (We're happy with an underfull root block.)
-        if (node_handler::is_underfull(cx.knog->static_config->block_size(), ptr_cast<node_t>(node.buf))) {
+        if (node::is_underfull(cx.knog->static_config->block_size(), ptr_cast<node_t>(node.buf))) {
             node_err.block_underfull = true;
         }
     }

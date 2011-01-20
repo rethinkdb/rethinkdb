@@ -1,3 +1,4 @@
+#ifndef NO_EPOLL // To make the build system happy.
 
 #include <unistd.h>
 #include <sched.h>
@@ -14,9 +15,6 @@
 #include "arch/linux/event_queue/epoll.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "logger.hpp"
-
-/* Declared here but NOT in poll.cc; this instance provides for either one */
-perfmon_sampler_t pm_events_per_loop("events_per_loop", secs_to_ticks(1));
 
 int user_to_epoll(int mode) {
 
@@ -63,7 +61,9 @@ void epoll_event_queue_t::run() {
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
         if(res == -1 && errno == EINTR) {
-            continue;
+            // If the thread has been signalled, we already handled
+            // the signal in our signal action.
+            res = 0;
         }
 
         // When epoll_wait returns with EBADF, EFAULT, and EINVAL,
@@ -74,7 +74,6 @@ void epoll_event_queue_t::run() {
 
         // nevents might be used by forget_resource during the loop
         nevents = res;
-        pm_events_per_loop.record(nevents);
 
         // TODO: instead of processing the events immediately, we
         // might want to queue them up and then process the queue in
@@ -158,3 +157,5 @@ void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t 
         }
     }
 }
+
+#endif

@@ -44,8 +44,6 @@ struct linux_io_config_t {
         linux_thread_pool_t::thread->message_hub.store_message(get_thread_id(), msg);
     }
     
-    typedef linux_timer_token_t timer_token_t;
-    
     static timer_token_t *add_timer(long ms, void (*callback)(void *), void *ctx) {
         return linux_thread_pool_t::thread->timer_handler.add_timer_internal(ms, callback, ctx, false);
     }
