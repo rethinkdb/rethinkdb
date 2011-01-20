@@ -13,12 +13,16 @@
 
 /* Network connection object */
 
-linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) {
+
+linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
+    : registration_thread(-1),
+      read_cond(NULL), write_cond(NULL),
+      read_was_shut_down(false), write_was_shut_down(false) {
     struct addrinfo *res;
 
     /* make a sacrifice to the elders honor by converting port to a string, why
      * can't we just sacrifice a virgin for them (lord knows we have enough
-     * virgins in Silicon Valley */
+     * virgins in Silicon Valley) */
     char port_str[10]; /* god is it dumb that we have to do this */
     snprintf(port_str, 10, "%d", port);
     //fail_due_to_user_error("Port is too big", (snprintf(port_str, 10, "%d", port) == 10));
@@ -29,17 +33,39 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) {
     if (connect(sock, res->ai_addr, res->ai_addrlen) != 0) {
         /* for some reason the connection failed */
         logINF("Failed to make a connection with error: %s", strerror(errno));
+
+        freeaddrinfo(res);
         throw connect_failed_exc_t();
     }
 
     freeaddrinfo(res);
 }
 
-linux_tcp_conn_t::linux_tcp_conn_t(fd_t sock)
-    : sock(sock),
-      registration_thread(-1),
+linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
+    : registration_thread(-1),
       read_cond(NULL), write_cond(NULL),
-      read_was_shut_down(false), write_was_shut_down(false)
+      read_was_shut_down(false), write_was_shut_down(false) {
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    addr.sin_addr = host.addr;
+    bzero(addr.sin_zero, sizeof(addr.sin_zero));
+
+    if (connect(sock, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0) {
+        /* for some reason the connection failed */
+        logINF("Failed to make a connection with error: %s\n", strerror(errno));
+        throw connect_failed_exc_t();
+    }
+}
+
+linux_tcp_conn_t::linux_tcp_conn_t(fd_t sock) :
+    sock(sock),
+    registration_thread(-1),
+    read_cond(NULL), write_cond(NULL),
+    read_was_shut_down(false), write_was_shut_down(false)
 {
     assert(sock != INVALID_FD);
 
@@ -67,6 +93,8 @@ void linux_tcp_conn_t::register_with_event_loop() {
 }
 
 size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
+
+    assert(!read_was_shut_down);
 
     while (true) {
         ssize_t res = ::read(sock, buffer, size);
@@ -126,11 +154,12 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::read_more_buffered() {
-    assert(!read_cond);
 
     /* Put ourselves into the epoll object so that we will receive notifications when we need them.
     See the note in register_with_event_loop() if this doesn't make sense. */
     register_with_event_loop();
+    assert(!read_cond);
+    if (read_was_shut_down) throw read_closed_exc_t();
 
     size_t old_size = read_buffer.size();
     read_buffer.resize(old_size + IO_BUFFER_SIZE);
@@ -187,6 +216,8 @@ bool linux_tcp_conn_t::is_read_open() {
 }
 
 void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
+
+    assert(!write_was_shut_down);
 
     while (size > 0) {
         int res = ::write(sock, buf, size);
@@ -304,8 +335,8 @@ bool linux_tcp_conn_t::is_write_open() {
 
 linux_tcp_conn_t::~linux_tcp_conn_t() {
 
-    assert(read_was_shut_down);
-    assert(write_was_shut_down);
+    if (is_read_open()) shutdown_read();
+    if (is_write_open()) shutdown_write();
 
     int res = ::close(sock);
     if (res != 0) {
@@ -418,6 +449,12 @@ void linux_tcp_listener_t::set_callback(linux_tcp_listener_callback_t *cb) {
     linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
 }
 
+void linux_tcp_listener_t::handle(fd_t socket) {
+
+    linux_tcp_conn_t conn(socket);
+    callback->on_tcp_listener_accept(&conn);
+}
+
 void linux_tcp_listener_t::on_event(int events) {
     if (defunct)
         return;
@@ -452,8 +489,20 @@ void linux_tcp_listener_t::on_event(int events) {
                 }
             }
         } else {
-            coro_t::spawn(&linux_tcp_listener_callback_t::on_tcp_listener_accept,
-                callback, new linux_tcp_conn_t(new_sock));
+            /* TODO: What if a user writes code like this:
+            {
+                some_callback_t callback;
+                linux_tcp_listener_t listener(some_port);
+                listener.set_callback(&callback);
+
+                wait_for_some_event();
+            }
+            If we get a network connection during wait_for_some_event() but wait_for_some_event()
+            finishes between when we get the connection and handle() is actually called, then our
+            destructor will be called before handle(). One solution would be to acquire a
+            lock in the destructor, which would delay until after handle() starts. Another solution
+            would be to make spawn() guaranteed to run immediately. */
+            coro_t::spawn(&linux_tcp_listener_t::handle, this, new_sock);
         }
     }
 }

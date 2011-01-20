@@ -45,8 +45,6 @@ void conn_acceptor_t::conn_agent_t::run() {
         parent->conn_agents[thread].remove(this);
         parent->shutdown_locks[thread].unlock();
     }
-
-    delete conn;
 }
 
 conn_acceptor_t::~conn_acceptor_t() {

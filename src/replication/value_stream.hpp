@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "utils2.hpp"
+#include "containers/intrusive_list.hpp"
+#include "concurrency/cond_var.hpp"
 
 namespace replication {
 
@@ -13,89 +15,69 @@ namespace replication {
 
 // This will eventually be used by arch/linux/network.hpp
 
-struct value_stream_read_external_callback_t {
-    virtual void on_read_external() = 0;
-    virtual void on_read_close(size_t num_remaining_bytes_dumped) = 0;
-    virtual ~value_stream_read_external_callback_t() { }
+struct charslice {
+    char *beg, *end;
+    charslice(char *beg_, char *end_) : beg(beg_), end(end_) { }
+    charslice() : beg(NULL), end(NULL) { }
 };
 
-class cookie_t {
-public:
-    friend class value_stream_t;
-protected:
-    cookie_t() : acknowledged(false) { }
-
-private:
-    bool acknowledged;
-    DISABLE_COPYING(cookie_t);
-};
-
-struct value_stream_read_fixed_buffered_callback_t {
-    virtual void on_read_fixed_buffered(const char *data, cookie_t *cookie) = 0;
-    virtual void on_read_close() = 0;
-    virtual ~value_stream_read_fixed_buffered_callback_t() { }
-};
-
-
-
-class write_cookie_t : private cookie_t {
-public:
-    friend class value_stream_t;
-private:
-    write_cookie_t(size_t allocated) : cookie_t(), space_allocated(allocated) { }
-    size_t space_allocated;
-    DISABLE_COPYING(write_cookie_t);
-};
-
-struct value_stream_writing_action_t {
-    virtual void write_and_inform(char *buf, size_t size, write_cookie_t *cookie) = 0;
-    virtual ~value_stream_writing_action_t() { }
-};
-
-
-
+// A value_stream_t is only designed to have one reader and one
+// writer.  This is not useful for every purpose.
 class value_stream_t {
+
+    // A node in a list of nodes from which supply external buffers
+    // that we would like to have written to.
+    struct reader_node_t : public intrusive_list_node_t<reader_node_t> {
+        // Gets triggered when the node is part of the zombie_reader_list.
+        unicond_t<bool> var;
+        charslice buf;
+    };
+
 public:
+    typedef reader_node_t* read_token_t;
+
     value_stream_t();
     value_stream_t(const char *beg, const char *end);
 
-    // For reading out of the stream...
+    // Pushes an external buf onto the reading queue.
+    read_token_t read_external(charslice buf);
 
-    void read_external(char *buf, size_t size, value_stream_read_external_callback_t *cb);
+    // Waits for the external buf (that corresponds to the token) to
+    // be filled.  Returns true if it was.
+    bool read_wait(read_token_t tok);
 
-    // cb _must_ call acknowledge_fixed before returning.
-    void read_fixed_buffered(size_t size, value_stream_read_fixed_buffered_callback_t *cb);
-    void acknowledge_fixed(cookie_t *cookie);
+    // Waits for the local buf (which gets filled after all the
+    // external bufs are filled) to be filled.  You must call
+    // pop_buffer without any coroutine switching.
+    bool read_fixed_buffered(ssize_t threshold, charslice *slice_out);
+    void pop_buffer(ssize_t amount);
 
-    // For writing into the stream...
-
-    // action _must_ call inform_space_written or inform_closed before returning.
-    void open_space_for_writing(size_t size, value_stream_writing_action_t *action);
-    void inform_space_written(size_t amount_written, write_cookie_t *cookie);
-    void inform_closed(write_cookie_t *cookie);
+    // Gets a buf into which to write data.  You must call
+    // data_written without any coroutine switching.
+    charslice buf_for_filling(ssize_t desired_size = IO_BUFFER_SIZE);
+    // Writes the data.
+    void data_written(ssize_t amount);
 
 private:
-    void try_report_external();
-    void try_report_fixed();
-    void try_report_new_data();
+    // local_buffer_size <= local_buffer.size(), and it refers to the
+    // written-to part of the buffer.
+    ssize_t local_buffer_size;
+    // local_buffer_size < fixed_buffered_threshold, and this is the
+    // threshold at which fixed_buffered_cond gets triggered.
+    ssize_t fixed_buffered_threshold;
 
-    // TODO rename this.
-    enum {
-        read_mode_none,
-        read_mode_external,
-        read_mode_fixed,
-    } read_mode;
+    // The trigger for read_fixed_buffered.
+    unicond_t<bool> fixed_buffered_cond;
 
-    bool closed;
-    std::vector<char> buffer;
-    char *external_buf;
-    size_t external_buf_size;
-    value_stream_read_external_callback_t *external_cb;
-    value_stream_read_fixed_buffered_callback_t *fixed_cb;
-    size_t desired_fixed_size;
+    // A buffer into which we read characters.  This isn't performantly optimal.
+    std::vector<char> local_buffer;
+
+    intrusive_list_t<reader_node_t> reader_list;
+    intrusive_list_t<reader_node_t> zombie_reader_list;
 
     DISABLE_COPYING(value_stream_t);
 };
+
 
 }  // namespace replication
 
