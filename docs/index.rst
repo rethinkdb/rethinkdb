@@ -94,7 +94,7 @@ Download the latest package of RethinkDB for RHEL 5 / CentOS 5 from http://rethi
 Navigate to the directory the package was downloaded to and install RethinkDB and its dependencies::
 
   # Install RethinkDB
-  rpm -i rethinkdb_0.1.2-1.x86_64.rpm
+  rpm -i rethinkdb-0.1.2-1.x86_64.rpm
 
 ~~~~~~~~~~~
 Limitations
