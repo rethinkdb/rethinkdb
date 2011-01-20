@@ -2,6 +2,7 @@
 #include "server/server.hpp"
 #include "fsck/fsck.hpp"
 #include "extract/extract.hpp"
+#include "clustering/cluster.hpp"
 #include "utils.hpp"
 #include "help.hpp"
 
@@ -64,6 +65,9 @@ int main(int argc, char *argv[]) {
 
     } else if (!strcmp(args[1], "fsck")) {
         return run_fsck(args.size() - 1, args.data() + 1);
+
+    } else if (!strcmp(args[1], "cluster")) {
+        return run_cluster(args.size() - 1, args.data() + 1);
 
     } else if (!strcmp(args[1], "help") || !strcmp(args[1], "-h") || !strcmp(args[1], "--help")) {
         if (args.size() >= 3) {
