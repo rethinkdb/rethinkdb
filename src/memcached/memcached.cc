@@ -799,7 +799,8 @@ bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
             for (std::vector<key_with_memory>::iterator it = keys.begin(); it != keys.end(); ++it) {
                 btree_key& k = (*it).key;
                 uint32_t hash = btree_key_value_store_t::hash(&k);
-                uint32_t slice = rh->server->store->slice_nr(&k);
+                //uint32_t slice = rh->server->store->slice_nr(&k);
+                uint32_t slice = 0;
                 rh->writef("%*s: %08lx [%lu]\r\n", k.size, k.contents, hash, slice);
             }
             rh->writef("END\r\n");

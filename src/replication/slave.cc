@@ -188,8 +188,8 @@ bool valid_role(uint32_t val) {
 slave_t::slave_t(store_t *internal_store, replication_config_t config) 
     : internal_store(internal_store), config(config), conn(config.hostname, config.port), respond_to_queries(false), n_retries(RETRY_ATTEMPTS)
 {
-    parse_messages(&conn, this);
     failover.add_callback(this);
+    continue_on_thread(home_thread, this);
 }
 
 slave_t::~slave_t() {}
