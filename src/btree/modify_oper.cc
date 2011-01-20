@@ -320,10 +320,6 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
         // handled automatically with RAII.
     }
 
-    // Report the result of the operation and delete the oper.
-    oper->call_callback();
-    delete oper;
-
     // We're done!
     store->finished_a_query();
 }

@@ -390,48 +390,48 @@ btree_slice_t *btree_key_value_store_t::slice_for_key(const btree_key *key) {
 
 /* store_t interface */
 
-void btree_key_value_store_t::get(store_key_t *key, get_callback_t *cb) {
-    btree_get(key, this, cb);
+store_t::get_result_t btree_key_value_store_t::get(store_key_t *key) {
+    return btree_get(key, this);
 }
 
-void btree_key_value_store_t::get_cas(store_key_t *key, get_callback_t *cb) {
-    btree_get_cas(key, this, cb);
+store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key) {
+    return btree_get_cas(key, this);
 }
 
-void btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) {
-    btree_set(key, this, data, btree_set_oper_t::set_type_set, flags, exptime, 0, cb);
+store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
+    return btree_set(key, this, data, btree_set_oper_t::set_type_set, flags, exptime, 0);
 }
 
-void btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) {
-    btree_set(key, this, data, btree_set_oper_t::set_type_add, flags, exptime, 0, cb);
+store_t::set_result_t btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
+    return btree_set(key, this, data, btree_set_oper_t::set_type_add, flags, exptime, 0);
 }
 
-void btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, set_callback_t *cb) {
-    btree_set(key, this, data, btree_set_oper_t::set_type_replace, flags, exptime, 0, cb);
+store_t::set_result_t btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
+    return btree_set(key, this, data, btree_set_oper_t::set_type_replace, flags, exptime, 0);
 }
 
-void btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, set_callback_t *cb) {
-    btree_set(key, this, data, btree_set_oper_t::set_type_cas, flags, exptime, unique, cb);
+store_t::set_result_t btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique) {
+    return btree_set(key, this, data, btree_set_oper_t::set_type_cas, flags, exptime, unique);
 }
 
-void btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb) {
-    btree_incr_decr(key, this, true, amount, cb);
+store_t::incr_decr_result_t btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount) {
+    return btree_incr_decr(key, this, true, amount);
 }
 
-void btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount, incr_decr_callback_t *cb) {
-    btree_incr_decr(key, this, false, amount, cb);
+store_t::incr_decr_result_t btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount) {
+    return btree_incr_decr(key, this, false, amount);
 }
 
-void btree_key_value_store_t::append(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb) {
-    btree_append_prepend(key, this, data, true, cb);
+store_t::append_prepend_result_t btree_key_value_store_t::append(store_key_t *key, data_provider_t *data) {
+    return btree_append_prepend(key, this, data, true);
 }
 
-void btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data, append_prepend_callback_t *cb) {
-    btree_append_prepend(key, this, data, false, cb);
+store_t::append_prepend_result_t btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data) {
+    return btree_append_prepend(key, this, data, false);
 }
 
-void btree_key_value_store_t::delete_key(store_key_t *key, delete_callback_t *cb) {
-    btree_delete(key, this, cb);
+store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key) {
+    return btree_delete(key, this);
 }
 
 void btree_key_value_store_t::replicate(replicant_t *cb, repli_timestamp cutoff) {
@@ -447,7 +447,6 @@ void btree_key_value_store_t::stop_replicating(replicant_t *cb) {
             return;
         }
     }
-    crash("stop_replicating() called on a replicant that isn't replicating.");
 }
 
 void btree_key_value_store_t::started_a_query() {
