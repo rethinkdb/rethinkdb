@@ -4,6 +4,7 @@
 #include "buffer_cache/buf_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "btree/get.hpp"
+#include "btree/rget.hpp"
 #include "btree/set.hpp"
 #include "btree/incr_decr.hpp"
 #include "btree/append_prepend.hpp"
@@ -54,6 +55,10 @@ store_t::get_result_t btree_slice_t::get(store_key_t *key) {
 
 store_t::get_result_t btree_slice_t::get_cas(store_key_t *key, castime_t castime) {
     return btree_get_cas(key, this, castime);
+}
+
+store_t::rget_result_t btree_slice_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results, castime_t castime) {
+    return btree_rget_slice(this, start, end, left_open, right_open, max_results);
 }
 
 store_t::set_result_t btree_slice_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {

@@ -94,4 +94,14 @@ task_t<return_t> *task(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, ar
     return task<return_t>(boost::bind(fun, arg1, arg2, arg3, arg4, arg5));
 }
 
+template<typename return_t, typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t, typename arg6_t>
+task_t<return_t> *task(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5, arg6_t arg6) {
+    return task<return_t>(boost::bind(fun, arg1, arg2, arg3, arg4, arg5, arg6));
+}
+
+template<typename return_t, typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t, typename arg6_t, typename arg7_t>
+task_t<return_t> *task(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5, arg6_t arg6, arg7_t arg7) {
+    return task<return_t>(boost::bind(fun, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
+}
+
 #endif /* __CONCURRENCY_TASK_HPP__ */

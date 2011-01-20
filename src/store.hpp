@@ -71,6 +71,10 @@ struct store_t {
     virtual get_result_t get(store_key_t *key) = 0;
     virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;
 
+    struct rget_result_t {
+    };
+    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results, castime_t castime) = 0;
+
     /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
     to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on
     any core, so you must implement core-switching yourself if necessary. The data_provider_t will

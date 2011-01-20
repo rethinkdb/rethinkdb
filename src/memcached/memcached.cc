@@ -217,6 +217,52 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv, cas_generator_t
         rh->client_error_bad_command_line_format();
         return;
     }
+
+    union {
+        char key_memory[MAX_KEY_SIZE+sizeof(store_key_t)];
+        store_key_t key;
+    } start, end;
+
+    /* Get start and end keys */
+    if (!str_to_key(argv[1], &start.key) || !str_to_key(argv[2], &end.key)) {
+        rh->client_error_bad_command_line_format();
+        return;
+    }
+    
+    char *invalid_char;
+
+    /* Parse left/right-openness flags */
+    bool left_open = strtobool_strict(argv[3], &invalid_char);
+    if (*invalid_char != '\0') {
+        rh->client_error_bad_command_line_format();
+        return;
+    }
+
+    bool right_open = strtobool_strict(argv[4], &invalid_char);
+    if (*invalid_char != '\0') {
+        rh->client_error_bad_command_line_format();
+        return;
+    }
+
+    /* Parse max items count */
+    uint64_t max_items = strtoull_strict(argv[5], &invalid_char, 10);
+    if (*invalid_char != '\0') {
+        rh->client_error_bad_command_line_format();
+        return;
+    }
+
+    logDBG("rget %c%*.*s, %*.*s%c/%llu\n",
+        (int)(left_open?'(':'['),
+        start.key.size, start.key.size, start.key.contents,
+        end.key.size, end.key.size, end.key.contents,
+        (int)(right_open?')':']'),
+        max_items);
+
+    repli_timestamp timestamp = current_time();
+
+    task_t<store_t::rget_result_t> *result = task<store_t::rget_result_t>(&store_t::rget, rh->store,
+        &start.key, &end.key, left_open, right_open, max_items, castime_t(cas_gen->gen_cas(), timestamp));
+    (void) result;
 }
 
 /* "set", "add", "replace", "cas", "append", and "prepend" command logic */

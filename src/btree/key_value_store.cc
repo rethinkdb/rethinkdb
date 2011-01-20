@@ -3,6 +3,7 @@
 #include "db_thread_info.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
+#include "btree/rget.hpp"
 
 /* The key-value store slices up the serializers as follows:
 
@@ -359,6 +360,10 @@ store_t::get_result_t btree_key_value_store_t::get(store_key_t *key) {
 
 store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime_t castime) {
     return slice_for_key(key)->get_cas(key, castime);
+}
+
+store_t::rget_result_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results, castime_t castime) {
+    return btree_rget(this, start, end, left_open, right_open, max_results);
 }
 
 store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
