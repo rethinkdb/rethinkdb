@@ -14,7 +14,6 @@ private:
     const char *msg_;
 };
 
-
 // The 16 bytes conveniently include a \0 at the end.
 // 13 is the length of the text.
 const char STANDARD_HELLO_MAGIC[16] = "13rethinkdbrepl";
@@ -57,22 +56,18 @@ bool fits<net_small_append_prepend_t>(const char *buffer, size_t size) {
 }
 
 template <class struct_type>
-ssize_t objsize(const char *buffer) {
+ssize_t objsize(const struct_type *buffer) {
     return sizeof(struct_type);
 }
 
 template <>
-ssize_t objsize<net_small_set_t>(const char *buffer) {
-    const net_small_set_t *p = reinterpret_cast<const net_small_set_t *>(buffer);
-
-    return sizeof(net_small_set_t) + leaf::pair_size(p->leaf_pair());
+ssize_t objsize<net_small_set_t>(const net_small_set_t *buffer) {
+    return sizeof(net_small_set_t) + leaf::pair_size(buffer->leaf_pair());
 }
 
 template <>
-ssize_t objsize<net_small_append_prepend_t>(const char *buffer) {
-    const net_small_append_prepend_t *p = reinterpret_cast<const net_small_append_prepend_t *>(buffer);
-
-    return sizeof(net_small_append_prepend_t) + p->size;
+ssize_t objsize<net_small_append_prepend_t>(const net_small_append_prepend_t *buffer) {
+    return sizeof(net_small_append_prepend_t) + buffer->size;
 }
 
 template <class message_type>
@@ -84,9 +79,20 @@ ssize_t try_parsing(message_callback_t *receiver, const char *buffer, size_t siz
         scoped_ptr<message_type> msg(new message_type(p));
 
         receiver->send(msg);
-        return objsize<net_struct_type>(buffer);
+        return objsize<net_struct_type>(p);
     }
     return -1;
+}
+
+template <class message_type>
+bool parse_and_pop(tcp_conn_t *conn, message_callback_t *receiver, const char *buffer, size_t size) {
+    ssize_t sz = try_parsing<message_type>(receiver, buffer, size);
+    if (sz == -1) {
+        return false;
+    } else {
+        conn->pop(sz);
+        return true;
+    }
 }
 
 void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver) {
@@ -102,17 +108,31 @@ void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver) {
             if (multipart_aspect == SMALL) {
 
                 switch (hdr->msgcode) {
-                case BACKFILL: { if (try_parsing<backfill_message_t>(receiver, buffer, sl.len)) return; } break;
-                case ANNOUNCE: { if (try_parsing<announce_message_t>(receiver, buffer, sl.len)) return; } break;
-                case NOP: { if (try_parsing<nop_message_t>(receiver, buffer, sl.len)) return; } break;
-                case ACK: { if (try_parsing<ack_message_t>(receiver, buffer, sl.len)) return; } break;
-                case SHUTTING_DOWN: { if (try_parsing<shutting_down_message_t>(receiver, buffer, sl.len)) return; } break;
-                case GOODBYE: { if (try_parsing<goodbye_message_t>(receiver, buffer, sl.len)) return; } break;
-                case SET: { if (try_parsing<set_message_t>(receiver, buffer, sl.len)) return; } break;
-                case APPEND: { if (try_parsing<append_message_t>(receiver, buffer, sl.len)) return; } break;
-                case PREPEND: { if (try_parsing<prepend_message_t>(receiver, buffer, sl.len)) return; } break;
+                case BACKFILL: { if (parse_and_pop<backfill_message_t>(conn, receiver, buffer, sl.len)) return; } break;
+                case ANNOUNCE: { if (parse_and_pop<announce_message_t>(conn, receiver, buffer, sl.len)) return; } break;
+                case NOP: { if (parse_and_pop<nop_message_t>(conn, receiver, buffer, sl.len)) return; } break;
+                case ACK: { if (parse_and_pop<ack_message_t>(conn, receiver, buffer, sl.len)) return; } break;
+                case SHUTTING_DOWN: { if (parse_and_pop<shutting_down_message_t>(conn, receiver, buffer, sl.len)) return; } break;
+                case GOODBYE: { if (parse_and_pop<goodbye_message_t>(conn, receiver, buffer, sl.len)) return; } break;
+                case SET: { if (parse_and_pop<set_message_t>(conn, receiver, buffer, sl.len)) return; } break;
+                case APPEND: { if (parse_and_pop<append_message_t>(conn, receiver, buffer, sl.len)) return; } break;
+                case PREPEND: { if (parse_and_pop<prepend_message_t>(conn, receiver, buffer, sl.len)) return; } break;
                 default: { throw protocol_exc_t("invalid message code"); }
                 }
+
+            } else if (multipart_aspect == FIRST) {
+
+                throw protocol_exc_t("invalid multipart_aspect (small messages only supported)");
+
+
+                if (sl.len >= sizeof(net_large_operation_first_t)) {
+                    /*                    const net_large_operation_first_t *firstheader
+                        = reinterpret_cast<const net_large_operation_first_t *>(buffer);
+                    */
+
+
+                }
+
 
             } else {
                 throw protocol_exc_t("invalid multipart_aspect (small messages only supported)");
