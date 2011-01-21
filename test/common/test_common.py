@@ -4,6 +4,8 @@ from vcoptparse import *
 from corrupter import *
 from rdbstat import *
 
+ec2 = 6
+
 class TestFailure(Exception):
     def __init__(self, value):
         self.value = value
@@ -301,7 +303,7 @@ class DataFiles(object):
             "-c", str(self.opts["cores"]),
             ] + (["--extent-size", "1048576"] if self.opts["valgrind"] else []) + self.rethinkdb_flags(),
             "creator_output.txt",
-            timeout = 30,
+            timeout = 30 * ec2,
             valgrind_tool = self.opts["valgrind-tool"] if self.opts["valgrind"] else None,
             test_dir = self.test_dir
             )
@@ -345,7 +347,7 @@ class TestDir(object):
 
 class Server(object):
     # Server should not take more than %(server_start_time)d seconds to start up
-    server_start_time = 60
+    server_start_time = 60 * ec2
     
     # If server does not respond to SIGINT, give SIGquit and then, after %(server_sigquit_time)
     # seconds, send SIGKILL 
