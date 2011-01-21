@@ -42,13 +42,13 @@ linux_thread_pool_t::linux_thread_pool_t(int n_threads)
 linux_thread_message_t *linux_thread_pool_t::set_interrupt_message(linux_thread_message_t *m) {
     int res;
     
-    res = pthread_spin_lock(&interrupt_message_lock);
+    res = pthread_spin_lock(&thread_pool->interrupt_message_lock);
     guarantee(res == 0, "Could not acquire interrupt message lock");
     
-    linux_thread_message_t *o = interrupt_message;
-    interrupt_message = m;
+    linux_thread_message_t *o = thread_pool->interrupt_message;
+    thread_pool->interrupt_message = m;
     
-    res = pthread_spin_unlock(&interrupt_message_lock);
+    res = pthread_spin_unlock(&thread_pool->interrupt_message_lock);
     guarantee(res == 0, "Could not release interrupt message lock");
     
     return o;

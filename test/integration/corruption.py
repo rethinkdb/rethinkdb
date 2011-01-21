@@ -117,7 +117,7 @@ if __name__ == "__main__":
         for key in mutual_dict:
             value = mc.get(key)
             if mutual_dict[key] == value: successes += 1
-            elif value2 is None: fails += 1
+            elif value is None: fails += 1
             else:
                 # If the value was not merely missing, but actually turned into a different value,
                 # then raise an error saying that

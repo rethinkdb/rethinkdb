@@ -1,6 +1,6 @@
 #include "arch/linux/network.hpp"
 #include "arch/linux/thread_pool.hpp"
-#include "concurrency/cond_var.hpp"   // For value_cond_t
+#include "concurrency/cond_var.hpp"   // For promise_t
 #include "logger.hpp"
 #include <fcntl.h>
 #include <errno.h>
@@ -101,7 +101,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             /* There's no data available right now, so we must wait for a notification from the
             epoll queue */
-            value_cond_t<bool> cond;
+            promise_t<bool> cond;
             read_cond = &cond;
             bool ok = cond.wait();
             read_cond = NULL;
@@ -224,7 +224,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             /* There's no space for our data right now, so we must wait for a notification from the
             epoll queue */
-            value_cond_t<bool> cond;
+            promise_t<bool> cond;
             write_cond = &cond;
             bool ok = cond.wait();
             write_cond = NULL;

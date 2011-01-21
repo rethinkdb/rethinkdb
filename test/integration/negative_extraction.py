@@ -157,7 +157,7 @@ def try_block_mutation(mutation_name, mutation, length_checker):
         [extract_path, "extract", "-o", dump_path, "--force-slice-count", str(opts['slices'])] + server1.data_files.rethinkdb_flags(),
         "extractor_output.txt",
         valgrind_tool = opts["valgrind-tool"] if opts["valgrind"] else None,
-        test_dir = test_dir
+        test_dir = test_dir,
         timeout = 240
         )
 

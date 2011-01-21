@@ -133,9 +133,9 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     buffer_group_t buffer_group;
 };
 
-store_t::append_prepend_result_t btree_append_prepend(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, bool append) {
+store_t::append_prepend_result_t btree_append_prepend(const btree_key *key, btree_slice_t *slice, data_provider_t *data, bool append) {
     btree_append_prepend_oper_t oper(data, append);
-    run_btree_modify_oper(&oper, store, key);
+    run_btree_modify_oper(&oper, slice, key);
     return oper.result;
 }
 
