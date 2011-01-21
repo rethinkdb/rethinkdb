@@ -467,9 +467,9 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsi
             case store_t::incr_decr_result_t::idr_not_numeric:
                 rh->writef("CLIENT_ERROR cannot increment or decrement non-numeric value\r\n");
                 break;
-            case incr_decr_result_t::idr_not_allowed:
+            /* case incr_decr_result_t::idr_not_allowed:
                 rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
-                break;
+                break; */
             default: unreachable();
         }
     }
