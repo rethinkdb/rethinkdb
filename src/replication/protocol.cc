@@ -43,53 +43,43 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
 }
 
 template <class struct_type>
-bool fits(const_charslice sl) {
-    return sl.end - sl.beg >= ptrdiff_t(sizeof(struct_type));
+ssize_t fitsize(const_charslice sl) {
+    return sl.end - sl.beg >= ptrdiff_t(sizeof(struct_type)) ? sizeof(struct_type) : -1;
 }
 
 template <>
-bool fits<net_small_set_t>(const_charslice sl) {
+ssize_t fitsize<net_small_set_t>(const_charslice sl) {
     const net_small_set_t *p = reinterpret_cast<const net_small_set_t *>(sl.beg);
     size_t size = sl.end - sl.beg;
 
-    return sizeof(net_small_set_t) < size && leaf_pair_fits(p->leaf_pair(), size - sizeof(net_small_set_t));
+    if (sizeof(net_small_set_t) < size && leaf_pair_fits(p->leaf_pair(), size - sizeof(net_small_set_t))) {
+        return sizeof(net_small_set_t) + p->leaf_pair()->key.full_size() + p->leaf_pair()->value()->full_size();
+    } else {
+        return -1;
+    }
 }
 
 template <>
-bool fits<net_small_append_prepend_t>(const_charslice sl) {
+ssize_t fitsize<net_small_append_prepend_t>(const_charslice sl) {
     const net_small_append_prepend_t *p = reinterpret_cast<const net_small_append_prepend_t *>(sl.beg);
     size_t size = sl.end - sl.beg;
 
-    return sizeof(net_small_append_prepend_t) <= size && sizeof(net_small_append_prepend_t) + p->size <= size;
-}
-
-template <class struct_type>
-ssize_t objsize(const struct_type *buffer) {
-    return sizeof(struct_type);
-}
-
-template <>
-ssize_t objsize<net_small_set_t>(const net_small_set_t *buffer) {
-    return sizeof(net_small_set_t) + leaf::pair_size(buffer->leaf_pair());
-}
-
-template <>
-ssize_t objsize<net_small_append_prepend_t>(const net_small_append_prepend_t *buffer) {
-    return sizeof(net_small_append_prepend_t) + buffer->size;
+    if (sizeof(net_small_append_prepend_t) <= size && sizeof(net_small_append_prepend_t) + p->size <= size) {
+        return sizeof(net_small_append_prepend_t) + p->size;
+    } else {
+        return -1;
+    }
 }
 
 template <class message_type>
 ssize_t try_parsing(message_callback_t *receiver, const_charslice sl) {
     typedef typename message_type::net_struct_type net_struct_type;
-    if (fits<net_struct_type>(sl)) {
-        const net_struct_type *p = reinterpret_cast<const net_struct_type *>(sl.beg);
-
-        scoped_ptr<message_type> msg(new message_type(p));
-
+    ssize_t sz = fitsize<net_struct_type>(sl);
+    if (sz != -1) {
+        scoped_ptr<message_type> msg(new message_type(reinterpret_cast<const net_struct_type *>(sl.beg)));
         receiver->send(msg);
-        return objsize<net_struct_type>(p);  // INEFFICIENT: Redoes fits<net_struct_type>.
     }
-    return -1;
+    return sz;
 }
 
 template <class message_type>
