@@ -15,8 +15,7 @@ struct mc_inner_buf_t;
 struct mc_transaction_t;
 
 struct writeback_t :
-    public lock_available_callback_t,
-    public serializer_t::write_txn_callback_t
+    public lock_available_callback_t
 {
     typedef mc_cache_t cache_t;
     typedef mc_buf_t buf_t;
@@ -91,6 +90,7 @@ public:
     /* User-controlled settings. */
     
     bool wait_for_flush;
+    bool concurrent_flushing;
     
     unsigned int max_dirty_blocks;   // Number of blocks, not percentage
     
@@ -118,12 +118,15 @@ private:
     
     /* Functions and callbacks for different phases of the writeback */
     
-    bool writeback_start_and_acquire_lock();   // Called on cache thread
+    struct per_flush_locals_t;
+    
+    void writeback_start_and_acquire_lock();   // Called on cache thread
+    void writeback_do_writeback_local();  // Called on cache thread
     virtual void on_lock_available();   // Called on cache thread
-    bool writeback_acquire_bufs();   // Called on cache thread
-    bool writeback_do_write();   // Called on serializer thread
-    void on_serializer_write_txn();   // Called on serializer thread
-    bool writeback_do_cleanup();   // Called on cache thread
+    per_flush_locals_t *create_flush_locals();    // Called on cache thread
+    void writeback_acquire_bufs(per_flush_locals_t *flush_locals);   // Called on cache thread
+    void writeback_do_write(per_flush_locals_t *flush_locals);   // Called on serializer thread
+    void writeback_do_cleanup(per_flush_locals_t *flush_locals);   // Called on cache thread
     
     cache_t *cache;
 
@@ -159,16 +162,28 @@ private:
 
     /* Internal variables used only during a flush operation. */
     
-    ticks_t start_time;
-    
-    // Transaction that the writeback is using to grab buffers
+    // Transaction that the writeback is using to grab buffers (gets moved to flush_locals
+    // as soon as the flush lock has been acquired)
     transaction_t *transaction;
-
-    // Transaction to submit to the serializer
-    std::vector<translator_serializer_t::write_t> serializer_writes;
-
-    // List of things to call back as soon as the writeback currently in progress is over.
-    intrusive_list_t<sync_callback_t> current_sync_callbacks;
+    
+    struct per_flush_locals_t : public serializer_t::write_txn_callback_t {
+        virtual void on_serializer_write_txn();   // Called on serializer thread
+    
+        coro_t *flusher_coro;
+    
+        ticks_t start_time;
+    
+        // Callbacks for the current sync
+        intrusive_list_t<sync_callback_t> current_sync_callbacks;
+        
+        // Transaction that the writeback is using to grab buffers
+        transaction_t *transaction;
+        
+        // Transaction to submit to the serializer
+        std::vector<translator_serializer_t::write_t> serializer_writes;
+    };
+    
+    ticks_t start_time;
 };
 
 #endif // __BUFFER_CACHE_WRITEBACK_HPP__
