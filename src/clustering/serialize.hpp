@@ -69,12 +69,12 @@ void unserialize(tcp_conn_t *conn, std::vector<element_t> *e) {
 /* Serializing and unserializing ip_address_t */
 
 void serialize(tcp_conn_t *conn, const ip_address_t &addr) {
-    assert(sizeof(addr) == 4);
+    rassert(sizeof(addr) == 4);
     conn->write(&addr, sizeof(addr));
 }
 
 void unserialize(tcp_conn_t *conn, ip_address_t *addr) {
-    assert(sizeof(*addr) == 4);
+    rassert(sizeof(*addr) == 4);
     conn->read(addr, sizeof(*addr));
 }
 
