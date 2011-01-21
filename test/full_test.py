@@ -93,8 +93,8 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                             "cores"         : cores,
                             "slices"        : slices,
                             "duration"      : dur,
-                            "verify-timeout": dur * 4 * ec2 },
-                          repeat=2, timeout=dur * 4 * ec2)
+                            "verify-timeout": dur * 4 * ec2 + 200 },
+                          repeat=2, timeout=dur * 4 * ec2 + 200)
 
 # Running all tests
 def run_all_tests(mode, checker, protocol, cores, slices):
@@ -325,7 +325,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices},
-                  repeat=1, timeout=180)
+                  repeat=1, timeout=180 * ec2)
 
     do_test_cloud("regression/issue_69.py",
                   { "auto"        : True,
@@ -371,6 +371,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "protocol"    : protocol,
                         "cores"       : cores,
                         "slices"      : slices,
+                        "sigint-timeout" : 360,
                         "suite-test"  : suite_test},
                       repeat=3, timeout=480)
                 
