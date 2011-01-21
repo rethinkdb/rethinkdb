@@ -92,8 +92,21 @@ bool writeback_t::sync(sync_callback_t *callback) {
 }
 
 bool writeback_t::sync_patiently(sync_callback_t *callback) {
-    if (num_dirty_blocks() > 0) {
-        if (callback) sync_callbacks.push_back(callback);
+    // TODO! Make configurable
+    // TODO! Find a better name
+    const unsigned int flush_interval = 8;
+
+    if (num_dirty_blocks() > 0) {                
+        if (callback)
+            sync_callbacks.push_back(callback);
+
+        if (sync_callbacks.size() >= flush_interval) {
+            if (writeback_in_progress)
+                start_next_sync_immediately = true;
+            else
+                writeback_start_and_acquire_lock();
+        }
+
         return false;
     } else {
         // There's nothing to flush, so the sync is "done"
@@ -394,11 +407,17 @@ void writeback_t::writeback_do_write(per_flush_locals_t *flush_locals) {
         flush_locals->flusher_coro->notify();
     }
     
+    coro_t::move_to_thread(cache->home_thread);
+    
     // If we allow concurrent flushing, allow new flushes to start from now on
-    // (we had to wait until the transaction gets passed to the serializer)
+    // (we had to wait until the transaction got passed to the serializer)
     if (concurrent_flushing) {
-        coro_t::move_to_thread(cache->home_thread);
         writeback_in_progress = false;
+        
+        if (start_next_sync_immediately) {
+            start_next_sync_immediately = false;
+            sync(NULL);
+        }
     }
 }
 
@@ -423,14 +442,15 @@ void writeback_t::writeback_do_cleanup(per_flush_locals_t *flush_locals) {
         cb->on_sync();
     }
     
-
-    if (!concurrent_flushing)
-        writeback_in_progress = false;
     pm_flushes_writing.end(&flush_locals->start_time);
 
-    if (start_next_sync_immediately) {
-        start_next_sync_immediately = false;
-        sync(NULL);
+    if (!concurrent_flushing) {
+        writeback_in_progress = false;
+        
+        if (start_next_sync_immediately) {
+            start_next_sync_immediately = false;
+            sync(NULL);
+        }
     }
 }
 
