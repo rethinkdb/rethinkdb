@@ -73,7 +73,7 @@ writeback_t::~writeback_t() {
 }
 
 bool writeback_t::sync(sync_callback_t *callback) {
-    if (!writeback_in_progress) {
+    if (!writeback_in_progress) {    
         /* Start the writeback process immediately */
         if (callback)
             sync_callbacks.push_back(callback);
@@ -86,32 +86,17 @@ bool writeback_t::sync(sync_callback_t *callback) {
         // TODO: If we haven't acquired the flush lock yet, we could join the current writeback
         // rather than wait for the next one.
         start_next_sync_immediately = true;
-        if (callback) sync_callbacks.push_back(callback);
+        if (callback)
+            sync_callbacks.push_back(callback);
         return false;
     }
 }
 
 bool writeback_t::sync_patiently(sync_callback_t *callback) {
-    // TODO! Make configurable
-    // TODO! Find a better name
-    const unsigned int flush_interval = 8;
+    if (callback)
+        sync_callbacks.push_back(callback);
 
-    if (num_dirty_blocks() > 0) {                
-        if (callback)
-            sync_callbacks.push_back(callback);
-
-        if (sync_callbacks.size() >= flush_interval) {
-            if (writeback_in_progress)
-                start_next_sync_immediately = true;
-            else
-                writeback_start_and_acquire_lock();
-        }
-
-        return false;
-    } else {
-        // There's nothing to flush, so the sync is "done"
-        return true;
-    }
+    return false;
 }
 
 bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callback_t *callback) {
@@ -130,6 +115,10 @@ bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callba
 }
 
 void writeback_t::on_transaction_commit(transaction_t *txn) {
+    // TODO! Make configurable
+    // TODO! Find a better name
+    const unsigned int flush_interval = 8;
+
     if (txn->get_access() == rwi_write) {
         
         active_write_transactions--;
@@ -137,11 +126,15 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
         
         flush_lock.unlock();
         
+        
+        
         /* At the end of every write transaction, check if the number of dirty blocks exceeds the
         threshold to force writeback to start. */
         if (num_dirty_blocks() > flush_threshold) {
             sync(NULL);
         } else if (num_dirty_blocks() > 0 && flush_time_randomizer.is_zero()) {
+            sync(NULL);
+        } else if (sync_callbacks.size() >= flush_interval) {
             sync(NULL);
         } else if (!flush_timer && !flush_time_randomizer.is_never_flush() && num_dirty_blocks() > 0) {
             /* Start the flush timer so that the modified data doesn't sit in memory for too long
@@ -289,7 +282,6 @@ writeback_t::per_flush_locals_t *writeback_t::create_flush_locals() {
     cache->assert_thread();
     
     per_flush_locals_t *flush_locals = new per_flush_locals_t;
-    flush_locals->current_sync_callbacks.append_and_clear(&sync_callbacks);
     
     flush_locals->transaction = transaction;
     transaction = NULL;
@@ -320,10 +312,17 @@ void writeback_t::writeback_do_writeback_local() {
 void writeback_t::writeback_acquire_bufs(per_flush_locals_t *flush_locals) {
     cache->assert_thread();
     
+    // Move callbacks to locals only after we got the lock.
+    // That way callbacks coming in while waiting for the flush lock
+    // can still go into this flush.
+    flush_locals->current_sync_callbacks.append_and_clear(&sync_callbacks);
+    
+    // Also, at this point we can still clear the start_next_sync_immediately...
+    start_next_sync_immediately = false;
+    
     pm_flushes_writing.begin(&flush_locals->start_time);
     
     // Request read locks on all of the blocks we need to flush.
-    flush_locals->serializer_writes.clear();
     flush_locals->serializer_writes.reserve(dirty_bufs.size());
 
     int i = 0;
@@ -413,7 +412,8 @@ void writeback_t::writeback_do_write(per_flush_locals_t *flush_locals) {
     // (we had to wait until the transaction got passed to the serializer)
     if (concurrent_flushing) {
         writeback_in_progress = false;
-        
+
+        // Also start the next sync now in case it was requested
         if (start_next_sync_immediately) {
             start_next_sync_immediately = false;
             sync(NULL);
@@ -433,8 +433,6 @@ void writeback_t::writeback_do_cleanup(per_flush_locals_t *flush_locals) {
     
     bool committed __attribute__((unused)) = flush_locals->transaction->commit(NULL);
     rassert(committed); // Read-only transactions commit immediately.
-
-    flush_locals->serializer_writes.clear();
 
     while (!flush_locals->current_sync_callbacks.empty()) {
         sync_callback_t *cb = flush_locals->current_sync_callbacks.head();
