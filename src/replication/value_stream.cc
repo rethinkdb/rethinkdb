@@ -33,7 +33,9 @@ bool value_stream_t::read_fixed_buffered(ssize_t threshold, charslice *slice_out
     fixed_buffered_threshold = threshold;
     bool success = fixed_buffered_cond.wait();
     if (success) {
-        *slice_out = charslice(local_buffer.data(), local_buffer.data() + local_buffer.size());
+        side_buffer.resize(threshold);
+        std::copy(local_buffer.begin(), local_buffer.begin() + threshold, side_buffer.begin());
+        *slice_out = charslice(side_buffer.data(), side_buffer.data() + side_buffer.size());
     } else {
         *slice_out = charslice(NULL, NULL);
     }
@@ -46,14 +48,14 @@ void value_stream_t::pop_buffer(ssize_t amount) {
     rassert(fixed_buffered_threshold == -1);
     rassert(amount <= local_buffer_size);
     local_buffer.erase(local_buffer.begin(), local_buffer.begin() + amount);
+    side_buffer.clear();
     local_buffer_size -= amount;
 }
 
 charslice value_stream_t::buf_for_filling(ssize_t desired_size) {
     if (reader_list.empty()) {
-        local_buffer.resize(local_buffer_size + desired_size);
-        char *front = local_buffer.data() + local_buffer_size;
-        return charslice(front, front + desired_size);
+        write_side_buffer.resize(desired_size);
+        return charslice(write_side_buffer.data(), write_side_buffer.data() + desired_size);
     } else {
         return reader_list.head()->buf;
     }
@@ -61,8 +63,9 @@ charslice value_stream_t::buf_for_filling(ssize_t desired_size) {
 
 void value_stream_t::data_written(ssize_t amount) {
     if (reader_list.empty()) {
-        rassert(ssize_t(local_buffer.size() - local_buffer_size) >= amount);
-        local_buffer_size += amount;
+        rassert(ssize_t(write_side_buffer.size()) >= amount);
+        local_buffer.insert(local_buffer.end(), write_side_buffer.begin(), write_side_buffer.end());
+        write_side_buffer.clear();
         if (fixed_buffered_threshold != -1 && local_buffer_size >= fixed_buffered_threshold) {
             fixed_buffered_cond.pulse(true);
         }
