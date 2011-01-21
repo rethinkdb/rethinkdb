@@ -103,15 +103,13 @@ bool parse_and_pop(tcp_conn_t *conn, message_callback_t *receiver, const char *b
 
 template <class message_type>
 bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, tcp_conn_t::bufslice sl, std::vector<value_stream_t *>& streams) {
-    typedef typename message_type::first_struct_type first_struct_type;
-    /*    if (part_before_stream_fits<first_struct_type>(sl)) {
-        const first_struct_type *p = reinterpret_cast<const first_struct_type *>(sl.buf);
-        value_stream_t *stream = new value_stream_t();
-        size_t size_before = size_before_stream<first_struct_size>(sl);
-        stream.open_space_for_writing(p->op_header
+    /*    typedef typename message_type::first_struct_type first_struct_type;
+    if (part_before_stream_fits<first_struct_type>(sl)) {
 
-    }
-    */
+        // TODO: This is a mess.
+
+        } */
+
     return false;
 }
 
