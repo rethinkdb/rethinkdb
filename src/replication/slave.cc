@@ -16,22 +16,70 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
 
 slave_t::~slave_t() {}
 
-/* store interface */
+store_t::get_result_t slave_t::get(store_key_t *key)
+{
+    return internal_store->get(key);
+}
 
-// TODO implement all of these!
-store_t::get_result_t slave_t::get(store_key_t *key) { crash("slave_t unimplemented method"); }
-store_t::get_result_t slave_t::get_cas(store_key_t *key) { crash("slave_t unimplemented method"); }
-store_t::set_result_t slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) { crash("slave_t unimplemented method"); }
-store_t::set_result_t slave_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) { crash("slave_t unimplemented method"); }
-store_t::set_result_t slave_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) { crash("slave_t unimplemented method"); }
-store_t::set_result_t slave_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique) { crash("slave_t unimplemented method"); }
-store_t::incr_decr_result_t slave_t::incr(store_key_t *key, unsigned long long amount) { crash("slave_t unimplemented method"); }
-store_t::incr_decr_result_t slave_t::decr(store_key_t *key, unsigned long long amount) { crash("slave_t unimplemented method"); }
-store_t::append_prepend_result_t slave_t::append(store_key_t *key, data_provider_t *data) { crash("slave_t unimplemented method"); }
-store_t::append_prepend_result_t slave_t::prepend(store_key_t *key, data_provider_t *data) { crash("slave_t unimplemented method"); }
-store_t::delete_result_t slave_t::delete_key(store_key_t *key) { crash("slave_t unimplemented method"); }
-void slave_t::replicate(replicant_t *cb, repli_timestamp cutoff) { crash("slave_t unimplemented method"); }
-void slave_t::stop_replicating(replicant_t *cb) { crash("slave_t unimplemented method"); }
+store_t::get_result_t slave_t::get_cas(store_key_t *key)
+{
+    return internal_store->get(key);
+}
+
+store_t::set_result_t slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime)
+{
+    return internal_store->set(key, data, flags, exptime);
+}
+
+store_t::set_result_t slave_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime)
+{
+    return internal_store->add(key, data,  flags,  exptime);
+}
+
+store_t::set_result_t slave_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime)
+{
+    return internal_store->replace(key, data, flags, exptime);
+}
+
+store_t::set_result_t slave_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique)
+{
+    return internal_store->cas(key, data, flags, exptime, unique);
+}
+
+store_t::incr_decr_result_t slave_t::incr(store_key_t *key, unsigned long long amount)
+{
+    return internal_store->incr(key, amount);
+}
+
+store_t::incr_decr_result_t slave_t::decr(store_key_t *key, unsigned long long amount)
+{
+    return internal_store->decr(key, amount);
+}
+
+store_t::append_prepend_result_t slave_t::append(store_key_t *key, data_provider_t *data)
+{
+    return internal_store->append(key, data);
+}
+
+store_t::append_prepend_result_t slave_t::prepend(store_key_t *key, data_provider_t *data)
+{
+    return internal_store->prepend(key, data);
+}
+
+store_t::delete_result_t slave_t::delete_key(store_key_t *key)
+{
+    return internal_store->delete_key(key);
+}
+
+void slave_t::replicate(replicant_t *cb, repli_timestamp cutoff)
+{
+    return internal_store->replicate(cb, cutoff);
+}
+
+void slave_t::stop_replicating(replicant_t *cb)
+{
+    return internal_store->stop_replicating(cb);
+}
 
 
  /* message_callback_t interface */

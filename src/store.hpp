@@ -110,7 +110,7 @@ struct store_t {
         /* Returned if the value to be stored is too big */
         sr_too_large,
         /* Returned if the data_provider_t that you gave returned have_failed(). */
-        sr_data_provider_failed
+        sr_data_provider_failed,
     };
 
     virtual set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) = 0;
