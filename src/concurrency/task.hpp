@@ -10,7 +10,7 @@ template<typename var_t>
 struct task_t {
 public:   // But not really
     task_t() { }
-    value_cond_t<var_t> cond;
+    promise_t<var_t> cond;
     template<class callable_t>
     void run(callable_t *f) {
         cond.pulse((*f)());

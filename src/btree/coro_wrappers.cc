@@ -2,7 +2,7 @@
 #include "concurrency/cond_var.hpp"
 
 void co_deliver_get_result(const_buffer_group_t *bg, mcflags_t flags, cas_t cas,
-        value_cond_t<store_t::get_result_t> *dest) {
+        promise_t<store_t::get_result_t> *dest) {
 
     store_t::get_result_t res;
     res.buffer = bg;
