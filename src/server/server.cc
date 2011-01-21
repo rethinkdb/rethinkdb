@@ -64,7 +64,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         }
     
         /* Check to see if there is an existing database */
-        struct : public btree_key_value_store_t::check_callback_t, public value_cond_t<bool> {
+        struct : public btree_key_value_store_t::check_callback_t, public promise_t<bool> {
             void on_store_check(bool ok) { pulse(ok); }
         } check_cb;
         btree_key_value_store_t::check_existing(db_filenames, &check_cb);
@@ -110,7 +110,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             struct : public conn_acceptor_t::handler_t {
                 server_t *parent;
                 void handle(tcp_conn_t *conn) {
-                    serve_memcache(conn, parent);
+                    serve_memcache(conn, parent->store);
                 }
             } handler;
             handler.parent = &server;
@@ -124,7 +124,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 struct : public thread_message_t, public cond_t {
                     void on_thread_switch() { pulse(); }
                 } interrupt_cond;
-                thread_pool->set_interrupt_message(&interrupt_cond);
+                thread_pool_t::set_interrupt_message(&interrupt_cond);
                 interrupt_cond.wait();
 
                 logINF("Shutting down... this may take time if there is a lot of unsaved data.\n");
@@ -156,16 +156,3 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     thread_pool->shutdown();
 }
 
-void server_t::shutdown() {
-    /* This can be called from any thread! */
-    
-    thread_message_t *old_interrupt_msg = thread_pool->set_interrupt_message(NULL);
-    
-    /* If the interrupt message already was NULL, that means that either shutdown() was for
-    some reason called before we finished starting up or shutdown() was called twice and this
-    is the second time. */
-    if (!old_interrupt_msg) return;
-    
-    if (continue_on_thread(home_thread, old_interrupt_msg))
-        call_later_on_this_thread(old_interrupt_msg);
-}

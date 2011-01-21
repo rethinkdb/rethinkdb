@@ -71,17 +71,6 @@ store_t::delete_result_t slave_t::delete_key(store_key_t *key)
     return internal_store->delete_key(key);
 }
 
-void slave_t::replicate(replicant_t *cb, repli_timestamp cutoff)
-{
-    return internal_store->replicate(cb, cutoff);
-}
-
-void slave_t::stop_replicating(replicant_t *cb)
-{
-    return internal_store->stop_replicating(cb);
-}
-
-
  /* message_callback_t interface */
 void slave_t::hello(boost::scoped_ptr<hello_message_t>& message)
 {}

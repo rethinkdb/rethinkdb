@@ -21,6 +21,17 @@ struct store_key_t {
     }
 };
 
+inline bool str_to_key(char *str, store_key_t *buf) {
+    int len = strlen(str);
+    if (len <= MAX_KEY_SIZE) {
+        memcpy(buf->contents, str, len);
+        buf->size = (uint8_t) len;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 union store_key_and_buffer_t {
     store_key_t key;
     char buffer[sizeof(store_key_t) + MAX_KEY_SIZE];

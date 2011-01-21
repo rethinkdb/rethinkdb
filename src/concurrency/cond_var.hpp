@@ -79,15 +79,13 @@ private:
     DISABLE_COPYING(cond_t);
 };
 
-/* A value_cond_t is a condition variable combined with a "return value", of sorts, that
-is transmitted to the thing waiting on the condition variable.
-
-TODO: Is this actually used in more than one place? */
+/* A promise_t is a condition variable combined with a "return value", of sorts, that
+is transmitted to the thing waiting on the condition variable. */
 
 template<class val_t>
-struct value_cond_t {
+struct promise_t {
 
-    value_cond_t() : value(NULL) { }
+    promise_t() : value(NULL) { }
     void pulse(val_t v) {
         value = new val_t(v);
         cond.pulse();
@@ -96,7 +94,7 @@ struct value_cond_t {
         cond.wait();
         return *value;
     }
-    ~value_cond_t() {
+    ~promise_t() {
         if (value) delete value;
     }
 
