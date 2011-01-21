@@ -3,8 +3,8 @@
 
 #include "arch/arch.hpp"
 
-struct server_t;
+struct store_t;
 
-void serve_memcache(tcp_conn_t *conn, server_t *server);
+void serve_memcache(tcp_conn_t *conn, store_t *store);
 
 #endif /* __MEMCACHED_MEMCACHED_HPP__ */

@@ -89,17 +89,6 @@ inline bool is_internal(const node_t *node) {
     return check_magic<internal_node_t>(node->magic);
 }
 
-inline bool str_to_key(char *str, btree_key *buf) {
-    int len = strlen(str);
-    if (len <= MAX_KEY_SIZE) {
-        memcpy(buf->contents, str, len);
-        buf->size = (uint8_t) len;
-        return true;
-    } else {
-        return false;
-    }
-}
-
 bool is_underfull(block_size_t block_size, const node_t *node);
 bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const internal_node_t *parent);
 int nodecmp(const node_t *node1, const node_t *node2);

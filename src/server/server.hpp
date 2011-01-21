@@ -33,8 +33,6 @@ public:
     {
     }
 
-    void shutdown();   // Can be called from any thread
-
     struct all_gc_disabled_callback_t {
         bool multiple_users_seen;
 
