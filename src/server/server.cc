@@ -64,7 +64,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         }
     
         /* Check to see if there is an existing database */
-        struct : public btree_key_value_store_t::check_callback_t, public value_cond_t<bool> {
+        struct : public btree_key_value_store_t::check_callback_t, public promise_t<bool> {
             void on_store_check(bool ok) { pulse(ok); }
         } check_cb;
         btree_key_value_store_t::check_existing(db_filenames, &check_cb);

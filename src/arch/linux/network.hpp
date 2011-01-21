@@ -7,7 +7,7 @@
 #include "arch/address.hpp"
 
 template<class value_t>
-struct value_cond_t;
+struct promise_t;
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
@@ -99,7 +99,7 @@ private:
 
     /* If read_cond is non-NULL, it will be signalled with true if there is data on the read end
     and with false if the read end is closed. Same with write_cond and writing. */
-    value_cond_t<bool> *read_cond, *write_cond;
+    promise_t<bool> *read_cond, *write_cond;
 
     // True when the half of the connection has been shut down but the linux_tcp_conn_t has not
     // been deleted yet
