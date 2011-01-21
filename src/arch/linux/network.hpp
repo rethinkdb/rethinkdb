@@ -44,8 +44,7 @@ public:
     // Note that you should always call peek() before calling
     // read_more_buffered(), because there might be leftover data in
     // the peek buffer that might be enough for you.
-    struct bufslice { const char *buf; size_t len; bufslice(const char *b, size_t n) : buf(b), len(n) { } };
-    bufslice peek() const;
+    const_charslice peek() const;
     void pop(size_t len);
 
     void read_more_buffered();

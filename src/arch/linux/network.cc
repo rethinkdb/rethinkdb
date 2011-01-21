@@ -168,8 +168,8 @@ void linux_tcp_conn_t::read_more_buffered() {
     read_buffer.resize(old_size + delta);
 }
 
-linux_tcp_conn_t::bufslice linux_tcp_conn_t::peek() const {
-    return bufslice(read_buffer.data(), read_buffer.size());
+const_charslice linux_tcp_conn_t::peek() const {
+    return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
 }
 
 void linux_tcp_conn_t::pop(size_t len) {

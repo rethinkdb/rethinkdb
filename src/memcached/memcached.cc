@@ -615,19 +615,19 @@ perfmon_duration_sampler_t
 void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 
     for (;;) {
-        tcp_conn_t::bufslice sl = conn->peek();
-        void *crlf_loc = memmem(sl.buf, sl.len, "\r\n", 2);
-        size_t threshold = MEGABYTE;
+        const_charslice sl = conn->peek();
+        void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, "\r\n", 2);
+        ssize_t threshold = MEGABYTE;
 
         if (crlf_loc) {
             // We have a valid line.
-            size_t line_size = (char *)crlf_loc - (char *)sl.buf;
+            size_t line_size = (char *)crlf_loc - (char *)sl.beg;
 
             dest->resize(line_size + 2);  // +2 for CRLF
-            memcpy(dest->data(), sl.buf, line_size + 2);
+            memcpy(dest->data(), sl.beg, line_size + 2);
             conn->pop(line_size + 2);
             return;
-        } else if (sl.len > threshold) {
+        } else if (sl.end - sl.beg > threshold) {
             // If a malfunctioning client sends a lot of data without a
             // CRLF, we cut them off.  (This doesn't apply to large values
             // because they are read from the socket via a different

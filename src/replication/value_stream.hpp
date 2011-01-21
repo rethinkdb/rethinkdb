@@ -10,22 +10,7 @@
 
 namespace replication {
 
-// Right now this is super-dumb and WILL need to be
-// reimplemented/enhanced.  Right now this is enhanceable.
-
 // This will eventually be used by arch/linux/network.hpp
-
-struct charslice {
-    char *beg, *end;
-    charslice(char *beg_, char *end_) : beg(beg_), end(end_) { }
-    charslice() : beg(NULL), end(NULL) { }
-};
-
-struct const_charslice {
-    const char *beg, *end;
-    const_charslice(const char *beg_, const char *end_) : beg(beg_), end(end_) { }
-    const_charslice() : beg(NULL), end(NULL) { }
-};
 
 
 
