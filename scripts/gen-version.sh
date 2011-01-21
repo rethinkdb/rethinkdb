@@ -48,7 +48,7 @@ if [ -z "$version" -a "$repo_available" = 1 ]; then
     *$lf*)
       exit 1 ;;
     v[0-9]*)
-      git update-index -q --refresh || true
+      git update-index -q --refresh > /dev/null || true
       [ -n "$(git diff-index --name-only HEAD -- || true)" ] && version="${version}-dirty"
       ;;
   esac

@@ -7,14 +7,44 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 /* Network connection object */
 
-linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
-    registration_thread(-1),
-    read_cond(NULL), write_cond(NULL),
-    read_was_shut_down(false), write_was_shut_down(false)
-{
+
+linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
+    : registration_thread(-1),
+      read_cond(NULL), write_cond(NULL),
+      read_was_shut_down(false), write_was_shut_down(false) {
+    struct addrinfo *res;
+
+    /* make a sacrifice to the elders honor by converting port to a string, why
+     * can't we just sacrifice a virgin for them (lord knows we have enough
+     * virgins in Silicon Valley) */
+    char port_str[10]; /* god is it dumb that we have to do this */
+    snprintf(port_str, 10, "%d", port);
+    //fail_due_to_user_error("Port is too big", (snprintf(port_str, 10, "%d", port) == 10));
+
+    /* make the connection */
+    getaddrinfo(host, port_str, NULL, &res);
+    sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (connect(sock, res->ai_addr, res->ai_addrlen) != 0) {
+        /* for some reason the connection failed */
+        logINF("Failed to make a connection with error: %s", strerror(errno));
+
+        freeaddrinfo(res);
+        throw connect_failed_exc_t();
+    }
+
+    freeaddrinfo(res);
+}
+
+linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
+    : registration_thread(-1),
+      read_cond(NULL), write_cond(NULL),
+      read_was_shut_down(false), write_was_shut_down(false) {
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -138,8 +168,8 @@ void linux_tcp_conn_t::read_more_buffered() {
     read_buffer.resize(old_size + delta);
 }
 
-linux_tcp_conn_t::bufslice linux_tcp_conn_t::peek() const {
-    return bufslice(read_buffer.data(), read_buffer.size());
+const_charslice linux_tcp_conn_t::peek() const {
+    return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
 }
 
 void linux_tcp_conn_t::pop(size_t len) {

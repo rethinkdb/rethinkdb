@@ -77,6 +77,7 @@ public:
 class set_message_t {
 public:
     typedef net_small_set_t net_struct_type;
+    typedef net_large_set_t first_struct_type;
     set_message_t(const net_small_set_t *p)
         : timestamp_(p->timestamp),
           key_(p->key()->contents, p->key()->contents + p->key()->size),
@@ -84,7 +85,12 @@ public:
           exptime_(p->value()->exptime()),
           has_cas_(p->value()->has_cas()),
           cas_(has_cas_ ? p->value()->cas() : 0),
-          value_(new value_stream_t(p->value()->value(), p->value()->value() + p->value()->value_size())) { }
+          value_(new value_stream_t()) {
+        const btree_value *val = p->value();
+        const char *valbytes = val->value();
+        write_charslice(*value_, const_charslice(valbytes, valbytes + val->value_size()));
+    }
+
     set_message_t(const net_large_set_t *p, value_stream_t *stream)
         : timestamp_(p->op_header.timestamp),
           key_(p->key()->contents, p->key()->contents + p->key()->size),
@@ -116,11 +122,15 @@ private:
 class append_prepend_message_t {
 public:
     typedef net_small_append_prepend_t net_struct_type;
+    typedef net_large_append_prepend_t first_struct_type;
 protected:
     append_prepend_message_t(const net_small_append_prepend_t *p)
         : timestamp_(p->timestamp),
           key_(p->key()->contents, p->key()->contents + p->key()->size),
-          value_(new value_stream_t(p->value_beg(), p->value_end())) { }
+          value_(new value_stream_t()) {
+        write_charslice(*value_, const_charslice(p->value_beg(), p->value_end()));
+    }
+
     append_prepend_message_t(const net_large_append_prepend_t *p, value_stream_t *stream)
         : timestamp_(p->op_header.timestamp),
           key_(p->key()->contents, p->key()->contents + p->key()->size),

@@ -283,6 +283,9 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
                 case store_t::sr_data_provider_failed:
                     rh->writef("CLIENT_ERROR bad data chunk\r\n");
                     break;
+                /* case store_t::sr_not_allowed:
+                    rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
+                    break; */
                 default: unreachable();
             }
         }
@@ -308,6 +311,9 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
                 case store_t::apr_data_provider_failed:
                     rh->writef("CLIENT_ERROR bad data chunk\r\n");
                     break;
+                /* case apr_not_allowed:
+                    rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
+                    break; */
                 default: unreachable();
             }
         }
@@ -444,7 +450,6 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 }
 
 /* "incr" and "decr" commands */
-
 void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsigned long long amount, bool incr, bool noreply) {
 
     store_t::incr_decr_result_t res = incr ?
@@ -462,6 +467,9 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsi
             case store_t::incr_decr_result_t::idr_not_numeric:
                 rh->writef("CLIENT_ERROR cannot increment or decrement non-numeric value\r\n");
                 break;
+            /* case incr_decr_result_t::idr_not_allowed:
+                rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
+                break; */
             default: unreachable();
         }
     }
@@ -607,19 +615,19 @@ perfmon_duration_sampler_t
 void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 
     for (;;) {
-        tcp_conn_t::bufslice sl = conn->peek();
-        void *crlf_loc = memmem(sl.buf, sl.len, "\r\n", 2);
-        size_t threshold = MEGABYTE;
+        const_charslice sl = conn->peek();
+        void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, "\r\n", 2);
+        ssize_t threshold = MEGABYTE;
 
         if (crlf_loc) {
             // We have a valid line.
-            size_t line_size = (char *)crlf_loc - (char *)sl.buf;
+            size_t line_size = (char *)crlf_loc - (char *)sl.beg;
 
             dest->resize(line_size + 2);  // +2 for CRLF
-            memcpy(dest->data(), sl.buf, line_size + 2);
+            memcpy(dest->data(), sl.beg, line_size + 2);
             conn->pop(line_size + 2);
             return;
-        } else if (sl.len > threshold) {
+        } else if (sl.end - sl.beg > threshold) {
             // If a malfunctioning client sends a lot of data without a
             // CRLF, we cut them off.  (This doesn't apply to large values
             // because they are read from the socket via a different
@@ -663,7 +671,7 @@ bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
             for (std::vector<key_with_memory>::iterator it = keys.begin(); it != keys.end(); ++it) {
                 btree_key& k = (*it).key;
                 uint32_t hash = btree_key_value_store_t::hash(&k);
-                uint32_t slice = rh->server->store->slice_nr(&k);
+                uint32_t slice = -1; //rh->server->store->slice_nr(&k);  // TODO fix this.  FIX THIS.
                 rh->writef("%*s: %08lx [%lu]\r\n", k.size, k.contents, hash, slice);
             }
             rh->writef("END\r\n");

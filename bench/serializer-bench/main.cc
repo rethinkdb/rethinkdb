@@ -316,12 +316,12 @@ void parse_config(int argc, char *argv[], config_t *config) {
         }
     }
 
-    assert(config->ser_static_config.block_size().ser_value() > 0);
-    assert(config->ser_static_config.extent_size() > 0);
-    assert(config->ser_dynamic_config.num_active_data_extents > 0);
-    assert(config->ser_dynamic_config.file_zone_size > 0);
-    assert(config->duration > 0 || config->duration == RUN_FOREVER);
-    assert(config->concurrent_txns > 0);
+    rassert(config->ser_static_config.block_size().ser_value() > 0);
+    rassert(config->ser_static_config.extent_size() > 0);
+    rassert(config->ser_dynamic_config.num_active_data_extents > 0);
+    rassert(config->ser_dynamic_config.file_zone_size > 0);
+    rassert(config->duration > 0 || config->duration == RUN_FOREVER);
+    rassert(config->concurrent_txns > 0);
 }
 
 int main(int argc, char *argv[]) {
