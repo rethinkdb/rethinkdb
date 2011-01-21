@@ -29,11 +29,6 @@ struct net_header_t {
     uint8_t msgcode;
 } __attribute__((__packed__));
 
-struct net_size_header_t {
-    net_header_t header;
-    uint16_t size;
-} __attribute__((__packed__));
-
 struct net_backfill_t {
     net_header_t header;
     repli_timestamp timestamp;
@@ -87,6 +82,11 @@ struct net_small_append_prepend_t {
     const btree_key *key() const { return reinterpret_cast<const btree_key *>(data); }
     const byte *value_beg() const { return reinterpret_cast<const byte *>(data + key()->full_size()); }
     const byte *value_end() const { return data + size; }
+} __attribute__((__packed__));
+
+struct net_size_header_t {
+    net_header_t header;
+    uint16_t size;
 } __attribute__((__packed__));
 
 struct net_large_operation_first_t {

@@ -33,8 +33,8 @@ linux_message_hub_t::~linux_message_hub_t() {
     int res;
     
     for (int i = 0; i < thread_pool->n_threads; i++) {
-        assert(queues[i].msg_local_list.empty());
-        assert(queues[i].msg_global_list.empty());
+        rassert(queues[i].msg_local_list.empty());
+        rassert(queues[i].msg_global_list.empty());
         
         res = pthread_spin_destroy(&queues[i].lock);
         guarantee(res == 0, "Could not destroy spin lock");
@@ -46,7 +46,7 @@ linux_message_hub_t::~linux_message_hub_t() {
     
 // Collects a message for a given thread onto a local list.
 void linux_message_hub_t::store_message(unsigned int nthread, linux_thread_message_t *msg) {
-    assert(nthread < (unsigned)thread_pool->n_threads);
+    rassert(nthread < (unsigned)thread_pool->n_threads);
     queues[nthread].msg_local_list.push_back(msg);
 }
 

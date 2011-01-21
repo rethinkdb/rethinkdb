@@ -17,7 +17,7 @@ struct internal_buf_t
                                                             // TODO: We can't call cache->serializer->get_recency because it's on a different core.  Rearchitect this when we start actually using timestamps.
                                                             repli_timestamp::invalid
 ), data(cache->serializer->malloc()) {
-        assert(data);
+        rassert(data);
         bzero(data, cache->block_size.value());
     }
     
@@ -26,9 +26,9 @@ struct internal_buf_t
     }
     
     void destroy() {
-        assert(!lock.locked());
+        rassert(!lock.locked());
         
-        assert(cache->bufs[block_id] == this);
+        rassert(cache->bufs[block_id] == this);
         cache->bufs[block_id] = NULL;
         
         delete this;
@@ -50,13 +50,13 @@ const void *mock_buf_t::get_data_read() {
 }
 
 void *mock_buf_t::get_data_write() {
-    assert(access == rwi_write);
+    rassert(access == rwi_write);
     dirty = true;
     return internal_buf->data;
 }
 
 void mock_buf_t::mark_deleted() {
-    assert(access == rwi_write);
+    rassert(access == rwi_write);
     deleted = true;
 }
 
@@ -102,11 +102,11 @@ void mock_transaction_t::finish_committing(mock_transaction_commit_callback_t *c
 }
 
 mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock_block_available_callback_t *callback) {
-    if (mode == rwi_write) assert(this->access == rwi_write);
+    if (mode == rwi_write) rassert(this->access == rwi_write);
     
-    assert(block_id < cache->bufs.get_size());
+    rassert(block_id < cache->bufs.get_size());
     internal_buf_t *internal_buf = cache->bufs[block_id];
-    assert(internal_buf);
+    rassert(internal_buf);
     
     mock_buf_t *buf = new mock_buf_t(internal_buf, mode);
     if (internal_buf->lock.lock(mode, buf)) {
@@ -122,22 +122,22 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock
 }
 
 mock_buf_t *mock_transaction_t::allocate() {
-    assert(this->access == rwi_write);
+    rassert(this->access == rwi_write);
     
     block_id_t block_id = cache->bufs.get_size();
     cache->bufs.set_size(block_id + 1);
     internal_buf_t *internal_buf = cache->bufs[block_id] = new internal_buf_t(cache, block_id);
     bool locked __attribute__((unused)) = internal_buf->lock.lock(rwi_write, NULL);
-    assert(locked);
+    rassert(locked);
     
     mock_buf_t *buf = new mock_buf_t(internal_buf, rwi_write);
     return buf;
 }
 
 repli_timestamp mock_transaction_t::get_subtree_recency(block_id_t block_id) {
-    assert(block_id < cache->bufs.get_size());
+    rassert(block_id < cache->bufs.get_size());
     internal_buf_t *internal_buf = cache->bufs[block_id];
-    assert(internal_buf);
+    rassert(internal_buf);
 
     return internal_buf->subtree_recency;
 }
@@ -145,7 +145,7 @@ repli_timestamp mock_transaction_t::get_subtree_recency(block_id_t block_id) {
 mock_transaction_t::mock_transaction_t(mock_cache_t *cache, access_t access)
     : cache(cache), access(access) {
     
-    assert(cache->running);
+    rassert(cache->running);
     cache->n_transactions++;
 }
 
@@ -164,8 +164,8 @@ mock_cache_t::mock_cache_t(
     : serializer(serializer), running(false), n_transactions(0), block_size(serializer->get_block_size()) { }
 
 mock_cache_t::~mock_cache_t() {
-    assert(!running);
-    assert(n_transactions == 0);
+    rassert(!running);
+    rassert(n_transactions == 0);
 }
 
 bool mock_cache_t::start(ready_callback_t *cb) {
@@ -183,7 +183,7 @@ bool mock_cache_t::load_blocks_from_serializer() {
     if (end_block_id == 0) {
         // Create the superblock
         bufs.set_size(1);
-        assert(SUPERBLOCK_ID == 0);
+        rassert(SUPERBLOCK_ID == 0);
         bufs[SUPERBLOCK_ID] = new internal_buf_t(this, SUPERBLOCK_ID);
         
         return do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
@@ -224,7 +224,7 @@ block_size_t mock_cache_t::get_block_size() {
 }
 
 mock_transaction_t *mock_cache_t::begin_transaction(access_t access, mock_transaction_begin_callback_t *callback) {
-    assert(running);
+    rassert(running);
     
     mock_transaction_t *txn = new mock_transaction_t(this, access);
     

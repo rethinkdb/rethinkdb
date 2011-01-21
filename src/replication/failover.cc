@@ -22,6 +22,13 @@ void failover_script_callback_t::on_failure() {
 }
 
 /* Failover_t implementation */
+failover_t::failover_t() {
+}
+
+failover_t::~failover_t() {
+    callbacks.clear();
+}
+
 void failover_t::add_callback(failover_callback_t *cb) {
     callbacks.push_back(cb);
 }

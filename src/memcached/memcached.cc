@@ -35,7 +35,7 @@ struct txt_memcached_handler_t {
         va_start(args, format);
         char buffer[1000];
         size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
-        assert(bytes < sizeof(buffer));
+        rassert(bytes < sizeof(buffer));
         write(buffer, bytes);
         va_end(args);
     }
@@ -81,8 +81,8 @@ struct get_t {
 
 void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
 
-    assert(argc >= 1);
-    assert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
+    rassert(argc >= 1);
+    rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
     /* Vector to store the keys and the task-objects */
     std::vector<get_t> gets;
@@ -104,7 +104,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
     /* Now that we're sure they're all valid, send off the requests */
     for (int i = 0; i < (int)gets.size(); i++) {
         gets[i].result = task<store_t::get_result_t>(
-            with_cas ? &store_t::co_get_cas : &store_t::co_get,
+            with_cas ? &store_t::get_cas : &store_t::get,
             rh->server->store,
             &gets[i].key);
     }
@@ -128,7 +128,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
                     rh->writef("VALUE %*.*s %u %u %llu\r\n",
                         key.size, key.size, key.contents, res.flags, res.buffer->get_size(), res.cas);
                 } else {
-                    assert(res.cas == 0);
+                    rassert(res.cas == 0);
                     rh->writef("VALUE %*.*s %u %u\r\n",
                         key.size, key.size, key.contents, res.flags, res.buffer->get_size());
                 }
@@ -173,16 +173,16 @@ struct buffered_data_provider_t :
     size_t get_size() {
         return length;
     }
-    void get_value(buffer_group_t *bg, data_provider_t::done_callback_t *cb) {
+    bool get_value(buffer_group_t *bg) {
         if (bg) {
             int pos = 0;
             for (int i = 0; i < (signed)bg->buffers.size(); i++) {
                 memcpy(bg->buffers[i].data, (char*)buffer + pos, bg->buffers[i].size);
                 pos += bg->buffers[i].size;
             }
-            assert(pos == (signed)length);
+            rassert(pos == (signed)length);
         }
-        cb->have_provided_value();
+        return true;   // Copying from a buffer never fails...
     }
 private:
     void *buffer;
@@ -218,39 +218,30 @@ public:
         return length;
     }
 
-    void get_value(buffer_group_t *b, data_provider_t::done_callback_t *c) {
-        coro_t::spawn(&memcached_streaming_data_provider_t::run, this, b, c);
-    }
-
-    void run(buffer_group_t *b, data_provider_t::done_callback_t *c) {
-        bool success;
-        {
-            on_thread_t thread_switcher(home_thread);
-            try {
-                if (b) {
-                    for (int i = 0; i < (int)b->buffers.size(); i++) {
-                        rh->conn->read(b->buffers[i].data, b->buffers[i].size);
-                    }
-                } else {
-                    /* Allocate a buffer from the heap instead of the stack because we are in a
-                    coroutine */
-                    std::vector<char> dummy(IO_BUFFER_SIZE);
-                    int consumed = 0;
-                    while (consumed < (int)length) {
-                        int chunk = std::min((int)length - consumed, (int)IO_BUFFER_SIZE);
-                        rh->conn->read(dummy.data(), chunk);
-                        consumed += chunk;
-                    }
+    bool get_value(buffer_group_t *b) {
+        on_thread_t thread_switcher(home_thread);
+        try {
+            if (b) {
+                for (int i = 0; i < (int)b->buffers.size(); i++) {
+                    rh->conn->read(b->buffers[i].data, b->buffers[i].size);
                 }
-                char crlf[2];
-                rh->conn->read(crlf, 2);
-                success = (memcmp(crlf, "\r\n", 2) == 0);
-            } catch (tcp_conn_t::read_closed_exc_t) {
-                success = false;
+            } else {
+                /* Allocate a buffer from the heap instead of the stack because we are in a
+                coroutine */
+                std::vector<char> dummy(IO_BUFFER_SIZE);
+                int consumed = 0;
+                while (consumed < (int)length) {
+                    int chunk = std::min((int)length - consumed, (int)IO_BUFFER_SIZE);
+                    rh->conn->read(dummy.data(), chunk);
+                    consumed += chunk;
+                }
             }
+            char crlf[2];
+            rh->conn->read(crlf, 2);
+            return (memcmp(crlf, "\r\n", 2) == 0);
+        } catch (tcp_conn_t::read_closed_exc_t) {
+            return false;
         }
-        if (success) c->have_provided_value();
-        else c->have_failed();
     }
 };
 
@@ -263,87 +254,15 @@ enum storage_command_t {
     prepend_command
 };
 
-enum set_result_t {
-    sr_stored,
-    sr_not_stored,
-    sr_not_found,
-    sr_exists,
-    sr_too_large,
-    sr_data_provider_failed
-};
-
-struct set_callback_t
-    : public store_t::set_callback_t, public value_cond_t<set_result_t>
-{
-    void stored() { pulse(sr_stored); }
-    void not_stored() { pulse(sr_not_stored); }
-    void not_found() { pulse(sr_not_found); }
-    void exists() { pulse(sr_exists); }
-    void too_large() { pulse(sr_too_large); }
-    void data_provider_failed() { pulse(sr_data_provider_failed); }
-};
-
-set_result_t co_set(store_t *store, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    set_callback_t cb;
-    store->set(key, data, flags, exptime, &cb);
-    return cb.wait();
-};
-
-set_result_t co_add(store_t *store, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    set_callback_t cb;
-    store->add(key, data, flags, exptime, &cb);
-    return cb.wait();
-}
-
-set_result_t co_replace(store_t *store, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    set_callback_t cb;
-    store->replace(key, data, flags, exptime, &cb);
-    return cb.wait();
-}
-
-set_result_t co_cas(store_t *store, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique) {
-    set_callback_t cb;
-    store->cas(key, data, flags, exptime, unique, &cb);
-    return cb.wait();
-}
-
-enum append_prepend_result_t {
-    apr_success,
-    apr_too_large,
-    apr_not_found,
-    apr_data_provider_failed
-};
-
-struct append_prepend_callback_t
-    : public store_t::append_prepend_callback_t, public value_cond_t<append_prepend_result_t>
-{
-    void success() { pulse(apr_success); }
-    void not_found() { pulse(apr_not_found); }
-    void too_large() { pulse(apr_too_large); }
-    void data_provider_failed() { pulse(apr_data_provider_failed); }
-};
-
-append_prepend_result_t co_append(store_t *store, store_key_t *key, data_provider_t *data) {
-    append_prepend_callback_t cb;
-    store->append(key, data, &cb);
-    return cb.wait();
-}
-
-append_prepend_result_t co_prepend(store_t *store, store_key_t *key, data_provider_t *data) {
-    append_prepend_callback_t cb;
-    store->prepend(key, data, &cb);
-    return cb.wait();
-}
-
 void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, store_key_and_buffer_t key, data_provider_t *data, mcflags_t mcflags, exptime_t exptime, cas_t unique, bool noreply) {
 
     if (sc != append_command && sc != prepend_command) {
-        set_result_t res;
+        store_t::set_result_t res;
         switch (sc) {
-            case set_command: res = co_set(rh->server->store, &key.key, data, mcflags, exptime); break;
-            case add_command: res = co_add(rh->server->store, &key.key, data, mcflags, exptime); break;
-            case replace_command: res = co_replace(rh->server->store, &key.key, data, mcflags, exptime); break;
-            case cas_command: res = co_cas(rh->server->store, &key.key, data, mcflags, exptime, unique); break;
+            case set_command: res = rh->server->store->set(&key.key, data, mcflags, exptime); break;
+            case add_command: res = rh->server->store->add(&key.key, data, mcflags, exptime); break;
+            case replace_command: res = rh->server->store->replace(&key.key, data, mcflags, exptime); break;
+            case cas_command: res = rh->server->store->cas(&key.key, data, mcflags, exptime, unique); break;
             case append_command:
             case prepend_command:
             default:
@@ -352,26 +271,29 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
         /* Ignore 'noreply' if we got sr_data_provider_failed because that's considered a syntax
         error. Note that we can only get sr_data_provider_failed if we had a streaming data
         provider, so there is no risk of interfering with the output from the next command. */
-        if (!noreply || res == sr_data_provider_failed) {
+        if (!noreply || res == store_t::sr_data_provider_failed) {
             switch (res) {
-                case sr_stored: rh->writef("STORED\r\n"); break;
-                case sr_not_stored: rh->writef("NOT_STORED\r\n"); break;
-                case sr_exists: rh->writef("EXISTS\r\n"); break;
-                case sr_not_found: rh->writef("NOT_FOUND\r\n"); break;
-                case sr_too_large:
+                case store_t::sr_stored: rh->writef("STORED\r\n"); break;
+                case store_t::sr_not_stored: rh->writef("NOT_STORED\r\n"); break;
+                case store_t::sr_exists: rh->writef("EXISTS\r\n"); break;
+                case store_t::sr_not_found: rh->writef("NOT_FOUND\r\n"); break;
+                case store_t::sr_too_large:
                     rh->writef("SERVER_ERROR object too large for cache\r\n");
                     break;
-                case sr_data_provider_failed:
+                case store_t::sr_data_provider_failed:
                     rh->writef("CLIENT_ERROR bad data chunk\r\n");
                     break;
+                /* case store_t::sr_not_allowed:
+                    rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
+                    break; */
                 default: unreachable();
             }
         }
     } else {
-        append_prepend_result_t res;
+        store_t::append_prepend_result_t res;
         switch (sc) {
-            case append_command: res = co_append(rh->server->store, &key.key, data); break;
-            case prepend_command: res = co_prepend(rh->server->store, &key.key, data); break;
+            case append_command: res = rh->server->store->append(&key.key, data); break;
+            case prepend_command: res = rh->server->store->prepend(&key.key, data); break;
             case set_command:
             case add_command:
             case replace_command:
@@ -379,16 +301,19 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
             default:
                 unreachable();
         }
-        if (!noreply || res == apr_data_provider_failed) {
+        if (!noreply || res == store_t::apr_data_provider_failed) {
             switch (res) {
-                case apr_success: rh->writef("STORED\r\n"); break;
-                case apr_not_found: rh->writef("NOT_FOUND\r\n"); break;
-                case apr_too_large:
+                case store_t::apr_success: rh->writef("STORED\r\n"); break;
+                case store_t::apr_not_found: rh->writef("NOT_FOUND\r\n"); break;
+                case store_t::apr_too_large:
                     rh->writef("SERVER_ERROR object too large for cache\r\n");
                     break;
-                case apr_data_provider_failed:
+                case store_t::apr_data_provider_failed:
                     rh->writef("CLIENT_ERROR bad data chunk\r\n");
                     break;
+                /* case apr_not_allowed:
+                    rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
+                    break; */
                 default: unreachable();
             }
         }
@@ -525,61 +450,26 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 }
 
 /* "incr" and "decr" commands */
-
-struct incr_decr_result_t {
-    enum result_t {
-        idr_success,
-        idr_not_found,
-        idr_not_numeric
-    } res;
-    unsigned long long new_value;   // Valid only if idr_success
-    incr_decr_result_t(result_t r, unsigned long long n = 0) : res(r), new_value(n) { }
-};
-
-struct incr_decr_callback_t :
-    public store_t::incr_decr_callback_t,
-    public value_cond_t<incr_decr_result_t>
-{
-    void success(unsigned long long new_value) {
-        pulse(incr_decr_result_t(incr_decr_result_t::idr_success, new_value));
-    }
-    void not_found() {
-        pulse(incr_decr_result_t(incr_decr_result_t::idr_not_found));
-    }
-    void not_numeric() {
-        pulse(incr_decr_result_t(incr_decr_result_t::idr_not_numeric));
-    }
-};
-
-incr_decr_result_t co_incr(store_t *store, store_key_t *key, unsigned long long amount) {
-    incr_decr_callback_t cb;
-    store->incr(key, amount, &cb);
-    return cb.wait();
-}
-
-incr_decr_result_t co_decr(store_t *store, store_key_t *key, unsigned long long amount) {
-    incr_decr_callback_t cb;
-    store->decr(key, amount, &cb);
-    return cb.wait();
-}
-
 void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsigned long long amount, bool incr, bool noreply) {
 
-    incr_decr_result_t res = incr ?
-        co_incr(rh->server->store, &key.key, amount) :
-        co_decr(rh->server->store, &key.key, amount);
+    store_t::incr_decr_result_t res = incr ?
+        rh->server->store->incr(&key.key, amount) :
+        rh->server->store->decr(&key.key, amount);
 
     if (!noreply) {
         switch (res.res) {
-            case incr_decr_result_t::idr_success:
+            case store_t::incr_decr_result_t::idr_success:
                 rh->writef("%llu\r\n", res.new_value);
                 break;
-            case incr_decr_result_t::idr_not_found:
+            case store_t::incr_decr_result_t::idr_not_found:
                 rh->writef("NOT_FOUND\r\n");
                 break;
-            case incr_decr_result_t::idr_not_numeric:
+            case store_t::incr_decr_result_t::idr_not_numeric:
                 rh->writef("CLIENT_ERROR cannot increment or decrement non-numeric value\r\n");
                 break;
+            /* case incr_decr_result_t::idr_not_allowed:
+                rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
+                break; */
             default: unreachable();
         }
     }
@@ -634,32 +524,14 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 
 /* "delete" commands */
 
-enum delete_result_t {
-    dr_deleted,
-    dr_not_found
-};
-
-struct delete_callback_t :
-    public store_t::delete_callback_t, public value_cond_t<delete_result_t>
-{
-    void deleted() { pulse(dr_deleted); }
-    void not_found() { pulse(dr_not_found); }
-};
-
-delete_result_t co_delete(store_t *store, store_key_t *key) {
-    delete_callback_t cb;
-    store->delete_key(key, &cb);
-    return cb.wait();
-}
-
 void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool noreply) {
 
-    delete_result_t res = co_delete(rh->server->store, &key.key);
+    store_t::delete_result_t res = rh->server->store->delete_key(&key.key);
 
     if (!noreply) {
         switch (res) {
-            case dr_deleted: rh->writef("DELETED\r\n"); break;
-            case dr_not_found: rh->writef("NOT_FOUND\r\n"); break;
+            case store_t::dr_deleted: rh->writef("DELETED\r\n"); break;
+            case store_t::dr_not_found: rh->writef("NOT_FOUND\r\n"); break;
             default: unreachable();
         }
     }
@@ -743,19 +615,19 @@ perfmon_duration_sampler_t
 void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 
     for (;;) {
-        tcp_conn_t::bufslice sl = conn->peek();
-        void *crlf_loc = memmem(sl.buf, sl.len, "\r\n", 2);
-        size_t threshold = MEGABYTE;
+        const_charslice sl = conn->peek();
+        void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, "\r\n", 2);
+        ssize_t threshold = MEGABYTE;
 
         if (crlf_loc) {
             // We have a valid line.
-            size_t line_size = (char *)crlf_loc - (char *)sl.buf;
+            size_t line_size = (char *)crlf_loc - (char *)sl.beg;
 
             dest->resize(line_size + 2);  // +2 for CRLF
-            memcpy(dest->data(), sl.buf, line_size + 2);
+            memcpy(dest->data(), sl.beg, line_size + 2);
             conn->pop(line_size + 2);
             return;
-        } else if (sl.len > threshold) {
+        } else if (sl.end - sl.beg > threshold) {
             // If a malfunctioning client sends a lot of data without a
             // CRLF, we cut them off.  (This doesn't apply to large values
             // because they are read from the socket via a different
@@ -799,7 +671,7 @@ bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
             for (std::vector<key_with_memory>::iterator it = keys.begin(); it != keys.end(); ++it) {
                 btree_key& k = (*it).key;
                 uint32_t hash = btree_key_value_store_t::hash(&k);
-                uint32_t slice = rh->server->store->slice_nr(&k);
+                uint32_t slice = -1; //rh->server->store->slice_nr(&k);  // TODO fix this.  FIX THIS.
                 rh->writef("%*s: %08lx [%lu]\r\n", k.size, k.contents, hash, slice);
             }
             rh->writef("END\r\n");
@@ -816,7 +688,7 @@ bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
 
 void serve_memcache(tcp_conn_t *conn, server_t *server) {
 
-    logINF("Opened connection %p\n", coro_t::self());
+    // logINF("Opened connection %p\n", coro_t::self());
 
     /* Object that we pass around to subroutines (is there a better way to do this?) */
     txt_memcached_handler_t rh(conn, server);
@@ -923,6 +795,6 @@ void serve_memcache(tcp_conn_t *conn, server_t *server) {
     done by now */
     rh.prevent_shutdown_lock.co_lock(rwi_write);
 
-    logINF("Closed connection %p\n", coro_t::self());
+    // logINF("Closed connection %p\n", coro_t::self());
 }
 

@@ -105,18 +105,18 @@ public:
     void release();
 
     void *get_data_write() {
-        assert(ready);
-        assert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
-        assert(!inner_buf->do_delete);
-        assert(mode == rwi_write);
+        rassert(ready);
+        rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
+        rassert(!inner_buf->do_delete);
+        rassert(mode == rwi_write);
         inner_buf->writeback_buf.set_dirty();
         
-        assert(data == inner_buf->data);
+        rassert(data == inner_buf->data);
         return data;
     }
 
     const void *get_data_read() {
-        assert(ready);
+        rassert(ready);
         return data;
     }
 
@@ -125,8 +125,8 @@ public:
     }
     
     void mark_deleted() {
-        assert(mode == rwi_write);
-        assert(!inner_buf->safe_to_unload());
+        rassert(mode == rwi_write);
+        rassert(!inner_buf->safe_to_unload());
         inner_buf->do_delete = true;
         inner_buf->writeback_buf.set_dirty();
     }

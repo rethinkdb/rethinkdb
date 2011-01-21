@@ -31,14 +31,14 @@ void rwi_lock_t::unlock() {
             nreaders--;
             if(nreaders == 0)
                 state = rwis_unlocked;
-            assert(nreaders >= 0);
+            rassert(nreaders >= 0);
             break;
         case rwis_writing:
             state = rwis_unlocked;
             break;
         case rwis_reading_with_intent:
             nreaders--;
-            assert(nreaders >= 0);
+            rassert(nreaders >= 0);
             break;
         default:
             unreachable("Invalid lock state");
@@ -51,7 +51,7 @@ void rwi_lock_t::unlock() {
 // Call if you've locked for intent before, didn't upgrade to
 // write, and are now unlocking.
 void rwi_lock_t::unlock_intent() {
-    assert(state == rwis_reading_with_intent);
+    rassert(state == rwis_reading_with_intent);
     if(nreaders == 0)
         state = rwis_unlocked;
     else
@@ -94,7 +94,7 @@ bool rwi_lock_t::try_lock_read(bool from_queue) {
         
     switch (state) {
         case rwis_unlocked:
-            assert(nreaders == 0);
+            rassert(nreaders == 0);
             state = rwis_reading;
             nreaders++;
             return true;
@@ -102,7 +102,7 @@ bool rwi_lock_t::try_lock_read(bool from_queue) {
             nreaders++;
             return true;
         case rwis_writing:
-            assert(nreaders == 0);
+            rassert(nreaders == 0);
             return false;
         case rwis_reading_with_intent:
             nreaders++;
@@ -121,14 +121,14 @@ bool rwi_lock_t::try_lock_write(bool from_queue) {
         
     switch (state) {
         case rwis_unlocked:
-            assert(nreaders == 0);
+            rassert(nreaders == 0);
             state = rwis_writing;
             return true;
         case rwis_reading:
-            assert(nreaders >= 0);
+            rassert(nreaders >= 0);
             return false;
         case rwis_writing:
-            assert(nreaders == 0);
+            rassert(nreaders == 0);
             return false;
         case rwis_reading_with_intent:
             return false;
@@ -145,14 +145,14 @@ bool rwi_lock_t::try_lock_intent(bool from_queue) {
         
     switch (state) {
         case rwis_unlocked:
-            assert(nreaders == 0);
+            rassert(nreaders == 0);
             state = rwis_reading_with_intent;
             return true;
         case rwis_reading:
             state = rwis_reading_with_intent;
             return true;
         case rwis_writing:
-            assert(nreaders == 0);
+            rassert(nreaders == 0);
             return false;
         case rwis_reading_with_intent:
             return false;
@@ -162,7 +162,7 @@ bool rwi_lock_t::try_lock_intent(bool from_queue) {
 }
 
 bool rwi_lock_t::try_lock_upgrade(bool from_queue) {
-    assert(state == rwis_reading_with_intent);
+    rassert(state == rwis_reading_with_intent);
     if (nreaders == 0) {
         state = rwis_writing;
         return true;

@@ -8,7 +8,7 @@
 #include <sys/syscall.h>
 
 int eventfd(int count, int flags) {
-    assert(flags == 0); // Legacy kernel doesn't have eventfd2.
+    rassert(flags == 0); // Legacy kernel doesn't have eventfd2.
     return syscall(SYS_eventfd, count);
 }
 

@@ -6,23 +6,23 @@
 #include "buffer_cache/co_functions.hpp"
 #include "btree/coro_wrappers.hpp"
 
-class btree_append_prepend_oper_t : public btree_modify_oper_t {
-public:
-    explicit btree_append_prepend_oper_t(data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb)
-        : btree_modify_oper_t(), data(data), append(append), callback(cb)
+struct btree_append_prepend_oper_t : public btree_modify_oper_t {
+
+    explicit btree_append_prepend_oper_t(data_provider_t *data, bool append)
+        : data(data), append(append)
     { }
 
     bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
         if (!old_value) {
-            result = result_not_found;
-            co_get_data_provider_value(data, NULL);
+            result = store_t::apr_not_found;
+            if (!data->get_value(NULL)) result = store_t::apr_data_provider_failed;
             return false;
         }
 
         size_t new_size = old_value->value_size() + data->get_size();
         if (new_size > MAX_VALUE_SIZE) {
-            result = result_too_large;
-            co_get_data_provider_value(data, NULL);
+            result = store_t::apr_too_large;
+            if (!data->get_value(NULL)) result = store_t::apr_data_provider_failed;
             return false;
         }
 
@@ -34,7 +34,7 @@ public:
         // Figure out where the data is going to need to go and prepare a place for it
         
         if (new_size <= MAX_IN_NODE_VALUE_SIZE) { // small -> small
-            assert(!old_value->is_large());
+            rassert(!old_value->is_large());
             // XXX This does unnecessary copying now.
             if (append) {
                 buffer_group.add_buffer(data->get_size(), value.value() + old_value->value_size());
@@ -70,7 +70,7 @@ public:
                 uint16_t seg_len;
                 byte_t *seg = large_value->get_segment_write(ix, &seg_len);
 
-                assert(seg_len >= seg_pos);
+                rassert(seg_len >= seg_pos);
                 uint16_t seg_bytes_to_fill = std::min((uint32_t)(seg_len - seg_pos), fill_size);
                 buffer_group.add_buffer(seg_bytes_to_fill, seg + seg_pos);
                 fill_size -= seg_bytes_to_fill;
@@ -81,8 +81,8 @@ public:
         
         // Dispatch the data request
         
-        result = result_success;
-        bool success = co_get_data_provider_value(data, &buffer_group);
+        result = store_t::apr_success;
+        bool success = data->get_value(&buffer_group);
         if (!success) {
             if (large_value) {
                 if (is_old_large_value) {
@@ -102,7 +102,7 @@ public:
                 }
             }
 
-            result = result_data_provider_failed;
+            result = store_t::apr_data_provider_failed;
             return false;
         }
 
@@ -110,27 +110,7 @@ public:
         *new_large_buf = large_value;
         return true;
     }
-    
-    void call_callback() {
-        switch (result) {
-            case result_success:
-                callback->success();
-                break;
-            case result_too_large:
-                callback->too_large();
-                break;
-            case result_not_found:
-                callback->not_found();
-                break;
-            case result_data_provider_failed:
-                callback->data_provider_failed();
-                break;
-            default:
-                unreachable();
-        }
-    }
 
-protected:
     void actually_acquire_large_value(large_buf_t *lb, const large_buf_ref& lbref) {
         if (append) {
             co_acquire_large_value_rhs(lb, lbref, rwi_write);
@@ -139,17 +119,10 @@ protected:
         }
     }
 
-private:
-    enum result_t {
-        result_success,
-        result_not_found,
-        result_too_large,
-        result_data_provider_failed
-    } result;
+    store_t::append_prepend_result_t result;
 
     data_provider_t *data;
     bool append;   // true = append, false = prepend
-    store_t::append_prepend_callback_t *callback;
 
     union {
         byte value_memory[MAX_BTREE_VALUE_SIZE];
@@ -160,13 +133,10 @@ private:
     buffer_group_t buffer_group;
 };
 
-void co_btree_append_prepend(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb) {
-    btree_append_prepend_oper_t *oper = new btree_append_prepend_oper_t(data, append, cb);
-    run_btree_modify_oper(oper, store, key);
-}
-
-void btree_append_prepend(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, bool append, store_t::append_prepend_callback_t *cb) {
-    coro_t::spawn(co_btree_append_prepend, key, store, data, append, cb);
+store_t::append_prepend_result_t btree_append_prepend(const btree_key *key, btree_slice_t *slice, data_provider_t *data, bool append) {
+    btree_append_prepend_oper_t oper(data, append);
+    run_btree_modify_oper(&oper, slice, key);
+    return oper.result;
 }
 
 #endif // __BTREE_APPEND_PREPEND_HPP__

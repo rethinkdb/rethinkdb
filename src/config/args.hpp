@@ -182,7 +182,7 @@
 // How many different places in each file we should be writing to at once, not counting the
 // metablock or LBA
 #define MAX_ACTIVE_DATA_EXTENTS                   64
-#define DEFAULT_ACTIVE_DATA_EXTENTS               8
+#define DEFAULT_ACTIVE_DATA_EXTENTS               1
 
 // How many zones the serializer will divide a block device into
 #define DEFAULT_FILE_ZONE_SIZE                    GIGABYTE

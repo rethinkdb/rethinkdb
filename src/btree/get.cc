@@ -6,10 +6,12 @@
 #include "btree/leaf_node.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/co_functions.hpp"
-
+#include "perfmon.hpp"
 #include "btree/coro_wrappers.hpp"
+#include "store.hpp"
+#include "concurrency/cond_var.hpp"
 
-void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
+void co_btree_get(const btree_key *key, btree_slice_t *slice, value_cond_t<store_t::get_result_t> *res_cond) {
     union {
         char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
@@ -18,13 +20,12 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
 
     block_pm_duration get_time(&pm_cmd_get);
 
-    btree_slice_t *slice = store->slice_for_key(key);
     cache_t *cache = &slice->cache;
-    int home_thread = get_thread_id();
 
+    int home_thread = get_thread_id();
     coro_t::move_to_thread(slice->home_thread);
-    ticks_t start_time;
-    pm_cmd_get_without_threads.begin(&start_time);
+
+    block_pm_duration get_time_2(&pm_cmd_get_without_threads);
 
     transactor_t transactor(cache, rwi_read);
 
@@ -32,7 +33,7 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
     buf_lock_t buf_lock(transactor, SUPERBLOCK_ID, rwi_read);
 
     block_id_t node_id = ptr_cast<btree_superblock_t>(buf_lock.buf()->get_data_read())->root_block;
-    assert(node_id != SUPERBLOCK_ID);
+    rassert(node_id != SUPERBLOCK_ID);
 
     //Acquire the root
     if (node_id == NULL_BLOCK_ID) {
@@ -41,9 +42,9 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
 
         // Commit transaction now because we won't be returning to this core
         transactor.commit();
-        pm_cmd_get_without_threads.end(&start_time);
+        get_time_2.end();
         coro_t::move_to_thread(home_thread);
-        cb->not_found();
+        co_deliver_get_result(NULL, 0, 0, res_cond);
         return;
     }
 
@@ -64,8 +65,8 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
         }
 
         block_id_t next_node_id = internal_node::lookup(ptr_cast<internal_node_t>(node), key);
-        assert(next_node_id != NULL_BLOCK_ID);
-        assert(next_node_id != SUPERBLOCK_ID);
+        rassert(next_node_id != NULL_BLOCK_ID);
+        rassert(next_node_id != SUPERBLOCK_ID);
 
         node_id = next_node_id;
     }
@@ -76,7 +77,7 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
     buf_lock.release();
 
     if (found && value.expired()) {
-        btree_delete_expired(key, store);
+        btree_delete_expired(key, slice);
         found = false;
     }
     
@@ -91,20 +92,20 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
         // Commit transaction now because we won't be returning to this core
         transactor.commit();
 
-        pm_cmd_get_without_threads.end(&start_time);
+        get_time_2.end();
         coro_t::move_to_thread(home_thread);
-        cb->not_found();
+        co_deliver_get_result(NULL, 0, 0, res_cond);
         return;
     } else if (value.is_large()) {
         // Don't commit transaction yet because we need to keep holding onto
         // the large buf until it's been read.
-        assert(value.is_large());
+        rassert(value.is_large());
 
         large_buf_t *large_value = new large_buf_t(transactor.transaction());
 
         co_acquire_large_value(large_value, value.lb_ref(), rwi_read);
-        assert(large_value->state == large_buf_t::loaded);
-        assert(large_value->get_root_ref().block_id == value.lb_ref().block_id);
+        rassert(large_value->state == large_buf_t::loaded);
+        rassert(large_value->get_root_ref().block_id == value.lb_ref().block_id);
 
         const_buffer_group_t value_buffers;
         for (int i = 0; i < large_value->get_num_segments(); i++) {
@@ -112,9 +113,9 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
             const void *data = large_value->get_segment(i, &size);
             value_buffers.add_buffer(size, data);
         }
-        pm_cmd_get_without_threads.end(&start_time);
+        get_time_2.end();
         coro_t::move_to_thread(home_thread);
-        co_value(cb, &value_buffers, value.mcflags(), 0);
+        co_deliver_get_result(&value_buffers, value.mcflags(), 0, res_cond);
         {
             on_thread_t mover(slice->home_thread);
             large_value->release();
@@ -127,12 +128,14 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, store_t:
 
         const_buffer_group_t value_buffers;
         value_buffers.add_buffer(value.value_size(), value.value());
-        pm_cmd_get_without_threads.end(&start_time);
+        get_time_2.end();
         coro_t::move_to_thread(home_thread);
-        co_value(cb, &value_buffers, value.mcflags(), 0);
+        co_deliver_get_result(&value_buffers, value.mcflags(), 0, res_cond);
     }
 }
 
-void btree_get(const btree_key *key, btree_key_value_store_t *store, store_t::get_callback_t *cb) {
-    coro_t::spawn(co_btree_get, key, store, cb);
+store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
+    value_cond_t<store_t::get_result_t> res_cond;
+    coro_t::spawn(co_btree_get, key, slice, &res_cond);
+    return res_cond.wait();
 }

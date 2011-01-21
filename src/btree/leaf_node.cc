@@ -85,8 +85,8 @@ void remove(block_size_t block_size, leaf_node_t *node, const btree_key *key) {
 #endif
 
     int index = impl::find_key(node, key);
-    assert(index != -1);
-    assert(index != node->npairs);
+    rassert(index != -1);
+    rassert(index != node->npairs);
 
     uint16_t offset = node->pair_offsets[index];
     impl::remove_time(&node->times, impl::get_timestamp_offset(block_size, node, offset));
@@ -124,7 +124,7 @@ bool lookup(const leaf_node_t *node, const btree_key *key, btree_value *value) {
 // comfortable.  TODO: prove that block_size - node->frontmost_offset
 // meets this 1500 lower bound.
 void split(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree_key *median_out) {
-    assert(node != rnode);
+    rassert(node != rnode);
 
     uint16_t total_pairs = block_size.value() - node->frontmost_offset;
     uint16_t first_pairs = 0;
@@ -140,7 +140,7 @@ void split(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree
     // much more than 250, we know that 0 < median_index < node->npairs.
     int median_index = index;
 
-    assert(median_index < node->npairs);
+    rassert(median_index < node->npairs);
     init(block_size, rnode, node, node->pair_offsets + median_index, node->npairs - median_index, node->times.last_modified);
 
     // This is ~(n^2); it could be ~(n).  Profiling tells us there are
@@ -155,13 +155,13 @@ void split(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree
     impl::initialize_times(&node->times, node->times.last_modified);
 
     // Equality takes the left branch, so the median should be from this node.
-    assert(median_index > 0);
+    rassert(median_index > 0);
     const btree_key *median_key = &get_pair(node, node->pair_offsets[median_index-1])->key;
     keycpy(median_out, median_key);
 }
 
 void merge(block_size_t block_size, const leaf_node_t *node, leaf_node_t *rnode, btree_key *key_to_remove_out) {
-    assert(node != rnode);
+    rassert(node != rnode);
 
 #ifdef BTREE_DEBUG
     printf("merging\n");
@@ -201,7 +201,7 @@ void merge(block_size_t block_size, const leaf_node_t *node, leaf_node_t *rnode,
 }
 
 bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btree_key *key_to_replace_out, btree_key *replacement_key_out) {
-    assert(node != sibling);
+    rassert(node != sibling);
 
 #ifdef BTREE_DEBUG
     printf("leveling\n");
@@ -366,7 +366,7 @@ bool is_full(const leaf_node_t *node, const btree_key *key, const btree_value *v
     // Can the key/value pair fit?  We assume (conservatively) the
     // key/value pair is not already part of the node.
 
-    assert(value);
+    rassert(value);
 #ifdef BTREE_DEBUG
     printf("sizeof(leaf_node_t): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets):%ld, key->size: %d, value->full_size(): %d, node->frontmost_offset: %d\n", sizeof(leaf_node_t), (node->npairs + 1), sizeof(*node->pair_offsets), key->size, value->full_size(), node->frontmost_offset);
 #endif
@@ -377,12 +377,12 @@ bool is_full(const leaf_node_t *node, const btree_key *key, const btree_value *v
 
 void validate(block_size_t block_size, const leaf_node_t *node) {
 #ifndef NDEBUG
-    assert(ptr_cast<byte>(&(node->pair_offsets[node->npairs])) <= ptr_cast<byte>(get_pair(node, node->frontmost_offset)));
-    assert(node->frontmost_offset > 0);
-    assert(node->frontmost_offset <= block_size.value());
+    rassert(ptr_cast<byte>(&(node->pair_offsets[node->npairs])) <= ptr_cast<byte>(get_pair(node, node->frontmost_offset)));
+    rassert(node->frontmost_offset > 0);
+    rassert(node->frontmost_offset <= block_size.value());
     for (int i = 0; i < node->npairs; i++) {
-        assert(node->pair_offsets[i] < block_size.value());
-        assert(node->pair_offsets[i] >= node->frontmost_offset);
+        rassert(node->pair_offsets[i] < block_size.value());
+        rassert(node->pair_offsets[i] >= node->frontmost_offset);
     }
 #endif
 }
@@ -595,7 +595,7 @@ int get_timestamp_offset(block_size_t block_size, const leaf_node_t *node, uint1
 
     int i = -1;
     for (;;) {
-        assert(p <= e);
+        rassert(p <= e);
         if (p >= e) {
             return NUM_LEAF_NODE_EARLIER_TIMES;
         }

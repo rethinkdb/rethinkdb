@@ -16,7 +16,7 @@
 
 int user_to_poll(int mode) {
 
-    assert((mode & (poll_event_in|poll_event_out)) == mode);
+    rassert((mode & (poll_event_in|poll_event_out)) == mode);
 
     int out_mode = 0;
     if (mode & poll_event_in) out_mode |= POLLIN;
@@ -27,7 +27,7 @@ int user_to_poll(int mode) {
 
 int poll_to_user(int mode) {
 
-    assert((mode & (POLLIN|POLLOUT|POLLERR|POLLHUP|POLLRDHUP)) == mode);
+    rassert((mode & (POLLIN|POLLOUT|POLLERR|POLLHUP|POLLRDHUP)) == mode);
 
     int out_mode = 0;
     if (mode & POLLIN) out_mode |= poll_event_in;
@@ -98,7 +98,7 @@ poll_event_queue_t::~poll_event_queue_t() {
 }
 
 void poll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
-    assert(cb);
+    rassert(cb);
 
     pollfd pfd;
     bzero(&pfd, sizeof(pfd));
@@ -122,7 +122,7 @@ void poll_event_queue_t::adjust_resource(fd_t resource, int events, linux_event_
 }
 
 void poll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t *cb) {
-    assert(cb);
+    rassert(cb);
 
     // Erase the callback from the map
     callbacks.erase(resource);

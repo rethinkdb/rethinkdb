@@ -140,7 +140,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
 
     /* main() will have automatically inserted "serve" if no argument was specified */
-    assert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create"));
+    rassert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create"));
 
     if (!strcmp(argv[0], "create")) {
         if (argc >= 2 && !strcmp(argv[1], "help")) {
@@ -178,7 +178,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
                 {"help",                 no_argument, &do_help, 1},
-                {"slave_of",             required_argument, 0, slave_of},
+                {"slave_of",             required_argument, 0, slave_of}, //TODO document this @jdoliner
                 {"failover-script",      required_argument, 0, failover_script}, //TODO document this @jdoliner
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO document this @jdoliner
                 {0, 0, 0, 0}
@@ -240,6 +240,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case slave_of:
                 config.set_master_addr(optarg); break;
             case failover_script:
+                not_implemented();
                 break;
             case heartbeat_timeout:
                 break;
@@ -538,6 +539,8 @@ void parsing_cmd_config_t::set_master_addr(char *value) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
 
     replication_config.port = parse_int(token);
+
+    replication_config.active = true;
 }
 
 void parsing_cmd_config_t::set_failover_file(const char* value) {

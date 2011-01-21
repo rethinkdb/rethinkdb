@@ -335,7 +335,7 @@ private:
         // "INDEX __main_index (__key)) "        \
 
         snprintf(buf, sizeof(buf),
-                 "CREATE TABLE bench (__key varchar(%d), __value varchar(%d)," \
+                 "CREATE TABLE bench (__key varchar(%lu), __value varchar(%d)," \
                  "PRIMARY KEY (__key)) "                             \
                  "ENGINE=InnoDB",
                  config->keys.calculate_max_length(config->clients - 1), config->values.max);

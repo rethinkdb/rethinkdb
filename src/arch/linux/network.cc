@@ -7,14 +7,44 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 /* Network connection object */
 
-linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
-    registration_thread(-1),
-    read_cond(NULL), write_cond(NULL),
-    read_was_shut_down(false), write_was_shut_down(false)
-{
+
+linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
+    : registration_thread(-1),
+      read_cond(NULL), write_cond(NULL),
+      read_was_shut_down(false), write_was_shut_down(false) {
+    struct addrinfo *res;
+
+    /* make a sacrifice to the elders honor by converting port to a string, why
+     * can't we just sacrifice a virgin for them (lord knows we have enough
+     * virgins in Silicon Valley) */
+    char port_str[10]; /* god is it dumb that we have to do this */
+    snprintf(port_str, 10, "%d", port);
+    //fail_due_to_user_error("Port is too big", (snprintf(port_str, 10, "%d", port) == 10));
+
+    /* make the connection */
+    getaddrinfo(host, port_str, NULL, &res);
+    sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (connect(sock, res->ai_addr, res->ai_addrlen) != 0) {
+        /* for some reason the connection failed */
+        logINF("Failed to make a connection with error: %s", strerror(errno));
+
+        freeaddrinfo(res);
+        throw connect_failed_exc_t();
+    }
+
+    freeaddrinfo(res);
+}
+
+linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
+    : registration_thread(-1),
+      read_cond(NULL), write_cond(NULL),
+      read_was_shut_down(false), write_was_shut_down(false) {
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -37,7 +67,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t sock) :
     read_cond(NULL), write_cond(NULL),
     read_was_shut_down(false), write_was_shut_down(false)
 {
-    assert(sock != INVALID_FD);
+    rassert(sock != INVALID_FD);
 
     int res = fcntl(sock, F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make socket non-blocking");
@@ -64,7 +94,7 @@ void linux_tcp_conn_t::register_with_event_loop() {
 
 size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 
-    assert(!read_was_shut_down);
+    rassert(!read_was_shut_down);
 
     while (true) {
         ssize_t res = ::read(sock, buffer, size);
@@ -104,7 +134,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 void linux_tcp_conn_t::read(void *buf, size_t size) {
 
     register_with_event_loop();
-    assert(!read_cond);   // Is there a read already in progress?
+    rassert(!read_cond);   // Is there a read already in progress?
     if (read_was_shut_down) throw read_closed_exc_t();
 
     /* First, consume any data in the peek buffer */
@@ -117,7 +147,7 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
     /* Now go to the kernel for any more data that we need */
     while (size > 0) {
         size_t delta = read_internal(buf, size);
-        assert(delta <= size);
+        rassert(delta <= size);
         buf = reinterpret_cast<void *>(reinterpret_cast<char *>(buf) + delta);
         size -= delta;
     }
@@ -128,7 +158,7 @@ void linux_tcp_conn_t::read_more_buffered() {
     /* Put ourselves into the epoll object so that we will receive notifications when we need them.
     See the note in register_with_event_loop() if this doesn't make sense. */
     register_with_event_loop();
-    assert(!read_cond);
+    rassert(!read_cond);
     if (read_was_shut_down) throw read_closed_exc_t();
 
     size_t old_size = read_buffer.size();
@@ -138,13 +168,13 @@ void linux_tcp_conn_t::read_more_buffered() {
     read_buffer.resize(old_size + delta);
 }
 
-linux_tcp_conn_t::bufslice linux_tcp_conn_t::peek() const {
-    return bufslice(read_buffer.data(), read_buffer.size());
+const_charslice linux_tcp_conn_t::peek() const {
+    return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
 }
 
 void linux_tcp_conn_t::pop(size_t len) {
-    assert(!read_cond);
-    assert(len <= read_buffer.size());
+    rassert(!read_cond);
+    rassert(len <= read_buffer.size());
     read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
 }
 
@@ -160,13 +190,13 @@ void linux_tcp_conn_t::shutdown_read() {
 
 void linux_tcp_conn_t::on_shutdown_read() {
 
-    assert(!read_was_shut_down);
+    rassert(!read_was_shut_down);
     read_was_shut_down = true;
 
     // Deregister ourself with the event loop. If the write half of the connection
     // is still open, the make sure we stay registered for write.
     if (registration_thread != -1) {
-        assert(registration_thread == linux_thread_pool_t::thread_id);
+        rassert(registration_thread == linux_thread_pool_t::thread_id);
         if (write_was_shut_down) {
             linux_thread_pool_t::thread->queue.forget_resource(sock, this);
         } else {
@@ -187,7 +217,7 @@ bool linux_tcp_conn_t::is_read_open() {
 
 void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
 
-    assert(!write_was_shut_down);
+    rassert(!write_was_shut_down);
 
     while (size > 0) {
         int res = ::write(sock, buf, size);
@@ -224,7 +254,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
             on_shutdown_write();
             throw write_closed_exc_t();
         } else {
-            assert(res <= (int)size);
+            rassert(res <= (int)size);
             buf = reinterpret_cast<const void *>(reinterpret_cast<const char *>(buf) + res);
             size -= res;
         }
@@ -234,7 +264,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
 void linux_tcp_conn_t::write(const void *buf, size_t size) {
 
     register_with_event_loop();
-    assert(!write_cond);
+    rassert(!write_cond);
     if (write_was_shut_down) throw write_closed_exc_t();
 
     /* To preserve ordering, all buffered data must be sent before this chunk of data is sent */
@@ -247,7 +277,7 @@ void linux_tcp_conn_t::write(const void *buf, size_t size) {
 void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
 
     register_with_event_loop();
-    assert(!write_cond);
+    rassert(!write_cond);
     if (write_was_shut_down) throw write_closed_exc_t();
 
     /* Append data to write_buffer */
@@ -259,7 +289,7 @@ void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
 void linux_tcp_conn_t::flush_buffer() {
 
     register_with_event_loop();
-    assert(!write_cond);
+    rassert(!write_cond);
     if (write_was_shut_down) throw write_closed_exc_t();
 
     write_internal(write_buffer.data(), write_buffer.size());
@@ -278,13 +308,13 @@ void linux_tcp_conn_t::shutdown_write() {
 
 void linux_tcp_conn_t::on_shutdown_write() {
 
-    assert(!write_was_shut_down);
+    rassert(!write_was_shut_down);
     write_was_shut_down = true;
 
     // Deregister ourself with the event loop. If the read half of the connection
     // is still open, the make sure we stay registered for read.
     if (registration_thread != -1) {
-        assert(registration_thread == linux_thread_pool_t::thread_id);
+        rassert(registration_thread == linux_thread_pool_t::thread_id);
         if (read_was_shut_down) {
             linux_thread_pool_t::thread->queue.forget_resource(sock, this);
         } else {
@@ -337,7 +367,7 @@ void linux_tcp_conn_t::on_event(int events) {
     }
 
     if (events & poll_event_in) {
-        assert(!read_was_shut_down);
+        rassert(!read_was_shut_down);
         if (read_cond) {
             read_cond->pulse(true);
             read_cond = NULL;
@@ -345,7 +375,7 @@ void linux_tcp_conn_t::on_event(int events) {
     }
 
     if (events & poll_event_out) {
-        assert(!write_was_shut_down);
+        rassert(!write_was_shut_down);
         if (write_cond) {
             write_cond->pulse(true);
             write_cond = NULL;
@@ -412,8 +442,8 @@ void linux_tcp_listener_t::set_callback(linux_tcp_listener_callback_t *cb) {
     if (defunct)
         return;
 
-    assert(!callback);
-    assert(cb);
+    rassert(!callback);
+    rassert(cb);
     callback = cb;
 
     linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);

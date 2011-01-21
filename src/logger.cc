@@ -18,7 +18,7 @@ static __thread rwi_lock_t *log_controller_lock = NULL;
 
 static void install_log_controller(log_controller_t *lc, int thread) {
     on_thread_t thread_switcher(thread);
-    assert(!log_controller);
+    rassert(!log_controller);
     log_controller = lc;
     log_controller_lock = new rwi_lock_t;
 }
@@ -30,7 +30,7 @@ log_controller_t::log_controller_t() {
 
 static void uninstall_log_controller(log_controller_t *lc, int thread) {
     on_thread_t thread_switcher(thread);
-    assert(log_controller == lc);
+    rassert(log_controller == lc);
     log_controller = NULL;
     log_controller_lock->co_lock(rwi_write);
     delete log_controller_lock;
@@ -82,7 +82,7 @@ struct log_message_t
                 contents.data() + old_length,
                 chunk_length + 1,   // +1 for NUL-terminator
                 format, arg2);
-            assert(chunk_length_2 == chunk_length);   /* snprintf should be deterministic... */
+            rassert(chunk_length_2 == chunk_length);   /* snprintf should be deterministic... */
 
             /* Cut off NUL-terminator */
             contents.resize(old_length + chunk_length);
@@ -111,7 +111,7 @@ void _logf(const char *src_file, int src_line, log_level_t level, const char *fo
 
 void _mlog_start(const char *src_file, int src_line, log_level_t level) {
 
-    assert(!current_message);
+    rassert(!current_message);
     current_message = new log_message_t;
 
     const char *level_str;
@@ -134,7 +134,7 @@ void _mlog_start(const char *src_file, int src_line, log_level_t level) {
 }
 
 void mlogf(const char *format, ...) {
-    assert(current_message);
+    rassert(current_message);
     va_list arg;
     va_start(arg, format);
     current_message->vprintf(format, arg);
@@ -153,7 +153,7 @@ void write_log_message(log_message_t *msg, log_controller_t *lc) {
 }
 
 void mlog_end() {
-    assert(current_message);
+    rassert(current_message);
     if (!log_controller) {
         fwrite(current_message->contents.data(), 1, current_message->contents.size(), log_file);
         delete current_message;

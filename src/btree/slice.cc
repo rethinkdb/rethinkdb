@@ -1,247 +1,101 @@
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "btree/key_value_store.hpp"
+#include "buffer_cache/transactor.hpp"
+#include "buffer_cache/buf_lock.hpp"
+#include "concurrency/cond_var.hpp"
+#include "btree/get.hpp"
+#include "btree/set.hpp"
+#include "btree/incr_decr.hpp"
+#include "btree/append_prepend.hpp"
+#include "btree/delete.hpp"
+#include "btree/get_cas.hpp"
+#include <boost/scoped_ptr.hpp>
 
-/* When the serializer starts up, it will create an initial superblock and initialize it to zero.
-This isn't quite the behavior we want. The job of initialize_superblock_fsm is to initialize the
-superblock to contain NULL_BLOCK_ID rather than zero as the root node. */
-
-class initialize_superblock_fsm_t :
-    private block_available_callback_t,
-    private transaction_begin_callback_t,
-    private transaction_commit_callback_t
-{
-public:
-    explicit initialize_superblock_fsm_t(cache_t *cache)
-        : state(state_unstarted), cache(cache), sb_buf(NULL), txn(NULL)
-        {}
-    ~initialize_superblock_fsm_t() {
-        assert(state == state_unstarted || state == state_done);
-    }
-    
-    bool initialize_superblock_if_necessary(btree_slice_t *cb) {
-        assert(state == state_unstarted);
-        state = state_begin_transaction;
-        callback = NULL;
-        if (next_initialize_superblock_step()) {
-            return true;
-        } else {
-            callback = cb;
-            return false;
-        }
-    }
-
-private:
-    enum state_t {
-        state_unstarted,
-        state_begin_transaction,
-        state_beginning_transaction,
-        state_acquire_superblock,
-        state_acquiring_superblock,
-        state_make_change,
-        state_commit_transaction,
-        state_committing_transaction,
-        state_finish,
-        state_done
-    } state;
-    
-    cache_t *cache;
-    buf_t *sb_buf;
-    transaction_t *txn;
-    btree_slice_t *callback;
-    
-    bool next_initialize_superblock_step() {
-        if (state == state_begin_transaction) {
-            txn = cache->begin_transaction(rwi_write, this);
-            if (txn) {
-                state = state_acquire_superblock;
-            } else {
-                state = state_beginning_transaction;
-                return false;
-            }
-        }
-        
-        if (state == state_acquire_superblock) {
-            sb_buf = txn->acquire(SUPERBLOCK_ID, rwi_write, this);
-            if (sb_buf) {
-                state = state_make_change;
-            } else {
-                state = state_acquiring_superblock;
-                return false;
-            }
-        }
-        
-        if (state == state_make_change) {
-            btree_superblock_t *sb = (btree_superblock_t*)(sb_buf->get_data_write());
-            sb->magic = btree_superblock_t::expected_magic;
-            sb->root_block = NULL_BLOCK_ID;
-            sb_buf->release();
-            state = state_commit_transaction;
-        }
-        
-        if (state == state_commit_transaction) {
-            if (txn->commit(this)) {
-                state = state_finish;
-            } else {
-                state = state_committing_transaction;
-                return false;
-            }
-        }
-        
-        if (state == state_finish) {
-            state = state_done;
-            if (callback) callback->on_initialize_superblock();
-            return true;
-        }
-        
-        unreachable("Unexpected state");
-    }
-    
-    void on_txn_begin(transaction_t *t) {
-        assert(state == state_beginning_transaction);
-        txn = t;
-        state = state_acquire_superblock;
-        next_initialize_superblock_step();
-    }
-    
-    void on_txn_commit(transaction_t *t) {
-        assert(state == state_committing_transaction);
-        state = state_finish;
-        next_initialize_superblock_step();
-    }
-    
-    void on_block_available(buf_t *buf) {
-        assert(state == state_acquiring_superblock);
-        sb_buf = buf;
-        state = state_make_change;
-        next_initialize_superblock_step();
-    }
-};
-
-btree_slice_t::btree_slice_t(
+void btree_slice_t::create(
     translator_serializer_t *serializer,
     mirrored_cache_config_t *config)
-    : cas_counter(0),
-      state(state_unstarted),
-      cache(serializer, config)
-    { }
+{
+    /* Put slice in a scoped pointer because it's way to big to allocate on a coroutine stack */
+    boost::scoped_ptr<btree_slice_t> slice(new btree_slice_t(serializer, config));
+
+    /* Initialize the root block */
+    transactor_t transactor(&slice->cache, rwi_write);
+    buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
+    btree_superblock_t *sb = (btree_superblock_t*)(superblock.buf()->get_data_write());
+    sb->magic = btree_superblock_t::expected_magic;
+    sb->root_block = NULL_BLOCK_ID;
+
+    // Destructors handle cleanup and stuff
+}
+
+btree_slice_t::btree_slice_t(
+        translator_serializer_t *serializer,
+        mirrored_cache_config_t *config) :
+    cache(serializer, config),
+    cas_counter(0)
+{
+    // Start up cache
+    struct : public cache_t::ready_callback_t, public cond_t {
+        void on_cache_ready() { pulse(); }
+    } ready_cb;
+    if (!cache.start(&ready_cb)) ready_cb.wait();
+}
 
 btree_slice_t::~btree_slice_t() {
-    assert(state == state_unstarted || state == state_shut_down);
+    // Shut down cache
+    struct : public cache_t::shutdown_callback_t, public cond_t {
+        void on_cache_shutdown() { pulse(); }
+    } shutdown_cb;
+    if (!cache.shutdown(&shutdown_cb)) shutdown_cb.wait();
 }
 
-bool btree_slice_t::start_new(ready_callback_t *cb) {
-    is_start_existing = false;
-    return start(cb);
+store_t::get_result_t btree_slice_t::get(store_key_t *key) {
+    return btree_get(key, this);
 }
 
-bool btree_slice_t::start_existing(ready_callback_t *cb) {
-    is_start_existing = true;
-    return start(cb);
+store_t::get_result_t btree_slice_t::get_cas(store_key_t *key) {
+    return btree_get_cas(key, this);
 }
 
-bool btree_slice_t::start(ready_callback_t *cb) {
-    assert(state == state_unstarted);
-    state = state_starting_up_start_cache;
-    ready_callback = NULL;
-    if (next_starting_up_step()) {
-        return true;
-    } else {
-        ready_callback = cb;
-        return false;
-    }
+store_t::set_result_t btree_slice_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
+    return btree_set(key, this, data, btree_set_oper_t::set_type_set, flags, exptime, 0);
 }
 
-bool btree_slice_t::next_starting_up_step() {
-    if (state == state_starting_up_start_cache) {
-        /* For now, the cache's startup process is the same whether it is starting a new
-        database or an existing one. This could change in the future, though. */
-        
-        if (cache.start(this)) {
-            state = state_starting_up_initialize_superblock;
-        } else {
-            state = state_starting_up_waiting_for_cache;
-            return false;
-        }
-    }
-    
-    if (state == state_starting_up_initialize_superblock) {
-        if (is_start_existing) {
-            state = state_starting_up_finish;
-        } else {
-            sb_fsm = new initialize_superblock_fsm_t(&cache);
-            if (sb_fsm->initialize_superblock_if_necessary(this)) {
-                state = state_starting_up_finish;
-            } else {
-                state = state_starting_up_waiting_for_superblock;
-                return false;
-            }
-        }
-    }
-    
-    if (state == state_starting_up_finish) {
-        if (!is_start_existing) delete sb_fsm;
-        
-        state = state_ready;
-        if (ready_callback) ready_callback->on_slice_ready();
-        
-        return true;
-    }
-    
-    unreachable("Unexpected state");
+store_t::set_result_t btree_slice_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
+    return btree_set(key, this, data, btree_set_oper_t::set_type_add, flags, exptime, 0);
 }
 
-void btree_slice_t::on_cache_ready() {
-    assert(state == state_starting_up_waiting_for_cache);
-    state = state_starting_up_initialize_superblock;
-    next_starting_up_step();
+store_t::set_result_t btree_slice_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
+    return btree_set(key, this, data, btree_set_oper_t::set_type_replace, flags, exptime, 0);
 }
 
-void btree_slice_t::on_initialize_superblock() {
-    assert(state == state_starting_up_waiting_for_superblock);
-    state = state_starting_up_finish;
-    next_starting_up_step();
+store_t::set_result_t btree_slice_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique) {
+    return btree_set(key, this, data, btree_set_oper_t::set_type_cas, flags, exptime, unique);
+}
+
+store_t::incr_decr_result_t btree_slice_t::incr(store_key_t *key, unsigned long long amount) {
+    return btree_incr_decr(key, this, true, amount);
+}
+
+store_t::incr_decr_result_t btree_slice_t::decr(store_key_t *key, unsigned long long amount) {
+    return btree_incr_decr(key, this, false, amount);
+}
+
+store_t::append_prepend_result_t btree_slice_t::append(store_key_t *key, data_provider_t *data) {
+    return btree_append_prepend(key, this, data, true);
+}
+
+store_t::append_prepend_result_t btree_slice_t::prepend(store_key_t *key, data_provider_t *data) {
+    return btree_append_prepend(key, this, data, false);
+}
+
+store_t::delete_result_t btree_slice_t::delete_key(store_key_t *key) {
+    return btree_delete(key, this);
 }
 
 cas_t btree_slice_t::gen_cas() {
     // A CAS value is made up of both a timestamp and a per-slice counter,
     // which should be enough to guarantee that it'll be unique.
     return (time(NULL) << 32) | (++cas_counter);
-}
-
-bool btree_slice_t::shutdown(shutdown_callback_t *cb) {
-    assert(state == state_ready);
-    state = state_shutting_down_shutdown_cache;
-    shutdown_callback = NULL;
-    if (next_shutting_down_step()) {
-        return true;
-    } else {
-        shutdown_callback = cb;
-        return false;
-    }
-}
-
-bool btree_slice_t::next_shutting_down_step() {
-    if (state == state_shutting_down_shutdown_cache) {
-        if (cache.shutdown(this)) {
-            state = state_shutting_down_finish;
-        } else {
-            state = state_shutting_down_waiting_for_cache;
-            return false;
-        }
-    }
-    
-    if (state == state_shutting_down_finish) {
-        state = state_shut_down;
-        if (shutdown_callback) shutdown_callback->on_slice_shutdown(this);
-        return true;
-    }
-    
-    unreachable("Invalid state.");
-}
-
-void btree_slice_t::on_cache_shutdown() {
-    assert(state == state_shutting_down_waiting_for_cache);
-    state = state_shutting_down_finish;
-    next_shutting_down_step();
 }

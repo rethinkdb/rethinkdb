@@ -30,12 +30,6 @@ public:
     virtual bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_buf,
                                              btree_value **new_value, large_buf_t **new_large_buf) = 0;
 
-    /* run_btree_modify_oper() calls call_callback() after it has returned to the core
-     * on which it originated. Subclasses use call_callback() to report the
-     * results of the operation to the originator of the request.
-     * call_callback() must "delete this;" when it is done. */
-    virtual void call_callback() = 0;
-
     // These two variables are only used by the get_cas_oper; there should be a
     // nicer way to handle this.
     btree_slice_t *slice;
@@ -51,7 +45,7 @@ public:
 };
 
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *store, const btree_key *key);
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const btree_key *key);
 
 buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size);
 void insert_root(block_id_t root_id, buf_t **sb_buf);

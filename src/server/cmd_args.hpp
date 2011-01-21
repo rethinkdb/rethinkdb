@@ -110,14 +110,16 @@ struct btree_key_value_store_static_config_t {
 
 /* Configuration for replication */
 struct replication_config_t {
-    char hostname[MAX_HOSTNAME_LEN];
-    int port;
+    char    hostname[MAX_HOSTNAME_LEN];
+    int     port;
+    bool    active;
 };
 
 /* Configuration for failover */
-struct failover_static_config_t {
+struct failover_config_t {
     char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
     int     heartbeat_timeout; /* noncommunicative period after which the other server is considered to be unreachable */
+    bool    active;
 };
 
 /* All the configuration together */
@@ -151,7 +153,7 @@ struct cmd_config_t {
     replication_config_t replication_config;
 
     // Configuration for failover
-    failover_static_config_t failover_config;
+    failover_config_t failover_config;
 
     bool verbose;
 };

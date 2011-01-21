@@ -18,7 +18,7 @@
 
 int user_to_epoll(int mode) {
 
-    assert((mode & (poll_event_in|poll_event_out)) == mode);
+    rassert((mode & (poll_event_in|poll_event_out)) == mode);
 
     int out_mode = 0;
     if (mode & poll_event_in) out_mode |= EPOLLIN;
@@ -29,7 +29,7 @@ int user_to_epoll(int mode) {
 
 int epoll_to_user(int mode) {
 
-    assert((mode & (EPOLLIN|EPOLLOUT|EPOLLERR|EPOLLHUP|EPOLLRDHUP)) == mode);
+    rassert((mode & (EPOLLIN|EPOLLOUT|EPOLLERR|EPOLLHUP|EPOLLRDHUP)) == mode);
 
     int out_mode = 0;
     if (mode & EPOLLIN) out_mode |= poll_event_in;
@@ -105,11 +105,11 @@ epoll_event_queue_t::~epoll_event_queue_t() {
     int res;
     
     res = close(epoll_fd);
-    assert_err(res == 0, "Could not close epoll_fd");
+    rassert_err(res == 0, "Could not close epoll_fd");
 }
 
 void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
-    assert(cb);
+    rassert(cb);
     epoll_event event;
     
     event.events = EPOLLET | user_to_epoll(watch_mode);
@@ -138,7 +138,7 @@ void epoll_event_queue_t::adjust_resource(fd_t resource, int watch_mode, linux_e
 }
 
 void epoll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t *cb) {
-    assert(cb);
+    rassert(cb);
     
     epoll_event event;
     

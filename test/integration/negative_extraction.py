@@ -158,6 +158,7 @@ def try_block_mutation(mutation_name, mutation, length_checker):
         "extractor_output.txt",
         valgrind_tool = opts["valgrind-tool"] if opts["valgrind"] else None,
         test_dir = test_dir
+        timeout = 240
         )
 
     # Make sure extracted info is correct

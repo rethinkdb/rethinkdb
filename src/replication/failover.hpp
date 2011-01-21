@@ -26,13 +26,14 @@ private:
 
 class failover_t {
 public:
-    failover_t() {}
-    ~failover_t() {}
+    failover_t();
+    ~failover_t();
 
 private:
     intrusive_list_t<failover_callback_t> callbacks;
+public:
     void add_callback(failover_callback_t *cb);
-    void on_failure();
+    void on_failure(); /* push this button when things go wrong */
 };
 
 #endif  // __FAILOVER_HPP__

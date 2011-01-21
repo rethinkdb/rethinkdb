@@ -25,8 +25,8 @@ public:
     {
         // Make sure that the size of the header is a multiple of the size of one entry, so that the
         // header doesn't prevent the entries from aligning with DEVICE_BLOCK_SIZE.
-        assert(offsetof(lba_extent_t, entries[0]) % sizeof(lba_entry_t) == 0);
-        assert(offsetof(lba_extent_t, entries[0]) == sizeof(lba_extent_t::header_t));
+        rassert(offsetof(lba_extent_t, entries[0]) % sizeof(lba_entry_t) == 0);
+        rassert(offsetof(lba_extent_t, entries[0]) == sizeof(lba_extent_t::header_t));
         
         lba_extent_t::header_t header;
         bzero(&header, sizeof(header));
@@ -46,10 +46,10 @@ public:
     
     void add_entry(lba_entry_t entry) {
         // Make sure that entries will align with DEVICE_BLOCK_SIZE
-        assert(DEVICE_BLOCK_SIZE % sizeof(lba_entry_t) == 0);
+        rassert(DEVICE_BLOCK_SIZE % sizeof(lba_entry_t) == 0);
         
         // Make sure that there is room
-        assert(data->amount_filled + sizeof(lba_entry_t) <= em->extent_size);
+        rassert(data->amount_filled + sizeof(lba_entry_t) <= em->extent_size);
         
         data->append(&entry, sizeof(lba_entry_t));
         count++;
@@ -82,7 +82,7 @@ public:
     
     void read_step_2(read_info_t *info, in_memory_index_t *index) {
         lba_extent_t *extent = (lba_extent_t *)info->buffer;
-        assert(memcmp(extent->header.magic, lba_magic, LBA_MAGIC_SIZE) == 0);
+        rassert(memcmp(extent->header.magic, lba_magic, LBA_MAGIC_SIZE) == 0);
 
         for (int i = 0; i < info->count; i++) {
             lba_entry_t *e = &extent->entries[i];

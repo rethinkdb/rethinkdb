@@ -3,7 +3,6 @@
 #include "buffer_cache/large_buf.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
-#include "btree/replicate.hpp"
 
 #include "buffer_cache/co_functions.hpp"
 #include "buffer_cache/transactor.hpp"
@@ -23,7 +22,7 @@
 perfmon_counter_t pm_btree_depth("btree_depth");
 
 void insert_root(block_id_t root_id, buf_t **sb_buf) {
-    assert(*sb_buf);
+    rassert(*sb_buf);
     ptr_cast<btree_superblock_t>((*sb_buf)->get_data_write())->root_block = root_id;
     (*sb_buf)->release();
     *sb_buf = NULL;
@@ -38,10 +37,10 @@ void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, b
 
     // If the node isn't full, we don't need to split, so we're done.
     if (node::is_leaf(node)) { // This should only be called when update_needed.
-        assert(new_value);
+        rassert(new_value);
         if (!leaf::is_full(ptr_cast<leaf_node_t>(node), key, new_value)) return;
     } else {
-        assert(!new_value);
+        rassert(!new_value);
         if (!internal_node::is_full(ptr_cast<internal_node_t>(node))) return;
     }
 
@@ -67,7 +66,7 @@ void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, b
     }
 
     bool success __attribute__((unused)) = internal_node::insert(block_size, last_node, median, (*buf)->get_block_id(), rbuf->get_block_id());
-    assert(success, "could not insert internal btree node");
+    rassert(success, "could not insert internal btree node");
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
     if (sized_strcmp(key->contents, key->size, median->contents, median->size) <= 0) {
@@ -160,18 +159,15 @@ buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size) {
 }
 
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *store, const btree_key *key) {
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const btree_key *key) {
     union {
         byte old_value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value old_value;
     };
     (void) old_value_memory;
 
-    btree_slice_t *slice = store->slice_for_key(key);
     oper->slice = slice; // TODO: Figure out a way to do this more nicely -- it's only used for generating a CAS value.
     block_size_t block_size = slice->cache.get_block_size();
-
-    store->started_a_query(); // TODO: This should probably use RAII too.
 
     {
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
@@ -206,7 +202,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
 
             // Look up and acquire the next node.
             block_id_t node_id = internal_node::lookup(ptr_cast<internal_node_t>(buf->get_data_read()), key);
-            assert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
+            rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
             buf = co_acquire_block(txn, node_id, rwi_write);
         }
 
@@ -220,7 +216,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
             // We don't know whether we want to acquire all of the large value or
             // just part of it, so we let the oper acquire it for us.
             oper->actually_acquire_large_value(old_large_buf, old_value.lb_ref());
-            assert(old_large_buf->state == large_buf_t::loaded);
+            rassert(old_large_buf->state == large_buf_t::loaded);
         }
 
         // Check whether the value is expired. If it is, we tell operate() that
@@ -238,9 +234,9 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
         // Make sure that the new_value and new_large_buf returned by operate() are consistent.
         if (update_needed) {
             if (new_value && new_value->is_large()) {
-                assert(new_large_buf && new_value->lb_ref().block_id == new_large_buf->get_root_ref().block_id);
+                rassert(new_large_buf && new_value->lb_ref().block_id == new_large_buf->get_root_ref().block_id);
             } else {
-                assert(!new_large_buf);
+                rassert(!new_large_buf);
             }
         }
 
@@ -290,7 +286,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
 
         // Release bufs as necessary.
         if (sb_buf) sb_buf->release();
-        assert(buf);
+        rassert(buf);
         buf->release();
         if (last_buf) last_buf->release();
         buf = last_buf = sb_buf = NULL;
@@ -299,8 +295,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
         if (update_needed) {
             if (old_large_buf && new_large_buf != old_large_buf) {
                 // operate() switched to a new large buf, so we need to delete the old one.
-                assert(old_value.is_large());
-                assert(old_value.lb_ref().block_id == old_large_buf->get_root_ref().block_id);
+                rassert(old_value.is_large());
+                rassert(old_value.lb_ref().block_id == old_large_buf->get_root_ref().block_id);
                 old_large_buf->mark_deleted();
                 old_large_buf->release();
                 delete old_large_buf;
@@ -319,11 +315,4 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
         // Committing the transaction and moving back to the home thread are
         // handled automatically with RAII.
     }
-
-    // Report the result of the operation and delete the oper.
-    oper->call_callback();
-    delete oper;
-
-    // We're done!
-    store->finished_a_query();
 }
