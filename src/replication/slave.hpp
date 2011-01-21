@@ -43,8 +43,6 @@ public:
     append_prepend_result_t append(store_key_t *key, data_provider_t *data);
     append_prepend_result_t prepend(store_key_t *key, data_provider_t *data);
     delete_result_t delete_key(store_key_t *key);
-    void replicate(replicant_t *cb, repli_timestamp cutoff);
-    void stop_replicating(replicant_t *cb);
 
 public:
     /* message_callback_t interface */
