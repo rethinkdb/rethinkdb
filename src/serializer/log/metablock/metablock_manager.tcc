@@ -43,10 +43,10 @@ template<class metablock_t>
 metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
     : head(this), extent_manager(em), state(state_unstarted), dbfile(NULL)
 {    
-    assert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
+    rassert(sizeof(crc_metablock_t) <= DEVICE_BLOCK_SIZE);
     mb_buffer = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
     startup_values.mb_buffer_last = (crc_metablock_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-    assert(mb_buffer);
+    rassert(mb_buffer);
     mb_buffer_in_use = false;
     
     /* Build the list of metablock locations in the file */
@@ -66,9 +66,9 @@ metablock_manager_t<metablock_t>::metablock_manager_t(extent_manager_t *em)
 template<class metablock_t>
 metablock_manager_t<metablock_t>::~metablock_manager_t() {
     
-    assert(state == state_unstarted || state == state_shut_down);
+    rassert(state == state_unstarted || state == state_shut_down);
     
-    assert(!mb_buffer_in_use);
+    rassert(!mb_buffer_in_use);
     free(mb_buffer);
 
     free(startup_values.mb_buffer_last); 
@@ -78,9 +78,9 @@ metablock_manager_t<metablock_t>::~metablock_manager_t() {
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::start_new(direct_file_t *file) {
     
-    assert(state == state_unstarted);
+    rassert(state == state_unstarted);
     dbfile = file;
-    assert(dbfile != NULL);
+    rassert(dbfile != NULL);
     
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
     
@@ -98,11 +98,11 @@ void metablock_manager_t<metablock_t>::start_new(direct_file_t *file) {
 
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bool *mb_found, metablock_t *mb_out) {
-    assert(state == state_unstarted);
+    rassert(state == state_unstarted);
     dbfile = file;
-    assert(dbfile != NULL);
+    rassert(dbfile != NULL);
     
-    assert(!mb_buffer_in_use);
+    rassert(!mb_buffer_in_use);
     mb_buffer_in_use = true;
 
     startup_values.version = MB_BAD_VERSION;
@@ -180,8 +180,8 @@ template<class metablock_t>
 void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
     mutex_acquisition_t hold(&write_lock);
 
-    assert(state == state_ready);
-    assert(!mb_buffer_in_use);
+    rassert(state == state_ready);
+    rassert(!mb_buffer_in_use);
     
     mb_buffer->metablock = *mb;
     memcpy(mb_buffer->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
@@ -190,7 +190,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
     mb_buffer->version = next_version_number++;
 
     mb_buffer->set_crc();
-    assert(mb_buffer->check_crc());
+    rassert(mb_buffer->check_crc());
 
     mb_buffer_in_use = true;
     
@@ -218,8 +218,8 @@ bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metabloc
 template<class metablock_t>
 void metablock_manager_t<metablock_t>::shutdown() {
     
-    assert(state == state_ready);
-    assert(!mb_buffer_in_use);
+    rassert(state == state_ready);
+    rassert(!mb_buffer_in_use);
     state = state_shut_down;
 }
 

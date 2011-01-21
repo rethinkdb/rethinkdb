@@ -17,7 +17,7 @@ lba_list_t::lba_list_t(extent_manager_t *em)
 
 /* This form of start() is called when we are creating a new database */
 void lba_list_t::start_new(direct_file_t *file) {
-    assert(state == state_unstarted);
+    rassert(state == state_unstarted);
     
     dbfile = file;
     
@@ -39,7 +39,7 @@ struct lba_start_fsm_t :
     lba_start_fsm_t(lba_list_t *l, lba_list_t::metablock_mixin_t *last_metablock)
         : owner(l), callback(NULL)
     {
-        assert(owner->state == lba_list_t::state_unstarted);
+        rassert(owner->state == lba_list_t::state_unstarted);
         owner->state = lba_list_t::state_starting_up;
         
         cbs_out = LBA_SHARD_FACTOR;
@@ -52,7 +52,7 @@ struct lba_start_fsm_t :
     }
     
     void on_lba_load() {
-        assert(cbs_out > 0);
+        rassert(cbs_out > 0);
         cbs_out--;
         if (cbs_out == 0) {
             cbs_out = LBA_SHARD_FACTOR;
@@ -63,7 +63,7 @@ struct lba_start_fsm_t :
     }
     
     void on_lba_read() {
-        assert(cbs_out > 0);
+        rassert(cbs_out > 0);
         cbs_out--;
         if (cbs_out == 0) {
             owner->state = lba_list_t::state_ready;
@@ -75,7 +75,7 @@ struct lba_start_fsm_t :
 
 /* This form of start() is called when we are loading an existing database */
 bool lba_list_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
-    assert(state == state_unstarted);
+    rassert(state == state_unstarted);
     
     dbfile = file;
     
@@ -89,26 +89,26 @@ bool lba_list_t::start_existing(direct_file_t *file, metablock_mixin_t *last_met
 }
 
 ser_block_id_t lba_list_t::max_block_id() {
-    assert(state == state_ready);
+    rassert(state == state_ready);
     
     return in_memory_index.max_block_id();
 }
 
 flagged_off64_t lba_list_t::get_block_offset(ser_block_id_t block) {
-    assert(state == state_ready);
+    rassert(state == state_ready);
     
     return in_memory_index.get_block_info(block).offset;
 }
 
 repli_timestamp lba_list_t::get_block_recency(ser_block_id_t block) {
-    assert(state == state_ready);
+    rassert(state == state_ready);
 
     return in_memory_index.get_block_info(block).recency;
 }
 
 // TODO rename to set_block_info
 void lba_list_t::set_block_offset(ser_block_id_t block, repli_timestamp recency, flagged_off64_t offset) {
-    assert(state == state_ready);
+    rassert(state == state_ready);
 
     in_memory_index.set_block_info(block, recency, offset);
 
@@ -138,7 +138,7 @@ struct lba_syncer_t :
     }
     
     void on_lba_sync() {
-        assert(structures_unsynced > 0);
+        rassert(structures_unsynced > 0);
         structures_unsynced--;
         if (structures_unsynced == 0) {
             done = true;
@@ -149,7 +149,7 @@ struct lba_syncer_t :
 };
 
 bool lba_list_t::sync(sync_callback_t *cb) {
-    assert(state == state_ready);
+    rassert(state == state_ready);
     
     lba_syncer_t *syncer = new lba_syncer_t(this);
     if (syncer->done) {
@@ -212,7 +212,7 @@ struct gc_fsm_t :
     }
     
     void on_lba_sync() {
-        assert(owner->gc_count > 0);
+        rassert(owner->gc_count > 0);
         owner->gc_count--;
 
         if(owner->state == lba_list_t::state_shutting_down && owner->gc_count == 0)
@@ -255,8 +255,8 @@ void lba_list_t::gc(int i) {
 }
 
 bool lba_list_t::shutdown(shutdown_callback_t *cb) {
-    assert(state == state_ready);
-    assert(cb);
+    rassert(state == state_ready);
+    rassert(cb);
     
     if (gc_count > 0) {
         // We're gc'ing, can't shut down just yet...
@@ -284,6 +284,6 @@ bool lba_list_t::__shutdown() {
 }
 
 lba_list_t::~lba_list_t() {
-    assert(state == state_unstarted || state == state_shut_down);
-    for (int i = 0; i < LBA_SHARD_FACTOR; i++) assert(disk_structures[i] == NULL);
+    rassert(state == state_unstarted || state == state_shut_down);
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) rassert(disk_structures[i] == NULL);
 }

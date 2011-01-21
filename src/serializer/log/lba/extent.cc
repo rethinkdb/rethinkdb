@@ -33,13 +33,13 @@ struct extent_block_t :
     }
     
     void on_extent_sync() {
-        assert(waiting_for_prev);
+        rassert(waiting_for_prev);
         waiting_for_prev = false;
         if (have_finished_sync) done();
     }
     
     void on_io_complete() {
-        assert(!have_finished_sync);
+        rassert(!have_finished_sync);
         have_finished_sync = true;
         if (!waiting_for_prev) done();
     }
@@ -49,7 +49,7 @@ struct extent_block_t :
             sync_cbs[i]->on_extent_sync();
         }
         if (is_last_block) {
-            assert(this == parent->last_block);
+            rassert(this == parent->last_block);
             parent->last_block = NULL;
         }
         delete this;
@@ -68,7 +68,7 @@ extent_t::extent_t(extent_manager_t *em, direct_file_t *file, off64_t loc, size_
     : offset(loc), amount_filled(size), em(em), file(file), last_block(NULL), current_block(NULL)
 {
     em->reserve_extent(offset);
-    assert(amount_filled % DEVICE_BLOCK_SIZE == 0);
+    rassert(amount_filled % DEVICE_BLOCK_SIZE == 0);
     pm_serializer_lba_extents++;
 }
 
@@ -82,27 +82,27 @@ void extent_t::shutdown() {
 }
 
 extent_t::~extent_t() {
-    assert(!current_block);
+    rassert(!current_block);
     if (last_block) last_block->is_last_block = false;
     pm_serializer_lba_extents--;
 }
 
 void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb) {
-    assert(!last_block);
+    rassert(!last_block);
     file->read_async(offset + pos, length, buffer, cb);
 }
 
 void extent_t::append(void *buffer, size_t length) {
-    assert(amount_filled + length <= em->extent_size);
+    rassert(amount_filled + length <= em->extent_size);
     
     while (length > 0) {
         size_t room_in_block;
         if (amount_filled % DEVICE_BLOCK_SIZE == 0) {
-            assert(!current_block);
+            rassert(!current_block);
             current_block = new extent_block_t(this, amount_filled);
             room_in_block = DEVICE_BLOCK_SIZE;
         } else {
-            assert(current_block);
+            rassert(current_block);
             room_in_block = DEVICE_BLOCK_SIZE - amount_filled % DEVICE_BLOCK_SIZE;
         }
         
@@ -122,8 +122,8 @@ void extent_t::append(void *buffer, size_t length) {
 }
 
 void extent_t::sync(sync_callback_t *cb) {
-    assert(amount_filled % DEVICE_BLOCK_SIZE == 0);
-    assert(!current_block);
+    rassert(amount_filled % DEVICE_BLOCK_SIZE == 0);
+    rassert(!current_block);
     if (last_block) {
         last_block->sync_cbs.push_back(cb);
     } else {

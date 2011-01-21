@@ -21,7 +21,7 @@ struct ser_block_id_t {
     inline bool operator<(ser_block_id_t other) const { return value < other.value; }
 
     static inline ser_block_id_t make(number_t num) {
-        assert(num != number_t(-1));
+        rassert(num != number_t(-1));
         ser_block_id_t ret;
         ret.value = num;
         return ret;
@@ -39,7 +39,7 @@ struct config_block_id_t {
 
     ser_block_id_t subsequent_ser_id() const { return ser_block_id_t::make(ser_id.value + 1); }
     static inline config_block_id_t make(ser_block_id_t::number_t num) {
-        assert(num == 0);  // only one possible config_block_id_t value.
+        rassert(num == 0);  // only one possible config_block_id_t value.
 
         config_block_id_t ret;
         ret.ser_id = ser_block_id_t::make(num);

@@ -71,7 +71,7 @@ void lba_disk_structure_t::add_entry(ser_block_id_t block_id, repli_timestamp re
         sure that the superblock extent has enough room for a new superblock. */
 
         size_t superblock_size = sizeof(lba_superblock_t) + sizeof(lba_superblock_entry_t) * extents_in_superblock.size();
-        assert(superblock_size <= em->extent_size);
+        rassert(superblock_size <= em->extent_size);
 
         if (superblock_extent && superblock_extent->amount_filled + superblock_size > em->extent_size) {
             superblock_extent->destroy();
@@ -106,7 +106,7 @@ void lba_disk_structure_t::add_entry(ser_block_id_t block_id, repli_timestamp re
         last_extent = new lba_disk_extent_t(em, file);
     }
 
-    assert(!last_extent->full());
+    rassert(!last_extent->full());
 
     // TODO: timestamp
     last_extent->add_entry(lba_entry_t::make(block_id, recency, offset));
@@ -193,12 +193,12 @@ struct reader_t
             extent->read_step_1(&read_info, this);
         }
         void on_extent_read() {   // Called when our extent has been read from disk
-            assert(!have_read);
+            rassert(!have_read);
             have_read = true;
             if (prev_done) done();
         }
         void on_prev_done() {   // Called by the previous extent_reader_t when it finishes
-            assert(!prev_done);
+            rassert(!prev_done);
             prev_done = true;
             if (have_read) done();
         }
@@ -262,7 +262,7 @@ void lba_disk_structure_t::prepare_metablock(lba_shard_metablock_t *mb_out) {
         mb_out->last_lba_extent_offset = last_extent->offset;
         mb_out->last_lba_extent_entries_count = last_extent->count;
 
-        assert((offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * mb_out->last_lba_extent_entries_count)
+        rassert((offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * mb_out->last_lba_extent_entries_count)
                % DEVICE_BLOCK_SIZE == 0);
     } else {
         mb_out->last_lba_extent_offset = NULL_OFFSET;

@@ -200,7 +200,7 @@ struct block_pm_duration {
         pm->begin(&time);
     }
     void end() {
-        assert(!ended);
+        rassert(!ended);
         ended = true;
         pm->end(&time);
     }

@@ -37,7 +37,7 @@ timer_handler_t::timer_handler_t(linux_event_queue_t *queue)
 timer_handler_t::~timer_handler_t() {
     // Delete the registered timers
     while (timer_token_t *t = timers.head()) {
-        assert(t->deleted);
+        rassert(t->deleted);
         timers.remove(t);
         delete t;
     }
@@ -79,7 +79,7 @@ void timer_handler_t::on_timer(int nexpirations) {
 }
     
 timer_token_t *timer_handler_t::add_timer_internal(long ms, void (*callback)(void *ctx), void *ctx, bool once) {
-    assert(ms >= 0);
+    rassert(ms >= 0);
     
     timer_token_t *t = new timer_token_t();
     t->next_time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS + ms;

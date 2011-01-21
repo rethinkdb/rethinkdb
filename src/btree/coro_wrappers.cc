@@ -1,15 +1,24 @@
 #include "btree/coro_wrappers.hpp"
+#include "concurrency/cond_var.hpp"
 
-bool co_get_data_provider_value(data_provider_t *data, buffer_group_t *dest) {
-    co_data_provider_done_callback_t cb;
-    data->get_value(dest, &cb);
-    return cb.join();
-}
+void co_deliver_get_result(const_buffer_group_t *bg, mcflags_t flags, cas_t cas,
+        value_cond_t<store_t::get_result_t> *dest) {
 
-void co_value(store_t::get_callback_t *cb, const_buffer_group_t *value_buffers, mcflags_t flags, cas_t cas) {
-    value_done_t done;
-    cb->value(value_buffers, &done, flags, cas);
-    coro_t::wait();
+    store_t::get_result_t res;
+    res.buffer = bg;
+    res.flags = flags;
+    res.cas = cas;
+    if (bg) {
+        struct : public store_t::get_result_t::done_callback_t, public cond_t {
+            void have_copied_value() { pulse(); }
+        } cb;
+        res.cb = &cb;
+        dest->pulse(res);
+        cb.wait();
+    } else {
+        res.cb = NULL;
+        dest->pulse(res);
+    }
 }
 
 // XXX

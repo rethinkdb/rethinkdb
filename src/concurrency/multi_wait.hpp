@@ -13,7 +13,7 @@ private:
 public:
     multi_wait_t(unsigned int notifications_left)
         : waiter(coro_t::self()), notifications_left(notifications_left) {
-        assert(notifications_left > 0);
+        rassert(notifications_left > 0);
     }
     void notify() {
         notifications_left--;

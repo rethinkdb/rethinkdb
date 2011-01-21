@@ -18,9 +18,9 @@ public:
 #endif
         {}
     ~intrusive_list_node_t() {
-        assert(prev == NULL);
-        assert(next == NULL);
-        assert(!in_a_list);
+        rassert(prev == NULL);
+        rassert(next == NULL);
+        rassert(!in_a_list);
     }
     
 private:
@@ -68,7 +68,7 @@ public:
 #endif
     
         intrusive_list_node_t<node_t> *value = _value;
-        assert(value->next == NULL && value->prev == NULL && _head != _value && !value->in_a_list); // Make sure that the object is not already in a list.
+        rassert(value->next == NULL && value->prev == NULL && _head != _value && !value->in_a_list); // Make sure that the object is not already in a list.
 #ifndef NDEBUG
         value->in_a_list = true;
 #endif
@@ -94,7 +94,7 @@ public:
 #endif
     
         intrusive_list_node_t<node_t> *value = _value;
-        assert(value->next == NULL && value->prev == NULL && _head != _value && !value->in_a_list); // Make sure that the object is not already in a list.
+        rassert(value->next == NULL && value->prev == NULL && _head != _value && !value->in_a_list); // Make sure that the object is not already in a list.
 #ifndef NDEBUG
         value->in_a_list = true;
 #endif
@@ -122,7 +122,7 @@ public:
         intrusive_list_node_t<node_t> *value = _value;
 
 #ifndef NDEBUG
-        assert(value->in_a_list);
+        rassert(value->in_a_list);
         value->in_a_list = false;
 #endif
 
@@ -184,12 +184,12 @@ public:
         unsigned int count = 0;
         for (node_t *node = _head; node; node=((intrusive_list_node_t<node_t>*)node)->next) {
             count++;
-            assert(((intrusive_list_node_t<node_t>*)node)->in_a_list);
-            assert(((intrusive_list_node_t<node_t>*)node)->prev == last_node);
+            rassert(((intrusive_list_node_t<node_t>*)node)->in_a_list);
+            rassert(((intrusive_list_node_t<node_t>*)node)->prev == last_node);
             last_node = node;
         }
-        assert(_tail == last_node);
-        assert(_size == count);
+        rassert(_tail == last_node);
+        rassert(_size == count);
     }
 #endif
     
@@ -204,17 +204,17 @@ public:
         iterator() : _node(NULL) { }
         
         node_t &operator*() const {
-            assert(_node);
+            rassert(_node);
             return *_node;
         }
         
         iterator operator++() {   // Prefix version
-            assert(_node);
+            rassert(_node);
             _node = ((intrusive_list_node_t<node_t>*)_node)->next;
             return this;
         }
         iterator operator++(int) {   // Postfix version
-            assert(_node);
+            rassert(_node);
             iterator last(_node);
             _node = ((intrusive_list_node_t<node_t>*)_node)->next;
             return last;
@@ -224,12 +224,12 @@ public:
         // element in the list. Is it worth adding this?
         
         iterator operator--() {   // Prefix version
-            assert(_node);
+            rassert(_node);
             _node = ((intrusive_list_node_t<node_t>*)_node)->prev;
             return this;
         }
         iterator operator--(int) {   // Postfix version
-            assert(_node);
+            rassert(_node);
             iterator last(_node);
             _node = ((intrusive_list_node_t<node_t>*)_node)->prev;
             return last;

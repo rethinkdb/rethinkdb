@@ -105,15 +105,15 @@ static __thread intrusive_list_t<coro_context_t> *free_contexts = NULL;
 
 coro_globals_t::coro_globals_t()
 {
-    assert(!current_coro);
+    rassert(!current_coro);
 
-    assert(free_contexts == NULL);
+    rassert(free_contexts == NULL);
     free_contexts = new intrusive_list_t<coro_context_t>;
 }
 
 coro_globals_t::~coro_globals_t()
 {
-    assert(!current_coro);
+    rassert(!current_coro);
 
     /* Destroy remaining coroutines */
     while (coro_context_t *s = free_contexts->head()) {
@@ -161,8 +161,8 @@ void coro_context_t::run() {
     /* Make sure we're on the right stack. */
 #ifndef NDEBUG
     char dummy;
-    assert(&dummy >= (char*)self->stack);
-    assert(&dummy < (char*)self->stack + coro_stack_size);
+    rassert(&dummy >= (char*)self->stack);
+    rassert(&dummy < (char*)self->stack + coro_stack_size);
 #endif
 
     while (true) {
@@ -219,7 +219,7 @@ coro_t::~coro_t() {
 
 void coro_t::run() {
 
-    assert(current_coro == this);
+    rassert(current_coro == this);
 
     (*deed)();
 
@@ -231,16 +231,16 @@ coro_t *coro_t::self() {   /* class method */
 }
 
 void coro_t::wait() {   /* class method */
-    assert(current_coro != NULL);
+    rassert(current_coro != NULL);
     coro_context_t *context = current_coro->context;
     current_coro = NULL;
     lightweight_swapcontext(&context->env, &scheduler);
-    assert(current_coro != NULL);
+    rassert(current_coro != NULL);
 }
 
 void coro_t::notify() {
 
-    assert(!notified);
+    rassert(!notified);
     notified = true;
 
     /* notify() doesn't switch to the coroutine immediately; instead, it just pushes
@@ -259,13 +259,13 @@ void coro_t::move_to_thread(int thread) {   /* class method */
 
 void coro_t::on_thread_switch() {
 
-    assert(notified);
+    rassert(notified);
     notified = false;
 
-    assert(current_coro == NULL);
+    rassert(current_coro == NULL);
     current_coro = this;
     lightweight_swapcontext(&scheduler, &context->env);
-    assert(current_coro == NULL);
+    rassert(current_coro == NULL);
 }
 
 void coro_t::set_coroutine_stack_size(size_t size) {

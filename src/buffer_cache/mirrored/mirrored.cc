@@ -15,7 +15,7 @@ struct load_buf_fsm_t :
     mc_inner_buf_t *inner_buf;
     explicit load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
         bool locked __attribute__((unused)) = inner_buf->lock.lock(rwi_write, NULL);
-        assert(locked);
+        rassert(locked);
         have_loaded = false;
         if (continue_on_thread(inner_buf->cache->serializer->home_thread, this)) on_thread_switch();
     }
@@ -91,7 +91,7 @@ mc_inner_buf_t::~mc_inner_buf_t() {
     memset(data, 0xDD, cache->serializer->get_block_size().value());
 #endif
     
-    assert(safe_to_unload());
+    rassert(safe_to_unload());
     cache->serializer->free(data);
     
     pm_n_blocks_in_memory--;
@@ -119,7 +119,7 @@ void mc_buf_t::on_lock_available() {
     pm_bufs_acquiring.end(&start_time);
     
     inner_buf->cache->assert_thread();
-    assert(!inner_buf->do_delete);
+    rassert(!inner_buf->do_delete);
     
     switch (mode) {
         case rwi_read: {
@@ -219,11 +219,11 @@ mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
       commit_callback(NULL),
       state(state_open) {
     pm_transactions_starting.begin(&start_time);
-    assert(access == rwi_read || access == rwi_write);
+    rassert(access == rwi_read || access == rwi_write);
 }
 
 mc_transaction_t::~mc_transaction_t() {
-    assert(state == state_committed);
+    rassert(state == state_committed);
     pm_transactions_committing.end(&start_time);
 }
 
@@ -234,7 +234,7 @@ void mc_transaction_t::green_light() {
 }
 
 bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
-    assert(state == state_open);
+    rassert(state == state_open);
     pm_transactions_active.end(&start_time);
     pm_transactions_committing.begin(&start_time);
     
@@ -285,21 +285,21 @@ void mc_transaction_t::on_sync() {
 mc_buf_t *mc_transaction_t::allocate() {
     /* Make a completely new block, complete with a shiny new block_id. */
     
-    assert(access == rwi_write);
+    rassert(access == rwi_write);
     
     // This form of the inner_buf_t constructor generates a new block with a new block ID.
     inner_buf_t *inner_buf = new inner_buf_t(cache);
     
     // This must pass since no one else holds references to this block.
     buf_t *buf = new buf_t(inner_buf, rwi_write);
-    assert(buf->ready);
+    rassert(buf->ready);
 
     return buf;
 }
 
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     block_available_callback_t *callback) {
-    assert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
+    rassert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
        
     inner_buf_t *inner_buf = cache->page_map.find(block_id);
     if (!inner_buf) {
@@ -370,16 +370,16 @@ mc_cache_t::mc_cache_t(
     { }
 
 mc_cache_t::~mc_cache_t() {
-    assert(state == state_unstarted || state == state_shut_down);
+    rassert(state == state_unstarted || state == state_shut_down);
     
     while (inner_buf_t *buf = page_repl.get_first_buf()) {
        delete buf;
     }
-    assert(num_live_transactions == 0);
+    rassert(num_live_transactions == 0);
 }
 
 bool mc_cache_t::start(ready_callback_t *cb) {
-    assert(state == state_unstarted);
+    rassert(state == state_unstarted);
     state = state_starting_up_create_free_list;
     ready_callback = NULL;
     if (next_starting_up_step()) {
@@ -404,7 +404,7 @@ bool mc_cache_t::next_starting_up_step() {
         /* Create an initial superblock */
         if (free_list.num_blocks_in_use == 0) {
             inner_buf_t *b = new mc_inner_buf_t(this);
-            assert(b->block_id == SUPERBLOCK_ID);
+            rassert(b->block_id == SUPERBLOCK_ID);
             bzero(b->data, get_block_size().value());
         }
         
@@ -420,7 +420,7 @@ bool mc_cache_t::next_starting_up_step() {
 }
 
 void mc_cache_t::on_free_list_ready() {
-    assert(state == state_starting_up_waiting_for_free_list);
+    rassert(state == state_starting_up_waiting_for_free_list);
     state = state_starting_up_finish;
     next_starting_up_step();
 }
@@ -434,7 +434,7 @@ mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
     
     // shutdown_transaction_backdoor allows the writeback to request a transaction for the shutdown
     // sync.
-    assert(state == state_ready ||
+    rassert(state == state_ready ||
         (shutdown_transaction_backdoor &&
             (state == state_shutting_down_start_flush ||
                 state == state_shutting_down_waiting_for_flush)));
@@ -451,7 +451,7 @@ mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {
-    assert(state == state_ready ||
+    rassert(state == state_ready ||
         state == state_shutting_down_waiting_for_transactions ||
         state == state_shutting_down_start_flush ||
         state == state_shutting_down_waiting_for_flush);
@@ -468,7 +468,7 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
 }
 
 bool mc_cache_t::shutdown(shutdown_callback_t *cb) {
-    assert(state == state_ready);
+    rassert(state == state_ready);
 
     if (num_live_transactions == 0) {
         state = state_shutting_down_start_flush;
@@ -512,7 +512,7 @@ bool mc_cache_t::next_shutting_down_step() {
 }
 
 void mc_cache_t::on_sync() {
-    assert(state == state_shutting_down_waiting_for_flush);
+    rassert(state == state_shutting_down_waiting_for_flush);
     state = state_shutting_down_finish;
     next_shutting_down_step();
 }

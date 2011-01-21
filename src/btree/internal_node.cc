@@ -46,7 +46,7 @@ block_id_t lookup(const internal_node_t *node, const btree_key *key) {
 
 bool insert(block_size_t block_size, internal_node_t *node, const btree_key *key, block_id_t lnode, block_id_t rnode) {
     //TODO: write a unit test for this
-    assert(key->size <= MAX_KEY_SIZE, "key too large");
+    rassert(key->size <= MAX_KEY_SIZE, "key too large");
     if (is_full(node)) return false;
     if (node->npairs == 0) {
         btree_key special;
@@ -57,7 +57,7 @@ bool insert(block_size_t block_size, internal_node_t *node, const btree_key *key
     }
 
     int index = get_offset_index(node, key);
-    assert(!is_equal(&get_pair(node, node->pair_offsets[index])->key, key),
+    rassert(!is_equal(&get_pair(node, node->pair_offsets[index])->key, key),
         "tried to insert duplicate key into internal node!");
     uint16_t offset = insert_pair(node, lnode, key);
     insert_offset(node, offset, index);
@@ -300,14 +300,14 @@ bool change_unsafe(const internal_node_t *node) {
 
 void validate(block_size_t block_size, const internal_node_t *node) {
 #ifndef NDEBUG
-    assert(ptr_cast<byte>(&(node->pair_offsets[node->npairs])) <= ptr_cast<byte>(get_pair(node, node->frontmost_offset)));
-    assert(node->frontmost_offset > 0);
-    assert(node->frontmost_offset <= block_size.value());
+    rassert(ptr_cast<byte>(&(node->pair_offsets[node->npairs])) <= ptr_cast<byte>(get_pair(node, node->frontmost_offset)));
+    rassert(node->frontmost_offset > 0);
+    rassert(node->frontmost_offset <= block_size.value());
     for (int i = 0; i < node->npairs; i++) {
-        assert(node->pair_offsets[i] < block_size.value());
-        assert(node->pair_offsets[i] >= node->frontmost_offset);
+        rassert(node->pair_offsets[i] < block_size.value());
+        rassert(node->pair_offsets[i] >= node->frontmost_offset);
     }
-    assert(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
+    rassert(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
         "Offsets no longer in sorted order");
 #endif
 }
@@ -398,9 +398,9 @@ void delete_pair(internal_node_t *node, uint16_t offset) {
     size_t shift = pair_size(pair_to_delete);
     size_t size = offset - node->frontmost_offset;
 
-    assert(check_magic<node_t>(node->magic));
+    rassert(check_magic<node_t>(node->magic));
     memmove(ptr_cast<byte>(front_pair)+shift, front_pair, size);
-    assert(check_magic<node_t>(node->magic));
+    rassert(check_magic<node_t>(node->magic));
 
     node->frontmost_offset += shift;
     for (int i = 0; i < node->npairs; i++) {

@@ -6,8 +6,8 @@
 #include "buffer_cache/co_functions.hpp"
 #include "btree/coro_wrappers.hpp"
 
-class btree_set_oper_t : public btree_modify_oper_t {
-public:
+struct btree_set_oper_t : public btree_modify_oper_t {
+
     enum set_type_t {
         set_type_set,
         set_type_add,
@@ -15,8 +15,8 @@ public:
         set_type_cas
     };
 
-    explicit btree_set_oper_t(data_provider_t *data, set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas, store_t::set_callback_t *cb)
-        : btree_modify_oper_t(), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas), large_value(NULL), callback(cb)
+    explicit btree_set_oper_t(data_provider_t *data, set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas)
+        : btree_modify_oper_t(), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas), large_value(NULL)
     {
         pm_cmd_set.begin(&start_time);
     }
@@ -28,28 +28,28 @@ public:
 
     bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
         if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
-            result = result_not_stored;
+            result = store_t::sr_not_stored;
             // TODO: If the value is too large, we should reply with TOO_LARGE rather than NOT_STORED, like memcached.
-            co_get_data_provider_value(data, NULL);
+            if (!data->get_value(NULL)) result = store_t::sr_data_provider_failed;
             return false;
         }
         
         if (type == set_type_cas) { // TODO: CAS stats
             if (!old_value) {
-                result = result_not_found;
-                co_get_data_provider_value(data, NULL);
+                result = store_t::sr_not_found;
+                if (!data->get_value(NULL)) result = store_t::sr_data_provider_failed;
                 return false;
             }
             if (!old_value->has_cas() || old_value->cas() != req_cas) {
-                result = result_exists;
-                co_get_data_provider_value(data, NULL);
+                result = store_t::sr_exists;
+                if (!data->get_value(NULL)) result = store_t::sr_data_provider_failed;
                 return false;
             }
         }
         
         if (data->get_size() > MAX_VALUE_SIZE) {
-            result = result_too_large;
-            co_get_data_provider_value(data, NULL);
+            result = store_t::sr_too_large;
+            if (!data->get_value(NULL)) result = store_t::sr_data_provider_failed;
             /* To be standards-compliant we must delete the old value when an effort is made to
             replace it with a value that is too large. */
             *new_value = NULL;
@@ -70,7 +70,7 @@ public:
 
         value.value_size(data->get_size());
 
-        assert(data->get_size() <= MAX_VALUE_SIZE);
+        rassert(data->get_size() <= MAX_VALUE_SIZE);
         if (data->get_size() <= MAX_IN_NODE_VALUE_SIZE) {
             buffer_group.add_buffer(data->get_size(), value.value());
         } else {
@@ -83,8 +83,8 @@ public:
             }
         }
         
-        result = result_stored;
-        bool success = co_get_data_provider_value(data, &buffer_group);
+        result = store_t::sr_stored;
+        bool success = data->get_value(&buffer_group);
         if (!success) {
             if (large_value) {
                 large_value->mark_deleted();
@@ -93,7 +93,7 @@ public:
                 large_value = NULL;
             }
 
-            result = result_data_provider_failed;
+            result = store_t::sr_data_provider_failed;
             return false;
         }
         *new_value = &value;
@@ -101,32 +101,6 @@ public:
         return true;
     }
 
-    void call_callback() {
-        switch (result) {
-            case result_stored:
-                callback->stored();
-                break;
-            case result_not_stored:
-                callback->not_stored();
-                break;
-            case result_not_found:
-                callback->not_found();
-                break;
-            case result_exists:
-                callback->exists();
-                break;
-            case result_too_large:
-                callback->too_large();
-                break;
-            case result_data_provider_failed:
-                callback->data_provider_failed();
-                break;
-            default:
-                unreachable();
-        }
-    }
-
-private:
     ticks_t start_time;
 
     data_provider_t *data;
@@ -134,15 +108,6 @@ private:
     mcflags_t mcflags;
     exptime_t exptime;
     cas_t req_cas;
-    
-    enum result_t {
-        result_stored,
-        result_not_stored,
-        result_not_found,
-        result_exists,
-        result_too_large,
-        result_data_provider_failed
-    } result;
 
     union {
         char value_memory[MAX_BTREE_VALUE_SIZE];
@@ -151,16 +116,13 @@ private:
     large_buf_t *large_value;
     buffer_group_t buffer_group;
     
-    store_t::set_callback_t *callback;
+    store_t::set_result_t result;
 };
 
-void co_btree_set(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas, store_t::set_callback_t *cb) {
-    btree_set_oper_t *oper = new btree_set_oper_t(data, type, mcflags, exptime, req_cas, cb);
-    run_btree_modify_oper(oper, store, key);
-}
-
-void btree_set(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas, store_t::set_callback_t *cb) {
-    coro_t::spawn(co_btree_set, key, store, data, type, mcflags, exptime, req_cas, cb);
+store_t::set_result_t btree_set(const btree_key *key, btree_key_value_store_t *store, data_provider_t *data, btree_set_oper_t::set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas) {
+    btree_set_oper_t oper(data, type, mcflags, exptime, req_cas);
+    run_btree_modify_oper(&oper, store, key);
+    return oper.result;
 }
 
 #endif // __BTREE_SET_HPP__
