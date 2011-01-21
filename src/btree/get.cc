@@ -11,7 +11,7 @@
 #include "store.hpp"
 #include "concurrency/cond_var.hpp"
 
-void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_cond_t<store_t::get_result_t> *res_cond) {
+void co_btree_get(const btree_key *key, btree_slice_t *slice, value_cond_t<store_t::get_result_t> *res_cond) {
     union {
         char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
@@ -20,7 +20,6 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
 
     block_pm_duration get_time(&pm_cmd_get);
 
-    btree_slice_t *slice = store->slice_for_key(key);
     cache_t *cache = &slice->cache;
 
     int home_thread = get_thread_id();
@@ -78,7 +77,7 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
     buf_lock.release();
 
     if (found && value.expired()) {
-        btree_delete_expired(key, store);
+        btree_delete_expired(key, slice);
         found = false;
     }
     
@@ -135,8 +134,8 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
     }
 }
 
-store_t::get_result_t btree_get(const btree_key *key, btree_key_value_store_t *store) {
+store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
     value_cond_t<store_t::get_result_t> res_cond;
-    coro_t::spawn(co_btree_get, key, store, &res_cond);
+    coro_t::spawn(co_btree_get, key, slice, &res_cond);
     return res_cond.wait();
 }

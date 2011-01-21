@@ -151,27 +151,6 @@ struct store_t {
         dr_not_found
     };
     virtual delete_result_t delete_key(store_key_t *key) = 0;
-    
-    /* To start replicating, call replicate() with a replicant_t.
-    
-    The replicant_t's value() method will be called for every key in the database at the time that
-    replicate() is called and for every change that is made after replicate() is called. It may be
-    called on any thread(s) and in any order.
-    
-    To stop replicating, call stop_replicating() with the same replicant. It will be safe to delete
-    the replicant only after stopped() is called on it. */
-    
-    struct replicant_t {
-        struct done_callback_t {
-            virtual void have_copied_value() = 0;
-            virtual ~done_callback_t() {}
-        };
-        virtual void value(const store_key_t *key, const_buffer_group_t *value, done_callback_t *cb, mcflags_t flags, exptime_t exptime, cas_t cas, repli_timestamp timestamp) = 0;
-        virtual void stopped() = 0;
-        virtual ~replicant_t() {}
-    };
-    virtual void replicate(replicant_t *cb, repli_timestamp cutoff) = 0;
-    virtual void stop_replicating(replicant_t *cb) = 0;
 
     virtual ~store_t() {}
 };

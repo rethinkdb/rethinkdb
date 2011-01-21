@@ -68,9 +68,9 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     } result;
 };
 
-void co_btree_get_cas(const btree_key *key, btree_key_value_store_t *store, value_cond_t<store_t::get_result_t> *res_cond) {
+void co_btree_get_cas(const btree_key *key, btree_slice_t *slice, value_cond_t<store_t::get_result_t> *res_cond) {
     btree_get_cas_oper_t oper(res_cond);
-    run_btree_modify_oper(&oper, store, key);
+    run_btree_modify_oper(&oper, slice, key);
     switch (oper.result) {
         case btree_get_cas_oper_t::result_not_found: {
             /* The value was not found. There's no need to wait for a reply from the thing that got
@@ -94,10 +94,10 @@ void co_btree_get_cas(const btree_key *key, btree_key_value_store_t *store, valu
     }
 }
 
-store_t::get_result_t btree_get_cas(const btree_key *key, btree_key_value_store_t *store) {
+store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice) {
     block_pm_duration get_timer(&pm_cmd_get);
     value_cond_t<store_t::get_result_t> res_cond;
-    coro_t::spawn(co_btree_get_cas, key, store, &res_cond);
+    coro_t::spawn(co_btree_get_cas, key, slice, &res_cond);
     return res_cond.wait();
 }
 

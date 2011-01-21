@@ -12,79 +12,45 @@ struct btree_replicant_t;
 cache for the purpose of storing a btree. There are many btree_slice_ts per
 btree_key_value_store_t. */
 
-struct btree_key_value_store_t;
-
 class btree_slice_t :
-    private cache_t::ready_callback_t,
-    private cache_t::shutdown_callback_t,
+    public store_t,
     public home_thread_mixin_t
 {
-    friend class initialize_superblock_fsm_t;
-    
 public:
+    // Blocks
+    static void create(
+        translator_serializer_t *serializer,
+        mirrored_cache_config_t *config);
+
+    // Blocks
     btree_slice_t(
         translator_serializer_t *serializer,
         mirrored_cache_config_t *config);
+
+    // Blocks
     ~btree_slice_t();
-    
-public:
-    typedef btree_key_value_store_t ready_callback_t;
-    bool start_new(ready_callback_t *cb);
-    bool start_existing(ready_callback_t *cb);
-    
-private:
-    bool start(ready_callback_t *cb);
-    bool next_starting_up_step();
-    void on_cache_ready();
-    void on_initialize_superblock();
-    bool is_start_existing;
-    ready_callback_t *ready_callback;
 
 public:
+    /* store_t interface. */
+    get_result_t get(store_key_t *key);
+    get_result_t get_cas(store_key_t *key);
+    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
+    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
+    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
+    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique);
+    incr_decr_result_t incr(store_key_t *key, unsigned long long amount);
+    incr_decr_result_t decr(store_key_t *key, unsigned long long amount);
+    append_prepend_result_t append(store_key_t *key, data_provider_t *data);
+    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data);
+    delete_result_t delete_key(store_key_t *key);
+
+public:
+    /* Used by internal btree logic */
     cas_t gen_cas();
-private:
-    uint32_t cas_counter;
-
-public:
-    std::vector<btree_replicant_t *> replicants;
-
-public:
-    typedef btree_key_value_store_t shutdown_callback_t;
-    bool shutdown(shutdown_callback_t *cb);
-private:
-    bool next_shutting_down_step();
-    void on_cache_shutdown();
-    shutdown_callback_t *shutdown_callback;
-
-private:
-    enum state_t {
-        state_unstarted,
-        
-        state_starting_up_start_serializer,
-        state_starting_up_waiting_for_serializer,
-        state_starting_up_start_cache,
-        state_starting_up_waiting_for_cache,
-        state_starting_up_initialize_superblock,
-        state_starting_up_waiting_for_superblock,
-        state_starting_up_finish,
-        
-        state_ready,
-        
-        state_shutting_down_shutdown_serializer,
-        state_shutting_down_waiting_for_serializer,
-        state_shutting_down_shutdown_cache,
-        state_shutting_down_waiting_for_cache,
-        state_shutting_down_finish,
-        
-        state_shut_down
-    } state;
-    
-    initialize_superblock_fsm_t *sb_fsm;
-    
-public:
     cache_t cache;
 
 private:
+    uint32_t cas_counter;
     DISABLE_COPYING(btree_slice_t);
 };
 

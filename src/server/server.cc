@@ -77,27 +77,25 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 cmd_config->create_store = true;
             }
         }
-    
-        /* Start key-value store */
-        btree_key_value_store_t store(&cmd_config->store_dynamic_config);
-    
-        struct : public btree_key_value_store_t::ready_callback_t, public cond_t {
-            void on_store_ready() { pulse(); }
-        } store_ready_cb;
-        if (cmd_config->create_store) {
-            logINF("Creating new database...\n");
-            if (!store.start_new(&store_ready_cb, &cmd_config->store_static_config)) store_ready_cb.wait();
-        } else {
-            logINF("Loading existing database...\n");
-            if (!store.start_existing(&store_ready_cb)) store_ready_cb.wait();
-        }
-
-        server.store = &store;   /* So things can access it */
 
         /* Record information about disk drives to log file */
         log_disk_info(cmd_config->store_dynamic_config.serializer_private);
 
+        /* Create store if necessary */
+        if (cmd_config->create_store) {
+            logINF("Creating database...\n");
+            btree_key_value_store_t::create(
+                &cmd_config->store_dynamic_config,
+                &cmd_config->store_static_config);
+            logINF("Done creating.\n");
+        }
+
         if (!cmd_config->shutdown_after_creation) {
+
+            /* Start key-value store */
+            logINF("Loading database...\n");
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config);
+            server.store = &store;   /* So things can access it */
 
             /* Start connection acceptor */
             struct : public conn_acceptor_t::handler_t {
@@ -126,16 +124,12 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 logERR("Port %d is already in use -- aborting.\n", cmd_config->port);
             }
 
+            // store destructor called here
+
         } else {
         
             logINF("Shutting down...\n");
         }
-
-        /* Shut down key-value store */
-        struct : public btree_key_value_store_t::shutdown_callback_t, public cond_t {
-            void on_store_shutdown() { pulse(); }
-        } store_shutdown_cb;
-        if (!store.shutdown(&store_shutdown_cb)) store_shutdown_cb.wait();
     }
 
     /* The penultimate step of shutting down is to make sure that all messages

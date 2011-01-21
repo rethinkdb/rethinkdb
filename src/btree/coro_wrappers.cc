@@ -20,12 +20,3 @@ void co_deliver_get_result(const_buffer_group_t *bg, mcflags_t flags, cas_t cas,
         dest->pulse(res);
     }
 }
-
-// XXX
-//void co_replicant_value(store_t::replicant_t *replicant, const store_key_t *key,
-//                        const_buffer_group_t *value, mcflags_t flags,
-//                        exptime_t exptime, cas_t cas, repli_timestamp timestamp) {
-//    co_replicant_done_callback_t cb;
-//    replicant->value(key, value, &cb, flags, exptime, cas, timestamp);
-//    cb.join();
-//}

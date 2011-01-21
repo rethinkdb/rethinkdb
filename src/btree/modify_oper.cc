@@ -3,7 +3,6 @@
 #include "buffer_cache/large_buf.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
-#include "btree/replicate.hpp"
 
 #include "buffer_cache/co_functions.hpp"
 #include "buffer_cache/transactor.hpp"
@@ -160,18 +159,15 @@ buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size) {
 }
 
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *store, const btree_key *key) {
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const btree_key *key) {
     union {
         byte old_value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value old_value;
     };
     (void) old_value_memory;
 
-    btree_slice_t *slice = store->slice_for_key(key);
     oper->slice = slice; // TODO: Figure out a way to do this more nicely -- it's only used for generating a CAS value.
     block_size_t block_size = slice->cache.get_block_size();
-
-    store->started_a_query(); // TODO: This should probably use RAII too.
 
     {
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
@@ -319,7 +315,4 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_key_value_store_t *s
         // Committing the transaction and moving back to the home thread are
         // handled automatically with RAII.
     }
-
-    // We're done!
-    store->finished_a_query();
 }
