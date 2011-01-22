@@ -54,36 +54,16 @@ private:
     DISABLE_COPYING(linux_direct_file_t);
 };
 
-class linux_io_calls_t : public linux_event_callback_t {
-public:
-    explicit linux_io_calls_t(linux_event_queue_t *queue);
-    ~linux_io_calls_t();
-
-    void process_requests();
-
-    linux_event_queue_t *queue;
-    io_context_t aio_context;
-    fd_t aio_notify_fd;
-    
-    // Number of requests in the OS right now
-    int n_pending;
-    
-    // TODO: now that we have only one queue, merge queue_t and linux_io_calls_t
-    
-    struct queue_t {
-        linux_io_calls_t *parent;
-        typedef std::vector<iocb*> request_vector_t;
-        request_vector_t queue;
-        
-        explicit queue_t(linux_io_calls_t *parent);
-        int process_request_batch();
-        ~queue_t();
-    } io_requests;
-
-public:
-    void on_event(int events);
-    void aio_notify(iocb *event, int result);
-};
+// Older kernels that don't support eventfd require a shittier
+// implementation of linux_io_calls_t because we can't find out about
+// AIO notifications in the standard epoll loop.
+#ifdef NO_EVENTFD
+#include "arch/linux/disk/linux_io_calls_no_eventfd.hpp"
+typedef linux_io_calls_no_eventfd_t linux_io_calls_t;
+#else
+#include "arch/linux/disk/linux_io_calls_eventfd.hpp"
+typedef linux_io_calls_eventfd_t linux_io_calls_t;
+#endif
 
 #endif // __ARCH_LINUX_DISK_HPP__
 
