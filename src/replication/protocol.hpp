@@ -24,14 +24,41 @@ public:
     virtual void conn_closed() = 0;
 };
 
-void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
+class message_parser_t {
+public:
+    message_parser_t() {}
+    ~message_parser_t() {}
 
+private:
+    bool keep_going; /* used to signal the parser when to stop */
 
+public:
+    void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
+    void stop_parsing();
 
+private:
+    void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
+    void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams);
 
+    template <class message_type>
+        bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, tcp_conn_t::bufslice sl, std::vector<value_stream_t *>& streams);
 
+    template <class message_type>
+        bool parse_and_pop(tcp_conn_t *conn, message_callback_t *receiver, const char *buffer, size_t size);
 
+    template <class message_type>
+        ssize_t try_parsing(message_callback_t *receiver, const char *buffer, size_t size);
 
+    template <class struct_type>
+        ssize_t objsize(const struct_type *buffer);
+
+    template <class struct_type>
+        bool fits(const char *buffer, size_t size);
+
+    void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver);
+
+    bool valid_role(uint32_t val);
+};
 }  // namespace replication
 
 

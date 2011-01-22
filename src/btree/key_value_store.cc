@@ -465,7 +465,7 @@ void btree_key_value_store_t::finished_a_query() {
 
 /* Process of shutting down */
 
-bool btree_key_value_store_t::shutdown(shutdown_callback_t *cb) {
+bool btree_key_value_store_t::shutdown(store_t::shutdown_callback_t *cb) {
     rassert(state == state_ready);
     assert_thread();
     state = state_shutting_down;

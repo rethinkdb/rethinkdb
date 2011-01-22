@@ -76,11 +76,7 @@ public:
     bool start_new(ready_callback_t *cb, btree_key_value_store_static_config_t *static_config);
     bool start_existing(ready_callback_t *cb);
     
-    struct shutdown_callback_t {
-        virtual void on_store_shutdown() = 0;
-        virtual ~shutdown_callback_t() {}
-    };
-    bool shutdown(shutdown_callback_t *cb);
+    bool shutdown(store_t::shutdown_callback_t *cb);
 
 public:
     /* store_t interface. */
@@ -170,7 +166,7 @@ public:
     
     /* Shutdown process */
     
-    shutdown_callback_t *shutdown_callback;
+    store_t::shutdown_callback_t *shutdown_callback;
     
     void shutdown_finish_queries();   // Called on home thread
     bool shutdown_finish_queries_on_thread();   // Called on each thread

@@ -11,10 +11,20 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
     : internal_store(internal_store), config(config), conn(config.hostname, config.port), respond_to_queries(false), n_retries(RETRY_ATTEMPTS)
 {
     failover.add_callback(this);
-    continue_on_thread(home_thread, this);
+    state = starting_up;
+    continue_on_thread(get_num_threads() - 2, this); //TODO make this work even if we're on the thread here ugh ugh ugh
 }
 
 slave_t::~slave_t() {}
+
+bool slave_t::shutdown(shutdown_callback_t *cb) {
+    parser.stop_parsing(); //TODO put a callback on this
+    state = shut_down_parser;
+    _cb = cb;
+    continue_on_thread(get_num_threads() - 2, this);//TODO make this work even if we're on the thread here ugh ugh ugh
+
+    return false;
+}
 
 store_t::get_result_t slave_t::get(store_key_t *key)
 {
@@ -26,9 +36,11 @@ store_t::get_result_t slave_t::get_cas(store_key_t *key)
     return internal_store->get(key);
 }
 
-store_t::set_result_t slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime)
-{
-    return internal_store->set(key, data, flags, exptime);
+store_t::set_result_t slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
+    if (respond_to_queries)
+        return internal_store->set(key, data, flags, exptime);
+    else
+        return store_t::sr_not_allowed;
 }
 
 store_t::set_result_t slave_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime)
@@ -38,37 +50,58 @@ store_t::set_result_t slave_t::add(store_key_t *key, data_provider_t *data, mcfl
 
 store_t::set_result_t slave_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime)
 {
-    return internal_store->replace(key, data, flags, exptime);
+    if (respond_to_queries)
+        return internal_store->replace(key, data, flags, exptime);
+    else
+        return store_t::sr_not_allowed;
 }
 
 store_t::set_result_t slave_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique)
 {
-    return internal_store->cas(key, data, flags, exptime, unique);
+    if (respond_to_queries)
+        return internal_store->cas(key, data, flags, exptime, unique);
+    else
+        return store_t::sr_not_allowed;
 }
 
 store_t::incr_decr_result_t slave_t::incr(store_key_t *key, unsigned long long amount)
 {
-    return internal_store->incr(key, amount);
+    if (respond_to_queries)
+        return internal_store->incr(key, amount);
+    else
+        return store_t::incr_decr_result_t::idr_not_allowed;
 }
 
 store_t::incr_decr_result_t slave_t::decr(store_key_t *key, unsigned long long amount)
 {
-    return internal_store->decr(key, amount);
+    if (respond_to_queries)
+        return internal_store->decr(key, amount);
+    else
+        return store_t::incr_decr_result_t::idr_not_allowed;
 }
 
 store_t::append_prepend_result_t slave_t::append(store_key_t *key, data_provider_t *data)
 {
-    return internal_store->append(key, data);
+    if (respond_to_queries)
+        return internal_store->append(key, data);
+    else
+        return store_t::apr_not_allowed;
 }
 
 store_t::append_prepend_result_t slave_t::prepend(store_key_t *key, data_provider_t *data)
 {
-    return internal_store->prepend(key, data);
+    if (respond_to_queries)
+        return internal_store->prepend(key, data);
+    else
+        return store_t::apr_not_allowed;
 }
 
 store_t::delete_result_t slave_t::delete_key(store_key_t *key)
 {
-    return internal_store->delete_key(key);
+    if (respond_to_queries)
+        return internal_store->delete_key(key);
+    else
+        return dr_not_allowed;
 }
 
 void slave_t::replicate(replicant_t *cb, repli_timestamp cutoff)
@@ -113,7 +146,7 @@ void slave_t::conn_closed()
             conn = tcp_conn_t(config.hostname, config.port);
             logINF("Successfully reconnected to the server");
             success = true;
-            parse_messages(&conn, this);
+            parser.parse_messages(&conn, this);
         }
         catch (tcp_conn_t::connect_failed_exc_t& e) {
             logINF("Connection attempt: %d failed\n", reconnects_done);
@@ -121,6 +154,24 @@ void slave_t::conn_closed()
     }
 
     if(!success) failover.on_failure();
+}
+
+void slave_t::on_thread_switch() {
+    if (state == starting_up) {
+        parser.parse_messages(&conn, this);
+    } else if (state == shut_down_parser) {
+        if (conn.is_read_open()) conn.shutdown_read();
+        if (conn.is_write_open()) conn.shutdown_write();
+        state = shut_down_internal_store;
+        continue_on_thread(home_thread, this);
+    } else if (state == shut_down_internal_store) {
+        if(internal_store->shutdown(_cb)) {
+            logINF("Store shutdown immediately");
+            _cb->on_store_shutdown();
+        }
+    } else {
+        unreachable();
+    }
 }
 
 /* failover callback */

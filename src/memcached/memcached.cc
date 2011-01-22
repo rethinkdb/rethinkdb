@@ -283,9 +283,9 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
                 case store_t::sr_data_provider_failed:
                     rh->writef("CLIENT_ERROR bad data chunk\r\n");
                     break;
-                /* case store_t::sr_not_allowed:
+                case store_t::sr_not_allowed:
                     rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
-                    break; */
+                    break;
                 default: unreachable();
             }
         }
@@ -311,9 +311,9 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
                 case store_t::apr_data_provider_failed:
                     rh->writef("CLIENT_ERROR bad data chunk\r\n");
                     break;
-                /* case apr_not_allowed:
+                case store_t::apr_not_allowed:
                     rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
-                    break; */
+                    break;
                 default: unreachable();
             }
         }
@@ -467,9 +467,9 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsi
             case store_t::incr_decr_result_t::idr_not_numeric:
                 rh->writef("CLIENT_ERROR cannot increment or decrement non-numeric value\r\n");
                 break;
-            /* case incr_decr_result_t::idr_not_allowed:
+            case store_t::incr_decr_result_t::idr_not_allowed:
                 rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
-                break; */
+                break;
             default: unreachable();
         }
     }
@@ -530,8 +530,15 @@ void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool no
 
     if (!noreply) {
         switch (res) {
-            case store_t::dr_deleted: rh->writef("DELETED\r\n"); break;
-            case store_t::dr_not_found: rh->writef("NOT_FOUND\r\n"); break;
+            case store_t::dr_deleted: 
+                rh->writef("DELETED\r\n"); 
+                break;
+            case store_t::dr_not_found: 
+                rh->writef("NOT_FOUND\r\n"); 
+                break;
+            case store_t::dr_not_allowed: 
+                rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
+                break;
             default: unreachable();
         }
     }

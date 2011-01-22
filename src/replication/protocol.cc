@@ -16,11 +16,11 @@ private:
 // 13 is the length of the text.
 const char STANDARD_HELLO_MAGIC[16] = "13rethinkdbrepl";
 
-bool valid_role(uint32_t val) {
+bool message_parser_t::valid_role(uint32_t val) {
     return val == master || val == new_slave || val == slave;
 }
 
-void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
+void message_parser_t::do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
     net_hello_t buf;
     conn->read(&buf, sizeof(buf));
 
@@ -43,41 +43,41 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
 }
 
 template <class struct_type>
-bool fits(const char *buffer, size_t size) {
+bool message_parser_t::fits(const char *buffer, size_t size) {
     return size >= sizeof(struct_type);
 }
 
 template <>
-bool fits<net_small_set_t>(const char *buffer, size_t size) {
+bool message_parser_t::fits<net_small_set_t>(const char *buffer, size_t size) {
     const net_small_set_t *p = reinterpret_cast<const net_small_set_t *>(buffer);
 
     return sizeof(net_small_set_t) < size && leaf_pair_fits(p->leaf_pair(), size - sizeof(net_small_set_t));
 }
 
 template <>
-bool fits<net_small_append_prepend_t>(const char *buffer, size_t size) {
+bool message_parser_t::fits<net_small_append_prepend_t>(const char *buffer, size_t size) {
     const net_small_append_prepend_t *p = reinterpret_cast<const net_small_append_prepend_t *>(buffer);
 
     return sizeof(net_small_append_prepend_t) <= size && sizeof(net_small_append_prepend_t) + p->size <= size;
 }
 
 template <class struct_type>
-ssize_t objsize(const struct_type *buffer) {
+ssize_t message_parser_t::objsize(const struct_type *buffer) {
     return sizeof(struct_type);
 }
 
 template <>
-ssize_t objsize<net_small_set_t>(const net_small_set_t *buffer) {
+ssize_t message_parser_t::objsize<net_small_set_t>(const net_small_set_t *buffer) {
     return sizeof(net_small_set_t) + leaf::pair_size(buffer->leaf_pair());
 }
 
 template <>
-ssize_t objsize<net_small_append_prepend_t>(const net_small_append_prepend_t *buffer) {
+ssize_t message_parser_t::objsize<net_small_append_prepend_t>(const net_small_append_prepend_t *buffer) {
     return sizeof(net_small_append_prepend_t) + buffer->size;
 }
 
 template <class message_type>
-ssize_t try_parsing(message_callback_t *receiver, const char *buffer, size_t size) {
+ssize_t message_parser_t::try_parsing(message_callback_t *receiver, const char *buffer, size_t size) {
     typedef typename message_type::net_struct_type net_struct_type;
     if (fits<net_struct_type>(buffer, size)) {
         const net_struct_type *p = reinterpret_cast<const net_struct_type *>(buffer);
@@ -91,7 +91,7 @@ ssize_t try_parsing(message_callback_t *receiver, const char *buffer, size_t siz
 }
 
 template <class message_type>
-bool parse_and_pop(tcp_conn_t *conn, message_callback_t *receiver, const char *buffer, size_t size) {
+bool message_parser_t::parse_and_pop(tcp_conn_t *conn, message_callback_t *receiver, const char *buffer, size_t size) {
     ssize_t sz = try_parsing<message_type>(receiver, buffer, size);
     if (sz == -1) {
         return false;
@@ -102,7 +102,7 @@ bool parse_and_pop(tcp_conn_t *conn, message_callback_t *receiver, const char *b
 }
 
 template <class message_type>
-bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, tcp_conn_t::bufslice sl, std::vector<value_stream_t *>& streams) {
+bool message_parser_t::parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, tcp_conn_t::bufslice sl, std::vector<value_stream_t *>& streams) {
     typedef typename message_type::first_struct_type first_struct_type;
     /*    if (part_before_stream_fits<first_struct_type>(sl)) {
         const first_struct_type *p = reinterpret_cast<const first_struct_type *>(sl.buf);
@@ -115,9 +115,9 @@ bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, tcp_conn_t
     return false;
 }
 
-void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams) {
+void message_parser_t::do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams) {
 
-    for (;;) {
+    while (keep_going) {
         tcp_conn_t::bufslice sl = conn->peek();
         if (sl.len >= sizeof(net_header_t)) {
             const char *buffer = reinterpret_cast<const char *>(sl.buf);
@@ -167,22 +167,25 @@ void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std
 }
 
 
-void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
-    do_parse_hello_message(conn, receiver);
+void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+    try {
+        do_parse_hello_message(conn, receiver);
 
-    std::vector<value_stream_t *> placeholder;
-    for (;;) {
+        std::vector<value_stream_t *> placeholder;
         do_parse_normal_message(conn, receiver, placeholder);
+    } catch (tcp_conn_t::read_closed_exc_t& e) {
+        if (keep_going)
+            receiver->conn_closed();
     }
 }
 
-void parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
-    try {
-        do_parse_messages(conn, receiver);
-    }
-    catch (tcp_conn_t::read_closed_exc_t& e) {
-        receiver->conn_closed();
-    }
+void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+    keep_going = true;
+    coro_t::spawn(&message_parser_t::do_parse_messages, this, conn, receiver);
+}
+
+void message_parser_t::stop_parsing() {
+    keep_going = false;
 }
 
 }  // namespace replication

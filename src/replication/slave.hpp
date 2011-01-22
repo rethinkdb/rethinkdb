@@ -22,11 +22,15 @@ public:
     slave_t(store_t *, replication_config_t);
     ~slave_t();
 
+    bool shutdown(store_t::shutdown_callback_t *cb);
+private:
+    store_t::shutdown_callback_t *_cb; //we'll need to store the cb at some point
+
 private:
     store_t *internal_store;
     replication_config_t config;
     tcp_conn_t conn;
-
+    message_parser_t parser;
     failover_t failover;
 
 public:
@@ -69,10 +73,16 @@ private:
     bool respond_to_queries;
     int n_retries;
 
+private:
+    enum {
+        starting_up = 0,
+        shut_down_parser,
+        shut_down_internal_store,
+        shut_down
+    } state;
+
 public:
-    void on_thread_switch() {
-        parse_messages(&conn, this);
-    }
+    void on_thread_switch();
 };
 
 }  // namespace replication

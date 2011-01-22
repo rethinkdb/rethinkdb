@@ -51,6 +51,9 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     server_t server(cmd_config, thread_pool);
 
     {
+        /* Replication store */
+        replication::slave_t *slave_store = NULL;
+
         /* Start logger */
         log_controller_t log_controller;
     
@@ -95,9 +98,10 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
         if (cmd_config->replication_config.active) {
             logINF("Starting up as a slave...\n");
-            replication::slave_t slave_store(&store, cmd_config->replication_config);
-            server.store = &slave_store;
+            slave_store = new replication::slave_t(&store, cmd_config->replication_config);
+            server.store = slave_store;
         } else {
+            logINF("Starting up as a free database...\n");
             server.store = &store;   /* So things can access it */
         }
 
@@ -139,10 +143,13 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         }
 
         /* Shut down key-value store */
-        struct : public btree_key_value_store_t::shutdown_callback_t, public cond_t {
+        struct : public store_t::shutdown_callback_t, public cond_t {
             void on_store_shutdown() { pulse(); }
         } store_shutdown_cb;
-        if (!store.shutdown(&store_shutdown_cb)) store_shutdown_cb.wait();
+        if (!server.store->shutdown(&store_shutdown_cb)) store_shutdown_cb.wait();
+
+        if (slave_store)
+            delete slave_store;
     }
 
     /* The penultimate step of shutting down is to make sure that all messages
