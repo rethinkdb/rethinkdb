@@ -1,4 +1,5 @@
 #include "btree/rget.hpp"
+#include "btree/rget_internal.hpp"
 
 /*
  * Possible rget designs:
@@ -48,6 +49,13 @@
  */
 
 store_t::rget_result_t btree_rget(btree_key_value_store_t *store, store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {
+    for (int s = 0; s < store->btree_static_config.n_slices; s++) {
+//        coro_t::spawn(btree_rget_slice, start, end, left_open, right_open, max_results);
+    }
+    return store_t::rget_result_t();
+}
+
+store_t::rget_result_t btree_rget_slice_iterator(btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {
     return store_t::rget_result_t();
 }
 
