@@ -98,7 +98,7 @@ private:
     DISABLE_COPYING(value_stream_t);
 };
 
-void write_charslice(value_stream_t& stream, const_charslice sl);
+void write_charslice(value_stream_t *stream, const_charslice sl);
 
 
 }  // namespace replication

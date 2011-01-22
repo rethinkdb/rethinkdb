@@ -82,15 +82,16 @@ void value_stream_t::data_written(ssize_t amount) {
     }
 }
 
-void write_charslice(value_stream_t& stream, const_charslice r) {
+void write_charslice(value_stream_t *stream, const_charslice r) {
     while (r.beg < r.end) {
-        charslice w = stream.buf_for_filling(r.end - r.beg);
+        charslice w = stream->buf_for_filling(r.end - r.beg);
         ssize_t n = std::min(w.end - w.beg, r.end - r.beg);
         memcpy(w.beg, r.beg, n);
-        stream.data_written(n);
+        stream->data_written(n);
         r.beg += n;
     }
 }
+
 
 
 

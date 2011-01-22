@@ -71,6 +71,34 @@ ssize_t fitsize<net_small_append_prepend_t>(const_charslice sl) {
     }
 }
 
+template <>
+ssize_t fitsize<net_large_set_t>(const_charslice sl) {
+    const net_large_set_t *p = reinterpret_cast<const net_large_set_t *>(sl.beg);
+    size_t size = sl.end - sl.beg;
+
+    if (net_large_set_t::prefitsize() <= size) {
+        size_t fs = p->fitsize();
+        if (fs <= size) {
+            return fs;
+        }
+    }
+    return -1;
+}
+
+template <>
+ssize_t fitsize<net_large_append_prepend_t>(const_charslice sl) {
+    const net_large_append_prepend_t *p = reinterpret_cast<const net_large_append_prepend_t *>(sl.beg);
+    size_t size = sl.end - sl.beg;
+
+    if (net_large_append_prepend_t::prefitsize() <= size) {
+        size_t fs = p->fitsize();
+        if (fs <= size) {
+            return fs;
+        }
+    }
+    return -1;
+}
+
 template <class message_type>
 ssize_t try_parsing(message_callback_t *receiver, const_charslice sl) {
     typedef typename message_type::net_struct_type net_struct_type;
@@ -84,25 +112,63 @@ ssize_t try_parsing(message_callback_t *receiver, const_charslice sl) {
 
 template <class message_type>
 bool parse_and_pop(tcp_conn_t *conn, message_callback_t *receiver, const_charslice sl) {
-    ssize_t sz = try_parsing<message_type>(receiver, sl);
+    typedef typename message_type::net_struct_type net_struct_type;
+    ssize_t sz = fitsize<net_struct_type>(sl);
     if (sz == -1) {
         return false;
-    } else {
-        conn->pop(sz);
-        return true;
     }
+    scoped_ptr<message_type> msg(new message_type(reinterpret_cast<const net_struct_type *>(sl.beg)));
+    receiver->send(msg);
+    conn->pop(sz);
+    return true;
 }
+
 
 template <class message_type>
 bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, const_charslice sl, std::vector<value_stream_t *>& streams) {
-    /*    typedef typename message_type::first_struct_type first_struct_type;
-    if (part_before_stream_fits<first_struct_type>(sl)) {
+    typedef typename message_type::first_struct_type first_struct_type;
+    ssize_t sz = fitsize<first_struct_type>(sl);
+    if (sz == -1) {
+        return false;
+    }
+    const first_struct_type *p = reinterpret_cast<const first_struct_type *>(sl.beg);
 
-        // TODO: This is a mess.
+    int32_t stream_identifier = p->op_header.identifier;
+    value_stream_t *stream;
+    if (0 <= stream_identifier) {
+        if (size_t(stream_identifier) < streams.size()) {
+            if (streams[stream_identifier] != NULL) {
+                throw protocol_exc_t("reused live stream identifier");
+            }
+            stream = new value_stream_t();
+            streams[stream_identifier] = stream;
+        } else if (size_t(stream_identifier) == streams.size()) {
+            stream = new value_stream_t();
+            streams.push_back(stream);
+        } else {
+            throw protocol_exc_t("stream identifier too big");
+        }
+    } else {
+        throw protocol_exc_t("negative stream identifier");
+    }
 
-        } */
+    streams.push_back(stream);
+    ssize_t packet_size = p->op_header.header.size;
+    ssize_t write_end = std::min(packet_size, sl.end - sl.beg);
+    write_charslice(stream, const_charslice(sl.beg + sz, sl.beg + write_end));
+    conn->pop(write_end);
 
-    return false;
+    ssize_t write_remainder = packet_size - write_end;
+
+    while (write_remainder > 0) {
+        charslice new_sl = stream->buf_for_filling(write_remainder);
+        ssize_t w_size = std::min(new_sl.end - new_sl.beg, write_remainder);
+        conn->read(new_sl.beg, w_size);
+        stream->data_written(w_size);
+        write_remainder -= w_size;
+    }
+
+    return true;
 }
 
 void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams) {
@@ -146,8 +212,8 @@ void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std
 
 
             } else {
-                throw protocol_exc_t("invalid multipart_aspect (small messages only supported)");
 
+                throw protocol_exc_t("middle or last packets not implemented");
             }
         }
 
