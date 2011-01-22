@@ -5,6 +5,7 @@
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/disk.hpp"
+#include "arch/linux/system_event.hpp"
 #include "arch/linux/message_hub.hpp"
 #include "timer.hpp"
 
@@ -76,7 +77,7 @@ public:
     linux_io_calls_t iosys;
     
     volatile bool do_shutdown;
-    fd_t shutdown_notify_fd;
+    system_event_t shutdown_notify_event;
     void pump();   // Called by the event queue
     bool should_shut_down();   // Called by the event queue
     void on_event(int events);

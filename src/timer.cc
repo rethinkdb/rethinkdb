@@ -1,7 +1,6 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
-#include "arch/linux/eventfd.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "timer.hpp"
 #include "logger.hpp"
