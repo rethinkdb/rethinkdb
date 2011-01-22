@@ -15,8 +15,7 @@ struct slave_t :
     public home_thread_mixin_t,
     public store_t,
     public failover_callback_t,
-    public message_callback_t,
-    public thread_message_t
+    public message_callback_t
 {
 public:
     slave_t(store_t *, replication_config_t);
@@ -72,17 +71,6 @@ private:
     /* state for failover */
     bool respond_to_queries;
     int n_retries;
-
-private:
-    enum {
-        starting_up = 0,
-        shut_down_parser,
-        shut_down_internal_store,
-        shut_down
-    } state;
-
-public:
-    void on_thread_switch();
 };
 
 }  // namespace replication

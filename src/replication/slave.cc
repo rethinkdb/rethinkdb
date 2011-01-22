@@ -1,6 +1,7 @@
 #include "slave.hpp"
 #include <stdint.h>
 #include "net_structs.hpp"
+#include "arch/linux/coroutines.hpp"
 
 namespace replication {
 
@@ -11,17 +12,23 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
     : internal_store(internal_store), config(config), conn(config.hostname, config.port), respond_to_queries(false), n_retries(RETRY_ATTEMPTS)
 {
     failover.add_callback(this);
-    state = starting_up;
-    continue_on_thread(get_num_threads() - 2, this); //TODO make this work even if we're on the thread here ugh ugh ugh
+    coro_t::move_to_thread(get_num_threads() - 2);
+    parser.parse_messages(&conn, this);
 }
 
 slave_t::~slave_t() {}
 
 bool slave_t::shutdown(shutdown_callback_t *cb) {
     parser.stop_parsing(); //TODO put a callback on this
-    state = shut_down_parser;
     _cb = cb;
-    continue_on_thread(get_num_threads() - 2, this);//TODO make this work even if we're on the thread here ugh ugh ugh
+
+    coro_t::move_to_thread(get_num_threads() - 2);//TODO make this work even if we're on the thread here ugh ugh ugh
+    if (conn.is_read_open()) conn.shutdown_read();
+    if (conn.is_write_open()) conn.shutdown_write();
+
+    coro_t::move_to_thread(home_thread);
+    if(internal_store->shutdown(_cb))
+        _cb->on_store_shutdown();
 
     return false;
 }
@@ -154,24 +161,6 @@ void slave_t::conn_closed()
     }
 
     if(!success) failover.on_failure();
-}
-
-void slave_t::on_thread_switch() {
-    if (state == starting_up) {
-        parser.parse_messages(&conn, this);
-    } else if (state == shut_down_parser) {
-        if (conn.is_read_open()) conn.shutdown_read();
-        if (conn.is_write_open()) conn.shutdown_write();
-        state = shut_down_internal_store;
-        continue_on_thread(home_thread, this);
-    } else if (state == shut_down_internal_store) {
-        if(internal_store->shutdown(_cb)) {
-            logINF("Store shutdown immediately");
-            _cb->on_store_shutdown();
-        }
-    } else {
-        unreachable();
-    }
 }
 
 /* failover callback */
