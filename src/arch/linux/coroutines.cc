@@ -264,6 +264,10 @@ void coro_t::notify() {
 }
 
 void coro_t::move_to_thread(int thread) {   /* class method */
+    if (thread == self()->current_thread) {
+        // If we're trying to switch to the thread we're currently on, do nothing.
+        return;
+    }
     self()->current_thread = thread;
     self()->notify();
     wait();
