@@ -247,7 +247,8 @@ private:
         // Returns the current timestamp in microseconds.
         static timestamp_t current_timestamp() {
             struct timeval t;
-            assert(0 == gettimeofday(&t, NULL));
+            int res __attribute__((unused)) = gettimeofday(&t, NULL);
+            assert(0 == res);
             return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
         }
     };
