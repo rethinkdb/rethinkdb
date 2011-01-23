@@ -20,6 +20,8 @@ bashcompletiondir=/etc/bash_completion.d
 SERVER_EXEC_NAME:=rethinkdb
 SERVER_UNIT_TEST_NAME:=rethinkdb-unittest
 
+DEBIAN_PKG_DIR:=debian
+
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
@@ -132,6 +134,7 @@ ifeq ($(LEGACY_LINUX),1)
 #CXX=g++44
 CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL
 BUILD_DIR:=$(BUILD_DIR)-legacy
+DEBIAN_PKG_DIR:=$(DEBIAN_PKG_DIR)-legacy
 endif
 
 ifeq ($(NO_EVENTFD),1)
@@ -269,7 +272,7 @@ build-deb: all prepare_deb_package_dirs
 
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		\
-			cp ../packaging/debian/$${script} $(DEB_CONTROL_ROOT);	\
+			cp ../packaging/$(DEBIAN_PKG_DIR)/$${script} $(DEB_CONTROL_ROOT);	\
 			chmod 0755 $(DEB_CONTROL_ROOT)/$${script};							\
 		done
 
@@ -278,7 +281,7 @@ build-deb: all prepare_deb_package_dirs
 		sed																														\
 				-e "s/VERSION/$(RETHINKDB_VERSION_DEB)/"									\
 				-e "s/DISK_SIZE/$${disk_size}/"														\
-			../packaging/debian/control >$(DEB_CONTROL_ROOT)/control
+			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
 # Finally, produce a debian package
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
