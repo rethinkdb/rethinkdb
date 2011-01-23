@@ -4,11 +4,13 @@
 #include "arch/arch.hpp"
 
 struct send_buffer_callback_t {
+    virtual ~send_buffer_callback_t() {}
     virtual void on_send_buffer_flush() = 0;
     virtual void on_send_buffer_socket_closed() = 0;
 };
 
 struct send_buffer_external_write_callback_t {
+    virtual ~send_buffer_external_write_callback_t() {}
     virtual void on_send_buffer_write_external() = 0;
     virtual void on_send_buffer_socket_closed() = 0;
 };

@@ -17,6 +17,7 @@ struct linux_thread_pool_t;
 struct linux_thread_message_t :
     public intrusive_list_node_t<linux_thread_message_t>
 {
+    virtual ~linux_thread_message_t() {}
     virtual void on_thread_switch() = 0;
 };
 

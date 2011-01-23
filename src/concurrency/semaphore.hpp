@@ -5,6 +5,7 @@
 #include "concurrency/rwi_lock.hpp"   // For lock_available_callback_t
 
 struct semaphore_available_callback_t {
+    virtual ~semaphore_available_callback_t() {}
     virtual void on_semaphore_available() = 0;
 };
 

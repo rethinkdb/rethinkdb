@@ -43,6 +43,7 @@ private:
 };
 
 struct task_callback_t {
+    virtual ~task_callback_t() {}
     virtual void on_task_return(void *value) = 0;
 };
 

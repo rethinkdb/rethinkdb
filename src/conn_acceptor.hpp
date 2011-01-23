@@ -83,7 +83,7 @@ public:
     // do so immediately.
     virtual void quit() = 0;
 
-    ~conn_handler_t();
+    virtual ~conn_handler_t();
 
 private:
     conn_acceptor_t *parent;

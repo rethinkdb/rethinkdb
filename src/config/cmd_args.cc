@@ -380,7 +380,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
         /* The page replacement algorithm won't work properly if the number of dirty bufs
         is allowed to be more than about half of the total number of bufs. */
         config.store_dynamic_config.cache.max_dirty_size =
-            config.store_dynamic_config.cache.max_size * MAX_UNSAVED_DATA_LIMIT_FRACTION;
+            (long long int)(config.store_dynamic_config.cache.max_size * MAX_UNSAVED_DATA_LIMIT_FRACTION);
     }
     
     if (config.store_dynamic_config.cache.wait_for_flush == true &&
@@ -407,7 +407,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     
     // It's probably not necessary for this parameter to be independently configurable
     config.store_dynamic_config.cache.flush_dirty_size =
-        config.store_dynamic_config.cache.max_dirty_size * FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT;
+        (long long int)(config.store_dynamic_config.cache.max_dirty_size * FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT);
 
     //slices divisable by the number of files
     if ((config.store_static_config.btree.n_slices % config.store_dynamic_config.serializer_private.size()) != 0) {
@@ -719,7 +719,7 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.serializer.file_size = 0;   // Unlimited file size
     store_dynamic_config.serializer.file_zone_size = GIGABYTE;
     
-    store_dynamic_config.cache.max_size = DEFAULT_MAX_CACHE_RATIO * get_available_ram();
+    store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
     store_dynamic_config.cache.wait_for_flush = false;
     store_dynamic_config.cache.flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
     store_dynamic_config.cache.max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;

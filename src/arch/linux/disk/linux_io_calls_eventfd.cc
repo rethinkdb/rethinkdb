@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include "arch/linux/system_event/eventfd.hpp"
 #include "linux_io_calls_eventfd.hpp"
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
