@@ -4,7 +4,7 @@
 
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/eventfd.h>
+#include "eventfd.hpp"
 
 // An event API implemented in terms of eventfd. May not be available
 // on older kernels.

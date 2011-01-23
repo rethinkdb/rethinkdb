@@ -1,7 +1,6 @@
 
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/eventfd.h>
 #include "utils.hpp"
 #include "eventfd_event.hpp"
 

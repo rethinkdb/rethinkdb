@@ -129,7 +129,7 @@ CXXFLAGS+=-DMEMCACHED_STRICT
 endif
 
 ifeq ($(LEGACY_LINUX),1)
-CXX=g++44
+#CXX=g++44
 CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL
 BUILD_DIR:=$(BUILD_DIR)-legacy
 endif
@@ -444,4 +444,7 @@ $(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc
 	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \
 	rm -f $@.$$$$
 # Include the dependencies into the makefile so that they take effect
--include $(DEPS)
+ifneq ($(MAKECMDGOALS),clean)
+	-include $(DEPS)
+endif
+
