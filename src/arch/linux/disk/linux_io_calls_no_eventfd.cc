@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <signal.h>
 #include "linux_io_calls_no_eventfd.hpp"
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
@@ -20,6 +21,15 @@ void shutdown_signal_handler(int signum, siginfo_t *siginfo, void *uctx) {
 }
 
 void* io_event_loop(void *arg) {
+    // Unblock a signal that will tell us to shutdown
+    sigset_t sigmask;
+    int res = sigemptyset(&sigmask);
+    guarantee_err(res == 0, "Could not get a full sigmask");
+    res = sigaddset(&sigmask, IO_SHUTDOWN_NOTIFY_SIGNAL);
+    guarantee_err(res == 0, "Could not add a signal to the set");
+    res = pthread_sigmask(SIG_UNBLOCK, &sigmask, NULL);
+    guarantee_err(res == 0, "Could not block signal");
+
     linux_io_calls_no_eventfd_t *parent = (linux_io_calls_no_eventfd_t*)arg;
 
     io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
@@ -84,13 +94,13 @@ linux_io_calls_no_eventfd_t::~linux_io_calls_no_eventfd_t()
     guarantee_err(res == 0, "Could not install shutdown signal handler in the IO thread");
 
     shutting_down = true;
-    
+
     res = pthread_kill(io_thread, IO_SHUTDOWN_NOTIFY_SIGNAL);
     guarantee(res == 0, "Could not notify the io thread about shutdown");
-    
+
     res = pthread_join(io_thread, NULL);
     guarantee(res == 0, "Could not join the io thread");
-    
+
     // Destroy the mutex to sync IO and poll threads
     res = pthread_mutex_destroy(&io_mutex);
     guarantee(res == 0, "Could not destroy io mutex");
