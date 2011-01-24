@@ -4,6 +4,11 @@ using boost::scoped_ptr;
 
 namespace replication {
 
+// TODO refactor this darned thing.  TODO make it easier to parse and
+// document the binary protocol we have here.
+
+
+
 class protocol_exc_t : public std::exception {
 public:
     protocol_exc_t(const char *msg) : msg_(msg) { }
