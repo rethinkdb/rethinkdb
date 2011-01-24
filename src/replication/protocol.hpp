@@ -48,24 +48,6 @@ private:
     void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
     void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams);
 
-    template <class message_type>
-        bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, tcp_conn_t::bufslice sl, std::vector<value_stream_t *>& streams);
-
-    template <class message_type>
-        bool parse_and_pop(tcp_conn_t *conn, message_callback_t *receiver, const char *buffer, size_t size);
-
-    template <class message_type>
-        ssize_t try_parsing(message_callback_t *receiver, const char *buffer, size_t size);
-
-    template <class struct_type>
-        ssize_t objsize(const struct_type *buffer);
-
-    template <class struct_type>
-        bool fits(const char *buffer, size_t size);
-
-    void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver);
-
-    bool valid_role(uint32_t val);
 };
 }  // namespace replication
 

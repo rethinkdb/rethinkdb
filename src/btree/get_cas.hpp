@@ -12,8 +12,8 @@
 
 struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mixin_t {
 
-    btree_get_cas_oper_t(value_cond_t<store_t::get_result_t> *res_cond)
-        : res_cond(res_cond) { }
+    btree_get_cas_oper_t(promise_t<store_t::get_result_t> *res)
+        : res(res) { }
 
     bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
         if (!old_value) {
@@ -40,7 +40,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
             }
             {
                 on_thread_t thread_switcher(home_thread);
-                co_deliver_get_result(&buffer_group, value.mcflags(), value.cas(), res_cond);
+                co_deliver_get_result(&buffer_group, value.mcflags(), value.cas(), res);
             }
         } else {
             result = result_small_value;
@@ -55,7 +55,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         }
     }
 
-    value_cond_t<store_t::get_result_t> *res_cond;
+    promise_t<store_t::get_result_t> *res;
     union {
         byte value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
@@ -68,14 +68,14 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     } result;
 };
 
-void co_btree_get_cas(const btree_key *key, btree_key_value_store_t *store, value_cond_t<store_t::get_result_t> *res_cond) {
-    btree_get_cas_oper_t oper(res_cond);
-    run_btree_modify_oper(&oper, store, key);
+void co_btree_get_cas(const btree_key *key, btree_slice_t *slice, promise_t<store_t::get_result_t> *res) {
+    btree_get_cas_oper_t oper(res);
+    run_btree_modify_oper(&oper, slice, key);
     switch (oper.result) {
         case btree_get_cas_oper_t::result_not_found: {
             /* The value was not found. There's no need to wait for a reply from the thing that got
             the value */
-            co_deliver_get_result(NULL, 0, 0, res_cond);
+            co_deliver_get_result(NULL, 0, 0, res);
             break;
         }
         case btree_get_cas_oper_t::result_small_value: {
@@ -83,7 +83,7 @@ void co_btree_get_cas(const btree_key *key, btree_key_value_store_t *store, valu
             reply so we can finish and destroy ourself. */
             const_buffer_group_t bg;
             bg.add_buffer(oper.value.value_size(), oper.value.value());
-            co_deliver_get_result(&bg, oper.value.mcflags(), oper.value.cas(), res_cond);
+            co_deliver_get_result(&bg, oper.value.mcflags(), oper.value.cas(), res);
             break;
         }
         case btree_get_cas_oper_t::result_large_value: {
@@ -94,11 +94,11 @@ void co_btree_get_cas(const btree_key *key, btree_key_value_store_t *store, valu
     }
 }
 
-store_t::get_result_t btree_get_cas(const btree_key *key, btree_key_value_store_t *store) {
+store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice) {
     block_pm_duration get_timer(&pm_cmd_get);
-    value_cond_t<store_t::get_result_t> res_cond;
-    coro_t::spawn(co_btree_get_cas, key, store, &res_cond);
-    return res_cond.wait();
+    promise_t<store_t::get_result_t> res;
+    coro_t::spawn(co_btree_get_cas, key, slice, &res);
+    return res.wait();
 }
 
 #endif // __BTREE_GET_CAS_HPP__

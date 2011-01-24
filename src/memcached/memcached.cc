@@ -6,7 +6,8 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "arch/arch.hpp"
-#include "server/server.hpp"
+#include "store.hpp"
+#include "logger.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
@@ -14,11 +15,11 @@ around to do_get(), do_storage(), and the like. */
 struct txt_memcached_handler_t {
 
     tcp_conn_t *conn;
-    server_t *server;
+    store_t *store;
 
-    txt_memcached_handler_t(tcp_conn_t *conn, server_t *server) :
+    txt_memcached_handler_t(tcp_conn_t *conn, store_t *store) :
         conn(conn),
-        server(server),
+        store(store),
         requests_out_sem(MAX_CONCURRENT_QUERIES_PER_CONNECTION)
     { }
 
@@ -73,8 +74,8 @@ struct txt_memcached_handler_t {
 
 struct get_t {
     union {
-        char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
-        btree_key key;
+        char key_memory[MAX_KEY_SIZE+sizeof(store_key_t)];
+        store_key_t key;
     };
     task_t<store_t::get_result_t> *result;
 };
@@ -91,7 +92,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
     gets.reserve(argc - 1);
     for (int i = 1; i < argc; i++) {
         gets.push_back(get_t());
-        if (!node::str_to_key(argv[i], &gets.back().key)) {
+        if (!str_to_key(argv[i], &gets.back().key)) {
             rh->writef("CLIENT_ERROR bad command line format\r\n");
             return;
         }
@@ -105,7 +106,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
     for (int i = 0; i < (int)gets.size(); i++) {
         gets[i].result = task<store_t::get_result_t>(
             with_cas ? &store_t::get_cas : &store_t::get,
-            rh->server->store,
+            rh->store,
             &gets[i].key);
     }
 
@@ -117,7 +118,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
         /* If the write half of the connection has been closed, there's no point in trying
         to send anything */
         if (rh->conn->is_write_open()) {
-            btree_key &key = gets[i].key;
+            store_key_t &key = gets[i].key;
 
             /* If res.buffer is NULL that means the value was not found so we don't write
             anything */
@@ -259,10 +260,10 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
     if (sc != append_command && sc != prepend_command) {
         store_t::set_result_t res;
         switch (sc) {
-            case set_command: res = rh->server->store->set(&key.key, data, mcflags, exptime); break;
-            case add_command: res = rh->server->store->add(&key.key, data, mcflags, exptime); break;
-            case replace_command: res = rh->server->store->replace(&key.key, data, mcflags, exptime); break;
-            case cas_command: res = rh->server->store->cas(&key.key, data, mcflags, exptime, unique); break;
+            case set_command: res = rh->store->set(&key.key, data, mcflags, exptime); break;
+            case add_command: res = rh->store->add(&key.key, data, mcflags, exptime); break;
+            case replace_command: res = rh->store->replace(&key.key, data, mcflags, exptime); break;
+            case cas_command: res = rh->store->cas(&key.key, data, mcflags, exptime, unique); break;
             case append_command:
             case prepend_command:
             default:
@@ -292,8 +293,8 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
     } else {
         store_t::append_prepend_result_t res;
         switch (sc) {
-            case append_command: res = rh->server->store->append(&key.key, data); break;
-            case prepend_command: res = rh->server->store->prepend(&key.key, data); break;
+            case append_command: res = rh->store->append(&key.key, data); break;
+            case prepend_command: res = rh->store->prepend(&key.key, data); break;
             case set_command:
             case add_command:
             case replace_command:
@@ -337,7 +338,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 
     /* First parse the key */
     store_key_and_buffer_t key;
-    if (!node::str_to_key(argv[1], &key.key)) {
+    if (!str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }
@@ -453,8 +454,8 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsigned long long amount, bool incr, bool noreply) {
 
     store_t::incr_decr_result_t res = incr ?
-        rh->server->store->incr(&key.key, amount) :
-        rh->server->store->decr(&key.key, amount);
+        rh->store->incr(&key.key, amount) :
+        rh->store->decr(&key.key, amount);
 
     if (!noreply) {
         switch (res.res) {
@@ -487,7 +488,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 
     /* Parse key */
     store_key_and_buffer_t key;
-    if (!node::str_to_key(argv[1], &key.key)) {
+    if (!str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }
@@ -526,7 +527,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 
 void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool noreply) {
 
-    store_t::delete_result_t res = rh->server->store->delete_key(&key.key);
+    store_t::delete_result_t res = rh->store->delete_key(&key.key);
 
     if (!noreply) {
         switch (res) {
@@ -556,7 +557,7 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
 
     /* Parse key */
     store_key_and_buffer_t key;
-    if (!node::str_to_key(argv[1], &key.key)) {
+    if (!str_to_key(argv[1], &key.key)) {
         rh->writef("CLIENT_ERROR bad command line format\r\n");
         return;
     }
@@ -622,19 +623,19 @@ perfmon_duration_sampler_t
 void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 
     for (;;) {
-        tcp_conn_t::bufslice sl = conn->peek();
-        void *crlf_loc = memmem(sl.buf, sl.len, "\r\n", 2);
-        size_t threshold = MEGABYTE;
+        const_charslice sl = conn->peek();
+        void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, "\r\n", 2);
+        ssize_t threshold = MEGABYTE;
 
         if (crlf_loc) {
             // We have a valid line.
-            size_t line_size = (char *)crlf_loc - (char *)sl.buf;
+            size_t line_size = (char *)crlf_loc - (char *)sl.beg;
 
             dest->resize(line_size + 2);  // +2 for CRLF
-            memcpy(dest->data(), sl.buf, line_size + 2);
+            memcpy(dest->data(), sl.beg, line_size + 2);
             conn->pop(line_size + 2);
             return;
-        } else if (sl.len > threshold) {
+        } else if (sl.end - sl.beg > threshold) {
             // If a malfunctioning client sends a lot of data without a
             // CRLF, we cut them off.  (This doesn't apply to large values
             // because they are read from the socket via a different
@@ -653,15 +654,11 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 };
 
 #ifndef NDEBUG
-typedef union {
-    char key_memory[MAX_KEY_SIZE+sizeof(btree_key)];
-    btree_key key;
-} key_with_memory;
 
-std::vector<key_with_memory> key_array_to_btree_keys_vector(int argc, char **argv) {
-    std::vector<key_with_memory> keys(argc);
+std::vector<store_key_and_buffer_t> key_array_to_keys_vector(int argc, char **argv) {
+    std::vector<store_key_and_buffer_t> keys(argc);
     for (int i = 0; i < argc; i++) {
-        if (!node::str_to_key(argv[i], &keys[i].key)) {
+        if (!str_to_key(argv[i], &keys[i].key)) {
             throw std::runtime_error("bad key");
         }
     }
@@ -674,11 +671,11 @@ bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
 
     if (!strcmp(argv[0], ".h") && argc >= 2) {  // .h prints hash and slice of the passed keys
         try {
-            std::vector<key_with_memory> keys = key_array_to_btree_keys_vector(argc-1, argv+1);
-            for (std::vector<key_with_memory>::iterator it = keys.begin(); it != keys.end(); ++it) {
-                btree_key& k = (*it).key;
-                uint32_t hash = btree_key_value_store_t::hash(&k);
-                uint32_t slice = -1; //rh->server->store->slice_nr(&k);  // TODO fix this.  FIX THIS.
+            std::vector<store_key_and_buffer_t> keys = key_array_to_keys_vector(argc-1, argv+1);
+            for (std::vector<store_key_and_buffer_t>::iterator it = keys.begin(); it != keys.end(); ++it) {
+                store_key_t& k = (*it).key;
+                uint32_t hash = 0; // btree_key_value_store_t::hash(&k);
+                uint32_t slice = -1; //rh->store->slice_nr(&k);  // TODO fix this.  FIX THIS.
                 rh->writef("%*s: %08lx [%lu]\r\n", k.size, k.contents, hash, slice);
             }
             rh->writef("END\r\n");
@@ -693,12 +690,12 @@ bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
 }
 #endif
 
-void serve_memcache(tcp_conn_t *conn, server_t *server) {
+void serve_memcache(tcp_conn_t *conn, store_t *store) {
 
     // logINF("Opened connection %p\n", coro_t::self());
 
     /* Object that we pass around to subroutines (is there a better way to do this?) */
-    txt_memcached_handler_t rh(conn, server);
+    txt_memcached_handler_t rh(conn, store);
 
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;
@@ -775,7 +772,14 @@ void serve_memcache(tcp_conn_t *conn, server_t *server) {
         } else if(!strcmp(args[0], "rethinkdb")) {
             if (args.size() == 2 && !strcmp(args[1], "shutdown")) {
                 // Shut down the server
-                server->shutdown();
+                thread_message_t *old_interrupt_msg = thread_pool_t::set_interrupt_message(NULL);
+                /* If the interrupt message already was NULL, that means that either shutdown()
+                was for some reason called before we finished starting up or shutdown() was called
+                twice and this is the second time. */
+                if (old_interrupt_msg) {
+                    if (continue_on_thread(get_num_threads()-1, old_interrupt_msg))
+                        call_later_on_this_thread(old_interrupt_msg);
+                }
                 break;
             } else {
                 rh.writef("Available commands:\r\n");

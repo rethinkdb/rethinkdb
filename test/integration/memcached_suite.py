@@ -3,6 +3,8 @@ import os, subprocess, sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
+ec2 = 5
+
 def test(opts, port, test_dir):
     # The test scripts now get the port as an environment variable (instead of running the server themselves).
     os.environ["RUN_PORT"] = str(port)

@@ -16,9 +16,7 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
     parser.parse_messages(&conn, this);
 }
 
-slave_t::~slave_t() {}
-
-bool slave_t::shutdown(shutdown_callback_t *cb) {
+slave_t::~slave_t() {
     struct : public message_parser_t::message_parser_shutdown_callback_t, public cond_t {
             void on_parser_shutdown() { pulse(); }
     } parser_shutdown_cb;
@@ -26,14 +24,11 @@ bool slave_t::shutdown(shutdown_callback_t *cb) {
     if (!parser.shutdown(&parser_shutdown_cb))
         parser_shutdown_cb.wait();
 
-    _cb = cb;
     coro_t::move_to_thread(get_num_threads() - 2);
     if (conn.is_read_open()) conn.shutdown_read();
     if (conn.is_write_open()) conn.shutdown_write();
 
     coro_t::move_to_thread(home_thread);
-
-    return internal_store->shutdown(_cb);
 }
 
 store_t::get_result_t slave_t::get(store_key_t *key)
@@ -113,17 +108,6 @@ store_t::delete_result_t slave_t::delete_key(store_key_t *key)
     else
         return dr_not_allowed;
 }
-
-void slave_t::replicate(replicant_t *cb, repli_timestamp cutoff)
-{
-    return internal_store->replicate(cb, cutoff);
-}
-
-void slave_t::stop_replicating(replicant_t *cb)
-{
-    return internal_store->stop_replicating(cb);
-}
-
 
  /* message_callback_t interface */
 void slave_t::hello(boost::scoped_ptr<hello_message_t>& message)

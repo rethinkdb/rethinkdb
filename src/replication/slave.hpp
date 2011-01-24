@@ -21,10 +21,6 @@ public:
     slave_t(store_t *, replication_config_t);
     ~slave_t();
 
-    bool shutdown(store_t::shutdown_callback_t *cb);
-private:
-    store_t::shutdown_callback_t *_cb; //we'll need to store the cb at some point
-
 private:
     store_t *internal_store;
     replication_config_t config;
@@ -46,8 +42,6 @@ public:
     append_prepend_result_t append(store_key_t *key, data_provider_t *data);
     append_prepend_result_t prepend(store_key_t *key, data_provider_t *data);
     delete_result_t delete_key(store_key_t *key);
-    void replicate(replicant_t *cb, repli_timestamp cutoff);
-    void stop_replicating(replicant_t *cb);
 
 public:
     /* message_callback_t interface */

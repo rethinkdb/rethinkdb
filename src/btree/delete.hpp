@@ -23,9 +23,9 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
     }
 };
 
-store_t::delete_result_t btree_delete(const btree_key *key, btree_key_value_store_t *store) {
+store_t::delete_result_t btree_delete(const btree_key *key, btree_slice_t *slice) {
     btree_delete_oper_t oper;
-    run_btree_modify_oper(&oper, store, key);
+    run_btree_modify_oper(&oper, slice, key);
     return oper.result;
 }
 

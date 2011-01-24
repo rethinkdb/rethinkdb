@@ -11,7 +11,7 @@
 #include "store.hpp"
 #include "concurrency/cond_var.hpp"
 
-void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_cond_t<store_t::get_result_t> *res_cond) {
+void co_btree_get(const btree_key *key, btree_slice_t *slice, promise_t<store_t::get_result_t> *res) {
     union {
         char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
@@ -20,7 +20,6 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
 
     block_pm_duration get_time(&pm_cmd_get);
 
-    btree_slice_t *slice = store->slice_for_key(key);
     cache_t *cache = &slice->cache;
 
     int home_thread = get_thread_id();
@@ -45,7 +44,7 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
         transactor.commit();
         get_time_2.end();
         coro_t::move_to_thread(home_thread);
-        co_deliver_get_result(NULL, 0, 0, res_cond);
+        co_deliver_get_result(NULL, 0, 0, res);
         return;
     }
 
@@ -78,7 +77,7 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
     buf_lock.release();
 
     if (found && value.expired()) {
-        btree_delete_expired(key, store);
+        btree_delete_expired(key, slice);
         found = false;
     }
     
@@ -95,7 +94,7 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
 
         get_time_2.end();
         coro_t::move_to_thread(home_thread);
-        co_deliver_get_result(NULL, 0, 0, res_cond);
+        co_deliver_get_result(NULL, 0, 0, res);
         return;
     } else if (value.is_large()) {
         // Don't commit transaction yet because we need to keep holding onto
@@ -116,7 +115,7 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
         }
         get_time_2.end();
         coro_t::move_to_thread(home_thread);
-        co_deliver_get_result(&value_buffers, value.mcflags(), 0, res_cond);
+        co_deliver_get_result(&value_buffers, value.mcflags(), 0, res);
         {
             on_thread_t mover(slice->home_thread);
             large_value->release();
@@ -131,12 +130,12 @@ void co_btree_get(const btree_key *key, btree_key_value_store_t *store, value_co
         value_buffers.add_buffer(value.value_size(), value.value());
         get_time_2.end();
         coro_t::move_to_thread(home_thread);
-        co_deliver_get_result(&value_buffers, value.mcflags(), 0, res_cond);
+        co_deliver_get_result(&value_buffers, value.mcflags(), 0, res);
     }
 }
 
-store_t::get_result_t btree_get(const btree_key *key, btree_key_value_store_t *store) {
-    value_cond_t<store_t::get_result_t> res_cond;
-    coro_t::spawn(co_btree_get, key, store, &res_cond);
-    return res_cond.wait();
+store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
+    promise_t<store_t::get_result_t> res;
+    coro_t::spawn(co_btree_get, key, slice, &res);
+    return res.wait();
 }
