@@ -106,6 +106,8 @@ creation time */
 struct btree_key_value_store_static_config_t {
     log_serializer_static_config_t serializer;
     btree_config_t btree;
+    // Explicit padding for alignment.
+    int32_t padding;
 };
 
 /* All the configuration together */

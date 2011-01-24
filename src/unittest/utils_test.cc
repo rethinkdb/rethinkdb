@@ -55,7 +55,7 @@ TEST(UtilsTest, PreciseTime) {
     char buf[100];
     format_precise_time(precise_time, buf, 100);
 
-    ASSERT_FALSE(strncmp("2010-05-04 04:04:04.000102", buf, 100));
+    EXPECT_EQ(std::string("2010-05-04T04:04:04.000102"), std::string(buf, buf + strnlen(buf, 100)));
 
 
     struct timespec timespec;
@@ -65,10 +65,8 @@ TEST(UtilsTest, PreciseTime) {
 
     format_precise_time(precise_time, buf, 100);
 
-    ASSERT_FALSE(strncmp("2008-02-23 01:50:45.001203", buf, 100));
-    ASSERT_FALSE(strncmp(format_precise_time(precise_time).c_str(), buf, 100));
-
-
+    EXPECT_EQ(std::string("2008-02-23T01:50:45.001203"), std::string(buf, buf + strnlen(buf, 100)));
+    EXPECT_EQ(format_precise_time(precise_time), std::string(buf, buf + strnlen(buf, 100)));
 }
 
 TEST(UtilsTest, SizedStrcmp)
