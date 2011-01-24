@@ -88,17 +88,17 @@ public:
           value_(new value_stream_t()) {
         const btree_value *val = p->value();
         const char *valbytes = val->value();
-        write_charslice(*value_, const_charslice(valbytes, valbytes + val->value_size()));
+        write_charslice(value_, const_charslice(valbytes, valbytes + val->value_size()));
     }
 
     set_message_t(const net_large_set_t *p, value_stream_t *stream)
         : timestamp_(p->op_header.timestamp),
           key_(p->key()->contents, p->key()->contents + p->key()->size),
-          flags_(p->value()->mcflags()),
-          exptime_(p->value()->exptime()),
-          has_cas_(p->value()->has_cas()),
-          cas_(has_cas_ ? p->value()->cas() : 0),
-          value_(stream) { }
+          flags_(metadata_memcached_flags(p->metadata_flags, p->metadata())),
+          exptime_(metadata_memcached_exptime(p->metadata_flags, p->metadata())),
+          value_(stream) {
+        has_cas_ = metadata_memcached_cas(p->metadata_flags, p->metadata(), &cas_);
+    }
 
     repli_timestamp timestamp() const { return timestamp_; }
     const std::string& key() const { return key_; }
@@ -128,7 +128,7 @@ protected:
         : timestamp_(p->timestamp),
           key_(p->key()->contents, p->key()->contents + p->key()->size),
           value_(new value_stream_t()) {
-        write_charslice(*value_, const_charslice(p->value_beg(), p->value_end()));
+        write_charslice(value_, const_charslice(p->value_beg(), p->value_end()));
     }
 
     append_prepend_message_t(const net_large_append_prepend_t *p, value_stream_t *stream)

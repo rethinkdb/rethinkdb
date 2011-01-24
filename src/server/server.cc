@@ -51,6 +51,11 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     server_t server(cmd_config, thread_pool);
 
     {
+        /* Pointers to our stores 
+           these are allocated dynamically so that we have explicit control of when and where their destructors get called*/
+        //btree_key_value_store_t *store = NULL;
+        replication::slave_t *slave_store = NULL;
+
         /* Start logger */
         log_controller_t log_controller;
     
@@ -95,13 +100,14 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             /* Start key-value store */
             logINF("Loading database...\n");
+            //store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
             btree_key_value_store_t store(&cmd_config->store_dynamic_config);
 
             /* Are we a replication slave? */
             if (cmd_config->replication_config.active) {
                 logINF("Starting up as a slave...\n");
-                replication::slave_t slave_store(&store, cmd_config->replication_config);
-                server.store = &slave_store;
+                slave_store = new replication::slave_t(&store, cmd_config->replication_config);
+                server.store = slave_store;
             } else {
                 server.store = &store;   /* So things can access it */
             }
@@ -133,8 +139,10 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 logERR("Port %d is already in use -- aborting.\n", cmd_config->port);
             }
 
-            // store destructor called here
+            if (slave_store)
+                delete slave_store;
 
+            // store destructor called here
         } else {
         
             logINF("Shutting down...\n");
