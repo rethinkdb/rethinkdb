@@ -68,7 +68,11 @@ public:
     // Writes the data.
     void data_written(ssize_t amount);
 
+    void shutdown_write();
+
 private:
+    bool write_shut_down;
+
     // local_buffer_size <= local_buffer.size(), and it refers to the
     // written-to part of the buffer.
     ssize_t local_buffer_size;

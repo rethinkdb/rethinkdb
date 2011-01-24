@@ -10,21 +10,28 @@ value_stream_t::value_stream_t()
 value_stream_t::read_token_t value_stream_t::read_external(charslice buf) {
     reader_node_t *node = new reader_node_t();
     node->buf = buf;
-    reader_list.push_back(node);
+
+    if (write_shut_down) {
+        zombie_reader_list.push_back(node);
+        node->var.pulse(false);
+    } else {
+        reader_list.push_back(node);
+    }
 
     return node;
 }
 
 bool value_stream_t::read_wait(read_token_t tok) {
     bool success = tok->var.wait();
-    if (success) {
-        zombie_reader_list.remove(tok);
-    }
-
+    zombie_reader_list.remove(tok);
     return success;
 }
 
 bool value_stream_t::read_fixed_buffered(ssize_t threshold, charslice *slice_out) {
+    if (write_shut_down) {
+        return false;
+    }
+
     rassert(fixed_buffered_threshold == -1);
     if (local_buffer_size >= threshold) {
         *slice_out = charslice(local_buffer.data(), local_buffer.data() + local_buffer.size());
@@ -79,6 +86,21 @@ void value_stream_t::data_written(ssize_t amount) {
             zombie_reader_list.push_back(node);
             node->var.pulse(true);
         }
+    }
+}
+
+void value_stream_t::shutdown_write() {
+    write_shut_down = true;
+
+    if (fixed_buffered_threshold != -1) {
+        fixed_buffered_cond.pulse(false);
+    }
+
+    while (!reader_list.empty()) {
+        reader_node_t *node = reader_list.head();
+        reader_list.remove(node);
+        zombie_reader_list.push_back(node);
+        node->var.pulse(false);
     }
 }
 
