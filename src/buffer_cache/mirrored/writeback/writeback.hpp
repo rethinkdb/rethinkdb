@@ -116,6 +116,8 @@ private:
     
     bool writeback_in_progress;
     
+    unsigned int active_flushers;
+    
     /* Functions and callbacks for different phases of the writeback */
     
     struct per_flush_locals_t;

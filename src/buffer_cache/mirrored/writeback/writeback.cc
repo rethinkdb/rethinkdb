@@ -60,10 +60,14 @@ writeback_t::writeback_t(
       outstanding_disk_writes(0),
       active_write_transactions(0),
       writeback_in_progress(false),
+      active_flushers(0),
       cache(cache),
       start_next_sync_immediately(false),
       transaction(NULL) {
       concurrent_flushing = wait_for_flush; // Enable concurrent flushing if transactions will be waiting for us
+      //concurrent_flushing = false;
+      if (concurrent_flushing)
+        fprintf(stderr, "Concurrent flushing enabled\n");
 }
 
 writeback_t::~writeback_t() {
@@ -73,21 +77,21 @@ writeback_t::~writeback_t() {
 }
 
 bool writeback_t::sync(sync_callback_t *callback) {
-    if (!writeback_in_progress) {    
+    // TODO!
+    const unsigned int max_active_flushers = 2;
+
+    if (callback)
+        sync_callbacks.push_back(callback);
+
+    if (!writeback_in_progress && active_flushers < max_active_flushers) {
         /* Start the writeback process immediately */
-        if (callback)
-            sync_callbacks.push_back(callback);
         writeback_start_and_acquire_lock();
         return false;
     } else {
         /* There is a writeback currently in progress, but sync() has been called, so there is
         more data that needs to be flushed that didn't become part of the current sync. So we
         start another sync right after this one. */
-        // TODO: If we haven't acquired the flush lock yet, we could join the current writeback
-        // rather than wait for the next one.
         start_next_sync_immediately = true;
-        if (callback)
-            sync_callbacks.push_back(callback);
         return false;
     }
 }
@@ -125,9 +129,7 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
         possibly_unthrottle_transactions();
         
         flush_lock.unlock();
-        
-        
-        
+
         /* At the end of every write transaction, check if the number of dirty blocks exceeds the
         threshold to force writeback to start. */
         if (num_dirty_blocks() > flush_threshold) {
@@ -218,8 +220,12 @@ void writeback_t::flush_timer_callback(void *ctx) {
 }
 
 void writeback_t::writeback_start_and_acquire_lock() {
+    if (dirty_bufs.size() == 0 && sync_callbacks.size() == 0)
+        return;
+
     rassert(!writeback_in_progress);
     writeback_in_progress = true;
+    ++active_flushers;
     pm_flushes_locking.begin(&start_time);
     cache->assert_thread();
         
@@ -308,6 +314,8 @@ void writeback_t::writeback_do_writeback_local() {
     delete flush_locals;
 }
 
+perfmon_sampler_t pm_flushes_blocks("flushes_blocks", secs_to_ticks(1), true),
+        pm_flushes_blocks_dirty("flushes_blocks_dirty", secs_to_ticks(1), true);
 
 void writeback_t::writeback_acquire_bufs(per_flush_locals_t *flush_locals) {
     cache->assert_thread();
@@ -325,6 +333,11 @@ void writeback_t::writeback_acquire_bufs(per_flush_locals_t *flush_locals) {
     // Request read locks on all of the blocks we need to flush.
     flush_locals->serializer_writes.reserve(dirty_bufs.size());
 
+    // Log the size of this flush
+    pm_flushes_blocks.record(dirty_bufs.size());
+
+    unsigned int really_dirty = 0;
+
     int i = 0;
     while (local_buf_t *lbuf = dirty_bufs.head()) {
         inner_buf_t *inner_buf = lbuf->gbuf;
@@ -339,6 +352,8 @@ void writeback_t::writeback_acquire_bufs(per_flush_locals_t *flush_locals) {
         lbuf->set_recency_dirty(false);    
 
         if (buf_dirty) {
+            ++really_dirty;
+
             bool do_delete = inner_buf->do_delete;
 
             // Acquire the blocks
@@ -382,6 +397,8 @@ void writeback_t::writeback_acquire_bufs(per_flush_locals_t *flush_locals) {
         i++;
     }
 
+    pm_flushes_blocks_dirty.record(really_dirty);
+
     flush_lock.unlock(); // Write transactions can now proceed again.
 }
 
@@ -398,10 +415,7 @@ void writeback_t::writeback_do_write(per_flush_locals_t *flush_locals) {
     cache->serializer->assert_thread();
     
     if (flush_locals->serializer_writes.empty() ||
-        cache->serializer->do_write(flush_locals->serializer_writes.data(), flush_locals->serializer_writes.size(), flush_locals)) {
-        
-        // We don't need this buffer any more.
-        flush_locals->serializer_writes.clear();
+            cache->serializer->do_write(flush_locals->serializer_writes.data(), flush_locals->serializer_writes.size(), flush_locals)) {
         
         flush_locals->flusher_coro->notify();
     }
@@ -442,13 +456,15 @@ void writeback_t::writeback_do_cleanup(per_flush_locals_t *flush_locals) {
     
     pm_flushes_writing.end(&flush_locals->start_time);
 
+    --active_flushers;
+
     if (!concurrent_flushing) {
         writeback_in_progress = false;
-        
-        if (start_next_sync_immediately) {
-            start_next_sync_immediately = false;
-            sync(NULL);
-        }
+    }
+    
+    if (start_next_sync_immediately) {
+        start_next_sync_immediately = false;
+        sync(NULL);
     }
 }
 

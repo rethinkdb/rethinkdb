@@ -19,8 +19,8 @@ int flush_time_randomizer_t::next_time_interval() {
         return first_time_interval;
     }
 
-    // We have about a 19/20 chance of returning flush_timer_ms.
-    if (randint(20) == 0) {
+    // We have about a 9/10 chance of returning flush_timer_ms.
+    if (randint(10) == 0) {
         // Otherwise, we return a value uniformly in (flush_timer_ms / 2, flush_timer_ms].
         return flush_timer_ms - randint(flush_timer_ms >> 1);
     }
