@@ -3,6 +3,7 @@
 
 #include "utils.hpp"
 #include "arch/arch.hpp"
+#include "data_provider.hpp"
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
@@ -35,54 +36,6 @@ inline bool str_to_key(char *str, store_key_t *buf) {
 union store_key_and_buffer_t {
     store_key_t key;
     char buffer[sizeof(store_key_t) + MAX_KEY_SIZE];
-};
-
-struct buffer_group_t {
-    struct buffer_t {
-        ssize_t size;
-        void *data;
-    };
-    std::vector<buffer_t> buffers;
-    void add_buffer(size_t s, void *d) {
-        buffer_t b;
-        b.size = s;
-        b.data = d;
-        buffers.push_back(b);
-    }
-    size_t get_size() {
-        size_t s = 0;
-        for (int i = 0; i < (int)buffers.size(); i++) {
-            s += buffers[i].size;
-        }
-        return s;
-    }
-};
-
-struct const_buffer_group_t {
-    struct buffer_t {
-        ssize_t size;
-        const void *data;
-    };
-    std::vector<buffer_t> buffers;
-    void add_buffer(size_t s, const void *d) {
-        buffer_t b;
-        b.size = s;
-        b.data = d;
-        buffers.push_back(b);
-    }
-    size_t get_size() {
-        size_t s = 0;
-        for (int i = 0; i < (int)buffers.size(); i++) {
-            s += buffers[i].size;
-        }
-        return s;
-    }
-};
-
-struct data_provider_t {
-    virtual ~data_provider_t() { }
-    virtual size_t get_size() = 0;
-    virtual bool get_value(buffer_group_t *dest) = 0;
 };
 
 struct store_t {

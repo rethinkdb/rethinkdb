@@ -157,92 +157,51 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
 
 /* "set", "add", "replace", "cas", "append", and "prepend" command logic */
 
-/* The buffered_data_provider_t provides data from an internal buffer. */
+/* The memcached_data_provider_t is a data_provider_t that gets its data by
+reading from a tcp_conn_t. It also reads the CRLF at the end of the value and fails if
+it does not find the CRLF.
 
-struct buffered_data_provider_t :
-    public data_provider_t
-{
-    /* We copy the data we are given, not refer to it. */
-    buffered_data_provider_t(void *buf, size_t length)
-        : buffer(malloc(length)), length(length)
-    {
-        memcpy(buffer, buf, length);
-    }
-    ~buffered_data_provider_t() {
-        free(buffer);
-    }
-    size_t get_size() {
-        return length;
-    }
-    bool get_value(buffer_group_t *bg) {
-        if (bg) {
-            int pos = 0;
-            for (int i = 0; i < (signed)bg->buffers.size(); i++) {
-                memcpy(bg->buffers[i].data, (char*)buffer + pos, bg->buffers[i].size);
-                pos += bg->buffers[i].size;
-            }
-            rassert(pos == (signed)length);
-        }
-        return true;   // Copying from a buffer never fails...
-    }
-private:
-    void *buffer;
-    size_t length;
-};
+Its constructor takes a promise_t<bool> that it pulse()s when it's done reading, with the boolean
+value indicating if it found the CRLF or not. This way the request handler knows if it should print
+an error and when it can move on to the next command. */
 
-/* The memcached_streaming_data_provider_t is a data_provider_t that gets its data by
-reading from a tcp_conn_t. In general it is used for big values that would be expensive
-to buffer in memory. The disadvantage is that it requires going back and forth between
-the core where the cache is and the core where the request handler is.
-
-It also takes care of checking for a CRLF at the end of the value (the
-buffered_data_provider_t doesn't do that). */
-
-class memcached_streaming_data_provider_t :
-    public data_provider_t,
+class memcached_data_provider_t :
+    public auto_buffering_data_provider_t,   // So we don't have to implement get_data_as_buffers()
     public home_thread_mixin_t
 {
 private:
     txt_memcached_handler_t *rh;   // Request handler for us to read from
     size_t length;   // Our length
+    promise_t<bool> *to_signal;
 
 public:
-    memcached_streaming_data_provider_t(txt_memcached_handler_t *rh, uint32_t length)
-        : rh(rh), length(length)
-    {
-    }
+    memcached_data_provider_t(txt_memcached_handler_t *rh, uint32_t length, promise_t<bool> *to_signal)
+        : rh(rh), length(length), to_signal(to_signal)
+    { }
 
-    ~memcached_streaming_data_provider_t() {
-    }
-
-    size_t get_size() {
+    size_t get_size() const {
         return length;
     }
 
-    bool get_value(buffer_group_t *b) {
+    void get_data_into_buffers(const buffer_group_t *b) throw (data_provider_failed_exc_t) {
         on_thread_t thread_switcher(home_thread);
         try {
-            if (b) {
-                for (int i = 0; i < (int)b->buffers.size(); i++) {
-                    rh->conn->read(b->buffers[i].data, b->buffers[i].size);
-                }
-            } else {
-                /* Allocate a buffer from the heap instead of the stack because we are in a
-                coroutine */
-                std::vector<char> dummy(IO_BUFFER_SIZE);
-                int consumed = 0;
-                while (consumed < (int)length) {
-                    int chunk = std::min((int)length - consumed, (int)IO_BUFFER_SIZE);
-                    rh->conn->read(dummy.data(), chunk);
-                    consumed += chunk;
-                }
+            for (int i = 0; i < (int)b->buffers.size(); i++) {
+                rh->conn->read(b->buffers[i].data, b->buffers[i].size);
             }
             char crlf[2];
             rh->conn->read(crlf, 2);
-            return (memcmp(crlf, "\r\n", 2) == 0);
+            if (memcmp(crlf, "\r\n", 2) != 0) {
+                if (to_signal) to_signal->pulse(false);
+                throw data_provider_failed_exc_t();   // Cancel the set/append/prepend operation
+            }
+            if (to_signal) to_signal->pulse(true);
         } catch (tcp_conn_t::read_closed_exc_t) {
-            return false;
+            if (to_signal) to_signal->pulse(false);
+            throw data_provider_failed_exc_t();
         }
+        // Crazy wizardry happens here: cross-thread exception throw. As stack is unwound,
+        // thread_switcher's destructor causes us to switch threads.
     }
 };
 
@@ -255,24 +214,28 @@ enum storage_command_t {
     prepend_command
 };
 
-void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, store_key_and_buffer_t key, data_provider_t *data, mcflags_t mcflags, exptime_t exptime, cas_t unique, bool noreply) {
+void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, store_key_and_buffer_t key, data_provider_t *unbuffered_data, mcflags_t mcflags, exptime_t exptime, cas_t unique, bool noreply) {
+
+    rh->begin_write_command();
+
+    /* unbuffered_data is guaranteed to remain valid as long as we need it because do_storage()
+    waits on the promise_t that it gave to unbuffered_data, which won't be triggered until we
+    consume unbuffered_data's value. */
+    maybe_buffered_data_provider_t data(unbuffered_data, MAX_BUFFERED_SET_SIZE);
 
     if (sc != append_command && sc != prepend_command) {
         store_t::set_result_t res;
         switch (sc) {
-            case set_command: res = rh->store->set(&key.key, data, mcflags, exptime); break;
-            case add_command: res = rh->store->add(&key.key, data, mcflags, exptime); break;
-            case replace_command: res = rh->store->replace(&key.key, data, mcflags, exptime); break;
-            case cas_command: res = rh->store->cas(&key.key, data, mcflags, exptime, unique); break;
+            case set_command: res = rh->store->set(&key.key, &data, mcflags, exptime); break;
+            case add_command: res = rh->store->add(&key.key, &data, mcflags, exptime); break;
+            case replace_command: res = rh->store->replace(&key.key, &data, mcflags, exptime); break;
+            case cas_command: res = rh->store->cas(&key.key, &data, mcflags, exptime, unique); break;
             case append_command:
             case prepend_command:
             default:
                 unreachable();
         }
-        /* Ignore 'noreply' if we got sr_data_provider_failed because that's considered a syntax
-        error. Note that we can only get sr_data_provider_failed if we had a streaming data
-        provider, so there is no risk of interfering with the output from the next command. */
-        if (!noreply || res == store_t::sr_data_provider_failed) {
+        if (!noreply) {
             switch (res) {
                 case store_t::sr_stored: rh->writef("STORED\r\n"); break;
                 case store_t::sr_not_stored: rh->writef("NOT_STORED\r\n"); break;
@@ -282,7 +245,7 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
                     rh->writef("SERVER_ERROR object too large for cache\r\n");
                     break;
                 case store_t::sr_data_provider_failed:
-                    rh->writef("CLIENT_ERROR bad data chunk\r\n");
+                    /* The error message will be written by do_storage() */
                     break;
                 /* case store_t::sr_not_allowed:
                     rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
@@ -293,8 +256,8 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
     } else {
         store_t::append_prepend_result_t res;
         switch (sc) {
-            case append_command: res = rh->store->append(&key.key, data); break;
-            case prepend_command: res = rh->store->prepend(&key.key, data); break;
+            case append_command: res = rh->store->append(&key.key, &data); break;
+            case prepend_command: res = rh->store->prepend(&key.key, &data); break;
             case set_command:
             case add_command:
             case replace_command:
@@ -302,7 +265,7 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
             default:
                 unreachable();
         }
-        if (!noreply || res == store_t::apr_data_provider_failed) {
+        if (!noreply) {
             switch (res) {
                 case store_t::apr_success: rh->writef("STORED\r\n"); break;
                 case store_t::apr_not_found: rh->writef("NOT_FOUND\r\n"); break;
@@ -310,7 +273,7 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
                     rh->writef("SERVER_ERROR object too large for cache\r\n");
                     break;
                 case store_t::apr_data_provider_failed:
-                    rh->writef("CLIENT_ERROR bad data chunk\r\n");
+                    /* The error message will be written by do_storage() */
                     break;
                 /* case apr_not_allowed:
                     rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
@@ -320,7 +283,6 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
         }
     }
 
-    delete data;
     rh->end_write_command();
 }
 
@@ -405,48 +367,20 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     }
 
     /* Make a data provider */
-    data_provider_t *data;
-    bool nowait;
-    if (value_size <= MAX_BUFFERED_SET_SIZE) {
-        /* Buffer the value */
-        char value_buffer[value_size+2];   // +2 for the CRLF
+    promise_t<bool> value_read_promise;
+    memcached_data_provider_t mcdp(rh, value_size, &value_read_promise);
 
-        try {
-            rh->conn->read(value_buffer, value_size + 2);
-        } catch (tcp_conn_t::read_closed_exc_t) {
-            return;    // serve_memcached() will see it is closed
-        }
-
-        /* The buffered_data_provider_t doesn't check the CRLF, so we must check it here.
-        The memcached_streaming_data_provider_t checks its own CRLF. */
-        if (value_buffer[value_size] != '\r' || value_buffer[value_size + 1] != '\n') {
-            rh->writef("CLIENT_ERROR bad data chunk\r\n");
-            return;
-        }
-
-        /* Copies value_buffer */
-        data = new buffered_data_provider_t(value_buffer, value_size);
-        nowait = noreply;
-
+    if (noreply) {
+        coro_t::spawn(&run_storage_command, rh, sc, key, &mcdp, mcflags, exptime, unique, true);
     } else {
-        /* Stream the value from the socket */
-        data = new memcached_streaming_data_provider_t(rh, value_size);
-        nowait = false;
+        run_storage_command(rh, sc, key, &mcdp, mcflags, exptime, unique, false);
     }
 
-    /* This operation may block if a lot of sets were streamed. The corresponding call to
-    end_write_command() is in run_storage_command(). */
-    rh->begin_write_command();
-
-    /* If nowait is true, then we will wait for the command to complete before returning. There are
-    two reasons why this might be true. The first is that noreply was not specified, so we need
-    to send a reply before reading the next command. The second is that we are streaming a large
-    value off the socket, so we can't read the next command until we're sure this one is done. */
-
-    if (nowait) {
-        coro_t::spawn(&run_storage_command, rh, sc, key, data, mcflags, exptime, unique, noreply);
-    } else {
-        run_storage_command(rh, sc, key, data, mcflags, exptime, unique, noreply);
+    /* We can't move on to the next command until the value has been read off the socket. This also
+    ensures that 'mcdp' is not destroyed until run_storage_command() is done with it. */
+    bool ok = value_read_promise.wait();
+    if (!ok) {
+        rh->writef("CLIENT_ERROR bad data chunk\r\n");
     }
 }
 
@@ -575,6 +509,7 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
         noreply = false;
     }
 
+    /* The corresponding call to end_write_command() is in do_delete() */
     rh->begin_write_command();
 
     if (noreply) {
