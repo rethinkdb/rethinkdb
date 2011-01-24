@@ -25,9 +25,22 @@ pipe_event_t::~pipe_event_t() {
 }
 
 uint64_t pipe_event_t::read() {
-    uint64_t value;
-    int res = ::read(pipefd[0], &value, sizeof(value));
-    guarantee_err(res == sizeof(value), "Could not read from pipe event");
+    // TODO: in practice, we might not be able to read eight bytes at
+    // once, so we should have a buffer in this class to manage
+    // it. However, we never really use events for their counters, so
+    // fuck it for now.
+    int res;
+    uint64_t value = 0, _temp;
+    do {
+        _temp = 0;
+        res = ::read(pipefd[0], &_temp, sizeof(value));
+        if(res == -1 && (errno != EAGAIN || errno != EWOULDBLOCK)) {
+            crash("Cannot read from pipe-based event");
+        } else {
+            value += _temp;
+        }
+    } while(res != -1);
+    
     return value;
 }
 

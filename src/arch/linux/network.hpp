@@ -128,6 +128,11 @@ private:
     // been deleted yet
     bool read_was_shut_down;
     bool write_was_shut_down;
+
+    // We need to remember if we registered ourselves for write
+    // notifications so we don't stupidly try to unregister all the
+    // time
+    bool registered_for_writes;
 };
 
 /* The linux_net_listener_t is used to listen on a network port for incoming

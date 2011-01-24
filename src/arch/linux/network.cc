@@ -18,7 +18,8 @@ linux_net_conn_t::linux_net_conn_t(fd_t sock)
       registration_thread(-1), set_me_true_on_delete(NULL),
       read_mode(read_mode_none), in_read_buffered_cb(false),
       write_mode(write_mode_none),
-      read_was_shut_down(false), write_was_shut_down(false)
+      read_was_shut_down(false), write_was_shut_down(false),
+      registered_for_writes(false)
 {
     assert(sock != INVALID_FD);
 
@@ -32,7 +33,7 @@ void linux_net_conn_t::register_with_event_loop() {
 
     if (registration_thread == -1) {
         registration_thread = linux_thread_pool_t::thread_id;
-        linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in|poll_event_out, this);
+        linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
 
     } else if (registration_thread != linux_thread_pool_t::thread_id) {
         guarantee(registration_thread == linux_thread_pool_t::thread_id,
@@ -240,7 +241,17 @@ void linux_net_conn_t::try_to_write_external_buf() {
         int res = ::write(sock, external_write_buf, external_write_size);
         if (res == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                /* We'll get called on_event() when we're readable again. */
+                /* Register ourselves so we'll get called on_event()
+                 * when we're readable again. We can't do this during
+                 * construction because on level-triggered systems
+                 * on_event will spin the cpu, and starve out
+                 * signals. Plenty of legacy systems do this, and I
+                 * had to work this weekend to fix this because
+                 * whoever refactored this last time fucked over
+                 * customers with legacy systems. Please don't do this
+                 * again. */
+                linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in|poll_event_out, this);
+                registered_for_writes = true;
                 return;
             } else if (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
                     errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET) {
@@ -269,6 +280,13 @@ void linux_net_conn_t::try_to_write_external_buf() {
     }
 
     if (external_write_size == 0) {
+        // Deregister our write notification so we don't get flooded
+        // on legacy systems that use level-triggered IO.
+        if(registered_for_writes) {
+            linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in, this);
+            registered_for_writes = false;
+        }
+        
         // The request has been fulfilled
         write_mode = write_mode_none;
         write_external_cb->on_net_conn_write_external();

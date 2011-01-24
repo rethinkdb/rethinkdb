@@ -66,7 +66,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
     res = sigfillset(&sigmask);
     guarantee_err(res == 0, "Could not get a full sigmask");
     
-    res = pthread_sigmask(SIG_BLOCK, &sigmask, NULL);
+    res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
     guarantee_err(res == 0, "Could not block signal");
 #endif
     
