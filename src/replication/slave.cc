@@ -19,18 +19,21 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
 slave_t::~slave_t() {}
 
 bool slave_t::shutdown(shutdown_callback_t *cb) {
-    parser.stop_parsing(); //TODO put a callback on this
-    _cb = cb;
+    struct : public message_parser_t::message_parser_shutdown_callback_t, public cond_t {
+            void on_parser_shutdown() { pulse(); }
+    } parser_shutdown_cb;
 
-    coro_t::move_to_thread(get_num_threads() - 2);//TODO make this work even if we're on the thread here ugh ugh ugh
+    if (!parser.shutdown(&parser_shutdown_cb))
+        parser_shutdown_cb.wait();
+
+    _cb = cb;
+    coro_t::move_to_thread(get_num_threads() - 2);
     if (conn.is_read_open()) conn.shutdown_read();
     if (conn.is_write_open()) conn.shutdown_write();
 
     coro_t::move_to_thread(home_thread);
-    if(internal_store->shutdown(_cb))
-        _cb->on_store_shutdown();
 
-    return false;
+    return internal_store->shutdown(_cb);
 }
 
 store_t::get_result_t slave_t::get(store_key_t *key)

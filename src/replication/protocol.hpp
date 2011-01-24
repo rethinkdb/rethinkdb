@@ -34,7 +34,15 @@ private:
 
 public:
     void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
-    void stop_parsing();
+
+public:
+    struct message_parser_shutdown_callback_t {
+        virtual void on_parser_shutdown() = 0;
+    };
+    bool shutdown(message_parser_shutdown_callback_t *cb);
+
+private:
+    message_parser_shutdown_callback_t *_cb;
 
 private:
     void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);

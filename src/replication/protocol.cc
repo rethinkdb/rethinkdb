@@ -117,7 +117,9 @@ bool message_parser_t::parse_and_stream(tcp_conn_t *conn, message_callback_t *re
 
 void message_parser_t::do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams) {
 
+    keep_going = true;
     while (keep_going) {
+        logINF("Top of loop\n");
         tcp_conn_t::bufslice sl = conn->peek();
         if (sl.len >= sizeof(net_header_t)) {
             const char *buffer = reinterpret_cast<const char *>(sl.buf);
@@ -164,6 +166,10 @@ void message_parser_t::do_parse_normal_message(tcp_conn_t *conn, message_callbac
 
         conn->read_more_buffered();
     }
+
+    /* we only get out of this loop when we've been shutdown, if the connection
+     * closes then we catch an exception and never reach here */
+    _cb->on_parser_shutdown();
 }
 
 
@@ -180,12 +186,15 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
 }
 
 void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
-    keep_going = true;
     coro_t::spawn(&message_parser_t::do_parse_messages, this, conn, receiver);
 }
 
-void message_parser_t::stop_parsing() {
+bool message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
+    if (!keep_going) return true;
+
+    _cb = cb;
     keep_going = false;
+    return false;
 }
 
 }  // namespace replication
