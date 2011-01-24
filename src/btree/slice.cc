@@ -59,19 +59,19 @@ store_t::get_result_t btree_slice_t::get_cas(store_key_t *key) {
 }
 
 store_t::set_result_t btree_slice_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    return btree_set(key, this, data, btree_set_oper_t::set_type_set, flags, exptime, 0);
+    return btree_set(key, this, data, set_type_set, flags, exptime, 0);
 }
 
 store_t::set_result_t btree_slice_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    return btree_set(key, this, data, btree_set_oper_t::set_type_add, flags, exptime, 0);
+    return btree_set(key, this, data, set_type_add, flags, exptime, 0);
 }
 
 store_t::set_result_t btree_slice_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    return btree_set(key, this, data, btree_set_oper_t::set_type_replace, flags, exptime, 0);
+    return btree_set(key, this, data, set_type_replace, flags, exptime, 0);
 }
 
 store_t::set_result_t btree_slice_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique) {
-    return btree_set(key, this, data, btree_set_oper_t::set_type_cas, flags, exptime, unique);
+    return btree_set(key, this, data, set_type_cas, flags, exptime, unique);
 }
 
 store_t::incr_decr_result_t btree_slice_t::incr(store_key_t *key, unsigned long long amount) {
