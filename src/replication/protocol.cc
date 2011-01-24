@@ -4,6 +4,11 @@ using boost::scoped_ptr;
 
 namespace replication {
 
+// TODO refactor this darned thing.  TODO make it easier to parse and
+// document the binary protocol we have here.
+
+
+
 class protocol_exc_t : public std::exception {
 public:
     protocol_exc_t(const char *msg) : msg_(msg) { }
@@ -43,81 +48,140 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
 }
 
 template <class struct_type>
-bool fits(const_charslice sl) {
-    return sl.end - sl.beg >= ptrdiff_t(sizeof(struct_type));
+ssize_t fitsize(const_charslice sl) {
+    return sl.end - sl.beg >= ptrdiff_t(sizeof(struct_type)) ? sizeof(struct_type) : -1;
 }
 
 template <>
-bool fits<net_small_set_t>(const_charslice sl) {
+ssize_t fitsize<net_small_set_t>(const_charslice sl) {
     const net_small_set_t *p = reinterpret_cast<const net_small_set_t *>(sl.beg);
     size_t size = sl.end - sl.beg;
 
-    return sizeof(net_small_set_t) < size && leaf_pair_fits(p->leaf_pair(), size - sizeof(net_small_set_t));
+    if (sizeof(net_small_set_t) < size && leaf_pair_fits(p->leaf_pair(), size - sizeof(net_small_set_t))) {
+        return sizeof(net_small_set_t) + p->leaf_pair()->key.full_size() + p->leaf_pair()->value()->full_size();
+    } else {
+        return -1;
+    }
 }
 
 template <>
-bool fits<net_small_append_prepend_t>(const_charslice sl) {
+ssize_t fitsize<net_small_append_prepend_t>(const_charslice sl) {
     const net_small_append_prepend_t *p = reinterpret_cast<const net_small_append_prepend_t *>(sl.beg);
     size_t size = sl.end - sl.beg;
 
-    return sizeof(net_small_append_prepend_t) <= size && sizeof(net_small_append_prepend_t) + p->size <= size;
-}
-
-template <class struct_type>
-ssize_t objsize(const struct_type *buffer) {
-    return sizeof(struct_type);
-}
-
-template <>
-ssize_t objsize<net_small_set_t>(const net_small_set_t *buffer) {
-    return sizeof(net_small_set_t) + leaf::pair_size(buffer->leaf_pair());
+    if (sizeof(net_small_append_prepend_t) <= size && sizeof(net_small_append_prepend_t) + p->size <= size) {
+        return sizeof(net_small_append_prepend_t) + p->size;
+    } else {
+        return -1;
+    }
 }
 
 template <>
-ssize_t objsize<net_small_append_prepend_t>(const net_small_append_prepend_t *buffer) {
-    return sizeof(net_small_append_prepend_t) + buffer->size;
+ssize_t fitsize<net_large_set_t>(const_charslice sl) {
+    const net_large_set_t *p = reinterpret_cast<const net_large_set_t *>(sl.beg);
+    size_t size = sl.end - sl.beg;
+
+    if (net_large_set_t::prefitsize() <= size) {
+        size_t fs = p->fitsize();
+        if (fs <= size) {
+            return fs;
+        }
+    }
+    return -1;
 }
 
-template <class message_type>
-ssize_t try_parsing(message_callback_t *receiver, const_charslice sl) {
-    typedef typename message_type::net_struct_type net_struct_type;
-    if (fits<net_struct_type>(sl)) {
-        const net_struct_type *p = reinterpret_cast<const net_struct_type *>(sl.beg);
+template <>
+ssize_t fitsize<net_large_append_prepend_t>(const_charslice sl) {
+    const net_large_append_prepend_t *p = reinterpret_cast<const net_large_append_prepend_t *>(sl.beg);
+    size_t size = sl.end - sl.beg;
 
-        scoped_ptr<message_type> msg(new message_type(p));
-
-        receiver->send(msg);
-        return objsize<net_struct_type>(p);  // INEFFICIENT: Redoes fits<net_struct_type>.
+    if (net_large_append_prepend_t::prefitsize() <= size) {
+        size_t fs = p->fitsize();
+        if (fs <= size) {
+            return fs;
+        }
     }
     return -1;
 }
 
 template <class message_type>
+ssize_t try_parsing(message_callback_t *receiver, const_charslice sl) {
+    typedef typename message_type::net_struct_type net_struct_type;
+    ssize_t sz = fitsize<net_struct_type>(sl);
+    if (sz != -1) {
+        scoped_ptr<message_type> msg(new message_type(reinterpret_cast<const net_struct_type *>(sl.beg)));
+        receiver->send(msg);
+    }
+    return sz;
+}
+
+template <class message_type>
 bool parse_and_pop(tcp_conn_t *conn, message_callback_t *receiver, const_charslice sl) {
-    ssize_t sz = try_parsing<message_type>(receiver, sl);
+    typedef typename message_type::net_struct_type net_struct_type;
+    ssize_t sz = fitsize<net_struct_type>(sl);
     if (sz == -1) {
         return false;
-    } else {
-        conn->pop(sz);
-        return true;
+    }
+    scoped_ptr<message_type> msg(new message_type(reinterpret_cast<const net_struct_type *>(sl.beg)));
+    receiver->send(msg);
+    conn->pop(sz);
+    return true;
+}
+
+void send_conn_and_popslice_to_stream(tcp_conn_t *conn, value_stream_t *stream, const_charslice sl, ssize_t skip, ssize_t packet_size) {
+    ssize_t write_end = std::min(packet_size, sl.end - sl.beg);
+    write_charslice(stream, const_charslice(sl.beg + skip, sl.beg + write_end));
+    conn->pop(write_end);
+
+    ssize_t remainder = packet_size - write_end;
+
+    while (remainder > 0) {
+        charslice new_sl = stream->buf_for_filling(remainder);
+        ssize_t w_size = std::min(new_sl.end - new_sl.beg, remainder);
+        conn->read(new_sl.beg, w_size);
+        stream->data_written(w_size);
+        remainder -= w_size;
     }
 }
 
 template <class message_type>
 bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, const_charslice sl, std::vector<value_stream_t *>& streams) {
-    /*    typedef typename message_type::first_struct_type first_struct_type;
-    if (part_before_stream_fits<first_struct_type>(sl)) {
+    typedef typename message_type::first_struct_type first_struct_type;
+    ssize_t sz = fitsize<first_struct_type>(sl);
+    if (sz == -1) {
+        return false;
+    }
+    const first_struct_type *p = reinterpret_cast<const first_struct_type *>(sl.beg);
 
-        // TODO: This is a mess.
+    int32_t stream_identifier = p->op_header.identifier;
+    value_stream_t *stream;
+    if (0 <= stream_identifier) {
+        if (size_t(stream_identifier) < streams.size()) {
+            if (streams[stream_identifier] != NULL) {
+                throw protocol_exc_t("reused live stream identifier");
+            }
+            stream = new value_stream_t();
+            streams[stream_identifier] = stream;
+        } else if (size_t(stream_identifier) == streams.size()) {
+            stream = new value_stream_t();
+            streams.push_back(stream);
+        } else {
+            throw protocol_exc_t("stream identifier too big");
+        }
+    } else {
+        throw protocol_exc_t("negative stream identifier");
+    }
 
-        } */
+    streams.push_back(stream);
+    send_conn_and_popslice_to_stream(conn, stream, sl, sz, p->op_header.header.size);
 
-    return false;
+    return true;
 }
 
-void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams) {
+void message_parser_t::do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams) {
 
-    for (;;) {
+    keep_going = true;
+    while (keep_going) {
         const_charslice sl = conn->peek();
         if (sl.end - sl.beg >= ptrdiff_t(sizeof(net_header_t))) {
             const net_header_t *hdr = reinterpret_cast<const net_header_t *>(sl.beg);
@@ -155,33 +219,79 @@ void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std
                 }
 
 
-            } else {
-                throw protocol_exc_t("invalid multipart_aspect (small messages only supported)");
+            } else if (multipart_aspect == MIDDLE) {
+
+                if (sl.end - sl.beg >= ptrdiff_t(sizeof(net_large_operation_middle_t))) {
+                    const net_large_operation_middle_t *middle
+                        = reinterpret_cast<const net_large_operation_middle_t *>(sl.beg);
+
+                    int32_t stream_identifier = middle->identifier;
+                    ssize_t packet_size = middle->header.size;
+
+                    if (0 <= stream_identifier && uint32_t(stream_identifier) < streams.size() && streams[stream_identifier] != NULL) {
+                        send_conn_and_popslice_to_stream(conn, streams[stream_identifier], sl, sizeof(net_large_operation_middle_t), packet_size);
+                    } else {
+                        throw protocol_exc_t("negative stream identifier");
+                    }
+
+                }
+
+
+            } else if (multipart_aspect == LAST) {
+
+                // CopyPastaz
+                if (sl.end - sl.beg >= ptrdiff_t(sizeof(net_large_operation_last_t))) {
+                    const net_large_operation_middle_t *middle
+                        = reinterpret_cast<const net_large_operation_middle_t *>(sl.beg);
+
+                    int32_t stream_identifier = middle->identifier;
+                    ssize_t packet_size = middle->header.size;
+
+                    if (0 <= stream_identifier && uint32_t(stream_identifier) < streams.size() && streams[stream_identifier] != NULL) {
+                        send_conn_and_popslice_to_stream(conn, streams[stream_identifier], sl, sizeof(net_large_operation_middle_t), packet_size);
+                    } else {
+                        throw protocol_exc_t("negative stream identifier");
+                    }
+
+                    streams[stream_identifier]->shutdown_write();
+                    streams[stream_identifier] = NULL;
+                }
+
 
             }
         }
 
         conn->read_more_buffered();
     }
+
+    /* we only get out of this loop when we've been shutdown, if the connection
+     * closes then we catch an exception and never reach here */
+    _cb->on_parser_shutdown();
 }
 
 
-void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
-    do_parse_hello_message(conn, receiver);
-
-    std::vector<value_stream_t *> placeholder;
-    for (;;) {
-        do_parse_normal_message(conn, receiver, placeholder);
-    }
-}
-
-void parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
     try {
-        do_parse_messages(conn, receiver);
+        do_parse_hello_message(conn, receiver);
+
+        std::vector<value_stream_t *> placeholder;
+        do_parse_normal_message(conn, receiver, placeholder);
+    } catch (tcp_conn_t::read_closed_exc_t& e) {
+        if (keep_going)
+            receiver->conn_closed();
     }
-    catch (tcp_conn_t::read_closed_exc_t& e) {
-        receiver->conn_closed();
-    }
+}
+
+void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+    coro_t::spawn(&message_parser_t::do_parse_messages, this, conn, receiver);
+}
+
+bool message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
+    if (!keep_going) return true;
+
+    _cb = cb;
+    keep_going = false;
+    return false;
 }
 
 }  // namespace replication

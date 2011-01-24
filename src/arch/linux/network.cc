@@ -38,6 +38,10 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
         throw connect_failed_exc_t();
     }
 
+    int non_blocking_res;
+    non_blocking_res = fcntl(sock, F_SETFL, O_NONBLOCK);
+    guarantee_err(non_blocking_res == 0, "Could not make socket non-blocking");
+
     freeaddrinfo(res);
 }
 

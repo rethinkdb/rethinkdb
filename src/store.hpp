@@ -122,6 +122,8 @@ struct store_t {
         sr_too_large,
         /* Returned if the data_provider_t that you gave returned have_failed(). */
         sr_data_provider_failed,
+        /* Returned if the store doesn't want you to do what you're doing. */
+        sr_not_allowed,
     };
 
     virtual set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) = 0;
@@ -135,7 +137,8 @@ struct store_t {
         enum result_t {
             idr_success,
             idr_not_found,
-            idr_not_numeric
+            idr_not_numeric,
+            idr_not_allowed,
         } res;
         unsigned long long new_value;   // Valid only if idr_success
         incr_decr_result_t() { }
@@ -150,7 +153,8 @@ struct store_t {
         apr_success,
         apr_too_large,
         apr_not_found,
-        apr_data_provider_failed
+        apr_data_provider_failed,
+        apr_not_allowed,
     };
     virtual append_prepend_result_t append(store_key_t *key, data_provider_t *data) = 0;
     virtual append_prepend_result_t prepend(store_key_t *key, data_provider_t *data) = 0;
@@ -159,7 +163,8 @@ struct store_t {
     
     enum delete_result_t {
         dr_deleted,
-        dr_not_found
+        dr_not_found,
+        dr_not_allowed
     };
 
     virtual delete_result_t delete_key(store_key_t *key) = 0;
