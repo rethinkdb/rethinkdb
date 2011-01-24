@@ -28,21 +28,28 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
     //fail_due_to_user_error("Port is too big", (snprintf(port_str, 10, "%d", port) == 10));
 
     /* make the connection */
-    getaddrinfo(host, port_str, NULL, &res);
-    sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (getaddrinfo(host, port_str, NULL, &res) != 0) {
+        logERR("Failed to look up address %s:%d.", host, port);
+        goto ERROR_BREAKOUT;
+    }
+    if((sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
+        logERR("Failed to create a socket\n");
+        goto ERROR_BREAKOUT;
+    }
     if (connect(sock, res->ai_addr, res->ai_addrlen) != 0) {
         /* for some reason the connection failed */
-        logINF("Failed to make a connection with error: %s", strerror(errno));
-
-        freeaddrinfo(res);
-        throw connect_failed_exc_t();
+        logERR("Failed to make a connection with error: %s", strerror(errno));
+        goto ERROR_BREAKOUT;
     }
 
-    int non_blocking_res;
-    non_blocking_res = fcntl(sock, F_SETFL, O_NONBLOCK);
-    guarantee_err(non_blocking_res == 0, "Could not make socket non-blocking");
+    guarantee_err(fcntl(sock, F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 
     freeaddrinfo(res);
+    return;
+
+ERROR_BREAKOUT:
+    freeaddrinfo(res);
+    throw connect_failed_exc_t();
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)

@@ -26,11 +26,14 @@ public:
 
 class message_parser_t {
 public:
-    message_parser_t() {}
+    message_parser_t() 
+        : shutdown_asked_for(false)
+    {}
     ~message_parser_t() {}
 
 private:
     bool keep_going; /* used to signal the parser when to stop */
+    bool shutdown_asked_for; /* were we asked to shutdown (used to ignore connection exceptions */
 
 public:
     void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);

@@ -9,11 +9,15 @@ namespace replication {
 // TODO unit test offsets
 
 slave_t::slave_t(store_t *internal_store, replication_config_t config) 
-    : internal_store(internal_store), config(config), conn(config.hostname, config.port), respond_to_queries(false), n_retries(RETRY_ATTEMPTS)
+    : internal_store(internal_store), 
+      config(config), 
+      conn(new tcp_conn_t(config.hostname, config.port)), 
+      respond_to_queries(false), 
+      timeout(INITIAL_TIMEOUT)
 {
     failover.add_callback(this);
     coro_t::move_to_thread(get_num_threads() - 2);
-    parser.parse_messages(&conn, this);
+    parser.parse_messages(conn, this);
 }
 
 slave_t::~slave_t() {
@@ -25,10 +29,12 @@ slave_t::~slave_t() {
         parser_shutdown_cb.wait();
 
     coro_t::move_to_thread(get_num_threads() - 2);
-    if (conn.is_read_open()) conn.shutdown_read();
-    if (conn.is_write_open()) conn.shutdown_write();
+    delete conn;
 
     coro_t::move_to_thread(home_thread);
+    
+    /* cancel the timer */
+    if(timer_token) cancel_timer(timer_token);
 }
 
 store_t::get_result_t slave_t::get(store_key_t *key)
@@ -132,27 +138,41 @@ void slave_t::send(boost::scoped_ptr<goodbye_message_t>& message)
 {}
 void slave_t::conn_closed()
 {
-    int reconnects_done = 0;
-    bool success = false;
+    failover.on_failure();
+    timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
+}
 
-    while (reconnects_done++ < n_retries) {
-        try {
-            conn = tcp_conn_t(config.hostname, config.port);
-            logINF("Successfully reconnected to the server");
-            success = true;
-            parser.parse_messages(&conn, this);
+void slave_t::reconnect_timer_callback(void *ctx) {
+    slave_t *self = static_cast<slave_t*>(ctx);
+    self->timer_token = NULL;
+    try {
+        if (self->conn) {
+            delete self->conn; //put the old conn out of his misery, he's done here.
+            self->conn = NULL; //make sure we don't double delete
         }
-        catch (tcp_conn_t::connect_failed_exc_t& e) {
-            logINF("Connection attempt: %d failed\n", reconnects_done);
-        }
+
+        /* reset everything */
+        self->conn = new tcp_conn_t(self->config.hostname, self->config.port);
+        self->timeout = INITIAL_TIMEOUT;
+
+        /* we've succeeded, it's time to start parsing again */
+        logINF("Successfully reconnected to the server\n");
+        self->failover.on_resume();
+        self->parser.parse_messages(self->conn, self);
+    } catch (tcp_conn_t::connect_failed_exc_t& e) {
+        logINF("Reconnection attempt failed\n");
+        self->timeout *= TIMEOUT_GROWTH_FACTOR; //Increase the timeout
+        self->timer_token = fire_timer_once(self->timeout, self->reconnect_timer_callback, self); //Set another timer to retry
     }
-
-    if(!success) failover.on_failure();
 }
 
 /* failover callback */
 void slave_t::on_failure() {
     respond_to_queries = true;
+}
+
+void slave_t::on_resume() {
+    respond_to_queries = false;
 }
 
 /* state for failover */

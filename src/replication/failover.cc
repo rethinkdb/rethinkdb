@@ -37,3 +37,8 @@ void failover_t::on_failure() {
     for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
         (*it).on_failure();
 }
+
+void failover_t::on_resume() {
+    for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
+        (*it).on_resume();
+}

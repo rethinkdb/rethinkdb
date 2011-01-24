@@ -6,7 +6,9 @@
 #include "store.hpp"
 #include "failover.hpp"
 
-#define RETRY_ATTEMPTS 10 //TODO move me
+#define INITIAL_TIMEOUT  100//initial time we wait reconnect to the master server on failure
+#define TIMEOUT_GROWTH_FACTOR   2 //every failed reconnect the timeoute increase by this factor
+
 
 namespace replication {
 
@@ -24,7 +26,7 @@ public:
 private:
     store_t *internal_store;
     replication_config_t config;
-    tcp_conn_t conn;
+    tcp_conn_t *conn;
     message_parser_t parser;
     failover_t failover;
 
@@ -60,11 +62,15 @@ public:
 public:
     /* failover callback */
     void on_failure();
+    void on_resume();
 
 private:
     /* state for failover */
     bool respond_to_queries;
-    int n_retries;
+    long timeout; /* ms to wait before trying to reconnect */
+
+    static void reconnect_timer_callback(void *ctx);
+    timer_token_t *timer_token;
 };
 
 }  // namespace replication
