@@ -4,6 +4,11 @@ using boost::scoped_ptr;
 
 namespace replication {
 
+// TODO refactor this darned thing.  TODO make it easier to parse and
+// document the binary protocol we have here.
+
+
+
 class protocol_exc_t : public std::exception {
 public:
     protocol_exc_t(const char *msg) : msg_(msg) { }
@@ -123,6 +128,21 @@ bool parse_and_pop(tcp_conn_t *conn, message_callback_t *receiver, const_charsli
     return true;
 }
 
+void send_conn_and_popslice_to_stream(tcp_conn_t *conn, value_stream_t *stream, const_charslice sl, ssize_t skip, ssize_t packet_size) {
+    ssize_t write_end = std::min(packet_size, sl.end - sl.beg);
+    write_charslice(stream, const_charslice(sl.beg + skip, sl.beg + write_end));
+    conn->pop(write_end);
+
+    ssize_t remainder = packet_size - write_end;
+
+    while (remainder > 0) {
+        charslice new_sl = stream->buf_for_filling(remainder);
+        ssize_t w_size = std::min(new_sl.end - new_sl.beg, remainder);
+        conn->read(new_sl.beg, w_size);
+        stream->data_written(w_size);
+        remainder -= w_size;
+    }
+}
 
 template <class message_type>
 bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, const_charslice sl, std::vector<value_stream_t *>& streams) {
@@ -153,20 +173,7 @@ bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, const_char
     }
 
     streams.push_back(stream);
-    ssize_t packet_size = p->op_header.header.size;
-    ssize_t write_end = std::min(packet_size, sl.end - sl.beg);
-    write_charslice(stream, const_charslice(sl.beg + sz, sl.beg + write_end));
-    conn->pop(write_end);
-
-    ssize_t write_remainder = packet_size - write_end;
-
-    while (write_remainder > 0) {
-        charslice new_sl = stream->buf_for_filling(write_remainder);
-        ssize_t w_size = std::min(new_sl.end - new_sl.beg, write_remainder);
-        conn->read(new_sl.beg, w_size);
-        stream->data_written(w_size);
-        write_remainder -= w_size;
-    }
+    send_conn_and_popslice_to_stream(conn, stream, sl, sz, p->op_header.header.size);
 
     return true;
 }
@@ -212,9 +219,45 @@ void message_parser_t::do_parse_normal_message(tcp_conn_t *conn, message_callbac
                 }
 
 
-            } else {
+            } else if (multipart_aspect == MIDDLE) {
 
-                throw protocol_exc_t("middle or last packets not implemented");
+                if (sl.end - sl.beg >= ptrdiff_t(sizeof(net_large_operation_middle_t))) {
+                    const net_large_operation_middle_t *middle
+                        = reinterpret_cast<const net_large_operation_middle_t *>(sl.beg);
+
+                    int32_t stream_identifier = middle->identifier;
+                    ssize_t packet_size = middle->header.size;
+
+                    if (0 <= stream_identifier && uint32_t(stream_identifier) < streams.size() && streams[stream_identifier] != NULL) {
+                        send_conn_and_popslice_to_stream(conn, streams[stream_identifier], sl, sizeof(net_large_operation_middle_t), packet_size);
+                    } else {
+                        throw protocol_exc_t("negative stream identifier");
+                    }
+
+                }
+
+
+            } else if (multipart_aspect == LAST) {
+
+                // CopyPastaz
+                if (sl.end - sl.beg >= ptrdiff_t(sizeof(net_large_operation_last_t))) {
+                    const net_large_operation_middle_t *middle
+                        = reinterpret_cast<const net_large_operation_middle_t *>(sl.beg);
+
+                    int32_t stream_identifier = middle->identifier;
+                    ssize_t packet_size = middle->header.size;
+
+                    if (0 <= stream_identifier && uint32_t(stream_identifier) < streams.size() && streams[stream_identifier] != NULL) {
+                        send_conn_and_popslice_to_stream(conn, streams[stream_identifier], sl, sizeof(net_large_operation_middle_t), packet_size);
+                    } else {
+                        throw protocol_exc_t("negative stream identifier");
+                    }
+
+                    streams[stream_identifier]->shutdown_write();
+                    streams[stream_identifier] = NULL;
+                }
+
+
             }
         }
 
