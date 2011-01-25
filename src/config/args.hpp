@@ -92,7 +92,7 @@
 // If wait_for_flush is true, concurrent flushing can be used to reduce the latency
 // of each single flush. max_concurrent_flushes controls how many flushes can be active
 // on a specific slice at any given time.
-#define DEFAULT_MAX_CONCURRENT_FLUSHES            2
+#define DEFAULT_MAX_CONCURRENT_FLUSHES            1
 
 // If more than this many bytes of dirty data accumulate in the cache, then write
 // transactions will be throttled.

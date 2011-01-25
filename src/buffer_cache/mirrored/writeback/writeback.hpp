@@ -14,8 +14,7 @@ struct mc_buf_t;
 struct mc_inner_buf_t;
 struct mc_transaction_t;
 
-struct writeback_t :
-    public lock_available_callback_t
+struct writeback_t
 {
     typedef mc_cache_t cache_t;
     typedef mc_buf_t buf_t;
@@ -72,6 +71,7 @@ public:
 
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
         friend class writeback_t;
+        friend class concurrent_flush_t;
         
     public:
         explicit local_buf_t(inner_buf_t *gbuf)
@@ -103,6 +103,7 @@ private:
     
 private:
     friend class buf_writer_t;
+    friend class concurrent_flush_t;
 
     // The writeback system has a mechanism to keep data safe if the server crashes. If modified
     // data sits in memory for longer than flush_timer_ms milliseconds, a writeback will be
@@ -118,21 +119,8 @@ private:
     int active_write_transactions;
     
     bool writeback_in_progress;
-    
     unsigned int active_flushes;
-    
-    /* Functions and callbacks for different phases of the writeback */
-    
-    struct per_flush_locals_t;
-    
-    void writeback_start_and_acquire_lock();   // Called on cache thread
-    void writeback_do_writeback_local();  // Called on cache thread
-    virtual void on_lock_available();   // Called on cache thread
-    per_flush_locals_t *create_flush_locals();    // Called on cache thread
-    void writeback_acquire_bufs(per_flush_locals_t *flush_locals);   // Called on cache thread
-    void writeback_do_write(per_flush_locals_t *flush_locals);   // Called on serializer thread
-    void writeback_do_cleanup(per_flush_locals_t *flush_locals);   // Called on cache thread
-    
+
     cache_t *cache;
 
     /* The flush lock is necessary because if we acquire dirty blocks
@@ -165,30 +153,46 @@ private:
     // List of bufs that are currenty dirty
     intrusive_list_t<local_buf_t> dirty_bufs;
 
-    /* Internal variables used only during a flush operation. */
-    
-    // Transaction that the writeback is using to grab buffers (gets moved to flush_locals
-    // as soon as the flush lock has been acquired)
-    transaction_t *transaction;
-    
-    struct per_flush_locals_t : public serializer_t::write_txn_callback_t {
+    ticks_t start_time;
+
+public:
+    // A separate type to support concurrent flushes
+    class concurrent_flush_t :
+            public serializer_t::write_txn_callback_t,
+            public lock_available_callback_t {
+
+    protected:
+        friend class writeback_t;
+        // Please note: constructing triggers flushing
+        concurrent_flush_t(writeback_t* parent);
+
+    private:
+        virtual ~concurrent_flush_t() { }
+
+        /* Functions and callbacks for different phases of the writeback */
+        void start_and_acquire_lock();   // Called on cache thread
+        void do_writeback();  // Called on cache thread
+        virtual void on_lock_available();   // Called on cache thread
+        void init_flush_locals();    // Called on cache thread
+        void acquire_bufs();   // Called on cache thread
+        void do_write();   // Called on serializer thread
         virtual void on_serializer_write_txn();   // Called on serializer thread
-    
+        void do_cleanup();   // Called on cache thread
+
+        writeback_t* parent; // We need this for flush concurrency control (i.e. flush_lock, active_flushes etc.)
+
         coro_t *flusher_coro;
-    
         ticks_t start_time;
-    
+
         // Callbacks for the current sync
         intrusive_list_t<sync_callback_t> current_sync_callbacks;
-        
+
         // Transaction that the writeback is using to grab buffers
         transaction_t *transaction;
-        
+
         // Transaction to submit to the serializer
         std::vector<translator_serializer_t::write_t> serializer_writes;
     };
-    
-    ticks_t start_time;
 };
 
 #endif // __BUFFER_CACHE_WRITEBACK_HPP__
