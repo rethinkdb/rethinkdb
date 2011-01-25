@@ -1,6 +1,9 @@
 #include "btree/modify_oper.hpp"
+
 #include "utils.hpp"
 #include "buffer_cache/large_buf.hpp"
+#include "buffer_cache/buf_lock.hpp"
+
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 
@@ -21,17 +24,18 @@
 
 perfmon_counter_t pm_btree_depth("btree_depth");
 
-void insert_root(block_id_t root_id, buf_t **sb_buf) {
-    rassert(*sb_buf);
-    ptr_cast<btree_superblock_t>((*sb_buf)->get_data_write())->root_block = root_id;
-    (*sb_buf)->release();
-    *sb_buf = NULL;
+void insert_root(block_id_t root_id, buf_lock_t& sb_buflock) {
+    rassert(sb_buflock.is_acquired());
+    ptr_cast<btree_superblock_t>(sb_buflock.buf()->get_data_write())->root_block = root_id;
+
+    buf_lock_t empty;
+    sb_buflock.swap(empty);
 }
 
 // Split the node if necessary. If the node is a leaf_node, provide the new
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
-void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
+void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_lock_t& sb_buflock,
                                                 const btree_key *key, btree_value *new_value, block_size_t block_size) {
     const node_t *node = ptr_cast<node_t>((*buf)->get_data_read());
 
@@ -59,7 +63,7 @@ void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, b
         last_node = ptr_cast<internal_node_t>((*last_buf)->get_data_write());
         internal_node::init(block_size, last_node);
 
-        insert_root((*last_buf)->get_block_id(), sb_buf);
+        insert_root((*last_buf)->get_block_id(), sb_buflock);
         pm_btree_depth++;
     } else {
         last_node = ptr_cast<internal_node_t>((*last_buf)->get_data_write());
@@ -80,7 +84,7 @@ void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, b
 }
 
 // Merge or level the node if necessary.
-void check_and_handle_underfull(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
+void check_and_handle_underfull(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_lock_t& sb_buflock,
                                                     const btree_key *key, block_size_t block_size) {
     const node_t *node = ptr_cast<node_t>((*buf)->get_data_read());
     if (*last_buf && node::is_underfull(block_size, node)) { // The root node is never underfull.
@@ -124,7 +128,7 @@ void check_and_handle_underfull(transaction_t *txn, buf_t **buf, buf_t **last_bu
                 // it's the root and our node is its only child). Insert our
                 // node as the new root.
                 (*last_buf)->mark_deleted();
-                insert_root((*buf)->get_block_id(), sb_buf);
+                insert_root((*buf)->get_block_id(), sb_buflock);
                 pm_btree_depth--;
             }
         } else { // Level
@@ -144,15 +148,15 @@ void check_and_handle_underfull(transaction_t *txn, buf_t **buf, buf_t **last_bu
 }
 
 // Get a root block given a superblock, or make a new root if there isn't one.
-buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size) {
-    block_id_t node_id = reinterpret_cast<const btree_superblock_t*>((*sb_buf)->get_data_read())->root_block;
+buf_t *get_root(transaction_t *txn, buf_lock_t& sb_buflock, block_size_t block_size) {
+    block_id_t node_id = reinterpret_cast<const btree_superblock_t*>(sb_buflock.buf()->get_data_read())->root_block;
 
     if (node_id != NULL_BLOCK_ID) {
         return co_acquire_block(txn, node_id, rwi_write);
     } else { // Make a new block.
         buf_t *buf = txn->allocate();
         leaf::init(block_size, ptr_cast<leaf_node_t>(buf->get_data_write()), current_time());
-        insert_root(buf->get_block_id(), sb_buf);
+        insert_root(buf->get_block_id(), sb_buflock);
         pm_btree_depth++;
         return buf;
     }
@@ -175,24 +179,25 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         transaction_t *txn = transactor.transaction();
 
         // Acquire the superblock.
-        buf_t *sb_buf = co_acquire_block(txn, SUPERBLOCK_ID, rwi_write);
+        buf_lock_t sb_buflock(transactor, SUPERBLOCK_ID, rwi_write);
+
         buf_t *last_buf = NULL;
-        buf_t *buf = get_root(txn, &sb_buf, block_size);
+        buf_t *buf = get_root(txn, sb_buflock, block_size);
 
         // Walk down the tree to the leaf.
         while (node::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
             // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-            check_and_handle_split(txn, &buf, &last_buf, &sb_buf, key, NULL, block_size);
+            check_and_handle_split(txn, &buf, &last_buf, sb_buflock, key, NULL, block_size);
             // Check if the node is underfull, and merge/level if it is.
-            check_and_handle_underfull(txn, &buf, &last_buf, &sb_buf, key, block_size);
+            check_and_handle_underfull(txn, &buf, &last_buf, sb_buflock, key, block_size);
 
             // Release the superblock, if we've gone past the root (and haven't
             // already released it). If we're still at the root or at one of
             // its direct children, we might still want to replace the root, so
             // we can't release the superblock yet.
-            if (sb_buf && last_buf) {
-                sb_buf->release();
-                sb_buf = NULL;
+            if (sb_buflock.is_acquired() && last_buf) {
+                buf_lock_t empty;
+                sb_buflock.swap(empty);
             }
 
             // Release the old previous node (unless we're at the root), and set
@@ -255,7 +260,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
                 // Split the node if necessary, to make sure that we have room
                 // for the value; This isn't necessary when we're deleting,
                 // because the node isn't going to grow.
-                check_and_handle_split(txn, &buf, &last_buf, &sb_buf, key, new_value, block_size);
+                check_and_handle_split(txn, &buf, &last_buf, sb_buflock, key, new_value, block_size);
 
                 // Add a CAS to the value if necessary (this won't change its size).
                 if (new_value->has_cas() && !oper->cas_already_set) {
@@ -281,15 +286,18 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
             // Check to see if the leaf is underfull (following a change in
             // size or a deletion), and merge/level if it is.
-            check_and_handle_underfull(txn, &buf, &last_buf, &sb_buf, key, block_size);
+            check_and_handle_underfull(txn, &buf, &last_buf, sb_buflock, key, block_size);
         }
 
         // Release bufs as necessary.
-        if (sb_buf) sb_buf->release();
+        if (sb_buflock.is_acquired()) {
+            buf_lock_t empty;
+            sb_buflock.swap(empty);
+        }
         rassert(buf);
         buf->release();
         if (last_buf) last_buf->release();
-        buf = last_buf = sb_buf = NULL;
+        buf = last_buf = NULL;
 
         // Release all the large bufs that we used.
         if (update_needed) {
