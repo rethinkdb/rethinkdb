@@ -530,10 +530,10 @@ void do_failover_reset(txt_memcached_handler_t *rh) {
     store_t::failover_reset_result_t res = rh->store->failover_reset();
     switch (res) {
         case store_t::frr_success:
-            rh->writef("Failover succesfully reset\n");
+            rh->writef("Failover succesfully reset\r\n");
             break;
         case store_t::frr_not_allowed:
-            rh->writef("Failover reset not allowed. (This server probably wasn't started as a slave\n");
+            rh->writef("Failover reset not allowed. (This server probably wasn't started as a slave.)\r\n");
             break;
         default: unreachable();
     }
@@ -735,6 +735,7 @@ void serve_memcache(tcp_conn_t *conn, store_t *store) {
             } else {
                 rh.writef("Available commands:\r\n");
                 rh.writef("rethinkdb shutdown\r\n");
+                rh.writef("failover reset\r\n");
             }
         } else if(!strcmp(args[0], "version")) {
             if (args.size() == 2) {
