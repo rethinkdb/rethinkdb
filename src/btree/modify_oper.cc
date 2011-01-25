@@ -305,8 +305,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
         // Release all the large bufs that we used.
         if (update_needed) {
-            if (old_large_buflock.has_lv()) {
-                rassert(!new_large_buflock.has_lv());
+            if (old_large_buflock.has_lv() && new_large_buflock.lv() != old_large_buflock.lv()) {
                 // operate() switched to a new large buf, so we need to delete the old one.
                 rassert(old_value.is_large());
                 rassert(old_value.lb_ref().block_id == old_large_buflock.lv()->get_root_ref().block_id);
