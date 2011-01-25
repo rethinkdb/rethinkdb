@@ -11,8 +11,12 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-/* Network connection object */
+/* Actual definition of bool_promise_t */
 
+struct bool_promise_t : public promise_t<bool> {
+};
+
+/* Network connection object */
 
 linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
     : registration_thread(-1),
@@ -112,7 +116,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             /* There's no data available right now, so we must wait for a notification from the
             epoll queue */
-            promise_t<bool> cond;
+            bool_promise_t cond;
             read_cond = &cond;
             bool ok = cond.wait();
             read_cond = NULL;
@@ -244,7 +248,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
              * refactored this last time fucked over customers with
              * legacy systems. Please don't do this again. */
             linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in|poll_event_out, this);
-            promise_t<bool> cond;
+            bool_promise_t cond;
             write_cond = &cond;
             bool ok = cond.wait();
             write_cond = NULL;

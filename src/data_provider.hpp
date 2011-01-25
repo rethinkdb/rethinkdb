@@ -65,13 +65,11 @@ struct data_provider_failed_exc_t :
 /* A data_provider_t conceptually represents a read-only array of bytes. It is an abstract
 superclass; its concrete subclasses represent different sources of bytes.
 
-In general, the data on a data_provider_t must be consumed exactly once. Once
-get_data_into_buffers() or get_data_as_buffers() has been called to consume the data, it is illegal
-to call either one again. On the flip side, the data must be consumed. If the data is not desired,
-discard() can be called to throw it away and fulfill the obligation to consume the data. The reason
-for the "consume-exactly-once" rule is to make it easier for data_provider_t subclasses that read
-off a socket; they cannot go back and re-read the data once it has been read once, but they must
-read the data to get it out of the way. */
+In general, the data on a data_provider_t can only be requested once: once get_data_*() or discard()
+has been called, they cannot be called again. This is to make it easier to implement data providers
+that read off a socket or other one-time-use source of data. Note that it's not mandatory to read
+the data at all--if a data provider really needs its data to be read, it must do it itself in the
+destructor. */
 
 class data_provider_t {
 
@@ -97,13 +95,6 @@ public:
     should also override get_data_as_buffers(), or subclass from auto_buffering_data_provider_t to
     automatically implement it in terms of get_data_into_buffers(). */
     virtual const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t) = 0;
-
-public:
-    /* Instead of calling get_data_into_buffers() or get_data_as_buffers(), a consumer can call
-    discard() to throw away the data. This is to fulfill its obligation to consume the data. The
-    default implementation of discard() just calls get_data_as_buffers() and ignores the result.
-    Producers may override discard() to do something more efficient. */
-    virtual void discard() throw (data_provider_failed_exc_t);
 };
 
 /* A auto_buffering_data_provider_t is a subclass of data_provider_t that provides an implementation
@@ -162,7 +153,6 @@ public:
     size_t get_size() const;
     void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
-    void discard() throw (data_provider_failed_exc_t);
 
 private:
     int size;

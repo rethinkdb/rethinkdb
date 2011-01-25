@@ -1,9 +1,6 @@
 #include "btree/append_prepend.hpp"
-
 #include "btree/modify_oper.hpp"
-
 #include "buffer_cache/co_functions.hpp"
-#include "btree/coro_wrappers.hpp"
 
 struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
@@ -15,14 +12,12 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         try {
             if (!old_value) {
                 result = store_t::apr_not_found;
-                data->discard();
                 return false;
             }
 
             size_t new_size = old_value->value_size() + data->get_size();
             if (new_size > MAX_VALUE_SIZE) {
                 result = store_t::apr_too_large;
-                data->discard();
                 return false;
             }
 

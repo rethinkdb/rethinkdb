@@ -56,17 +56,15 @@ except between multiple coroutines on the same thread. It can only be used once.
 
 struct cond_t {
 
-    cond_t() : ready(false) { }
+    cond_t() : ready(false), waiter(NULL) { }
     void pulse() {
         rassert(!ready);
         ready = true;
-        for (int i = 0; i < (int)waiters.size(); i++) {
-            waiters[i]->notify();
-        }
+        if (waiter) waiter->notify();
     }
     void wait() {
         if (!ready) {
-            waiters.push_back(coro_t::self());
+            waiter = coro_t::self();
             coro_t::wait();
         }
         rassert(ready);
@@ -74,19 +72,53 @@ struct cond_t {
 
 private:
     bool ready;
-    std::vector<coro_t *> waiters;
+    coro_t *waiter;
 
     DISABLE_COPYING(cond_t);
 };
 
-/* A promise_t is a condition variable combined with a "return value", of sorts, that
-is transmitted to the thing waiting on the condition variable. */
+/* A threadsafe_cond_t is a thread-safe condition variable. It's like cond_t except it can be
+used with multiple coroutines on different threads. */
 
-template<class val_t>
+struct threadsafe_cond_t {
+
+    threadsafe_cond_t() : ready(false), waiter(NULL) { }
+    void pulse() {
+        lock.lock();
+        rassert(!ready);
+        ready = true;
+        if (waiter) waiter->notify();
+        lock.unlock();
+    }
+    void wait() {
+        lock.lock();
+        if (!ready) {
+            waiter = coro_t::self();
+            lock.unlock();
+            coro_t::wait();
+        } else {
+            lock.unlock();
+        }
+        rassert(ready);
+    }
+
+private:
+    bool ready;
+    coro_t *waiter;
+    spinlock_t lock;
+
+    DISABLE_COPYING(threadsafe_cond_t);
+};
+
+/* A promise_t is a condition variable combined with a "return value", of sorts, that
+is transmitted to the thing waiting on the condition variable. It's parameterized on an underlying
+cond_t type so that you can make it thread-safe if you need to. */
+
+template<class val_t, class underlying_cond_t = cond_t>
 struct promise_t {
 
     promise_t() : value(NULL) { }
-    void pulse(val_t v) {
+    void pulse(const val_t &v) {
         value = new val_t(v);
         cond.pulse();
     }
@@ -99,7 +131,7 @@ struct promise_t {
     }
 
 private:
-    cond_t cond;
+    underlying_cond_t cond;
     val_t *value;
 };
 
