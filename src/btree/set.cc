@@ -100,6 +100,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
     }
 
+
     ticks_t start_time;
 
     data_provider_t *data;
