@@ -19,7 +19,7 @@ public:
     buf_lock_t(transactor_t& txor, block_id_t block_id, access_t mode);
     ~buf_lock_t();
 
-    void allocate(transaction_t *txn);
+    void allocate(transactor_t& txor);
 
     // Releases the buf.  You can only release once (unless you swap
     // in an unreleased buf_lock_t).
