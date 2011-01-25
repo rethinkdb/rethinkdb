@@ -51,6 +51,7 @@ public:
     append_prepend_result_t append(store_key_t *key, data_provider_t *data);
     append_prepend_result_t prepend(store_key_t *key, data_provider_t *data);
     delete_result_t delete_key(store_key_t *key);
+    failover_reset_result_t failover_reset();
 
 public:
     /* message_callback_t interface */
@@ -90,6 +91,7 @@ private:
     private:
         void limit_to(unsigned int limit);
     } give_up;
+    bool given_up;
 };
 
 }  // namespace replication

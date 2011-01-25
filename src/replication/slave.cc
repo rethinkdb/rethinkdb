@@ -13,7 +13,8 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
       config(config), 
       conn(new tcp_conn_t(config.hostname, config.port)), 
       respond_to_queries(false), 
-      timeout(INITIAL_TIMEOUT)
+      timeout(INITIAL_TIMEOUT),
+      given_up(false)
 {
     failover.add_callback(this);
     give_up.on_reconnect();
@@ -117,6 +118,17 @@ store_t::delete_result_t slave_t::delete_key(store_key_t *key)
         return dr_not_allowed;
 }
 
+store_t::failover_reset_result_t slave_t::failover_reset() {
+    if (given_up) {
+        give_up.reset();
+        {
+            on_thread_t thread_switcher(get_num_threads() - 2);
+            timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
+        }
+    }
+    return frr_success;
+}
+
  /* message_callback_t interface */
 void slave_t::hello(boost::scoped_ptr<hello_message_t>& message)
 {}
@@ -141,10 +153,12 @@ void slave_t::send(boost::scoped_ptr<goodbye_message_t>& message)
 void slave_t::conn_closed()
 {
     failover.on_failure();
-    if (!give_up.give_up())
+    if (!give_up.give_up()) {
         timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
-    else
+    } else {
         logINF("The master has failed %d times in the last %d seconds, going rogue.\n", MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS); //TODO when runtime commands and clas are in place to undo this put info on how to do it here
+        given_up = true;
+    }
 }
 
 /* failover driving functions */
