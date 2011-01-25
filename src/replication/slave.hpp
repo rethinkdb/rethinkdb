@@ -20,15 +20,21 @@
 namespace replication {
 
 
+
 struct slave_t :
     public home_thread_mixin_t,
     public store_t,
     public failover_callback_t,
     public message_callback_t
 {
+friend void run(slave_t *);
 public:
     slave_t(store_t *, replication_config_t);
     ~slave_t();
+
+private:
+    void kill_conn();
+    coro_t *coro;
 
 private:
     store_t *internal_store;
@@ -36,6 +42,7 @@ private:
     tcp_conn_t *conn;
     message_parser_t parser;
     failover_t failover;
+    bool shutting_down;
 
 public:
     /* store_t interface. */
@@ -91,8 +98,9 @@ private:
     private:
         void limit_to(unsigned int limit);
     } give_up;
-    bool given_up;
 };
+
+void run(slave_t *); //TODO make this static and private
 
 }  // namespace replication
 
