@@ -16,6 +16,8 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
       timeout(INITIAL_TIMEOUT)
 {
     failover.add_callback(this);
+    give_up.on_reconnect();
+
     coro_t::move_to_thread(get_num_threads() - 2);
     parser.parse_messages(conn, this);
 }
@@ -139,9 +141,13 @@ void slave_t::send(boost::scoped_ptr<goodbye_message_t>& message)
 void slave_t::conn_closed()
 {
     failover.on_failure();
-    timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
+    if (!give_up.give_up())
+        timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
+    else
+        logINF("The master has failed %d times in the last %d seconds, going rogue.\n", MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS); //TODO when runtime commands and clas are in place to undo this put info on how to do it here
 }
 
+/* failover driving functions */
 void slave_t::reconnect_timer_callback(void *ctx) {
     slave_t *self = static_cast<slave_t*>(ctx);
     self->timer_token = NULL;
@@ -157,13 +163,39 @@ void slave_t::reconnect_timer_callback(void *ctx) {
 
         /* we've succeeded, it's time to start parsing again */
         logINF("Successfully reconnected to the server\n");
+        self->give_up.on_reconnect();
         self->failover.on_resume();
+
+        /* restart the parser */
         self->parser.parse_messages(self->conn, self);
     } catch (tcp_conn_t::connect_failed_exc_t& e) {
         logINF("Reconnection attempt failed\n");
         self->timeout *= TIMEOUT_GROWTH_FACTOR; //Increase the timeout
         self->timer_token = fire_timer_once(self->timeout, self->reconnect_timer_callback, self); //Set another timer to retry
     }
+}
+
+/* give_up_t interface: the give_up_t struct keeps track of the last N times
+ * the server failed. If it's failing to frequently then it will tell us to
+ * give up on the server and stop trying to reconnect */
+void slave_t::give_up_t::on_reconnect() {
+    succesful_reconnects.push(ticks_to_secs(get_ticks()));
+    limit_to(MAX_RECONNECTS_PER_N_SECONDS);
+}
+
+bool slave_t::give_up_t::give_up() {
+    limit_to(MAX_RECONNECTS_PER_N_SECONDS);
+
+    return (succesful_reconnects.size() == MAX_RECONNECTS_PER_N_SECONDS && (succesful_reconnects.back() - ticks_to_secs(get_ticks())) < N_SECONDS);
+}
+
+void slave_t::give_up_t::reset() {
+    limit_to(0);
+}
+
+void slave_t::give_up_t::limit_to(unsigned int limit) {
+    while (succesful_reconnects.size() > limit)
+        succesful_reconnects.pop();
 }
 
 /* failover callback */
@@ -175,6 +207,5 @@ void slave_t::on_resume() {
     respond_to_queries = false;
 }
 
-/* state for failover */
-bool respond_to_queries;
+
 }  // namespace replication

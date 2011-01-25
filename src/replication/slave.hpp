@@ -5,9 +5,16 @@
 #include "server/cmd_args.hpp"
 #include "store.hpp"
 #include "failover.hpp"
+#include <queue>
 
-#define INITIAL_TIMEOUT  100//initial time we wait reconnect to the master server on failure
-#define TIMEOUT_GROWTH_FACTOR   2 //every failed reconnect the timeoute increase by this factor
+#define INITIAL_TIMEOUT  (100) //initial time we wait reconnect to the master server on failure in ms
+#define TIMEOUT_GROWTH_FACTOR   (2) //every failed reconnect the timeoute increase by this factor
+
+/* if we mave more than MAX_RECONNECTS_PER_N_SECONDS in N_SECONDS then we give
+ * up on the master server for a longer time (possibly until the user tells us
+ * to stop) */
+#define N_SECONDS (5*60)
+#define MAX_RECONNECTS_PER_N_SECONDS (5)
 
 
 namespace replication {
@@ -66,11 +73,23 @@ public:
 
 private:
     /* state for failover */
-    bool respond_to_queries;
+    bool respond_to_queries; /* are we responding to queries */
     long timeout; /* ms to wait before trying to reconnect */
 
     static void reconnect_timer_callback(void *ctx);
     timer_token_t *timer_token;
+
+    /* structure to tell us when to give up on the master */
+    struct give_up_t {
+    private:
+        std::queue<float> succesful_reconnects;
+    public:
+        void on_reconnect();
+        bool give_up();
+        void reset();
+    private:
+        void limit_to(unsigned int limit);
+    } give_up;
 };
 
 }  // namespace replication
