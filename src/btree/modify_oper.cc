@@ -6,7 +6,6 @@
 
 #include "buffer_cache/co_functions.hpp"
 #include "buffer_cache/transactor.hpp"
-#include "btree/coro_wrappers.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 

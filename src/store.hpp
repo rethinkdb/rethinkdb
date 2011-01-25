@@ -4,6 +4,7 @@
 #include "utils.hpp"
 #include "arch/arch.hpp"
 #include "data_provider.hpp"
+#include <boost/shared_ptr.hpp>
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
@@ -46,11 +47,13 @@ struct store_t {
     the value of 'cas' is undefined and should be ignored. */
 
     struct get_result_t {
-        const_buffer_group_t *buffer; //NULL means not found
-        struct done_callback_t {
-            virtual void have_copied_value() = 0;
-            virtual ~done_callback_t() {}
-        } *cb;
+        get_result_t(boost::shared_ptr<data_provider_t> v, mcflags_t f, cas_t c) :
+            value(v), flags(f), cas(c) { }
+        get_result_t() : flags(0), cas(0) { }
+        // NULL means not found. If non-NULL you are responsible for calling get_data_as_buffer(),
+        // or get_data_into_buffer() on value. Parts of the store may wait for the data_provider_t's
+        // destructor, so don't hold on to it forever.
+        boost::shared_ptr<data_provider_t> value;
         mcflags_t flags;
         cas_t cas;
     };

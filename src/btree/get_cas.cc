@@ -2,8 +2,7 @@
 
 #include "btree/modify_oper.hpp"
 #include "concurrency/cond_var.hpp"
-#include "btree/coro_wrappers.hpp"
-
+#include "btree/get.hpp"   // For value_data_provider_t
 
 // This function is like get(), except that it sets a CAS value if there isn't
 // one already, so it has to be a btree_modify_oper_t. Potentially we can use a
@@ -13,39 +12,43 @@
 
 struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mixin_t {
 
-    btree_get_cas_oper_t(promise_t<store_t::get_result_t> *res)
+    btree_get_cas_oper_t(promise_t<store_t::get_result_t, threadsafe_cond_t> *res)
         : res(res) { }
 
     bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
+
         if (!old_value) {
-            result = result_not_found;
+            /* If not found, there's nothing to do */
+            res->pulse(store_t::get_result_t());
             return false;
         }
 
-        valuecpy(&value, old_value);
+        // Duplicate the value and put a CAS on it if necessary
 
+        valuecpy(&value, old_value);   // Can we fix this extra copy?
         bool there_was_cas_before = value.has_cas();
         if (!value.has_cas()) { // We have always been at war with Eurasia.
             value.set_cas(slice->gen_cas());
             this->cas_already_set = true;
         }
 
+        // Deliver the value to the client via the promise_t we got
+
+        boost::shared_ptr<value_data_provider_t> dp(new value_data_provider_t);
+        valuecpy(&dp->small_part, &value);
         if (value.is_large()) {
-            result = result_large_value;
-            // Prepare the buffer group
-            const_buffer_group_t buffer_group;
-            for (int64_t i = 0; i < old_large_buf->get_num_segments(); i++) {
-                uint16_t size;
-                const void *data = old_large_buf->get_segment(i, &size);
-                buffer_group.add_buffer(size, data);
-            }
-            {
-                on_thread_t thread_switcher(home_thread);
-                co_deliver_get_result(&buffer_group, value.mcflags(), value.cas(), res);
-            }
+            dp->large_part = old_large_buf;
+            // Need to block on the caller so we don't free the large value before it's done
+            threadsafe_cond_t to_signal_when_done;
+            dp->to_signal_when_done = &to_signal_when_done;
+            res->pulse(store_t::get_result_t(dp, value.mcflags(), value.cas()));
+            dp.reset();   // So the destructor can get called
+            to_signal_when_done.wait();
         } else {
-            result = result_small_value;
+            res->pulse(store_t::get_result_t(dp, value.mcflags(), value.cas()));
         }
+
+        // Return the new value to the code that will put it into the tree
 
         if (there_was_cas_before) {
             return false; // We didn't actually fail, but we made no change
@@ -56,48 +59,24 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         }
     }
 
-    promise_t<store_t::get_result_t> *res;
+    store_t::get_result_t result;
+    promise_t<store_t::get_result_t, threadsafe_cond_t> *res;
+
     union {
         byte value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
-    
-    enum result_t {
-        result_not_found,
-        result_small_value,
-        result_large_value,
-    } result;
 };
 
-void co_btree_get_cas(const btree_key *key, btree_slice_t *slice, promise_t<store_t::get_result_t> *res) {
+void co_btree_get_cas(const btree_key *key, btree_slice_t *slice,
+        promise_t<store_t::get_result_t, threadsafe_cond_t> *res) {
     btree_get_cas_oper_t oper(res);
     run_btree_modify_oper(&oper, slice, key);
-    switch (oper.result) {
-        case btree_get_cas_oper_t::result_not_found: {
-            /* The value was not found. There's no need to wait for a reply from the thing that got
-            the value */
-            co_deliver_get_result(NULL, 0, 0, res);
-            break;
-        }
-        case btree_get_cas_oper_t::result_small_value: {
-            /* It's a small value. Construct a buffer group, deliver the result, and wait for the
-            reply so we can finish and destroy ourself. */
-            const_buffer_group_t bg;
-            bg.add_buffer(oper.value.value_size(), oper.value.value());
-            co_deliver_get_result(&bg, oper.value.mcflags(), oper.value.cas(), res);
-            break;
-        }
-        case btree_get_cas_oper_t::result_large_value: {
-            /* We already delivered the value--nothing to do! */
-             break;
-        }
-        default: unreachable();
-    }
 }
 
 store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice) {
     block_pm_duration get_timer(&pm_cmd_get);
-    promise_t<store_t::get_result_t> res;
+    promise_t<store_t::get_result_t, threadsafe_cond_t> res;
     coro_t::spawn(co_btree_get_cas, key, slice, &res);
     return res.wait();
 }
