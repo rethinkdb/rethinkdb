@@ -1,10 +1,11 @@
 #include <errno.h>
 #include <unistd.h>
+#include <signal.h>
+#include <fcntl.h>
 #include "thread_pool.hpp"
 #include "errors.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/coroutines.hpp"
-#include "arch/linux/eventfd.hpp"
 #include <signal.h>
 #include <fcntl.h>
 #include "logger.hpp"
@@ -68,8 +69,8 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         sigset_t sigmask;
         int res = sigfillset(&sigmask);
         guarantee_err(res == 0, "Could not get a full sigmask");
-
-        res = pthread_sigmask(SIG_BLOCK, &sigmask, NULL);
+    
+        res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
         guarantee_err(res == 0, "Could not block signal");
     }
 #endif
@@ -213,8 +214,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
         // Cause child thread to break out of its loop
         
         threads[i]->do_shutdown = true;
-        res = eventfd_write(threads[i]->shutdown_notify_fd, 1);
-        guarantee(res == 0, "Could not write to core_notify_fd");
+        threads[i]->shutdown_notify_event.write(1);
     }
     
     for (int i = 0; i < n_threads; i++) {
@@ -302,17 +302,8 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
       iosys(&queue),
       do_shutdown(false)
 {
-    int res;
-    
-    // Create and watch an eventfd for shutdown notifications
-    
-    shutdown_notify_fd = eventfd(0, 0);
-    guarantee_err(shutdown_notify_fd != -1, "Could not create shutdown notification fd");
-
-    res = fcntl(shutdown_notify_fd, F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make shutdown notify fd non-blocking");
-
-    queue.watch_resource(shutdown_notify_fd, poll_event_in, this);
+    // Watch an eventfd for shutdown notifications
+    queue.watch_resource(shutdown_notify_event.get_notify_fd(), poll_event_in, this);
     
     // Start the stats timer
     
@@ -325,11 +316,6 @@ linux_thread_t::~linux_thread_t() {
 #ifndef LEGACY_LINUX
     timer_handler.cancel_timer(perfmon_stats_timer);
 #endif
-    
-    int res;
-    
-    res = close(shutdown_notify_fd);
-    guarantee_err(res == 0, "Could not close shutdown_notify_fd");
 }
 
 void linux_thread_t::pump() {
