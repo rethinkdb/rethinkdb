@@ -15,29 +15,20 @@ struct test_iterator : ordered_data_iterator<int> {
         // add first empty block (so that we could check prefetch of the first block
         data_blocks.push_front(std::list<int>());
     }
-    bool has_next() {
+    boost::optional<int> next() {
         if (data_blocks.empty())
-            return false;
-        if (!data_blocks.front().empty())
-            return true;
-        blocked_without_prefetch++;
-        data_blocks.pop_front();
-        return !data_blocks.empty();
-    }
-    int next() {
-        if (data_blocks.empty())
-            throw std::runtime_error("tried to get an element from an empty iterator");
+            return boost::none;
 
         if (data_blocks.front().empty()) {
             blocked_without_prefetch++;
             data_blocks.pop_front();
         }
         if (data_blocks.empty())
-            throw std::runtime_error("tried to get an element from an empty iterator");
+            return boost::none;
 
         int result = data_blocks.front().front();
         data_blocks.front().pop_front();
-        return result;
+        return boost::optional<int>(result);
     }
     void prefetch() {
         prefetches_count++;
@@ -113,7 +104,7 @@ TEST(MergeIteratorsTest, merge_empty) {
     mergees.push_back(&c);
 
     merge_ordered_data_iterator<int> merged(mergees);
-    ASSERT_FALSE(merged.has_next());
+    ASSERT_FALSE(merged.next());
     ASSERT_EQ(a.blocked_without_prefetch, 0);
     ASSERT_EQ(b.blocked_without_prefetch, 0);
     ASSERT_EQ(c.blocked_without_prefetch, 0);
@@ -141,9 +132,9 @@ TEST(MergeIteratorsTest, three_way_merge) {
     merge_ordered_data_iterator<int> merge_iterator(mergees);
 
     std::list<int> merged;
-    while (merge_iterator.has_next()) {
-        int v = merge_iterator.next();
-        merged.push_back(v);
+    boost::optional<int> next;
+    while (next = merge_iterator.next()) {
+        merged.push_back(next.get());
     }
 
     std::list<int> a_db_flat = data_blocks_to_list_of_ints(a_db);

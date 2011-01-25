@@ -6,7 +6,9 @@
 #include <iterator>
 #include <vector>
 #include <queue>
+#include <boost/optional.hpp>
 #include "errors.hpp"
+
 
 /* This file is separate from rget.{cc,hpp} because we need to test the
  * iterator merging, but we don't really want to expose the types outside of
@@ -15,11 +17,10 @@
 
 template <typename T, typename Cmp = std::less<T> >
 struct ordered_data_iterator {
-    virtual bool has_next() = 0;
-    virtual T next() = 0;           // next can block until it can read the next value
+    virtual typename boost::optional<T> next() = 0; // next can block until it can read the next value
     virtual void prefetch() = 0;    // fetch all the necessary data to be able to give the next value without blocking.
-                                    // prefetch() is assumed to be asynchronous. Thus if next/has_next is called before
-                                    // the data is available, they can block.
+                                    // prefetch() is assumed to be asynchronous. Thus if next is called before the data
+                                    // is available, it can block.
 };
 
 template <typename F, typename S, typename Cmp = std::less<F> >
@@ -42,41 +43,32 @@ struct merge_ordered_data_iterator : public ordered_data_iterator<T, Cmp> {
     merge_ordered_data_iterator(const mergees_t& mergees)
         : mergees(mergees), next_to_pop_from(NULL), merge_heap(first_not_less<T, mergee_t*>(), heap_container_t()) { }
 
-    T next() {
+    typename boost::optional<T> next() {
         // if we are getting the first element, we have to request the data from all of the mergees
         if (next_to_pop_from == NULL) {
             prefetch();
             for (typename mergees_t::iterator it = mergees.begin(); it != mergees.end(); ++it) {
                 mergee_t *mergee = *it;
-                if (mergee->has_next()) {
-                    merge_heap.push(std::make_pair(mergee->next(), mergee));
-                }
+                typename boost::optional<T> mergee_next = mergee->next();
+                if (mergee_next)
+                    merge_heap.push(std::make_pair(mergee_next.get(), mergee));
             }
         } else {
-            if (next_to_pop_from->has_next()) {
-                merge_heap.push(std::make_pair(next_to_pop_from->next(), next_to_pop_from));
-            }
+            typename boost::optional<T> next_val = next_to_pop_from->next();
+            if (next_val)
+                merge_heap.push(std::make_pair(next_val.get(), next_to_pop_from));
         }
-        guarantee(merge_heap.size() > 0);
+        if (merge_heap.size() == 0) {
+            return boost::none;
+        }
 
         heap_elem_t top = merge_heap.top();
         merge_heap.pop();
         next_to_pop_from = top.second;
-        next_to_pop_from->prefetch();   // issue the async prefetch, so that we don't need to block on next has_next/next call
-        return top.first;
-    }
-    bool has_next() {
-        if (next_to_pop_from == NULL) {
-            prefetch();
-            for (typename mergees_t::iterator it = mergees.begin(); it != mergees.end(); ++it) {
-                mergee_t *mergee = *it;
-                if (mergee->has_next())
-                    return true;
-            }
-            return false;
-        } else {
-            return merge_heap.size() > 0 || next_to_pop_from->has_next();
-        }
+
+        // issue the async prefetch, so that we don't need to block on next has_next/next call
+        next_to_pop_from->prefetch();
+        return boost::optional<T>(top.first);
     }
     void prefetch() {
         std::for_each(mergees.begin(), mergees.end(), std::mem_fun(&mergee_t::prefetch));
