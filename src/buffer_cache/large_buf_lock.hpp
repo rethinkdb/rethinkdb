@@ -33,6 +33,9 @@ public:
 
     bool has_lv() const { return lv_ != NULL; }
 
+    // TODO remove this
+    void drop() { lv_ = NULL; }
+
 private:
     large_buf_t *lv_;
 

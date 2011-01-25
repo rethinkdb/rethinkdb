@@ -80,6 +80,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                     void *data = large_value->get_segment_write(i, &size);
                     buffer_group.add_buffer(size, data);
                 }
+
                 try {
                     data->get_data_into_buffers(&buffer_group);
                 } catch (...) {

@@ -53,6 +53,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                     is_old_large_value = false;
                 } else { // large -> large; expand existing large value
                     large_value = old_large_buflock.lv();
+                    old_large_buflock.drop();
                     if (append) large_value->append(data->get_size(), value.large_buf_ref_ptr());
                     else        large_value->prepend(data->get_size(), value.large_buf_ref_ptr());
                     is_old_large_value = true;
