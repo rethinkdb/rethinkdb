@@ -15,7 +15,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     btree_get_cas_oper_t(promise_t<store_t::get_result_t, threadsafe_cond_t> *res)
         : res(res) { }
 
-    bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
+    bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
 
         if (!old_value) {
             /* If not found, there's nothing to do */
@@ -37,7 +37,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         boost::shared_ptr<value_data_provider_t> dp(new value_data_provider_t);
         valuecpy(&dp->small_part, &value);
         if (value.is_large()) {
-            dp->large_part = old_large_buf;
+            dp->large_part = old_large_buflock.lv();
             // Need to block on the caller so we don't free the large value before it's done
             threadsafe_cond_t to_signal_when_done;
             dp->to_signal_when_done = &to_signal_when_done;
@@ -54,7 +54,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
             return false; // We didn't actually fail, but we made no change
         } else {
             *new_value = &value;
-            *new_large_buf = old_large_buf;
+            new_large_buflock.swap(old_large_buflock);
             return true;
         }
     }

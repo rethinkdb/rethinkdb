@@ -3,7 +3,7 @@
 // Wrappers for eventfd(), since CentOS backported the system
 // calls but not the libc wrappers.
 
-#include "arch/linux/eventfd.hpp"
+#include "arch/linux/system_event/eventfd.hpp"
 #include "utils.hpp"
 #include <sys/syscall.h>
 

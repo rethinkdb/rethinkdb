@@ -49,9 +49,12 @@ void poll_event_queue_t::run() {
     
 #ifdef LEGACY_LINUX
     // Create an empty sigmask for ppoll
-    sigset_t sigmask;
+    sigset_t sigmask, sigmask_full;
     res = sigemptyset(&sigmask);
     guarantee_err(res == 0, "Could not create an empty signal mask");
+
+    res = sigfillset(&sigmask_full);
+    guarantee_err(res == 0, "Could not create a full signal mask");
 #endif
 
     // Now, start the loop
@@ -63,8 +66,8 @@ void poll_event_queue_t::run() {
         res = poll(&watched_fds[0], watched_fds.size(), 0);
 #endif
         
-        // epoll_wait might return with EINTR in some cases (in
-        // particular under GDB), we just need to retry.
+        // ppoll might return with EINTR in some cases (in particular
+        // under GDB), we just need to retry.
         if (res == -1 && errno == EINTR) {
             res = 0;
         }
@@ -83,14 +86,25 @@ void poll_event_queue_t::run() {
             if(count == res)
                 break;
         }
+
+#ifdef LEGACY_LINUX
+        // If ppoll is busy with file descriptors, the piece of shit
+        // kernel starves out signals, so we need to unblock them to
+        // let the signal handlers get called, and then block them
+        // right back. What a sensible fucking system.
+        res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
+        guarantee_err(res == 0, "Could not unblock signals");
+        res = pthread_sigmask(SIG_SETMASK, &sigmask_full, NULL);
+        guarantee_err(res == 0, "Could not block signals");
+#endif
         
         parent->pump();
     }
 
 #ifdef LEGACY_LINUX
-    // Unblock all events
-    res = pthread_sigmask(SIG_BLOCK, &sigmask, NULL);
-    guarantee_err(res == 0, "Could not block signal");
+    // Unblock all signals
+    res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
+    guarantee_err(res == 0, "Could not unblock signals");
 #endif
 }
 

@@ -3,7 +3,7 @@
 #include <linux/fs.h>
 #include <stdio.h>
 #include <unistd.h>
-#include "arch/linux/eventfd.hpp"
+#include "arch/linux/system_event/eventfd.hpp"
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -19,9 +19,7 @@
 
 perfmon_counter_t
     pm_io_reads_started("io_reads_started[ioreads]"),
-    pm_io_reads_completed("io_reads_completed[ioreads]"),
-    pm_io_writes_started("io_writes_started[iowrites]"),
-    pm_io_writes_completed("io_writes_completed[iowrites]");
+    pm_io_writes_started("io_writes_started[iowrites]");
 
 linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct)
     : fd(INVALID_FD)
@@ -121,7 +119,9 @@ bool linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_ioc
     // Prepare the request
     iocb *request = new iocb;
     io_prep_pread(request, fd, buf, length, offset);
+#ifndef NO_EVENTFD
     io_set_eventfd(request, iosys->aio_notify_fd);
+#endif
     request->data = callback;
 
     // Add it to a list of outstanding read requests
@@ -151,7 +151,9 @@ bool linux_file_t::write_async(size_t offset, size_t length, void *buf, linux_io
     // Prepare the request
     iocb *request = new iocb;
     io_prep_pwrite(request, fd, buf, length, offset);
+#ifndef NO_EVENTFD
     io_set_eventfd(request, iosys->aio_notify_fd);
+#endif
     request->data = callback;
 
     // Add it to a list of outstanding write requests
@@ -199,149 +201,3 @@ void linux_file_t::verify(size_t offset, size_t length, void *buf) {
     rassert(length % DEVICE_BLOCK_SIZE == 0);
 }
 
-/* Async IO scheduler */
-
-/* TODO: Batch requests internally so that we can send multiple requests per
-call to io_submit(). */
-
-linux_io_calls_t::linux_io_calls_t(linux_event_queue_t *queue)
-    : queue(queue), n_pending(0), io_requests(this)
-{
-    int res;
-    
-    // Create aio context
-    
-    aio_context = 0;
-    res = io_setup(MAX_CONCURRENT_IO_REQUESTS, &aio_context);
-    guarantee_xerr(res == 0, -res, "Could not setup aio context");
-    
-    // Create aio notify fd
-    
-    aio_notify_fd = eventfd(0, 0);
-    guarantee_err(aio_notify_fd != -1, "Could not create aio notification fd");
-
-    res = fcntl(aio_notify_fd, F_SETFL, O_NONBLOCK);
-    guarantee_err(res == 0, "Could not make aio notify fd non-blocking");
-
-    queue->watch_resource(aio_notify_fd, poll_event_in, this);
-}
-
-linux_io_calls_t::~linux_io_calls_t()
-{
-    int res;
-    
-    rassert(n_pending == 0);
-    
-    res = close(aio_notify_fd);
-    guarantee_err(res == 0, "Could not close aio_notify_fd");
-    
-    res = io_destroy(aio_context);
-    guarantee_xerr(res == 0, -res, "Could not destroy aio context");
-}
-
-void linux_io_calls_t::on_event(int event_mask) {
-
-    int res, nevents;
-    eventfd_t nevents_total;
-
-    if (event_mask != poll_event_in) {
-        logERR("Unexpected event mask: %d\n", event_mask);
-    }
-
-    res = eventfd_read(aio_notify_fd, &nevents_total);
-    guarantee_err(res == 0, "Could not read aio_notify_fd value");
-
-    // Note: O(1) array allocators are hard. To avoid all the
-    // complexity, we'll use a fixed sized array and call io_getevents
-    // multiple times if we have to (which should be very unlikely,
-    // anyway).
-    io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
-
-    do {
-        // Grab the events. Note: we need to make sure we don't read
-        // more than nevents_total, otherwise we risk reading an io
-        // event and getting an eventfd for this read event later due
-        // to the way the kernel is structured. Better avoid this
-        // complexity (hence std::min below).
-        nevents = io_getevents(aio_context, 0,
-                               std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
-                               events, NULL);
-        guarantee_xerr(nevents >= 1, -nevents, "Waiting for AIO event failed");
-
-        // Process the events
-        for(int i = 0; i < nevents; i++) {
-            aio_notify((iocb*)events[i].obj, events[i].res);
-        }
-        nevents_total -= nevents;
-
-    } while (nevents_total > 0);
-}
-
-void linux_io_calls_t::aio_notify(iocb *event, int result) {
-    // Update stats
-    if (event->aio_lio_opcode == IO_CMD_PREAD) pm_io_reads_completed++;
-    else pm_io_writes_completed++;
-    
-    // Schedule the requests we couldn't finish last time
-    n_pending--;
-    process_requests();
-    
-    // Check for failure (because the higher-level code usually doesn't)
-    if (result != (int)event->u.c.nbytes) {
-        // Currently AIO is used only for disk files, not sockets.
-        // Thus, if something fails, we have a good reason to crash
-        // (note that that is not true for sockets: we should just
-        // close the socket and cleanup then).
-        guarantee_xerr(false, -result, "Read or write failed");
-    }
-    
-    // Notify the interested party about the event
-    linux_iocallback_t *callback = (linux_iocallback_t*)event->data;
-    
-    callback->on_io_complete();
-    
-    // Free the iocb structure
-    delete event;
-}
-
-void linux_io_calls_t::process_requests() {
-    if (n_pending > TARGET_IO_QUEUE_DEPTH)
-        return;
-    
-    int res = 0;
-    while(!io_requests.queue.empty()) {
-        res = io_requests.process_request_batch();
-        if(res < 0)
-            break;
-    }
-    guarantee_xerr(res >= 0 || res == -EAGAIN, -res, "Could not submit IO request");
-}
-
-linux_io_calls_t::queue_t::queue_t(linux_io_calls_t *parent)
-    : parent(parent)
-{
-    queue.reserve(MAX_CONCURRENT_IO_REQUESTS);
-}
-
-int linux_io_calls_t::queue_t::process_request_batch() {
-    // Submit a batch
-    int res = 0;
-    if(queue.size() > 0) {
-        res = io_submit(parent->aio_context,
-                        std::min(queue.size(), size_t(TARGET_IO_QUEUE_DEPTH / 2)),
-                        &queue[0]);
-        if (res > 0) {
-            // TODO: erase will cause the vector to shift elements in
-            // the back. Perhaps we should optimize this somehow.
-            queue.erase(queue.begin(), queue.begin() + res);
-            parent->n_pending += res;
-        } else if (res < 0 && (-res) != EAGAIN) {
-            logERR("io_submit failed: (%d) %s\n", -res, strerror(-res));
-        }
-    }
-    return res;
-}
-
-linux_io_calls_t::queue_t::~queue_t() {
-    rassert(queue.size() == 0);
-}

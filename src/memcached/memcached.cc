@@ -539,6 +539,20 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
     }
 };
 
+void do_failover_reset(txt_memcached_handler_t *rh) {
+    store_t::failover_reset_result_t res = rh->store->failover_reset();
+    switch (res) {
+        case store_t::frr_success:
+            rh->writef("Failover succesfully reset\n");
+            break;
+        case store_t::frr_not_allowed:
+            rh->writef("Failover reset not allowed. (This server probably wasn't started as a slave\n");
+            break;
+        default: unreachable();
+    }
+}
+
+
 /* "stats"/"stat" commands */
 
 void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
@@ -729,6 +743,8 @@ void serve_memcache(tcp_conn_t *conn, store_t *store) {
                         call_later_on_this_thread(old_interrupt_msg);
                 }
                 break;
+            } else if (args.size() == 3 && !strcmp(args[1], "failover") && !strcmp(args[2], "reset")) {
+                do_failover_reset(&rh);
             } else {
                 rh.writef("Available commands:\r\n");
                 rh.writef("rethinkdb shutdown\r\n");
