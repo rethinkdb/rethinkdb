@@ -11,11 +11,7 @@ public:
     // lv _must_ end up being acquired quickly.  TODO don't require this.
     large_buf_lock_t(large_buf_t *lv) : lv_(lv) { }
     ~large_buf_lock_t() {
-        if (lv_) {
-            lv_->release();
-            delete lv_;
-            lv_ = NULL;
-        }
+        release();
     }
 
     void set(large_buf_t *other) {
@@ -34,7 +30,13 @@ public:
     bool has_lv() const { return lv_ != NULL; }
 
     // TODO remove this
-    void drop() { lv_ = NULL; }
+    void release() {
+        if (lv_) {
+            lv_->release();
+            delete lv_;
+            lv_ = NULL;
+        }
+    }
 
 private:
     large_buf_t *lv_;

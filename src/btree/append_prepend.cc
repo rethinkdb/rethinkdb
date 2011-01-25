@@ -131,7 +131,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         btree_value value;
     };
     bool is_old_large_value;
-    large_buflock_t large_buflock;
+    large_buf_lock_t large_buflock;
     buffer_group_t buffer_group;
 };
 
