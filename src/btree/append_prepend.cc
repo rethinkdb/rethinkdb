@@ -11,7 +11,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         : data(data), append(append)
     { }
 
-    bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
+    bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         try {
             if (!old_value) {
                 result = store_t::apr_not_found;
@@ -52,7 +52,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                     else        large_value->fill_at(data->get_size(), old_value->value(), old_value->value_size());
                     is_old_large_value = false;
                 } else { // large -> large; expand existing large value
-                    large_value = old_large_value;
+                    large_value = old_large_buflock.lv();
                     if (append) large_value->append(data->get_size(), value.large_buf_ref_ptr());
                     else        large_value->prepend(data->get_size(), value.large_buf_ref_ptr());
                     is_old_large_value = true;
@@ -106,7 +106,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
             }
 
             *new_value = &value;
-            *new_large_buf = large_value;
+            new_large_buflock.set(large_value);
             return true;
 
         } catch (data_provider_failed_exc_t) {

@@ -5,6 +5,7 @@
 #include "utils.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/large_buf.hpp"
+#include "buffer_cache/large_buf_lock.hpp"
 #include "btree/key_value_store.hpp"
 
 #include "buffer_cache/co_functions.hpp"
@@ -27,8 +28,8 @@ public:
      * must match up). If *new_value is NULL, the value will be deleted (and
      * similarly for *new_large_buf).
      */
-    virtual bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_buf,
-                                             btree_value **new_value, large_buf_t **new_large_buf) = 0;
+    virtual bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock,
+                                             btree_value **new_value, large_buf_lock_t& new_large_buflock) = 0;
 
     // These two variables are only used by the get_cas_oper; there should be a
     // nicer way to handle this.

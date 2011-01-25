@@ -16,7 +16,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     btree_get_cas_oper_t(promise_t<store_t::get_result_t> *res)
         : res(res) { }
 
-    bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_buf, btree_value **new_value, large_buf_t **new_large_buf) {
+    bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         if (!old_value) {
             result = result_not_found;
             return false;
@@ -34,9 +34,9 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
             result = result_large_value;
             // Prepare the buffer group
             const_buffer_group_t buffer_group;
-            for (int64_t i = 0; i < old_large_buf->get_num_segments(); i++) {
+            for (int64_t i = 0; i < old_large_buflock.lv()->get_num_segments(); i++) {
                 uint16_t size;
-                const void *data = old_large_buf->get_segment(i, &size);
+                const void *data = old_large_buflock.lv()->get_segment(i, &size);
                 buffer_group.add_buffer(size, data);
             }
             {
@@ -51,7 +51,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
             return false; // We didn't actually fail, but we made no change
         } else {
             *new_value = &value;
-            *new_large_buf = old_large_buf;
+            new_large_buflock.swap(old_large_buflock);
             return true;
         }
     }

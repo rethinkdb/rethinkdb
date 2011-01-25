@@ -21,7 +21,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
     }
 
 
-    bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
+    bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         try {
             if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
                 result = store_t::sr_not_stored;
@@ -48,7 +48,6 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 /* To be standards-compliant we must delete the old value when an effort is made to
                 replace it with a value that is too large. */
                 *new_value = NULL;
-                *new_large_buf = NULL;
                 return true;
             }
 
@@ -93,7 +92,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 
             result = store_t::sr_stored;
             *new_value = &value;
-            *new_large_buf = large_value;
+            new_large_buflock.set(large_value);
             return true;
 
         } catch (data_provider_failed_exc_t) {
