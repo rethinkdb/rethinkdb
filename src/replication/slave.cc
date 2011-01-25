@@ -12,6 +12,7 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
     : internal_store(internal_store), 
       config(config), 
       conn(new tcp_conn_t(config.hostname, config.port)), 
+      shutting_down(false),
       respond_to_queries(false), 
       timeout(INITIAL_TIMEOUT),
       given_up(false)
@@ -24,6 +25,7 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
 }
 
 slave_t::~slave_t() {
+    shutting_down = true;
     struct : public message_parser_t::message_parser_shutdown_callback_t, public cond_t {
             void on_parser_shutdown() { pulse(); }
     } parser_shutdown_cb;
@@ -119,6 +121,7 @@ store_t::delete_result_t slave_t::delete_key(store_key_t *key)
 }
 
 store_t::failover_reset_result_t slave_t::failover_reset() {
+    logINF("Failover reset\n");
     if (given_up) {
         give_up.reset();
         {
@@ -152,12 +155,14 @@ void slave_t::send(boost::scoped_ptr<goodbye_message_t>& message)
 {}
 void slave_t::conn_closed()
 {
-    failover.on_failure();
-    if (!give_up.give_up()) {
-        timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
-    } else {
-        logINF("The master has failed %d times in the last %d seconds, going rogue.\n", MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS); //TODO when runtime commands and clas are in place to undo this put info on how to do it here
-        given_up = true;
+    if (!shutting_down) {
+        failover.on_failure();
+        if (!give_up.give_up()) {
+            timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
+        } else {
+            logINF("The master has failed %d times in the last %d seconds, going rogue.\n", MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS); //TODO when runtime commands and clas are in place to undo this put info on how to do it here
+            given_up = true;
+        }
     }
 }
 

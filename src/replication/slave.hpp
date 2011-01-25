@@ -36,6 +36,7 @@ private:
     tcp_conn_t *conn;
     message_parser_t parser;
     failover_t failover;
+    bool shutting_down;
 
 public:
     /* store_t interface. */
