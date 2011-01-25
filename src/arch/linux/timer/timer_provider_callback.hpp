@@ -4,6 +4,7 @@
 
 /* Timer provider callback */
 struct timer_provider_callback_t {
+    virtual ~timer_provider_callback_t() {}
     virtual void on_timer(int nexpirations) = 0;
 };
 

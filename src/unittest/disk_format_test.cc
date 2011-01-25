@@ -141,7 +141,8 @@ TEST(DiskFormatTest, BtreeConfigT) {
 TEST(DiskFormatTest, BtreeKeyValueStoreStaticConfigT) {
     EXPECT_EQ(0, offsetof(btree_key_value_store_static_config_t, serializer));
     EXPECT_EQ(16, offsetof(btree_key_value_store_static_config_t, btree));
-    EXPECT_EQ(20, sizeof(btree_key_value_store_static_config_t));
+    EXPECT_EQ(20, offsetof(btree_key_value_store_static_config_t, padding));
+    EXPECT_EQ(24, sizeof(btree_key_value_store_static_config_t));
 }
 
 }  // namespace unittest
