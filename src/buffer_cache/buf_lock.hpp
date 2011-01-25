@@ -19,9 +19,14 @@ public:
     buf_lock_t(transactor_t& txor, block_id_t block_id, access_t mode);
     ~buf_lock_t();
 
+    void allocate(transactor_t& txor);
+
     // Releases the buf.  You can only release once (unless you swap
     // in an unreleased buf_lock_t).
     void release();
+
+    // Releases the buf, if it was acquired.
+    void release_if_acquired();
 
     // Gets the buf_t that has been locked.  Don't call release() on it!
     // TODO: Remove buf_t::release, or make it private.

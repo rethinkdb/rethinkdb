@@ -24,14 +24,34 @@ public:
     virtual void conn_closed() = 0;
 };
 
-void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
+class message_parser_t {
+public:
+    message_parser_t() 
+        : shutdown_asked_for(false)
+    {}
+    ~message_parser_t() {}
 
+private:
+    bool keep_going; /* used to signal the parser when to stop */
+    bool shutdown_asked_for; /* were we asked to shutdown (used to ignore connection exceptions */
 
+public:
+    void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
 
+public:
+    struct message_parser_shutdown_callback_t {
+        virtual void on_parser_shutdown() = 0;
+    };
+    bool shutdown(message_parser_shutdown_callback_t *cb);
 
+private:
+    message_parser_shutdown_callback_t *_cb;
 
+private:
+    void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
+    void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams);
 
-
+};
 }  // namespace replication
 
 

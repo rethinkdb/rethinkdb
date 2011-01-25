@@ -3,6 +3,8 @@
 
 #include "utils.hpp"
 #include "arch/arch.hpp"
+#include "data_provider.hpp"
+#include <boost/shared_ptr.hpp>
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
@@ -37,54 +39,6 @@ union store_key_and_buffer_t {
     char buffer[sizeof(store_key_t) + MAX_KEY_SIZE];
 };
 
-struct buffer_group_t {
-    struct buffer_t {
-        ssize_t size;
-        void *data;
-    };
-    std::vector<buffer_t> buffers;
-    void add_buffer(size_t s, void *d) {
-        buffer_t b;
-        b.size = s;
-        b.data = d;
-        buffers.push_back(b);
-    }
-    size_t get_size() {
-        size_t s = 0;
-        for (int i = 0; i < (int)buffers.size(); i++) {
-            s += buffers[i].size;
-        }
-        return s;
-    }
-};
-
-struct const_buffer_group_t {
-    struct buffer_t {
-        ssize_t size;
-        const void *data;
-    };
-    std::vector<buffer_t> buffers;
-    void add_buffer(size_t s, const void *d) {
-        buffer_t b;
-        b.size = s;
-        b.data = d;
-        buffers.push_back(b);
-    }
-    size_t get_size() {
-        size_t s = 0;
-        for (int i = 0; i < (int)buffers.size(); i++) {
-            s += buffers[i].size;
-        }
-        return s;
-    }
-};
-
-struct data_provider_t {
-    virtual ~data_provider_t() { }
-    virtual size_t get_size() = 0;
-    virtual bool get_value(buffer_group_t *dest) = 0;
-};
-
 struct store_t {
     /* To get a value from the store, call get() or get_cas(), providing the key you want to get.
     The store will return a get_result_t with either the value or NULL. If it returns a value, you
@@ -93,11 +47,13 @@ struct store_t {
     the value of 'cas' is undefined and should be ignored. */
 
     struct get_result_t {
-        const_buffer_group_t *buffer; //NULL means not found
-        struct done_callback_t {
-            virtual void have_copied_value() = 0;
-            virtual ~done_callback_t() {}
-        } *cb;
+        get_result_t(boost::shared_ptr<data_provider_t> v, mcflags_t f, cas_t c) :
+            value(v), flags(f), cas(c) { }
+        get_result_t() : flags(0), cas(0) { }
+        // NULL means not found. If non-NULL you are responsible for calling get_data_as_buffer(),
+        // or get_data_into_buffer() on value. Parts of the store may wait for the data_provider_t's
+        // destructor, so don't hold on to it forever.
+        boost::shared_ptr<data_provider_t> value;
         mcflags_t flags;
         cas_t cas;
     };
@@ -122,6 +78,8 @@ struct store_t {
         sr_too_large,
         /* Returned if the data_provider_t that you gave returned have_failed(). */
         sr_data_provider_failed,
+        /* Returned if the store doesn't want you to do what you're doing. */
+        sr_not_allowed,
     };
 
     virtual set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) = 0;
@@ -135,7 +93,8 @@ struct store_t {
         enum result_t {
             idr_success,
             idr_not_found,
-            idr_not_numeric
+            idr_not_numeric,
+            idr_not_allowed,
         } res;
         unsigned long long new_value;   // Valid only if idr_success
         incr_decr_result_t() { }
@@ -150,7 +109,8 @@ struct store_t {
         apr_success,
         apr_too_large,
         apr_not_found,
-        apr_data_provider_failed
+        apr_data_provider_failed,
+        apr_not_allowed,
     };
     virtual append_prepend_result_t append(store_key_t *key, data_provider_t *data) = 0;
     virtual append_prepend_result_t prepend(store_key_t *key, data_provider_t *data) = 0;
@@ -159,10 +119,20 @@ struct store_t {
     
     enum delete_result_t {
         dr_deleted,
-        dr_not_found
+        dr_not_found,
+        dr_not_allowed
     };
 
     virtual delete_result_t delete_key(store_key_t *key) = 0;
+
+    /* control functions */
+
+    enum failover_reset_result_t {
+        frr_success,
+        frr_not_allowed
+    };
+
+    virtual failover_reset_result_t failover_reset() = 0;
 
     virtual ~store_t() {}
 };

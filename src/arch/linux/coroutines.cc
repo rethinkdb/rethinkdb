@@ -9,6 +9,10 @@
 #include <valgrind/valgrind.h>
 #endif
 
+#ifndef NDEBUG
+#include <cxxabi.h>   // For __cxa_current_exception_type (see below)
+#endif
+
 perfmon_counter_t pm_active_coroutines("active_coroutines"),
                   pm_allocated_coroutines("allocated_coroutines");
 
@@ -231,6 +235,14 @@ coro_t *coro_t::self() {   /* class method */
 }
 
 void coro_t::wait() {   /* class method */
+
+#ifndef NDEBUG
+    /* It's not safe to wait() in a catch clause of an exception handler. We use the non-standard
+    GCC-only interface "cxxabi.h" to figure out if we're in the catch clause of an exception
+    handler. In C++0x we will be able to use std::current_exception() instead. */
+    rassert(!abi::__cxa_current_exception_type());
+#endif
+
     rassert(current_coro != NULL);
     coro_context_t *context = current_coro->context;
     current_coro = NULL;

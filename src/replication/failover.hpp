@@ -9,7 +9,11 @@ class failover_callback_t :
 {
 public:
     virtual ~failover_callback_t() {}
+    /* on failure will be called when the master server fails, and on_resume
+     * will be called when it comes back up. Generally these will be inverses
+     * of one another in some sense of the word */
     virtual void on_failure() = 0;
+    virtual void on_resume() = 0;
 };
 
 /* failover callback to execute an external script */
@@ -34,6 +38,7 @@ private:
 public:
     void add_callback(failover_callback_t *cb);
     void on_failure(); /* push this button when things go wrong */
+    void on_resume(); /* push this button when things go right */
 };
 
 #endif  // __FAILOVER_HPP__

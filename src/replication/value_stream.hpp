@@ -68,7 +68,11 @@ public:
     // Writes the data.
     void data_written(ssize_t amount);
 
+    void shutdown_write();
+
 private:
+    bool write_shut_down;
+
     // local_buffer_size <= local_buffer.size(), and it refers to the
     // written-to part of the buffer.
     ssize_t local_buffer_size;
@@ -82,13 +86,23 @@ private:
     // A buffer into which we read characters.  This isn't performantly optimal.
     std::vector<char> local_buffer;
 
+    // This is a side-buffer for users of read_fixed_buffered!  UGH!
+    // Disgusting!  This is a complete HACK and introduces an extra
+    // copy.  INEFFICIENT.  The reason we have it is that we can't
+    // write to local_buffer without reallocating, and we pass
+    // pointers into the vector with this a.p.i.
+    std::vector<char> side_buffer;
+
+    // This class has turned into a completely worthless thing.
+    std::vector<char> write_side_buffer;
+
     intrusive_list_t<reader_node_t> reader_list;
     intrusive_list_t<reader_node_t> zombie_reader_list;
 
     DISABLE_COPYING(value_stream_t);
 };
 
-void write_charslice(value_stream_t& stream, const_charslice sl);
+void write_charslice(value_stream_t *stream, const_charslice sl);
 
 
 }  // namespace replication

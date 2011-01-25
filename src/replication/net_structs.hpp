@@ -107,17 +107,26 @@ struct net_large_operation_last_t {
 
 struct net_large_set_t {
     net_large_operation_first_t op_header;
-    char fake_btree_pair[];
+    metadata_flags_t metadata_flags;
+    char key_value[];
 
-    const btree_leaf_pair *leaf_pair() const { return reinterpret_cast<const btree_leaf_pair *>(fake_btree_pair); }
-    const btree_key *key() const { return &leaf_pair()->key; }
-    const btree_value *value() const { return leaf_pair()->value(); }
+    const btree_key *key() const { return reinterpret_cast<const btree_key *>(key_value); }
+    const char *metadata() const { return key_value + 1 + key()->size; }
+
+    // The size needed before we can call fitsize().
+    static size_t prefitsize() { return sizeof(net_large_set_t) + 1; }
+
+    // fitsize is the offset at which the value begins.
+    size_t fitsize() const { return sizeof(net_large_set_t) + 1 + key()->size + metadata_size(metadata_flags); }
 } __attribute__((__packed__));
 
 struct net_large_append_prepend_t {
     net_large_operation_first_t op_header;
     char data[];
     const btree_key *key() const { return reinterpret_cast<const btree_key *>(data); }
+
+    static size_t prefitsize() { return sizeof(net_large_append_prepend_t) + 1; }
+    size_t fitsize() const { return sizeof(net_large_set_t) + 1 + key()->size; }
 } __attribute__((__packed__));
 
 

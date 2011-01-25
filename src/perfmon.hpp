@@ -52,7 +52,7 @@ class perfmon_t :
 {
 public:
     perfmon_t();
-    ~perfmon_t();
+    virtual ~perfmon_t();
     
     /* To get a value from a given perfmon: Call begin_stats(). On each core, call the visit_stats()
     method with the pointer that was returned from begin_stats(). Then call end_stats() on the
@@ -169,7 +169,7 @@ public:
         public intrusive_list_node_t<internal_function_t>
     {
         internal_function_t(perfmon_function_t *p);
-        ~internal_function_t();
+        virtual ~internal_function_t();
         virtual std::string compute_stat() = 0;
     private:
         perfmon_function_t *parent;

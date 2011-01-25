@@ -11,8 +11,12 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-/* Network connection object */
+/* Actual definition of bool_promise_t */
 
+struct bool_promise_t : public promise_t<bool> {
+};
+
+/* Network connection object */
 
 linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
     : registration_thread(-1),
@@ -28,17 +32,28 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
     //fail_due_to_user_error("Port is too big", (snprintf(port_str, 10, "%d", port) == 10));
 
     /* make the connection */
-    getaddrinfo(host, port_str, NULL, &res);
-    sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (getaddrinfo(host, port_str, NULL, &res) != 0) {
+        logERR("Failed to look up address %s:%d.", host, port);
+        goto ERROR_BREAKOUT;
+    }
+    if((sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
+        logERR("Failed to create a socket\n");
+        goto ERROR_BREAKOUT;
+    }
     if (connect(sock, res->ai_addr, res->ai_addrlen) != 0) {
         /* for some reason the connection failed */
-        logINF("Failed to make a connection with error: %s", strerror(errno));
-
-        freeaddrinfo(res);
-        throw connect_failed_exc_t();
+        logERR("Failed to make a connection with error: %s", strerror(errno));
+        goto ERROR_BREAKOUT;
     }
 
+    guarantee_err(fcntl(sock, F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
+
     freeaddrinfo(res);
+    return;
+
+ERROR_BREAKOUT:
+    freeaddrinfo(res);
+    throw connect_failed_exc_t();
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
@@ -84,7 +99,7 @@ void linux_tcp_conn_t::register_with_event_loop() {
 
     if (registration_thread == -1) {
         registration_thread = linux_thread_pool_t::thread_id;
-        linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in|poll_event_out, this);
+        linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
 
     } else if (registration_thread != linux_thread_pool_t::thread_id) {
         guarantee(registration_thread == linux_thread_pool_t::thread_id,
@@ -101,7 +116,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             /* There's no data available right now, so we must wait for a notification from the
             epoll queue */
-            promise_t<bool> cond;
+            bool_promise_t cond;
             read_cond = &cond;
             bool ok = cond.wait();
             read_cond = NULL;
@@ -222,34 +237,44 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
     while (size > 0) {
         int res = ::write(sock, buf, size);
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            /* There's no space for our data right now, so we must wait for a notification from the
-            epoll queue */
-            promise_t<bool> cond;
+            /* There's no space for our data right now, so we must
+             * wait for a notification from the epoll queue. We need
+             * to register ourselves so we'll get called on_event()
+             * when we're readable again. We can't do this during
+             * construction because on level-triggered systems
+             * on_event will spin the cpu, and starve out
+             * signals. Plenty of legacy systems do this, and I had to
+             * work this weekend to fix this because whoever
+             * refactored this last time fucked over customers with
+             * legacy systems. Please don't do this again. */
+            linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in|poll_event_out, this);
+            bool_promise_t cond;
             write_cond = &cond;
             bool ok = cond.wait();
             write_cond = NULL;
             if (ok) {
+                linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in, this);
                 /* We got a notification from the epoll queue; go around the loop again and try to
-                write again */
+                   write again */
             } else {
                 /* We were closed for whatever reason. Whatever signalled us has already called
-                on_shutdown_write(). */
+                   on_shutdown_write(). */
                 throw write_closed_exc_t();
             }
         } else if (res == -1 && (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
-                errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
+                                 errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
             /* These errors are expected to happen at some point in practice */
             on_shutdown_write();
             throw write_closed_exc_t();
         } else if (res == -1) {
             /* In theory this should never happen, but it probably will. So we write a log message
-            and then shut down normally. */
+               and then shut down normally. */
             logERR("Could not write to socket: %s\n", strerror(errno));
             on_shutdown_write();
             throw write_closed_exc_t();
         } else if (res == 0) {
             /* This should never happen either, but it's better to write an error message than to
-            crash completely. */
+               crash completely. */
             logERR("Didn't expect write() to return 0.\n");
             on_shutdown_write();
             throw write_closed_exc_t();

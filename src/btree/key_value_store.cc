@@ -395,6 +395,10 @@ store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key) {
     return slice_for_key(key)->delete_key(key);
 }
 
+store_t::failover_reset_result_t btree_key_value_store_t::failover_reset() {
+    return store_t::frr_not_allowed; //No failover to reset on a btree_key_value_store
+}
+
 // Stats
 
 perfmon_duration_sampler_t
