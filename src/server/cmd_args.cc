@@ -33,20 +33,20 @@ void usage_serve() {
                 "      --flush-timer     Time in milliseconds that the server should allow\n"
                 "                        changes to sit in memory before flushing it to disk.\n"
                 "                        Pass \"disable\" to allow modified data to sit in memory\n"
-                "                        indefinitely.\n"
-                "      --flush-threshold Number of transactions waiting for a flush on any slice\n"
-                "                        at which a flush is automatically triggered. In\n"
-                "                        combination with --wait-for-flush this option can be used\n"
-                "                        to optimize the write latency for concurrent strong\n"
-                "                        durability workloads. Defaults to %d\n"
-                "      --flush-concurrency   Maximal number of concurrently active flushes per\n"
-                "                        slice. Defaults to %d",
-                                DEFAULT_FLUSH_WAITING_THRESHOLD, DEFAULT_MAX_CONCURRENT_FLUSHES);
+                "                        indefinitely.");
     if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) {
         help->pagef(" Defaults to \"disable\".\n");
     } else {
         help->pagef(" Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
     }
+    help->pagef("      --flush-threshold Number of transactions waiting for a flush on any slice\n"
+                "                        at which a flush is automatically triggered. In\n"
+                "                        combination with --wait-for-flush this option can be used\n"
+                "                        to optimize the write latency for concurrent strong\n"
+                "                        durability workloads. Defaults to %d\n"
+                "      --flush-concurrency   Maximal number of concurrently active flushes per\n"
+                "                        slice. Defaults to %d\n",
+                                DEFAULT_FLUSH_WAITING_THRESHOLD, DEFAULT_MAX_CONCURRENT_FLUSHES);
     help->pagef("      --unsaved-data-limit\n" 
                 "                        The maximum amount (in MB) of dirty data (data which is\n"
                 "                        held in memory but has not yet been serialized to disk.)\n"

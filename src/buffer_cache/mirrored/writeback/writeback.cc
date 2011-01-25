@@ -55,6 +55,8 @@ writeback_t::writeback_t(
         unsigned int max_concurrent_flushes
         )
     : wait_for_flush(wait_for_flush),
+      flush_waiting_threshold(flush_waiting_threshold),
+      max_concurrent_flushes(max_concurrent_flushes),
       max_dirty_blocks(max_dirty_blocks),
       flush_time_randomizer(flush_timer_ms),
       flush_threshold(flush_threshold),
@@ -75,6 +77,9 @@ writeback_t::~writeback_t() {
 }
 
 bool writeback_t::sync(sync_callback_t *callback) {
+    if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0)
+        return true;
+
     if (callback)
         sync_callbacks.push_back(callback);
 
