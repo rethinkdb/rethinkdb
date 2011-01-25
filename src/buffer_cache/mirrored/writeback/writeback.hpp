@@ -30,7 +30,9 @@ public:
         bool wait_for_flush,
         unsigned int flush_timer_ms,
         unsigned int flush_threshold,
-        unsigned int max_dirty_blocks
+        unsigned int max_dirty_blocks,
+        unsigned int flush_waiting_threshold,
+        unsigned int max_concurrent_flushes
         );
     virtual ~writeback_t();
     
@@ -90,7 +92,8 @@ public:
     /* User-controlled settings. */
     
     bool wait_for_flush;
-    bool concurrent_flushing;
+    unsigned int flush_waiting_threshold;
+    unsigned int max_concurrent_flushes;
     
     unsigned int max_dirty_blocks;   // Number of blocks, not percentage
     
@@ -116,7 +119,7 @@ private:
     
     bool writeback_in_progress;
     
-    unsigned int active_flushers;
+    unsigned int active_flushes;
     
     /* Functions and callbacks for different phases of the writeback */
     

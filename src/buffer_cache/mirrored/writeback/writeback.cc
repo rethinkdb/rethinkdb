@@ -50,7 +50,9 @@ writeback_t::writeback_t(
         bool wait_for_flush,
         unsigned int flush_timer_ms,
         unsigned int flush_threshold,
-        unsigned int max_dirty_blocks
+        unsigned int max_dirty_blocks,
+        unsigned int flush_waiting_threshold,
+        unsigned int max_concurrent_flushes
         )
     : wait_for_flush(wait_for_flush),
       max_dirty_blocks(max_dirty_blocks),
@@ -60,14 +62,10 @@ writeback_t::writeback_t(
       outstanding_disk_writes(0),
       active_write_transactions(0),
       writeback_in_progress(false),
-      active_flushers(0),
+      active_flushes(0),
       cache(cache),
       start_next_sync_immediately(false),
       transaction(NULL) {
-      concurrent_flushing = wait_for_flush; // Enable concurrent flushing if transactions will be waiting for us
-      //concurrent_flushing = false;
-      if (concurrent_flushing)
-        fprintf(stderr, "Concurrent flushing enabled\n");
 }
 
 writeback_t::~writeback_t() {
@@ -77,13 +75,10 @@ writeback_t::~writeback_t() {
 }
 
 bool writeback_t::sync(sync_callback_t *callback) {
-    // TODO!
-    const unsigned int max_active_flushers = 2;
-
     if (callback)
         sync_callbacks.push_back(callback);
 
-    if (!writeback_in_progress && active_flushers < max_active_flushers) {
+    if (!writeback_in_progress && active_flushes < max_concurrent_flushes) {
         /* Start the writeback process immediately */
         writeback_start_and_acquire_lock();
         return false;
@@ -119,10 +114,6 @@ bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callba
 }
 
 void writeback_t::on_transaction_commit(transaction_t *txn) {
-    // TODO! Make configurable
-    // TODO! Find a better name
-    const unsigned int flush_interval = 8;
-
     if (txn->get_access() == rwi_write) {
         
         active_write_transactions--;
@@ -136,7 +127,7 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
             sync(NULL);
         } else if (num_dirty_blocks() > 0 && flush_time_randomizer.is_zero()) {
             sync(NULL);
-        } else if (sync_callbacks.size() >= flush_interval) {
+        } else if (sync_callbacks.size() >= flush_waiting_threshold) {
             sync(NULL);
         } else if (!flush_timer && !flush_time_randomizer.is_never_flush() && num_dirty_blocks() > 0) {
             /* Start the flush timer so that the modified data doesn't sit in memory for too long
@@ -225,7 +216,7 @@ void writeback_t::writeback_start_and_acquire_lock() {
 
     rassert(!writeback_in_progress);
     writeback_in_progress = true;
-    ++active_flushers;
+    ++active_flushes;
     pm_flushes_locking.begin(&start_time);
     cache->assert_thread();
         
@@ -424,14 +415,12 @@ void writeback_t::writeback_do_write(per_flush_locals_t *flush_locals) {
     
     // If we allow concurrent flushing, allow new flushes to start from now on
     // (we had to wait until the transaction got passed to the serializer)
-    if (concurrent_flushing) {
-        writeback_in_progress = false;
+    writeback_in_progress = false;
 
-        // Also start the next sync now in case it was requested
-        if (start_next_sync_immediately) {
-            start_next_sync_immediately = false;
-            sync(NULL);
-        }
+    // Also start the next sync now in case it was requested
+    if (start_next_sync_immediately) {
+        start_next_sync_immediately = false;
+        sync(NULL);
     }
 }
 
@@ -440,7 +429,6 @@ void writeback_t::per_flush_locals_t::on_serializer_write_txn() {
 }
 
 void writeback_t::writeback_do_cleanup(per_flush_locals_t *flush_locals) {
-    rassert(concurrent_flushing || writeback_in_progress);
     cache->assert_thread();
     
     /* We are done writing all of the buffers */
@@ -456,11 +444,7 @@ void writeback_t::writeback_do_cleanup(per_flush_locals_t *flush_locals) {
     
     pm_flushes_writing.end(&flush_locals->start_time);
 
-    --active_flushers;
-
-    if (!concurrent_flushing) {
-        writeback_in_progress = false;
-    }
+    --active_flushes;
     
     if (start_next_sync_immediately) {
         start_next_sync_immediately = false;

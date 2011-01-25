@@ -33,7 +33,15 @@ void usage_serve() {
                 "      --flush-timer     Time in milliseconds that the server should allow\n"
                 "                        changes to sit in memory before flushing it to disk.\n"
                 "                        Pass \"disable\" to allow modified data to sit in memory\n"
-                "                        indefinitely.");
+                "                        indefinitely.\n"
+                "      --flush-threshold Number of transactions waiting for a flush on any slice\n"
+                "                        at which a flush is automatically triggered. In\n"
+                "                        combination with --wait-for-flush this option can be used\n"
+                "                        to optimize the write latency for concurrent strong\n"
+                "                        durability workloads. Defaults to %d\n"
+                "      --flush-concurrency   Maximal number of concurrently active flushes per\n"
+                "                        slice. Defaults to %d",
+                                DEFAULT_FLUSH_WAITING_THRESHOLD, DEFAULT_MAX_CONCURRENT_FLUSHES);
     if (DEFAULT_FLUSH_TIMER_MS == NEVER_FLUSH) {
         help->pagef(" Defaults to \"disable\".\n");
     } else {
@@ -393,6 +401,22 @@ void parsing_cmd_config_t::set_flush_timer(const char* value) {
     }
 }
 
+void parsing_cmd_config_t::set_flush_waiting_threshold(const char* value) {
+    int& target = store_dynamic_config.cache.flush_waiting_threshold;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_at_least(target, 1))
+        fail_due_to_user_error("Flush threshold must be a positive number.");
+}
+
+void parsing_cmd_config_t::set_max_concurrent_flushes(const char* value) {
+    int& target = store_dynamic_config.cache.max_concurrent_flushes;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_at_least(target, 1))
+        fail_due_to_user_error("Max concurrent flushes must be a positive number.");
+}
+
 void parsing_cmd_config_t::set_extent_size(const char* value) {
     long long int target;
     const long long int minimum_value = 1ll;
@@ -607,6 +631,8 @@ void cmd_config_t::print_runtime_flags() {
     } else {
         printf("%dms\n", store_dynamic_config.cache.flush_timer_ms);
     }
+    printf("Flush concurrency..%d\n", store_dynamic_config.cache.max_concurrent_flushes);
+    printf("Flush threshold....%d\n", store_dynamic_config.cache.flush_waiting_threshold);
 
     printf("Active writers.....%d\n", store_dynamic_config.serializer.num_active_data_extents);
     printf("GC range...........%g - %g\n",
@@ -677,6 +703,8 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.cache.wait_for_flush = false;
     store_dynamic_config.cache.flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
     store_dynamic_config.cache.max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;
+    store_dynamic_config.cache.flush_waiting_threshold = DEFAULT_FLUSH_WAITING_THRESHOLD;
+    store_dynamic_config.cache.max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
     
     create_store = false;
     force_create = false;

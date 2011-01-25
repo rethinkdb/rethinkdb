@@ -84,6 +84,16 @@
 // How many milliseconds to allow changes to sit in memory before flushing to disk
 #define DEFAULT_FLUSH_TIMER_MS                    5000
 
+// flush_waiting_threshold is the maximal number of transactions which can wait
+// for a sync before a flush gets triggered on any single slice. As transactions only wait for
+// sync with wait_for_flush enabled, this option plays a role only then.
+#define DEFAULT_FLUSH_WAITING_THRESHOLD           8
+
+// If wait_for_flush is true, concurrent flushing can be used to reduce the latency
+// of each single flush. max_concurrent_flushes controls how many flushes can be active
+// on a specific slice at any given time.
+#define DEFAULT_MAX_CONCURRENT_FLUSHES            2
+
 // If more than this many bytes of dirty data accumulate in the cache, then write
 // transactions will be throttled.
 // A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
