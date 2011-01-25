@@ -7,7 +7,6 @@
 #include "buffer_cache/large_buf_lock.hpp"
 #include "buffer_cache/transactor.hpp"
 
-#include "btree/coro_wrappers.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 
