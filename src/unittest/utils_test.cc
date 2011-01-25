@@ -57,7 +57,6 @@ TEST(UtilsTest, PreciseTime) {
 
     EXPECT_EQ(std::string("2010-05-04T04:04:04.000102"), std::string(buf, buf + strnlen(buf, 100)));
 
-
     struct timespec timespec;
     timespec.tv_sec = 1203731445;
     timespec.tv_nsec = 1203745;
