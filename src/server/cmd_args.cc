@@ -140,6 +140,8 @@ enum {
     slave_of,
     failover_script,
     heartbeat_timeout,
+    flush_concurrency,
+    flush_threshold,
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -168,6 +170,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             {
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
                 {"flush-timer",          required_argument, 0, flush_timer},
+                {"flush-concurrency",    required_argument, 0, flush_concurrency},
+                {"flush-threshold",      required_argument, 0, flush_threshold},
                 {"unsaved-data-limit",   required_argument, 0, unsaved_data_limit},
                 {"gc-range",             required_argument, 0, gc_range},
                 {"block-size",           required_argument, 0, block_size},
@@ -231,6 +235,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_wait_for_flush(optarg); break;
             case flush_timer:
                 config.set_flush_timer(optarg); break;
+            case flush_threshold:
+                config.set_flush_waiting_threshold(optarg); break;
+            case flush_concurrency:
+                config.set_max_concurrent_flushes(optarg); break;
             case unsaved_data_limit:
                 config.set_unsaved_data_limit(optarg); break;
             case gc_range:
