@@ -28,15 +28,14 @@ void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
     rassert(sb_buf.is_acquired());
     ptr_cast<btree_superblock_t>(sb_buf.buf()->get_data_write())->root_block = root_id;
 
-    buf_lock_t empty;
-    sb_buf.swap(empty);
+    sb_buf.release();
 }
 
 // Split the node if necessary. If the node is a leaf_node, provide the new
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
 void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                                              const btree_key *key, btree_value *new_value, block_size_t block_size) {
+                                                const btree_key *key, btree_value *new_value, block_size_t block_size) {
     const node_t *node = ptr_cast<node_t>(buf.buf()->get_data_read());
 
     // If the node isn't full, we don't need to split, so we're done.
@@ -88,7 +87,7 @@ void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& las
 
 // Merge or level the node if necessary.
 void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                                                  const btree_key *key, block_size_t block_size) {
+                                                    const btree_key *key, block_size_t block_size) {
     const node_t *node = ptr_cast<node_t>(buf.buf()->get_data_read());
     if (last_buf.is_acquired() && node::is_underfull(block_size, node)) { // The root node is never underfull.
 
@@ -122,10 +121,7 @@ void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t&
                 sib_buf.buf()->mark_deleted();
             }
 
-            {
-                buf_lock_t empty;
-                sib_buf.swap(empty);
-            }
+            sib_buf.release();
 
             if (!internal_node::is_singleton(parent_node)) {
                 internal_node::remove(block_size, parent_node, key_to_remove);
@@ -201,20 +197,19 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             // its direct children, we might still want to replace the root, so
             // we can't release the superblock yet.
             if (sb_buf.is_acquired() && last_buf.is_acquired()) {
-                buf_lock_t empty;
-                sb_buf.swap(empty);
+                sb_buf.release();
             }
 
             // Release the old previous node (unless we're at the root), and set
             // the next previous node (which is the current node).
-            {
-                // Look up and acquire the next node.
-                block_id_t node_id = internal_node::lookup(ptr_cast<internal_node_t>(buf.buf()->get_data_read()), key);
-                rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
-                buf_lock_t tmp(txor, node_id, rwi_write);
-                last_buf.swap(tmp);
-                buf.swap(last_buf);
-            }
+
+            // Look up and acquire the next node.
+            block_id_t node_id = internal_node::lookup(ptr_cast<internal_node_t>(buf.buf()->get_data_read()), key);
+            rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
+
+            buf_lock_t tmp(txor, node_id, rwi_write);
+            last_buf.swap(tmp);
+            buf.swap(last_buf);
         }
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
@@ -296,19 +291,10 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         }
 
         // Release bufs as necessary.
-        if (sb_buf.is_acquired()) {
-            buf_lock_t empty;
-            sb_buf.swap(empty);
-        }
+        sb_buf.release_if_acquired();
         rassert(buf.is_acquired());
-        {
-            buf_lock_t empty;
-            buf.swap(empty);
-        }
-        {
-            buf_lock_t empty;
-            last_buf.swap(empty);
-        }
+        buf.release();
+        last_buf.release_if_acquired();
 
         // Release all the large bufs that we used.
         if (update_needed) {
