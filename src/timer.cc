@@ -83,7 +83,7 @@ timer_token_t *timer_handler_t::add_timer_internal(long ms, void (*callback)(voi
     timer_token_t *t = new timer_token_t();
     t->next_time_in_ms = timer_ticks_since_server_startup * TIMER_TICKS_IN_MS + ms;
     t->once = once;
-    if (once) t->interval_ms = ms;
+    t->interval_ms = ms;
     t->deleted = false;
     t->callback = callback;
     t->context = ctx;
