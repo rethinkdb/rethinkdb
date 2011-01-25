@@ -29,8 +29,6 @@ public:
         lv_ = tmp;
     }
 
-    // This will return NULL when !has_lv(), right now modify_oper (at
-    // the end) expects it to return NULL.
     large_buf_t *lv() { return lv_; }
 
     bool has_lv() const { return lv_ != NULL; }
