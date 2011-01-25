@@ -6,6 +6,7 @@
 #include "concurrency/cond_var.hpp"
 
 struct semaphore_available_callback_t {
+    virtual ~semaphore_available_callback_t() {}
     virtual void on_semaphore_available() = 0;
 };
 

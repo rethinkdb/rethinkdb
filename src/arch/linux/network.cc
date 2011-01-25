@@ -95,7 +95,7 @@ void linux_tcp_conn_t::register_with_event_loop() {
 
     if (registration_thread == -1) {
         registration_thread = linux_thread_pool_t::thread_id;
-        linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in|poll_event_out, this);
+        linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
 
     } else if (registration_thread != linux_thread_pool_t::thread_id) {
         guarantee(registration_thread == linux_thread_pool_t::thread_id,
@@ -233,34 +233,44 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
     while (size > 0) {
         int res = ::write(sock, buf, size);
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            /* There's no space for our data right now, so we must wait for a notification from the
-            epoll queue */
+            /* There's no space for our data right now, so we must
+             * wait for a notification from the epoll queue. We need
+             * to register ourselves so we'll get called on_event()
+             * when we're readable again. We can't do this during
+             * construction because on level-triggered systems
+             * on_event will spin the cpu, and starve out
+             * signals. Plenty of legacy systems do this, and I had to
+             * work this weekend to fix this because whoever
+             * refactored this last time fucked over customers with
+             * legacy systems. Please don't do this again. */
+            linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in|poll_event_out, this);
             promise_t<bool> cond;
             write_cond = &cond;
             bool ok = cond.wait();
             write_cond = NULL;
             if (ok) {
+                linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in, this);
                 /* We got a notification from the epoll queue; go around the loop again and try to
-                write again */
+                   write again */
             } else {
                 /* We were closed for whatever reason. Whatever signalled us has already called
-                on_shutdown_write(). */
+                   on_shutdown_write(). */
                 throw write_closed_exc_t();
             }
         } else if (res == -1 && (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
-                errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
+                                 errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
             /* These errors are expected to happen at some point in practice */
             on_shutdown_write();
             throw write_closed_exc_t();
         } else if (res == -1) {
             /* In theory this should never happen, but it probably will. So we write a log message
-            and then shut down normally. */
+               and then shut down normally. */
             logERR("Could not write to socket: %s\n", strerror(errno));
             on_shutdown_write();
             throw write_closed_exc_t();
         } else if (res == 0) {
             /* This should never happen either, but it's better to write an error message than to
-            crash completely. */
+               crash completely. */
             logERR("Didn't expect write() to return 0.\n");
             on_shutdown_write();
             throw write_closed_exc_t();

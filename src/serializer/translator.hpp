@@ -20,6 +20,8 @@ private:
     config_block_id_t cfgid;
 
 public:
+    virtual ~translator_serializer_t() {}
+
     // Translates a block id given the particular parameters.  This
     // needs to be exposed in some way because recovery tools depend
     // on it.

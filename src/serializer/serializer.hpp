@@ -17,6 +17,8 @@ struct serializer_t :
     thread it was created on, and it should be destroyed on that same thread. */
     public home_thread_mixin_t
 {
+    virtual ~serializer_t() {}
+
     /* The buffers that are used with do_read() and do_write() must be allocated using
     these functions. They can be safely called from any thread. */
     
