@@ -7,6 +7,14 @@ buf_lock_t::buf_lock_t(transaction_t *tx, block_id_t block_id, access_t mode) : 
 
 buf_lock_t::buf_lock_t(transactor_t& txor, block_id_t block_id, access_t mode) : buf_(co_acquire_block(txor.transaction(), block_id, mode)) { }
 
+void buf_lock_t::allocate(transaction_t *tx) {
+    rassert(!buf_);
+    if (buf_) {
+        buf_->release();
+        buf_ = tx->allocate();
+    }
+}
+
 buf_lock_t::~buf_lock_t() {
     if (buf_) {
         buf_->release();
