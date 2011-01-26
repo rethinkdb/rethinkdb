@@ -130,7 +130,7 @@ store_t::delete_result_t slave_t::delete_key(store_key_t *key)
         return dr_not_allowed;
 }
 
-store_t::failover_reset_result_t slave_t::failover_reset() {
+std::string slave_t::failover_reset() {
     give_up.reset();
     kill_conn();
     if (given_up)
@@ -139,7 +139,7 @@ store_t::failover_reset_result_t slave_t::failover_reset() {
         on_thread_t thread_switcher(get_num_threads() - 2);
         timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
     }
-    return frr_success;
+    return std::string("Reseting failover\n");
 }
 
  /* message_callback_t interface */
@@ -234,18 +234,6 @@ void slave_t::on_resume() {
     respond_to_queries = false;
 }
 
-/* store_t::failover_reset_result_t slave_t::failover_reset() {
-    if (given_up) {
-        give_up.reset();
-        {
-            on_thread_t thread_switcher(get_num_threads() - 2);
-            timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
-        }
-    }
-
-    return frr_success;
-} */
-
 std::string slave_t::new_master(std::string args) {
     std::string host = args.substr(0, args.find(' '));
     if (host.length() >  MAX_HOSTNAME_LEN - 1)
@@ -257,16 +245,14 @@ std::string slave_t::new_master(std::string args) {
 
     failover_reset();
     
-    return std::string("New master configured\n");
+    return std::string("New master set\n");
 }
 
 std::string slave_t::failover_reset_control_t::call(std::string) {
-    slave->failover_reset();
-    return std::string("Failover reset\n"); //TODO @jdoliner make failover_reset() return something sensible.
+    return slave->failover_reset();
 }
 
 std::string slave_t::new_master_control_t::call(std::string args) {
-    logINF("new master called\n");
     return slave->new_master(args);
 }
 

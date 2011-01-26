@@ -100,7 +100,7 @@ private:
 
 
 private:
-    failover_reset_result_t failover_reset(); //TODO this should return a string also remove it from the store interface @jdoliner
+    std::string failover_reset(); //TODO this should return a string also remove it from the store interface @jdoliner
 
     struct failover_reset_control_t
         : public control_t
@@ -125,7 +125,7 @@ private:
         slave_t *slave;
     public:
         new_master_control_t(std::string key, slave_t *slave)
-            : control_t(key, "Set a new master for replication. Syntax:\t rdb new master: host port"), slave(slave)
+            : control_t(key, "Set a new master for replication (the slave will disconnect and immediately reconnect to the new server). Syntax: \"rdb new master: host port\""), slave(slave)
     {}
         std::string call(std::string);
     };

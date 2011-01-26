@@ -125,15 +125,6 @@ struct store_t {
 
     virtual delete_result_t delete_key(store_key_t *key) = 0;
 
-    /* control functions */
-
-    enum failover_reset_result_t {
-        frr_success,
-        frr_not_allowed
-    };
-
-    virtual failover_reset_result_t failover_reset() = 0;
-
     virtual ~store_t() {}
 };
 
