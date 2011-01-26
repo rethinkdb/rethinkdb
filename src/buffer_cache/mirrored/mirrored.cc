@@ -362,7 +362,9 @@ mc_cache_t::mc_cache_t(
         config->wait_for_flush,
         config->flush_timer_ms,
         config->flush_dirty_size / serializer->get_block_size().value(),  // TODO: ser_value?
-        config->max_dirty_size / serializer->get_block_size().value()),
+        config->max_dirty_size / serializer->get_block_size().value(),
+        config->flush_waiting_threshold,
+        config->max_concurrent_flushes),
     free_list(serializer),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),

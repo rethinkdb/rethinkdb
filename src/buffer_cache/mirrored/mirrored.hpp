@@ -38,6 +38,7 @@ class mc_inner_buf_t {
     friend class mc_buf_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
+    friend class writeback_t::concurrent_flush_t;
     friend class page_repl_random_t;
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
@@ -198,6 +199,7 @@ struct mc_cache_t :
     friend class mc_transaction_t;
     friend class writeback_t;
     friend class writeback_t::local_buf_t;
+    friend class writeback_t::concurrent_flush_t;
     friend class page_repl_random_t;
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;

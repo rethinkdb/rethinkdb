@@ -19,6 +19,8 @@ rethinkdb \- the database for solid state drives
 [<\-p | \-\-port> \fIport\fP]
 [\-\-wait\-for\-flush <y|n>]
 [\-\-flush\-timer \fImilliseconds\fP]
+[\-\-flush\-threshold \fIcount\fP]
+[\-\-flush\-concurrency \fIcount\fP]
 [\-\-unsaved\-data\-limit \fImegabytes\fP]
 [\-\-gc\-range \fIlow\fP-\fIhigh\fP]
 [\-\-active\-data\-extents \fIcount\fP]
@@ -71,6 +73,13 @@ Serve:
 
 .B \-\-flush\-timer     
     Time between changes are flushed to disk.
+    
+.B \-\-flush\-threshold 
+    Trigger a flush to disk as soon as the given number of
+    transactions are waiting for a flush on any slice.
+    
+.B \-\-flush\-concurrency 
+    Maximum number of concurrent disk flushes per slice.
 
 .B \-\-unsaved\-data\-limit
     Maximum amount of data cached and not on disk.
