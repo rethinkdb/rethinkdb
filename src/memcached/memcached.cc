@@ -540,20 +540,6 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
     }
 };
 
-void do_failover_reset(txt_memcached_handler_t *rh) {
-    store_t::failover_reset_result_t res = rh->store->failover_reset();
-    switch (res) {
-        case store_t::frr_success:
-            rh->writef("Failover succesfully reset\r\n");
-            break;
-        case store_t::frr_not_allowed:
-            rh->writef("Failover reset not allowed. (This server probably wasn't started as a slave.)\r\n");
-            break;
-        default: unreachable();
-    }
-}
-
-
 /* "stats"/"stat" commands */
 
 void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
