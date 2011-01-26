@@ -10,6 +10,12 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
     : queue(queue), thread_pool(thread_pool), current_thread(current_thread) {
     int res;
 
+    // We have to do this through dynamically, otherwise we might
+    // allocate far too many file descriptors since this is what the
+    // constructor of the system_event_t object (which is a member of
+    // notify_t) does.
+    notify = new notify_t[thread_pool->n_threads];
+    
     for (int i = 0; i < thread_pool->n_threads; i++) {
         res = pthread_spin_init(&queues[i].lock, PTHREAD_PROCESS_PRIVATE);
         guarantee(res == 0, "Could not initialize spin lock");
@@ -32,6 +38,8 @@ linux_message_hub_t::~linux_message_hub_t() {
         res = pthread_spin_destroy(&queues[i].lock);
         guarantee(res == 0, "Could not destroy spin lock");
     }
+
+    delete[] notify;
 }
     
 // Collects a message for a given thread onto a local list.

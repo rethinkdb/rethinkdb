@@ -89,7 +89,8 @@ private:
         
         /* hub->notify[i].parent = hub */
         linux_message_hub_t *parent;
-    } notify[MAX_THREADS];
+    };
+    notify_t *notify;
     
     /* The thread that we queue messages originating from. (Recall that there is one
     message_hub_t per thread.) */
