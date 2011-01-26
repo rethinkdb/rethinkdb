@@ -132,8 +132,6 @@ template<class obj_t, class arg1_t>
 void do_later(obj_t *obj, bool (obj_t::*later)(arg1_t), arg1_t arg1);
 
 
-// This implementation and the way we use this class is presently a
-// HACK and should be rearchitected.
 class cas_generator_t {
 public:
     cas_generator_t();
