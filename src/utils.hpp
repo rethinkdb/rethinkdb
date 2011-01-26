@@ -137,15 +137,15 @@ void do_later(obj_t *obj, bool (obj_t::*later)(arg1_t), arg1_t arg1);
 class cas_generator_t {
 public:
     cas_generator_t();
-    ~cas_generator_t();
     cas_t gen_cas();
 private:
-    // TODO this is badly architected, we should not use spinlocks,
-    // have different store_t interfaces for providing a cas_t and not
-    // providing a cas_t.
+    union {
+        uint32_t counter;
+        void *p;
+    } cas_counters[MAX_THREADS];
+    int n_threads;
+
     DISABLE_COPYING(cas_generator_t);
-    pthread_spinlock_t lock;
-    uint32_t cas_counter;
 };
 
 
