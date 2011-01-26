@@ -12,6 +12,7 @@
 #include "serializer/translator.hpp"
 #include "server/cmd_args.hpp"
 #include "buffer_cache/stats.hpp"
+#include "buffer_cache/buf_patch.hpp"
 #include <boost/crc.hpp>
 
 #include "writeback/writeback.hpp"
@@ -105,16 +106,7 @@ private:
 public:
     void release();
 
-    void *get_data_write() {
-        rassert(ready);
-        rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
-        rassert(!inner_buf->do_delete);
-        rassert(mode == rwi_write);
-        inner_buf->writeback_buf.set_dirty();
-        
-        rassert(data == inner_buf->data);
-        return data;
-    }
+    void apply_patch(buf_patch_t& patch);
 
     const void *get_data_read() {
         rassert(ready);

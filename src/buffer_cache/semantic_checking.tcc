@@ -18,8 +18,8 @@ const void *scc_buf_t<inner_cache_t>::get_data_read() {
 }
 
 template<class inner_cache_t>
-void *scc_buf_t<inner_cache_t>::get_data_write() {
-    return inner_buf->get_data_write();
+void scc_buf_t<inner_cache_t>::apply_patch(buf_patch_t& patch) {
+    inner_buf->apply_patch(patch);
 }
 
 template<class inner_cache_t>

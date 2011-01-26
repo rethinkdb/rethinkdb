@@ -5,6 +5,7 @@
 #include "utils.hpp"
 #include <boost/crc.hpp>
 #include "containers/two_level_array.hpp"
+#include "buffer_cache/buf_patch.hpp"
 
 /* The semantic-checking cache (scc_cache_t) is a wrapper around another cache that will
 make sure that the inner cache obeys the proper semantics. */
@@ -47,7 +48,7 @@ public:
     block_id_t get_block_id();
     bool is_dirty();
     const void *get_data_read();
-    void *get_data_write();
+    void apply_patch(buf_patch_t& patch);
     void mark_deleted();
     void release();
 
