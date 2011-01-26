@@ -19,11 +19,32 @@ spinlock_t &get_control_lock() {
     return lock;
 }
 
-std::string control_exec(std::string key) {
+std::string control_exec(std::string command_and_args) {
     std::string res;
 
-    for (control_map_t::iterator it = get_control_map().find(key); it != get_control_map().end() && (*it).first == key; it++)
-        res += (*it).second->call();
+    /* seperate command and arguments */
+    int command_end = command_and_args.find(':');
+    std::string command, args;
+    logINF("command_end: %d\n", command_end);
+    command = command_and_args.substr(0, command_end);
+    if (command_end==-1) {
+        args = std::string("");
+    } else {
+        args = command_and_args.substr(command_end + 1);
+    }
+
+    /* strip off the leading and trailing spaces */
+    while (command[command.length() - 1] == ' ')
+        command.erase(command.length() - 1, 1);
+
+    while (args[0] == ' ')
+        args.erase(0, 1);
+
+    logINF("command: |%s|\n", command.c_str());
+    logINF("args: |%s|\n", args.c_str());
+
+    for (control_map_t::iterator it = get_control_map().find(command); it != get_control_map().end() && (*it).first == command; it++)
+        res += (*it).second->call(args);
 
     return res;
 }
@@ -42,7 +63,9 @@ std::string control_help() {
 
 control_t::control_t(std::string key, std::string help) 
     : key(key), help(help)
-{ //TODO locks @jdoliner
+{
+    guarantee(key != ""); //this could potentiall cause some errors with control_help
+    //TODO @jdoliner make sure that the command doesn't contain any ':'s
     get_control_lock().lock();
     get_control_map().insert(std::pair<std::string, control_t*>(key, this));
     get_control_lock().unlock();
@@ -64,10 +87,8 @@ private:
 public:
     hi_t(std::string key)
         : control_t(key, std::string("")), counter(0)
-    {
-        guarantee(key != ""); //this could potentiall cause some errors with control_help
-    }
-    std::string call() {
+    {}
+    std::string call(std::string) {
         counter++;
         if (counter < 3)
             return std::string("Salutations, user.\n");

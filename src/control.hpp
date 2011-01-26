@@ -18,7 +18,7 @@ private:
     std::string key;
 
 public:
-    virtual std::string call() = 0;
+    virtual std::string call(std::string) = 0;
 
 private:
     std::string help;
