@@ -160,6 +160,18 @@ void mc_buf_t::on_lock_available() {
     if (callback) callback->on_block_available(this);
 }
 
+void mc_buf_t::apply_patch(buf_patch_t& patch) {
+    rassert(ready);
+    rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
+    rassert(!inner_buf->do_delete);
+    rassert(mode == rwi_write);
+    // TODO! (for now we apply the patch instantly and always set dirty)
+    inner_buf->writeback_buf.set_dirty();
+
+    rassert(data == inner_buf->data);
+    patch.apply_to_buf((char*)data); // TODO! should be a private function, with buf_t being a friend class of buf_patch_t
+}
+
 void mc_buf_t::release() {
     pm_bufs_held.end(&start_time);
     
