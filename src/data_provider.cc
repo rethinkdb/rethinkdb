@@ -1,13 +1,6 @@
 #include "data_provider.hpp"
 #include <string.h>
 
-/* Default data_provider_t method implementations */
-
-void data_provider_t::discard() throw (data_provider_failed_exc_t) {
-
-    get_data_as_buffers();
-}
-
 /* auto_buffering_data_provider_t */
 
 const const_buffer_group_t *auto_buffering_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
@@ -144,12 +137,3 @@ const const_buffer_group_t *maybe_buffered_data_provider_t::get_data_as_buffers(
     }
 }
 
-void maybe_buffered_data_provider_t::discard() throw (data_provider_failed_exc_t) {
-    if (original) {
-        original->discard();
-    } else if (exception_was_thrown) {
-        throw data_provider_failed_exc_t();
-    } else {
-        buffer->discard();
-    }
-}

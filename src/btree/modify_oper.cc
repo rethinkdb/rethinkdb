@@ -1,15 +1,17 @@
 #include "btree/modify_oper.hpp"
 
 #include "utils.hpp"
-#include "buffer_cache/large_buf.hpp"
 #include "buffer_cache/buf_lock.hpp"
+#include "buffer_cache/co_functions.hpp"
+#include "buffer_cache/large_buf.hpp"
+#include "buffer_cache/large_buf_lock.hpp"
+#include "buffer_cache/transactor.hpp"
 
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 
 #include "buffer_cache/co_functions.hpp"
 #include "buffer_cache/transactor.hpp"
-#include "btree/coro_wrappers.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 
@@ -216,13 +218,14 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         bool key_found = leaf::lookup(ptr_cast<leaf_node_t>(buf.buf()->get_data_read()), key, &old_value);
 
         // If there's a large value, acquire that too.
-        large_buf_t *old_large_buf = NULL;
+        large_buf_lock_t old_large_buflock;
+
         if (key_found && old_value.is_large()) {
-            old_large_buf = new large_buf_t(txor.transaction());
+            old_large_buflock.set(new large_buf_t(txor.transaction()));
             // We don't know whether we want to acquire all of the large value or
             // just part of it, so we let the oper acquire it for us.
-            oper->actually_acquire_large_value(old_large_buf, old_value.lb_ref());
-            rassert(old_large_buf->state == large_buf_t::loaded);
+            oper->actually_acquire_large_value(old_large_buflock.lv(), old_value.lb_ref());
+            rassert(old_large_buflock.lv()->state == large_buf_t::loaded);
         }
 
         // Check whether the value is expired. If it is, we tell operate() that
@@ -234,23 +237,28 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
         // Now we actually run the operation to compute the new value.
         btree_value *new_value;
-        large_buf_t *new_large_buf;
-        bool update_needed = oper->operate(txor.transaction(), key_found ? &old_value : NULL, old_large_buf, &new_value, &new_large_buf);
+        large_buf_lock_t new_large_buflock;
+        bool update_needed = oper->operate(txor.transaction(), key_found ? &old_value : NULL, old_large_buflock, &new_value, new_large_buflock);
 
         // Make sure that the new_value and new_large_buf returned by operate() are consistent.
         if (update_needed) {
             if (new_value && new_value->is_large()) {
-                rassert(new_large_buf && new_value->lb_ref().block_id == new_large_buf->get_root_ref().block_id);
+                rassert(new_large_buflock.has_lv() && new_value->lb_ref().block_id == new_large_buflock.lv()->get_root_ref().block_id);
             } else {
-                rassert(!new_large_buf);
+                rassert(!new_large_buflock.has_lv());
             }
         }
+
+#ifndef NDEBUG
+        if (!update_needed) {
+            rassert(!new_large_buflock.has_lv());
+        }
+#endif
 
         // If the value is expired and operate() decided not to make any
         // change, we'll silently delete the key.
         if (!update_needed && expired) {
             new_value = NULL;
-            new_large_buf = NULL;
             update_needed = true;
         }
 
@@ -298,22 +306,11 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
         // Release all the large bufs that we used.
         if (update_needed) {
-            if (old_large_buf && new_large_buf != old_large_buf) {
+            if (old_large_buflock.has_lv() && new_large_buflock.lv() != old_large_buflock.lv()) {
                 // operate() switched to a new large buf, so we need to delete the old one.
                 rassert(old_value.is_large());
-                rassert(old_value.lb_ref().block_id == old_large_buf->get_root_ref().block_id);
-                old_large_buf->mark_deleted();
-                old_large_buf->release();
-                delete old_large_buf;
-            }
-            if (new_large_buf) {
-                new_large_buf->release();
-                delete new_large_buf;
-            }
-        } else {
-            if (old_large_buf) {
-                old_large_buf->release();
-                delete old_large_buf;
+                rassert(old_value.lb_ref().block_id == old_large_buflock.lv()->get_root_ref().block_id);
+                old_large_buflock.lv()->mark_deleted();
             }
         }
 

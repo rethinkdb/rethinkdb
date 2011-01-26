@@ -94,4 +94,6 @@ inline void cancel_timer(timer_token_t *timer) {
 void co_read(direct_file_t *file, size_t offset, size_t length, void *buf);
 void co_write(direct_file_t *file, size_t offset, size_t length, void *buf);
 
+#include "arch/spinlock.hpp"
+
 #endif /* __ARCH_ARCH_HPP__ */

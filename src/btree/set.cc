@@ -4,8 +4,6 @@
 
 #include "buffer_cache/co_functions.hpp"
 
-#include "btree/coro_wrappers.hpp"
-
 
 
 struct btree_set_oper_t : public btree_modify_oper_t {
@@ -21,34 +19,29 @@ struct btree_set_oper_t : public btree_modify_oper_t {
     }
 
 
-    bool operate(transaction_t *txn, btree_value *old_value, large_buf_t *old_large_value, btree_value **new_value, large_buf_t **new_large_buf) {
+    bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         try {
             if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
                 result = store_t::sr_not_stored;
-                data->discard();
                 return false;
             }
 
             if (type == set_type_cas) { // TODO: CAS stats
                 if (!old_value) {
                     result = store_t::sr_not_found;
-                    data->discard();
                     return false;
                 }
                 if (!old_value->has_cas() || old_value->cas() != req_cas) {
                     result = store_t::sr_exists;
-                    data->discard();
                     return false;
                 }
             }
 
             if (data->get_size() > MAX_VALUE_SIZE) {
                 result = store_t::sr_too_large;
-                data->discard();
                 /* To be standards-compliant we must delete the old value when an effort is made to
                 replace it with a value that is too large. */
                 *new_value = NULL;
-                *new_large_buf = NULL;
                 return true;
             }
 
@@ -65,35 +58,34 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 
             value.value_size(data->get_size());
 
-            large_buf_t *large_value;   // May be NULL
+            large_buf_lock_t large_buflock;
             buffer_group_t buffer_group;
 
             rassert(data->get_size() <= MAX_VALUE_SIZE);
             if (data->get_size() <= MAX_IN_NODE_VALUE_SIZE) {
-                large_value = NULL;
                 buffer_group.add_buffer(data->get_size(), value.value());
                 data->get_data_into_buffers(&buffer_group);
             } else {
-                large_value = new large_buf_t(txn);
-                large_value->allocate(data->get_size(), value.large_buf_ref_ptr());
-                for (int64_t i = 0; i < large_value->get_num_segments(); i++) {
+                large_buflock.set(new large_buf_t(txn));
+                large_buflock.lv()->allocate(data->get_size(), value.large_buf_ref_ptr());
+                for (int64_t i = 0; i < large_buflock.lv()->get_num_segments(); i++) {
                     uint16_t size;
-                    void *data = large_value->get_segment_write(i, &size);
+                    void *data = large_buflock.lv()->get_segment_write(i, &size);
                     buffer_group.add_buffer(size, data);
                 }
+
                 try {
                     data->get_data_into_buffers(&buffer_group);
                 } catch (...) {
-                    large_value->mark_deleted();
-                    large_value->release();
-                    delete large_value;
+                    large_buflock.lv()->mark_deleted();
+                    large_buflock.release();
                     throw;
                 }
             }
 
             result = store_t::sr_stored;
             *new_value = &value;
-            *new_large_buf = large_value;
+            new_large_buflock.swap(large_buflock);
             return true;
 
         } catch (data_provider_failed_exc_t) {
@@ -101,6 +93,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
             return false;
         }
     }
+
 
     ticks_t start_time;
 

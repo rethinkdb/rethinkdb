@@ -6,8 +6,12 @@
 #include "arch/linux/event_queue.hpp"
 #include "arch/address.hpp"
 
-template<class value_t>
-struct promise_t;
+/* This is a pretty terrible hack; bool_promise_t is basically equivalent to promise_t<bool>, but
+we do it this way so we don't have to #include "concurrency/cond_var.hpp" (which would create an
+include loop) or forward-declare promise_t (which sucks because it's a template with an optional
+parameter.) */
+
+struct bool_promise_t;
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
@@ -99,7 +103,7 @@ private:
 
     /* If read_cond is non-NULL, it will be signalled with true if there is data on the read end
     and with false if the read end is closed. Same with write_cond and writing. */
-    promise_t<bool> *read_cond, *write_cond;
+    bool_promise_t *read_cond, *write_cond;
 
     // True when the half of the connection has been shut down but the linux_tcp_conn_t has not
     // been deleted yet
