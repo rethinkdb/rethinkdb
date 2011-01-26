@@ -4,6 +4,7 @@
 #include "extract/extract.hpp"
 #include "utils.hpp"
 #include "help.hpp"
+#include "control.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION

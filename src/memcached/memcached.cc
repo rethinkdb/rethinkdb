@@ -8,6 +8,7 @@
 #include "arch/arch.hpp"
 #include "store.hpp"
 #include "logger.hpp"
+#include "control.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
@@ -539,20 +540,6 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
     }
 };
 
-void do_failover_reset(txt_memcached_handler_t *rh) {
-    store_t::failover_reset_result_t res = rh->store->failover_reset();
-    switch (res) {
-        case store_t::frr_success:
-            rh->writef("Failover succesfully reset\r\n");
-            break;
-        case store_t::frr_not_allowed:
-            rh->writef("Failover reset not allowed. (This server probably wasn't started as a slave.)\r\n");
-            break;
-        default: unreachable();
-    }
-}
-
-
 /* "stats"/"stat" commands */
 
 void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
@@ -731,24 +718,16 @@ void serve_memcache(tcp_conn_t *conn, store_t *store) {
             }
         } else if(!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
             do_stats(&rh, args.size(), args.data());
-        } else if(!strcmp(args[0], "rethinkdb")) {
-            if (args.size() == 2 && !strcmp(args[1], "shutdown")) {
-                // Shut down the server
-                thread_message_t *old_interrupt_msg = thread_pool_t::set_interrupt_message(NULL);
-                /* If the interrupt message already was NULL, that means that either shutdown()
-                was for some reason called before we finished starting up or shutdown() was called
-                twice and this is the second time. */
-                if (old_interrupt_msg) {
-                    if (continue_on_thread(get_num_threads()-1, old_interrupt_msg))
-                        call_later_on_this_thread(old_interrupt_msg);
-                }
-                break;
-            } else if (args.size() == 3 && !strcmp(args[1], "failover") && !strcmp(args[2], "reset")) {
-                do_failover_reset(&rh);
+        } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
+            if (args.size() > 1) {
+                std::string cl = std::string(args[1]);
+
+                for (std::vector<char *>::iterator it = (args.begin() + 2); it != args.end(); it++)
+                    cl += (std::string(" ") + std::string(*it)); //sigh
+
+                rh.writef(control_exec(cl).c_str());
             } else {
-                rh.writef("Available commands:\r\n");
-                rh.writef("rethinkdb shutdown\r\n");
-                rh.writef("failover reset\r\n");
+                rh.writef(control_help().c_str());
             }
         } else if(!strcmp(args[0], "version")) {
             if (args.size() == 2) {

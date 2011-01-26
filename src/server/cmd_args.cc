@@ -39,6 +39,14 @@ void usage_serve() {
     } else {
         help->pagef(" Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
     }
+    help->pagef("      --flush-threshold Number of transactions waiting for a flush on any slice\n"
+                "                        at which a flush is automatically triggered. In\n"
+                "                        combination with --wait-for-flush this option can be used\n"
+                "                        to optimize the write latency for concurrent strong\n"
+                "                        durability workloads. Defaults to %d\n"
+                "      --flush-concurrency   Maximal number of concurrently active flushes per\n"
+                "                        slice. Defaults to %d\n",
+                                DEFAULT_FLUSH_WAITING_THRESHOLD, DEFAULT_MAX_CONCURRENT_FLUSHES);
     help->pagef("      --unsaved-data-limit\n" 
                 "                        The maximum amount (in MB) of dirty data (data which is\n"
                 "                        held in memory but has not yet been serialized to disk.)\n"
@@ -132,6 +140,8 @@ enum {
     slave_of,
     failover_script,
     heartbeat_timeout,
+    flush_concurrency,
+    flush_threshold,
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -160,6 +170,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             {
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
                 {"flush-timer",          required_argument, 0, flush_timer},
+                {"flush-concurrency",    required_argument, 0, flush_concurrency},
+                {"flush-threshold",      required_argument, 0, flush_threshold},
                 {"unsaved-data-limit",   required_argument, 0, unsaved_data_limit},
                 {"gc-range",             required_argument, 0, gc_range},
                 {"block-size",           required_argument, 0, block_size},
@@ -223,6 +235,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_wait_for_flush(optarg); break;
             case flush_timer:
                 config.set_flush_timer(optarg); break;
+            case flush_threshold:
+                config.set_flush_waiting_threshold(optarg); break;
+            case flush_concurrency:
+                config.set_max_concurrent_flushes(optarg); break;
             case unsaved_data_limit:
                 config.set_unsaved_data_limit(optarg); break;
             case gc_range:
@@ -240,9 +256,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case slave_of:
                 config.set_master_addr(optarg); break;
             case failover_script:
-                not_implemented();
-                break;
+                config.set_failover_file(optarg); break;
             case heartbeat_timeout:
+                not_implemented();
                 break;
             case 'h':
             default:
@@ -393,6 +409,22 @@ void parsing_cmd_config_t::set_flush_timer(const char* value) {
     }
 }
 
+void parsing_cmd_config_t::set_flush_waiting_threshold(const char* value) {
+    int& target = store_dynamic_config.cache.flush_waiting_threshold;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_at_least(target, 1))
+        fail_due_to_user_error("Flush threshold must be a positive number.");
+}
+
+void parsing_cmd_config_t::set_max_concurrent_flushes(const char* value) {
+    int& target = store_dynamic_config.cache.max_concurrent_flushes;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_at_least(target, 1))
+        fail_due_to_user_error("Max concurrent flushes must be a positive number.");
+}
+
 void parsing_cmd_config_t::set_extent_size(const char* value) {
     long long int target;
     const long long int minimum_value = 1ll;
@@ -529,7 +561,7 @@ void parsing_cmd_config_t::set_coroutine_stack_size(const char* value) {
 
 void parsing_cmd_config_t::set_master_addr(char *value) {
     char *token = strtok(value, ":");
-    if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN)
+    if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN - 1)
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
 
     strcpy(replication_config.hostname, token);
@@ -607,6 +639,8 @@ void cmd_config_t::print_runtime_flags() {
     } else {
         printf("%dms\n", store_dynamic_config.cache.flush_timer_ms);
     }
+    printf("Flush concurrency..%d\n", store_dynamic_config.cache.max_concurrent_flushes);
+    printf("Flush threshold....%d\n", store_dynamic_config.cache.flush_waiting_threshold);
 
     printf("Active writers.....%d\n", store_dynamic_config.serializer.num_active_data_extents);
     printf("GC range...........%g - %g\n",
@@ -677,6 +711,8 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.cache.wait_for_flush = false;
     store_dynamic_config.cache.flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
     store_dynamic_config.cache.max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;
+    store_dynamic_config.cache.flush_waiting_threshold = DEFAULT_FLUSH_WAITING_THRESHOLD;
+    store_dynamic_config.cache.max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
     
     create_store = false;
     force_create = false;

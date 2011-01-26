@@ -94,10 +94,6 @@ store_t::delete_result_t btree_slice_t::delete_key(store_key_t *key) {
     return btree_delete(key, this);
 }
 
-store_t::failover_reset_result_t btree_slice_t::failover_reset() {
-    return store_t::frr_not_allowed; //No failover to reset on a slice
-}
-
 cas_t btree_slice_t::gen_cas() {
     // A CAS value is made up of both a timestamp and a per-slice counter,
     // which should be enough to guarantee that it'll be unique.
