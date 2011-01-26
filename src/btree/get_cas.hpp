@@ -5,6 +5,6 @@
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
 
-store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice);
+store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice, cas_t proposed_cas);
 
 #endif // __BTREE_GET_CAS_HPP__

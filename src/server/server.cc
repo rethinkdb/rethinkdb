@@ -116,8 +116,9 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* Start connection acceptor */
             struct : public conn_acceptor_t::handler_t {
                 server_t *parent;
+                cas_generator_t cas_gen;
                 void handle(tcp_conn_t *conn) {
-                    serve_memcache(conn, parent->store);
+                    serve_memcache(conn, parent->store, &cas_gen);
                 }
             } handler;
             handler.parent = &server;

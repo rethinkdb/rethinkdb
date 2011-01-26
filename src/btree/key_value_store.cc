@@ -355,40 +355,40 @@ store_t::get_result_t btree_key_value_store_t::get(store_key_t *key) {
     return slice_for_key(key)->get(key);
 }
 
-store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key) {
-    return slice_for_key(key)->get_cas(key);
+store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key, cas_t proposed_cas) {
+    return slice_for_key(key)->get_cas(key, proposed_cas);
 }
 
-store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    return slice_for_key(key)->set(key, data, flags, exptime);
+store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) {
+    return slice_for_key(key)->set(key, data, flags, exptime, proposed_cas);
 }
 
-store_t::set_result_t btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    return slice_for_key(key)->add(key, data, flags, exptime);
+store_t::set_result_t btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) {
+    return slice_for_key(key)->add(key, data, flags, exptime, proposed_cas);
 }
 
-store_t::set_result_t btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    return slice_for_key(key)->replace(key, data, flags, exptime);
+store_t::set_result_t btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) {
+    return slice_for_key(key)->replace(key, data, flags, exptime, proposed_cas);
 }
 
-store_t::set_result_t btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique) {
-    return slice_for_key(key)->cas(key, data, flags, exptime, unique);
+store_t::set_result_t btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, cas_t proposed_cas) {
+    return slice_for_key(key)->cas(key, data, flags, exptime, unique, proposed_cas);
 }
 
-store_t::incr_decr_result_t btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount) {
-    return slice_for_key(key)->incr(key, amount);
+store_t::incr_decr_result_t btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount, cas_t proposed_cas) {
+    return slice_for_key(key)->incr(key, amount, proposed_cas);
 }
 
-store_t::incr_decr_result_t btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount) {
-    return slice_for_key(key)->decr(key, amount);
+store_t::incr_decr_result_t btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount, cas_t proposed_cas) {
+    return slice_for_key(key)->decr(key, amount, proposed_cas);
 }
 
-store_t::append_prepend_result_t btree_key_value_store_t::append(store_key_t *key, data_provider_t *data) {
-    return slice_for_key(key)->append(key, data);
+store_t::append_prepend_result_t btree_key_value_store_t::append(store_key_t *key, data_provider_t *data, cas_t proposed_cas) {
+    return slice_for_key(key)->append(key, data, proposed_cas);
 }
 
-store_t::append_prepend_result_t btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data) {
-    return slice_for_key(key)->prepend(key, data);
+store_t::append_prepend_result_t btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data, cas_t proposed_cas) {
+    return slice_for_key(key)->prepend(key, data, proposed_cas);
 }
 
 store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key) {

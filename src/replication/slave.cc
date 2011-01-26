@@ -57,67 +57,68 @@ store_t::get_result_t slave_t::get(store_key_t *key)
     return internal_store->get(key);
 }
 
-store_t::get_result_t slave_t::get_cas(store_key_t *key)
+store_t::get_result_t slave_t::get_cas(store_key_t *key, cas_t proposed_cas)
 {
-    return internal_store->get(key);
+    // TODO: ask joe why this used get(key) before (back when we did not have proposed_cas).
+    return internal_store->get_cas(key, proposed_cas);
 }
 
-store_t::set_result_t slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
+store_t::set_result_t slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) {
     if (respond_to_queries)
-        return internal_store->set(key, data, flags, exptime);
+        return internal_store->set(key, data, flags, exptime, proposed_cas);
     else
         return store_t::sr_not_allowed;
 }
 
-store_t::set_result_t slave_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime)
+store_t::set_result_t slave_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas)
 {
-    return internal_store->add(key, data,  flags,  exptime);
+    return internal_store->add(key, data,  flags,  exptime, proposed_cas);
 }
 
-store_t::set_result_t slave_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime)
+store_t::set_result_t slave_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas)
 {
     if (respond_to_queries)
-        return internal_store->replace(key, data, flags, exptime);
+        return internal_store->replace(key, data, flags, exptime, proposed_cas);
     else
         return store_t::sr_not_allowed;
 }
 
-store_t::set_result_t slave_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique)
+store_t::set_result_t slave_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, cas_t proposed_cas)
 {
     if (respond_to_queries)
-        return internal_store->cas(key, data, flags, exptime, unique);
+        return internal_store->cas(key, data, flags, exptime, unique, proposed_cas);
     else
         return store_t::sr_not_allowed;
 }
 
-store_t::incr_decr_result_t slave_t::incr(store_key_t *key, unsigned long long amount)
+store_t::incr_decr_result_t slave_t::incr(store_key_t *key, unsigned long long amount, cas_t proposed_cas)
 {
     if (respond_to_queries)
-        return internal_store->incr(key, amount);
+        return internal_store->incr(key, amount, proposed_cas);
     else
         return store_t::incr_decr_result_t::idr_not_allowed;
 }
 
-store_t::incr_decr_result_t slave_t::decr(store_key_t *key, unsigned long long amount)
+store_t::incr_decr_result_t slave_t::decr(store_key_t *key, unsigned long long amount, cas_t proposed_cas)
 {
     if (respond_to_queries)
-        return internal_store->decr(key, amount);
+        return internal_store->decr(key, amount, proposed_cas);
     else
         return store_t::incr_decr_result_t::idr_not_allowed;
 }
 
-store_t::append_prepend_result_t slave_t::append(store_key_t *key, data_provider_t *data)
+store_t::append_prepend_result_t slave_t::append(store_key_t *key, data_provider_t *data, cas_t proposed_cas)
 {
     if (respond_to_queries)
-        return internal_store->append(key, data);
+        return internal_store->append(key, data, proposed_cas);
     else
         return store_t::apr_not_allowed;
 }
 
-store_t::append_prepend_result_t slave_t::prepend(store_key_t *key, data_provider_t *data)
+store_t::append_prepend_result_t slave_t::prepend(store_key_t *key, data_provider_t *data, cas_t proposed_cas)
 {
     if (respond_to_queries)
-        return internal_store->prepend(key, data);
+        return internal_store->prepend(key, data, proposed_cas);
     else
         return store_t::apr_not_allowed;
 }

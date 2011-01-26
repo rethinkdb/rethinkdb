@@ -73,15 +73,15 @@ public:
     /* store_t interface. */
 
     get_result_t get(store_key_t *key);
-    get_result_t get_cas(store_key_t *key);
-    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
-    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
-    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
-    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique);
-    incr_decr_result_t incr(store_key_t *key, unsigned long long amount);
-    incr_decr_result_t decr(store_key_t *key, unsigned long long amount);
-    append_prepend_result_t append(store_key_t *key, data_provider_t *data);
-    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data);
+    get_result_t get_cas(store_key_t *key, cas_t proposed_cas);
+    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
+    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
+    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
+    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, cas_t proposed_cas);
+    incr_decr_result_t incr(store_key_t *key, unsigned long long amount, cas_t proposed_cas);
+    incr_decr_result_t decr(store_key_t *key, unsigned long long amount, cas_t proposed_cas);
+    append_prepend_result_t append(store_key_t *key, data_provider_t *data, cas_t proposed_cas);
+    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, cas_t proposed_cas);
     delete_result_t delete_key(store_key_t *key);
 
 public:

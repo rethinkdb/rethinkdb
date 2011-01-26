@@ -131,6 +131,20 @@ void do_later(obj_t *obj, bool (obj_t::*later)());
 template<class obj_t, class arg1_t>
 void do_later(obj_t *obj, bool (obj_t::*later)(arg1_t), arg1_t arg1);
 
+
+class cas_generator_t : private home_thread_mixin_t {
+public:
+    cas_generator_t() : cas_counter(0) { }
+    cas_t gen_cas() {
+        assert_thread();
+        return (time(NULL) << 32) | ++cas_counter;
+    }
+private:
+    DISABLE_COPYING(cas_generator_t);
+    uint32_t cas_counter;
+};
+
+
 #include "utils.tcc"
 
 #endif // __UTILS_HPP__

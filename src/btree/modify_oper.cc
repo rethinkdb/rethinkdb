@@ -168,7 +168,7 @@ void get_root(transactor_t& txor, buf_lock_t& sb_buf, block_size_t block_size, b
 }
 
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const btree_key *key) {
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const btree_key *key, cas_t proposed_cas) {
     union {
         byte old_value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value old_value;
@@ -273,7 +273,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
                 // Add a CAS to the value if necessary (this won't change its size).
                 if (new_value->has_cas() && !oper->cas_already_set) {
-                    new_value->set_cas(slice->gen_cas());
+                    rassert(proposed_cas != BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
+                    new_value->set_cas(proposed_cas);
                 }
 
                 repli_timestamp new_value_timestamp = current_time(); // TODO: When the replication code is put back in this'll probably need to be changed.

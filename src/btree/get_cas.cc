@@ -12,8 +12,8 @@
 
 struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mixin_t {
 
-    btree_get_cas_oper_t(promise_t<store_t::get_result_t, threadsafe_cond_t> *res)
-        : res(res) { }
+    btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<store_t::get_result_t, threadsafe_cond_t> *res_)
+        : proposed_cas(proposed_cas_), res(res_) { }
 
     bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
 
@@ -28,7 +28,10 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         valuecpy(&value, old_value);   // Can we fix this extra copy?
         bool there_was_cas_before = value.has_cas();
         if (!value.has_cas()) { // We have always been at war with Eurasia.
-            value.set_cas(slice->gen_cas());
+            value.set_cas(proposed_cas);
+            // TODO: don't set the cas, don't handle proposed_cas, get
+            // rid of cas_already_set, and just create space for the
+            // case so that modify_oper can do the setting.
             this->cas_already_set = true;
         }
 
@@ -59,6 +62,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         }
     }
 
+    cas_t proposed_cas;
     store_t::get_result_t result;
     promise_t<store_t::get_result_t, threadsafe_cond_t> *res;
 
@@ -68,15 +72,15 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     };
 };
 
-void co_btree_get_cas(const btree_key *key, btree_slice_t *slice,
+void co_btree_get_cas(const btree_key *key, cas_t proposed_cas, btree_slice_t *slice,
         promise_t<store_t::get_result_t, threadsafe_cond_t> *res) {
-    btree_get_cas_oper_t oper(res);
-    run_btree_modify_oper(&oper, slice, key);
+    btree_get_cas_oper_t oper(proposed_cas, res);
+    run_btree_modify_oper(&oper, slice, key, proposed_cas);
 }
 
-store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice) {
+store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice, cas_t proposed_cas) {
     block_pm_duration get_timer(&pm_cmd_get);
     promise_t<store_t::get_result_t, threadsafe_cond_t> res;
-    coro_t::spawn(co_btree_get_cas, key, slice, &res);
+    coro_t::spawn(co_btree_get_cas, key, proposed_cas, slice, &res);
     return res.wait();
 }

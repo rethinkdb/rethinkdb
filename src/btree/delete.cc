@@ -20,6 +20,6 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
 
 store_t::delete_result_t btree_delete(const btree_key *key, btree_slice_t *slice) {
     btree_delete_oper_t oper;
-    run_btree_modify_oper(&oper, slice, key);
+    run_btree_modify_oper(&oper, slice, key, BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
     return oper.result;
 }

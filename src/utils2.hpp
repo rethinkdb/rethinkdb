@@ -9,6 +9,8 @@ utils2.hpp, but utils.hpp needs some things in the IO layer. */
 #include <time.h>
 #include "errors.hpp"
 
+typedef uint64_t cas_t;
+
 int get_cpu_count();
 long get_available_ram();
 long get_total_ram();
