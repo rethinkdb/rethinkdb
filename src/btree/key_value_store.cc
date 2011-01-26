@@ -215,6 +215,7 @@ void btree_key_value_store_t::create(
 
 btree_key_value_store_t::btree_key_value_store_t(
         btree_key_value_store_dynamic_config_t *dynamic_config)
+            : hash_control(this)
 {
     /* Start serializers */
     n_files = dynamic_config->serializer_private.size();

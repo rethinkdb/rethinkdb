@@ -23,7 +23,7 @@ struct store_key_t {
     }
 };
 
-inline bool str_to_key(char *str, store_key_t *buf) {
+inline bool str_to_key(const char *str, store_key_t *buf) {
     int len = strlen(str);
     if (len <= MAX_KEY_SIZE) {
         memcpy(buf->contents, str, len);
