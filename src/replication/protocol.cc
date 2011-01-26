@@ -277,7 +277,7 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
         std::vector<value_stream_t *> placeholder;
         do_parse_normal_message(conn, receiver, placeholder);
     } catch (tcp_conn_t::read_closed_exc_t& e) {
-        if (keep_going)
+        if (!shutdown_asked_for)
             receiver->conn_closed();
     }
 }
@@ -288,6 +288,7 @@ void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *rece
 
 bool message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
     if (!keep_going) return true;
+    shutdown_asked_for = true;
 
     _cb = cb;
     keep_going = false;

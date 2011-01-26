@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <strings.h>
+#include "arch/linux/system_event.hpp"
 #include "containers/intrusive_list.hpp"
 #include "utils2.hpp"
 #include "config/args.hpp"
@@ -16,6 +17,7 @@ struct linux_thread_pool_t;
 struct linux_thread_message_t :
     public intrusive_list_node_t<linux_thread_message_t>
 {
+    virtual ~linux_thread_message_t() {}
     virtual void on_thread_switch() = 0;
 };
 
@@ -83,7 +85,7 @@ private:
         /* hub->notify[j].notifier_thread == j */
         int notifier_thread;
         
-        fd_t fd;                    // the eventfd to call
+        system_event_t event;                    // the eventfd to notify
         
         /* hub->notify[i].parent = hub */
         linux_message_hub_t *parent;

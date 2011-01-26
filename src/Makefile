@@ -20,6 +20,8 @@ bashcompletiondir=/etc/bash_completion.d
 SERVER_EXEC_NAME:=rethinkdb
 SERVER_UNIT_TEST_NAME:=rethinkdb-unittest
 
+DEBIAN_PKG_DIR:=debian
+
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
 GDB_FUNCTIONS_NAME:=rethinkdb-gdb.py
@@ -129,9 +131,15 @@ CXXFLAGS+=-DMEMCACHED_STRICT
 endif
 
 ifeq ($(LEGACY_LINUX),1)
-CXX=g++44
-CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL
+#CXX=g++44
+CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL -Wno-format
 BUILD_DIR:=$(BUILD_DIR)-legacy
+DEBIAN_PKG_DIR:=$(DEBIAN_PKG_DIR)-legacy
+endif
+
+ifeq ($(NO_EVENTFD),1)
+CXXFLAGS+=-DNO_EVENTFD
+BUILD_DIR:=$(BUILD_DIR)-no_eventfd
 endif
 
 ifeq ($(NO_EPOLL),1)
@@ -196,6 +204,10 @@ all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME) $(BU
 else
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
 endif
+
+unit:
+	$(MAKE) UNIT_TESTS=1
+	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 
 ifeq ($(PACKAGING),1)
 SUPPRESSED_LINTIAN_TAGS:=new-package-should-close-itp-bug
@@ -264,7 +276,7 @@ build-deb: all prepare_deb_package_dirs
 
 # Copy {pre,post}{inst,rm} scripts
 	$(QUIET) for script in preinst postinst prerm postrm; do		\
-			cp ../packaging/debian/$${script} $(DEB_CONTROL_ROOT);	\
+			cp ../packaging/$(DEBIAN_PKG_DIR)/$${script} $(DEB_CONTROL_ROOT);	\
 			chmod 0755 $(DEB_CONTROL_ROOT)/$${script};							\
 		done
 
@@ -273,7 +285,7 @@ build-deb: all prepare_deb_package_dirs
 		sed																														\
 				-e "s/VERSION/$(RETHINKDB_VERSION_DEB)/"									\
 				-e "s/DISK_SIZE/$${disk_size}/"														\
-			../packaging/debian/control >$(DEB_CONTROL_ROOT)/control
+			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
 # Finally, produce a debian package
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
@@ -440,4 +452,7 @@ $(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc
 	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \
 	rm -f $@.$$$$
 # Include the dependencies into the makefile so that they take effect
--include $(DEPS)
+ifneq ($(MAKECMDGOALS),clean)
+	-include $(DEPS)
+endif
+

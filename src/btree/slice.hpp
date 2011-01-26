@@ -43,6 +43,7 @@ public:
     append_prepend_result_t append(store_key_t *key, data_provider_t *data);
     append_prepend_result_t prepend(store_key_t *key, data_provider_t *data);
     delete_result_t delete_key(store_key_t *key);
+    failover_reset_result_t failover_reset();
 
 public:
     /* Used by internal btree logic */

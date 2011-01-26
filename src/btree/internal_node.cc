@@ -275,8 +275,8 @@ void update_key(internal_node_t *node, const btree_key *key_to_replace, const bt
     internal_node::print(node);
 #endif
 
-    guarantee(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
-        "Invalid key given to update_key: offsets no longer in sorted order");
+    rassert(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
+            "Invalid key given to update_key: offsets no longer in sorted order");
 }
 
 bool is_full(const internal_node_t *node) {
