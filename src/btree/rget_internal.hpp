@@ -15,7 +15,7 @@
  * rget.cc for now.
  */
 
-template <typename T, typename Cmp = std::less<T> >
+template <typename T>
 struct ordered_data_iterator {
     virtual typename boost::optional<T> next() = 0; // next can block until it can read the next value
     virtual void prefetch() = 0;    // fetch all the necessary data to be able to give the next value without blocking.
@@ -33,8 +33,8 @@ struct first_not_less {
 };
 
 template <typename T, typename Cmp = std::less<T> >
-struct merge_ordered_data_iterator : public ordered_data_iterator<T, Cmp> {
-    typedef ordered_data_iterator<T, Cmp> mergee_t;
+struct merge_ordered_data_iterator : public ordered_data_iterator<T> {
+    typedef ordered_data_iterator<T> mergee_t;
     typedef std::vector<mergee_t*> mergees_t;
 
     typedef std::pair<T, mergee_t*> heap_elem_t;
@@ -68,7 +68,7 @@ struct merge_ordered_data_iterator : public ordered_data_iterator<T, Cmp> {
 
         // issue the async prefetch, so that we don't need to block on next has_next/next call
         next_to_pop_from->prefetch();
-        return boost::optional<T>(top.first);
+        return boost::make_optional(top.first);
     }
     void prefetch() {
         std::for_each(mergees.begin(), mergees.end(), std::mem_fun(&mergee_t::prefetch));

@@ -1,5 +1,9 @@
 #include "btree/rget.hpp"
 #include "btree/rget_internal.hpp"
+#include "btree/internal_node.hpp"
+#include "btree/leaf_node.hpp"
+#include "arch/linux/coroutines.hpp"
+#include "buffer_cache/buf_lock.hpp"
 
 /*
  * Possible rget designs:
@@ -47,6 +51,303 @@
  * Initially the DFS design is implemented, since it's the simplest solution, which also is a good
  * fit for small rgets (the most popular use-case).
  */
+
+
+struct leaf_iterator_t : public ordered_data_iterator<const btree_leaf_pair*> {
+    leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock) :
+        leaf(leaf), index(index), lock(lock) {
+
+        rassert(leaf != NULL);
+        rassert(lock != NULL);
+    }
+
+    boost::optional<const btree_leaf_pair*> next() {
+        rassert(index >= 0);
+        if (index >= leaf->npairs)
+            return boost::none;
+
+        return boost::optional<const btree_leaf_pair*>(leaf::get_pair_by_index(leaf, index++));
+    }
+    void prefetch() { /* this space intentionally left blank */ }
+    virtual ~leaf_iterator_t() {
+        delete lock;
+    }
+private:
+    const leaf_node_t *leaf;
+    int index;
+    buf_lock_t *lock;
+};
+
+/* slice_leaves_iterator_t finds the first leaf that contains the given key (or
+ * the next key, if left_open is true). It returns that a leaf iterator (which
+ * also contains the lock), however it doesn't release the leaf lock itself.
+ *
+ * slice_leaves_iterator_t maintains internal state by locking some internal
+ * nodes and unlocking them as iteration progresses.
+ */
+class slice_leaves_iterator_t : public ordered_data_iterator<leaf_iterator_t*> {
+    struct internal_node_state {
+        internal_node_state(const internal_node_t *node, int index, buf_lock_t *lock)
+            : node(node), index(index), lock(lock) { }
+
+        const internal_node_t *node;
+        int index;
+        buf_lock_t *lock;
+    };
+public:
+    slice_leaves_iterator_t(transactor_t& transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) : 
+        transactor(transactor), slice(slice), start(start), end(end), left_open(left_open), right_open(right_open), nevermore(false) { }
+
+    boost::optional<leaf_iterator_t*> next() {
+        if (nevermore)
+            return boost::none;
+
+        boost::optional<leaf_iterator_t*> leaf = traversal_state.empty() ? get_first_leaf() : get_next_leaf();
+        if (!leaf)
+            done();
+        return leaf;
+    }
+    void prefetch() {
+    }
+    virtual ~slice_leaves_iterator_t() {
+        done();
+    }
+private:
+    void done() {
+        while (!traversal_state.empty()) {
+            delete traversal_state.back().lock;
+            traversal_state.pop_back();
+        }
+        nevermore = true;
+    }
+
+    boost::optional<leaf_iterator_t*> get_first_leaf() {
+        on_thread_t mover(slice->home_thread); // Move to the slice's thread.
+
+        buf_lock_t *buf_lock = new buf_lock_t(transactor, block_id_t(SUPERBLOCK_ID), rwi_read);
+        block_id_t root_id = ptr_cast<btree_superblock_t>(buf_lock->buf()->get_data_read())->root_block;
+        rassert(root_id != SUPERBLOCK_ID);
+
+        if (root_id == NULL_BLOCK_ID) {
+            delete buf_lock;
+            return boost::none;
+        }
+
+        {
+            buf_lock_t tmp(transactor, root_id, rwi_read);
+            buf_lock->swap(tmp);
+        }
+        // read root node
+        const node_t *node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
+        rassert(node != NULL);
+
+        while (node::is_internal(node)) {
+            const internal_node_t *i_node = ptr_cast<internal_node_t>(node);
+
+            // push the i_node onto the traversal_state stack
+            int index = internal_node::impl::get_offset_index(i_node, start);
+            rassert(index >= 0);
+            if (index >= i_node->npairs) {
+                // this subtree has all the keys smaller than 'start', move to the leaf in the next subtree
+                delete buf_lock;
+                return get_next_leaf();
+            }
+            traversal_state.push_back(internal_node_state(i_node, index, buf_lock));
+
+            block_id_t child_id = get_child_id(i_node, index);
+
+            buf_lock = new buf_lock_t(transactor, child_id, rwi_read);
+            node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
+        }
+
+        rassert(node != NULL);
+        rassert(node::is_leaf(node));
+        rassert(buf_lock != NULL);
+
+        const leaf_node_t *l_node = ptr_cast<leaf_node_t>(node);
+        int index = leaf::impl::get_offset_index(l_node, start);
+
+        if (index < l_node->npairs) {
+            return boost::make_optional(new leaf_iterator_t(l_node, index, buf_lock));
+        } else {
+            // there's nothing more in this leaf, we might as well move to the next leaf
+            delete buf_lock;
+            return get_next_leaf();
+        }
+    }
+
+    boost::optional<leaf_iterator_t*> get_next_leaf() {
+        while (traversal_state.size() > 0) {
+            internal_node_state state = traversal_state.back();
+            traversal_state.pop_back();
+
+            rassert(state.index >= 0 && state.index < state.node->npairs);
+            ++state.index;
+            if (state.index < state.node->npairs) {
+                traversal_state.push_back(state);
+
+                // get next child and find its leftmost leaf
+                block_id_t child_id = get_child_id(state.node, state.index);
+                return get_leftmost_leaf(child_id);
+            } else {
+                delete state.lock;  // this also releases state.node
+            }
+        }
+        return boost::none;
+    }
+
+    boost::optional<leaf_iterator_t*> get_leftmost_leaf(block_id_t node_id) {
+        on_thread_t mover(slice->home_thread); // Move to the slice's thread.
+
+        buf_lock_t *buf_lock = new buf_lock_t(transactor, node_id, rwi_read);
+        const node_t *node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
+
+        while (node::is_internal(node)) {
+            const internal_node_t *i_node = ptr_cast<internal_node_t>(node);
+            rassert(i_node->npairs > 0);
+
+            // push the i_node onto the traversal_state stack
+            const int leftmost_child_index = 0;
+            traversal_state.push_back(internal_node_state(i_node, leftmost_child_index, buf_lock));
+
+            block_id_t child_id = get_child_id(i_node, leftmost_child_index);
+
+            buf_lock = new buf_lock_t(transactor, child_id, rwi_read);
+            node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
+        }
+        rassert(node != NULL);
+        rassert(node::is_leaf(node));
+        rassert(buf_lock != NULL);
+
+        const leaf_node_t *l_node = ptr_cast<leaf_node_t>(node);
+        return boost::make_optional(new leaf_iterator_t(l_node, 0, buf_lock));
+    }
+
+    block_id_t get_child_id(const internal_node_t *i_node, int index) const {
+        block_id_t child_id = internal_node::get_pair_by_index(i_node, index)->lnode;
+        rassert(child_id != NULL_BLOCK_ID);
+        rassert(child_id != SUPERBLOCK_ID);
+
+        return child_id;
+    }
+
+    transactor_t &transactor;
+    btree_slice_t *slice;
+    store_key_t *start;
+    store_key_t *end;
+    bool left_open;
+    bool right_open;
+    std::list<internal_node_state> traversal_state;
+    bool nevermore;
+};
+
+class slice_keys_iterator : public ordered_data_iterator<const btree_leaf_pair*> {
+public:
+    slice_keys_iterator(transactor_t &transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) :
+        transactor(transactor), slice(slice), start(start), end(end), left_open(left_open), right_open(right_open),
+        no_more_data(false), active_leaf(NULL), leaves_iterator(NULL) { }
+
+    virtual ~slice_keys_iterator() {
+        if (active_leaf) {
+            delete active_leaf;
+        }
+        if (leaves_iterator) {
+            delete leaves_iterator;
+        }
+    }
+    boost::optional<const btree_leaf_pair*> next() {
+        if (no_more_data)
+            return boost::none;
+
+        boost::optional<const btree_leaf_pair*> result = active_leaf == NULL ? get_first_value() : get_next_value();
+        if (!result) {
+            done();
+        }
+        return result;
+    }
+    void prefetch() {
+    }
+private:
+    boost::optional<const btree_leaf_pair*> get_first_value() {
+        leaves_iterator = new slice_leaves_iterator_t(transactor, slice, start, end, left_open, right_open);
+
+        // get the first leaf with our start key (or something greater)
+        boost::optional<leaf_iterator_t*> first = leaves_iterator->next();
+        if (!first)
+            return boost::none;
+
+        active_leaf = first.get();
+        rassert(active_leaf != NULL);
+
+        // get a value from the leaf
+        boost::optional<const btree_leaf_pair*> first_pair = active_leaf->next();
+        if (!first_pair)
+            return first_pair;  // returns empty result
+
+        const btree_leaf_pair *pair = first_pair.get();
+
+        // skip the start key if left_open
+        int compare_result = leaf_key_comp::compare(&pair->key, start);
+        rassert(compare_result >= 0);
+        if (left_open && compare_result == 0) {
+            return get_next_value();
+        } else {
+            return validate_return_value(pair);
+        }
+    }
+
+    boost::optional<const btree_leaf_pair*> get_next_value() {
+        rassert(leaves_iterator != NULL);
+        rassert(active_leaf != NULL);
+
+        // get a value from the leaf
+        boost::optional<const btree_leaf_pair*> current_pair = active_leaf->next();
+        if (!current_pair) {
+            delete active_leaf;
+            active_leaf = NULL;
+
+            boost::optional<leaf_iterator_t*> leaf = leaves_iterator->next();
+            if (!leaf)
+                return boost::none;
+
+            active_leaf = leaf.get();
+            current_pair = active_leaf->next();
+            if (!current_pair)
+                return boost::none;
+        }
+
+        return validate_return_value(current_pair.get());
+    }
+
+    boost::optional<const btree_leaf_pair*> validate_return_value(const btree_leaf_pair *pair) const {
+        int compare_result = leaf_key_comp::compare(&pair->key, end);
+        if (compare_result < 0 || (!right_open && compare_result == 0)) {
+            return boost::make_optional(pair);
+        } else {
+            return boost::none;
+        }
+    }
+
+    void done() {
+        // we don't delete the active_leaf here because someone may still be using its data
+        if (leaves_iterator) {
+            delete leaves_iterator;
+            leaves_iterator = NULL;
+        }
+        no_more_data = true;
+    }
+
+    transactor_t &transactor;
+    btree_slice_t *slice;
+    store_key_t *start;
+    store_key_t *end;
+    bool left_open;
+    bool right_open;
+
+    bool no_more_data;
+    leaf_iterator_t *active_leaf;
+    slice_leaves_iterator_t *leaves_iterator;
+};
 
 store_t::rget_result_t btree_rget(btree_key_value_store_t *store, store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {
     for (int s = 0; s < store->btree_static_config.n_slices; s++) {
