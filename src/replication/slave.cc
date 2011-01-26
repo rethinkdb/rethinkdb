@@ -15,7 +15,8 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
       respond_to_queries(false), 
       timeout(INITIAL_TIMEOUT),
       given_up(false),
-      failover_reset_control(std::string("failover reset"), this)
+      failover_reset_control(std::string("failover reset"), this),
+      new_master_control(std::string("new master"), this)
 {
     failover.add_callback(this);
     give_up.on_reconnect();
@@ -119,17 +120,6 @@ store_t::delete_result_t slave_t::delete_key(store_key_t *key)
         return dr_not_allowed;
 }
 
-store_t::failover_reset_result_t slave_t::failover_reset() {
-    if (given_up) {
-        give_up.reset();
-        {
-            on_thread_t thread_switcher(get_num_threads() - 2);
-            timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
-        }
-    }
-    return frr_success;
-}
-
  /* message_callback_t interface */
 void slave_t::hello(boost::scoped_ptr<hello_message_t>& message)
 {}
@@ -222,10 +212,40 @@ void slave_t::on_resume() {
     respond_to_queries = false;
 }
 
-std::string slave_t::failover_reset_control_t::call() {
-    slave->failover_reset();
-    return std::string("Failover reset\n"); //TODO @jdoliner
+store_t::failover_reset_result_t slave_t::failover_reset() {
+    if (given_up) {
+        give_up.reset();
+        {
+            on_thread_t thread_switcher(get_num_threads() - 2);
+            timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
+        }
+    }
+
+    return frr_success;
 }
 
+std::string slave_t::new_master(std::string args) {
+    std::string host = args.substr(0, args.find(' '));
+    if (host.length() >  MAX_HOSTNAME_LEN - 1)
+        return std::string("That hostname is soo long, use a shorter one\n");
+
+    /* redo the config info */
+    strcpy(config.hostname, host.c_str());
+    config.port = atoi(strip_spaces(args.substr(args.find(' ') + 1)).c_str()); //TODO this is ugly
+
+    failover_reset();
+    
+    return std::string("New master configured\n");
+}
+
+std::string slave_t::failover_reset_control_t::call(std::string) {
+    slave->failover_reset();
+    return std::string("Failover reset\n"); //TODO @jdoliner make failover_reset() return something sensible.
+}
+
+std::string slave_t::new_master_control_t::call(std::string args) {
+    logINF("new master called\n");
+    return slave->new_master(args);
+}
 
 }  // namespace replication

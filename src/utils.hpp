@@ -13,6 +13,7 @@
 #include "errors.hpp"
 #include "arch/arch.hpp"
 #include "utils2.hpp"
+#include <string>
 
 // Precise time (time+nanoseconds) for logging, etc.
 struct precise_time_t : public tm {
@@ -60,6 +61,8 @@ template <int _size>
 struct buffer_t : public buffer_base_t<_size>
 {
 };
+
+std::string strip_spaces(std::string); 
 
 /* The home thread mixin is a simple mixin for objects that are primarily associated with
 a single thread. It just keeps track of the thread that the object was created on and

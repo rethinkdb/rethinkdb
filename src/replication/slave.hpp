@@ -52,7 +52,6 @@ public:
     append_prepend_result_t append(store_key_t *key, data_provider_t *data);
     append_prepend_result_t prepend(store_key_t *key, data_provider_t *data);
     delete_result_t delete_key(store_key_t *key);
-    failover_reset_result_t failover_reset();
 
 public:
     /* message_callback_t interface */
@@ -94,19 +93,40 @@ private:
     } give_up;
     bool given_up;
 
+/* Failover controllers */
+
+
 private:
+    failover_reset_result_t failover_reset(); //TODO this should return a string also remove it from the store interface @jdoliner
+
     struct failover_reset_control_t
         : public control_t
     {
-        private:
-            slave_t *slave;
-        public:
+    private:
+        slave_t *slave;
+    public:
         failover_reset_control_t(std::string key, slave_t *slave)
             : control_t(key, "Reset the failover module to the state at startup (will force a reconnection to the master)."), slave(slave)
         {}
-        std::string call();
+        std::string call(std::string);
     };
     failover_reset_control_t failover_reset_control;
+
+private:
+    std::string new_master(std::string args);
+
+    struct new_master_control_t
+        : public control_t
+    {
+    private:
+        slave_t *slave;
+    public:
+        new_master_control_t(std::string key, slave_t *slave)
+            : control_t(key, "Set a new master for replication. Syntax:\t rdb new master: host port"), slave(slave)
+    {}
+        std::string call(std::string);
+    };
+    new_master_control_t new_master_control;
 };
 
 }  // namespace replication

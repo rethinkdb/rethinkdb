@@ -39,6 +39,17 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
     return res;
 }
 
+std::string strip_spaces(std::string str) {
+    while (str[str.length() - 1] == ' ')
+        str.erase(str.length() - 1, 1);
+
+    while (str[0] == ' ')
+        str.erase(0, 1);
+
+    return str;
+}
+
+
 void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     flockfile(stderr);
 

@@ -3,6 +3,8 @@
 #include "errors.hpp"
 #include "concurrency/multi_wait.hpp"
 
+using namespace std;
+
 control_map_t &get_control_map() {
     /* Getter function so that we can be sure that control_list is initialized before it is needed,
     as advised by the C++ FAQ. Otherwise, a control_t  might be initialized before the control list
@@ -19,16 +21,16 @@ spinlock_t &get_control_lock() {
     return lock;
 }
 
-std::string control_exec(std::string command_and_args) {
-    std::string res;
+string control_exec(string command_and_args) {
+    string res;
 
     /* seperate command and arguments */
     int command_end = command_and_args.find(':');
-    std::string command, args;
+    string command, args;
     logINF("command_end: %d\n", command_end);
     command = command_and_args.substr(0, command_end);
     if (command_end==-1) {
-        args = std::string("");
+        args = string("");
     } else {
         args = command_and_args.substr(command_end + 1);
     }
@@ -49,11 +51,11 @@ std::string control_exec(std::string command_and_args) {
     return res;
 }
 
-std::string control_help() {
-    std::string res, last_key, last_help;
+string control_help() {
+    string res, last_key, last_help;
     for (control_map_t::iterator it = get_control_map().begin(); it != get_control_map().end(); it++) {
         if (((*it).first != last_key || (*it).second->help != last_help) && (*it).second->help.length() > 0)
-            res += ((*it).first + std::string(": ") + (*it).second->help + std::string("\r\n"));
+            res += ((*it).first + string(": ") + (*it).second->help + string("\r\n"));
 
         last_key = (*it).first;
         last_help = (*it).second->help;
@@ -61,13 +63,14 @@ std::string control_help() {
     return res;
 }
 
-control_t::control_t(std::string key, std::string help) 
+control_t::control_t(string key, string help) 
     : key(key), help(help)
 {
-    guarantee(key != ""); //this could potentiall cause some errors with control_help
+    //guarantee(key != ""); //this could potentiall cause some errors with control_help
     //TODO @jdoliner make sure that the command doesn't contain any ':'s
+    //guarantee(key.find(':') == (unsigned int) -1);
     get_control_lock().lock();
-    get_control_map().insert(std::pair<std::string, control_t*>(key, this));
+    get_control_map().insert(pair<string, control_t*>(key, this));
     get_control_lock().unlock();
 }
 
@@ -85,18 +88,18 @@ struct hi_t : public control_t
 private:
     int counter;
 public:
-    hi_t(std::string key)
-        : control_t(key, std::string("")), counter(0)
+    hi_t(string key)
+        : control_t(key, string("")), counter(0)
     {}
-    std::string call(std::string) {
+    string call(string) {
         counter++;
         if (counter < 3)
-            return std::string("Salutations, user.\n");
+            return string("Salutations, user.\n");
         else if (counter < 4)
-            return std::string("Say hi again, I dare you.\n");
+            return string("Say hi again, I dare you.\n");
         else
-            return std::string("Base QPS decreased by 100,000.\n");
+            return string("Base QPS decreased by 100,000.\n");
     }
 };
 
-hi_t hi(std::string("hi"));
+hi_t hi(string("hi"));

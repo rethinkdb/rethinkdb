@@ -171,7 +171,7 @@ struct shutdown_control_t : public control_t
     shutdown_control_t(std::string key)
         : control_t(key, "Shutdown the server. Make sure you mean it.")
     {}
-    std::string call() {
+    std::string call(std::string) {
         // Shut down the server
         thread_message_t *old_interrupt_msg = thread_pool_t::set_interrupt_message(NULL);
         /* If the interrupt message already was NULL, that means that either shutdown()
