@@ -23,6 +23,11 @@ void scc_buf_t<inner_cache_t>::apply_patch(buf_patch_t& patch) {
 }
 
 template<class inner_cache_t>
+void scc_buf_t<inner_cache_t>::apply_and_delete_patch(buf_patch_t& patch) {
+    inner_buf->apply_and_delete_patch(patch);
+}
+
+template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::mark_deleted() {
     inner_buf->mark_deleted();
 }
