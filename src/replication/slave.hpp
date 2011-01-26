@@ -6,6 +6,7 @@
 #include "store.hpp"
 #include "failover.hpp"
 #include <queue>
+#include "control.hpp"
 
 #define INITIAL_TIMEOUT  (100) //initial time we wait reconnect to the master server on failure in ms
 #define TIMEOUT_GROWTH_FACTOR   (2) //every failed reconnect the timeoute increase by this factor
@@ -29,7 +30,7 @@ struct slave_t :
 {
 friend void run(slave_t *);
 public:
-    slave_t(store_t *, replication_config_t);
+    slave_t(store_t *, replication_config_t, failover_config_t);
     ~slave_t();
 
 private:
@@ -38,7 +39,8 @@ private:
 
 private:
     store_t *internal_store;
-    replication_config_t config;
+    replication_config_t replication_config;
+    failover_config_t failover_config;
     tcp_conn_t *conn;
     message_parser_t parser;
     failover_t failover;
@@ -58,7 +60,6 @@ public:
     append_prepend_result_t append(store_key_t *key, data_provider_t *data);
     append_prepend_result_t prepend(store_key_t *key, data_provider_t *data);
     delete_result_t delete_key(store_key_t *key);
-    failover_reset_result_t failover_reset();
 
 public:
     /* message_callback_t interface */
@@ -74,10 +75,17 @@ public:
     void send(boost::scoped_ptr<goodbye_message_t>& message);
     void conn_closed();
     
-public:
-    /* failover callback */
+private:
+    friend class failover_t;
+
+    /* failover callback interface */
     void on_failure();
     void on_resume();
+
+
+private:
+    /* Other failover callbacks */
+    failover_script_callback_t failover_script;
 
 private:
     /* state for failover */
@@ -98,13 +106,44 @@ private:
     private:
         void limit_to(unsigned int limit);
     } give_up;
+
+    /* Failover controllers */
+
+private:
+    std::string failover_reset();
+
+    struct failover_reset_control_t
+        : public control_t
+    {
+    private:
+        slave_t *slave;
+    public:
+        failover_reset_control_t(std::string key, slave_t *slave)
+            : control_t(key, "Reset the failover module to the state at startup (will force a reconnection to the master)."), slave(slave)
+        {}
+        std::string call(std::string);
+    };
+    failover_reset_control_t failover_reset_control;
+
+private:
+    std::string new_master(std::string args);
+
+    struct new_master_control_t
+        : public control_t
+    {
+    private:
+        slave_t *slave;
+    public:
+        new_master_control_t(std::string key, slave_t *slave)
+            : control_t(key, "Set a new master for replication (the slave will disconnect and immediately reconnect to the new server). Syntax: \"rdb new master: host port\""), slave(slave)
+    {}
+        std::string call(std::string);
+    };
+    new_master_control_t new_master_control;
 };
 
 void run(slave_t *); //TODO make this static and private
 
 }  // namespace replication
-
-
-
 
 #endif  // __REPLICATION_SLAVE_HPP__

@@ -4,8 +4,6 @@
 
 #include "buffer_cache/co_functions.hpp"
 
-#include "btree/coro_wrappers.hpp"
-
 
 
 struct btree_set_oper_t : public btree_modify_oper_t {
@@ -25,26 +23,22 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         try {
             if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
                 result = store_t::sr_not_stored;
-                data->discard();
                 return false;
             }
 
             if (type == set_type_cas) { // TODO: CAS stats
                 if (!old_value) {
                     result = store_t::sr_not_found;
-                    data->discard();
                     return false;
                 }
                 if (!old_value->has_cas() || old_value->cas() != req_cas) {
                     result = store_t::sr_exists;
-                    data->discard();
                     return false;
                 }
             }
 
             if (data->get_size() > MAX_VALUE_SIZE) {
                 result = store_t::sr_too_large;
-                data->discard();
                 /* To be standards-compliant we must delete the old value when an effort is made to
                 replace it with a value that is too large. */
                 *new_value = NULL;

@@ -24,6 +24,7 @@ public:
     failover_script_callback_t(const char *);
     ~failover_script_callback_t();
     void on_failure();
+    void on_resume();
 private:
     char *script_path;
 };

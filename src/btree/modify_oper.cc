@@ -7,10 +7,11 @@
 #include "buffer_cache/large_buf_lock.hpp"
 #include "buffer_cache/transactor.hpp"
 
-#include "btree/coro_wrappers.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 
+#include "buffer_cache/co_functions.hpp"
+#include "buffer_cache/transactor.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 

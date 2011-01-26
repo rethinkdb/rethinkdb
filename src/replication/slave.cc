@@ -8,11 +8,16 @@ namespace replication {
 
 // TODO unit test offsets
 
-slave_t::slave_t(store_t *internal_store, replication_config_t config) 
+slave_t::slave_t(store_t *internal_store, replication_config_t replication_config, failover_config_t failover_config) 
     : internal_store(internal_store), 
-      config(config), 
+      replication_config(replication_config), 
+      failover_config(failover_config),
+      conn(NULL),
       shutting_down(false),
-      timeout(INITIAL_TIMEOUT)
+      failover_script(failover_config.failover_script_path),
+      timeout(INITIAL_TIMEOUT),
+      failover_reset_control(std::string("failover reset"), this),
+      new_master_control(std::string("new master"), this)
 {
     coro_t::spawn(&run, this);
 }
@@ -125,7 +130,7 @@ store_t::delete_result_t slave_t::delete_key(store_key_t *key)
         return dr_not_allowed;
 }
 
-store_t::failover_reset_result_t slave_t::failover_reset() {
+std::string slave_t::failover_reset() {
     on_thread_t thread_switch(get_num_threads() - 2);
     give_up.reset();
     timeout = INITIAL_TIMEOUT;
@@ -138,7 +143,7 @@ store_t::failover_reset_result_t slave_t::failover_reset() {
     if (conn) kill_conn(); //this will cause a notify
     else coro->notify();
 
-    return frr_success;
+    return std::string("Reseting failover\n");
 }
 
  /* message_callback_t interface */
@@ -169,7 +174,6 @@ void slave_t::conn_closed()
 
 /* failover driving functions */
 void slave_t::reconnect_timer_callback(void *ctx) {
-    logINF("Timer fired\n");
     slave_t *self = static_cast<slave_t*>(ctx);
     self->coro->notify();
 }
@@ -218,8 +222,8 @@ void run(slave_t *slave) {
                 slave->conn = NULL;
             }
             coro_t::move_to_thread(get_num_threads() - 2);
-            logINF("Attempting to connect as slave to: %s:%d\n", slave->config.hostname, slave->config.port);
-            slave->conn = new tcp_conn_t(slave->config.hostname, slave->config.port);
+            logINF("Attempting to connect as slave to: %s:%d\n", slave->replication_config.hostname, slave->replication_config.port);
+            slave->conn = new tcp_conn_t(slave->replication_config.hostname, slave->replication_config.port);
             slave->timeout = INITIAL_TIMEOUT;
             slave->give_up.on_reconnect();
 
@@ -227,7 +231,7 @@ void run(slave_t *slave) {
             if (!first_connect) //UGLY :( but it's either this or code duplication
                 slave->failover.on_resume(); //Call on_resume if we've failed before
             first_connect = false;
-            logINF("Connected as slave to: %s:%d\n", slave->config.hostname, slave->config.port);
+            logINF("Connected as slave to: %s:%d\n", slave->replication_config.hostname, slave->replication_config.port);
 
 
             coro_t::wait(); //wait for things to fail
@@ -239,7 +243,7 @@ void run(slave_t *slave) {
             //connection then this is a user error rather than some sort of
             //failure
             if (first_connect)
-                crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up yet. But what do I know I'm just a database\n", slave->config.hostname, slave->config.port); 
+                crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up yet. But what do I know I'm just a database\n", slave->replication_config.hostname, slave->replication_config.port); 
         }
 
         /* The connection has failed. Let's see what se should do */
@@ -252,12 +256,33 @@ void run(slave_t *slave) {
             logINF("Master at %s:%d has failed %d times in the last %d seconds," \
                     "going rogue. To resume slave behavior send the command" \
                     "\"rethinkdb failover reset\" (over telnet)\n",
-                    slave->config.hostname, slave->config.port,
+                    slave->replication_config.hostname, slave->replication_config.port,
                     MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS); 
             coro_t::wait(); //the only thing that can save us now is a reset
         }
     }
 }
 
+std::string slave_t::new_master(std::string args) {
+    std::string host = args.substr(0, args.find(' '));
+    if (host.length() >  MAX_HOSTNAME_LEN - 1)
+        return std::string("That hostname is soo long, use a shorter one\n");
+
+    /* redo the replication_config info */
+    strcpy(replication_config.hostname, host.c_str());
+    replication_config.port = atoi(strip_spaces(args.substr(args.find(' ') + 1)).c_str()); //TODO this is ugly
+
+    failover_reset();
+    
+    return std::string("New master set\n");
+}
+
+std::string slave_t::failover_reset_control_t::call(std::string) {
+    return slave->failover_reset();
+}
+
+std::string slave_t::new_master_control_t::call(std::string args) {
+    return slave->new_master(args);
+}
 
 }  // namespace replication

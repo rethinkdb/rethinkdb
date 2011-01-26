@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "eventfd.hpp"
+#include "utils2.hpp"
 
 // An event API implemented in terms of eventfd. May not be available
 // on older kernels.
@@ -22,6 +23,7 @@ public:
 
 private:
     int _eventfd;
+    DISABLE_COPYING(eventfd_event_t);
 };
 
 #endif // __ARCH_LINUX_EVENTFD_EVENT_HPP__

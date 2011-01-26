@@ -8,6 +8,7 @@
 #include "arch/arch.hpp"
 #include "store.hpp"
 #include "logger.hpp"
+#include "control.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
@@ -115,30 +116,30 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
 
         store_t::get_result_t res = gets[i].result->join();
 
-        /* If the write half of the connection has been closed, there's no point in trying
-        to send anything */
-        if (rh->conn->is_write_open()) {
-            store_key_t &key = gets[i].key;
-
-            /* If res.buffer is NULL that means the value was not found so we don't write
-            anything */
-            if (res.buffer) {
+        /* If res.value is NULL that means the value was not found so we don't write
+        anything */
+        if (res.value) {
+            /* If the write half of the connection has been closed, there's no point in trying
+            to send anything */
+            if (rh->conn->is_write_open()) {
+                store_key_t &key = gets[i].key;
 
                 /* Write the "VALUE ..." header */
                 if (with_cas) {
                     rh->writef("VALUE %*.*s %u %u %llu\r\n",
-                        key.size, key.size, key.contents, res.flags, res.buffer->get_size(), res.cas);
+                        key.size, key.size, key.contents, res.flags, res.value->get_size(), res.cas);
                 } else {
                     rassert(res.cas == 0);
                     rh->writef("VALUE %*.*s %u %u\r\n",
-                        key.size, key.size, key.contents, res.flags, res.buffer->get_size());
+                        key.size, key.size, key.contents, res.flags, res.value->get_size());
                 }
 
                 /* Write the value itself. If the value is small, write it into the send buffer;
                 otherwise, stream it. */
-                for (int i = 0; i < (signed)res.buffer->buffers.size(); i++) {
-                    const_buffer_group_t::buffer_t b = res.buffer->buffers[i];
-                    if (res.buffer->get_size() < MAX_BUFFERED_GET_SIZE) {
+                const const_buffer_group_t *bg = res.value->get_data_as_buffers();
+                for (int i = 0; i < (signed)bg->buffers.size(); i++) {
+                    const_buffer_group_t::buffer_t b = bg->buffers[i];
+                    if (res.value->get_size() < MAX_BUFFERED_GET_SIZE) {
                         rh->write((const char *)b.data, b.size);
                     } else {
                         rh->write_unbuffered((const char *)b.data, b.size);
@@ -147,9 +148,6 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
                 rh->writef("\r\n");
             }
         }
-
-        /* Call the callback so that the value is released */
-        if (res.buffer) res.cb->have_copied_value();
     }
 
     rh->writef("END\r\n");
@@ -172,18 +170,28 @@ class memcached_data_provider_t :
 private:
     txt_memcached_handler_t *rh;   // Request handler for us to read from
     size_t length;   // Our length
+    bool was_read;
     promise_t<bool> *to_signal;
 
 public:
     memcached_data_provider_t(txt_memcached_handler_t *rh, uint32_t length, promise_t<bool> *to_signal)
-        : rh(rh), length(length), to_signal(to_signal)
+        : rh(rh), length(length), was_read(false), to_signal(to_signal)
     { }
+
+    ~memcached_data_provider_t() {
+        if (!was_read) {
+            /* We have to clear the data out of the socket, even if we have nowhere to put it. */
+            get_data_as_buffers();
+        }
+    }
 
     size_t get_size() const {
         return length;
     }
 
     void get_data_into_buffers(const buffer_group_t *b) throw (data_provider_failed_exc_t) {
+        rassert(!was_read);
+        was_read = true;
         on_thread_t thread_switcher(home_thread);
         try {
             for (int i = 0; i < (int)b->buffers.size(); i++) {
@@ -214,14 +222,17 @@ enum storage_command_t {
     prepend_command
 };
 
-void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, store_key_and_buffer_t key, data_provider_t *unbuffered_data, mcflags_t mcflags, exptime_t exptime, cas_t unique, bool noreply) {
+void run_storage_command(txt_memcached_handler_t *rh,
+        storage_command_t sc,
+        store_key_and_buffer_t key,
+        size_t value_size, promise_t<bool> *value_read_promise,
+        mcflags_t mcflags, exptime_t exptime, cas_t unique,
+        bool noreply) {
+
+    memcached_data_provider_t unbuffered_data(rh, value_size, value_read_promise);
+    maybe_buffered_data_provider_t data(&unbuffered_data, MAX_BUFFERED_SET_SIZE);
 
     rh->begin_write_command();
-
-    /* unbuffered_data is guaranteed to remain valid as long as we need it because do_storage()
-    waits on the promise_t that it gave to unbuffered_data, which won't be triggered until we
-    consume unbuffered_data's value. */
-    maybe_buffered_data_provider_t data(unbuffered_data, MAX_BUFFERED_SET_SIZE);
 
     if (sc != append_command && sc != prepend_command) {
         store_t::set_result_t res;
@@ -284,6 +295,10 @@ void run_storage_command(txt_memcached_handler_t *rh, storage_command_t sc, stor
     }
 
     rh->end_write_command();
+
+    /* If the key-value store never read our value for whatever reason, then the
+    memcached_data_provider_t's destructor will read it off the socket and signal
+    read_value_promise here */
 }
 
 void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, char **argv) {
@@ -366,20 +381,19 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
         noreply = false;
     }
 
-    /* Make a data provider */
+    /* run_storage_command() will signal this when it's done reading the value off the socket. */
     promise_t<bool> value_read_promise;
-    memcached_data_provider_t mcdp(rh, value_size, &value_read_promise);
 
     if (noreply) {
-        coro_t::spawn(&run_storage_command, rh, sc, key, &mcdp, mcflags, exptime, unique, true);
+        coro_t::spawn(&run_storage_command, rh, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, true);
     } else {
-        run_storage_command(rh, sc, key, &mcdp, mcflags, exptime, unique, false);
+        run_storage_command(rh, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, false);
     }
 
-    /* We can't move on to the next command until the value has been read off the socket. This also
-    ensures that 'mcdp' is not destroyed until run_storage_command() is done with it. */
+    /* We can't move on to the next command until the value has been read off the socket. */
     bool ok = value_read_promise.wait();
     if (!ok) {
+        /* We get here if there was no CRLF */
         rh->writef("CLIENT_ERROR bad data chunk\r\n");
     }
 }
@@ -525,20 +539,6 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
         run_delete(rh, key, false);
     }
 };
-
-void do_failover_reset(txt_memcached_handler_t *rh) {
-    store_t::failover_reset_result_t res = rh->store->failover_reset();
-    switch (res) {
-        case store_t::frr_success:
-            rh->writef("Failover succesfully reset\r\n");
-            break;
-        case store_t::frr_not_allowed:
-            rh->writef("Failover reset not allowed. (This server probably wasn't started as a slave.)\r\n");
-            break;
-        default: unreachable();
-    }
-}
-
 
 /* "stats"/"stat" commands */
 
@@ -718,24 +718,16 @@ void serve_memcache(tcp_conn_t *conn, store_t *store) {
             }
         } else if(!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
             do_stats(&rh, args.size(), args.data());
-        } else if(!strcmp(args[0], "rethinkdb")) {
-            if (args.size() == 2 && !strcmp(args[1], "shutdown")) {
-                // Shut down the server
-                thread_message_t *old_interrupt_msg = thread_pool_t::set_interrupt_message(NULL);
-                /* If the interrupt message already was NULL, that means that either shutdown()
-                was for some reason called before we finished starting up or shutdown() was called
-                twice and this is the second time. */
-                if (old_interrupt_msg) {
-                    if (continue_on_thread(get_num_threads()-1, old_interrupt_msg))
-                        call_later_on_this_thread(old_interrupt_msg);
-                }
-                break;
-            } else if (args.size() == 3 && !strcmp(args[1], "failover") && !strcmp(args[2], "reset")) {
-                do_failover_reset(&rh);
+        } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
+            if (args.size() > 1) {
+                std::string cl = std::string(args[1]);
+
+                for (std::vector<char *>::iterator it = (args.begin() + 2); it != args.end(); it++)
+                    cl += (std::string(" ") + std::string(*it)); //sigh
+
+                rh.writef(control_exec(cl).c_str());
             } else {
-                rh.writef("Available commands:\r\n");
-                rh.writef("rethinkdb shutdown\r\n");
-                rh.writef("failover reset\r\n");
+                rh.writef(control_help().c_str());
             }
         } else if(!strcmp(args[0], "version")) {
             if (args.size() == 2) {
