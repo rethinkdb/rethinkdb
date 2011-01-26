@@ -14,7 +14,8 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
       conn(new tcp_conn_t(config.hostname, config.port)), 
       respond_to_queries(false), 
       timeout(INITIAL_TIMEOUT),
-      given_up(false)
+      given_up(false),
+      failover_reset_control(std::string("failover reset"), this)
 {
     failover.add_callback(this);
     give_up.on_reconnect();
@@ -219,6 +220,11 @@ void slave_t::on_failure() {
 
 void slave_t::on_resume() {
     respond_to_queries = false;
+}
+
+std::string slave_t::failover_reset_control_t::call() {
+    slave->failover_reset();
+    return std::string("Failover reset\n"); //TODO @jdoliner
 }
 
 

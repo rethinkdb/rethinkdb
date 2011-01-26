@@ -6,6 +6,7 @@
 #include "logger.hpp"
 #include "server/cmd_args.hpp"
 #include "replication/slave.hpp"
+#include "control.hpp"
 
 int run_server(int argc, char *argv[]) {
 
@@ -163,4 +164,27 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     automatically when server_main() returns. */
     thread_pool->shutdown();
 }
+
+/* Install the shutdown control for thread pool */
+struct shutdown_control_t : public control_t
+{
+    shutdown_control_t(std::string key)
+        : control_t(key)
+    {}
+    std::string call() {
+        // Shut down the server
+        thread_message_t *old_interrupt_msg = thread_pool_t::set_interrupt_message(NULL);
+        /* If the interrupt message already was NULL, that means that either shutdown()
+           was for some reason called before we finished starting up or shutdown() was called
+           twice and this is the second time. */
+        if (old_interrupt_msg) {
+            if (continue_on_thread(get_num_threads()-1, old_interrupt_msg))
+                call_later_on_this_thread(old_interrupt_msg);
+        }
+
+        return std::string("Shutting down\r\n");
+    }
+};
+
+shutdown_control_t shutdown_control(std::string("shutdown"));
 

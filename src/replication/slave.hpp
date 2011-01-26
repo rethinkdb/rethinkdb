@@ -6,6 +6,7 @@
 #include "store.hpp"
 #include "failover.hpp"
 #include <queue>
+#include "control.hpp"
 
 #define INITIAL_TIMEOUT  (100) //initial time we wait reconnect to the master server on failure in ms
 #define TIMEOUT_GROWTH_FACTOR   (2) //every failed reconnect the timeoute increase by this factor
@@ -92,11 +93,22 @@ private:
         void limit_to(unsigned int limit);
     } give_up;
     bool given_up;
+
+private:
+    struct failover_reset_control_t
+        : public control_t
+    {
+        private:
+            slave_t *slave;
+        public:
+        failover_reset_control_t(std::string key, slave_t *slave)
+            : control_t(key), slave(slave)
+        {}
+        std::string call();
+    };
+    failover_reset_control_t failover_reset_control;
 };
 
 }  // namespace replication
-
-
-
 
 #endif  // __REPLICATION_SLAVE_HPP__
