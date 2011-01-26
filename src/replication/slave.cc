@@ -26,20 +26,30 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
 }
 
 slave_t::~slave_t() {
+    coro_t::move_to_thread(home_thread);
+    kill_conn();
+    
+    /* cancel the timer */
+    if(timer_token) cancel_timer(timer_token);
+}
+
+void slave_t::kill_conn() {
     struct : public message_parser_t::message_parser_shutdown_callback_t, public cond_t {
             void on_parser_shutdown() { pulse(); }
     } parser_shutdown_cb;
 
+    {
+        on_thread_t thread_switch(home_thread);
+
     if (!parser.shutdown(&parser_shutdown_cb))
         parser_shutdown_cb.wait();
+    }
 
-    coro_t::move_to_thread(get_num_threads() - 2);
-    delete conn;
-
-    coro_t::move_to_thread(home_thread);
-    
-    /* cancel the timer */
-    if(timer_token) cancel_timer(timer_token);
+    {
+        on_thread_t thread_switch(get_num_threads() - 2);
+        delete conn;
+        conn = NULL;
+    }
 }
 
 store_t::get_result_t slave_t::get(store_key_t *key)
@@ -118,6 +128,18 @@ store_t::delete_result_t slave_t::delete_key(store_key_t *key)
         return internal_store->delete_key(key);
     else
         return dr_not_allowed;
+}
+
+store_t::failover_reset_result_t slave_t::failover_reset() {
+    give_up.reset();
+    kill_conn();
+    if (given_up)
+    {
+        /* the failover module needs a pulse */
+        on_thread_t thread_switcher(get_num_threads() - 2);
+        timer_token = fire_timer_once(timeout, &reconnect_timer_callback, this);
+    }
+    return frr_success;
 }
 
  /* message_callback_t interface */
@@ -212,7 +234,7 @@ void slave_t::on_resume() {
     respond_to_queries = false;
 }
 
-store_t::failover_reset_result_t slave_t::failover_reset() {
+/* store_t::failover_reset_result_t slave_t::failover_reset() {
     if (given_up) {
         give_up.reset();
         {
@@ -222,7 +244,7 @@ store_t::failover_reset_result_t slave_t::failover_reset() {
     }
 
     return frr_success;
-}
+} */
 
 std::string slave_t::new_master(std::string args) {
     std::string host = args.substr(0, args.find(' '));

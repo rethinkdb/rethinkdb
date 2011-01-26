@@ -32,6 +32,9 @@ public:
     ~slave_t();
 
 private:
+    void kill_conn();
+
+private:
     store_t *internal_store;
     replication_config_t config;
     tcp_conn_t *conn;
