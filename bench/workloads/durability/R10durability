@@ -7,7 +7,7 @@
 if [ $DATABASE == "rethinkdb" ]; then
     ./dbench                                                                              \
         -d "$BENCH_DIR/bench_output/Strong_durability_(canonical_workload)" -H $SERVER_HOSTS       \
-        {server}rethinkdb:"--active-data-extents 1 --wait-for-flush y --flush-timer 2 -c 12 -m 32768 $SSD_DRIVES" \
+        {server}rethinkdb:"--wait-for-flush y -c 12 -m 32768 $SSD_DRIVES" \
         {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION"                       \
         iostat:1 vmstat:1 rdbstat:1
 elif [ $DATABASE == "mysql" ]; then
