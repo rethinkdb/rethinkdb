@@ -169,7 +169,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 struct shutdown_control_t : public control_t
 {
     shutdown_control_t(std::string key)
-        : control_t(key)
+        : control_t(key, "Shutdown the server. Make sure you mean it.")
     {}
     std::string call() {
         // Shut down the server
@@ -182,7 +182,7 @@ struct shutdown_control_t : public control_t
                 call_later_on_this_thread(old_interrupt_msg);
         }
 
-        return std::string("Shutting down\r\n");
+        return std::string("Shutting down... this may take time if there is a lot of unsaved data.\r\n");
     }
 };
 

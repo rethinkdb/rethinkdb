@@ -741,7 +741,7 @@ void serve_memcache(tcp_conn_t *conn, store_t *store) {
 
                 rh.writef(control_exec(cl).c_str());
             } else {
-                //print help
+                rh.writef(control_help().c_str());
             }
         } else if(!strcmp(args[0], "version")) {
             if (args.size() == 2) {

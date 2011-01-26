@@ -1,5 +1,6 @@
 #include "control.hpp"
 #include "logger.hpp"
+#include "errors.hpp"
 
 control_map_t &get_control_map() {
     /* Getter function so that we can be sure that control_list is initialized before it is needed,
@@ -19,8 +20,20 @@ std::string control_exec(std::string key) {
     return res;
 }
 
-control_t::control_t(std::string key) 
-    : key(key)
+std::string control_help() {
+    std::string res, last_key, last_help;
+    for (control_map_t::iterator it = get_control_map().begin(); it != get_control_map().end(); it++) {
+        if ((*it).first != last_key || (*it).second->help != last_help)
+            res += ((*it).first + std::string(": ") + (*it).second->help + std::string("\r\n"));
+
+        last_key = (*it).first;
+        last_help = (*it).second->help;
+    }
+    return res;
+}
+
+control_t::control_t(std::string key, std::string help) 
+    : key(key), help(help)
 { //TODO locks @jdoliner
     get_control_map().insert(std::pair<std::string, control_t*>(key, this));
 }
@@ -38,8 +51,10 @@ private:
     int counter;
 public:
     hi_t(std::string key)
-        : control_t(key), counter(0)
-    {}
+        : control_t(key, std::string("Introduce yourself to the database.")), counter(0)
+    {
+        guarantee(key != ""); //this could potentiall cause some errors with control_help
+    }
     std::string call() {
         counter++;
         if (counter < 3)

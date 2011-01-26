@@ -102,7 +102,7 @@ private:
             slave_t *slave;
         public:
         failover_reset_control_t(std::string key, slave_t *slave)
-            : control_t(key), slave(slave)
+            : control_t(key, "Reset the failover module to the state at startup (will force a reconnection to the master)."), slave(slave)
         {}
         std::string call();
     };
