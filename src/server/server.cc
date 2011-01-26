@@ -107,7 +107,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* Are we a replication slave? */
             if (cmd_config->replication_config.active) {
                 logINF("Starting up as a slave...\n");
-                slave_store = new replication::slave_t(&store, cmd_config->replication_config);
+                slave_store = new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config);
                 server.store = slave_store;
             } else {
                 server.store = &store;   /* So things can access it */

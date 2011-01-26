@@ -28,7 +28,7 @@ struct slave_t :
     public message_callback_t
 {
 public:
-    slave_t(store_t *, replication_config_t);
+    slave_t(store_t *, replication_config_t, failover_config_t);
     ~slave_t();
 
 private:
@@ -36,7 +36,8 @@ private:
 
 private:
     store_t *internal_store;
-    replication_config_t config;
+    replication_config_t replication_config;
+    failover_config_t failover_config;
     tcp_conn_t *conn;
     message_parser_t parser;
     failover_t failover;
@@ -70,10 +71,17 @@ public:
     void send(boost::scoped_ptr<goodbye_message_t>& message);
     void conn_closed();
     
-public:
-    /* failover callback */
+private:
+    friend class failover_t;
+
+    /* failover callback interface */
     void on_failure();
     void on_resume();
+
+
+private:
+    /* Other failover callbacks */
+    failover_script_callback_t failover_script;
 
 private:
     /* state for failover */
@@ -100,7 +108,7 @@ private:
 
 
 private:
-    std::string failover_reset(); //TODO this should return a string also remove it from the store interface @jdoliner
+    std::string failover_reset();
 
     struct failover_reset_control_t
         : public control_t

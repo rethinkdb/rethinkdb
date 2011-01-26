@@ -8,10 +8,12 @@ namespace replication {
 
 // TODO unit test offsets
 
-slave_t::slave_t(store_t *internal_store, replication_config_t config) 
+slave_t::slave_t(store_t *internal_store, replication_config_t replication_config, failover_config_t failover_config) 
     : internal_store(internal_store), 
-      config(config), 
-      conn(new tcp_conn_t(config.hostname, config.port)), 
+      replication_config(replication_config), 
+      failover_config(failover_config),
+      conn(new tcp_conn_t(replication_config.hostname, replication_config.port)), 
+      failover_script(failover_config.failover_script_path),
       respond_to_queries(false), 
       timeout(INITIAL_TIMEOUT),
       given_up(false),
@@ -19,6 +21,7 @@ slave_t::slave_t(store_t *internal_store, replication_config_t config)
       new_master_control(std::string("new master"), this)
 {
     failover.add_callback(this);
+    failover.add_callback(&failover_script);
     give_up.on_reconnect();
 
     coro_t::move_to_thread(get_num_threads() - 2);
@@ -185,7 +188,7 @@ void slave_t::reconnect_timer_callback(void *ctx) {
         }
 
         /* reset everything */
-        self->conn = new tcp_conn_t(self->config.hostname, self->config.port);
+        self->conn = new tcp_conn_t(self->replication_config.hostname, self->replication_config.port);
         self->timeout = INITIAL_TIMEOUT;
 
         /* we've succeeded, it's time to start parsing again */
@@ -239,9 +242,9 @@ std::string slave_t::new_master(std::string args) {
     if (host.length() >  MAX_HOSTNAME_LEN - 1)
         return std::string("That hostname is soo long, use a shorter one\n");
 
-    /* redo the config info */
-    strcpy(config.hostname, host.c_str());
-    config.port = atoi(strip_spaces(args.substr(args.find(' ') + 1)).c_str()); //TODO this is ugly
+    /* redo the replication_config info */
+    strcpy(replication_config.hostname, host.c_str());
+    replication_config.port = atoi(strip_spaces(args.substr(args.find(' ') + 1)).c_str()); //TODO this is ugly
 
     failover_reset();
     

@@ -42,7 +42,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
     }
     if (connect(sock, res->ai_addr, res->ai_addrlen) != 0) {
         /* for some reason the connection failed */
-        logERR("Failed to make a connection with error: %s", strerror(errno));
+        logERR("Failed to make a connection with error: %s\n", strerror(errno));
         goto ERROR_BREAKOUT;
     }
 

@@ -16,7 +16,16 @@ void failover_script_callback_t::on_failure() {
     pid_t pid = fork();
 
     if (pid == 0) {
-        execl(script_path, script_path, NULL); //This works right @jdoliner
+        execl(script_path, script_path, "down", NULL); //This works right @jdoliner, yes joe from 2 weeks ago it does - jdoliner
+        exit(0);
+    }
+}
+
+void failover_script_callback_t::on_resume() {
+     pid_t pid = fork();
+
+    if (pid == 0) {
+        execl(script_path, script_path, "up", NULL); //This works right @jdoliner
         exit(0);
     }
 }

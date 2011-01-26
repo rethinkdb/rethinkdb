@@ -256,9 +256,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case slave_of:
                 config.set_master_addr(optarg); break;
             case failover_script:
-                not_implemented();
-                break;
+                config.set_failover_file(optarg); break;
             case heartbeat_timeout:
+                not_implemented();
                 break;
             case 'h':
             default:
