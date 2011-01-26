@@ -27,7 +27,6 @@ string control_exec(string command_and_args) {
     /* seperate command and arguments */
     int command_end = command_and_args.find(':');
     string command, args;
-    logINF("command_end: %d\n", command_end);
     command = command_and_args.substr(0, command_end);
     if (command_end==-1) {
         args = string("");
@@ -42,11 +41,14 @@ string control_exec(string command_and_args) {
     while (args[0] == ' ')
         args.erase(0, 1);
 
-    logINF("command: |%s|\n", command.c_str());
-    logINF("args: |%s|\n", args.c_str());
-
-    for (control_map_t::iterator it = get_control_map().find(command); it != get_control_map().end() && (*it).first == command; it++)
+    bool func_found = false;
+    for (control_map_t::iterator it = get_control_map().find(command); it != get_control_map().end() && (*it).first == command; it++) {
+        func_found = true;
         res += (*it).second->call(args);
+    }
+
+    if (!func_found)
+        res = control_help();
 
     return res;
 }
