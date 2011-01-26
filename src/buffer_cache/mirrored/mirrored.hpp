@@ -107,6 +107,7 @@ public:
     void release();
 
     void apply_patch(buf_patch_t& patch);
+    void apply_and_delete_patch(buf_patch_t& patch);
 
     const void *get_data_read() {
         rassert(ready);

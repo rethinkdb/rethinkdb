@@ -172,6 +172,11 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     patch.apply_to_buf((char*)data); // TODO! should be a private function, with buf_t being a friend class of buf_patch_t
 }
 
+void mc_buf_t::apply_and_delete_patch(buf_patch_t& patch) {
+    apply_patch(patch);
+    delete &patch;
+}
+
 void mc_buf_t::release() {
     pm_bufs_held.end(&start_time);
     

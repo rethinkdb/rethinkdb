@@ -49,6 +49,7 @@ public:
     bool is_dirty();
     const void *get_data_read();
     void apply_patch(buf_patch_t& patch);
+    void apply_and_delete_patch(buf_patch_t& patch);
     void mark_deleted();
     void release();
 
