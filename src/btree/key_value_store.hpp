@@ -83,7 +83,7 @@ private:
         public control_t
     {
     public:
-        hash_control_t(btree_key_value_store_t *btkvs) 
+        hash_control_t(btree_key_value_store_t *btkvs)
 #ifndef NDEBUG  //No documentation if we're in release mode.
             : control_t("hash", std::string("Get hash and slice of a key. Syntax: rdb hash: key")), btkvs(btkvs)
 #else
@@ -91,8 +91,8 @@ private:
 #endif
         {}
         ~hash_control_t() {};
-        
-    private: 
+
+    private:
         btree_key_value_store_t *btkvs;
     public:
         std::string call(std::string key) {
