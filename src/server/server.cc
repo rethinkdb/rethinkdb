@@ -124,7 +124,12 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             handler.parent = &server;
 
             try {
-                conn_acceptor_t conn_acceptor(cmd_config->port, &handler);
+                conn_acceptor_t conn_acceptor(cmd_config->port, &handler, cmd_config->failover_config.run_behind_elb);
+
+                if (cmd_config->failover_config.run_behind_elb) {
+                    guarantee(slave_store, "Trying to run behind elb, without turning on failover (this should be checked in argument sanitization\n");
+                    slave_store->failover.add_callback(&conn_acceptor);
+                }
 
                 logINF("Server is now accepting memcache connections on port %d.\n", cmd_config->port);
 
@@ -138,7 +143,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 logINF("Shutting down... this may take time if there is a lot of unsaved data.\n");
 
             } catch (conn_acceptor_t::address_in_use_exc_t) {
-                logERR("Port %d is already in use -- aborting.\n", cmd_config->port);
+                logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
             }
 
             if (slave_store)

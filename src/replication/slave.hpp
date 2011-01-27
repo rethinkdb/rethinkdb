@@ -32,6 +32,7 @@ friend void run(slave_t *);
 public:
     slave_t(store_t *, replication_config_t, failover_config_t);
     ~slave_t();
+    failover_t failover;
 
 private:
     void kill_conn();
@@ -43,7 +44,6 @@ private:
     failover_config_t failover_config;
     tcp_conn_t *conn;
     message_parser_t parser;
-    failover_t failover;
     bool shutting_down;
 
 public:
