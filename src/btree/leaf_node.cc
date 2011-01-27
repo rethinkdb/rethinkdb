@@ -133,7 +133,7 @@ bool lookup(const leaf_node_t *node, const btree_key *key, btree_value *value) {
 // meets this 1500 lower bound.
 void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key *median_out) {
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
-    const leaf_node_t *rnode = ptr_cast<leaf_node_t>(rnode_buf.get_data_read());
+    const leaf_node_t *rnode __attribute__((unused)) = ptr_cast<leaf_node_t>(rnode_buf.get_data_read());
 
     rassert(node != rnode);
 
