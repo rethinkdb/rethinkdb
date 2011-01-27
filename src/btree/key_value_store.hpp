@@ -100,10 +100,7 @@ private:
             str_to_key(key.c_str(), (store_key_t *) store_key);
             uint32_t hash = btkvs->hash((store_key_t*) store_key), slice = btkvs->slice_num((store_key_t *) store_key);
 
-            char res[200]; /* man would my life be pleasant if I actually knew c++ */
-            snprintf(res, 200, "Hash: %X, Slice: %d\n", hash, slice);
-
-            return std::string(res);
+            return strprintf("Hash: %X, Slice: %d\n", hash, slice);
         }
     };
 

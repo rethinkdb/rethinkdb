@@ -26,7 +26,6 @@ std::string format(T value) {
     return format(value, 8);
 }
 
-
 /* The perfmon (short for "PERFormance MONitor") is responsible for gathering data about
 various parts of the server. */
 

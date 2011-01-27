@@ -132,6 +132,10 @@ unsigned long long strtoull_strict(const char *string, char **end, int base);
     T(const T&);                                \
     void operator=(const T&)
 
+// This is inefficient, it calls vsnprintf twice and copies the
+// arglist and output buffer excessively.
+std::string strprintf(const char *format, ...);
+
 #include "utils2.tcc"
 
 #endif /* __UTILS2_HPP__ */
