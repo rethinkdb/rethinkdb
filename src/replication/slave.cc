@@ -1,7 +1,10 @@
 #include "slave.hpp"
+
 #include <stdint.h>
-#include "net_structs.hpp"
+
 #include "arch/linux/coroutines.hpp"
+#include "logger.hpp"
+#include "net_structs.hpp"
 
 namespace replication {
 
