@@ -79,7 +79,7 @@ private:
 
 private:
     /* slice debug control_t which allows us to grab, slice and hash for a key */
-    struct hash_control_t :
+    class hash_control_t :
         public control_t
     {
     public:
