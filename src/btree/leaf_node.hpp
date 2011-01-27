@@ -66,6 +66,9 @@ namespace leaf {
     const btree_leaf_pair *get_pair(const leaf_node_t *node, uint16_t offset);
     btree_leaf_pair *get_pair(leaf_node_t *node, uint16_t offset);
 
+    const btree_leaf_pair *get_pair_by_index(const leaf_node_t *node, int index);
+    btree_leaf_pair *get_pair_by_index(leaf_node_t *node, int index);
+
     size_t pair_size(const btree_leaf_pair *pair);
     repli_timestamp get_timestamp_value(block_size_t block_size, const leaf_node_t *node, uint16_t offset);
 

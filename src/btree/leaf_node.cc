@@ -130,7 +130,7 @@ void split(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree
     uint16_t first_pairs = 0;
     int index = 0;
     while (first_pairs < total_pairs/2) { // finds the median index
-        first_pairs += pair_size(get_pair(node, node->pair_offsets[index]));
+        first_pairs += pair_size(get_pair_by_index(node, index));
         index++;
     }
 
@@ -156,7 +156,7 @@ void split(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree
 
     // Equality takes the left branch, so the median should be from this node.
     rassert(median_index > 0);
-    const btree_key *median_key = &get_pair(node, node->pair_offsets[median_index-1])->key;
+    const btree_key *median_key = &get_pair_by_index(node, median_index-1)->key;
     keycpy(median_out, median_key);
 }
 
@@ -181,11 +181,11 @@ void merge(block_size_t block_size, const leaf_node_t *node, leaf_node_t *rnode,
     memmove(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
     for (int i = 0; i < node->npairs; i++) {
-        rnode->pair_offsets[i] = impl::insert_pair(rnode, get_pair(node, node->pair_offsets[i]));
+        rnode->pair_offsets[i] = impl::insert_pair(rnode, get_pair_by_index(node, i));
     }
     rnode->npairs += node->npairs;
 
-    keycpy(key_to_remove_out, &get_pair(rnode, rnode->pair_offsets[0])->key);
+    keycpy(key_to_remove_out, &get_pair_by_index(rnode, 0)->key);
 
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
@@ -237,7 +237,7 @@ bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btr
             int adjustment = optimal_adjustment;
             index = -1;
             while (adjustment > 0) {
-                adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[++index]));
+                adjustment -= pair_size(get_pair_by_index(sibling, ++index));
             }
         }
 #else
@@ -263,7 +263,7 @@ bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btr
             int node_npairs = node->npairs;
             node->npairs += index;
             for (int i = 0; i < index; i++) {
-                node->pair_offsets[node_npairs + i] = impl::insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
+                node->pair_offsets[node_npairs + i] = impl::insert_pair(node, get_pair_by_index(sibling, i));
             }
         }
 
@@ -281,8 +281,8 @@ bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btr
         // produces the same effect, later on, as copying
         // node->pair_offsets[node->npairs - index - 1]'s key, or any
         // key in between.  (The latter is the actual key stored in the parent.)
-        keycpy(key_to_replace_out, &get_pair(node, node->pair_offsets[0])->key);
-        keycpy(replacement_key_out, &get_pair(node, node->pair_offsets[node->npairs-1])->key);
+        keycpy(key_to_replace_out, &get_pair_by_index(node, 0)->key);
+        keycpy(replacement_key_out, &get_pair_by_index(node, node->npairs-1)->key);
 
     } else {
 
@@ -293,7 +293,7 @@ bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btr
             int adjustment = optimal_adjustment;
             index = sibling->npairs;
             while (adjustment > 0) {
-                adjustment -= pair_size(get_pair(sibling, sibling->pair_offsets[--index]));
+                adjustment -= pair_size(get_pair_by_index(sibling, --index));
             }
         }
 #else
@@ -320,7 +320,7 @@ bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btr
         memmove(node->pair_offsets + pairs_to_move, node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));
         node->npairs += pairs_to_move;
         for (int i = index; i < sibling->npairs; i++) {
-            node->pair_offsets[i-index] = impl::insert_pair(node, get_pair(sibling, sibling->pair_offsets[i]));
+            node->pair_offsets[i-index] = impl::insert_pair(node, get_pair_by_index(sibling, i));
         }
 
         // This is ~(n^2) when it could be ~(n).  Profile.
@@ -335,8 +335,8 @@ bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btr
         // They are newer than they could be.
         impl::initialize_times(&node->times, repli_max(node->times.last_modified, sibling->times.last_modified));
 
-        keycpy(key_to_replace_out, &get_pair(sibling, sibling->pair_offsets[0])->key);
-        keycpy(replacement_key_out, &get_pair(sibling, sibling->pair_offsets[sibling->npairs-1])->key);
+        keycpy(key_to_replace_out, &get_pair_by_index(sibling, 0)->key);
+        keycpy(replacement_key_out, &get_pair_by_index(sibling, sibling->npairs-1)->key);
     }
 
 #ifdef BTREE_DEBUG
@@ -424,10 +424,18 @@ btree_leaf_pair *get_pair(leaf_node_t *node, uint16_t offset) {
     return ptr_cast<btree_leaf_pair>(ptr_cast<byte>(node) + offset);
 }
 
+const btree_leaf_pair *get_pair_by_index(const leaf_node_t *node, int index) {
+    return get_pair(node, node->pair_offsets[index]);
+}
+
+btree_leaf_pair *get_pair_by_index(leaf_node_t *node, int index) {
+    return get_pair(node, node->pair_offsets[index]);
+}
+
 // Assumes node1 and node2 are not empty.
 int nodecmp(const leaf_node_t *node1, const leaf_node_t *node2) {
-    const btree_key *key1 = &get_pair(node1, node1->pair_offsets[0])->key;
-    const btree_key *key2 = &get_pair(node2, node2->pair_offsets[0])->key;
+    const btree_key *key1 = &get_pair_by_index(node1, 0)->key;
+    const btree_key *key2 = &get_pair_by_index(node2, 0)->key;
 
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
 }
@@ -437,14 +445,14 @@ void print(const leaf_node_t *node) {
     printf("Free space in node: %d\n", freespace);
     printf("\n\n\n");
     for (int i = 0; i < node->npairs; i++) {
-        const btree_leaf_pair *pair = get_pair(node, node->pair_offsets[i]);
+        const btree_leaf_pair *pair = get_pair_by_index(node, i);
         printf("|\t");
         pair->key.print();
     }
     printf("|\n");
     printf("\n\n\n");
     for (int i = 0; i < node->npairs; i++) {
-        const btree_leaf_pair *pair = get_pair(node, node->pair_offsets[i]);
+        const btree_leaf_pair *pair = get_pair_by_index(node, i);
         printf("|\t");
         pair->value()->print();
     }
@@ -517,7 +525,7 @@ int get_offset_index(const leaf_node_t *node, const btree_key *key) {
 // find_key returns the index of the offset for key if it's in the node or -1 if it is not
 int find_key(const leaf_node_t *node, const btree_key *key) {
     int index = get_offset_index(node, key);
-    if (index < node->npairs && impl::is_equal(key, &get_pair(node, node->pair_offsets[index])->key) ) {
+    if (index < node->npairs && impl::is_equal(key, &get_pair_by_index(node, index)->key) ) {
         return index;
     } else {
         return -1;
