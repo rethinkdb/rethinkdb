@@ -14,7 +14,6 @@
 around to do_get(), do_storage(), and the like. */
 
 struct txt_memcached_handler_t {
-
     tcp_conn_t *conn;
     store_t *store;
 
@@ -37,13 +36,16 @@ struct txt_memcached_handler_t {
         } catch (tcp_conn_t::write_closed_exc_t) {
         }
     }
-    void writef(const char *format, ...) {
-        va_list args;
-        va_start(args, format);
+    void vwritef(const char *format, va_list args) {
         char buffer[1000];
         size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
         rassert(bytes < sizeof(buffer));
         write(buffer, bytes);
+    }
+    void writef(const char *format, ...) {
+        va_list args;
+        va_start(args, format);
+        vwritef(format, args);
         va_end(args);
     }
     void write_unbuffered(const char *buffer, size_t bytes) {
@@ -51,6 +53,43 @@ struct txt_memcached_handler_t {
             conn->write(buffer, bytes);
         } catch (tcp_conn_t::write_closed_exc_t) {
         }
+    }
+
+    void error() {
+        writef("ERROR\r\n");
+    }
+    void write_end() {
+        writef("END\r\n");
+    }
+    void client_error(const char *format, ...) {
+        writef("CLIENT_ERROR ");
+        va_list args;
+        va_start(args, format);
+        vwritef(format, args);
+        va_end(args);
+    }
+    void server_error(const char *format, ...) {
+        writef("SERVER_ERROR ");
+        va_list args;
+        va_start(args, format);
+        vwritef(format, args);
+        va_end(args);
+    }
+
+    void client_error_bad_command_line_format() {
+        client_error("bad command line format\r\n");
+    }
+
+    void client_error_bad_data() {
+        client_error("bad data chunk\r\n");
+    }
+
+    void client_error_writing_not_allowed() {
+        client_error("writing not allowed on this store (probably a slave)\r\n");
+    }
+
+    void server_error_object_too_large_for_cache() {
+        server_error("object too large for cache\r\n");
     }
 
     // Used to limit number of concurrent noreply requests
@@ -93,7 +132,6 @@ struct get_t {
 };
 
 void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, cas_generator_t *cas_gen) {
-
     rassert(argc >= 1);
     rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
@@ -105,12 +143,12 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, c
     for (int i = 1; i < argc; i++) {
         gets.push_back(get_t());
         if (!str_to_key(argv[i], &gets.back().key)) {
-            rh->writef("CLIENT_ERROR bad command line format\r\n");
+            rh->client_error_bad_command_line_format();
             return;
         }
     }
     if (gets.size() == 0) {
-        rh->writef("ERROR\r\n");
+        rh->error();
         return;
     }
 
@@ -133,7 +171,6 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, c
 
     /* Handle the results in sequence */
     for (int i = 0; i < (int)gets.size(); i++) {
-
         store_t::get_result_t res = gets[i].result->join();
 
         /* If res.value is NULL that means the value was not found so we don't write
@@ -170,7 +207,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, c
         }
     }
 
-    rh->writef("END\r\n");
+    rh->write_end();
 };
 
 /* "set", "add", "replace", "cas", "append", and "prepend" command logic */
@@ -276,13 +313,13 @@ void run_storage_command(rh_and_cas_gen_t rhcg,
                 case store_t::sr_exists: rh->writef("EXISTS\r\n"); break;
                 case store_t::sr_not_found: rh->writef("NOT_FOUND\r\n"); break;
                 case store_t::sr_too_large:
-                    rh->writef("SERVER_ERROR object too large for cache\r\n");
+                    rh->server_error_object_too_large_for_cache();
                     break;
                 case store_t::sr_data_provider_failed:
                     /* The error message will be written by do_storage() */
                     break;
                 case store_t::sr_not_allowed:
-                    rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
+                    rh->client_error_writing_not_allowed();
                     break;
                 default: unreachable();
             }
@@ -304,13 +341,13 @@ void run_storage_command(rh_and_cas_gen_t rhcg,
                 case store_t::apr_success: rh->writef("STORED\r\n"); break;
                 case store_t::apr_not_found: rh->writef("NOT_FOUND\r\n"); break;
                 case store_t::apr_too_large:
-                    rh->writef("SERVER_ERROR object too large for cache\r\n");
+                    rh->server_error_object_too_large_for_cache();
                     break;
                 case store_t::apr_data_provider_failed:
                     /* The error message will be written by do_storage() */
                     break;
                 case store_t::apr_not_allowed:
-                    rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
+                    rh->client_error_writing_not_allowed();
                     break;
                 default: unreachable();
             }
@@ -325,35 +362,34 @@ void run_storage_command(rh_and_cas_gen_t rhcg,
 }
 
 void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, char **argv, cas_generator_t *cas_gen) {
-
     char *invalid_char;
 
     /* cmd key flags exptime size [noreply]
     OR "cas" key flags exptime size cas [noreply] */
     if ((sc != cas_command && (argc != 5 && argc != 6)) ||
         (sc == cas_command && (argc != 6 && argc != 7))) {
-        rh->writef("ERROR\r\n");
+        rh->error();
         return;
     }
 
     /* First parse the key */
     store_key_and_buffer_t key;
     if (!str_to_key(argv[1], &key.key)) {
-        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        rh->client_error_bad_command_line_format();
         return;
     }
 
     /* Next parse the flags */
     mcflags_t mcflags = strtoul_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
-        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        rh->client_error_bad_command_line_format();
         return;
     }
 
     /* Now parse the expiration time */
     exptime_t exptime = strtoul_strict(argv[3], &invalid_char, 10);
     if (*invalid_char != '\0') {
-        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        rh->client_error_bad_command_line_format();
         return;
     }
     
@@ -376,7 +412,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     size_t value_size = strtoul_strict(argv[4], &invalid_char, 10);
     // Check for signed 32 bit max value for Memcached compatibility...
     if (*invalid_char != '\0' || value_size >= (1u << 31) - 1) {
-        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        rh->client_error_bad_command_line_format();
         return;
     }
 
@@ -385,7 +421,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     if (sc == cas_command) {
         unique = strtoull_strict(argv[5], &invalid_char, 10);
         if (*invalid_char != '\0') {
-            rh->writef("CLIENT_ERROR bad command line format\r\n");
+            rh->client_error_bad_command_line_format();
             return;
         }
     }
@@ -420,13 +456,12 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     bool ok = value_read_promise.wait();
     if (!ok) {
         /* We get here if there was no CRLF */
-        rh->writef("CLIENT_ERROR bad data chunk\r\n");
+        rh->client_error("bad data chunk\r\n");
     }
 }
 
 /* "incr" and "decr" commands */
 void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsigned long long amount, bool incr, cas_generator_t *cas_gen, bool noreply) {
-
     store_t::incr_decr_result_t res = incr ?
         rh->store->incr(&key.key, amount, cas_gen->gen_cas()) :
         rh->store->decr(&key.key, amount, cas_gen->gen_cas());
@@ -440,10 +475,10 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsi
                 rh->writef("NOT_FOUND\r\n");
                 break;
             case store_t::incr_decr_result_t::idr_not_numeric:
-                rh->writef("CLIENT_ERROR cannot increment or decrement non-numeric value\r\n");
+                rh->client_error("cannot increment or decrement non-numeric value\r\n");
                 break;
             case store_t::incr_decr_result_t::idr_not_allowed:
-                rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
+                rh->client_error_writing_not_allowed();
                 break;
             default: unreachable();
         }
@@ -453,17 +488,16 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsi
 }
 
 void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv, cas_generator_t *cas_gen) {
-
     /* cmd key delta [noreply] */
     if (argc != 3 && argc != 4) {
-        rh->writef("ERROR\r\n");
+        rh->error();
         return;
     }
 
     /* Parse key */
     store_key_and_buffer_t key;
     if (!str_to_key(argv[1], &key.key)) {
-        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        rh->client_error_bad_command_line_format();
         return;
     }
 
@@ -471,7 +505,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv, ca
     char *invalid_char;
     unsigned long long delta = strtoull_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
-        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        rh->client_error_bad_command_line_format();
         return;
     }
 
@@ -500,7 +534,6 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv, ca
 /* "delete" commands */
 
 void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool noreply) {
-
     store_t::delete_result_t res = rh->store->delete_key(&key.key);
 
     if (!noreply) {
@@ -512,7 +545,7 @@ void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool no
                 rh->writef("NOT_FOUND\r\n"); 
                 break;
             case store_t::dr_not_allowed: 
-                rh->writef("CLIENT_ERROR writing not allowed on this store (probably a slave)\r\n");
+                rh->client_error_writing_not_allowed();
                 break;
             default: unreachable();
         }
@@ -522,17 +555,16 @@ void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool no
 }
 
 void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
-
     /* "delete" key [a number] ["noreply"] */
     if (argc < 2 || argc > 4) {
-        rh->writef("ERROR\r\n");
+        rh->error();
         return;
     }
 
     /* Parse key */
     store_key_and_buffer_t key;
     if (!str_to_key(argv[1], &key.key)) {
-        rh->writef("CLIENT_ERROR bad command line format\r\n");
+        rh->client_error_bad_command_line_format();
         return;
     }
 
@@ -549,7 +581,8 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
                   || (argc == 4 && (zero && noreply));
 
         if (!valid) {
-            if (!noreply) rh->writef("CLIENT_ERROR bad command line format.  Usage: delete <key> [noreply]\r\n");
+            if (!noreply)
+                rh->client_error_bad_command_line_format();
             return;
         }
     } else {
@@ -569,7 +602,6 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
 /* "stats"/"stat" commands */
 
 void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
-
     perfmon_stats_t stats;
     perfmon_get_stats(&stats);
 
@@ -587,7 +619,7 @@ void do_stats(txt_memcached_handler_t *rh, int argc, char **argv) {
             }
         }
     }
-    rh->writef("END\r\n");
+    rh->write_end();
 };
 
 perfmon_duration_sampler_t
@@ -596,7 +628,6 @@ perfmon_duration_sampler_t
     pm_conns_acting("conns_acting", secs_to_ticks(1));
 
 void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
-
     for (;;) {
         const_charslice sl = conn->peek();
         void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, "\r\n", 2);
@@ -653,10 +684,10 @@ bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
                 uint32_t slice = -1; //rh->store->slice_num(&k);  // TODO fix this.  FIX THIS.
                 rh->writef("%*s: %08lx [%lu]\r\n", k.size, k.contents, hash, slice);
             }
-            rh->writef("END\r\n");
+            rh->write_end();
             return true;
         } catch (std::runtime_error& e) {
-            rh->writef("CLIENT_ERROR bad command line format\r\n");
+            rh->client_error_bad_command_line_format();
             return false;
         }
     } else {
@@ -666,8 +697,7 @@ bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
 #endif
 
 void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) {
-
-    // logINF("Opened connection %p\n", coro_t::self());
+    logDBG("Opened connection %p\n", coro_t::self());
 
     /* Object that we pass around to subroutines (is there a better way to do this?) */
     txt_memcached_handler_t rh(conn, store);
@@ -676,7 +706,6 @@ void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) 
     std::vector<char> line;
 
     while (true) {
-
         /* Flush if necessary (no reason to do this the first time around, but it's easier
         to put it here than after every thing that could need to flush */
         block_pm_duration flush_timer(&pm_conns_writing);
@@ -708,41 +737,41 @@ void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) 
         }
 
         if (args.size() == 0) {
-            rh.writef("ERROR\r\n");
+            rh.error();
             continue;
         }
 
         /* Dispatch to the appropriate subclass */
-        if(!strcmp(args[0], "get")) {    // check for retrieval commands
+        if (!strcmp(args[0], "get")) {    // check for retrieval commands
             do_get(&rh, false, args.size(), args.data(), cas_gen);
-        } else if(!strcmp(args[0], "gets")) {
+        } else if (!strcmp(args[0], "gets")) {
             do_get(&rh, true, args.size(), args.data(), cas_gen);
-        } else if(!strcmp(args[0], "set")) {     // check for storage commands
+        } else if (!strcmp(args[0], "set")) {     // check for storage commands
             do_storage(&rh, set_command, args.size(), args.data(), cas_gen);
-        } else if(!strcmp(args[0], "add")) {
+        } else if (!strcmp(args[0], "add")) {
             do_storage(&rh, add_command, args.size(), args.data(), cas_gen);
-        } else if(!strcmp(args[0], "replace")) {
+        } else if (!strcmp(args[0], "replace")) {
             do_storage(&rh, replace_command, args.size(), args.data(), cas_gen);
-        } else if(!strcmp(args[0], "append")) {
+        } else if (!strcmp(args[0], "append")) {
             do_storage(&rh, append_command, args.size(), args.data(), cas_gen);
-        } else if(!strcmp(args[0], "prepend")) {
+        } else if (!strcmp(args[0], "prepend")) {
             do_storage(&rh, prepend_command, args.size(), args.data(), cas_gen);
-        } else if(!strcmp(args[0], "cas")) {
+        } else if (!strcmp(args[0], "cas")) {
             do_storage(&rh, cas_command, args.size(), args.data(), cas_gen);
-        } else if(!strcmp(args[0], "delete")) {
+        } else if (!strcmp(args[0], "delete")) {
             do_delete(&rh, args.size(), args.data());
-        } else if(!strcmp(args[0], "incr")) {
+        } else if (!strcmp(args[0], "incr")) {
             do_incr_decr(&rh, true, args.size(), args.data(), cas_gen);
-        } else if(!strcmp(args[0], "decr")) {
+        } else if (!strcmp(args[0], "decr")) {
             do_incr_decr(&rh, false, args.size(), args.data(), cas_gen);
-        } else if(!strcmp(args[0], "quit")) {
+        } else if (!strcmp(args[0], "quit")) {
             // Make sure there's no more tokens
             if (args.size() > 1) {
-                rh.writef("ERROR\r\n");
+                rh.error();
             } else {
                 break;
             }
-        } else if(!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
+        } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
             do_stats(&rh, args.size(), args.data());
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
             if (args.size() > 1) {
@@ -755,18 +784,18 @@ void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) 
             } else {
                 rh.writef(control_help().c_str());
             }
-        } else if(!strcmp(args[0], "version")) {
+        } else if (!strcmp(args[0], "version")) {
             if (args.size() == 2) {
                 rh.writef("VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
             } else {
-                rh.writef("ERROR\r\n");
+                rh.error();
             }
 #ifndef NDEBUG
         } else if (!parse_debug_command(&rh, args.size(), args.data())) {
 #else
         } else {
 #endif
-            rh.writef("ERROR\r\n");
+            rh.error();
         }
 
         action_timer.end();
@@ -776,6 +805,6 @@ void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) 
     done by now */
     rh.prevent_shutdown_lock.co_lock(rwi_write);
 
-    // logINF("Closed connection %p\n", coro_t::self());
+    logDBG("Closed connection %p\n", coro_t::self());
 }
 
