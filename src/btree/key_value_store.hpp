@@ -68,7 +68,7 @@ public:
     translator_serializer_t *pseudoserializers[MAX_SLICES];
     btree_slice_t *slices[MAX_SLICES];
 
-    uint32_t slice_nr(const btree_key *key);
+    uint32_t slice_num(const btree_key *key);
     btree_slice_t *slice_for_key(const btree_key *key);
 
     static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
@@ -98,7 +98,7 @@ private:
         std::string call(std::string key) {
             char store_key[MAX_KEY_SIZE+sizeof(store_key_t)];
             str_to_key(key.c_str(), (store_key_t *) store_key);
-            uint32_t hash = btkvs->hash((store_key_t*) store_key), slice = btkvs->slice_nr((store_key_t *) store_key);
+            uint32_t hash = btkvs->hash((store_key_t*) store_key), slice = btkvs->slice_num((store_key_t *) store_key);
 
             char res[200]; /* man would my life be pleasant if I actually knew c++ */
             snprintf(res, 200, "Hash: %X, Slice: %d\n", hash, slice);

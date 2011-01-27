@@ -9,8 +9,6 @@ namespace replication {
 
 enum role_t { master = 0, new_slave = 1, slave = 2 };
 
-// Why are we using crazy encapsulated classes again?  Seriously, maybe we should just use structs.
-
 class hello_message_t {
 public:
     hello_message_t(role_t role_, database_magic_t database_magic_, const char *name_beg_, const char *name_end_)
