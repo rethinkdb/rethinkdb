@@ -13,8 +13,23 @@ bool scc_buf_t<inner_cache_t>::is_dirty() {
 }
 
 template<class inner_cache_t>
-const void *scc_buf_t<inner_cache_t>::get_data_read() {
+const void *scc_buf_t<inner_cache_t>::get_data_read() const {
     return inner_buf->get_data_read();
+}
+
+template<class inner_cache_t>
+void *scc_buf_t<inner_cache_t>::get_data_major_write() {
+    return inner_buf->get_data_major_write();
+}
+
+template<class inner_cache_t>
+void scc_buf_t<inner_cache_t>::set_data(const void* dest, const void* src, const size_t n) {
+    inner_buf->set_data(dest, src, n);
+}
+
+template<class inner_cache_t>
+void scc_buf_t<inner_cache_t>::move_data(const void* dest, const void* src, const size_t n) {
+    inner_buf->move_data(dest, src, n);
 }
 
 template<class inner_cache_t>
@@ -23,8 +38,8 @@ void scc_buf_t<inner_cache_t>::apply_patch(buf_patch_t& patch) {
 }
 
 template<class inner_cache_t>
-void scc_buf_t<inner_cache_t>::apply_and_delete_patch(buf_patch_t& patch) {
-    inner_buf->apply_and_delete_patch(patch);
+patch_counter_t scc_buf_t<inner_cache_t>::get_next_patch_counter() {
+    return inner_buf->get_next_patch_counter();
 }
 
 template<class inner_cache_t>
