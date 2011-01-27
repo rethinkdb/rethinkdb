@@ -16,7 +16,7 @@ lasts for the entire lifetime of the server. */
 class conn_acceptor_t :
     public tcp_listener_callback_t,
     public home_thread_mixin_t,
-    public failover_callback_t
+    public failover_callback_t //TODO this prevents the conn_acceptor from being more general change that (jdoliner)
 {
 public:
 

@@ -24,6 +24,9 @@ rethinkdb \- the database for solid state drives
 [\-\-unsaved\-data\-limit \fImegabytes\fP]
 [\-\-gc\-range \fIlow\fP-\fIhigh\fP]
 [\-\-active\-data\-extents \fIcount\fP]
+[\-\-slave\-of \fIhost\fP:\fIport\fP]
+[\-\-failover\-script \fIpath\fP]
+[\-\-run\-behind\-elb]
 .TP
 \fI\fBrethinkdb\fR create <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
 [<-s | \-\-slices> \fIcount\fP] 
@@ -97,6 +100,19 @@ Serve:
 .B \-l, 
 .B \-\-log\-file
     A file to log to (otherwise messages are logged to stderr.)
+
+.B \-\-slave\-of
+    Act as a slave another RethinkDB server replicating its
+    data and responding to gets. When the master fails the
+    slave will become a full fledged server.
+
+.B \-\-failover\-script
+    Script to be executed when master fails and resumes.
+    See manual for example.
+
+.B \-\-run\-behind\-elb
+    Be compatible with Amazon ELB (with TCP protocol health checks).
+    This will make the slave completely decline connections.
 
 .TP
 Create:
