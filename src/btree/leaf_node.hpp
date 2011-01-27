@@ -31,25 +31,25 @@ bool leaf_pair_fits(const btree_leaf_pair *pair, size_t size);
 class leaf_key_comp;
 
 namespace leaf {
-    void init(block_size_t block_size, leaf_node_t *node, repli_timestamp modification_time);
-    void init(block_size_t block_size, leaf_node_t *node, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp modification_time);
+    void init(block_size_t block_size, buf_t &node_buf, repli_timestamp modification_time);
+    void init(block_size_t block_size, buf_t &node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp modification_time);
 
     bool lookup(const leaf_node_t *node, const btree_key *key, btree_value *value);
 
     // Returns true if insertion was successful.  Returns false if the
     // node was full.  TODO: make sure we always check return value.
-    bool insert(block_size_t block_size, leaf_node_t *node, const btree_key *key, const btree_value *value, repli_timestamp insertion_time);
+    bool insert(block_size_t block_size, buf_t &node_buf, const btree_key *key, const btree_value *value, repli_timestamp insertion_time);
 
     // Assumes key is contained inside the node.
-    void remove(block_size_t block_size, leaf_node_t *node, const btree_key *key);
+    void remove(block_size_t block_size, buf_t &node_buf, const btree_key *key);
 
     // Initializes rnode with the greater half of node, copying the
     // new greatest key of node to median_out.
-    void split(block_size_t block_size, leaf_node_t *node, leaf_node_t *rnode, btree_key *median_out);
+    void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key *median_out);
     // Merges the contents of node onto the front of rnode.
-    void merge(block_size_t block_size, const leaf_node_t *node, leaf_node_t *rnode, btree_key *key_to_remove_out);
+    void merge(block_size_t block_size, const leaf_node_t *node, buf_t &rnode_buf, btree_key *key_to_remove_out);
     // Removes pairs from sibling, adds them to node.
-    bool level(block_size_t block_size, leaf_node_t *node, leaf_node_t *sibling, btree_key *key_to_replace, btree_key *replacement_key);
+    bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_key *key_to_replace, btree_key *replacement_key);
 
 
     bool is_empty(const leaf_node_t *node);
@@ -75,24 +75,24 @@ namespace leaf {
 // We can't use "internal" because that's for internal nodes... So we
 // have to use impl :( I'm sorry.
 namespace impl {
-    void delete_pair(leaf_node_t *node, uint16_t offset);
-    uint16_t insert_pair(leaf_node_t *node, const btree_leaf_pair *pair);
-    uint16_t insert_pair(leaf_node_t *node, const btree_value *value, const btree_key *key);
+    void delete_pair(buf_t &node_buf, uint16_t offset);
+    uint16_t insert_pair(buf_t& node_buf, const btree_leaf_pair *pair);
+    uint16_t insert_pair(buf_t& node_buf, const btree_value *value, const btree_key *key);
     int get_offset_index(const leaf_node_t *node, const btree_key *key);
     int find_key(const leaf_node_t *node, const btree_key *key);
-    void shift_pairs(leaf_node_t *node, uint16_t offset, long shift);
-    void delete_offset(leaf_node_t *node, int index);
-    void insert_offset(leaf_node_t *node, uint16_t offset, int index);
+    void shift_pairs(buf_t &node_buf, uint16_t offset, long shift);
+    void delete_offset(buf_t &node_buf, int index);
+    void insert_offset(buf_t &node_buf, uint16_t offset, int index);
     bool is_equal(const btree_key *key1, const btree_key *key2);
 
-    // Initializes a leaf_timestamps_t.
-    void initialize_times(leaf_timestamps_t *times, repli_timestamp current_time);
+    // Initializes a the leaf_timestamps_t in node_buf
+    void initialize_times(buf_t &node_buf, repli_timestamp current_time);
 
     // Shifts a newer timestamp onto the leaf_timestamps_t, pushing
     // the last one off.
     // TODO: prove that rotate_time and remove_time can handle any return value from get_timestamp_offset
-    void rotate_time(leaf_timestamps_t *times, repli_timestamp latest_time, int prev_timestamp_offset);
-    void remove_time(leaf_timestamps_t *times, int offset);
+    void rotate_time(buf_t &node_buf, repli_timestamp latest_time, int prev_timestamp_offset);
+    void remove_time(buf_t &node_buf, int offset);
 
     // Returns the offset of the timestamp (or -1 or
     // NUM_LEAF_NODE_EARLIER_TIMES) for the key-value pair at the

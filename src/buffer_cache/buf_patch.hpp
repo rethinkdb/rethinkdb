@@ -31,6 +31,7 @@ protected:
 
     static const patch_operation_code_t OPER_FLUSH = 0;
     static const patch_operation_code_t OPER_MEMCPY = 1;
+    static const patch_operation_code_t OPER_MEMMOVE = 2;
 
 private:
     block_id_t block_id;
@@ -65,6 +66,23 @@ protected:
 
 private:
     char* src_buf;
+    size_t dest_offset;
+    size_t n;
+};
+
+class memmove_patch_t : public buf_patch_t {
+public:
+    memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const size_t dest_offset, const size_t src_offset, const size_t n);
+    memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const size_t data_length);
+
+    virtual void apply_to_buf(char* buf_data);
+
+protected:
+    virtual void serialize_data(char* destination) const;
+    virtual size_t get_data_size() const;
+
+private:
+    size_t src_offset;
     size_t dest_offset;
     size_t n;
 };

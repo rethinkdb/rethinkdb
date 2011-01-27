@@ -47,9 +47,15 @@ class scc_buf_t :
 public:
     block_id_t get_block_id();
     bool is_dirty();
-    const void *get_data_read();
-    void apply_patch(buf_patch_t& patch);
-    void apply_and_delete_patch(buf_patch_t& patch);
+    const void *get_data_read() const;
+    // Use this only for writes which affect a large part of the block, as it bypasses the diff system
+    void *get_data_major_write();
+    // Convenience function to set some address in the buffer acquired through get_data_read. (similar to memcpy)
+    void set_data(const void* dest, const void* src, const size_t n);
+    // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
+    void move_data(const void* dest, const void* src, const size_t n);
+    void apply_patch(buf_patch_t& patch); // This might delete the supplied patch, do not use patch after its application
+    patch_counter_t get_next_patch_counter();
     void mark_deleted();
     void release();
 
