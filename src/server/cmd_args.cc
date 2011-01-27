@@ -142,6 +142,7 @@ enum {
     heartbeat_timeout,
     flush_concurrency,
     flush_threshold,
+    run_behind_elb
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -193,6 +194,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"slave_of",             required_argument, 0, slave_of}, //TODO document this @jdoliner
                 {"failover-script",      required_argument, 0, failover_script}, //TODO document this @jdoliner
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO document this @jdoliner
+                {"run-behind-elb",       no_argument, 0, run_behind_elb}, //TODO document this @jdoliner
                 {0, 0, 0, 0}
             };
 
@@ -259,6 +261,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_failover_file(optarg); break;
             case heartbeat_timeout:
                 not_implemented();
+                break;
+            case run_behind_elb:
+                config.failover_config.run_behind_elb = true;
                 break;
             case 'h':
             default:

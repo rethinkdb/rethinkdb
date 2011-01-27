@@ -6,6 +6,7 @@
 #include "perfmon.hpp"
 #include <boost/scoped_ptr.hpp>
 #include "concurrency/rwi_lock.hpp"
+#include "replication/failover.hpp"
 
 /* The conn_acceptor_t is responsible for accepting incoming network connections, creating
 objects to deal with them, and shutting down the network connections when the server
@@ -14,7 +15,8 @@ lasts for the entire lifetime of the server. */
 
 class conn_acceptor_t :
     public tcp_listener_callback_t,
-    public home_thread_mixin_t
+    public home_thread_mixin_t,
+    public failover_callback_t
 {
 public:
 
@@ -39,14 +41,25 @@ public:
         }
     };
 
-    conn_acceptor_t(int port, handler_t *handler);
+    conn_acceptor_t(int port, handler_t *handler, bool);
 
     /* Will make sure all connections are closed before it returns. May block. */
     ~conn_acceptor_t();
 
 private:
+    void make_listener();
+
+private:
+    /* The conn acceptor will be used as a failover_callback_t when we run
+     * behind ELB */
+    friend class failover_t;
+    void on_failure();
+    void on_resume();
+
+private:
     handler_t *handler;
 
+    int port;
     boost::scoped_ptr<tcp_listener_t> listener;
     void on_tcp_listener_accept(tcp_conn_t *conn);
 

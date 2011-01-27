@@ -130,8 +130,13 @@ struct replication_config_t {
 /* Configuration for failover */
 struct failover_config_t {
     char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
-    int     heartbeat_timeout; /* noncommunicative period after which the other server is considered to be unreachable */
+    int     heartbeat_timeout; /* noncommunicative period after which the other server is considered to be unreachable we can maybe take this out TODO @jdoliner */
     bool    active;
+    bool    run_behind_elb;
+
+    failover_config_t()
+        : active(false), run_behind_elb(false)
+    {}
 };
 
 /* All the configuration together */
