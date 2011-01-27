@@ -1,6 +1,5 @@
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
-#include "btree/key_value_store.hpp"
 #include "buffer_cache/transactor.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "concurrency/cond_var.hpp"

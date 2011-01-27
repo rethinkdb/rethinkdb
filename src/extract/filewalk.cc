@@ -4,6 +4,7 @@
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/key_value_store.hpp"
+#include "btree/serializer_config_block.hpp"
 #include "buffer_cache/large_buf.hpp"
 #include "serializer/log/static_header.hpp"
 #include "serializer/log/lba/disk_format.hpp"

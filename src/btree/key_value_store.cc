@@ -1,4 +1,5 @@
-#include "key_value_store.hpp"
+#include "btree/key_value_store.hpp"
+#include "btree/serializer_config_block.hpp"
 #include "db_thread_info.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"

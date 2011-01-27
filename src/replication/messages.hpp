@@ -1,9 +1,8 @@
 #ifndef __REPLICATION_MESSAGES_HPP__
 #define __REPLICATION_MESSAGES_HPP__
 
+#include "btree/serializer_config_block.hpp"
 #include "replication/net_structs.hpp"
-
-#include "btree/key_value_store.hpp"
 #include "replication/value_stream.hpp"
 
 namespace replication {
