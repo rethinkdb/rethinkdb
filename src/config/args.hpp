@@ -59,6 +59,10 @@
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
+
+// Note: cas_generator_t depends on MAX_THREADS being sufficiently
+// small.  We must allow only 4G / MAX_THREADS operations on the
+// connections tied to a given thread.  That's 32 million.
 #define MAX_THREADS                                  128
 
 // Maximum slices total

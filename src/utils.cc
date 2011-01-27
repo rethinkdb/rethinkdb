@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include "arch/arch.hpp"
+#include "db_thread_info.hpp"
 
 void generic_crash_handler(int signum) {
     if (signum == SIGSEGV) {
@@ -175,3 +176,12 @@ std::string format_precise_time(const precise_time_t& time) {
     return std::string(buf);
 }
 
+cas_generator_t::cas_generator_t() : n_threads(get_num_db_threads()) {
+    for (int i = 0; i < n_threads; ++i) {
+        cas_counters[i].counter = i;
+    }
+}
+
+cas_t cas_generator_t::gen_cas() {
+    return (uint64_t(time(NULL)) << 32) | (cas_counters[get_thread_id()].counter += n_threads);
+}

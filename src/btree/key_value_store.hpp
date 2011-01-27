@@ -10,37 +10,10 @@
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "store.hpp"
+#include "control.hpp"
 
 
-#define CONFIG_BLOCK_ID (config_block_id_t::make(0))
 
-// TODO move serializer_config_block_t to separate file
-/* This is the format that block ID 0 on each serializer takes. */
-
-typedef uint32_t database_magic_t;
-
-struct serializer_config_block_t {
-    block_magic_t magic;
-    
-    /* What time the database was created. To help catch the case where files from two
-    databases are mixed. */
-    database_magic_t database_magic;
-    
-    /* How many serializers the database is using (in case user creates the database with
-    some number of serializers and then specifies less than that many on a subsequent
-    run) */
-    int32_t n_files;
-    
-    /* Which serializer this is, in case user specifies serializers in a different order from
-    run to run */
-    int32_t this_serializer;
-    
-    /* Static btree configuration information, like number of slices. Should be the same on
-    each serializer. */
-    btree_config_t btree_config;
-
-    static const block_magic_t expected_magic;
-};
 
 /* btree_key_value_store_t represents a collection of slices, possibly distributed
 across several cores, each of which holds a btree. Together with the btree functions,
@@ -103,6 +76,38 @@ public:
 
 private:
     DISABLE_COPYING(btree_key_value_store_t);
+
+private:
+    /* slice debug control_t which allows us to grab, slice and hash for a key */
+    struct hash_control_t :
+        public control_t
+    {
+    public:
+        hash_control_t(btree_key_value_store_t *btkvs) 
+#ifndef NDEBUG  //No documentation if we're in release mode.
+            : control_t("hash", std::string("Get hash and slice of a key. Syntax: rdb hash: key")), btkvs(btkvs)
+#else
+            : control_t("hash", std::string("")), btkvs(btkvs)
+#endif
+        {}
+        ~hash_control_t() {};
+        
+    private: 
+        btree_key_value_store_t *btkvs;
+    public:
+        std::string call(std::string key) {
+            char store_key[MAX_KEY_SIZE+sizeof(store_key_t)];
+            str_to_key(key.c_str(), (store_key_t *) store_key);
+            uint32_t hash = btkvs->hash((store_key_t*) store_key), slice = btkvs->slice_nr((store_key_t *) store_key);
+
+            char res[200]; /* man would my life be pleasant if I actually knew c++ */
+            snprintf(res, 200, "Hash: %X, Slice: %d\n", hash, slice);
+
+            return std::string(res);
+        }
+    };
+
+    hash_control_t hash_control;
 };
 
 // Stats

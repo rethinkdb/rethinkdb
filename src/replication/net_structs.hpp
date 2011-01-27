@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "btree/key_value_store.hpp"
+#include "btree/serializer_config_block.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 

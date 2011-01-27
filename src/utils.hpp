@@ -132,16 +132,18 @@ template<class obj_t, class arg1_t>
 void do_later(obj_t *obj, bool (obj_t::*later)(arg1_t), arg1_t arg1);
 
 
-class cas_generator_t : private home_thread_mixin_t {
+class cas_generator_t {
 public:
-    cas_generator_t() : cas_counter(0) { }
-    cas_t gen_cas() {
-        assert_thread();
-        return (time(NULL) << 32) | ++cas_counter;
-    }
+    cas_generator_t();
+    cas_t gen_cas();
 private:
+    union {
+        uint32_t counter;
+        void *p;
+    } cas_counters[MAX_THREADS];
+    int n_threads;
+
     DISABLE_COPYING(cas_generator_t);
-    uint32_t cas_counter;
 };
 
 
