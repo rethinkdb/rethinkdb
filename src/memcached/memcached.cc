@@ -212,6 +212,13 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, c
     rh->write_end();
 };
 
+void do_rget(txt_memcached_handler_t *rh, int argc, char **argv, cas_generator_t *cas_gen) {
+    if (argc != 6) {
+        rh->client_error_bad_command_line_format();
+        return;
+    }
+}
+
 /* "set", "add", "replace", "cas", "append", and "prepend" command logic */
 
 /* The memcached_data_provider_t is a data_provider_t that gets its data by
@@ -748,6 +755,8 @@ void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) 
             do_get(&rh, false, args.size(), args.data(), cas_gen);
         } else if (!strcmp(args[0], "gets")) {
             do_get(&rh, true, args.size(), args.data(), cas_gen);
+        } else if (!strcmp(args[0], "rget")) {
+            do_rget(&rh, args.size(), args.data(), cas_gen);
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
             do_storage(&rh, set_command, args.size(), args.data(), cas_gen);
         } else if (!strcmp(args[0], "add")) {
