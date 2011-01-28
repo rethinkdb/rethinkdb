@@ -5,12 +5,15 @@
 
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/transactor.hpp"
+#include "utils.hpp"
 
 // A buf_lock_t acquires and holds a buf_t.  Make sure you call
 // release() as soon as it's feasible to do so.  The destructor will
 // release the buf_t, so don't worry!
 
-class buf_lock_t {
+class buf_lock_t :
+    public home_thread_mixin_t
+{
 public:
     buf_lock_t() : buf_(NULL) { }
 
