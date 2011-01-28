@@ -40,7 +40,7 @@ VALGRIND?=0
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
-UNIT_TESTS?=1
+UNIT_TESTS?=$(DEBUG)
 
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
