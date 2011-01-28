@@ -78,4 +78,35 @@ void unserialize(tcp_conn_t *conn, ip_address_t *addr) {
     conn->read(addr, sizeof(*addr));
 }
 
+/* Serializing and unserializing keys */
+
+void serialize(tcp_conn_t *conn, const store_key_and_buffer_t &key) {
+    conn->write(&key.key.size, sizeof(key.key.size));
+    conn->write(key.key.contents, key.key.size);
+}
+
+void unserialize(tcp_conn_t *conn, store_key_and_buffer_t *key) {
+    conn->read(&key->key.size, sizeof(key->key.size));
+    conn->read(key->key.contents, key->key.size);
+}
+
+/* Serializing and unserializing data_provider_ts */
+
+void serialize(tcp_conn_t *conn, boost::shared_ptr<data_provider_t> data) {
+    int size = data->get_size();
+    conn->write(&size, sizeof(size));
+    const const_buffer_group_t *buffers = data->get_data_as_buffers();
+    for (int i = 0; i < (int)buffers->buffers.size(); i++) {
+        conn->write(buffers->buffers[i].data, buffers->buffers[i].size);
+    }
+}
+
+void unserialize(tcp_conn_t *conn, boost::shared_ptr<data_provider_t> *data) {
+    int size;
+    conn->read(&size, sizeof(size));
+    void *buffer;
+    *data.reset(new buffered_data_provider_t(size, &buffer));
+    conn->read(buffer, size);
+}
+
 #endif /* __CLUSTERING_SERIALIZE_HPP__ */

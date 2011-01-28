@@ -2,7 +2,7 @@
 #include "server/server.hpp"
 #include "fsck/fsck.hpp"
 #include "extract/extract.hpp"
-#include "clustering/cluster.hpp"
+#include "clustering/demo.hpp"
 #include "utils.hpp"
 #include "help.hpp"
 
