@@ -14,7 +14,7 @@
 class buf_lock_t
 {
 public:
-    buf_lock_t() : buf_(NULL), home_thread(get_thread_id()) { }
+    buf_lock_t() : buf_(NULL) { }
 
     // TODO: get rid of the transaction_t version.
     buf_lock_t(transaction_t *tx, block_id_t block_id, access_t mode);
