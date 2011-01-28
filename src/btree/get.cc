@@ -11,7 +11,7 @@
 #include "concurrency/cond_var.hpp"
 
 void co_btree_get(const btree_key *key, btree_slice_t *slice,
-        promise_t<store_t::get_result_t, threadsafe_cond_t> *res) {
+                  promise_t<store_t::get_result_t, threadsafe_cond_t> *res) {
 
     block_pm_duration get_time(&pm_cmd_get);
 

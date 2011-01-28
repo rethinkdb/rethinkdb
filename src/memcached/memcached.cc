@@ -154,11 +154,12 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, c
 
     /* Now that we're sure they're all valid, send off the requests */
     if (with_cas) {
+        repli_timestamp timestamp = current_time();
         for (int i = 0, n = gets.size(); i < n; i++) {
             gets[i].result = task<store_t::get_result_t>(&store_t::get_cas,
                                                          rh->store,
                                                          &gets[i].key,
-                                                         cas_gen->gen_cas());
+                                                         castime_t(cas_gen->gen_cas(), timestamp));
         }
     } else {
         for (int i = 0, n = gets.size(); i < n; i++) {
@@ -294,13 +295,15 @@ void run_storage_command(rh_and_cas_gen_t rhcg,
 
     rh->begin_write_command();
 
+    repli_timestamp timestamp = current_time();
+
     if (sc != append_command && sc != prepend_command) {
         store_t::set_result_t res;
         switch (sc) {
-            case set_command: res = rh->store->set(&key.key, &data, mcflags, exptime, cas_gen->gen_cas()); break;
-            case add_command: res = rh->store->add(&key.key, &data, mcflags, exptime, cas_gen->gen_cas()); break;
-            case replace_command: res = rh->store->replace(&key.key, &data, mcflags, exptime, cas_gen->gen_cas()); break;
-            case cas_command: res = rh->store->cas(&key.key, &data, mcflags, exptime, unique, cas_gen->gen_cas()); break;
+        case set_command: res = rh->store->set(&key.key, &data, mcflags, exptime, castime_t(cas_gen->gen_cas(), timestamp)); break;
+            case add_command: res = rh->store->add(&key.key, &data, mcflags, exptime, castime_t(cas_gen->gen_cas(), timestamp)); break;
+            case replace_command: res = rh->store->replace(&key.key, &data, mcflags, exptime, castime_t(cas_gen->gen_cas(), timestamp)); break;
+            case cas_command: res = rh->store->cas(&key.key, &data, mcflags, exptime, unique, castime_t(cas_gen->gen_cas(), timestamp)); break;
             case append_command:
             case prepend_command:
             default:
@@ -327,8 +330,8 @@ void run_storage_command(rh_and_cas_gen_t rhcg,
     } else {
         store_t::append_prepend_result_t res;
         switch (sc) {
-            case append_command: res = rh->store->append(&key.key, &data, cas_gen->gen_cas()); break;
-            case prepend_command: res = rh->store->prepend(&key.key, &data, cas_gen->gen_cas()); break;
+            case append_command: res = rh->store->append(&key.key, &data, castime_t(cas_gen->gen_cas(), timestamp)); break;
+            case prepend_command: res = rh->store->prepend(&key.key, &data, castime_t(cas_gen->gen_cas(), timestamp)); break;
             case set_command:
             case add_command:
             case replace_command:
@@ -462,9 +465,11 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 
 /* "incr" and "decr" commands */
 void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsigned long long amount, bool incr, cas_generator_t *cas_gen, bool noreply) {
+    repli_timestamp timestamp = current_time();
+
     store_t::incr_decr_result_t res = incr ?
-        rh->store->incr(&key.key, amount, cas_gen->gen_cas()) :
-        rh->store->decr(&key.key, amount, cas_gen->gen_cas());
+        rh->store->incr(&key.key, amount, castime_t(cas_gen->gen_cas(), timestamp)) :
+        rh->store->decr(&key.key, amount, castime_t(cas_gen->gen_cas(), timestamp));
 
     if (!noreply) {
         switch (res.res) {
@@ -534,7 +539,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv, ca
 /* "delete" commands */
 
 void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool noreply) {
-    store_t::delete_result_t res = rh->store->delete_key(&key.key);
+    store_t::delete_result_t res = rh->store->delete_key(&key.key, current_time());
 
     if (!noreply) {
         switch (res) {

@@ -39,6 +39,17 @@ union store_key_and_buffer_t {
     char buffer[sizeof(store_key_t) + MAX_KEY_SIZE];
 };
 
+// A castime_t contains proposed cas information (if it's needed) and
+// timestamp information.  By deciding these now and passing them in
+// at the top, the precise same information gets sent to the replicas.
+struct castime_t {
+    cas_t proposed_cas;
+    repli_timestamp timestamp;
+
+    castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
+        : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
+};
+
 struct store_t {
     /* To get a value from the store, call get() or get_cas(), providing the key you want to get.
     The store will return a get_result_t with either the value or NULL. If it returns a value, you
@@ -58,7 +69,7 @@ struct store_t {
         cas_t cas;
     };
     virtual get_result_t get(store_key_t *key) = 0;
-    virtual get_result_t get_cas(store_key_t *key, cas_t proposed_cas) = 0;
+    virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;
 
     /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
     to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on
@@ -82,10 +93,10 @@ struct store_t {
         sr_not_allowed,
     };
 
-    virtual set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) = 0;
-    virtual set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) = 0;
-    virtual set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) = 0;
-    virtual set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, cas_t proposed_cas) = 0;
+    virtual set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) = 0;
+    virtual set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) = 0;
+    virtual set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) = 0;
+    virtual set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) = 0;
 
     /* To increment or decrement a value, use incr() or decr(). They're pretty straight-forward. */
 
@@ -100,8 +111,8 @@ struct store_t {
         incr_decr_result_t() { }
         incr_decr_result_t(result_t r, unsigned long long n = 0) : res(r), new_value(n) { }
     };
-    virtual incr_decr_result_t incr(store_key_t *key, unsigned long long amount, cas_t proposed_cas) = 0;
-    virtual incr_decr_result_t decr(store_key_t *key, unsigned long long amount, cas_t proposed_cas) = 0;
+    virtual incr_decr_result_t incr(store_key_t *key, unsigned long long amount, castime_t castime) = 0;
+    virtual incr_decr_result_t decr(store_key_t *key, unsigned long long amount, castime_t castime) = 0;
     
     /* To append or prepend a value, use append() or prepend(). */
     
@@ -112,8 +123,8 @@ struct store_t {
         apr_data_provider_failed,
         apr_not_allowed,
     };
-    virtual append_prepend_result_t append(store_key_t *key, data_provider_t *data, cas_t proposed_cas) = 0;
-    virtual append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, cas_t proposed_cas) = 0;
+    virtual append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime) = 0;
+    virtual append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime) = 0;
     
     /* To delete a key-value pair, use delete(). */
     
@@ -123,7 +134,7 @@ struct store_t {
         dr_not_allowed
     };
 
-    virtual delete_result_t delete_key(store_key_t *key) = 0;
+    virtual delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp) = 0;
 
     virtual ~store_t() {}
 };

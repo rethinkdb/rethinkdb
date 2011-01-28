@@ -10,16 +10,16 @@ class masterstore_t {
     // TODO: Make a write-only store interface, a read-only store
     // interface.  Some of these methods get ignored.
 
-    void get_cas(store_key_t *key, cas_t proposed_cas);
+    void get_cas(store_key_t *key, castime_t castime);
 
-    void set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
-    void add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
-    void replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
-    void cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, cas_t proposed_cas);
-    void incr(store_key_t *key, unsigned long long amount, cas_t proposed_cas);
-    void decr(store_key_t *key, unsigned long long amount, cas_t proposed_cas);
-    void append(store_key_t *key, data_provider_t *data, cas_t proposed_cas);
-    void prepend(store_key_t *key, data_provider_t *data, cas_t proposed_cas);
+    void set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    void add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    void replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    void cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
+    void incr(store_key_t *key, unsigned long long amount, castime_t castime);
+    void decr(store_key_t *key, unsigned long long amount, castime_t castime);
+    void append(store_key_t *key, data_provider_t *data, castime_t castime);
+    void prepend(store_key_t *key, data_provider_t *data, castime_t castime);
     void delete_key(store_key_t *key);
 };
 

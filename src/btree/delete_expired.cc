@@ -20,7 +20,7 @@ public:
 
 void co_btree_delete_expired(btree_key *key_copy, btree_slice_t *slice) {
     btree_delete_expired_oper_t oper;
-    run_btree_modify_oper(&oper, slice, key_copy, BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
+    run_btree_modify_oper(&oper, slice, key_copy, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp::invalid));
     free(key_copy);
 }
 

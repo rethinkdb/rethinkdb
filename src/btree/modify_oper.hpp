@@ -48,7 +48,7 @@ public:
 };
 
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const btree_key *key, cas_t proposed_cas);
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const btree_key *key, castime_t castime);
 
 buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size);
 void insert_root(block_id_t root_id, buf_t **sb_buf);

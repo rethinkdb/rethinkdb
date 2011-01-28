@@ -72,15 +72,15 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     };
 };
 
-void co_btree_get_cas(const btree_key *key, cas_t proposed_cas, btree_slice_t *slice,
+void co_btree_get_cas(const btree_key *key, castime_t castime, btree_slice_t *slice,
         promise_t<store_t::get_result_t, threadsafe_cond_t> *res) {
-    btree_get_cas_oper_t oper(proposed_cas, res);
-    run_btree_modify_oper(&oper, slice, key, proposed_cas);
+    btree_get_cas_oper_t oper(castime.proposed_cas, res);
+    run_btree_modify_oper(&oper, slice, key, castime);
 }
 
-store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice, cas_t proposed_cas) {
+store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice, castime_t castime) {
     block_pm_duration get_timer(&pm_cmd_get);
     promise_t<store_t::get_result_t, threadsafe_cond_t> res;
-    coro_t::spawn(co_btree_get_cas, key, proposed_cas, slice, &res);
+    coro_t::spawn(co_btree_get_cas, key, castime, slice, &res);
     return res.wait();
 }
