@@ -26,9 +26,7 @@ public:
 
 class message_parser_t {
 public:
-    message_parser_t() 
-        : shutdown_asked_for(false)
-    {}
+    message_parser_t() : shutdown_asked_for(false) {}
     ~message_parser_t() {}
 
 private:

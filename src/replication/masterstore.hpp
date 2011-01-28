@@ -7,9 +7,6 @@ namespace replication {
 
 class masterstore_t {
 
-    // TODO: Make a write-only store interface, a read-only store
-    // interface.  Some of these methods get ignored.
-
     void get_cas(store_key_t *key, castime_t castime);
 
     void set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);

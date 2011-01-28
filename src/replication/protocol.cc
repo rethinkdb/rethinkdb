@@ -1,4 +1,5 @@
 #include "replication/protocol.hpp"
+#include "containers/thick_list.hpp"
 
 using boost::scoped_ptr;
 
