@@ -664,8 +664,14 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 
 };
 
-#ifndef NDEBUG
+std::string join_strings(std::string separator, std::vector<char*>::iterator begin, std::vector<char*>::iterator end) {
+    std::string res;
+    for (std::vector<char *>::iterator it = begin; it != end; it++)
+        res += separator + std::string(*it); // sigh
+    return res;
+}
 
+#ifndef NDEBUG
 std::vector<store_key_and_buffer_t> key_array_to_keys_vector(int argc, char **argv) {
     std::vector<store_key_and_buffer_t> keys(argc);
     for (int i = 0; i < argc; i++) {
@@ -676,30 +682,20 @@ std::vector<store_key_and_buffer_t> key_array_to_keys_vector(int argc, char **ar
     return keys;
 }
 
-bool parse_debug_command(txt_memcached_handler_t *rh, int argc, char **argv) {
-    if (argc < 1)
+bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
+    if (args.size() < 1)
         return false;
 
-    if (!strcmp(argv[0], ".h") && argc >= 2) {  // .h prints hash and slice of the passed keys
-        try {
-            std::vector<store_key_and_buffer_t> keys = key_array_to_keys_vector(argc-1, argv+1);
-            for (std::vector<store_key_and_buffer_t>::iterator it = keys.begin(); it != keys.end(); ++it) {
-                store_key_t& k = (*it).key;
-                uint32_t hash = 0; // btree_key_value_store_t::hash(&k);
-                uint32_t slice = -1; //rh->store->slice_num(&k);  // TODO fix this.  FIX THIS.
-                rh->writef("%*s: %08lx [%lu]\r\n", k.size, k.contents, hash, slice);
-            }
-            rh->write_end();
-            return true;
-        } catch (std::runtime_error& e) {
-            rh->client_error_bad_command_line_format();
-            return false;
-        }
+    if (!strcmp(args[0], ".h") && args.size() >= 2) {       // .h is an alias for "rdb hash:"
+        std::string cmd = std::string("hash: ");            // It's ugly, but typing that command out in full is just stupid
+        cmd += join_strings(" ", args.begin() + 1, args.end());
+        rh->writef(control_exec(cmd).c_str());
+        return true;
     } else {
         return false;
     }
 }
-#endif
+#endif  // NDEBUG
 
 void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) {
     logDBG("Opened connection %p\n", coro_t::self());
@@ -780,11 +776,7 @@ void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) 
             do_stats(&rh, args.size(), args.data());
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
             if (args.size() > 1) {
-                std::string cl = std::string(args[1]);
-
-                for (std::vector<char *>::iterator it = (args.begin() + 2); it != args.end(); it++)
-                    cl += (std::string(" ") + std::string(*it)); //sigh
-
+                std::string cl = join_strings(" ", args.begin() + 1, args.end());
                 rh.writef(control_exec(cl).c_str());
             } else {
                 rh.writef(control_help().c_str());
@@ -796,7 +788,7 @@ void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) 
                 rh.error();
             }
 #ifndef NDEBUG
-        } else if (!parse_debug_command(&rh, args.size(), args.data())) {
+        } else if (!parse_debug_command(&rh, args)) {
 #else
         } else {
 #endif
