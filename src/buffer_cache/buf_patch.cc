@@ -17,8 +17,6 @@ buf_patch_t* buf_patch_t::load_patch(char* source) {
     source += sizeof(operation_code);
 
     switch (operation_code) {
-        case (OPER_FLUSH):
-            return new flush_patch_t(block_id, patch_counter, source, remaining_length);
         case (OPER_MEMCPY):
             return new memcpy_patch_t(block_id, patch_counter, source, remaining_length);
         case (OPER_MEMMOVE):
@@ -50,21 +48,6 @@ buf_patch_t::buf_patch_t(const block_id_t block_id, const patch_counter_t patch_
             block_id(block_id),
             patch_counter(patch_counter),
             operation_code(operation_code) {
-}
-
-flush_patch_t::flush_patch_t(const block_id_t block_id, const patch_counter_t patch_counter) :
-            buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_FLUSH) {
-}
-flush_patch_t::flush_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const size_t data_length) :
-            buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_FLUSH) {
-    guarantee(data_length == 0);
-}
-
-void flush_patch_t::serialize_data(char* destination) const {
-    // No data for flush patches
-}
-size_t flush_patch_t::get_data_size() const {
-    return 0;
 }
 
 memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const size_t dest_offset, const char *src, const size_t n) :
