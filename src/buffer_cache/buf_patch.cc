@@ -44,6 +44,10 @@ size_t buf_patch_t::get_serialized_size() const {
     return sizeof(size_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(operation_code) + get_data_size();
 }
 
+patch_counter_t buf_patch_t::get_patch_counter() const {
+    return patch_counter;
+}
+
 buf_patch_t::buf_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const patch_operation_code_t operation_code) :
             block_id(block_id),
             patch_counter(patch_counter),

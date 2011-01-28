@@ -20,6 +20,8 @@ public:
     void serialize(char* destination) const;
     size_t get_serialized_size() const;
 
+    patch_counter_t get_patch_counter() const;
+
     // This is used in buf_t
     virtual void apply_to_buf(char* buf_data) = 0;
     
