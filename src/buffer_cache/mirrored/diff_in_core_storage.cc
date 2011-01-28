@@ -23,7 +23,7 @@ void diff_core_storage_t::truncate_applied_patches(const block_id_t block_id, co
 }
 
 // Returns true iff any changes have been made to the buf
-bool diff_core_storage_t::apply_patches(const block_id_t block_id, char* buf_data) const {
+bool diff_core_storage_t::apply_patches(const block_id_t block_id, char *buf_data) const {
     patch_map_t::const_iterator map_entry = patch_map.find(block_id);
     if (map_entry == patch_map.end())
         return false;
@@ -34,6 +34,10 @@ bool diff_core_storage_t::apply_patches(const block_id_t block_id, char* buf_dat
         (*patch)->apply_to_buf(buf_data);
 
     return true;
+}
+
+void diff_core_storage_t::store_patch(const block_id_t block_id, buf_patch_t &patch) {
+    patch_map[block_id].push_back(&patch);
 }
 
 // Return NULL if no patches exist for that block

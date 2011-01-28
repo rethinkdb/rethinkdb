@@ -18,9 +18,9 @@ public:
     void truncate_applied_patches(const block_id_t block_id, const patch_counter_t patch_counter);
 
     // Returns true iff any changes have been made to the buf
-    bool apply_patches(const block_id_t block_id, char* buf_data) const;
+    bool apply_patches(const block_id_t block_id, char *buf_data) const;
 
-    void store_patch(const block_id_t, buf_patch_t* patch);
+    void store_patch(const block_id_t block_id, buf_patch_t &patch);
 
     // Return NULL if no patches exist for that block
     const std::list<buf_patch_t*>* get_patches(const block_id_t block_id) const;

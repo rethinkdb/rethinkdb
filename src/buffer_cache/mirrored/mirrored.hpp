@@ -13,6 +13,7 @@
 #include "server/cmd_args.hpp"
 #include "buffer_cache/stats.hpp"
 #include "buffer_cache/buf_patch.hpp"
+#include "buffer_cache/mirrored/diff_in_core_storage.hpp"
 #include <boost/crc.hpp>
 
 #include "writeback/writeback.hpp"
@@ -58,6 +59,11 @@ class mc_inner_buf_t {
     
     /* true if we are being deleted */
     bool do_delete;
+
+    /* true if we have to flush the block instead of just flushing patches. */
+    /* Specifically, this is the case if we modified the block bypassing the patching system */
+    bool needs_flush;
+    // TODO! Would we like to move this to writeback_buf?
     
     /* true if there is a mc_buf_t that holds a pointer to the data in read-only outdated-OK
     mode. */
@@ -303,6 +309,9 @@ private:
     // Used to keep track of how many transactions there are so that we can wait for transactions to
     // complete before shutting down.
     int num_live_transactions;
+
+private:
+    diff_core_storage_t diff_core_storage;
 };
 
 #endif // __MIRRORED_CACHE_HPP__

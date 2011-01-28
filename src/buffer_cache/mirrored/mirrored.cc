@@ -43,6 +43,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
       data(cache->serializer->malloc()),
       refcount(0),
       do_delete(false),
+      needs_flush(false),
       cow_will_be_needed(false),
       writeback_buf(this),
       page_repl_buf(this),
@@ -166,26 +167,16 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
-
-    bool flush_patches = true; // TODO! (for now we apply the patch instantly and always flush)
-
-    if (inner_buf->writeback_buf.dirty)
-        flush_patches = true; // Never store patches if the block has been set dirty before
-
     rassert(data == inner_buf->data);
 
     patch.apply_to_buf((char*)data);
+    inner_buf->writeback_buf.set_dirty();
 
-    if (flush_patches) {
-        if (!inner_buf->writeback_buf.dirty) {
-            // TODO! Write a flush patch and clear the in-memory patches list (maybe inside of set_dirty() ?)
-            inner_buf->writeback_buf.set_dirty();
-        }
-
+    // Store the patch if the buffer does not have to be flushed anyway
+    if (!inner_buf->needs_flush)
+        inner_buf->cache->diff_core_storage.store_patch(inner_buf->block_id, patch);
+    else
         delete &patch;
-    } else {
-        // TODO!
-    }
 }
 
 void *mc_buf_t::get_data_major_write() {
@@ -195,10 +186,14 @@ void *mc_buf_t::get_data_major_write() {
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
 
-    if (!inner_buf->writeback_buf.dirty) {
-        // TODO! Write a flush patch and clear the in-memory patches list (maybe inside of set_dirty() ?)
-        inner_buf->writeback_buf.set_dirty();
+    if (!inner_buf->needs_flush) {
+        // We bypass the patching system, make sure this buffer gets flushed.
+        inner_buf->needs_flush = true;
+        // ... we can also get rid of existing patches at this point.
+        inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
     }
+
+    inner_buf->writeback_buf.set_dirty();
 
     return data;
 }
