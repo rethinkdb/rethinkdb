@@ -96,13 +96,13 @@ class slice_leaves_iterator_t : public ordered_data_iterator<leaf_iterator_t*> {
     };
 public:
     slice_leaves_iterator_t(transactor_t& transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) : 
-        transactor(transactor), slice(slice), start(start), end(end), left_open(left_open), right_open(right_open), nevermore(false) { }
+        transactor(transactor), slice(slice), start(start), end(end), left_open(left_open), right_open(right_open), started(false), nevermore(false) { }
 
     boost::optional<leaf_iterator_t*> next() {
         if (nevermore)
             return boost::none;
 
-        boost::optional<leaf_iterator_t*> leaf = traversal_state.empty() ? get_first_leaf() : get_next_leaf();
+        boost::optional<leaf_iterator_t*> leaf = !started ? get_first_leaf() : get_next_leaf();
         if (!leaf)
             done();
         return leaf;
@@ -124,6 +124,7 @@ private:
     boost::optional<leaf_iterator_t*> get_first_leaf() {
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
 
+        started = true;
         buf_lock_t *buf_lock = new buf_lock_t(transactor, block_id_t(SUPERBLOCK_ID), rwi_read);
         block_id_t root_id = ptr_cast<btree_superblock_t>(buf_lock->buf()->get_data_read())->root_block;
         rassert(root_id != SUPERBLOCK_ID);
@@ -238,7 +239,8 @@ private:
     bool left_open;
     bool right_open;
     std::list<internal_node_state> traversal_state;
-    bool nevermore;
+    volatile bool started;
+    volatile bool nevermore;
 };
 
 class slice_keys_iterator : public ordered_data_iterator<const btree_leaf_pair*> {
@@ -350,10 +352,42 @@ private:
 };
 
 store_t::rget_result_t btree_rget(btree_key_value_store_t *store, store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {
+    store_t::rget_result_t result;
+    std::vector<transactor_t*> transactors;
+
+    merge_ordered_data_iterator<const btree_leaf_pair*,btree_leaf_pair_less>::mergees_t ms;
     for (int s = 0; s < store->btree_static_config.n_slices; s++) {
-//        coro_t::spawn(btree_rget_slice, start, end, left_open, right_open, max_results);
+        btree_slice_t *slice = store->slices[s];
+        transactor_t *transactor = new transactor_t(&slice->cache, rwi_read);
+        transactors.push_back(transactor);
+        ms.push_back(new slice_keys_iterator(*transactor, slice, start, end, left_open, right_open));
     }
-    return store_t::rget_result_t();
+
+    merge_ordered_data_iterator<const btree_leaf_pair*,btree_leaf_pair_less> merge_iterator(ms);
+    boost::optional<const btree_leaf_pair*> pair;
+    while (pair = merge_iterator.next()) {
+        const btree_leaf_pair * leaf_pair = pair.get();
+
+//        logDBG("pair: %*.*s -> %*.*s\n", leaf_pair->key.size, leaf_pair->key.size, leaf_pair->key.contents, leaf_pair->value()->size, leaf_pair->value()->size, leaf_pair->value()->contents);
+
+        result.results.push_back(std::make_pair(
+            std::string(leaf_pair->key.contents, leaf_pair->key.size),
+            std::string(leaf_pair->value()->contents, leaf_pair->value()->size)
+            ));
+
+//        logDBG("result.size: %lld\n", result.results.size());
+        if (result.results.size() == max_results)
+            break;
+    }
+
+    for (std::vector<transactor_t*>::iterator t = transactors.begin(); t != transactors.end(); t++) {
+        delete *t;
+    }
+
+    for (merge_ordered_data_iterator<const btree_leaf_pair*,btree_leaf_pair_less>::mergees_t::iterator i = ms.begin(); i != ms.end(); i++) {
+        delete *i;
+    }
+    return result;
 }
 
 store_t::rget_result_t btree_rget_slice_iterator(btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {

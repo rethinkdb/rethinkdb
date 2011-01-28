@@ -72,6 +72,7 @@ struct store_t {
     virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;
 
     struct rget_result_t {
+        std::vector<std::pair<std::string,std::string> > results;
     };
     virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results, castime_t castime) = 0;
 

@@ -41,7 +41,7 @@ struct merge_ordered_data_iterator : public ordered_data_iterator<T> {
     typedef std::vector<heap_elem_t> heap_container_t;
 
     merge_ordered_data_iterator(const mergees_t& mergees)
-        : mergees(mergees), next_to_pop_from(NULL), merge_heap(first_not_less<T, mergee_t*>(), heap_container_t()) { }
+        : mergees(mergees), next_to_pop_from(NULL), merge_heap(first_not_less<T, mergee_t*, Cmp>(), heap_container_t()) { }
 
     typename boost::optional<T> next() {
         // if we are getting the first element, we have to request the data from all of the mergees
@@ -76,7 +76,7 @@ struct merge_ordered_data_iterator : public ordered_data_iterator<T> {
 private:
     mergees_t mergees;
     mergee_t *next_to_pop_from;
-    typename std::priority_queue<heap_elem_t, heap_container_t, first_not_less<T, mergee_t*> > merge_heap;
+    typename std::priority_queue<heap_elem_t, heap_container_t, first_not_less<T, mergee_t*, Cmp> > merge_heap;
 
 };
 

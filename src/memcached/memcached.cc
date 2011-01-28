@@ -30,6 +30,10 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
 
     /* Wrappers around conn->write*() that ignore write errors, because we want to continue
     processing requests even if the client is no longer listening for replies */
+    void write(const std::string& buffer) {
+        write(buffer.c_str(), buffer.length());
+    }
+
     void write(const char *buffer, size_t bytes) {
         try {
             ensure_thread();
@@ -259,10 +263,14 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv, cas_generator_t
         max_items);
 
     repli_timestamp timestamp = current_time();
+    store_t::rget_result_t result = rh->store->rget(&start.key, &end.key, left_open, right_open, max_items, castime_t(cas_gen->gen_cas(), timestamp));
+    for (std::vector<std::pair<std::string,std::string> >::iterator it = result.results.begin(); it != result.results.end(); it++) {
+        std::string key = (*it).first;
+        std::string value = (*it).second;
 
-    task_t<store_t::rget_result_t> *result = task<store_t::rget_result_t>(&store_t::rget, rh->store,
-        &start.key, &end.key, left_open, right_open, max_items, castime_t(cas_gen->gen_cas(), timestamp));
-    (void) result;
+        rh->writef("VALUE %*.*s 0 %*.*s\r\n", key.length(), key.length(), key.c_str(), value.length(), value.length(), value.c_str());
+    }
+    rh->write_end();
 }
 
 /* "set", "add", "replace", "cas", "append", and "prepend" command logic */
@@ -743,7 +751,7 @@ bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
     if (!strcmp(args[0], ".h") && args.size() >= 2) {       // .h is an alias for "rdb hash:"
         std::string cmd = std::string("hash: ");            // It's ugly, but typing that command out in full is just stupid
         cmd += join_strings(" ", args.begin() + 1, args.end());
-        rh->writef(control_exec(cmd).c_str());
+        rh->write(control_exec(cmd));
         return true;
     } else {
         return false;
@@ -833,9 +841,9 @@ void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) 
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
             if (args.size() > 1) {
                 std::string cl = join_strings(" ", args.begin() + 1, args.end());
-                rh.writef(control_exec(cl).c_str());
+                rh.write(control_exec(cl));
             } else {
-                rh.writef(control_help().c_str());
+                rh.write(control_help());
             }
         } else if (!strcmp(args[0], "version")) {
             if (args.size() == 2) {
