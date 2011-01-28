@@ -85,7 +85,7 @@ private:
     public:
         hash_control_t(btree_key_value_store_t *btkvs)
 #ifndef NDEBUG  //No documentation if we're in release mode.
-            : control_t("hash", std::string("Get hash and slice of a key. Syntax: rdb hash: key")), btkvs(btkvs)
+            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash: key")), btkvs(btkvs)
 #else
             : control_t("hash", std::string("")), btkvs(btkvs)
 #endif
@@ -95,12 +95,24 @@ private:
     private:
         btree_key_value_store_t *btkvs;
     public:
-        std::string call(std::string key) {
-            char store_key[MAX_KEY_SIZE+sizeof(store_key_t)];
-            str_to_key(key.c_str(), (store_key_t *) store_key);
-            uint32_t hash = btkvs->hash((store_key_t*) store_key), slice = btkvs->slice_num((store_key_t *) store_key);
+        std::string call(std::string keys) {
+            std::string result;
+            std::stringstream str(keys);
 
-            return strprintf("Hash: %X, Slice: %d\n", hash, slice);
+            while (!str.eof()) {
+                std::string key;
+                str >> key;
+
+                char store_key[MAX_KEY_SIZE+sizeof(store_key_t)];
+                str_to_key(key.c_str(), (store_key_t *) store_key);
+
+                uint32_t hash = btkvs->hash((store_key_t*) store_key);
+                uint32_t slice = btkvs->slice_num((store_key_t *) store_key);
+                uint32_t thread = btkvs->slice_for_key((store_key_t *) store_key)->home_thread;
+
+                result += strprintf("%*s: %08lx [slice: %03lu, thread: %03lu]\r\n", key.length(), key.c_str(), hash, slice, thread);
+            }
+            return result;
         }
     };
 
