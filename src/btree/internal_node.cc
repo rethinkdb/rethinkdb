@@ -442,6 +442,7 @@ void delete_pair(buf_t &node_buf, uint16_t offset) {
     uint16_t frontmost_offset = node->frontmost_offset + shift;
     node_buf.set_data(&node->frontmost_offset, &frontmost_offset, sizeof(frontmost_offset));
     uint16_t* new_pair_offsets = new uint16_t[node->npairs];
+    memcpy(new_pair_offsets, node->pair_offsets, sizeof(uint16_t) * node->npairs);
     for (int i = 0; i < node->npairs; i++) {
         if (new_pair_offsets[i] < offset)
             new_pair_offsets[i] += shift;

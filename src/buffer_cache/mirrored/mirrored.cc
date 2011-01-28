@@ -173,7 +173,8 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
         flush_patches = true; // Never store patches if the block has been set dirty before
 
     rassert(data == inner_buf->data);
-    patch.apply_to_buf((char*)data); // TODO! should be a private function, with buf_t being a friend class of buf_patch_t
+
+    patch.apply_to_buf((char*)data);
 
     if (flush_patches) {
         if (!inner_buf->writeback_buf.dirty) {
@@ -209,18 +210,18 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
 
 void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
     rassert(data == inner_buf->data);
-    rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().value());
-    rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().value());
+    rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
+    rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     size_t offset = (const char*)dest - (const char*)data;
     apply_patch(*(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, (const char*)src, n)));
 }
 
 void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     rassert(data == inner_buf->data);
-    rassert(dest >= data && dest < (const char*)data + inner_buf->cache->serializer->get_block_size().value());
-    rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().value());
-    rassert(src >= data && src < (const char*)data + inner_buf->cache->serializer->get_block_size().value());
-    rassert((const char*)src + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().value());
+    rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
+    rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
+    rassert(src >= data && src < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
+    rassert((const char*)src + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     size_t dest_offset = (const char*)dest - (const char*)data;
     size_t src_offset = (const char*)src - (const char*)data;
     apply_patch(*(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n)));
