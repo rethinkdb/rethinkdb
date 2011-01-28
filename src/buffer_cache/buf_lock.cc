@@ -13,12 +13,12 @@ void buf_lock_t::allocate(transactor_t& txor) {
 }
 
 buf_lock_t::~buf_lock_t() {
-    on_thread_t thread_switch(home_thread);
     release_if_acquired();
 }
 
 void buf_lock_t::release() {
     guarantee(buf_ != NULL);
+    on_thread_t thread_switcher(home_thread);
     buf_->release();
     buf_ = NULL;
 }
