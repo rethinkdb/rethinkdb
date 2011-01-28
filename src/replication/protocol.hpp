@@ -4,6 +4,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "arch/arch.hpp"
+#include "containers/thick_list.hpp"
 #include "replication/messages.hpp"
 
 namespace replication {
@@ -47,7 +48,7 @@ private:
 
 private:
     void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
-    void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams);
+    void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, thick_list<value_stream_t *, uint32_t>& streams);
 
 };
 }  // namespace replication

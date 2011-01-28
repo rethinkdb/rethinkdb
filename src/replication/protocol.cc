@@ -1,5 +1,4 @@
 #include "replication/protocol.hpp"
-#include "containers/thick_list.hpp"
 
 using boost::scoped_ptr;
 
@@ -146,7 +145,7 @@ void send_conn_and_popslice_to_stream(tcp_conn_t *conn, value_stream_t *stream, 
 }
 
 template <class message_type>
-bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, const_charslice sl, std::vector<value_stream_t *>& streams) {
+bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, const_charslice sl, thick_list<value_stream_t *, uint32_t>& streams) {
     typedef typename message_type::first_struct_type first_struct_type;
     ssize_t sz = fitsize<first_struct_type>(sl);
     if (sz == -1) {
@@ -154,32 +153,20 @@ bool parse_and_stream(tcp_conn_t *conn, message_callback_t *receiver, const_char
     }
     const first_struct_type *p = reinterpret_cast<const first_struct_type *>(sl.beg);
 
-    int32_t stream_identifier = p->op_header.identifier;
-    value_stream_t *stream;
-    if (0 <= stream_identifier) {
-        if (size_t(stream_identifier) < streams.size()) {
-            if (streams[stream_identifier] != NULL) {
-                throw protocol_exc_t("reused live stream identifier");
-            }
-            stream = new value_stream_t();
-            streams[stream_identifier] = stream;
-        } else if (size_t(stream_identifier) == streams.size()) {
-            stream = new value_stream_t();
-            streams.push_back(stream);
-        } else {
-            throw protocol_exc_t("stream identifier too big");
-        }
-    } else {
-        throw protocol_exc_t("negative stream identifier");
+    uint32_t stream_identifier = p->op_header.identifier;
+
+
+    value_stream_t *stream = new value_stream_t();
+    if (!streams.add(stream_identifier, stream)) {
+        throw protocol_exc_t("bad stream identifier");
     }
 
-    streams.push_back(stream);
     send_conn_and_popslice_to_stream(conn, stream, sl, sz, p->op_header.header.size);
 
     return true;
 }
 
-void message_parser_t::do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, std::vector<value_stream_t *>& streams) {
+void message_parser_t::do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, thick_list<value_stream_t *, uint32_t>& streams) {
 
     keep_going = true;
     while (keep_going) {
@@ -226,11 +213,13 @@ void message_parser_t::do_parse_normal_message(tcp_conn_t *conn, message_callbac
                     const net_large_operation_middle_t *middle
                         = reinterpret_cast<const net_large_operation_middle_t *>(sl.beg);
 
-                    int32_t stream_identifier = middle->identifier;
+                    uint32_t stream_identifier = middle->identifier;
                     ssize_t packet_size = middle->header.size;
 
-                    if (0 <= stream_identifier && uint32_t(stream_identifier) < streams.size() && streams[stream_identifier] != NULL) {
-                        send_conn_and_popslice_to_stream(conn, streams[stream_identifier], sl, sizeof(net_large_operation_middle_t), packet_size);
+                    value_stream_t *stream = streams[stream_identifier];
+
+                    if (stream != NULL) {
+                        send_conn_and_popslice_to_stream(conn, stream, sl, sizeof(net_large_operation_middle_t), packet_size);
                     } else {
                         throw protocol_exc_t("negative stream identifier");
                     }
@@ -245,17 +234,18 @@ void message_parser_t::do_parse_normal_message(tcp_conn_t *conn, message_callbac
                     const net_large_operation_middle_t *middle
                         = reinterpret_cast<const net_large_operation_middle_t *>(sl.beg);
 
-                    int32_t stream_identifier = middle->identifier;
+                    uint32_t stream_identifier = middle->identifier;
                     ssize_t packet_size = middle->header.size;
 
-                    if (0 <= stream_identifier && uint32_t(stream_identifier) < streams.size() && streams[stream_identifier] != NULL) {
+                    value_stream_t *stream = streams[stream_identifier];
+                    if (stream != NULL) {
                         send_conn_and_popslice_to_stream(conn, streams[stream_identifier], sl, sizeof(net_large_operation_middle_t), packet_size);
                     } else {
                         throw protocol_exc_t("negative stream identifier");
                     }
 
                     streams[stream_identifier]->shutdown_write();
-                    streams[stream_identifier] = NULL;
+                    streams.drop(stream_identifier);
                 }
 
 
@@ -275,8 +265,8 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
     try {
         do_parse_hello_message(conn, receiver);
 
-        std::vector<value_stream_t *> placeholder;
-        do_parse_normal_message(conn, receiver, placeholder);
+        thick_list<value_stream_t *, uint32_t> streams;
+        do_parse_normal_message(conn, receiver, streams);
     } catch (tcp_conn_t::read_closed_exc_t& e) {
         if (!shutdown_asked_for)
             receiver->conn_closed();
