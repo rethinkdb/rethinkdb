@@ -66,6 +66,9 @@ namespace leaf {
     const btree_leaf_pair *get_pair(const leaf_node_t *node, uint16_t offset);
     btree_leaf_pair *get_pair(leaf_node_t *node, uint16_t offset);
 
+    const btree_leaf_pair *get_pair_by_index(const leaf_node_t *node, int index);
+    btree_leaf_pair *get_pair_by_index(leaf_node_t *node, int index);
+
     size_t pair_size(const btree_leaf_pair *pair);
     repli_timestamp get_timestamp_value(block_size_t block_size, const leaf_node_t *node, uint16_t offset);
 
@@ -111,12 +114,27 @@ public:
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
         const btree_key *key1 = offset1 == faux_offset ? key : &leaf::get_pair(node, offset1)->key;
         const btree_key *key2 = offset2 == faux_offset ? key : &leaf::get_pair(node, offset2)->key;
-        int cmp = leaf_key_comp::compare(key1, key2);
 
-        return cmp < 0;
+        return leaf_key_comp::less(key1, key2);
     }
     static int compare(const btree_key *key1, const btree_key *key2) {
         return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
+    }
+    static bool less(const btree_key *key1, const btree_key *key2) {
+        return compare(key1, key2) < 0;
+    }
+};
+
+struct btree_leaf_key_less {
+    bool operator()(const btree_key *key1, const btree_key *key2) {
+        return leaf_key_comp::less(key1, key2);
+    }
+};
+
+// this one ignores the value, doing less only on the key
+struct btree_leaf_pair_less {
+    bool operator()(const btree_leaf_pair *leaf_pair1, const btree_leaf_pair *leaf_pair2) {
+        return leaf_key_comp::less(&leaf_pair1->key, &leaf_pair2->key);
     }
 };
 

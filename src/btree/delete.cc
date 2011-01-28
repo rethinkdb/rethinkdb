@@ -18,8 +18,8 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
     }
 };
 
-store_t::delete_result_t btree_delete(const btree_key *key, btree_slice_t *slice) {
+store_t::delete_result_t btree_delete(const btree_key *key, btree_slice_t *slice, repli_timestamp timestamp) {
     btree_delete_oper_t oper;
-    run_btree_modify_oper(&oper, slice, key);
+    run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, timestamp));
     return oper.result;
 }

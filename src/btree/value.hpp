@@ -20,7 +20,6 @@ enum metadata_flags_enum_t {
 };
 
 typedef uint32_t mcflags_t;
-typedef uint64_t cas_t;
 // TODO: We assume that time_t can be converted to an exptime_t,
 // which is 32 bits.  We may run into problems in 2038 or 2106, or
 // 68 years from the creation of the database, or something, if we

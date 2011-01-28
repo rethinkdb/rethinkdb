@@ -1,4 +1,5 @@
-#include "key_value_store.hpp"
+#include "btree/key_value_store.hpp"
+#include "btree/serializer_config_block.hpp"
 #include "db_thread_info.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
@@ -215,6 +216,7 @@ void btree_key_value_store_t::create(
 
 btree_key_value_store_t::btree_key_value_store_t(
         btree_key_value_store_dynamic_config_t *dynamic_config)
+            : hash_control(this)
 {
     /* Start serializers */
     n_files = dynamic_config->serializer_private.size();
@@ -341,12 +343,12 @@ uint32_t btree_key_value_store_t::hash(const btree_key *key) {
     return hash;
 }
 
-uint32_t btree_key_value_store_t::slice_nr(const btree_key *key) {
+uint32_t btree_key_value_store_t::slice_num(const btree_key *key) {
     return hash(key) % btree_static_config.n_slices;
 }
 
 btree_slice_t *btree_key_value_store_t::slice_for_key(const btree_key *key) {
-    return slices[slice_nr(key)];
+    return slices[slice_num(key)];
 }
 
 /* store_t interface */
@@ -355,48 +357,44 @@ store_t::get_result_t btree_key_value_store_t::get(store_key_t *key) {
     return slice_for_key(key)->get(key);
 }
 
-store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key) {
-    return slice_for_key(key)->get_cas(key);
+store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime_t castime) {
+    return slice_for_key(key)->get_cas(key, castime);
 }
 
-store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    return slice_for_key(key)->set(key, data, flags, exptime);
+store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    return slice_for_key(key)->set(key, data, flags, exptime, castime);
 }
 
-store_t::set_result_t btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    return slice_for_key(key)->add(key, data, flags, exptime);
+store_t::set_result_t btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    return slice_for_key(key)->add(key, data, flags, exptime, castime);
 }
 
-store_t::set_result_t btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) {
-    return slice_for_key(key)->replace(key, data, flags, exptime);
+store_t::set_result_t btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    return slice_for_key(key)->replace(key, data, flags, exptime, castime);
 }
 
-store_t::set_result_t btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique) {
-    return slice_for_key(key)->cas(key, data, flags, exptime, unique);
+store_t::set_result_t btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
+    return slice_for_key(key)->cas(key, data, flags, exptime, unique, castime);
 }
 
-store_t::incr_decr_result_t btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount) {
-    return slice_for_key(key)->incr(key, amount);
+store_t::incr_decr_result_t btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount, castime_t castime) {
+    return slice_for_key(key)->incr(key, amount, castime);
 }
 
-store_t::incr_decr_result_t btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount) {
-    return slice_for_key(key)->decr(key, amount);
+store_t::incr_decr_result_t btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount, castime_t castime) {
+    return slice_for_key(key)->decr(key, amount, castime);
 }
 
-store_t::append_prepend_result_t btree_key_value_store_t::append(store_key_t *key, data_provider_t *data) {
-    return slice_for_key(key)->append(key, data);
+store_t::append_prepend_result_t btree_key_value_store_t::append(store_key_t *key, data_provider_t *data, castime_t castime) {
+    return slice_for_key(key)->append(key, data, castime);
 }
 
-store_t::append_prepend_result_t btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data) {
-    return slice_for_key(key)->prepend(key, data);
+store_t::append_prepend_result_t btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data, castime_t castime) {
+    return slice_for_key(key)->prepend(key, data, castime);
 }
 
-store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key) {
-    return slice_for_key(key)->delete_key(key);
-}
-
-store_t::failover_reset_result_t btree_key_value_store_t::failover_reset() {
-    return store_t::frr_not_allowed; //No failover to reset on a btree_key_value_store
+store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
+    return slice_for_key(key)->delete_key(key, timestamp);
 }
 
 // Stats

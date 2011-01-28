@@ -13,6 +13,7 @@
 #include "errors.hpp"
 #include "arch/arch.hpp"
 #include "utils2.hpp"
+#include <string>
 
 // Precise time (time+nanoseconds) for logging, etc.
 struct precise_time_t : public tm {
@@ -60,6 +61,8 @@ template <int _size>
 struct buffer_t : public buffer_base_t<_size>
 {
 };
+
+std::string strip_spaces(std::string); 
 
 /* The home thread mixin is a simple mixin for objects that are primarily associated with
 a single thread. It just keeps track of the thread that the object was created on and
@@ -127,6 +130,22 @@ void do_later(obj_t *obj, bool (obj_t::*later)());
 
 template<class obj_t, class arg1_t>
 void do_later(obj_t *obj, bool (obj_t::*later)(arg1_t), arg1_t arg1);
+
+
+class cas_generator_t {
+public:
+    cas_generator_t();
+    cas_t gen_cas();
+private:
+    union {
+        uint32_t counter;
+        void *p;
+    } cas_counters[MAX_THREADS];
+    int n_threads;
+
+    DISABLE_COPYING(cas_generator_t);
+};
+
 
 #include "utils.tcc"
 

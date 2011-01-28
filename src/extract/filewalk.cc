@@ -4,6 +4,7 @@
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/key_value_store.hpp"
+#include "btree/serializer_config_block.hpp"
 #include "buffer_cache/large_buf.hpp"
 #include "serializer/log/static_header.hpp"
 #include "serializer/log/lba/disk_format.hpp"
@@ -109,7 +110,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
         logERR("Errors occurred in the configuration.\n");
         return;
     }
- 
+
     // 1.  Pass 1.  Find the blocks' offsets.
     block_registry registry;
     observe_blocks(registry, file, cfg, filesize);
@@ -130,13 +131,13 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
                 "  Use --force-slice-count to override.\n",
                  CONFIG_BLOCK_ID, n);
         }
-        
+
         off64_t off = offsets[CONFIG_BLOCK_ID.ser_id.value];
 
         block serblock;
         serblock.init(cfg.block_size(), &file, off, CONFIG_BLOCK_ID.ser_id);
         serializer_config_block_t *serbuf = (serializer_config_block_t *)serblock.buf;
-       
+
 
         if (!check_magic<serializer_config_block_t>(serbuf->magic)) {
             logERR("Config block has invalid magic (offset = %lu, magic = %.*s)\n",
@@ -148,11 +149,11 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
             cfg.mod_count = btree_key_value_store_t::compute_mod_count(serbuf->this_serializer, serbuf->n_files, serbuf->btree_config.n_slices);
         }
     }
-    
+
     logINF("Finished reading block ids, retrieving key-value pairs (n=%u).\n", n);
     get_all_values(dumper, offsets, file, cfg, filesize);
     logINF("Finished retrieving key-value pairs.\n");
-    
+
 }
 
 bool check_all_known_magic(block_magic_t magic) {
@@ -204,7 +205,7 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
                     for (int j = 0; j < num_pairs; ++j) {
                         uint16_t pair_offset = leaf->pair_offsets[j];
                         if (pair_offset >= pair_offsets_back_offset && pair_offset <= cfg.block_size().value()) {
-                            const btree_leaf_pair *pair = leaf::get_pair(leaf, leaf->pair_offsets[j]);
+                            const btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
                             dump_pair_value(dumper, file, cfg, offsets, pair, block_id, cfg.block_size().value() - pair_offset);
                         }
                     }

@@ -1,8 +1,13 @@
 #include "utils2.hpp"
-#include "arch/arch.hpp"
+
 #include <unistd.h>
-#include <stdlib.h>
 #include <limits.h>
+#include <stdlib.h>
+
+#include <boost/scoped_array.hpp>
+
+
+#include "arch/arch.hpp"
 
 /* System configuration*/
 int get_cpu_count() {
@@ -147,4 +152,34 @@ float ticks_to_ms(ticks_t ticks) {
 
 float ticks_to_us(ticks_t ticks) {
     return ticks / 1000.0f;
+}
+
+std::string strprintf(const char *format, ...) {
+    va_list ap;
+
+    boost::scoped_array<char> arr;
+
+    va_start(ap, format);
+    va_list aq;
+    va_copy(aq, ap);
+
+
+    // the snprintfs return the number of characters they _would_ have
+    // written, not including the '\0', so we use that number to
+    // allocate an appropriately sized array.
+    char buf[1];
+    int size = vsnprintf(buf, sizeof(buf), format, ap);
+
+    guarantee_err(size >= 0, "vsnprintf failed, bad format string?");
+
+    arr.reset(new char[size + 1]);
+
+    int newsize = vsnprintf(arr.get(), size + 1, format, aq);
+    (void)newsize;
+    assert(newsize == size);
+
+    va_end(aq);
+    va_end(ap);
+
+    return std::string(arr.get(), arr.get() + size);
 }

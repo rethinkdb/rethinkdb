@@ -5,6 +5,7 @@
 #include "clustering/demo.hpp"
 #include "utils.hpp"
 #include "help.hpp"
+#include "control.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION

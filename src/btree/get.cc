@@ -11,12 +11,12 @@
 #include "concurrency/cond_var.hpp"
 
 void co_btree_get(const btree_key *key, btree_slice_t *slice,
-        promise_t<store_t::get_result_t, threadsafe_cond_t> *res) {
+                  promise_t<store_t::get_result_t, threadsafe_cond_t> *res) {
 
     block_pm_duration get_time(&pm_cmd_get);
 
-    /* We never switch back; we send the result back via 'res' */
-    coro_t::move_to_thread(slice->home_thread);
+    /* In theory moving back might not be necessary, but not doing it causes problems right now. */
+    on_thread_t mover(slice->home_thread);
 
     block_pm_duration get_time_2(&pm_cmd_get_without_threads);
 

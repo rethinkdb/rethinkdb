@@ -151,7 +151,7 @@ void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t&
 }
 
 // Get a root block given a superblock, or make a new root if there isn't one.
-void get_root(transactor_t& txor, buf_lock_t& sb_buf, block_size_t block_size, buf_lock_t *buf_out) {
+void get_root(transactor_t& txor, buf_lock_t& sb_buf, block_size_t block_size, buf_lock_t *buf_out, repli_timestamp timestamp) {
     rassert(!buf_out->is_acquired());
 
     block_id_t node_id = reinterpret_cast<const btree_superblock_t*>(sb_buf.buf()->get_data_read())->root_block;
@@ -161,14 +161,14 @@ void get_root(transactor_t& txor, buf_lock_t& sb_buf, block_size_t block_size, b
         buf_out->swap(tmp);
     } else {
         buf_out->allocate(txor);
-        leaf::init(block_size, ptr_cast<leaf_node_t>(buf_out->buf()->get_data_write()), current_time());
+        leaf::init(block_size, ptr_cast<leaf_node_t>(buf_out->buf()->get_data_write()), timestamp);
         insert_root(buf_out->buf()->get_block_id(), sb_buf);
         pm_btree_depth++;
     }
 }
 
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const btree_key *key) {
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const btree_key *key, castime_t castime) {
     union {
         byte old_value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value old_value;
@@ -185,7 +185,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         buf_lock_t sb_buf(txor, SUPERBLOCK_ID, rwi_write);
         buf_lock_t last_buf;
         buf_lock_t buf;
-        get_root(txor, sb_buf, block_size, &buf);
+        get_root(txor, sb_buf, block_size, &buf, castime.timestamp);
 
         // Walk down the tree to the leaf.
         while (node::is_internal(ptr_cast<node_t>(buf.buf()->get_data_read()))) {
@@ -273,10 +273,11 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
                 // Add a CAS to the value if necessary (this won't change its size).
                 if (new_value->has_cas() && !oper->cas_already_set) {
-                    new_value->set_cas(slice->gen_cas());
+                    rassert(castime.proposed_cas != BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
+                    new_value->set_cas(castime.proposed_cas);
                 }
 
-                repli_timestamp new_value_timestamp = current_time(); // TODO: When the replication code is put back in this'll probably need to be changed.
+                repli_timestamp new_value_timestamp = castime.timestamp;
 
                 bool success = leaf::insert(block_size, ptr_cast<leaf_node_t>(buf.buf()->get_data_write()), key, new_value, new_value_timestamp);
                 guarantee(success, "could not insert leaf btree node");

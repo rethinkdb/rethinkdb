@@ -58,36 +58,34 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 
             value.value_size(data->get_size());
 
-            large_buf_t *large_value;   // May be NULL
+            large_buf_lock_t large_buflock;
             buffer_group_t buffer_group;
 
             rassert(data->get_size() <= MAX_VALUE_SIZE);
             if (data->get_size() <= MAX_IN_NODE_VALUE_SIZE) {
-                large_value = NULL;
                 buffer_group.add_buffer(data->get_size(), value.value());
                 data->get_data_into_buffers(&buffer_group);
             } else {
-                large_value = new large_buf_t(txn);
-                large_value->allocate(data->get_size(), value.large_buf_ref_ptr());
-                for (int64_t i = 0; i < large_value->get_num_segments(); i++) {
+                large_buflock.set(new large_buf_t(txn));
+                large_buflock.lv()->allocate(data->get_size(), value.large_buf_ref_ptr());
+                for (int64_t i = 0; i < large_buflock.lv()->get_num_segments(); i++) {
                     uint16_t size;
-                    void *data = large_value->get_segment_write(i, &size);
+                    void *data = large_buflock.lv()->get_segment_write(i, &size);
                     buffer_group.add_buffer(size, data);
                 }
 
                 try {
                     data->get_data_into_buffers(&buffer_group);
                 } catch (...) {
-                    large_value->mark_deleted();
-                    large_value->release();
-                    delete large_value;
+                    large_buflock.lv()->mark_deleted();
+                    large_buflock.release();
                     throw;
                 }
             }
 
             result = store_t::sr_stored;
             *new_value = &value;
-            new_large_buflock.set(large_value);
+            new_large_buflock.swap(large_buflock);
             return true;
 
         } catch (data_provider_failed_exc_t) {
@@ -95,6 +93,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
             return false;
         }
     }
+
 
     ticks_t start_time;
 
@@ -113,8 +112,8 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 };
 
 
-store_t::set_result_t btree_set(const btree_key *key, btree_slice_t *slice, data_provider_t *data, set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas) {
+store_t::set_result_t btree_set(const btree_key *key, btree_slice_t *slice, data_provider_t *data, set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas, castime_t castime) {
     btree_set_oper_t oper(data, type, mcflags, exptime, req_cas);
-    run_btree_modify_oper(&oper, slice, key);
+    run_btree_modify_oper(&oper, slice, key, castime);
     return oper.result;
 }

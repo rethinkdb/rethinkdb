@@ -393,6 +393,30 @@ corrupted and  server cannot open the database file. In this
 case, ``extract`` will try to recover as much data as possible and
 ignore the corrupted parts of the database file.
 
+------------------------
+Replication and Failover
+------------------------
+
+RethinkDB can be run as a slave of another RethinkDB server. Slaves will
+be kept in a consistent state with the master and will only respond to read
+commands as long as the master remains up. On master failure the slave will
+switch to responding to all commands until the master is brought back up and
+caught up on the slave's changes. The following command runs starts a slave
+of a master listening for slaves at ``host:port``::
+
+  $ rethinkdb serve --slave-of host:port
+
+``````````
+Amazon ELB
+``````````
+
+RethinkDB is ready out of the box to work with Amazon's Elastic Load Balancer.
+Health checks and traffic should be routed to the same ports in ELB's configuration 
+and should use TCP. The following command will start a slave that correctly works
+with ELB::
+
+  $ rethinkdb server --slave-of host:port --run-behind-elb
+
 =================  
 Advanced features
 =================  

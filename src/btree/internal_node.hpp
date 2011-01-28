@@ -46,6 +46,9 @@ size_t pair_size(const btree_internal_pair *pair);
 const btree_internal_pair *get_pair(const internal_node_t *node, uint16_t offset);
 btree_internal_pair *get_pair(internal_node_t *node, uint16_t offset);
 
+const btree_internal_pair *get_pair_by_index(const internal_node_t *node, int index);
+btree_internal_pair *get_pair_by_index(internal_node_t *node, int index);
+
 // We can't use "internal" for internal stuff obviously.
 namespace impl {
 size_t pair_size_with_key(const btree_key *key);

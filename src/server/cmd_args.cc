@@ -39,6 +39,14 @@ void usage_serve() {
     } else {
         help->pagef(" Defaults to %dms.\n", DEFAULT_FLUSH_TIMER_MS);
     }
+    help->pagef("      --flush-threshold Number of transactions waiting for a flush on any slice\n"
+                "                        at which a flush is automatically triggered. In\n"
+                "                        combination with --wait-for-flush this option can be used\n"
+                "                        to optimize the write latency for concurrent strong\n"
+                "                        durability workloads. Defaults to %d\n"
+                "      --flush-concurrency   Maximal number of concurrently active flushes per\n"
+                "                        slice. Defaults to %d\n",
+                                DEFAULT_FLUSH_WAITING_THRESHOLD, DEFAULT_MAX_CONCURRENT_FLUSHES);
     help->pagef("      --unsaved-data-limit\n" 
                 "                        The maximum amount (in MB) of dirty data (data which is\n"
                 "                        held in memory but has not yet been serialized to disk.)\n"
@@ -65,9 +73,22 @@ void usage_serve() {
                 "                        the database file. Default is the name of the database\n"
                 "                        file with \"%s\" appended.\n", DEFAULT_SEMANTIC_EXTENSION);
 #endif
-    help->pagef("      --coroutine-stack-size\n"
+    //TODO move this in to an advanced options help file
+    /* help->pagef("      --coroutine-stack-size\n"
                 "                        How much space is allocated for the stacks of coroutines.\n"
-                "                        Defaults to %d\n", COROUTINE_STACK_SIZE);
+                "                        Defaults to %d\n", COROUTINE_STACK_SIZE); */ 
+    help->pagef("\n"
+                "Replication & Failover options:\n"
+                "      --slave-of host:port Run this server as a slave of a master server. As a\n"
+                "                        slave it will be replica of the master and will respond\n"
+                "                        only to gets. When the master goes down it will begin\n"
+                "                        responding to writes.\n"
+                "      --failover-script Used in conjunction with --slave-of to specify a script\n"
+                "                        that will be run when the master fails and comes back up\n"
+                "                        see manual for an example script.\n" //TODO @jdoliner add this to the manual slava where is the manual?
+                "      --run-behind-elb  Used in conjunction with --slave-of makes the server\n"
+                "                        compatible with Amazon Elastic Load Balancer (using TCP as\n"
+                "                        the protocol.) See manual for a detailed description.\n"); //TODO add this to manual
     help->pagef("\n"
                 "Serve can be called with no arguments to run a server with default parameters.\n"
                 "For best performance RethinkDB should be run with one --file per device and a\n"
@@ -132,6 +153,9 @@ enum {
     slave_of,
     failover_script,
     heartbeat_timeout,
+    flush_concurrency,
+    flush_threshold,
+    run_behind_elb
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -160,6 +184,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             {
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
                 {"flush-timer",          required_argument, 0, flush_timer},
+                {"flush-concurrency",    required_argument, 0, flush_concurrency},
+                {"flush-threshold",      required_argument, 0, flush_threshold},
                 {"unsaved-data-limit",   required_argument, 0, unsaved_data_limit},
                 {"gc-range",             required_argument, 0, gc_range},
                 {"block-size",           required_argument, 0, block_size},
@@ -178,9 +204,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
                 {"help",                 no_argument, &do_help, 1},
-                {"slave_of",             required_argument, 0, slave_of}, //TODO document this @jdoliner
+                {"slave-of",             required_argument, 0, slave_of}, //TODO document this @jdoliner
                 {"failover-script",      required_argument, 0, failover_script}, //TODO document this @jdoliner
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO document this @jdoliner
+                {"run-behind-elb",       no_argument, 0, run_behind_elb}, //TODO document this @jdoliner
                 {0, 0, 0, 0}
             };
 
@@ -223,6 +250,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_wait_for_flush(optarg); break;
             case flush_timer:
                 config.set_flush_timer(optarg); break;
+            case flush_threshold:
+                config.set_flush_waiting_threshold(optarg); break;
+            case flush_concurrency:
+                config.set_max_concurrent_flushes(optarg); break;
             case unsaved_data_limit:
                 config.set_unsaved_data_limit(optarg); break;
             case gc_range:
@@ -240,9 +271,12 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case slave_of:
                 config.set_master_addr(optarg); break;
             case failover_script:
+                config.set_failover_file(optarg); break;
+            case heartbeat_timeout:
                 not_implemented();
                 break;
-            case heartbeat_timeout:
+            case run_behind_elb:
+                config.failover_config.run_behind_elb = true;
                 break;
             case 'h':
             default:
@@ -393,6 +427,22 @@ void parsing_cmd_config_t::set_flush_timer(const char* value) {
     }
 }
 
+void parsing_cmd_config_t::set_flush_waiting_threshold(const char* value) {
+    int& target = store_dynamic_config.cache.flush_waiting_threshold;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_at_least(target, 1))
+        fail_due_to_user_error("Flush threshold must be a positive number.");
+}
+
+void parsing_cmd_config_t::set_max_concurrent_flushes(const char* value) {
+    int& target = store_dynamic_config.cache.max_concurrent_flushes;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_at_least(target, 1))
+        fail_due_to_user_error("Max concurrent flushes must be a positive number.");
+}
+
 void parsing_cmd_config_t::set_extent_size(const char* value) {
     long long int target;
     const long long int minimum_value = 1ll;
@@ -529,7 +579,7 @@ void parsing_cmd_config_t::set_coroutine_stack_size(const char* value) {
 
 void parsing_cmd_config_t::set_master_addr(char *value) {
     char *token = strtok(value, ":");
-    if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN)
+    if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN - 1)
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
 
     strcpy(replication_config.hostname, token);
@@ -607,6 +657,8 @@ void cmd_config_t::print_runtime_flags() {
     } else {
         printf("%dms\n", store_dynamic_config.cache.flush_timer_ms);
     }
+    printf("Flush concurrency..%d\n", store_dynamic_config.cache.max_concurrent_flushes);
+    printf("Flush threshold....%d\n", store_dynamic_config.cache.flush_waiting_threshold);
 
     printf("Active writers.....%d\n", store_dynamic_config.serializer.num_active_data_extents);
     printf("GC range...........%g - %g\n",
@@ -677,6 +729,8 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.cache.wait_for_flush = false;
     store_dynamic_config.cache.flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
     store_dynamic_config.cache.max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;
+    store_dynamic_config.cache.flush_waiting_threshold = DEFAULT_FLUSH_WAITING_THRESHOLD;
+    store_dynamic_config.cache.max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
     
     create_store = false;
     force_create = false;

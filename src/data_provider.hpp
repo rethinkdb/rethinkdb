@@ -74,7 +74,7 @@ destructor. */
 class data_provider_t {
 
 public:
-    virtual ~data_provider_t() { }   // Make style-checkers happy
+    virtual ~data_provider_t() { }
 
     /* Consumers can call get_size() to figure out how many bytes long the byte array is. Producers
     should override get_size(). */

@@ -79,6 +79,16 @@ struct mirrored_cache_config_t {
     // flush_dirty_size is the amount of unsaved data that will trigger an immediate flush. It
     // should be much less than max_dirty_size. It's in bytes.
     long long flush_dirty_size;
+
+    // flush_waiting_threshold is the maximal number of transactions which can wait
+    // for a sync before a flush gets triggered on any single slice. As transactions only wait for
+    // sync with wait_for_flush enabled, this option plays a role only then.
+    int flush_waiting_threshold;
+
+    // If wait_for_flush is true, concurrent flushing can be used to reduce the latency
+    // of each single flush. max_concurrent_flushes controls how many flushes can be active
+    // on a specific slice at any given time.
+    int max_concurrent_flushes;
 };
 
 /* Configuration for the btree that is set when the database is created and serialized in the
@@ -120,8 +130,13 @@ struct replication_config_t {
 /* Configuration for failover */
 struct failover_config_t {
     char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
-    int     heartbeat_timeout; /* noncommunicative period after which the other server is considered to be unreachable */
+    int     heartbeat_timeout; /* noncommunicative period after which the other server is considered to be unreachable we can maybe take this out TODO @jdoliner */
     bool    active;
+    bool    run_behind_elb;
+
+    failover_config_t()
+        : active(false), run_behind_elb(false)
+    {}
 };
 
 /* All the configuration together */
@@ -174,6 +189,8 @@ public:
     void set_wait_for_flush(const char* value);
     void set_unsaved_data_limit(const char* value);
     void set_flush_timer(const char* value);
+    void set_flush_waiting_threshold(const char* value);
+    void set_max_concurrent_flushes(const char* value);
     void set_gc_range(const char* value);
     void set_active_data_extents(const char* value);
     void set_block_size(const char* value);

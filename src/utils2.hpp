@@ -9,6 +9,8 @@ utils2.hpp, but utils.hpp needs some things in the IO layer. */
 #include <time.h>
 #include "errors.hpp"
 
+typedef uint64_t cas_t;
+
 int get_cpu_count();
 long get_available_ram();
 long get_total_ram();
@@ -129,6 +131,10 @@ unsigned long long strtoull_strict(const char *string, char **end, int base);
 #define DISABLE_COPYING(T)                      \
     T(const T&);                                \
     void operator=(const T&)
+
+// This is inefficient, it calls vsnprintf twice and copies the
+// arglist and output buffer excessively.
+std::string strprintf(const char *format, ...);
 
 #include "utils2.tcc"
 

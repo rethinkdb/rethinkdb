@@ -33,25 +33,22 @@ public:
 public:
     /* store_t interface. */
     get_result_t get(store_key_t *key);
-    get_result_t get_cas(store_key_t *key);
-    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
-    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
-    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime);
-    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique);
-    incr_decr_result_t incr(store_key_t *key, unsigned long long amount);
-    incr_decr_result_t decr(store_key_t *key, unsigned long long amount);
-    append_prepend_result_t append(store_key_t *key, data_provider_t *data);
-    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data);
-    delete_result_t delete_key(store_key_t *key);
-    failover_reset_result_t failover_reset();
+    get_result_t get_cas(store_key_t *key, castime_t castime);
+    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
+    incr_decr_result_t incr(store_key_t *key, unsigned long long amount, castime_t castime);
+    incr_decr_result_t decr(store_key_t *key, unsigned long long amount, castime_t castime);
+    append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime);
+    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime);
+    delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
 public:
     /* Used by internal btree logic */
-    cas_t gen_cas();
     cache_t cache;
 
 private:
-    uint32_t cas_counter;
     DISABLE_COPYING(btree_slice_t);
 };
 
