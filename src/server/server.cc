@@ -124,11 +124,11 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             handler.parent = &server;
 
             try {
-                conn_acceptor_t conn_acceptor(cmd_config->port, &handler, cmd_config->failover_config.run_behind_elb);
+                conn_acceptor_t conn_acceptor(cmd_config->port, &handler);
 
                 if (cmd_config->failover_config.run_behind_elb) {
                     guarantee(slave_store, "Trying to run behind elb, without turning on failover (this should be checked in argument sanitization\n");
-                    slave_store->failover.add_callback(&conn_acceptor);
+                    //slave_store->failover.add_callback(&conn_acceptor);
                 }
 
                 logINF("Server is now accepting memcache connections on port %d.\n", cmd_config->port);
