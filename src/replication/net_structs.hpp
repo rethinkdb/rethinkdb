@@ -16,6 +16,11 @@ enum message_code { BACKFILL = 0x01, ANNOUNCE = 0x02, NOP = 0x03, ACK = 0x04, SH
 
                     SET = 0x21, APPEND = 0x22, PREPEND = 0x23, DELETE = 0x24 };
 
+struct net_castime_t {
+    cas_t proposed_cas;
+    repli_timestamp timestamp;
+} __attribute__((__packed__));
+
 struct net_hello_t {
     char hello_magic[16];
     uint32_t replication_protocol_version;
@@ -60,9 +65,15 @@ struct net_goodbye_t {
     repli_timestamp timestamp;
 } __attribute__((__packed__));
 
-// TODO: Add a uint16_t size field, create net_small_operation_t {
-// header, size, timestamp }, create a btree_value that lacks the
-// 8-bit size field.
+
+struct net_get_cas_t {
+    net_header_t header;
+    net_castime_t castime;
+    char keydata[];
+
+    const btree_key *key() const { return reinterpret_cast<const btree_key *>(keydata); }
+} __attribute__((__packed__));
+
 struct net_small_set_t {
     net_header_t header;
     repli_timestamp timestamp;

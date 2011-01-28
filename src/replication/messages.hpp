@@ -71,6 +71,17 @@ public:
     goodbye_message_t(const net_goodbye_t *p) : timestamped_message_t<net_goodbye_t>(p) { }
 };
 
+class get_cas_message_t {
+public:
+    typedef net_get_cas_t net_struct_type;
+    get_cas_message_t(const net_get_cas_t *p)
+        : castime(p->castime),
+          key(p->key()->contents, p->key()->contents + p->key()->size) { }
+
+    const net_castime_t castime;
+    const std::string key;
+};
+
 class set_message_t {
 public:
     typedef net_small_set_t net_struct_type;

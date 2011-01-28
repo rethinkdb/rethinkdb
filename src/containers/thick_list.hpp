@@ -16,7 +16,7 @@
 
 // We could say class token_t = typename std::vector<T>::size_type but
 // so far we want everybody using this to use explicitly sized
-// unsigned protoken_types like uint32_t.
+// unsigned token_types like uint32_t.
 
 template <class T, class token_t>
 class thick_list {
