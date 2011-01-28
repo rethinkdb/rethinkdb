@@ -105,29 +105,29 @@ void serve(int serve_port, cluster_address_t address) {
             address.send(new query_message_t(key));
             return get_result_t();
         }
-        get_result_t get_cas(store_key_t *key) { unreachable(""); }
-        set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) { unreachable(""); }
-        set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) { unreachable(""); }
-        set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime) { unreachable(""); }
-        set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique) { unreachable(""); }
-        incr_decr_result_t incr(store_key_t *key, unsigned long long amount) { unreachable(""); }
-        incr_decr_result_t decr(store_key_t *key, unsigned long long amount) { unreachable(""); }
-        append_prepend_result_t append(store_key_t *key, data_provider_t *data) { unreachable(""); }
-        append_prepend_result_t prepend(store_key_t *key, data_provider_t *data) { unreachable(""); }
-        delete_result_t delete_key(store_key_t *key) { unreachable(""); }
-        failover_reset_result_t failover_reset() { unreachable(""); }
+        get_result_t get_cas(store_key_t *key, castime_t) { unreachable(""); }
+        set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t) { unreachable(""); }
+        set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t) { unreachable(""); }
+        set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t) { unreachable(""); }
+        set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t) { unreachable(""); }
+        incr_decr_result_t incr(store_key_t *key, unsigned long long amount, castime_t) { unreachable(""); }
+        incr_decr_result_t decr(store_key_t *key, unsigned long long amount, castime_t) { unreachable(""); }
+        append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t) { unreachable(""); }
+        append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t) { unreachable(""); }
+        delete_result_t delete_key(store_key_t *key, repli_timestamp) { unreachable(""); }
     } store;
     store.address = address;
 
     struct : public conn_acceptor_t::handler_t {
         store_t *store;
+        cas_generator_t cas_generator;
         void handle(tcp_conn_t *conn) {
-            serve_memcache(conn, store);
+            serve_memcache(conn, store, &cas_generator);
         }
     } handler;
     handler.store = &store;
 
-    conn_acceptor_t conn_acceptor(serve_port, &handler);
+    conn_acceptor_t conn_acceptor(serve_port, &handler, false);
 
     logINF("Accepting connections on port %d\n", serve_port);
 
