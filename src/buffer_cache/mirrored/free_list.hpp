@@ -4,7 +4,6 @@
 #include "serializer/serializer.hpp"
 #include "serializer/translator.hpp"
 #include "buffer_cache/types.hpp"
-#include "containers/segmented_vector.hpp"
 #include "utils.hpp"
 
 /* TODO We could implement a free list in the unused cells of the page map, saving a little bit

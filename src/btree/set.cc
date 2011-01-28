@@ -112,8 +112,8 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 };
 
 
-store_t::set_result_t btree_set(const btree_key *key, btree_slice_t *slice, data_provider_t *data, set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas, cas_t proposed_cas) {
+store_t::set_result_t btree_set(const btree_key *key, btree_slice_t *slice, data_provider_t *data, set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas, castime_t castime) {
     btree_set_oper_t oper(data, type, mcflags, exptime, req_cas);
-    run_btree_modify_oper(&oper, slice, key, proposed_cas);
+    run_btree_modify_oper(&oper, slice, key, castime);
     return oper.result;
 }

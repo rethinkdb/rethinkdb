@@ -357,44 +357,44 @@ store_t::get_result_t btree_key_value_store_t::get(store_key_t *key) {
     return slice_for_key(key)->get(key);
 }
 
-store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key, cas_t proposed_cas) {
-    return slice_for_key(key)->get_cas(key, proposed_cas);
+store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime_t castime) {
+    return slice_for_key(key)->get_cas(key, castime);
 }
 
-store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) {
-    return slice_for_key(key)->set(key, data, flags, exptime, proposed_cas);
+store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    return slice_for_key(key)->set(key, data, flags, exptime, castime);
 }
 
-store_t::set_result_t btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) {
-    return slice_for_key(key)->add(key, data, flags, exptime, proposed_cas);
+store_t::set_result_t btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    return slice_for_key(key)->add(key, data, flags, exptime, castime);
 }
 
-store_t::set_result_t btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) {
-    return slice_for_key(key)->replace(key, data, flags, exptime, proposed_cas);
+store_t::set_result_t btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    return slice_for_key(key)->replace(key, data, flags, exptime, castime);
 }
 
-store_t::set_result_t btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, cas_t proposed_cas) {
-    return slice_for_key(key)->cas(key, data, flags, exptime, unique, proposed_cas);
+store_t::set_result_t btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
+    return slice_for_key(key)->cas(key, data, flags, exptime, unique, castime);
 }
 
-store_t::incr_decr_result_t btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount, cas_t proposed_cas) {
-    return slice_for_key(key)->incr(key, amount, proposed_cas);
+store_t::incr_decr_result_t btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount, castime_t castime) {
+    return slice_for_key(key)->incr(key, amount, castime);
 }
 
-store_t::incr_decr_result_t btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount, cas_t proposed_cas) {
-    return slice_for_key(key)->decr(key, amount, proposed_cas);
+store_t::incr_decr_result_t btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount, castime_t castime) {
+    return slice_for_key(key)->decr(key, amount, castime);
 }
 
-store_t::append_prepend_result_t btree_key_value_store_t::append(store_key_t *key, data_provider_t *data, cas_t proposed_cas) {
-    return slice_for_key(key)->append(key, data, proposed_cas);
+store_t::append_prepend_result_t btree_key_value_store_t::append(store_key_t *key, data_provider_t *data, castime_t castime) {
+    return slice_for_key(key)->append(key, data, castime);
 }
 
-store_t::append_prepend_result_t btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data, cas_t proposed_cas) {
-    return slice_for_key(key)->prepend(key, data, proposed_cas);
+store_t::append_prepend_result_t btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data, castime_t castime) {
+    return slice_for_key(key)->prepend(key, data, castime);
 }
 
-store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key) {
-    return slice_for_key(key)->delete_key(key);
+store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
+    return slice_for_key(key)->delete_key(key, timestamp);
 }
 
 // Stats

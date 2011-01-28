@@ -73,9 +73,22 @@ void usage_serve() {
                 "                        the database file. Default is the name of the database\n"
                 "                        file with \"%s\" appended.\n", DEFAULT_SEMANTIC_EXTENSION);
 #endif
-    help->pagef("      --coroutine-stack-size\n"
+    //TODO move this in to an advanced options help file
+    /* help->pagef("      --coroutine-stack-size\n"
                 "                        How much space is allocated for the stacks of coroutines.\n"
-                "                        Defaults to %d\n", COROUTINE_STACK_SIZE);
+                "                        Defaults to %d\n", COROUTINE_STACK_SIZE); */ 
+    help->pagef("\n"
+                "Replication & Failover options:\n"
+                "      --slave-of host:port Run this server as a slave of a master server. As a\n"
+                "                        slave it will be replica of the master and will respond\n"
+                "                        only to gets. When the master goes down it will begin\n"
+                "                        responding to writes.\n"
+                "      --failover-script Used in conjunction with --slave-of to specify a script\n"
+                "                        that will be run when the master fails and comes back up\n"
+                "                        see manual for an example script.\n" //TODO @jdoliner add this to the manual slava where is the manual?
+                "      --run-behind-elb  Used in conjunction with --slave-of makes the server\n"
+                "                        compatible with Amazon Elastic Load Balancer (using TCP as\n"
+                "                        the protocol.) See manual for a detailed description.\n"); //TODO add this to manual
     help->pagef("\n"
                 "Serve can be called with no arguments to run a server with default parameters.\n"
                 "For best performance RethinkDB should be run with one --file per device and a\n"
