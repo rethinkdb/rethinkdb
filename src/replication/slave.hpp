@@ -9,7 +9,8 @@
 #include "control.hpp"
 
 #define INITIAL_TIMEOUT  (100) //initial time we wait reconnect to the master server on failure in ms
-#define TIMEOUT_GROWTH_FACTOR   (2) //every failed reconnect the timeoute increase by this factor
+#define TIMEOUT_GROWTH_FACTOR   (2) //every failed reconnect the timeout increase by this factor
+#define TIMEOUT_CAP (1000*60*2) //until it reaches the cap (that's 2 minutes over there)
 
 /* if we mave more than MAX_RECONNECTS_PER_N_SECONDS in N_SECONDS then we give
  * up on the master server for a longer time (possibly until the user tells us

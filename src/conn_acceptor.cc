@@ -48,6 +48,7 @@ void conn_acceptor_t::conn_agent_t::run() {
 }
 
 conn_acceptor_t::~conn_acceptor_t() {
+    on_thread_t thread_switcher(home_thread); //make sure the listener gets deregistered on the right thread
 
     listener.reset();   // Stop accepting any more new connections
 
