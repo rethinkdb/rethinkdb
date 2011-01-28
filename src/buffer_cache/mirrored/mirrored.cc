@@ -209,6 +209,7 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
 }
 
 void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
+    // TODO! Add an option to turn patches off and apply changes instantly for specific performance scenarious?
     rassert(data == inner_buf->data);
     rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
@@ -217,6 +218,7 @@ void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
 }
 
 void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
+    // TODO! Add an option to turn patches off and apply changes instantly for specific performance scenarious?
     rassert(data == inner_buf->data);
     rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
