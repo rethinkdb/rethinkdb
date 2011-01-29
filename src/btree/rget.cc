@@ -397,3 +397,10 @@ store_t::rget_result_t btree_rget_slice_iterator(btree_slice_t *slice, store_key
 store_t::rget_result_t btree_rget_slice(btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {
     return store_t::rget_result_t();
 }
+
+rget_value_provider_t *rget_value_provider_t::create_provider(const btree_value *value) {
+    if (value->is_large())
+        return new rget_large_value_provider_t(value);
+    else
+        return new rget_small_value_provider_t(value);
+}
