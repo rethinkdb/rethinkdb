@@ -243,7 +243,10 @@ void run(slave_t *slave) {
         /* The connection has failed. Let's see what se should do */
         if (!slave->give_up.give_up()) {
             slave->timer_token = fire_timer_once(slave->timeout, &slave->reconnect_timer_callback, slave);
+
             slave->timeout *= TIMEOUT_GROWTH_FACTOR;
+            if (slave->timeout > TIMEOUT_CAP) slave->timeout = TIMEOUT_CAP;
+
             coro_t::wait(); //waiting on a timer
             slave->timer_token = NULL;
         } else {
