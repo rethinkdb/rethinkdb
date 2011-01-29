@@ -22,7 +22,7 @@ struct load_buf_fsm_t :
     void on_thread_switch() {
         if (!have_loaded) {
             inner_buf->subtree_recency = inner_buf->cache->serializer->get_recency(inner_buf->block_id);
-            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this))
+            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this, &inner_buf->transaction_id))
                 on_serializer_read();
         } else {
             inner_buf->lock.unlock();
@@ -30,6 +30,22 @@ struct load_buf_fsm_t :
         }
     }
     void on_serializer_read() {
+        const std::list<buf_patch_t*>* patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
+        // Remove obsolete patches from diff storage
+        fprintf(stderr, "transaction id is: %u\n", (unsigned int)*inner_buf->transaction_id); // TODO!
+        if (patches)
+            inner_buf->cache->diff_core_storage.filter_applied_patches(inner_buf->block_id, *inner_buf->transaction_id);
+        // All patches that currently exist must have been materialized out of core...
+        if (patches) {
+            inner_buf->writeback_buf.last_patch_materialized = patches->back()->get_patch_counter();
+        } else {
+            inner_buf->writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
+        }
+        // Apply outstanding patches
+        if (inner_buf->cache->diff_core_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data))
+            inner_buf->writeback_buf.set_dirty();
+        // TODO! Apply outstanding patches etc...
+
         have_loaded = true;
         if (continue_on_thread(inner_buf->cache->home_thread, this)) on_thread_switch();
     }
@@ -41,9 +57,9 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
     : cache(cache),
       block_id(block_id),
       data(cache->serializer->malloc()),
+      transaction_id(NULL),
       refcount(0),
       do_delete(false),
-      needs_flush(false),
       cow_will_be_needed(false),
       writeback_buf(this),
       page_repl_buf(this),
@@ -62,6 +78,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
       block_id(cache->free_list.gen_block_id()),
       subtree_recency(current_time()),
       data(cache->serializer->malloc()),
+      transaction_id(NULL),
       refcount(0),
       do_delete(false),
       cow_will_be_needed(false),
@@ -173,7 +190,7 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     inner_buf->writeback_buf.set_dirty();
 
     // Store the patch if the buffer does not have to be flushed anyway
-    if (!inner_buf->needs_flush)
+    if (!inner_buf->writeback_buf.needs_flush)
         inner_buf->cache->diff_core_storage.store_patch(inner_buf->block_id, patch);
     else
         delete &patch;
@@ -186,9 +203,9 @@ void *mc_buf_t::get_data_major_write() {
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
 
-    if (!inner_buf->needs_flush) {
+    if (!inner_buf->writeback_buf.needs_flush) {
         // We bypass the patching system, make sure this buffer gets flushed.
-        inner_buf->needs_flush = true;
+        inner_buf->writeback_buf.needs_flush = true;
         // ... we can also get rid of existing patches at this point.
         inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
     }
@@ -209,7 +226,7 @@ void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
     rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     size_t offset = (const char*)dest - (const char*)data;
-    apply_patch(*(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, (const char*)src, n)));
+    apply_patch(*(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), get_transaction_id(), offset, (const char*)src, n)));
 }
 
 void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
@@ -221,7 +238,7 @@ void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     rassert((const char*)src + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     size_t dest_offset = (const char*)dest - (const char*)data;
     size_t src_offset = (const char*)src - (const char*)data;
-    apply_patch(*(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n)));
+    apply_patch(*(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), get_transaction_id(), dest_offset, src_offset, n)));
 }
 
 void mc_buf_t::release() {

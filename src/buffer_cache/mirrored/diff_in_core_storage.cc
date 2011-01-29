@@ -13,11 +13,11 @@ void diff_core_storage_t::load_block_patch_list(const block_id_t block_id, const
     patch_map[block_id].assign(patches.begin(), patches.end());
 }
 
-// Removes all patches up to (including) the given patch id
-void diff_core_storage_t::truncate_applied_patches(const block_id_t block_id, const patch_counter_t patch_counter) {
+// Removes all patches which are obsolete w.r.t. the given transaction_id
+void diff_core_storage_t::filter_applied_patches(const block_id_t block_id, const ser_transaction_id_t transaction_id) {
     patch_map_t::iterator map_entry = patch_map.find(block_id);
     rassert(map_entry != patch_map.end());
-    map_entry->second.truncate_up_to_patch(patch_counter);
+    map_entry->second.filter_before_transaction(transaction_id);
     if (map_entry->second.size() == 0)
         patch_map.erase(map_entry);
 }
@@ -61,14 +61,11 @@ diff_core_storage_t::block_patch_list_t::~block_patch_list_t() {
         delete *patch;
 }
 
-void diff_core_storage_t::block_patch_list_t::truncate_up_to_patch(const patch_counter_t patch_counter) {
-    // Find last patch to delete and delete patches
-    iterator delete_up_to_here = begin();
-    while (delete_up_to_here != end() && (*delete_up_to_here)->get_patch_counter() < patch_counter) {
-        delete *delete_up_to_here;
-        ++delete_up_to_here;
+void diff_core_storage_t::block_patch_list_t::filter_before_transaction(const ser_transaction_id_t transaction_id) {
+    for (iterator patch = begin(); patch != end(); ++patch) {
+        if ((*patch)->get_transaction_id() < transaction_id) {
+            delete *patch;
+            erase(patch);
+        }
     }
-
-    // Remove pointers from list
-    erase(begin(), delete_up_to_here);
 }

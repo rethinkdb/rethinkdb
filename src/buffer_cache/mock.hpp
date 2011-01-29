@@ -55,6 +55,7 @@ public:
     void move_data(const void* dest, const void* src, const size_t n);
     void apply_patch(buf_patch_t& patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
+    ser_transaction_id_t get_transaction_id();
     void mark_deleted();
     void release();
     bool is_dirty();

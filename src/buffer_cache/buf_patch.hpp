@@ -4,6 +4,7 @@
 class buf_patch_t;
 
 #include "buffer_cache/types.hpp"
+#include "serializer/types.hpp"
 
 typedef uint32_t patch_counter_t;
 typedef byte_t patch_operation_code_t;
@@ -21,13 +22,14 @@ public:
     size_t get_serialized_size() const;
 
     patch_counter_t get_patch_counter() const;
+    ser_transaction_id_t get_transaction_id() const;
 
     // This is used in buf_t
     virtual void apply_to_buf(char* buf_data) = 0;
     
 protected:    
     // These are for usage in subclasses
-    buf_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const patch_operation_code_t operation_code);
+    buf_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const patch_operation_code_t operation_code);
     virtual void serialize_data(char* destination) const = 0;
     virtual size_t get_data_size() const = 0;
 
@@ -37,13 +39,14 @@ protected:
 private:
     block_id_t block_id;
     patch_counter_t patch_counter;
+    ser_transaction_id_t applies_to_transaction_id;
     patch_operation_code_t operation_code;
 };
 
 class memcpy_patch_t : public buf_patch_t {
 public:
-    memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const size_t dest_offset, const char *src, const size_t n);
-    memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const size_t data_length);
+    memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const size_t dest_offset, const char *src, const size_t n);
+    memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const char* data, const size_t data_length);
 
     virtual ~memcpy_patch_t();
 
@@ -61,8 +64,8 @@ private:
 
 class memmove_patch_t : public buf_patch_t {
 public:
-    memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const size_t dest_offset, const size_t src_offset, const size_t n);
-    memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const size_t data_length);
+    memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const size_t dest_offset, const size_t src_offset, const size_t n);
+    memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const char* data, const size_t data_length);
 
     virtual void apply_to_buf(char* buf_data);
 

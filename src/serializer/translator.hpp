@@ -42,7 +42,8 @@ public:
     virtual void *clone(void*);
     void free(void *ptr);
 
-    bool do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback);
+    // If transaction_id is given, it becomes a pointer to the block's transaction id attribute
+    bool do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback, ser_transaction_id_t** transaction_id = NULL);
     struct write_t {
         block_id_t block_id;
         bool recency_specified;

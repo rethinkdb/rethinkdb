@@ -52,6 +52,7 @@ class mc_inner_buf_t {
     block_id_t block_id;
     repli_timestamp subtree_recency;
     void *data;
+    ser_transaction_id_t* transaction_id;
     rwi_lock_t lock;
     
     /* The number of mc_buf_ts that exist for this mc_inner_buf_t */
@@ -59,11 +60,6 @@ class mc_inner_buf_t {
     
     /* true if we are being deleted */
     bool do_delete;
-
-    /* true if we have to flush the block instead of just flushing patches. */
-    /* Specifically, this is the case if we modified the block bypassing the patching system */
-    bool needs_flush;
-    // TODO! Would we like to move this to writeback_buf?
     
     /* true if there is a mc_buf_t that holds a pointer to the data in read-only outdated-OK
     mode. */
@@ -114,6 +110,13 @@ public:
 
     void apply_patch(buf_patch_t& patch); // This might delete the supplied patch, do not use patch after its applicatio
     patch_counter_t get_next_patch_counter();
+    ser_transaction_id_t get_transaction_id() {
+        rassert(ready);
+        if (inner_buf->transaction_id == NULL)
+            return NULL_SER_TRANSACTION_ID;
+        fprintf(stderr, "transaction id is: %u\n", (unsigned int)*inner_buf->transaction_id); // TODO!
+        return *inner_buf->transaction_id;
+    }
 
     const void *get_data_read() const {
         rassert(ready);

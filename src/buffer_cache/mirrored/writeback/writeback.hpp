@@ -8,6 +8,7 @@
 #include "serializer/serializer.hpp"
 #include "serializer/translator.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
+#include "buffer_cache/buf_patch.hpp"
 
 struct mc_cache_t;
 struct mc_buf_t;
@@ -75,12 +76,19 @@ public:
         
     public:
         explicit local_buf_t(inner_buf_t *gbuf)
-            : gbuf(gbuf), dirty(false), recency_dirty(false) {}
+            : needs_flush(false), last_patch_materialized(0), gbuf(gbuf), dirty(false), recency_dirty(false) {}
         
         void set_dirty(bool _dirty = true);
         void set_recency_dirty(bool _recency_dirty = true);
         
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
+
+        /* true if we have to flush the block instead of just flushing patches. */
+        /* Specifically, this is the case if we modified the block while bypassing the patching system */
+        bool needs_flush;
+
+        /* All patches <= last_patch_materialized are in the on-disk log storage */
+        patch_counter_t last_patch_materialized;
 
     private:
         inner_buf_t *gbuf;
