@@ -54,6 +54,7 @@ class mc_inner_buf_t {
     void *data;
     ser_transaction_id_t* transaction_id;
     rwi_lock_t lock;
+    patch_counter_t next_patch_counter;
     
     /* The number of mc_buf_ts that exist for this mc_inner_buf_t */
     int refcount;
@@ -114,7 +115,6 @@ public:
         rassert(ready);
         if (inner_buf->transaction_id == NULL)
             return NULL_SER_TRANSACTION_ID;
-        fprintf(stderr, "transaction id is: %u\n", (unsigned int)*inner_buf->transaction_id); // TODO!
         return *inner_buf->transaction_id;
     }
 
