@@ -244,24 +244,36 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
 }
 
 void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
-    // TODO! Don't generate a patch if need_flush is set
     rassert(data == inner_buf->data);
     rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
-    size_t offset = (const char*)dest - (const char*)data;
-    apply_patch(*(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), get_transaction_id(), offset, (const char*)src, n)));
+
+    if (inner_buf->writeback_buf.needs_flush) {
+        // Save the allocation / construction of a patch object
+        get_data_major_write();
+        memcpy(const_cast<void*>(dest), src, n);
+    } else {
+        size_t offset = (const char*)dest - (const char*)data;
+        apply_patch(*(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), get_transaction_id(), offset, (const char*)src, n)));
+    }
 }
 
 void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
-    // TODO! Don't generate a patch if need_flush is set
     rassert(data == inner_buf->data);
     rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     rassert(src >= data && src < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     rassert((const char*)src + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
-    size_t dest_offset = (const char*)dest - (const char*)data;
-    size_t src_offset = (const char*)src - (const char*)data;
-    apply_patch(*(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), get_transaction_id(), dest_offset, src_offset, n)));
+
+    if (inner_buf->writeback_buf.needs_flush) {
+        // Save the allocation / construction of a patch object
+        get_data_major_write();
+        memmove(const_cast<void*>(dest), src, n);
+    } else {
+        size_t dest_offset = (const char*)dest - (const char*)data;
+        size_t src_offset = (const char*)src - (const char*)data;
+        apply_patch(*(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), get_transaction_id(), dest_offset, src_offset, n)));
+    }
 }
 
 void mc_buf_t::release() {
