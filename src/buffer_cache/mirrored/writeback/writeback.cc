@@ -236,7 +236,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
 
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock
     // we instead try to reclaim some space in the on-disk diff storage now.
-    parent->cache->diff_out_of_core_storage.flush_n_oldest_blocks(1); // TODO! Calculate a sane value for n
+    parent->cache->diff_oocore_storage.flush_n_oldest_blocks(1); // TODO! Calculate a sane value for n
 
     /* Start a read transaction so we can request bufs. */
     rassert(transaction == NULL);
@@ -331,20 +331,15 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
     // TODO! Add a perfmon
     std::vector<local_buf_t*> blocks_needing_patch_write;
     blocks_needing_patch_write.reserve(parent->dirty_bufs.size());
-    while (local_buf_t *lbuf = parent->dirty_bufs.head()) {
+    for (intrusive_list_t<local_buf_t>::iterator lbuf_it = parent->dirty_bufs.begin(); lbuf_it != parent->dirty_bufs.end(); lbuf_it++) {
+        local_buf_t *lbuf = &(*lbuf_it);
         inner_buf_t *inner_buf = lbuf->gbuf;
-
-        // TODO! Refactor criteria into an own function
-        // TODO! Make this stuff configurable
-        lbuf->needs_flush = lbuf->needs_flush || (
-                parent->cache->diff_core_storage.get_patches(inner_buf->block_id) &&
-                parent->cache->diff_core_storage.get_patches(inner_buf->block_id)->size() > 15);
 
         if (!lbuf->needs_flush) {
             const std::list<buf_patch_t*>* patches = parent->cache->diff_core_storage.get_patches(inner_buf->block_id);
             if (patches != NULL) {
                 for (std::list<buf_patch_t*>::const_iterator patch = patches->begin(); patch != patches->end(); ++patch) {
-                    if (!parent->cache->diff_out_of_core_storage.store_patch(**patch)) {
+                    if (!parent->cache->diff_oocore_storage.store_patch(**patch)) {
                         lbuf->needs_flush = true;
                         break;
                     }

@@ -3,13 +3,16 @@
 
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/diff_in_core_storage.hpp"
-#include "buffer_cache/buffer_cache.hpp"
 
-// TODO: Maybe move this file out of mirrored?
+struct mc_cache_t;
+
+//static char LOG_BLOCK_MAGIC[] = {'L','O','G','B'};
 
 class diff_oocore_storage_t {
 public:
-    diff_oocore_storage_t(cache_t &cache, const block_id_t first_block, const block_id_t last_block);
+    diff_oocore_storage_t(mc_cache_t &cache);
+
+    void init(const block_id_t first_block, const block_id_t number_of_blocks);
 
     // Loads on-disk data into memory
     void load_patches(diff_core_storage_t &in_core_storage);
@@ -22,20 +25,20 @@ public:
     void flush_n_oldest_blocks(const unsigned int n);
     
 private:
-    // TODO! Handle on-demand initialization of log blocks somewhere
     void reclaim_space(const size_t space_required); // TODO! Calls compress_block for select_log_block_for_compression()
     block_id_t select_log_block_for_compression(); // TODO! For now: just always select the oldest (=next) block
     void compress_block(const block_id_t log_block_id); // TODO! (checks in-core storage to see if there are unapplied patches)
 
     void flush_block(const block_id_t log_block_id); // TODO! Interacts with cache (cache needs an additional function, which acquires a block without locking it, then sets needs_flush and truncates etc.)
 
+    void set_active_log_block(const block_id_t log_block_id);
+
     block_id_t active_log_block;
-    // TODO! Write from end of block downwards?
     uint16_t next_patch_offset;
 
-    cache_t &cache;
+    mc_cache_t &cache;
     block_id_t first_block;
-    block_id_t last_block;
+    block_id_t number_of_blocks;
 };
 
 #endif	/* __DIFF_OUT_OF_CORE_STORAGE_HPP__ */

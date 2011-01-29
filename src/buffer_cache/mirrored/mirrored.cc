@@ -196,9 +196,26 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     patch.apply_to_buf((char*)data);
     inner_buf->writeback_buf.set_dirty();
 
+    // Check if we want to switch disable patching for this block and flush it directly instead
+    if (!inner_buf->writeback_buf.needs_flush) {
+        // TODO! Refactor
+        const size_t MAX_PATCH_SIZE = inner_buf->cache->serializer->get_block_size().value() / 4;
+        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 15;
+
+        if (    (patch.get_serialized_size() > MAX_PATCH_SIZE) ||
+                (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id) &&
+                    inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id)->size() + 1 >= PATCH_COUNT_FLUSH_THRESHOLD)) {
+            // don't use the patching system for this buf till the next writeback
+            inner_buf->writeback_buf.needs_flush = true;
+            // also get rid of existing patches
+            inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
+        }
+    }
+
     // Store the patch if the buffer does not have to be flushed anyway
-    if (!inner_buf->writeback_buf.needs_flush)
+    if (!inner_buf->writeback_buf.needs_flush) {
         inner_buf->cache->diff_core_storage.store_patch(patch);
+    }
     else
         delete &patch;
 }
@@ -227,7 +244,7 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
 }
 
 void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
-    // TODO! Add an option to turn patches off and apply changes instantly for specific performance scenarious?
+    // TODO! Don't generate a patch if need_flush is set
     rassert(data == inner_buf->data);
     rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
@@ -236,7 +253,7 @@ void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
 }
 
 void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
-    // TODO! Add an option to turn patches off and apply changes instantly for specific performance scenarious?
+    // TODO! Don't generate a patch if need_flush is set
     rassert(data == inner_buf->data);
     rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
     rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
@@ -442,21 +459,25 @@ mc_cache_t::mc_cache_t(
     serializer(serializer),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
-        config->max_size / serializer->get_block_size().value(),  // TODO: use ser_value?
+        config->max_size / serializer->get_block_size().ser_value(),
         this),
     writeback(
         this,
         config->wait_for_flush,
         config->flush_timer_ms,
-        config->flush_dirty_size / serializer->get_block_size().value(),  // TODO: ser_value?
-        config->max_dirty_size / serializer->get_block_size().value(),
+        config->flush_dirty_size / serializer->get_block_size().ser_value(),
+        config->max_dirty_size / serializer->get_block_size().ser_value(),
         config->flush_waiting_threshold,
         config->max_concurrent_flushes),
     free_list(serializer),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
-    num_live_transactions(0)
-    { }
+    num_live_transactions(0),
+    diff_oocore_storage(*this)
+    {
+    diff_oocore_storage.init(0, 10);
+    diff_oocore_storage.load_patches(diff_core_storage);
+}
 
 mc_cache_t::~mc_cache_t() {
     rassert(state == state_unstarted || state == state_shut_down);

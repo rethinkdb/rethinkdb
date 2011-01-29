@@ -5,8 +5,6 @@
 #include <map>
 #include "buffer_cache/buf_patch.hpp"
 
-// TODO: Maybe move this file out of mirrored?
-
 class diff_core_storage_t {
 public:
     diff_core_storage_t(); // Initialize an empty diff storage

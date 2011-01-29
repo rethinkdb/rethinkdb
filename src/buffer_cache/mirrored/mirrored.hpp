@@ -14,6 +14,7 @@
 #include "buffer_cache/stats.hpp"
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/diff_in_core_storage.hpp"
+#include "buffer_cache/mirrored/diff_out_of_core_storage.hpp"
 #include <boost/crc.hpp>
 
 #include "writeback/writeback.hpp"
@@ -321,6 +322,7 @@ private:
 
 private:
     diff_core_storage_t diff_core_storage;
+    diff_oocore_storage_t diff_oocore_storage;
 };
 
 #endif // __MIRRORED_CACHE_HPP__
