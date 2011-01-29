@@ -111,8 +111,14 @@ public:
 
     void apply_patch(buf_patch_t& patch); // This might delete the supplied patch, do not use patch after its applicatio
     patch_counter_t get_next_patch_counter();
-    ser_transaction_id_t get_transaction_id() {
+    ser_transaction_id_t get_transaction_id() const {
         rassert(ready);
+        // The transaction_id is only guaranteed to be up-to-date when owning the write lock.
+        // This is due to how the writeback cache and the serializer work, as consistency
+        // is only ensured because of the flush_lock being held while issuing a write to
+        // the serializer
+        rassert(mode == rwi_write);
+        rassert(data == inner_buf->data);
         if (inner_buf->transaction_id == NULL)
             return NULL_SER_TRANSACTION_ID;
         return *inner_buf->transaction_id;

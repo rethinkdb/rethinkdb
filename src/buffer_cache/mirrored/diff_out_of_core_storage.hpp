@@ -3,6 +3,7 @@
 
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/diff_in_core_storage.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 // TODO: Maybe move this file out of mirrored?
 

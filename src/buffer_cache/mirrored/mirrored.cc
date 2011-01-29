@@ -22,7 +22,7 @@ struct load_buf_fsm_t :
     void on_thread_switch() {
         if (!have_loaded) {
             inner_buf->subtree_recency = inner_buf->cache->serializer->get_recency(inner_buf->block_id);
-            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this, &inner_buf->transaction_id))
+            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this, (ser_transaction_id_t**)&inner_buf->transaction_id))
                 on_serializer_read();
         } else {
             inner_buf->lock.unlock();
@@ -62,7 +62,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
       block_id(block_id),
       data(cache->serializer->malloc()),
       transaction_id(NULL),
-      next_patch_counter(1)),
+      next_patch_counter(1),
       refcount(0),
       do_delete(false),
       cow_will_be_needed(false),
@@ -191,7 +191,7 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
-    rassert(patch->get_block_id() == inner_buf->block_id);
+    rassert(patch.get_block_id() == inner_buf->block_id);
 
     patch.apply_to_buf((char*)data);
     inner_buf->writeback_buf.set_dirty();

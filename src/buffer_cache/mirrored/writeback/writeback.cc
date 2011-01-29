@@ -341,9 +341,9 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
                 parent->cache->diff_core_storage.get_patches(inner_buf->block_id)->size() > 15);
 
         if (!lbuf->needs_flush) {
-            const std::list<buf_patch_t*>* patches = get_patches(inner_buf->block_id) const;
-            if (patches != NULL)
-                for (std::list<buf_patch_t*>::const_iterator patch = patched->begin(); patch != patches->end(); ++patch) {
+            const std::list<buf_patch_t*>* patches = parent->cache->diff_core_storage.get_patches(inner_buf->block_id);
+            if (patches != NULL) {
+                for (std::list<buf_patch_t*>::const_iterator patch = patches->begin(); patch != patches->end(); ++patch) {
                     if (!parent->cache->diff_out_of_core_storage.store_patch(**patch)) {
                         lbuf->needs_flush = true;
                         break;
@@ -359,7 +359,7 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
             parent->cache->diff_core_storage.drop_patches(inner_buf->block_id);
             inner_buf->next_patch_counter = 1;
             lbuf->last_patch_materialized = 0;
-            // TODO! Ensure that the transaction id in the inner_buf is updated automatically and on time (probably there is a problem)
+            // TODO! Verify that the transaction id in the inner_buf is updated automatically and on time
         }
     }
     
@@ -380,7 +380,7 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
         inner_buf_t *inner_buf = lbuf->gbuf;
 
         bool buf_needs_flush = lbuf->needs_flush;
-        bool buf_dirty = lbuf->dirty;
+        //bool buf_dirty = lbuf->dirty;
 #ifndef NDEBUG
         bool recency_dirty = lbuf->recency_dirty;
 #endif
@@ -437,8 +437,6 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
     }
 
     pm_flushes_blocks_dirty.record(really_dirty);
-
-    parent->flush_lock.unlock(); // Write transactions can now proceed again.
 }
 
 void writeback_t::concurrent_flush_t::do_write() {
@@ -453,12 +451,14 @@ void writeback_t::concurrent_flush_t::do_write() {
     rassert(parent->writeback_in_progress);
     parent->cache->serializer->assert_thread();
     
-    if (serializer_writes.empty() ||
-            parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this)) {
-        on_serializer_write_txn(); // Assumes that on_serializer_write_txn() returns immediately and lets us finish our work first...
-    }
+    bool continue_instantly = serializer_writes.empty() ||
+            parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this);
     
     coro_t::move_to_thread(parent->cache->home_thread);
+
+    // Write transactions can now proceed again.
+    // As patches rely on up-to-date transaction_id data, we were not able to allow this until the write has been issued to the serializer.
+    parent->flush_lock.unlock();
     
     // Allow new concurrent flushes to start from now on
     // (we had to wait until the transaction got passed to the serializer)
@@ -469,6 +469,9 @@ void writeback_t::concurrent_flush_t::do_write() {
         parent->start_next_sync_immediately = false;
         parent->sync(NULL);
     }
+
+    if (continue_instantly)
+        on_serializer_write_txn();
 }
 
 void writeback_t::concurrent_flush_t::on_serializer_write_txn() {
