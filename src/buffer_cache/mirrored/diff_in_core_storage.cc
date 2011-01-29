@@ -36,7 +36,8 @@ bool diff_core_storage_t::apply_patches(const block_id_t block_id, char *buf_dat
     return true;
 }
 
-void diff_core_storage_t::store_patch(const block_id_t block_id, buf_patch_t &patch) {
+void diff_core_storage_t::store_patch(buf_patch_t &patch) {
+    const block_id_t block_id = patch.get_block_id();
     patch_map[block_id].push_back(&patch);
 }
 

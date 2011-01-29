@@ -233,7 +233,11 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
         cancel_timer(parent->flush_timer);
         parent->flush_timer = NULL;
     }
-    
+
+    // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock
+    // we instead try to reclaim some space in the on-disk diff storage now.
+    parent->cache->diff_out_of_core_storage.flush_n_oldest_blocks(1); // TODO! Calculate a sane value for n
+
     /* Start a read transaction so we can request bufs. */
     rassert(transaction == NULL);
     if (parent->cache->state == cache_t::state_shutting_down_start_flush ||
@@ -321,10 +325,49 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
     
     // Also, at this point we can still clear the start_next_sync_immediately...
     parent->start_next_sync_immediately = false;
+
+    /* Part 1: Write patches for blocks we don't want to flush now */
+    // Please note: Writing patches to disk can alter the dirty_bufs list!
+    // TODO! Add a perfmon
+    std::vector<local_buf_t*> blocks_needing_patch_write;
+    blocks_needing_patch_write.reserve(parent->dirty_bufs.size());
+    while (local_buf_t *lbuf = parent->dirty_bufs.head()) {
+        inner_buf_t *inner_buf = lbuf->gbuf;
+
+        // TODO! Refactor criteria into an own function
+        // TODO! Make this stuff configurable
+        lbuf->needs_flush = lbuf->needs_flush || (
+                parent->cache->diff_core_storage.get_patches(inner_buf->block_id) &&
+                parent->cache->diff_core_storage.get_patches(inner_buf->block_id)->size() > 15);
+
+        if (!lbuf->needs_flush) {
+            const std::list<buf_patch_t*>* patches = get_patches(inner_buf->block_id) const;
+            if (patches != NULL)
+                for (std::list<buf_patch_t*>::const_iterator patch = patched->begin(); patch != patches->end(); ++patch) {
+                    if (!parent->cache->diff_out_of_core_storage.store_patch(**patch)) {
+                        lbuf->needs_flush = true;
+                        break;
+                    }
+                    else
+                        lbuf->last_patch_materialized = (*patch)->get_patch_counter();
+                }
+            }
+        }
+
+        if (lbuf->needs_flush) {
+            // We don't need the patches anymore
+            parent->cache->diff_core_storage.drop_patches(inner_buf->block_id);
+            inner_buf->next_patch_counter = 1;
+            lbuf->last_patch_materialized = 0;
+            // TODO! Ensure that the transaction id in the inner_buf is updated automatically and on time (probably there is a problem)
+        }
+    }
     
+    
+    
+    /* Part 2: Request read locks on all of the blocks we need to flush. */
     pm_flushes_writing.begin(&start_time);
-    
-    // Request read locks on all of the blocks we need to flush.
+
     serializer_writes.reserve(parent->dirty_bufs.size());
 
     // Log the size of this flush
@@ -336,6 +379,7 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
     while (local_buf_t *lbuf = parent->dirty_bufs.head()) {
         inner_buf_t *inner_buf = lbuf->gbuf;
 
+        bool buf_needs_flush = lbuf->needs_flush;
         bool buf_dirty = lbuf->dirty;
 #ifndef NDEBUG
         bool recency_dirty = lbuf->recency_dirty;
@@ -343,9 +387,10 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
 
         // Removes it from dirty_bufs
         lbuf->set_dirty(false);
-        lbuf->set_recency_dirty(false);    
+        lbuf->set_recency_dirty(false);
+        lbuf->needs_flush = false;
 
-        if (buf_dirty) {
+        if (buf_needs_flush) {
             ++really_dirty;
 
             bool do_delete = inner_buf->do_delete;

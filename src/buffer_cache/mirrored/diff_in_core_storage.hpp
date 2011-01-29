@@ -20,12 +20,11 @@ public:
     // Returns true iff any changes have been made to the buf
     bool apply_patches(const block_id_t block_id, char *buf_data) const;
 
-    void store_patch(const block_id_t block_id, buf_patch_t &patch);
+    void store_patch(buf_patch_t &patch);
 
     // Return NULL if no patches exist for that block
     const std::list<buf_patch_t*>* get_patches(const block_id_t block_id) const;
 
-    // TODO! Change the meaning of the dirty flag in buf_t! Introduce a needs_flush flag!
     // Remove all patches for that block (e.g. after patches have been applied and the block gets flushed to disk)
     void drop_patches(const block_id_t block_id);
 

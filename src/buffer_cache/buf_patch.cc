@@ -56,6 +56,10 @@ ser_transaction_id_t buf_patch_t::get_transaction_id() const {
     return applies_to_transaction_id;
 }
 
+block_id_t buf_patch_t::get_block_id() const {
+    return block_id;
+}
+
 buf_patch_t::buf_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const patch_operation_code_t operation_code) :
             block_id(block_id),
             patch_counter(patch_counter),

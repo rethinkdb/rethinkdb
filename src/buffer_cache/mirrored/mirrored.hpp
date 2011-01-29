@@ -52,7 +52,7 @@ class mc_inner_buf_t {
     block_id_t block_id;
     repli_timestamp subtree_recency;
     void *data;
-    ser_transaction_id_t* transaction_id;
+    ser_transaction_id_t volatile *transaction_id; // TODO! This does not seem to be correct with CoW semantics while flushing!
     rwi_lock_t lock;
     patch_counter_t next_patch_counter;
     

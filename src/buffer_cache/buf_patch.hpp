@@ -23,6 +23,7 @@ public:
 
     patch_counter_t get_patch_counter() const;
     ser_transaction_id_t get_transaction_id() const;
+    block_id_t get_block_id() const;
 
     // This is used in buf_t
     virtual void apply_to_buf(char* buf_data) = 0;

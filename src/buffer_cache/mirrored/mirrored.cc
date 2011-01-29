@@ -47,7 +47,7 @@ struct load_buf_fsm_t :
         if (patches) {
             inner_buf->next_patch_counter = patches->back()->get_patch_counter() + 1;
         } else {
-            inner_buf->next_patch_counter = 0;
+            inner_buf->next_patch_counter = 1;
         }
 
         have_loaded = true;
@@ -62,7 +62,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
       block_id(block_id),
       data(cache->serializer->malloc()),
       transaction_id(NULL),
-      next_patch_counter(0),
+      next_patch_counter(1)),
       refcount(0),
       do_delete(false),
       cow_will_be_needed(false),
@@ -84,7 +84,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
       subtree_recency(current_time()),
       data(cache->serializer->malloc()),
       transaction_id(NULL),
-      next_patch_counter(0),
+      next_patch_counter(1),
       refcount(0),
       do_delete(false),
       cow_will_be_needed(false),
@@ -191,13 +191,14 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
+    rassert(patch->get_block_id() == inner_buf->block_id);
 
     patch.apply_to_buf((char*)data);
     inner_buf->writeback_buf.set_dirty();
 
     // Store the patch if the buffer does not have to be flushed anyway
     if (!inner_buf->writeback_buf.needs_flush)
-        inner_buf->cache->diff_core_storage.store_patch(inner_buf->block_id, patch);
+        inner_buf->cache->diff_core_storage.store_patch(patch);
     else
         delete &patch;
 }
