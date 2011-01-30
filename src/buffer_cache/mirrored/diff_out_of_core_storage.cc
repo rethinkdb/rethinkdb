@@ -1,4 +1,6 @@
 #include "buffer_cache/mirrored/diff_out_of_core_storage.hpp"
+#include "buffer_cache/mirrored/mirrored.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 
 diff_oocore_storage_t::diff_oocore_storage_t(mc_cache_t &cache) : cache(cache) {
     first_block = 0;
@@ -36,7 +38,8 @@ void diff_oocore_storage_t::load_patches(diff_core_storage_t &in_core_storage) {
 // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
 // This function never blocks and must only be called while the flush_lock is held.
 bool diff_oocore_storage_t::store_patch(buf_patch_t &patch) {
-    // TODO! assert flush_in_progress
+    cache.assert_thread();
+    // TODO! assert flush_in_progress?
 
     if (number_of_blocks == 0)
         return false;
@@ -75,6 +78,7 @@ block_id_t diff_oocore_storage_t::select_log_block_for_compression() {
 }
 
 void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
+    cache.assert_thread();
     // TODO! Implement operator< in patch_buf_t, which compares 1) transaction_id 2) patch_counter
     // TODO! Scan over block. For each patch, check if it is >= than the oldest in the in-core storage for the corr. block
     // TODO! If patch is current: load it and attach it to a list
@@ -83,14 +87,59 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
 }
 
 void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
+    cache.assert_thread();
     // TODO! Get buf_t from cache (loading it into memory if necessary)
     // TODO! Scan over block. For each patch, check if it is >= than the oldest in the in-core storage for the corr. block
-    // TODO! If patch current: set needs_flush in the block and drop_patches from in-core list
-    // TODO! Initialize the block
+    // TODO! If patch current: acquire buf, call ensure_flush() on the buf
+    // TODO! Initialize the log block
 }
 
 void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) {
-    // TODO! Set active_log_block
-    // TODO! Scan through the block to determine next_patch_offset
+    rassert (log_block_id >= first_block && log_block_id < first_block + number_of_blocks);
+    active_log_block = log_block_id;
+
+    // Scan through the block to determine next_patch_offset
+    mc_buf_t* log_buf = acquire_log_block(active_log_block);
+    void* buf_data = log_buf->get_data_major_write();
+    guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
+    //uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+    // TODO! Do the actual scan
     // TODO! Set next_patch_offset to that value.
+}
+
+// Just the same as in buffer_cache/co_functions.cc (TODO: Refactor)
+struct co_block_available_callback_t : public mc_block_available_callback_t {
+    coro_t *self;
+    mc_buf_t *value;
+
+    virtual void on_block_available(mc_buf_t *block) {
+        value = block;
+        self->notify();
+    }
+
+    mc_buf_t *join() {
+        self = coro_t::self();
+        coro_t::wait();
+        return value;
+    }
+};
+
+mc_buf_t* diff_oocore_storage_t::acquire_log_block(const block_id_t log_block_id) {
+    cache.assert_thread();
+
+    mc_inner_buf_t *inner_buf = cache.page_map.find(log_block_id);
+    if (!inner_buf) {
+        /* The buf isn't in the cache and must be loaded from disk */
+        inner_buf = new mc_inner_buf_t(&cache, log_block_id);
+    }
+
+    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write);
+
+    if (buf->ready) {
+        return buf;
+    } else {
+        co_block_available_callback_t cb;
+        buf->callback = &cb;
+        return cb.join();
+    }
 }

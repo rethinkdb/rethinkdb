@@ -205,10 +205,7 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
         if (    (patch.get_serialized_size() > MAX_PATCH_SIZE) ||
                 (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id) &&
                     inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id)->size() + 1 >= PATCH_COUNT_FLUSH_THRESHOLD)) {
-            // don't use the patching system for this buf till the next writeback
-            inner_buf->writeback_buf.needs_flush = true;
-            // also get rid of existing patches
-            inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
+            ensure_flush();
         }
     }
 
@@ -227,16 +224,21 @@ void *mc_buf_t::get_data_major_write() {
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
 
+    ensure_flush();
+
+    inner_buf->writeback_buf.set_dirty();
+
+    return data;
+}
+
+void mc_buf_t::ensure_flush() {
+    rassert(data == inner_buf->data);
     if (!inner_buf->writeback_buf.needs_flush) {
         // We bypass the patching system, make sure this buffer gets flushed.
         inner_buf->writeback_buf.needs_flush = true;
         // ... we can also get rid of existing patches at this point.
         inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
     }
-
-    inner_buf->writeback_buf.set_dirty();
-
-    return data;
 }
 
 patch_counter_t mc_buf_t::get_next_patch_counter() {

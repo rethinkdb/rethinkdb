@@ -4,9 +4,10 @@
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/diff_in_core_storage.hpp"
 
-struct mc_cache_t;
+class mc_cache_t;
+class mc_buf_t;
 
-//static char LOG_BLOCK_MAGIC[] = {'L','O','G','B'};
+static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B'};
 
 class diff_oocore_storage_t {
 public:
@@ -30,8 +31,12 @@ private:
     void compress_block(const block_id_t log_block_id); // TODO! (checks in-core storage to see if there are unapplied patches)
 
     void flush_block(const block_id_t log_block_id); // TODO! Interacts with cache (cache needs an additional function, which acquires a block without locking it, then sets needs_flush and truncates etc.)
-
     void set_active_log_block(const block_id_t log_block_id);
+
+    // We use our own acquire function which does not care about transaction locks
+    // (we are the only one ever acessing the log blocks, except for writeback_t
+    //      which takes care of synchronizing with us by itself)
+    mc_buf_t* acquire_log_block(const block_id_t log_block_id);
 
     block_id_t active_log_block;
     uint16_t next_patch_offset;

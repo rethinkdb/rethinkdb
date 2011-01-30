@@ -46,6 +46,7 @@ class mc_inner_buf_t {
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
     friend class array_map_t::local_buf_t;
+    friend class diff_oocore_storage_t;
     
     typedef mc_cache_t cache_t;
     
@@ -92,6 +93,7 @@ class mc_buf_t :
     
     friend class mc_cache_t;
     friend class mc_transaction_t;
+    friend class diff_oocore_storage_t;
     
 private:
     mc_buf_t(mc_inner_buf_t *, access_t mode);
@@ -136,6 +138,9 @@ public:
     // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
     void move_data(const void* dest, const void* src, const size_t n);
 
+    // Makes sure the block itself gets flushed, instead of just the patch log
+    void ensure_flush();
+
     block_id_t get_block_id() const {
         return inner_buf->block_id;
     }
@@ -145,6 +150,7 @@ public:
         rassert(!inner_buf->safe_to_unload());
         inner_buf->do_delete = true;
         inner_buf->writeback_buf.set_dirty();
+        ensure_flush(); // Disable patch log system for the buffer
     }
 
     void touch_recency() {
@@ -218,7 +224,8 @@ struct mc_cache_t :
     friend class page_repl_random_t;
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
-    friend class array_map_t::local_buf_t;    
+    friend class array_map_t::local_buf_t;
+    friend class diff_oocore_storage_t;
     
 public:
     typedef mc_inner_buf_t inner_buf_t;
