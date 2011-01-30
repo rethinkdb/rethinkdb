@@ -39,7 +39,9 @@ struct net_header_t {
 } __attribute__((__packed__));
 
 struct net_multipart_header_t {
-    net_header_t header;
+    uint8_t message_multipart_aspect;
+    uint8_t msgcode;
+    uint16_t msgsize;
     uint32_t ident;
 } __attribute__((__packed__));
 
@@ -112,6 +114,12 @@ struct net_prepend_t {
 template <class T>
 struct headed {
     net_header_t hdr;
+    T data;
+} __attribute__((__packed__));
+
+template <class T>
+struct multipart_headed {
+    net_multipart_header_t hdr;
     T data;
 } __attribute__((__packed__));
 
