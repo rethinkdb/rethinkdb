@@ -18,8 +18,19 @@ void diff_oocore_storage_t::init(const block_id_t first_block, const block_id_t 
     if (number_of_blocks == 0)
         return;
 
-    // TODO! Initialize the set of log blocks
-    // TODO! (no transaction required) acquire all blocks, if new: zero and write magic. If existing: check magic
+    for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
+        if (cache.serializer->block_in_use(current_block)) {
+            // Check that this is a valid log block
+            mc_buf_t *log_buf = acquire_block_no_locking(current_block);
+            void *buf_data = log_buf->get_data_major_write();
+            guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
+            log_buf->release();
+            delete log_buf;
+        } else {
+            // Initialize a new log block here
+            init_log_block(current_block);
+        }
+    }
 
     set_active_log_block(first_block);
 }
