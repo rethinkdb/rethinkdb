@@ -237,7 +237,7 @@ void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) 
 
     // Scan through the block to determine next_patch_offset
     mc_buf_t *log_buf = acquire_block_no_locking(active_log_block);
-    void* buf_data = log_buf->get_data_major_write();
+    void *buf_data = log_buf->get_data_major_write();
     guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
     while (current_offset < cache.serializer->get_block_size().value()) {
@@ -257,7 +257,14 @@ void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) 
 }
 
 void diff_oocore_storage_t::init_log_block(const block_id_t log_block_id) {
-    // TODO! Place magic, zero remaining data
+    mc_buf_t *log_buf = acquire_block_no_locking(active_log_block);
+    void *buf_data = log_buf->get_data_major_write();
+
+    memcpy(buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC));
+    bzero((char*)buf_data + sizeof(LOG_BLOCK_MAGIC), cache.serializer->get_block_size().value() - sizeof(LOG_BLOCK_MAGIC));
+
+    log_buf->release();
+    delete log_buf;
 }
 
 // Just the same as in buffer_cache/co_functions.cc (TODO: Refactor)
