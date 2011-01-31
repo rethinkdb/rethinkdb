@@ -170,23 +170,37 @@ mock_cache_t::~mock_cache_t() {
 
 bool mock_cache_t::start(ready_callback_t *cb) {
     ready_callback = NULL;
-    if (do_on_thread(serializer->home_thread, this, &mock_cache_t::load_blocks_from_serializer)) {
-        return true;
+    if (home_thread == serializer->home_thread) {
+        if (load_blocks_from_serializer()) {
+            return true;
+        } else {
+            ready_callback = cb;
+            return false;
+        }
     } else {
+        do_on_thread(serializer->home_thread, this, &mock_cache_t::load_blocks_from_serializer);
         ready_callback = cb;
         return false;
     }
 }
 
 bool mock_cache_t::load_blocks_from_serializer() {
+    rassert(get_thread_id() == serializer->home_thread);
+
     block_id_t end_block_id = serializer->max_block_id();
     if (end_block_id == 0) {
         // Create the superblock
         bufs.set_size(1);
         rassert(SUPERBLOCK_ID == 0);
         bufs[SUPERBLOCK_ID] = new internal_buf_t(this, SUPERBLOCK_ID);
-        
-        return do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
+
+        if (home_thread == serializer->home_thread) {
+            have_loaded_blocks();
+            return true;
+        } else {
+            do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
+            return false;
+        }
     } else {
         // Load the blocks from the serializer
         bufs.set_size(end_block_id, NULL);
@@ -199,7 +213,13 @@ bool mock_cache_t::load_blocks_from_serializer() {
             }
         }
         if (blocks_to_load == 0) {
-            return do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
+            if (home_thread == serializer->home_thread) {
+                have_loaded_blocks();
+                return true;
+            } else {
+                do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
+                return false;
+            }
         } else {
             return false;
         }
@@ -263,7 +283,12 @@ bool mock_cache_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool mock_cache_t::shutdown_write_bufs() {
-    return do_on_thread(serializer->home_thread, this, &mock_cache_t::shutdown_do_send_bufs_to_serializer);
+    if (home_thread == serializer->home_thread) {
+        return shutdown_do_send_bufs_to_serializer();
+    } else {
+        do_on_thread(serializer->home_thread, this, &mock_cache_t::shutdown_do_send_bufs_to_serializer);
+        return false;
+    }
 }
 
 bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
@@ -274,7 +299,12 @@ bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
     }
 
     if (serializer->do_write(writes.data(), writes.size(), this)) {
-        return do_on_thread(home_thread, this, &mock_cache_t::shutdown_destroy_bufs);
+        if (home_thread == serializer->home_thread) {
+            return shutdown_destroy_bufs();
+        } else {
+            do_on_thread(home_thread, this, &mock_cache_t::shutdown_destroy_bufs);
+            return false;
+        }
     } else {
         return false;
     }
