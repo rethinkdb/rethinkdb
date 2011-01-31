@@ -146,6 +146,15 @@ private:
     DISABLE_COPYING(cas_generator_t);
 };
 
+// Provides a compare operator which compares the dereferenced values of pointers T* (for use in std:sort etc)
+template <typename obj_t>
+class dereferencing_compare_t {
+public:
+    bool operator()(obj_t * const &o1, obj_t * const &o2) const {
+        return *o1 < *o2;
+    }
+};
+
 
 #include "utils.tcc"
 

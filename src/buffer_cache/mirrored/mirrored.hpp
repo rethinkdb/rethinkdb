@@ -96,7 +96,7 @@ class mc_buf_t :
     friend class diff_oocore_storage_t;
     
 private:
-    mc_buf_t(mc_inner_buf_t *, access_t mode);
+    mc_buf_t(mc_inner_buf_t *, access_t mode, bool do_not_acquire_lock = false);
     void on_lock_available();
     bool ready;
     block_available_callback_t *callback;

@@ -27,6 +27,8 @@ public:
 
     // This is used in buf_t
     virtual void apply_to_buf(char* buf_data) = 0;
+
+    bool operator<(const buf_patch_t& p) const;
     
 protected:    
     // These are for usage in subclasses

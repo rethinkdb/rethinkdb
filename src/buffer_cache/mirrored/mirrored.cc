@@ -129,12 +129,12 @@ perfmon_duration_sampler_t
     pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
-mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
+mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode, bool do_not_acquire_lock)
     : ready(false), callback(NULL), mode(mode), inner_buf(inner)
 {
     pm_bufs_acquiring.begin(&start_time);
     inner_buf->refcount++;
-    if (inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
+    if (do_not_acquire_lock || inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
         on_lock_available();
     }
 }
