@@ -16,16 +16,16 @@ struct stream_pair {
     buffed_data_t<T> data;
 
     // This uses key_size, which is completely crap.
-    stream_pair(shared_buf_t& shared_buf, size_t beg, size_t n)
+    stream_pair(weak_buf_t buffer, size_t beg, size_t n)
         : stream(new value_stream_t()),
-          data(shared_buf, beg) {
-          write_charslice(stream, const_charslice(shared_buf.get<char>(beg + sizeof(T) + shared_buf.get<T>(beg)->key_size), shared_buf.get<char>(beg + n)));
+          data(buffer, beg) {
+          write_charslice(stream, const_charslice(buffer.get<char>(beg + sizeof(T) + buffer.get<T>(beg)->key_size), buffer.get<char>(beg + n)));
     }
 };
 
 class message_callback_t {
 public:
-    // These call .swap on their parameter, taking ownership of the pointee.
+    // These call .swap on their parameter, taking a share of ownership of the pointee.
     virtual void hello(net_hello_t message) = 0;
     virtual void send(buffed_data_t<net_backfill_t>& message) = 0;
     virtual void send(buffed_data_t<net_announce_t>& message) = 0;
@@ -61,7 +61,7 @@ private:
     message_parser_shutdown_callback_t *_cb;
 
 private:
-    size_t handle_message(message_callback_t *receiver, shared_buf_t& shared_buf, size_t offset, size_t num_read, thick_list<value_stream_t *, uint32_t>& streams);
+    size_t handle_message(message_callback_t *receiver, weak_buf_t buffer, size_t offset, size_t num_read, thick_list<value_stream_t *, uint32_t>& streams);
     void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
     void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, thick_list<value_stream_t *, uint32_t>& streams);
 

@@ -52,9 +52,9 @@ template <> size_t objsize<net_append_t>(const net_append_t *buf) { return sizeo
 template <> size_t objsize<net_prepend_t>(const net_prepend_t *buf) { return sizeof(net_prepend_t) + buf->key_size + buf->value_size; }
 
 template <class T>
-void check_pass(message_callback_t *receiver, shared_buf_t& shared_buf, size_t realoffset, size_t realsize) {
-    if (realsize <= sizeof(T) && objsize<T>(shared_buf.get<T>(realoffset)) == realsize) {
-        typename stream_type<T>::type buf(shared_buf, realoffset, realsize);
+void check_pass(message_callback_t *receiver, weak_buf_t buffer, size_t realoffset, size_t realsize) {
+    if (realsize <= sizeof(T) && objsize<T>(buffer.get<T>(realoffset)) == realsize) {
+        typename stream_type<T>::type buf(buffer, realoffset, realsize);
         receiver->send(buf);
     } else {
         throw protocol_exc_t("message wrong length for message code");
@@ -62,11 +62,11 @@ void check_pass(message_callback_t *receiver, shared_buf_t& shared_buf, size_t r
 }
 
 template <class T>
-void check_first_size(message_callback_t *receiver, shared_buf_t& shared_buf, size_t realbegin, size_t realsize, uint32_t ident, thick_list<value_stream_t *, uint32_t>& streams) {
+void check_first_size(message_callback_t *receiver, weak_buf_t& buffer, size_t realbegin, size_t realsize, uint32_t ident, thick_list<value_stream_t *, uint32_t>& streams) {
     if (sizeof(T) >= realsize
-        && sizeof(T) + shared_buf.get<T>(realbegin)->key_size <= realsize) {
+        && sizeof(T) + buffer.get<T>(realbegin)->key_size <= realsize) {
 
-        stream_pair<T> spair(shared_buf, realbegin, realsize);
+        stream_pair<T> spair(buffer, realbegin, realsize);
         if (!streams.add(ident, spair.stream)) {
             throw protocol_exc_t("reused live ident code");
         }
@@ -77,14 +77,14 @@ void check_first_size(message_callback_t *receiver, shared_buf_t& shared_buf, si
     }
 }
 
-size_t message_parser_t::handle_message(message_callback_t *receiver, shared_buf_t& shared_buf, size_t offset, size_t num_read, thick_list<value_stream_t *, uint32_t>& streams) {
+size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t buffer, size_t offset, size_t num_read, thick_list<value_stream_t *, uint32_t>& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
     if (num_read < sizeof(net_multipart_header_t)) {
         return 0;
     }
 
-    const net_header_t *hdr = shared_buf.get<net_header_t>(offset);
+    const net_header_t *hdr = buffer.get<net_header_t>(offset);
     size_t msgsize = hdr->msgsize;
 
     if (msgsize < sizeof(net_multipart_header_t)) {
@@ -100,28 +100,28 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, shared_buf
         size_t realsize = msgsize - sizeof(net_header_t);
 
         switch (hdr->msgcode) {
-        case BACKFILL: check_pass<net_backfill_t>(receiver, shared_buf, realbegin, realsize); break;
-        case ANNOUNCE: check_pass<net_announce_t>(receiver, shared_buf, realbegin, realsize); break;
-        case NOP: check_pass<net_nop_t>(receiver, shared_buf, realbegin, realsize); break;
-        case ACK: check_pass<net_ack_t>(receiver, shared_buf, realbegin, realsize); break;
-        case SHUTTING_DOWN: check_pass<net_shutting_down_t>(receiver, shared_buf, realbegin, realsize); break;
-        case GOODBYE: check_pass<net_goodbye_t>(receiver, shared_buf, realbegin, realsize); break;
-        case SET: check_pass<net_set_t>(receiver, shared_buf, realbegin, realsize); break;
-        case APPEND: check_pass<net_append_t>(receiver, shared_buf, realbegin, realsize); break;
-        case PREPEND: check_pass<net_prepend_t>(receiver, shared_buf, realbegin, realsize); break;
+        case BACKFILL: check_pass<net_backfill_t>(receiver, buffer, realbegin, realsize); break;
+        case ANNOUNCE: check_pass<net_announce_t>(receiver, buffer, realbegin, realsize); break;
+        case NOP: check_pass<net_nop_t>(receiver, buffer, realbegin, realsize); break;
+        case ACK: check_pass<net_ack_t>(receiver, buffer, realbegin, realsize); break;
+        case SHUTTING_DOWN: check_pass<net_shutting_down_t>(receiver, buffer, realbegin, realsize); break;
+        case GOODBYE: check_pass<net_goodbye_t>(receiver, buffer, realbegin, realsize); break;
+        case SET: check_pass<net_set_t>(receiver, buffer, realbegin, realsize); break;
+        case APPEND: check_pass<net_append_t>(receiver, buffer, realbegin, realsize); break;
+        case PREPEND: check_pass<net_prepend_t>(receiver, buffer, realbegin, realsize); break;
         default: throw protocol_exc_t("invalid message code");
         }
     } else {
-        const net_multipart_header_t *multipart_hdr = shared_buf.get<net_multipart_header_t>(offset);
+        const net_multipart_header_t *multipart_hdr = buffer.get<net_multipart_header_t>(offset);
         uint32_t ident = multipart_hdr->ident;
         size_t realbegin = offset + sizeof(multipart_hdr);
         size_t realsize = msgsize - sizeof(multipart_hdr);
 
         if (hdr->message_multipart_aspect == FIRST) {
             switch (hdr->msgcode) {
-            case SET: check_first_size<net_set_t>(receiver, shared_buf, realbegin, realsize, ident, streams); break;
-            case APPEND: check_first_size<net_append_t>(receiver, shared_buf, realbegin, realsize, ident, streams); break;
-            case PREPEND: check_first_size<net_prepend_t>(receiver, shared_buf, realbegin, realsize, ident, streams); break;
+            case SET: check_first_size<net_set_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
+            case APPEND: check_first_size<net_append_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
+            case PREPEND: check_first_size<net_prepend_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
             default: throw protocol_exc_t("invalid message code for multipart message");
             }
         } else if (hdr->message_multipart_aspect == MIDDLE || hdr->message_multipart_aspect == LAST) {
@@ -131,7 +131,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, shared_buf
                 throw protocol_exc_t("inactive stream identifier");
             }
 
-            write_charslice(stream, const_charslice(shared_buf.get<char>(realbegin), shared_buf.get<char>(realbegin + realsize)));
+            write_charslice(stream, const_charslice(buffer.get<char>(realbegin), buffer.get<char>(realbegin + realsize)));
 
             if (hdr->message_multipart_aspect == LAST) {
                 streams[ident]->shutdown_write();
@@ -160,7 +160,7 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
     keep_going = true;
     while (keep_going) {
         // Try handling the message.
-        size_t handled = handle_message(receiver, shared_buf, offset, num_read, streams);
+        size_t handled = handle_message(receiver, weak_buf_t(shared_buf), offset, num_read, streams);
         if (handled) {
             rassert(handled <= num_read);
             offset += handled;

@@ -22,6 +22,8 @@ private:
     bool decr_refcount() { refcount--; if (refcount == 0) { free(this); } return true; }
 };
 
+class weak_buf_t;
+
 class shared_buf_t {
 public:
     shared_buf_t() : buffer_(NULL) { }
@@ -34,15 +36,8 @@ public:
     }
 
     // Must be called on the home_thread of the shared_buf_buffer_t.
-    explicit shared_buf_t(shared_buf_t& other) {
-        rassert(get_thread_id() == reinterpret_cast<shared_buf_buffer_t *>(buffer_ - sizeof(shared_buf_buffer_t))->home_thread);
+    explicit shared_buf_t(weak_buf_t other);
 
-        buffer_ = other.buffer_;
-        if (buffer_) {
-            shared_buf_buffer_t *shbuf = reinterpret_cast<shared_buf_buffer_t *>(buffer_ - sizeof(shared_buf_buffer_t));
-            shbuf->refcount++;
-        }
-    }
     ~shared_buf_t() {
         release();
     }
@@ -77,8 +72,37 @@ public:
         }
     }
 
+    friend class weak_buf_t;
+
 private:
     // Points to the data field of the shared_buf_buffer_t!
+    char *buffer_;
+
+    DISABLE_COPYING(shared_buf_t);
+};
+
+class weak_buf_t {
+public:
+    weak_buf_t() : buffer_(NULL) { }
+    explicit weak_buf_t(shared_buf_t& buf) {
+        buffer_ = buf.buffer_;
+    }
+    ~weak_buf_t() {
+        buffer_ = NULL;
+    }
+    size_t size() {
+        rassert(buffer_);
+        shared_buf_buffer_t *shbuf = reinterpret_cast<shared_buf_buffer_t *>(buffer_ - sizeof(shared_buf_buffer_t));
+        return shbuf->length;
+    }
+    template <class T>
+    T *get(size_t off) {
+        rassert(buffer_ != NULL);
+        return reinterpret_cast<T *>(buffer_ + off);
+    }
+
+    friend class shared_buf_t;
+private:
     char *buffer_;
 };
 
@@ -90,11 +114,15 @@ public:
 
     // HACK, the third parameter gives us the same interface as
     // streampair, which is used in replication::check_pass.
-    buffed_data_t(shared_buf_t& sharebuf, size_t offset, size_t end = 0)
-        : buf_(sharebuf), offset_(offset) { }
+    buffed_data_t(weak_buf_t buf, size_t offset, size_t end = 0)
+        : buf_(buf), offset_(offset) { }
 
-    void swapset(shared_buf_t& buf, size_t offset);
-    void swap(buffed_data_t<T>& other);
+    void swap(buffed_data_t<T>& other) {
+        size_t tmp = other.offset_;
+        other.offset_ = offset_;
+        offset_ = tmp;
+        buf_.swap(other.buf_);
+    }
 
     T *get() { return buf_.get<T>(offset_); }
 
