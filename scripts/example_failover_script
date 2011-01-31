@@ -1,0 +1,7 @@
+#!/usr/bin/python
+import sys
+
+if sys.argv[1] == "down":
+    print "Uh oh we failed"
+else:
+    print "Phew, we unfailed"

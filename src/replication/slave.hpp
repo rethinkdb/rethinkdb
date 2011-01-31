@@ -21,7 +21,15 @@
 
 namespace replication {
 
+/* The slave_t class is responsible for connecting to another RethinkDB process
+ * and pushing the values that it receives in to its internal store. It also
+ * handles the failover module if failover is enabled. Currently the slave_t
+ * also is itself a failover callback and derives from the store_t class, thus
+ * allowing it to modify the behaviour of the store. */ 
 
+/* It has been suggested that the failover callback and replication
+ * functionality of the slave_t class be separated. I don't think this is such
+ * a bad idea but it doesn't seem particularly urgent to me right now. */
 
 struct slave_t :
     public home_thread_mixin_t,
@@ -33,6 +41,9 @@ friend void run(slave_t *);
 public:
     slave_t(store_t *, replication_config_t, failover_config_t);
     ~slave_t();
+
+    /* failover module which is alerted by an on_failure() call when we go out
+     * of contact with the master */
     failover_t failover;
 
 private:
@@ -112,6 +123,7 @@ private:
     /* Failover controllers */
 
 private:
+    /* Control to  allow the failover state to be reset during run time */
     std::string failover_reset();
 
     struct failover_reset_control_t
@@ -128,6 +140,7 @@ private:
     failover_reset_control_t failover_reset_control;
 
 private:
+    /* Control to allow the master to be changed during run time */
     std::string new_master(std::string args);
 
     struct new_master_control_t
