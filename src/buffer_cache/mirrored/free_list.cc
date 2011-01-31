@@ -8,9 +8,11 @@ array_free_list_t::array_free_list_t(translator_serializer_t *serializer)
 
 bool array_free_list_t::start(ready_callback_t *cb) {
     ready_callback = NULL;
-    if (do_on_thread(serializer->home_thread, this, &array_free_list_t::do_make_list)) {
+    if (serializer->home_thread == home_thread) {
+        do_make_list();
         return true;
     } else {
+        do_on_thread(serializer->home_thread, this, &array_free_list_t::do_make_list);
         ready_callback = cb;
         return false;
     }
@@ -28,15 +30,24 @@ bool array_free_list_t::do_make_list() {
             num_blocks_in_use++;
         }
     }
-    
-    return do_on_thread(home_thread, this, &array_free_list_t::have_made_list);
+
+    if (serializer->home_thread != home_thread) {
+        do_on_thread(home_thread, this, &array_free_list_t::have_made_list);
+        return false;
+    } else {
+        have_made_list();
+        return true;
+    }
 }
 
 bool array_free_list_t::have_made_list() {
     assert_thread();
-    
-    if (ready_callback) ready_callback->on_free_list_ready();
-    
+
+    if (ready_callback) {
+        ready_callback->on_free_list_ready();
+        ready_callback = NULL;
+    }
+
     return true;
 }
 
