@@ -146,6 +146,23 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
     }
 }
 
+size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
+    // First, consume any data in the peek buffer.
+    size_t read_buffer_bytes = std::min(read_buffer.size(), size);
+    memcpy(buf, read_buffer.data(), read_buffer_bytes);
+    read_buffer.erase(read_buffer.begin(), read_buffer.begin() + read_buffer_bytes);
+
+    // Now go to the kernel _once_.
+    char *remaining_buf = reinterpret_cast<char *>(buf) + read_buffer_bytes;
+    size_t remaining_size = size - read_buffer_bytes;
+    if (remaining_size > 0) {
+        size_t delta = read_internal(remaining_buf, remaining_size);
+        return read_buffer_bytes + delta;
+    } else {
+        return read_buffer_bytes;
+    }
+}
+
 void linux_tcp_conn_t::read(void *buf, size_t size) {
 
     register_with_event_loop();

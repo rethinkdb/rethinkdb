@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include "utils.hpp"
 
+// TODO: Sometime before the year 3000, compare the performance to
+// using boost::shared_array, which uses atomic incr/decr operations.
+
 // This helps us avoid copying stuff out of a network buffer, and then
 // copying it into another buffer, and then copying it into another
 // buffer, and so on.
@@ -16,7 +19,6 @@ struct shared_buf_buffer_t {
 
     friend class shared_buf_t;
 private:
-    bool incr_refcount() { refcount++; return true; }
     bool decr_refcount() { refcount--; if (refcount == 0) { free(this); } return true; }
 };
 
@@ -31,15 +33,14 @@ public:
         shbuf->length = n;
     }
 
-    // Avoid using this capriciously.  It would be nice if we could
-    // compress cross-thread reference count incr/decr messages so
-    // that only one is sent per event loop, but right now we don't.
-    // Use swap if it's appropriate.
+    // Must be called on the home_thread of the shared_buf_buffer_t.
     explicit shared_buf_t(shared_buf_t& other) {
+        rassert(get_thread_id() == reinterpret_cast<shared_buf_buffer_t *>(buffer_ - sizeof(shared_buf_buffer_t))->home_thread);
+
         buffer_ = other.buffer_;
         if (buffer_) {
             shared_buf_buffer_t *shbuf = reinterpret_cast<shared_buf_buffer_t *>(buffer_ - sizeof(shared_buf_buffer_t));
-            do_on_thread(shbuf->home_thread, shbuf, &shared_buf_buffer_t::incr_refcount);
+            shbuf->refcount++;
         }
     }
     ~shared_buf_t() {
@@ -87,9 +88,10 @@ class buffed_data_t {
 public:
     buffed_data_t() : buf_(), offset_(0) { }
 
-    buffed_data_t(shared_buf_t& sharebuf, size_t offset) {
-        
-    }
+    // HACK, the third parameter gives us the same interface as
+    // streampair, which is used in replication::check_pass.
+    buffed_data_t(shared_buf_t& sharebuf, size_t offset, size_t end = 0)
+        : buf_(sharebuf), offset_(offset) { }
 
     void swapset(shared_buf_t& buf, size_t offset);
     void swap(buffed_data_t<T>& other);

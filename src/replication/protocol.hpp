@@ -6,31 +6,36 @@
 #include "scoped_malloc.hpp"
 #include "replication/value_stream.hpp"
 #include "replication/net_structs.hpp"
+#include "containers/shared_buf.hpp"
 
 namespace replication {
 
 template <class T>
 struct stream_pair {
     value_stream_t *stream;
-    scoped_malloc<T> data;
-    stream_pair(const char *beg, const char *end) : stream(new value_stream_t()), data(beg, beg + sizeof(T) + reinterpret_cast<const T *>(beg)->key_size) {
-        write_charslice(stream, const_charslice(beg + sizeof(T) + reinterpret_cast<const T *>(beg)->key_size, end));
+    buffed_data_t<T> data;
+
+    // This uses key_size, which is completely crap.
+    stream_pair(shared_buf_t& shared_buf, size_t beg, size_t n)
+        : stream(new value_stream_t()),
+          data(shared_buf, beg) {
+          write_charslice(stream, const_charslice(shared_buf.get<char>(beg + sizeof(T) + shared_buf.get<T>(beg)->key_size), shared_buf.get<char>(beg + n)));
     }
 };
 
 class message_callback_t {
 public:
     // These call .swap on their parameter, taking ownership of the pointee.
-    virtual void hello(scoped_malloc<net_hello_t>& message) = 0;
-    virtual void send(scoped_malloc<net_backfill_t>& message) = 0;
-    virtual void send(scoped_malloc<net_announce_t>& message) = 0;
+    virtual void hello(net_hello_t message) = 0;
+    virtual void send(buffed_data_t<net_backfill_t>& message) = 0;
+    virtual void send(buffed_data_t<net_announce_t>& message) = 0;
     virtual void send(stream_pair<net_set_t>& message) = 0;
     virtual void send(stream_pair<net_append_t>& message) = 0;
     virtual void send(stream_pair<net_prepend_t>& message) = 0;
-    virtual void send(scoped_malloc<net_nop_t>& message) = 0;
-    virtual void send(scoped_malloc<net_ack_t>& message) = 0;
-    virtual void send(scoped_malloc<net_shutting_down_t>& message) = 0;
-    virtual void send(scoped_malloc<net_goodbye_t>& message) = 0;
+    virtual void send(buffed_data_t<net_nop_t>& message) = 0;
+    virtual void send(buffed_data_t<net_ack_t>& message) = 0;
+    virtual void send(buffed_data_t<net_shutting_down_t>& message) = 0;
+    virtual void send(buffed_data_t<net_goodbye_t>& message) = 0;
     virtual void conn_closed() = 0;
 };
 
@@ -56,9 +61,9 @@ private:
     message_parser_shutdown_callback_t *_cb;
 
 private:
-    void handle_message(message_callback_t *receiver, const char *msgbegin, const char *msgend, thick_list<value_stream_t *, uint32_t>& streams);
+    size_t handle_message(message_callback_t *receiver, shared_buf_t& shared_buf, size_t offset, size_t num_read, thick_list<value_stream_t *, uint32_t>& streams);
     void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
-    void do_parse_normal_message(tcp_conn_t *conn, message_callback_t *receiver, thick_list<value_stream_t *, uint32_t>& streams);
+    void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, thick_list<value_stream_t *, uint32_t>& streams);
 
 };
 }  // namespace replication

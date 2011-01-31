@@ -152,16 +152,16 @@ std::string slave_t::failover_reset() {
 }
 
  /* message_callback_t interface */
-void slave_t::hello(scoped_malloc<net_hello_t>& message) { }
-void slave_t::send(scoped_malloc<net_backfill_t>& message) { }
-void slave_t::send(scoped_malloc<net_announce_t>& message) { }
+void slave_t::hello(net_hello_t message) { }
+void slave_t::send(buffed_data_t<net_backfill_t>& message) { }
+void slave_t::send(buffed_data_t<net_announce_t>& message) { }
 void slave_t::send(stream_pair<net_set_t>& message) { }
 void slave_t::send(stream_pair<net_append_t>& message) { }
 void slave_t::send(stream_pair<net_prepend_t>& message) { }
-void slave_t::send(scoped_malloc<net_nop_t>& message) { }
-void slave_t::send(scoped_malloc<net_ack_t>& message) { }
-void slave_t::send(scoped_malloc<net_shutting_down_t>& message) { }
-void slave_t::send(scoped_malloc<net_goodbye_t>& message) { }
+void slave_t::send(buffed_data_t<net_nop_t>& message) { }
+void slave_t::send(buffed_data_t<net_ack_t>& message) { }
+void slave_t::send(buffed_data_t<net_shutting_down_t>& message) { }
+void slave_t::send(buffed_data_t<net_goodbye_t>& message) { }
 void slave_t::conn_closed() {
     coro->notify();
 }

@@ -64,16 +64,17 @@ public:
 
 public:
     /* message_callback_t interface */
-    void hello(scoped_malloc<net_hello_t>& message);
-    void send(scoped_malloc<net_backfill_t>& message);
-    void send(scoped_malloc<net_announce_t>& message);
+    // These call .swap on their parameter, taking ownership of the pointee.
+    void hello(net_hello_t message);
+    void send(buffed_data_t<net_backfill_t>& message);
+    void send(buffed_data_t<net_announce_t>& message);
     void send(stream_pair<net_set_t>& message);
     void send(stream_pair<net_append_t>& message);
     void send(stream_pair<net_prepend_t>& message);
-    void send(scoped_malloc<net_nop_t>& message);
-    void send(scoped_malloc<net_ack_t>& message);
-    void send(scoped_malloc<net_shutting_down_t>& message);
-    void send(scoped_malloc<net_goodbye_t>& message);
+    void send(buffed_data_t<net_nop_t>& message);
+    void send(buffed_data_t<net_ack_t>& message);
+    void send(buffed_data_t<net_shutting_down_t>& message);
+    void send(buffed_data_t<net_goodbye_t>& message);
     void conn_closed();
 
 private:
