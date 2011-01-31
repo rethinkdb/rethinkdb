@@ -126,7 +126,7 @@ void serve(int serve_port, cluster_address_t address) {
     } handler;
     handler.store = &store;
 
-    conn_acceptor_t conn_acceptor(serve_port, &handler, false);
+    conn_acceptor_t conn_acceptor(serve_port, &handler);
 
     logINF("Accepting connections on port %d\n", serve_port);
 
