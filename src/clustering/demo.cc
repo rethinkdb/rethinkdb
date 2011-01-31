@@ -5,19 +5,19 @@
 #include "conn_acceptor.hpp"
 #include "memcached/memcached.hpp"
 #include "logger.hpp"
+#include "utils.hpp"
 
 /* intro_message_t */
 
 struct intro_message_t : public cluster_message_t {
 
     static struct format_t : public cluster_message_format_t {
-        void serialize(cluster_outpipe_t *pipe, cluster_message_t *msg) const {
-            intro_message_t *m = static_cast<intro_message_t *>(msg);
+        void serialize(cluster_outpipe_t *pipe, unique_ptr_t<cluster_message_t> msg) const {
+            unique_ptr_t<intro_message_t> m = static_pointer_cast<intro_message_t>(msg);
             pipe->write_address(&m->address);
-            delete m;
         }
-        cluster_message_t *unserialize(cluster_inpipe_t *pipe) const {
-            intro_message_t *m = new intro_message_t;
+        unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *pipe) const {
+            unique_ptr_t<intro_message_t> m(new intro_message_t);
             pipe->read_address(&m->address);
             return m;
         }
@@ -42,7 +42,7 @@ struct demo_delegate_t : public cluster_delegate_t {
 
     demo_delegate_t(const cluster_address_t &a) : master_address(a) { }
 
-    cluster_message_t *introduce_new_node() {
+    unique_ptr_t<cluster_message_t> introduce_new_node() {
         return new intro_message_t(master_address);
     }
 };
@@ -52,14 +52,13 @@ struct demo_delegate_t : public cluster_delegate_t {
 struct query_message_t : public cluster_message_t {
 
     static struct format_t : public cluster_message_format_t {
-        void serialize(cluster_outpipe_t *pipe, cluster_message_t *msg) const {
-            query_message_t *m = static_cast<query_message_t *>(msg);
+        void serialize(cluster_outpipe_t *pipe, unique_ptr_t<cluster_message_t> msg) const {
+            unique_ptr_t<query_message_t> m = static_pointer_cast<query_message_t>(msg);
             pipe->write(&m->buf.key.size, sizeof(m->buf.key.size));
             pipe->write(m->buf.key.contents, m->buf.key.size);
-            delete m;
         }
-        cluster_message_t *unserialize(cluster_inpipe_t *pipe) const {
-            query_message_t *m = new query_message_t;
+        unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *pipe) const {
+            unique_ptr_t<query_message_t> m(new query_message_t);
             pipe->read(&m->buf.key.size, sizeof(m->buf.key.size));
             pipe->read(m->buf.key.contents, m->buf.key.size);
             return m;
@@ -134,10 +133,9 @@ void serve(int serve_port, cluster_address_t address) {
     wait_for_interrupt();
 }
 
-cluster_delegate_t *make_delegate(cluster_message_t *msg) {
-    intro_message_t *m = static_cast<intro_message_t *>(msg);
+cluster_delegate_t *make_delegate(unique_ptr_t<cluster_message_t> msg) {
+    unique_ptr_t<intro_message_t> m = static_pointer_cast<intro_message_t>(msg);
     cluster_delegate_t *delegate = new demo_delegate_t(m->address);
-    delete m;
     return delegate;
 }
 
@@ -150,11 +148,10 @@ void cluster_main(cluster_config_t config, thread_pool_t *thread_pool) {
         /* Start a new cluster */
 
         struct : public cluster_mailbox_t {
-            virtual void run(cluster_message_t *msg) {
-                query_message_t *m = static_cast<query_message_t *>(msg);
+            virtual void run(unique_ptr_t<cluster_message_t> msg) {
+                unique_ptr_t<query_message_t> m = static_pointer_cast<query_message_t>(msg);
                 debugf("Got a query: %*.*s\n", (int)m->buf.key.size, (int)m->buf.key.size,
                     m->buf.key.contents);
-                delete m;
             }
         } master_mailbox;
 

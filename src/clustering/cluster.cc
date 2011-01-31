@@ -38,7 +38,7 @@ cluster_t::cluster_t(int port, cluster_delegate_t *d) :
 }
 
 cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
-        boost::function<cluster_delegate_t *(cluster_message_t *)> startup_function) :
+        boost::function<cluster_delegate_t *(unique_ptr_t<cluster_message_t>)> startup_function) :
     listener(port)
 {
     listener.set_callback(this);
@@ -82,7 +82,7 @@ cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
     peers.push_back(boost::make_shared<cluster_peer_t>(port));
 
     /* Get our introductory message from the peer */
-    cluster_message_t *intro_message = read_message(&contact_conn);
+    unique_ptr_t<cluster_message_t> intro_message = read_message(&contact_conn);
 
     /* Pass on the intro message to the start_function and get ourselves a delegate */
     delegate.reset(startup_function(intro_message));
@@ -124,9 +124,7 @@ void cluster_t::on_tcp_listener_accept(tcp_conn_t *conn) {
             cluster_mailbox_t *mailbox;
             conn->read(&mailbox, sizeof(mailbox));
     
-            cluster_message_t *msg = read_message(conn);
-    
-            mailbox->run(msg);
+            mailbox->run(read_message(conn));
         }
     }
 }
@@ -135,7 +133,7 @@ cluster_t::~cluster_t() {
     not_implemented();
 }
 
-cluster_message_t *cluster_t::read_message(tcp_conn_t *conn) {
+unique_ptr_t<cluster_message_t> cluster_t::read_message(tcp_conn_t *conn) {
 
     int format_id;
     conn->read(&format_id, sizeof(format_id));
@@ -146,13 +144,13 @@ cluster_message_t *cluster_t::read_message(tcp_conn_t *conn) {
     cluster_inpipe_t pipe;
     pipe.cluster = this;
     pipe.conn = conn;
-    cluster_message_t *msg = format->unserialize(&pipe);
+    unique_ptr_t<cluster_message_t> msg = format->unserialize(&pipe);
     rassert(msg->format == format);
 
     return msg;
 }
 
-void cluster_t::write_message(tcp_conn_t *conn, cluster_message_t *msg) {
+void cluster_t::write_message(tcp_conn_t *conn, unique_ptr_t<cluster_message_t> msg) {
 
     int format_id = msg->format->format_id;
     conn->write(&format_id, sizeof(format_id));
@@ -169,7 +167,7 @@ cluster_address_t::cluster_address_t() :
 cluster_address_t::cluster_address_t(const cluster_address_t &addr) :
     cluster(addr.cluster), peer(addr.peer), mailbox(addr.mailbox) { }
 
-void cluster_address_t::send(cluster_message_t *msg) {
+void cluster_address_t::send(unique_ptr_t<cluster_message_t> msg) {
     if (!cluster) {
         /* Address of a local mailbox */
         coro_t::spawn(&cluster_mailbox_t::run, mailbox, msg);

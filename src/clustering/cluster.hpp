@@ -6,6 +6,7 @@
 #include "utils.hpp"
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
+#include "containers/unique_ptr.hpp"
 
 struct cluster_peer_t;   // Internal use only
 struct cluster_delegate_t;
@@ -33,7 +34,7 @@ public:
     cluster_delegate_t returned from introduce_new_node(). Its return value becomes this cluster's
     cluster_delegate_t. */
     cluster_t(int port, const char *contact_host, int contact_port,
-        boost::function<cluster_delegate_t *(cluster_message_t *)> start_function);
+        boost::function<cluster_delegate_t *(unique_ptr_t<cluster_message_t>)> start_function);
 
     /* Returns the delegate you gave it. The cluster_t owns its delegate and will free it! */
     cluster_delegate_t *get_delegate() { return delegate.get(); }
@@ -54,8 +55,8 @@ private:
     tcp_listener_t listener;
     void on_tcp_listener_accept(tcp_conn_t *conn);
 
-    cluster_message_t *read_message(tcp_conn_t *conn);
-    void write_message(tcp_conn_t *conn, cluster_message_t *msg);
+    unique_ptr_t<cluster_message_t> read_message(tcp_conn_t *conn);
+    void write_message(tcp_conn_t *conn, unique_ptr_t<cluster_message_t>);
 
     DISABLE_COPYING(cluster_t);
 };
@@ -72,7 +73,7 @@ struct cluster_delegate_t {
     cluster_message_t is the only way for the newly-joined node to start communicating, because it
     cannot communicate until it has the address of a foreign mailbox and it can only get the address
     of a foreign mailbox via a message. */
-    virtual cluster_message_t *introduce_new_node() = 0;
+    virtual unique_ptr_t<cluster_message_t> introduce_new_node() = 0;
 
     virtual ~cluster_delegate_t() { }
 };
@@ -102,7 +103,7 @@ public:
     cluster_address_t(const cluster_address_t&);
 
     /* Send a message to an address. Destroys the message you give it. */
-    void send(cluster_message_t *msg);
+    void send(unique_ptr_t<cluster_message_t> msg);
 
 private:
     friend class cluster_mailbox_t;
@@ -131,7 +132,7 @@ private:
 
     /* Called when a message is sent to the mailbox. Should destroy the message that is passed to
     it. Beware: may be called on any thread. */
-    virtual void run(cluster_message_t *) = 0;
+    virtual void run(unique_ptr_t<cluster_message_t> msg) = 0;
 
     DISABLE_COPYING(cluster_mailbox_t);
 };
@@ -176,10 +177,10 @@ struct cluster_message_format_t {
     cluster_message_format_t(int format_id);
 
     // Writes 'msg' to the pipe and destroys it
-    virtual void serialize(cluster_outpipe_t *pipe, cluster_message_t *msg) const = 0;
+    virtual void serialize(cluster_outpipe_t *pipe, unique_ptr_t<cluster_message_t> msg) const = 0;
 
     // Allocates a new message and fills it with data from the pipe
-    virtual cluster_message_t *unserialize(cluster_inpipe_t *) const = 0;
+    virtual unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *) const = 0;
 
 private:
     friend class cluster_t;
