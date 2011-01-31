@@ -108,9 +108,9 @@ private:
 
                 uint32_t hash = btkvs->hash((store_key_t*) store_key);
                 uint32_t slice = btkvs->slice_num((store_key_t *) store_key);
-                uint32_t thread = btkvs->slice_for_key((store_key_t *) store_key)->home_thread;
+                int thread = btkvs->slice_for_key((store_key_t *) store_key)->home_thread;
 
-                result += strprintf("%*s: %08lx [slice: %03lu, thread: %03lu]\r\n", key.length(), key.c_str(), hash, slice, thread);
+                result += strprintf("%*s: %08lx [slice: %03lu, thread: %03d]\r\n", key.length(), key.c_str(), hash, slice, thread);
             }
             return result;
         }

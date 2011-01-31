@@ -2,10 +2,19 @@
 #define __REPLICATION_MASTERSTORE_HPP__
 
 #include "store.hpp"
+#include "arch/arch.hpp"
 
 namespace replication {
 
+class masterstore_exc_t : public std::runtime_error {
+public:
+    masterstore_exc_t(const char *wat) : std::runtime_error(wat) { }
+};
+
 class masterstore_t {
+
+    bool has_slave() { return slave_ != NULL; }
+    void add_slave(tcp_conn_t *conn);
 
     void get_cas(store_key_t *key, castime_t castime);
 
@@ -18,6 +27,9 @@ class masterstore_t {
     void append(store_key_t *key, data_provider_t *data, castime_t castime);
     void prepend(store_key_t *key, data_provider_t *data, castime_t castime);
     void delete_key(store_key_t *key);
+
+private:
+    tcp_conn_t *slave_;
 };
 
 
