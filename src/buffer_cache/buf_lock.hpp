@@ -11,8 +11,7 @@
 // release() as soon as it's feasible to do so.  The destructor will
 // release the buf_t, so don't worry!
 
-class buf_lock_t :
-    public home_thread_mixin_t
+class buf_lock_t
 {
 public:
     buf_lock_t() : buf_(NULL) { }
@@ -38,9 +37,8 @@ public:
     // Swaps this buf_lock_t with another, thus obeying RAII since one
     // buf_lock_t owns a buf_t at a time.
     void swap(buf_lock_t& swapee) {
-        buf_t *tmp = buf_;
-        buf_ = swapee.buf_;
-        swapee.buf_ = tmp;
+        std::swap(buf_, swapee.buf_);
+        std::swap(home_thread, swapee.home_thread);
     }
 
     // Is a buf currently acquired?
@@ -49,6 +47,9 @@ public:
 private:
     // The acquired buffer, or NULL if it has already been released.
     buf_t *buf_;
+
+    // The thread on which the acquired buffer belongs (and must be released on)
+    int home_thread;
 
     DISABLE_COPYING(buf_lock_t);
 };

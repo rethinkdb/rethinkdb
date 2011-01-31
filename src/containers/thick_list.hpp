@@ -16,7 +16,7 @@
 
 // We could say class token_t = typename std::vector<T>::size_type but
 // so far we want everybody using this to use explicitly sized
-// unsigned protoken_types like uint32_t.
+// unsigned token_types like uint32_t.
 
 template <class T, class token_t>
 class thick_list {
@@ -30,7 +30,7 @@ public:
         // better way to do this.
         token_t value = 0;
         -- value;
-        assert(value > 0);
+        rassert(value > 0);
 #endif
 
     }
@@ -38,14 +38,14 @@ public:
     // adds a value, returning a token_t (a numeric type) for
     // accessing it.  The expression value != T() _must_ be true.
     token_type add(T& value) {
-        assert(value != T());
+        rassert(value != T());
 
         if (free_.empty()) {
             token_t ret = values_.size();
             values_.push_back(value);
         } else {
             token_t ret = free_.back();
-            assert(values_[ret] != T());
+            rassert(values_[ret] != T());
             free_.pop_back();
             values_[ret] = value;
         }
@@ -95,8 +95,8 @@ public:
 
     // Drops a value for the given token.
     void drop(token_type token) {
-        assert(token < values_.size());
-        assert(free_.end() == std::find(free_.begin(), free_.end(), token));
+        rassert(token < values_.size());
+        rassert(free_.end() == std::find(free_.begin(), free_.end(), token));
 
         values_[token] = T();
         free_.push_back(token);

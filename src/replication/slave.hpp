@@ -9,7 +9,8 @@
 #include "control.hpp"
 
 #define INITIAL_TIMEOUT  (100) //initial time we wait reconnect to the master server on failure in ms
-#define TIMEOUT_GROWTH_FACTOR   (2) //every failed reconnect the timeoute increase by this factor
+#define TIMEOUT_GROWTH_FACTOR   (2) //every failed reconnect the timeout increase by this factor
+#define TIMEOUT_CAP (1000*60*2) //until it reaches the cap (that's 2 minutes over there)
 
 /* if we mave more than MAX_RECONNECTS_PER_N_SECONDS in N_SECONDS then we give
  * up on the master server for a longer time (possibly until the user tells us
@@ -63,18 +64,18 @@ public:
 
 public:
     /* message_callback_t interface */
-    void hello(boost::scoped_ptr<hello_message_t>& message);
-    void send(boost::scoped_ptr<backfill_message_t>& message);
-    void send(boost::scoped_ptr<announce_message_t>& message);
-    void send(boost::scoped_ptr<set_message_t>& message);
-    void send(boost::scoped_ptr<append_message_t>& message);
-    void send(boost::scoped_ptr<prepend_message_t>& message);
-    void send(boost::scoped_ptr<nop_message_t>& message);
-    void send(boost::scoped_ptr<ack_message_t>& message);
-    void send(boost::scoped_ptr<shutting_down_message_t>& message);
-    void send(boost::scoped_ptr<goodbye_message_t>& message);
+    void hello(scoped_malloc<net_hello_t>& message);
+    void send(scoped_malloc<net_backfill_t>& message);
+    void send(scoped_malloc<net_announce_t>& message);
+    void send(stream_pair<net_set_t>& message);
+    void send(stream_pair<net_append_t>& message);
+    void send(stream_pair<net_prepend_t>& message);
+    void send(scoped_malloc<net_nop_t>& message);
+    void send(scoped_malloc<net_ack_t>& message);
+    void send(scoped_malloc<net_shutting_down_t>& message);
+    void send(scoped_malloc<net_goodbye_t>& message);
     void conn_closed();
-    
+
 private:
     friend class failover_t;
 

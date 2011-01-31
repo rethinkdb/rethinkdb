@@ -665,8 +665,8 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
 };
 
 std::string join_strings(std::string separator, std::vector<char*>::iterator begin, std::vector<char*>::iterator end) {
-    std::string res;
-    for (std::vector<char *>::iterator it = begin; it != end; it++)
+    std::string res(*begin);
+    for (std::vector<char *>::iterator it = begin + 1; it != end; it++)
         res += separator + std::string(*it); // sigh
     return res;
 }

@@ -152,28 +152,17 @@ std::string slave_t::failover_reset() {
 }
 
  /* message_callback_t interface */
-void slave_t::hello(boost::scoped_ptr<hello_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<backfill_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<announce_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<set_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<append_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<prepend_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<nop_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<ack_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<shutting_down_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<goodbye_message_t>& message)
-{}
-void slave_t::conn_closed()
-{
+void slave_t::hello(scoped_malloc<net_hello_t>& message) { }
+void slave_t::send(scoped_malloc<net_backfill_t>& message) { }
+void slave_t::send(scoped_malloc<net_announce_t>& message) { }
+void slave_t::send(stream_pair<net_set_t>& message) { }
+void slave_t::send(stream_pair<net_append_t>& message) { }
+void slave_t::send(stream_pair<net_prepend_t>& message) { }
+void slave_t::send(scoped_malloc<net_nop_t>& message) { }
+void slave_t::send(scoped_malloc<net_ack_t>& message) { }
+void slave_t::send(scoped_malloc<net_shutting_down_t>& message) { }
+void slave_t::send(scoped_malloc<net_goodbye_t>& message) { }
+void slave_t::conn_closed() {
     coro->notify();
 }
 
@@ -254,7 +243,10 @@ void run(slave_t *slave) {
         /* The connection has failed. Let's see what se should do */
         if (!slave->give_up.give_up()) {
             slave->timer_token = fire_timer_once(slave->timeout, &slave->reconnect_timer_callback, slave);
+
             slave->timeout *= TIMEOUT_GROWTH_FACTOR;
+            if (slave->timeout > TIMEOUT_CAP) slave->timeout = TIMEOUT_CAP;
+
             coro_t::wait(); //waiting on a timer
             slave->timer_token = NULL;
         } else {
