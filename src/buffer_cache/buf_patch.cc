@@ -8,15 +8,21 @@ buf_patch_t* buf_patch_t::load_patch(char* source) {
     source += sizeof(remaining_length);
     if (remaining_length == 0)
         return NULL;
+    remaining_length -= sizeof(remaining_length);
     guarantee(remaining_length >= sizeof(block_id) + sizeof(patch_counter) + sizeof(operation_code));
     block_id_t block_id = *((block_id_t*)(source));
     source += sizeof(block_id);
+    remaining_length -= sizeof(block_id);
     patch_counter_t patch_counter = *((patch_counter_t*)(source));
     source += sizeof(patch_counter);
+    remaining_length -= sizeof(block_id);
     ser_transaction_id_t applies_to_transaction_id = *((ser_transaction_id_t*)(source));
     source += sizeof(applies_to_transaction_id);
+    remaining_length -= sizeof(applies_to_transaction_id);
     patch_operation_code_t operation_code = *((patch_operation_code_t*)(source));
     source += sizeof(operation_code);
+    remaining_length -= sizeof(operation_code);
+
 
     switch (operation_code) {
         case (OPER_MEMCPY):
@@ -86,7 +92,6 @@ memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t 
     data += sizeof(dest_offset);
     n = *((size_t*)(data));
     data += sizeof(n);
-    fprintf(stderr, "remaining data_length is %d, n is %d\n", (int)(data_length - sizeof(dest_offset) - sizeof(n)), (int)n); // TODO!
     guarantee(data_length == sizeof(dest_offset) + sizeof(n) + n);
     src_buf = new char[n];
     memcpy(src_buf, data, n);
