@@ -120,13 +120,6 @@ bool diff_oocore_storage_t::store_patch(buf_patch_t &patch) {
     mc_buf_t *log_buf = acquire_block_no_locking(active_log_block);
     rassert(log_buf);
 
-    // TODO!
-    char *type_str = (char*)"UNKNOWN";
-    if (dynamic_cast<memcpy_patch_t*>(&patch))
-        type_str = (char*)"MEMCPY";
-    else if (dynamic_cast<memmove_patch_t*>(&patch))
-        type_str = (char*)"MEMMOVE";
-    fprintf(stderr, "Stored one patch for block %d of type %s\n", patch.get_block_id(), type_str);
     fprintf(stderr, "Stored to log block %d at offset %d\n", (int)active_log_block, (int)next_patch_offset);
 
     void *buf_data = log_buf->get_data_major_write();
@@ -140,9 +133,6 @@ bool diff_oocore_storage_t::store_patch(buf_patch_t &patch) {
 
 // This function might block while it acquires old blocks from disk.
 void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
-    return;
-    // TODO!
-
     cache.assert_thread();
     // TODO: assert flush_in_progress somehow?
 
@@ -152,7 +142,7 @@ void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
     n = std::min(number_of_blocks, n);
 
     // Flush the n oldest blocks
-    for (block_id_t i = 0; i < n; ++i) {
+    for (block_id_t i = 1; i <= n; ++i) {
         block_id_t current_block = active_log_block + i;
         if (current_block >= first_block + number_of_blocks)
             current_block -= number_of_blocks;
@@ -165,9 +155,6 @@ void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
 }
 
 void diff_oocore_storage_t::reclaim_space(const size_t space_required) {
-    return;
-    // TODO!
-
     block_id_t compress_block_id = select_log_block_for_compression();
     compress_block(compress_block_id);
     set_active_log_block(compress_block_id);
@@ -181,6 +168,8 @@ block_id_t diff_oocore_storage_t::select_log_block_for_compression() {
 }
 
 void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
+    fprintf(stderr, "Compressing log block %d...", (int)log_block_id);
+
     cache.assert_thread();
 
     std::vector<buf_patch_t*> live_patches;
@@ -226,22 +215,28 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
     }
 
     log_buf->release();
+
+    fprintf(stderr, " done\n");
 }
 
 void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
+    fprintf(stderr, "Flushing log block %d...", (int)log_block_id);
     cache.assert_thread();
 
     // Scan over the block
     mc_buf_t *log_buf = acquire_block_no_locking(log_block_id);
-    void *buf_data = log_buf->get_data_major_write();
+    const void *buf_data = log_buf->get_data_read();
     guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+    bool log_block_changed = false;
     while (current_offset < cache.serializer->get_block_size().value()) {
         buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
         if (!patch) {
             break;
         }
         else {
+            log_block_changed = true;
+
             current_offset += patch->get_serialized_size();
 
             // For each patch, acquire the affected block and call ensure_flush()
@@ -265,7 +260,12 @@ void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
     log_buf->release();
 
     // Wipe the log block
-    init_log_block(log_block_id);
+    if (log_block_changed)
+        init_log_block(log_block_id);
+    else
+        fprintf(stderr, " (nothing changed)");
+
+    fprintf(stderr, " done\n");
 }
 
 void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) {
