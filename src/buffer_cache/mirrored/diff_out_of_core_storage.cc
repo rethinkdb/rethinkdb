@@ -23,14 +23,13 @@ void diff_oocore_storage_t::init(const block_id_t first_block, const block_id_t 
         bool block_in_use = cache.serializer->block_in_use(current_block);
         coro_t::move_to_thread(cache.home_thread);
         if (block_in_use) {
-            fprintf(stderr, "Checking log block with id %d\n", current_block);
             // Check that this is a valid log block
             mc_buf_t *log_buf = acquire_block_no_locking(current_block);
             void *buf_data = log_buf->get_data_major_write();
             guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
             log_buf->release();
         } else {
-            fprintf(stderr, "Initializing a new log block with id %d\n", current_block);
+            //fprintf(stderr, "Initializing a new log block with id %d\n", current_block);
             // Initialize a new log block here (we rely on the property block_id assignment properties)
             mc_inner_buf_t *new_ibuf = new mc_inner_buf_t(&cache);
             guarantee(new_ibuf->block_id == current_block);
@@ -178,8 +177,9 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
             current_offset += patch->get_serialized_size();
 
             // We want to preserve this patch iff it is >= the oldest patch that we have in the in-core storage
-            // TODO!
-            if (true)
+            const std::list<buf_patch_t*>* patches = cache.diff_core_storage.get_patches(patch->get_block_id());
+            rassert(!patches || patches->size() > 0);
+            if (patches && !(*patch < *patches->front()))
                 live_patches.push_back(patch);
             else
                 delete patch;
@@ -224,14 +224,13 @@ void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
             // For each patch, acquire the affected block and call ensure_flush()
             // We have to do this only if there is any potentially applicable patch in the in-core storage...
             // (Note: we rely on the fact that deleted blocks never show up in the in-core diff storage)
-            // TODO!
-            if (true) {
+            if (cache.diff_core_storage.get_patches(patch->get_block_id())) {
                 // We never have to lock the buffer, as we neither really read nor write any data
                 // We just have to make sure that the buffer cache loads the block into memory
                 // and then make writeback write it back in the next flush
                 mc_buf_t *data_buf = acquire_block_no_locking(patch->get_block_id());
-                // TODO! Check in-core storage again, now that the block has been acquired (old patches might have been evicted from it by doing so)
-                if (true)
+                // Check in-core storage again, now that the block has been acquired (old patches might have been evicted from it by doing so)
+                if (cache.diff_core_storage.get_patches(patch->get_block_id()))
                     data_buf->ensure_flush();
 
                 data_buf->release();
