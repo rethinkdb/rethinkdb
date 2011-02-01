@@ -82,11 +82,7 @@ class mc_inner_buf_t {
     
     ~mc_inner_buf_t();
 
-    ser_transaction_id_t get_transaction_id() const {
-        buf_data_t volatile *ser_data = (buf_data_t*)data;
-        ser_data--;
-        return ser_data->transaction_id;
-    }
+    ser_transaction_id_t get_transaction_id() const;
 };
 
 /* This class represents a hold on a mc_inner_buf_t. */
@@ -128,6 +124,7 @@ public:
         // the serializer
         rassert(mode == rwi_write);
         rassert(data == inner_buf->data);
+
         return inner_buf->get_transaction_id();
     }
 

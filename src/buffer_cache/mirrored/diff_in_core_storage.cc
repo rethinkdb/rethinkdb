@@ -10,6 +10,10 @@ diff_core_storage_t::diff_core_storage_t() {
 // This assumes that patches is properly sorted. It will initialize a block_patch_list_t and store it.
 void diff_core_storage_t::load_block_patch_list(const block_id_t block_id, const std::list<buf_patch_t*>& patches) {
     rassert(patch_map.find(block_id) == patch_map.end());
+    fprintf(stderr, "Loaded list as follows:\n");
+    for (std::list<buf_patch_t*>::const_iterator patch = patches.begin(); patch != patches.end(); ++patch)
+        fprintf(stderr, "    TID=%p, PID=%d\n", (void*)(*patch)->get_transaction_id(), (int)(*patch)->get_patch_counter());
+
     patch_map[block_id].assign(patches.begin(), patches.end());
 }
 

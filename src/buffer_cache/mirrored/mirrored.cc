@@ -78,11 +78,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
       page_map_buf(this) {
     new load_buf_fsm_t(this);
 
-    // Initialize the transaction id...
-    buf_data_t *ser_data = (buf_data_t*)data;
-    ser_data--;
-    ser_data->transaction_id = NULL_SER_TRANSACTION_ID;
-
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
@@ -109,6 +104,11 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     // between problems with uninitialized memory and problems with uninitialized blocks
     memset(data, 0xCD, cache->serializer->get_block_size().value());
 #endif
+
+    // Initialize the transaction id...
+    buf_data_t *ser_data = (buf_data_t*)data;
+    ser_data--;
+    ser_data->transaction_id = NULL_SER_TRANSACTION_ID;
     
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
@@ -134,6 +134,13 @@ mc_inner_buf_t::~mc_inner_buf_t() {
 
 bool mc_inner_buf_t::safe_to_unload() {
     return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && !cow_will_be_needed;
+}
+
+ser_transaction_id_t mc_inner_buf_t::get_transaction_id() const {
+    rassert(!do_delete);
+    buf_data_t volatile *ser_data = (buf_data_t*)data;
+    ser_data--;
+    return ser_data->transaction_id;
 }
 
 perfmon_duration_sampler_t
@@ -174,8 +181,13 @@ void mc_buf_t::on_lock_available() {
         }
         case rwi_write: {
             if (inner_buf->cow_will_be_needed) {
+                // Include buf_data header in copy to preserve transaction_id
+                buf_data_t *src_data = (buf_data_t*)inner_buf->data;
+                src_data--;
                 data = inner_buf->cache->serializer->malloc();
-                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
+                buf_data_t *full_data = (buf_data_t*)data;
+                full_data--;
+                memcpy(full_data, src_data, inner_buf->cache->get_block_size().ser_value());
                 inner_buf->data = data;
                 inner_buf->cow_will_be_needed = false;
             }
@@ -568,7 +580,7 @@ bool mc_cache_t::next_starting_up_step() {
 
 void mc_cache_t::init_diff_storage() {
     rassert(state == state_starting_up_init_fixed_blocks);
-    diff_oocore_storage.init(SUPERBLOCK_ID + 1, 10); // TODO!
+    diff_oocore_storage.init(SUPERBLOCK_ID + 1, 50); // TODO!
     diff_oocore_storage.load_patches(diff_core_storage);
 
     state = state_starting_up_finish;
