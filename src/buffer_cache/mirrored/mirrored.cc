@@ -205,6 +205,7 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     inner_buf->writeback_buf.set_dirty();
 
     // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks etc.)
+    // TODO! This is really bad currently, change the behavior of transaction ID reading
     if (!inner_buf->transaction_id)
         ensure_flush();
 

@@ -55,7 +55,7 @@ void diff_oocore_storage_t::load_patches(diff_core_storage_t &in_core_storage) {
         const void *buf_data = log_buf->get_data_read();
         guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
         uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
-        while (current_offset < cache.get_block_size().value()) {
+        while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
             buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
             if (!patch) {
                 break;
@@ -164,14 +164,14 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
     cache.assert_thread();
 
     std::vector<buf_patch_t*> live_patches;
-    live_patches.reserve(cache.get_block_size().value() / 50);
+    live_patches.reserve(cache.get_block_size().value() / 30);
 
     // Scan over the block and save patches that we want to preserve
     mc_buf_t *log_buf = acquire_block_no_locking(log_block_id);
     void *buf_data = log_buf->get_data_major_write();
     guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
-    while (current_offset < cache.get_block_size().value()) {
+    while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
         buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
         if (!patch) {
             break;
@@ -220,7 +220,7 @@ void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
     guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
     bool log_block_changed = false;
-    while (current_offset < cache.serializer->get_block_size().value()) {
+    while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
         buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
         if (!patch) {
             break;
@@ -268,7 +268,7 @@ void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) 
     const void *buf_data = log_buf->get_data_read();
     guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
-    while (current_offset < cache.serializer->get_block_size().value()) {
+    while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
         buf_patch_t *tmp_patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
         if (!tmp_patch) {
             break;

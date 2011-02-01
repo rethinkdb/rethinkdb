@@ -381,9 +381,7 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
 
         bool buf_needs_flush = lbuf->needs_flush;
         //bool buf_dirty = lbuf->dirty;
-#ifndef NDEBUG
         bool recency_dirty = lbuf->recency_dirty;
-#endif
 
         // Removes it from dirty_bufs
         lbuf->set_dirty(false);
