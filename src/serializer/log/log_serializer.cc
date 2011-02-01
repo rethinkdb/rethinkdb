@@ -604,10 +604,9 @@ struct ls_read_fsm_t :
     log_serializer_t *ser;
     ser_block_id_t block_id;
     void *buf;
-    ser_transaction_id_t** transaction_id;
     
-    ls_read_fsm_t(log_serializer_t *ser, ser_block_id_t block_id, void *buf, ser_transaction_id_t** transaction_id)
-        : ser(ser), block_id(block_id), buf(buf), transaction_id(transaction_id)
+    ls_read_fsm_t(log_serializer_t *ser, ser_block_id_t block_id, void *buf)
+        : ser(ser), block_id(block_id), buf(buf)
     {
         pm_serializer_reads.begin(&start_time);
     }
@@ -645,22 +644,17 @@ struct ls_read_fsm_t :
     }
     
     bool done() {
-        if (transaction_id) {
-            buf_data_t *data = (buf_data_t*)buf;
-            data--;
-            *transaction_id = &data->transaction_id;
-        }
         if (read_callback) read_callback->on_serializer_read();
         delete this;
         return true;
     }
 };
 
-bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback, ser_transaction_id_t** transaction_id) {
+bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
     rassert(state == state_ready);
     assert_thread();
     
-    ls_read_fsm_t *fsm = new ls_read_fsm_t(this, block_id, buf, transaction_id);
+    ls_read_fsm_t *fsm = new ls_read_fsm_t(this, block_id, buf);
     return fsm->run(callback);
 }
 

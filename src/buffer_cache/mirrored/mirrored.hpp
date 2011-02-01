@@ -54,7 +54,6 @@ class mc_inner_buf_t {
     block_id_t block_id;
     repli_timestamp subtree_recency;
     void *data;
-    ser_transaction_id_t volatile *transaction_id;
     rwi_lock_t lock;
     patch_counter_t next_patch_counter;
     
@@ -82,6 +81,12 @@ class mc_inner_buf_t {
     explicit mc_inner_buf_t(cache_t *cache);
     
     ~mc_inner_buf_t();
+
+    ser_transaction_id_t get_transaction_id() const {
+        buf_data_t volatile *ser_data = (buf_data_t*)data;
+        ser_data--;
+        return ser_data->transaction_id;
+    }
 };
 
 /* This class represents a hold on a mc_inner_buf_t. */
@@ -123,9 +128,7 @@ public:
         // the serializer
         rassert(mode == rwi_write);
         rassert(data == inner_buf->data);
-        if (inner_buf->transaction_id == NULL)
-            return NULL_SER_TRANSACTION_ID;
-        return *inner_buf->transaction_id;
+        return inner_buf->get_transaction_id();
     }
 
     const void *get_data_read() const {

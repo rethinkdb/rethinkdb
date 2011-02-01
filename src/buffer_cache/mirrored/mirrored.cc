@@ -22,7 +22,7 @@ struct load_buf_fsm_t :
     void on_thread_switch() {
         if (!have_loaded) {
             inner_buf->subtree_recency = inner_buf->cache->serializer->get_recency(inner_buf->block_id);
-            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this, (ser_transaction_id_t**)&inner_buf->transaction_id))
+            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this))
                 on_serializer_read();
         } else {
             inner_buf->lock.unlock();
@@ -33,7 +33,7 @@ struct load_buf_fsm_t :
         const std::list<buf_patch_t*>* patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
         // Remove obsolete patches from diff storage
         if (patches) {
-            inner_buf->cache->diff_core_storage.filter_applied_patches(inner_buf->block_id, *inner_buf->transaction_id);
+            inner_buf->cache->diff_core_storage.filter_applied_patches(inner_buf->block_id, inner_buf->get_transaction_id());
             patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
         }
         // All patches that currently exist must have been materialized out of core...
@@ -69,7 +69,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
     : cache(cache),
       block_id(block_id),
       data(cache->serializer->malloc()),
-      transaction_id(NULL),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -78,7 +77,12 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
       page_repl_buf(this),
       page_map_buf(this) {
     new load_buf_fsm_t(this);
-    
+
+    // Initialize the transaction id...
+    buf_data_t *ser_data = (buf_data_t*)data;
+    ser_data--;
+    ser_data->transaction_id = NULL_SER_TRANSACTION_ID;
+
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
@@ -91,7 +95,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
       block_id(cache->free_list.gen_block_id()),
       subtree_recency(current_time()),
       data(cache->serializer->malloc()),
-      transaction_id(NULL),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -204,9 +207,8 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     patch.apply_to_buf((char*)data);
     inner_buf->writeback_buf.set_dirty();
 
-    // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks etc.)
-    // TODO! This is really bad currently, change the behavior of transaction ID reading
-    if (!inner_buf->transaction_id)
+    // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks)
+    if (get_transaction_id() == NULL_SER_TRANSACTION_ID)
         ensure_flush();
 
     // Check if we want to switch disable patching for this block and flush it directly instead

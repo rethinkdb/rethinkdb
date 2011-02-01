@@ -32,8 +32,7 @@ struct serializer_t :
         virtual void on_serializer_read() = 0;
         virtual ~read_callback_t() {}
     };
-    // If transaction_id is given, it becomes a pointer to the block's transaction id attribute
-    virtual bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback, ser_transaction_id_t** transaction_id = NULL) = 0;
+    virtual bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) = 0;
     
     /* do_write() updates or deletes a group of bufs.
     

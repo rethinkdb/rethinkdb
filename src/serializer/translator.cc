@@ -36,8 +36,8 @@ void translator_serializer_t::free(void *ptr) {
     inner->free(ptr);
 }
 
-bool translator_serializer_t::do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback, ser_transaction_id_t** transaction_id) {
-    return inner->do_read(xlate(block_id), buf, callback, transaction_id);
+bool translator_serializer_t::do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback) {
+    return inner->do_read(xlate(block_id), buf, callback);
 }
 
 

@@ -94,8 +94,7 @@ public:
     void *clone(void*); // clones a buf
     void free(void*);
 
-    // If transaction_id is given, it becomes a pointer to the block's transaction id attribute
-    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback, ser_transaction_id_t** transaction_id = NULL);
+    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
     block_size_t get_block_size();
     ser_block_id_t max_block_id();
