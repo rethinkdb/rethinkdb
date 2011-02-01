@@ -2,6 +2,8 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 
+// TODO! Add a number of perfmons
+
 diff_oocore_storage_t::diff_oocore_storage_t(mc_cache_t &cache) : cache(cache) {
     first_block = 0;
     number_of_blocks = 0;
@@ -100,12 +102,18 @@ bool diff_oocore_storage_t::store_patch(buf_patch_t &patch) {
     size_t free_space = cache.get_block_size().value() - (size_t)next_patch_offset;
     if (patch_serialized_size > free_space) {
         // Try reclaiming some space (this usually switches to another log block)
+        const block_id_t initial_log_block = active_log_block;
         reclaim_space(patch_serialized_size);
         free_space = cache.get_block_size().value() - (size_t)next_patch_offset;
 
         // Check if enough space could be reclaimed
-        if (patch_serialized_size > free_space)
-            return false; // No success :-(
+        if (patch_serialized_size > free_space) {
+            // No success :-(
+            // We go back to the initial block to make sure that this one gets flushed
+            // when flush_n_oldest_blocks is called next (as it is obviously full)...
+            set_active_log_block(initial_log_block);
+            return false;
+        }
     }
 
     // Serialize patch at next_patch_offset, increase offset
@@ -159,7 +167,7 @@ block_id_t diff_oocore_storage_t::select_log_block_for_compression() {
 }
 
 void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
-    fprintf(stderr, "Compressing log block %d...", (int)log_block_id);
+    //fprintf(stderr, "Compressing log block %d...", (int)log_block_id);
 
     cache.assert_thread();
 
@@ -171,6 +179,7 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
     void *buf_data = log_buf->get_data_major_write();
     guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+    bool log_block_changed = false;
     while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
         buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
         if (!patch) {
@@ -184,30 +193,34 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
             rassert(!patches || patches->size() > 0);
             if (patches && !(*patch < *patches->front()))
                 live_patches.push_back(patch);
-            else
+            else {
                 delete patch;
+                log_block_changed = true;
+            }
         }
     }
     log_buf->release();
 
-    // Wipe the log block
-    init_log_block(log_block_id);
+    if (log_block_changed) {
+        // Wipe the log block
+        init_log_block(log_block_id);
 
-    // Write back live patches
-    log_buf = acquire_block_no_locking(log_block_id);
-    rassert(log_buf);
-    buf_data = log_buf->get_data_major_write();
+        // Write back live patches
+        log_buf = acquire_block_no_locking(log_block_id);
+        rassert(log_buf);
+        buf_data = log_buf->get_data_major_write();
 
-    guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
-    current_offset = sizeof(LOG_BLOCK_MAGIC);
-    for (std::vector<buf_patch_t*>::const_iterator patch = live_patches.begin(); patch != live_patches.end(); ++patch) {
-        (*patch)->serialize((char*)buf_data + current_offset);
-        current_offset += (*patch)->get_serialized_size();
+        guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
+        current_offset = sizeof(LOG_BLOCK_MAGIC);
+        for (std::vector<buf_patch_t*>::const_iterator patch = live_patches.begin(); patch != live_patches.end(); ++patch) {
+            (*patch)->serialize((char*)buf_data + current_offset);
+            current_offset += (*patch)->get_serialized_size();
+        }
+
+        log_buf->release();
     }
 
-    log_buf->release();
-
-    fprintf(stderr, " done\n");
+    //fprintf(stderr, " done\n");
 }
 
 void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {

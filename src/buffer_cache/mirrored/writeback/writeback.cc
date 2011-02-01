@@ -42,6 +42,8 @@ void writeback_t::begin_transaction_fsm_t::on_lock_available() {
 }
 
 perfmon_duration_sampler_t
+    pm_flushes_diff_flush("flushes_diff_flushing", secs_to_ticks(1)),
+    pm_flushes_diff_store("flushes_diff_store", secs_to_ticks(1)),
     pm_flushes_locking("flushes_locking", secs_to_ticks(1)),
     pm_flushes_writing("flushes_writing", secs_to_ticks(1));
 
@@ -228,10 +230,12 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
         parent->flush_timer = NULL;
     }
 
+    pm_flushes_diff_flush.begin(&start_time2);
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock
     // we instead try to reclaim some space in the on-disk diff storage now.
-    parent->cache->diff_oocore_storage.flush_n_oldest_blocks(1); // TODO! Calculate a sane value for n
+    parent->cache->diff_oocore_storage.flush_n_oldest_blocks(2); // TODO! Calculate a sane value for n
     // TODO! This currently is a guarantee for slowness in strong durability. Don't do it at every flush...
+    pm_flushes_diff_flush.end(&start_time2);
 
     /* Start a read transaction so we can request bufs. */
     rassert(transaction == NULL);
@@ -331,9 +335,11 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
 
     /* Part 1: Write patches for blocks we don't want to flush now */
     // Please note: Writing patches to disk can alter the dirty_bufs list!
-    // TODO! Add a perfmon
+    pm_flushes_diff_store.begin(&start_time2);
     std::vector<local_buf_t*> blocks_needing_patch_write;
     blocks_needing_patch_write.reserve(parent->dirty_bufs.size());
+    bool log_storage_failure = false;
+    unsigned int patches_stored = 0; // TODO! Testing code
     for (intrusive_list_t<local_buf_t>::iterator lbuf_it = parent->dirty_bufs.begin(); lbuf_it != parent->dirty_bufs.end(); lbuf_it++) {
         local_buf_t *lbuf = &(*lbuf_it);
         inner_buf_t *inner_buf = lbuf->gbuf;
@@ -343,11 +349,15 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
             if (patches != NULL) {
                 for (std::list<buf_patch_t*>::const_iterator patch = patches->begin(); patch != patches->end(); ++patch) {
                     if (lbuf->last_patch_materialized < (*patch)->get_patch_counter()) {
-                        if (!parent->cache->diff_oocore_storage.store_patch(**patch)) {
+                        if (log_storage_failure || !parent->cache->diff_oocore_storage.store_patch(**patch)) {
                             lbuf->needs_flush = true;
+                            // We don't need the patches anymore
+                            parent->cache->diff_core_storage.drop_patches(inner_buf->block_id);
+                            log_storage_failure = true;
                             break;
                         }
                         else {
+                            patches_stored++;
                             lbuf->last_patch_materialized = (*patch)->get_patch_counter();
                         }
                     }
@@ -356,13 +366,17 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
         }
 
         if (lbuf->needs_flush) {
-            // We don't need the patches anymore
-            parent->cache->diff_core_storage.drop_patches(inner_buf->block_id);
             inner_buf->next_patch_counter = 1;
             lbuf->last_patch_materialized = 0;
-            // TODO! Verify that the transaction id in the inner_buf is updated automatically and on time
         }
     }
+    pm_flushes_diff_store.end(&start_time2);
+    if (log_storage_failure)
+        fprintf(stderr, "%u patches stored to disk", patches_stored);
+    if (log_storage_failure)
+        fprintf(stderr, " (storage failure occured)\n");
+    //else
+    //    fprintf(stderr, "\n");
     
     
     /* Part 2: Request read locks on all of the blocks we need to flush. */

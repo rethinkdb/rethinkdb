@@ -498,10 +498,11 @@ namespace impl {
 void shift_pairs(buf_t &node_buf, uint16_t offset, long shift) {
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
 
-    const byte *front = ptr_cast<byte>(get_pair(node, node->frontmost_offset));
+    uint16_t frontmost_offset = node->frontmost_offset;
+    const byte *front = ptr_cast<byte>(get_pair(node, frontmost_offset));
 
-    node_buf.move_data(front + shift, front, offset - node->frontmost_offset);
-    uint16_t frontmost_offset = node->frontmost_offset + shift;
+    node_buf.move_data(front + shift, front, offset - frontmost_offset);
+    frontmost_offset += shift;
     node_buf.set_data(&node->frontmost_offset, &frontmost_offset, sizeof(frontmost_offset));
     uint16_t* new_pair_offsets = new uint16_t[node->npairs];
     for (int i = 0; i < node->npairs; i++) {
@@ -529,9 +530,9 @@ uint16_t insert_pair(buf_t &node_buf, const btree_leaf_pair *pair) {
     uint16_t frontmost_offset = node->frontmost_offset - pair_size(pair);
     node_buf.set_data(&node->frontmost_offset, &frontmost_offset, sizeof(frontmost_offset));
     // insert contents
-    node_buf.set_data(get_pair(node, node->frontmost_offset), pair, pair_size(pair));
+    node_buf.set_data(get_pair(node, frontmost_offset), pair, pair_size(pair));
 
-    return node->frontmost_offset;
+    return frontmost_offset;
 }
 
 // Decreases frontmost_offset by the pair size, key->full_size() + value->full_size().
@@ -541,7 +542,7 @@ uint16_t insert_pair(buf_t &node_buf, const btree_value *value, const btree_key 
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
     uint16_t frontmost_offset = node->frontmost_offset - key->full_size() - value->full_size();
     node_buf.set_data(&node->frontmost_offset, &frontmost_offset, sizeof(frontmost_offset));
-    const btree_leaf_pair *new_pair = get_pair(node, node->frontmost_offset);
+    const btree_leaf_pair *new_pair = get_pair(node, frontmost_offset);
 
     // Use a buffer to prepare the key/value pair which we can then use to generate a patch
     byte *pair_buf = new byte[key->full_size() + value->full_size()];

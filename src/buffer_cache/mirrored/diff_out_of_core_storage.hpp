@@ -7,9 +7,10 @@
 class mc_cache_t;
 class mc_buf_t;
 
-static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B'};
+// Whenever the on-disk format changes, please increase the version number (currently 00)
+static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'};
 
-/* WARNING: Most of the functions in here are not reentrant-safe and rely on concurrency control happening */
+/* WARNING: Most of the functions in here are *not* reentrant-safe and rely on concurrency control happening */
 /*  elsewhere (specifically in mc_cache_t and writeback_t) */
 class diff_oocore_storage_t {
 public:
@@ -28,11 +29,11 @@ public:
     void flush_n_oldest_blocks(unsigned int n);
     
 private:
-    void reclaim_space(const size_t space_required); // TODO! Calls compress_block for select_log_block_for_compression()
-    block_id_t select_log_block_for_compression(); // TODO! For now: just always select the oldest (=next) block
-    void compress_block(const block_id_t log_block_id); // TODO! (checks in-core storage to see if there are unapplied patches)
+    void reclaim_space(const size_t space_required); // Calls compress_block for select_log_block_for_compression()
+    block_id_t select_log_block_for_compression(); // For now: just always select the oldest (=next) block
+    void compress_block(const block_id_t log_block_id);
 
-    void flush_block(const block_id_t log_block_id); // TODO! Interacts with cache (cache needs an additional function, which acquires a block without locking it, then sets needs_flush and truncates etc.)
+    void flush_block(const block_id_t log_block_id);
     void set_active_log_block(const block_id_t log_block_id);
 
     void init_log_block(const block_id_t log_block_id);

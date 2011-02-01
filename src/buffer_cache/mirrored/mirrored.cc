@@ -228,6 +228,7 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
         // TODO! Refactor
         const size_t MAX_PATCH_SIZE = inner_buf->cache->serializer->get_block_size().value() / 4;
         const size_t PATCH_COUNT_FLUSH_THRESHOLD = 30;
+        //const size_t PATCH_COUNT_FLUSH_THRESHOLD = 15;
 
         if (    (patch.get_serialized_size() > MAX_PATCH_SIZE) ||
                 (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id) &&
@@ -265,6 +266,8 @@ void mc_buf_t::ensure_flush() {
         inner_buf->writeback_buf.needs_flush = true;
         // ... we can also get rid of existing patches at this point.
         inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
+        // Make sure that the buf is marked as dirty
+        inner_buf->writeback_buf.set_dirty();
     }
 }
 
@@ -274,8 +277,8 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
 
 void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
     rassert(data == inner_buf->data);
-    rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
-    rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
+    rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->get_block_size().value());
+    rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->get_block_size().value());
 
     if (inner_buf->writeback_buf.needs_flush) {
         // Save the allocation / construction of a patch object
@@ -289,10 +292,10 @@ void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
 
 void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     rassert(data == inner_buf->data);
-    rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
-    rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
-    rassert(src >= data && src < (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
-    rassert((const char*)src + n <= (const char*)data + inner_buf->cache->serializer->get_block_size().ser_value());
+    rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->get_block_size().value());
+    rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->get_block_size().value());
+    rassert(src >= data && src < (const char*)data + inner_buf->cache->get_block_size().value());
+    rassert((const char*)src + n <= (const char*)data + inner_buf->cache->get_block_size().value());
 
     if (inner_buf->writeback_buf.needs_flush) {
         // Save the allocation / construction of a patch object
@@ -580,7 +583,8 @@ bool mc_cache_t::next_starting_up_step() {
 
 void mc_cache_t::init_diff_storage() {
     rassert(state == state_starting_up_init_fixed_blocks);
-    diff_oocore_storage.init(SUPERBLOCK_ID + 1, 50); // TODO!
+    //diff_oocore_storage.init(SUPERBLOCK_ID + 1, 1000); // TODO!
+    diff_oocore_storage.init(SUPERBLOCK_ID + 1, 10); // TODO!
     diff_oocore_storage.load_patches(diff_core_storage);
 
     state = state_starting_up_finish;

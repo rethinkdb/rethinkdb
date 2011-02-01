@@ -191,6 +191,7 @@ public:
 
         coro_t *flusher_coro;
         ticks_t start_time;
+        ticks_t start_time2;
 
         // Callbacks for the current sync
         intrusive_list_t<sync_callback_t> current_sync_callbacks;
