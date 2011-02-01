@@ -38,7 +38,7 @@ public:
     // buf_lock_t owns a buf_t at a time.
     void swap(buf_lock_t& swapee) {
         std::swap(buf_, swapee.buf_);
-        std::swap(home_thread, swapee.home_thread);
+        std::swap(home_thread_, swapee.home_thread_);
     }
 
     // Is a buf currently acquired?
@@ -49,7 +49,7 @@ private:
     buf_t *buf_;
 
     // The thread on which the acquired buffer belongs (and must be released on)
-    int home_thread;
+    int home_thread_;
 
     DISABLE_COPYING(buf_lock_t);
 };
