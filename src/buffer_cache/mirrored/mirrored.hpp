@@ -54,7 +54,7 @@ class mc_inner_buf_t {
     block_id_t block_id;
     repli_timestamp subtree_recency;
     void *data;
-    ser_transaction_id_t volatile *transaction_id; // TODO! This does not seem to be correct with CoW semantics while flushing!
+    ser_transaction_id_t volatile *transaction_id;
     rwi_lock_t lock;
     patch_counter_t next_patch_counter;
     
@@ -104,6 +104,7 @@ private:
     ticks_t start_time;
     
     access_t mode;
+    bool non_locking_access;
     mc_inner_buf_t *inner_buf;
     void *data;   /* Same as inner_buf->data until a COW happens */
 
@@ -212,6 +213,7 @@ private:
 struct mc_cache_t :
     private free_list_t::ready_callback_t,
     private writeback_t::sync_callback_t,
+    private thread_message_t,
     public home_thread_mixin_t
 {
     friend class load_buf_fsm_t;
@@ -272,6 +274,8 @@ private:
     bool next_starting_up_step();
     ready_callback_t *ready_callback;
     void on_free_list_ready();
+    void init_diff_storage();
+    void on_thread_switch();
     
 public:
     
@@ -311,6 +315,7 @@ private:
         
         state_starting_up_create_free_list,
         state_starting_up_waiting_for_free_list,
+        state_starting_up_init_fixed_blocks,
         state_starting_up_finish,
         
         state_ready,

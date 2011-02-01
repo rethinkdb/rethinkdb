@@ -86,6 +86,7 @@ memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t 
     data += sizeof(dest_offset);
     n = *((size_t*)(data));
     data += sizeof(n);
+    fprintf(stderr, "remaining data_length is %d, n is %d\n", (int)(data_length - sizeof(dest_offset) - sizeof(n)), (int)n); // TODO!
     guarantee(data_length == sizeof(dest_offset) + sizeof(n) + n);
     src_buf = new char[n];
     memcpy(src_buf, data, n);

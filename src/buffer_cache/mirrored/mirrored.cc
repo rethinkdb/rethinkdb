@@ -40,6 +40,12 @@ struct load_buf_fsm_t :
         } else {
             inner_buf->writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
         }
+
+        // TODO!
+        if (patches) {
+            fprintf(stderr, "Replaying %d patches on block %d\n", (int)patches->size(), inner_buf->block_id);
+        }
+
         // Apply outstanding patches
         if (inner_buf->cache->diff_core_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data))
             inner_buf->writeback_buf.set_dirty();
@@ -130,7 +136,7 @@ perfmon_duration_sampler_t
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode, bool do_not_acquire_lock)
-    : ready(false), callback(NULL), mode(mode), inner_buf(inner)
+    : ready(false), callback(NULL), mode(mode), non_locking_access(do_not_acquire_lock), inner_buf(inner)
 {
     pm_bufs_acquiring.begin(&start_time);
     inner_buf->refcount++;
@@ -284,25 +290,27 @@ void mc_buf_t::release() {
     inner_buf->cache->assert_thread();
     
     inner_buf->refcount--;
-    
-    switch (mode) {
-        case rwi_read:
-        case rwi_write: {
-            inner_buf->lock.unlock();
-            break;
-        }
-        case rwi_read_outdated_ok: {
-            if (data == inner_buf->data) {
-                inner_buf->cow_will_be_needed = false;
-            } else {
-                inner_buf->cache->serializer->free(data);
+
+    if (!non_locking_access) {
+        switch (mode) {
+            case rwi_read:
+            case rwi_write: {
+                inner_buf->lock.unlock();
+                break;
             }
-            break;
+            case rwi_read_outdated_ok: {
+                if (data == inner_buf->data) {
+                    inner_buf->cow_will_be_needed = false;
+                } else {
+                    inner_buf->cache->serializer->free(data);
+                }
+                break;
+            }
+            case rwi_intent:
+            case rwi_upgrade:
+            default:
+                unreachable("Unexpected mode.");
         }
-        case rwi_intent:
-        case rwi_upgrade:
-        default:
-            unreachable("Unexpected mode.");
     }
     
     // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
@@ -489,8 +497,6 @@ mc_cache_t::mc_cache_t(
     num_live_transactions(0),
     diff_oocore_storage(*this)
     {
-    diff_oocore_storage.init(0, 10);
-    diff_oocore_storage.load_patches(diff_core_storage);
 }
 
 mc_cache_t::~mc_cache_t() {
@@ -504,6 +510,7 @@ mc_cache_t::~mc_cache_t() {
 
 bool mc_cache_t::start(ready_callback_t *cb) {
     rassert(state == state_unstarted);
+
     state = state_starting_up_create_free_list;
     ready_callback = NULL;
     if (next_starting_up_step()) {
@@ -517,21 +524,28 @@ bool mc_cache_t::start(ready_callback_t *cb) {
 bool mc_cache_t::next_starting_up_step() {
     if (state == state_starting_up_create_free_list) {
         if (free_list.start(this)) {
-            state = state_starting_up_finish;
+            state = state_starting_up_init_fixed_blocks;
         } else {
             state = state_starting_up_waiting_for_free_list;
             return false;
         }
     }
     
-    if (state == state_starting_up_finish) {
+    if (state == state_starting_up_init_fixed_blocks) {
         /* Create an initial superblock */
         if (free_list.num_blocks_in_use == 0) {
             inner_buf_t *b = new mc_inner_buf_t(this);
             rassert(b->block_id == SUPERBLOCK_ID);
             bzero(b->data, get_block_size().value());
         }
-        
+
+        /* Initialize the diff storage (needs coro context) */
+        coro_t::spawn(&mc_cache_t::init_diff_storage, this);
+
+        return false;
+    }
+
+    if (state == state_starting_up_finish) {
         state = state_ready;
         
         if (ready_callback) ready_callback->on_cache_ready();
@@ -543,9 +557,23 @@ bool mc_cache_t::next_starting_up_step() {
     unreachable("Invalid state.");
 }
 
+void mc_cache_t::init_diff_storage() {
+    rassert(state == state_starting_up_init_fixed_blocks);
+    diff_oocore_storage.init(SUPERBLOCK_ID + 1, 10); // TODO!
+    diff_oocore_storage.load_patches(diff_core_storage);
+
+    state = state_starting_up_finish;
+    call_later_on_this_thread(this);
+}
+
+void mc_cache_t::on_thread_switch() {
+    rassert(state == state_starting_up_finish);
+    next_starting_up_step();
+}
+
 void mc_cache_t::on_free_list_ready() {
     rassert(state == state_starting_up_waiting_for_free_list);
-    state = state_starting_up_finish;
+    state = state_starting_up_init_fixed_blocks;
     next_starting_up_step();
 }
 
