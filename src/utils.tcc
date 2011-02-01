@@ -61,17 +61,17 @@ struct thread_doer_t :
     thread_doer_t(const callable_t &callable, int thread)
         : callable(callable), thread(thread), state(state_go_to_core) { }
     
-    bool run() {
+    void run() {
         state = state_go_to_core;
-        if (continue_on_thread(thread, this)) return do_perform_job();
-        else return false;
+        if (continue_on_thread(thread, this)) {
+            do_perform_job();
+        }
     }
     
-    bool do_perform_job() {
+    void do_perform_job() {
         rassert(thread == get_thread_id());
-        bool done = callable();
+        callable();
         do_return_home();
-        return done;
     }
     
     void do_return_home() {
@@ -94,25 +94,25 @@ struct thread_doer_t :
 };
 
 template<class callable_t>
-bool do_on_thread(int thread, const callable_t &callable) {
+void do_on_thread(int thread, const callable_t &callable) {
     thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
-    return fsm->run();
+    fsm->run();
 }
 template<class obj_t>
-bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)()) {
-    return do_on_thread(thread, no_arg_method_caller_t<obj_t, bool>(obj, on_other_core));
+void do_on_thread(int thread, obj_t *obj, void (obj_t::*on_other_core)()) {
+    do_on_thread(thread, no_arg_method_caller_t<obj_t, void>(obj, on_other_core));
 }
 template<class obj_t, class arg1_t>
-bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t), arg1_t arg1) {
-    return do_on_thread(thread, one_arg_method_caller_t<obj_t, arg1_t, bool>(obj, on_other_core, arg1));
+void do_on_thread(int thread, obj_t *obj, void (obj_t::*on_other_core)(arg1_t), arg1_t arg1) {
+    do_on_thread(thread, one_arg_method_caller_t<obj_t, arg1_t, void>(obj, on_other_core, arg1));
 }
 template<class obj_t, class arg1_t, class arg2_t>
-bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2) {
-    return do_on_thread(thread, two_arg_method_caller_t<obj_t, arg1_t, arg2_t, bool>(obj, on_other_core, arg1, arg2));
+void do_on_thread(int thread, obj_t *obj, void (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2) {
+    do_on_thread(thread, two_arg_method_caller_t<obj_t, arg1_t, arg2_t, void>(obj, on_other_core, arg1, arg2));
 }
 template<class obj_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t, arg3_t, arg4_t), arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
-    return do_on_thread(thread, four_arg_method_caller_t<obj_t, arg1_t, arg2_t, arg3_t, arg4_t, bool>(obj, on_other_core, arg1, arg2, arg3, arg4));
+void do_on_thread(int thread, obj_t *obj, void (obj_t::*on_other_core)(arg1_t, arg2_t, arg3_t, arg4_t), arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
+    do_on_thread(thread, four_arg_method_caller_t<obj_t, arg1_t, arg2_t, arg3_t, arg4_t, void>(obj, on_other_core, arg1, arg2, arg3, arg4));
 }
 
 template<class callable_t>

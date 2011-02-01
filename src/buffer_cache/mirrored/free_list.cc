@@ -9,6 +9,7 @@ array_free_list_t::array_free_list_t(translator_serializer_t *serializer)
 bool array_free_list_t::start(ready_callback_t *cb) {
     ready_callback = NULL;
     if (serializer->home_thread == home_thread) {
+        // do_make_list won't block, thanks to the above condition.
         do_make_list();
         return true;
     } else {
@@ -19,7 +20,7 @@ bool array_free_list_t::start(ready_callback_t *cb) {
 }
 
 
-bool array_free_list_t::do_make_list() {
+void array_free_list_t::do_make_list() {
     num_blocks_in_use = 0;
     next_new_block_id = serializer->max_block_id();
     for (block_id_t i = 0; i < next_new_block_id; i++) {
@@ -33,22 +34,18 @@ bool array_free_list_t::do_make_list() {
 
     if (serializer->home_thread != home_thread) {
         do_on_thread(home_thread, this, &array_free_list_t::have_made_list);
-        return false;
     } else {
         have_made_list();
-        return true;
     }
 }
 
-bool array_free_list_t::have_made_list() {
+void array_free_list_t::have_made_list() {
     assert_thread();
 
     if (ready_callback) {
         ready_callback->on_free_list_ready();
         ready_callback = NULL;
     }
-
-    return true;
 }
 
 array_free_list_t::~array_free_list_t() {

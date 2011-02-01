@@ -19,7 +19,7 @@ struct shared_buf_buffer_t {
 
     friend class shared_buf_t;
 private:
-    bool decr_refcount() { refcount--; if (refcount == 0) { free(this); } return true; }
+    void decr_refcount() { refcount--; if (refcount == 0) { free(this); } }
 };
 
 class weak_buf_t;
