@@ -238,6 +238,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     // we instead try to reclaim some space in the on-disk diff storage now.
     fprintf(stderr, "Initiating log flush\n"); // TODO! Why don't we get here all the time? (we should!)
     parent->cache->diff_oocore_storage.flush_n_oldest_blocks(1); // TODO! Calculate a sane value for n
+    // TODO! This currently is a guarantee for slowness in strong durability. Don't do it at every flush...
 
     /* Start a read transaction so we can request bufs. */
     rassert(transaction == NULL);

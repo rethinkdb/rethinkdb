@@ -4,7 +4,7 @@
 #include "errors.hpp"
 
 buf_patch_t* buf_patch_t::load_patch(char* source) {
-    size_t remaining_length = *((size_t*)(source));
+    uint16_t remaining_length = *((uint16_t*)(source));
     source += sizeof(remaining_length);
     if (remaining_length == 0)
         return NULL;
@@ -35,7 +35,7 @@ buf_patch_t* buf_patch_t::load_patch(char* source) {
 }
 
 void buf_patch_t::serialize(char* destination) const {
-    size_t length = get_serialized_size();
+    uint16_t length = get_serialized_size();
     memcpy(destination, &length, sizeof(length));
     destination += sizeof(length);
     memcpy(destination, &block_id, sizeof(block_id));
@@ -49,8 +49,8 @@ void buf_patch_t::serialize(char* destination) const {
     serialize_data(destination);
 }
 
-size_t buf_patch_t::get_serialized_size() const {
-    return sizeof(size_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_transaction_id) + sizeof(operation_code) + get_data_size();
+uint16_t buf_patch_t::get_serialized_size() const {
+    return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_transaction_id) + sizeof(operation_code) + get_data_size();
 }
 
 patch_counter_t buf_patch_t::get_patch_counter() const {
@@ -77,19 +77,19 @@ bool buf_patch_t::operator<(const buf_patch_t& p) const {
     return applies_to_transaction_id < p.applies_to_transaction_id || patch_counter < p.patch_counter;
 }
 
-memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const size_t dest_offset, const char *src, const size_t n) :
+memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const uint16_t dest_offset, const char *src, const uint16_t n) :
             buf_patch_t(block_id, patch_counter, applies_to_transaction_id, buf_patch_t::OPER_MEMCPY),
             dest_offset(dest_offset),
             n(n) {
     src_buf = new char[n];
     memcpy(src_buf, src, n);
 }
-memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const char* data, const size_t data_length)  :
+memcpy_patch_t::memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const char* data, const uint16_t data_length)  :
             buf_patch_t(block_id, patch_counter, applies_to_transaction_id, buf_patch_t::OPER_MEMCPY) {
     guarantee(data_length >= sizeof(dest_offset) + sizeof(n));
-    dest_offset = *((size_t*)(data));
+    dest_offset = *((uint16_t*)(data));
     data += sizeof(dest_offset);
-    n = *((size_t*)(data));
+    n = *((uint16_t*)(data));
     data += sizeof(n);
     guarantee(data_length == sizeof(dest_offset) + sizeof(n) + n);
     src_buf = new char[n];
@@ -105,7 +105,7 @@ void memcpy_patch_t::serialize_data(char* destination) const {
     memcpy(destination, src_buf, n);
     destination += n;
 }
-size_t memcpy_patch_t::get_data_size() const {
+uint16_t memcpy_patch_t::get_data_size() const {
     return sizeof(dest_offset) + sizeof(n) + n;
 }
 
@@ -117,20 +117,20 @@ void memcpy_patch_t::apply_to_buf(char* buf_data) {
     memcpy(buf_data + dest_offset, src_buf, n);
 }
 
-memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const size_t dest_offset, const size_t src_offset, const size_t n) :
+memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const uint16_t dest_offset, const uint16_t src_offset, const uint16_t n) :
             buf_patch_t(block_id, patch_counter, applies_to_transaction_id, buf_patch_t::OPER_MEMMOVE),
             src_offset(src_offset),
             dest_offset(dest_offset),
             n(n) {
 }
-memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const char* data, const size_t data_length)  :
+memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const char* data, const uint16_t data_length)  :
             buf_patch_t(block_id, patch_counter, applies_to_transaction_id, buf_patch_t::OPER_MEMMOVE) {
     guarantee(data_length == sizeof(dest_offset) + sizeof(src_offset) + sizeof(n));
-    dest_offset = *((size_t*)(data));
+    dest_offset = *((uint16_t*)(data));
     data += sizeof(dest_offset);
-    src_offset = *((size_t*)(data));
+    src_offset = *((uint16_t*)(data));
     data += sizeof(src_offset);
-    n = *((size_t*)(data));
+    n = *((uint16_t*)(data));
     data += sizeof(n);
 }
 
@@ -142,7 +142,7 @@ void memmove_patch_t::serialize_data(char* destination) const {
     memcpy(destination, &n, sizeof(n));
     destination += sizeof(n);
 }
-size_t memmove_patch_t::get_data_size() const {
+uint16_t memmove_patch_t::get_data_size() const {
     return sizeof(dest_offset) + sizeof(src_offset) + sizeof(n);
 }
 
