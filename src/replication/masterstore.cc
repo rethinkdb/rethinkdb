@@ -31,6 +31,19 @@ void masterstore_t::get_cas(store_key_t *key, castime_t castime) {
 }
 
 void masterstore_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    setlike(SET, key, data, flags, exptime, castime);
+}
+
+void masterstore_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    setlike(ADD, key, data, flags, exptime, castime);
+}
+
+void masterstore_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    setlike(REPLACE, key, data, flags, exptime, castime);
+}
+
+
+void masterstore_t::setlike(int msgcode, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
     net_set_t setstruct;
     setstruct.proposed_cas = castime.proposed_cas;
     setstruct.timestamp = castime.timestamp;
@@ -39,8 +52,9 @@ void masterstore_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags
     setstruct.key_size = key->size;
     setstruct.value_size = data->get_size();
 
-    stereotypical(SET, key, data, setstruct);
+    stereotypical(msgcode, key, data, setstruct);
 }
+
 
 // For operations with keys and values whose structs use the stereotypical names.
 template <class net_struct_type>
