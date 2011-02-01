@@ -5,6 +5,7 @@
 #include "arch/arch.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/thick_list.hpp"
+#include "replication/net_structs.hpp"
 
 namespace replication {
 
@@ -33,6 +34,12 @@ class masterstore_t {
 private:
     // Spawns a coroutine.
     void send_data_with_ident(data_provider_t *data, uint32_t ident);
+
+    void set(store_key_t *key, data_provider_t *data, net_set_t setstruct);
+
+    template <class net_struct_type>
+    void stereotypical(int msgcode, store_key_t *key, data_provider_t *data, net_struct_type netstruct);
+
 
     mutex_t message_contiguity_;
     tcp_conn_t *slave_;

@@ -31,19 +31,28 @@ void masterstore_t::get_cas(store_key_t *key, castime_t castime) {
 }
 
 void masterstore_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    size_t n = sizeof(headed<net_set_t>) + key->size + data->get_size();
+    net_set_t setstruct;
+    setstruct.proposed_cas = castime.proposed_cas;
+    setstruct.timestamp = castime.timestamp;
+    setstruct.flags = flags;
+    setstruct.exptime = exptime;
+    setstruct.key_size = key->size;
+    setstruct.value_size = data->get_size();
+
+    stereotypical(SET, key, data, setstruct);
+}
+
+// For operations with keys and values whose structs use the stereotypical names.
+template <class net_struct_type>
+void masterstore_t::stereotypical(int msgcode, store_key_t *key, data_provider_t *data, net_struct_type netstruct) {
+    size_t n = sizeof(headed<net_struct_type>) + key->size + data->get_size();
 
     if (n <= 0xFFFF) {
-        scoped_malloc<headed<net_set_t> > message(n);
+        scoped_malloc<headed<net_struct_type> > message(n);
         message->hdr.message_multipart_aspect = SMALL;
-        message->hdr.msgcode = SET;
+        message->hdr.msgcode = msgcode;
         message->hdr.msgsize = n;
-        message->data.proposed_cas = castime.proposed_cas;
-        message->data.timestamp = castime.timestamp;
-        message->data.flags = flags;
-        message->data.exptime = exptime;
-        message->data.key_size = key->size;
-        message->data.value_size = data->get_size();
+        message->data = netstruct;
         memcpy(message->data.keyvalue, key->contents, key->size);
 
         struct buffer_group_t group;
@@ -60,21 +69,17 @@ void masterstore_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags
         // other chunks contiguously.  Later, data_provider_t might
         // stream.
 
-        n = sizeof(multipart_headed<net_set_t>) + key->size;
+        n = sizeof(multipart_headed<net_struct_type>) + key->size;
 
-        scoped_malloc<multipart_headed<net_set_t> > message(n);
+        scoped_malloc<multipart_headed<net_struct_type> > message(n);
+
         message->hdr.message_multipart_aspect = FIRST;
-        message->hdr.msgcode = SET;
+        message->hdr.msgcode = msgcode;
         message->hdr.msgsize = n;
-        message->data.proposed_cas = castime.proposed_cas;
-        message->data.timestamp = castime.timestamp;
-        message->data.flags = flags;
-        message->data.exptime = exptime;
-        message->data.key_size = key->size;
-        message->data.value_size = data->get_size();
+        message->data = netstruct;
+        memcpy(message->data.keyvalue, key->contents, key->size);
 
         uint32_t ident = sources_.add(data);
-
         message->hdr.ident = ident;
 
         {
