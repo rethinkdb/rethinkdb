@@ -7,6 +7,7 @@
 #include "btree/key_value_store.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/transactor.hpp"
+#include "buffer_cache/co_functions.hpp"
 #include <boost/shared_ptr.hpp>
 
 struct rget_value_provider_t : public auto_copying_data_provider_t {
@@ -33,7 +34,7 @@ struct rget_small_value_provider_t : public rget_value_provider_t {
         return buffers.get();
     }
 protected:
-    rget_small_value_provider_t(const btree_value *value) : value() {
+    rget_small_value_provider_t(const btree_value *value) : value(), buffers() {
         rassert(!value->is_large());
         const byte *data = ptr_cast<byte>(value->value());
         this->value.assign(data, data + value->value_size());
@@ -46,18 +47,32 @@ struct rget_large_value_provider_t : public rget_value_provider_t {
     ~rget_large_value_provider_t();
 
     size_t get_size() const {
-        // RSI
-        return 0;
+        return lb_ref.size;
     }
 
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t) {
-        // RSI
-        return NULL;
+        rassert(!buffers.get());
+
+        large_value = new large_buf_t(transactor->transaction());
+        co_acquire_large_value(large_value, lb_ref, rwi_read);
+        rassert(large_value->state == large_buf_t::loaded);
+        rassert(large_value->get_root_ref().block_id == lb_ref.block_id);
+
+        for (int i = 0; i < large_value->get_num_segments(); i++) {
+            uint16_t size;
+            const void *data = large_value->get_segment(i, &size);
+            buffers->add_buffer(size, data);
+        }
+        return buffers.get();
     }
 private:
-    rget_large_value_provider_t(const btree_value *value, boost::shared_ptr<transactor_t> transactor) {} // RSI
+    rget_large_value_provider_t(const btree_value *value, boost::shared_ptr<transactor_t> transactor)
+        : transactor(transactor), buffers(), lb_ref(value->lb_ref()) {
+    }
 
     boost::shared_ptr<transactor_t> transactor;
+    boost::scoped_ptr<const_buffer_group_t> buffers;
+    large_buf_ref lb_ref;
     large_buf_t *large_value;
 
     friend class rget_value_provider_t;
