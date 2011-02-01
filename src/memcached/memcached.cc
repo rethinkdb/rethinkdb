@@ -59,6 +59,19 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         } catch (tcp_conn_t::write_closed_exc_t) {
         }
     }
+    void write_from_data_provider(data_provider_t *dp) {
+        /* Write the value itself. If the value is small, write it into the send buffer;
+        otherwise, stream it. */
+        const const_buffer_group_t *bg = dp->get_data_as_buffers();
+        for (size_t i = 0; i < bg->buffers.size(); i++) {
+            const_buffer_group_t::buffer_t b = bg->buffers[i];
+            if (dp->get_size() < MAX_BUFFERED_GET_SIZE) {
+                write(ptr_cast<const char>(b.data), b.size);
+            } else {
+                write_unbuffered(ptr_cast<const char>(b.data), b.size);
+            }
+        }
+    }
 
     void error() {
         writef("ERROR\r\n");
@@ -197,17 +210,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, c
                         key.size, key.size, key.contents, res.flags, res.value->get_size());
                 }
 
-                /* Write the value itself. If the value is small, write it into the send buffer;
-                otherwise, stream it. */
-                const const_buffer_group_t *bg = res.value->get_data_as_buffers();
-                for (int i = 0; i < (signed)bg->buffers.size(); i++) {
-                    const_buffer_group_t::buffer_t b = bg->buffers[i];
-                    if (res.value->get_size() < MAX_BUFFERED_GET_SIZE) {
-                        rh->write((const char *)b.data, b.size);
-                    } else {
-                        rh->write_unbuffered((const char *)b.data, b.size);
-                    }
-                }
+                rh->write_from_data_provider(res.value.get());
                 rh->writef("\r\n");
             }
         }
@@ -255,20 +258,15 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv, cas_generator_t
         return;
     }
 
-    logDBG("rget %c%*.*s, %*.*s%c/%llu\n",
-        (int)(left_open?'(':'['),
-        start.key.size, start.key.size, start.key.contents,
-        end.key.size, end.key.size, end.key.contents,
-        (int)(right_open?')':']'),
-        max_items);
-
     repli_timestamp timestamp = current_time();
     store_t::rget_result_t result = rh->store->rget(&start.key, &end.key, left_open, right_open, max_items, castime_t(cas_gen->gen_cas(), timestamp));
-    for (std::vector<std::pair<std::string,std::string> >::iterator it = result.results.begin(); it != result.results.end(); it++) {
-        std::string key = (*it).first;
-        std::string value = (*it).second;
+    for (std::vector<key_with_data_provider_t>::iterator it = result.results.begin(); it != result.results.end(); it++) {
+        std::string& key = (*it).key;
+        boost::shared_ptr<data_provider_t> dp = (*it).value_provider;
 
-        rh->writef("VALUE %*.*s 0 %*.*s\r\n", key.length(), key.length(), key.c_str(), value.length(), value.length(), value.c_str());
+        rh->writef("VALUE %*.*s %d ", key.length(), key.length(), key.c_str(), (*it).mcflags);
+        rh->write_from_data_provider(dp.get());
+        rh->writef("\r\n");
     }
     rh->write_end();
 }

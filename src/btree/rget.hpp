@@ -6,39 +6,45 @@
 #include "buffer_cache/large_buf.hpp"
 #include "btree/key_value_store.hpp"
 #include "btree/slice.hpp"
+#include "buffer_cache/transactor.hpp"
 #include <boost/shared_ptr.hpp>
 
 struct rget_value_provider_t : public auto_copying_data_provider_t {
-    static rget_value_provider_t *create_provider(const btree_value *value);
+    static rget_value_provider_t *create_provider(const btree_value *value, boost::shared_ptr<transactor_t> transactor);
+    virtual ~rget_value_provider_t() { }
 protected:
     rget_value_provider_t() { }
 };
 
 struct rget_small_value_provider_t : public rget_value_provider_t {
     typedef std::vector<byte> buffer_t;
-    boost::shared_ptr<buffer_t> value;
+    buffer_t value;
+    boost::scoped_ptr<const_buffer_group_t> buffers;
 
     size_t get_size() const {
-        return value->size();
+        return value.size();
     }
 
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t) {
-        // RSI
-        return NULL;
+        rassert(!buffers.get());
+
+        buffers.reset(new const_buffer_group_t());
+        buffers->add_buffer(get_size(), value.data());
+        return buffers.get();
     }
 protected:
-    rget_small_value_provider_t(const btree_value *value) : value(copy_to_new_buffer(value)) { }
-
-    static buffer_t *copy_to_new_buffer(const btree_value *value) {
+    rget_small_value_provider_t(const btree_value *value) : value() {
         rassert(!value->is_large());
         const byte *data = ptr_cast<byte>(value->value());
-        return new buffer_t(data, data + value->value_size());
+        this->value.assign(data, data + value->value_size());
     }
 
     friend class rget_value_provider_t;
 };
 
 struct rget_large_value_provider_t : public rget_value_provider_t {
+    ~rget_large_value_provider_t();
+
     size_t get_size() const {
         // RSI
         return 0;
@@ -49,7 +55,11 @@ struct rget_large_value_provider_t : public rget_value_provider_t {
         return NULL;
     }
 private:
-    rget_large_value_provider_t(const btree_value *value) { }
+    rget_large_value_provider_t(const btree_value *value, boost::shared_ptr<transactor_t> transactor) {} // RSI
+
+    boost::shared_ptr<transactor_t> transactor;
+    large_buf_t *large_value;
+
     friend class rget_value_provider_t;
 };
 

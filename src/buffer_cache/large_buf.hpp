@@ -43,8 +43,7 @@ struct buftree_t {
 
 struct tree_available_callback_t;
 
-class large_buf_t
-{
+class large_buf_t {
 private:
     large_buf_ref root_ref;
     buftree_t *root;
