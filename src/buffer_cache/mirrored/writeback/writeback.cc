@@ -236,7 +236,6 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
 
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock
     // we instead try to reclaim some space in the on-disk diff storage now.
-    fprintf(stderr, "Initiating log flush\n"); // TODO! Why don't we get here all the time? (we should!)
     parent->cache->diff_oocore_storage.flush_n_oldest_blocks(1); // TODO! Calculate a sane value for n
     // TODO! This currently is a guarantee for slowness in strong durability. Don't do it at every flush...
 
@@ -341,12 +340,15 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
             const std::list<buf_patch_t*>* patches = parent->cache->diff_core_storage.get_patches(inner_buf->block_id);
             if (patches != NULL) {
                 for (std::list<buf_patch_t*>::const_iterator patch = patches->begin(); patch != patches->end(); ++patch) {
-                    if (!parent->cache->diff_oocore_storage.store_patch(**patch)) {
-                        lbuf->needs_flush = true;
-                        break;
+                    if (lbuf->last_patch_materialized < (*patch)->get_patch_counter()) {
+                        if (!parent->cache->diff_oocore_storage.store_patch(**patch)) {
+                            lbuf->needs_flush = true;
+                            break;
+                        }
+                        else {
+                            lbuf->last_patch_materialized = (*patch)->get_patch_counter();
+                        }
                     }
-                    else
-                        lbuf->last_patch_materialized = (*patch)->get_patch_counter();
                 }
             }
         }
@@ -359,7 +361,6 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
             // TODO! Verify that the transaction id in the inner_buf is updated automatically and on time
         }
     }
-    
     
     
     /* Part 2: Request read locks on all of the blocks we need to flush. */
