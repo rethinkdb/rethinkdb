@@ -61,14 +61,6 @@ void diff_oocore_storage_t::load_patches(diff_core_storage_t &in_core_storage) {
                 break;
             }
             else {
-                // TODO!
-                char *type_str = (char*)"UNKNOWN";
-                if (dynamic_cast<memcpy_patch_t*>(patch))
-                    type_str = (char*)"MEMCPY";
-                else if (dynamic_cast<memmove_patch_t*>(patch))
-                    type_str = (char*)"MEMMOVE";
-                fprintf(stderr, "Loaded one patch for block %d of type %s\n", patch->get_block_id(), type_str);
-
                 current_offset += patch->get_serialized_size();
                 // Only store the patch if the corresponding block still exists
                 // (otherwise we'd get problems when flushing the log, as deleted blocks would cause an error)
@@ -120,12 +112,11 @@ bool diff_oocore_storage_t::store_patch(buf_patch_t &patch) {
     mc_buf_t *log_buf = acquire_block_no_locking(active_log_block);
     rassert(log_buf);
 
-    fprintf(stderr, "Stored to log block %d at offset %d\n", (int)active_log_block, (int)next_patch_offset);
+    //fprintf(stderr, "Stored to log block %d at offset %d\n", (int)active_log_block, (int)next_patch_offset);
 
     void *buf_data = log_buf->get_data_major_write();
     patch.serialize((char*)buf_data + next_patch_offset);
-    next_patch_offset += patch.get_serialized_size();
-
+    next_patch_offset += patch_serialized_size;
     log_buf->release();
 
     return true;
