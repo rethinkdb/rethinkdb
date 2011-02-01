@@ -47,7 +47,10 @@ void masterstore_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags
         group.add_buffer(data->get_size(), message->data.keyvalue + key->size);
         data->get_data_into_buffers(&group);
 
-        slave_->write_buffered(message.get(), n);
+        {
+            mutex_acquisition_t lock(&message_contiguity_);
+            slave_->write_buffered(message.get(), n);
+        }
     } else {
         // For now, we have no way to get the first chunk of all the
         // data, so the first chunk has size zero, and we send all the
@@ -71,7 +74,10 @@ void masterstore_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags
 
         message->hdr.ident = ident;
 
-        slave_->write_buffered(message.get(), n);
+        {
+            mutex_acquisition_t lock(&message_contiguity_);
+            slave_->write_buffered(message.get(), n);
+        }
 
         // TODO: make sure we aren't taking liberties with the data_provider_t lifetime.
         coro_t::spawn(boost::bind(&masterstore_t::send_data_with_ident, this, data, ident));
