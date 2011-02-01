@@ -211,7 +211,7 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
 }
 
 void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
-    fprintf(stderr, "Flushing log block %d...", (int)log_block_id);
+    //fprintf(stderr, "Flushing log block %d...", (int)log_block_id);
     cache.assert_thread();
 
     // Scan over the block
@@ -253,10 +253,10 @@ void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
     // Wipe the log block
     if (log_block_changed)
         init_log_block(log_block_id);
-    else
-        fprintf(stderr, " (nothing changed)");
+    //else
+    //    fprintf(stderr, " (nothing changed)");
 
-    fprintf(stderr, " done\n");
+    //fprintf(stderr, " done\n");
 }
 
 void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) {

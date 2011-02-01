@@ -215,12 +215,6 @@ void writeback_t::flush_timer_callback(void *ctx) {
 }
 
 void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
-    if (parent->dirty_bufs.size() == 0 && parent->sync_callbacks.size() == 0)
-        return;
-
-    rassert(!parent->writeback_in_progress);
-    parent->writeback_in_progress = true;
-    ++parent->active_flushes;
     pm_flushes_locking.begin(&start_time);
     parent->cache->assert_thread();
         
@@ -289,7 +283,15 @@ writeback_t::concurrent_flush_t::concurrent_flush_t(writeback_t* parent) :
     flusher_coro = NULL;
 
     // Start flushing immediately
-    start_and_acquire_lock();
+
+    if (parent->dirty_bufs.size() == 0 && parent->sync_callbacks.size() == 0)
+        return;
+
+    rassert(!parent->writeback_in_progress);
+    parent->writeback_in_progress = true;
+    ++parent->active_flushes;
+
+    coro_t::spawn(&writeback_t::concurrent_flush_t::start_and_acquire_lock, this);
 }
 
 void writeback_t::concurrent_flush_t::init_flush_locals() {
