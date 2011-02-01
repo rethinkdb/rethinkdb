@@ -23,12 +23,11 @@ buf_patch_t* buf_patch_t::load_patch(char* source) {
     source += sizeof(operation_code);
     remaining_length -= sizeof(operation_code);
 
-
     switch (operation_code) {
         case (OPER_MEMCPY):
             return new memcpy_patch_t(block_id, patch_counter, applies_to_transaction_id, source, remaining_length);
         case (OPER_MEMMOVE):
-            return new memcpy_patch_t(block_id, patch_counter, applies_to_transaction_id, source, remaining_length);
+            return new memmove_patch_t(block_id, patch_counter, applies_to_transaction_id, source, remaining_length);
         default:
             guarantee(false, "Unsupported patch operation code");
             return NULL;
