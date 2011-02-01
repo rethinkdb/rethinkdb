@@ -139,8 +139,8 @@ public:
 
     // enable_gc() should be called when you want to turn on the gc.
     // gc will be enabled immediately.  Always returns 'true' for
-    // do_on_thread.
-    bool enable_gc();
+    // do_on_thread.  TODO: who uses this return value?
+    void enable_gc();
 
     // The magic value used for "zero" buffers written upon deletion.
     static const block_magic_t zerobuf_magic;

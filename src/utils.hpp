@@ -113,15 +113,6 @@ the current thread, returns the method's return value. Otherwise, returns false.
 template<class callable_t>
 void do_on_thread(int thread, const callable_t &callable);
 
-template<class obj_t>
-void do_on_thread(int thread, obj_t *obj, void (obj_t::*on_other_core)());
-
-template<class obj_t, class arg1_t>
-void do_on_thread(int thread, obj_t *obj, void (obj_t::*on_other_core)(arg1_t), arg1_t arg);
-
-template<class obj_t, class arg1_t, class arg2_t>
-void do_on_thread(int thread, obj_t *obj, void (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2);
-
 template<class callable_t>
 void do_later(const callable_t &callable);
 

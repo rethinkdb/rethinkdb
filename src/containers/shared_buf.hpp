@@ -67,7 +67,7 @@ public:
     void release() {
         if (buffer_) {
             shared_buf_buffer_t *shbuf = reinterpret_cast<shared_buf_buffer_t *>(buffer_ - sizeof(shared_buf_buffer_t));
-            do_on_thread(shbuf->home_thread, shbuf, &shared_buf_buffer_t::decr_refcount);
+            do_on_thread(shbuf->home_thread, boost::bind(&shared_buf_buffer_t::decr_refcount, shbuf));
             buffer_ = NULL;
         }
     }

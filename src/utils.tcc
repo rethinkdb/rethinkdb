@@ -55,22 +55,6 @@ void do_on_thread(int thread, const callable_t &callable) {
     thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
     fsm->run();
 }
-template<class obj_t>
-void do_on_thread(int thread, obj_t *obj, void (obj_t::*on_other_core)()) {
-    do_on_thread(thread, boost::bind(on_other_core, obj));
-}
-template<class obj_t, class arg1_t>
-void do_on_thread(int thread, obj_t *obj, void (obj_t::*on_other_core)(arg1_t), arg1_t arg1) {
-    do_on_thread(thread, boost::bind(on_other_core, obj, arg1));
-}
-template<class obj_t, class arg1_t, class arg2_t>
-void do_on_thread(int thread, obj_t *obj, void (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2) {
-    do_on_thread(thread, boost::bind(on_other_core, obj, arg1, arg2));
-}
-template<class obj_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-void do_on_thread(int thread, obj_t *obj, void (obj_t::*on_other_core)(arg1_t, arg2_t, arg3_t, arg4_t), arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
-    do_on_thread(thread, boost::bind(on_other_core, obj, arg1, arg2, arg3, arg4));
-}
 
 template<class callable_t>
 struct later_doer_t :

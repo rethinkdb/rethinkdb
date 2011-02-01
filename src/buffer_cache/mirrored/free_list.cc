@@ -13,7 +13,7 @@ bool array_free_list_t::start(ready_callback_t *cb) {
         do_make_list();
         return true;
     } else {
-        do_on_thread(serializer->home_thread, this, &array_free_list_t::do_make_list);
+        do_on_thread(serializer->home_thread, boost::bind(&array_free_list_t::do_make_list, this));
         ready_callback = cb;
         return false;
     }
@@ -33,7 +33,7 @@ void array_free_list_t::do_make_list() {
     }
 
     if (serializer->home_thread != home_thread) {
-        do_on_thread(home_thread, this, &array_free_list_t::have_made_list);
+        do_on_thread(home_thread, boost::bind(&array_free_list_t::have_made_list, this));
     } else {
         have_made_list();
     }
