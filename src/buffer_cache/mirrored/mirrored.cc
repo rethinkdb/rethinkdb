@@ -32,8 +32,10 @@ struct load_buf_fsm_t :
     void on_serializer_read() {
         const std::list<buf_patch_t*>* patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
         // Remove obsolete patches from diff storage
-        if (patches)
+        if (patches) {
             inner_buf->cache->diff_core_storage.filter_applied_patches(inner_buf->block_id, *inner_buf->transaction_id);
+            patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
+        }
         // All patches that currently exist must have been materialized out of core...
         if (patches) {
             inner_buf->writeback_buf.last_patch_materialized = patches->back()->get_patch_counter();
@@ -202,11 +204,15 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     patch.apply_to_buf((char*)data);
     inner_buf->writeback_buf.set_dirty();
 
+    // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks etc.)
+    if (!inner_buf->transaction_id)
+        ensure_flush();
+
     // Check if we want to switch disable patching for this block and flush it directly instead
     if (!inner_buf->writeback_buf.needs_flush) {
         // TODO! Refactor
         const size_t MAX_PATCH_SIZE = inner_buf->cache->serializer->get_block_size().value() / 4;
-        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 15;
+        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 30;
 
         if (    (patch.get_serialized_size() > MAX_PATCH_SIZE) ||
                 (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id) &&

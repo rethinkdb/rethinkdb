@@ -421,9 +421,7 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
 
                 delete inner_buf;
             }
-        } else {
-            rassert(recency_dirty);
-
+        } else if (recency_dirty) {
             // No need to acquire the block.
             serializer_writes.push_back(translator_serializer_t::write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency, NULL));
         }

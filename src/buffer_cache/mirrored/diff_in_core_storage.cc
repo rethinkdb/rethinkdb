@@ -67,6 +67,7 @@ void diff_core_storage_t::block_patch_list_t::filter_before_transaction(const se
         if ((*patch)->get_transaction_id() < transaction_id) {
             delete *patch;
             erase(patch);
+            --patch;
         }
     }
 }
