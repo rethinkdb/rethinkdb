@@ -43,11 +43,13 @@ public:
         if (free_.empty()) {
             token_t ret = values_.size();
             values_.push_back(value);
+            return ret;
         } else {
             token_t ret = free_.back();
             rassert(values_[ret] != T());
             free_.pop_back();
             values_[ret] = value;
+            return ret;
         }
     }
 

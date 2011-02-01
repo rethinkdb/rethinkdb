@@ -3,6 +3,8 @@
 
 #include "store.hpp"
 #include "arch/arch.hpp"
+#include "concurrency/mutex.hpp"
+#include "containers/thick_list.hpp"
 
 namespace replication {
 
@@ -29,7 +31,12 @@ class masterstore_t {
     void delete_key(store_key_t *key);
 
 private:
+    // Spawns a coroutine.
+    void send_data_with_ident(data_provider_t *data, uint32_t ident);
+
+    mutex_t message_contiguity_;
     tcp_conn_t *slave_;
+    thick_list<data_provider_t *, uint32_t> sources_;
 };
 
 

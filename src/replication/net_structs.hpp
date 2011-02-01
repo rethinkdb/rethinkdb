@@ -10,7 +10,7 @@ namespace replication {
 
 enum multipart_aspect { SMALL = 0x81, FIRST = 0x82, MIDDLE = 0x83, LAST = 0x84 };
 
-enum message_code { BACKFILL = 0x01, ANNOUNCE = 0x02, NOP = 0x03, ACK = 0x04, SHUTTING_DOWN = 0x05,
+enum message_code { MSGCODE_NIL = 0, BACKFILL = 0x01, ANNOUNCE = 0x02, NOP = 0x03, ACK = 0x04, SHUTTING_DOWN = 0x05,
                     GOODBYE = 0x06,
 
                     GET_CAS = 0x21, SET = 0x22, APPEND = 0x23, PREPEND = 0x24, DELETE = 0x25 };
