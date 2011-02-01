@@ -503,7 +503,9 @@ bool mc_cache_t::next_shutting_down_step() {
     if (state == state_shutting_down_finish) {
         /* Use do_later() rather than calling it immediately because it might call
         our destructor, and it might not be safe to call our destructor right here. */
-        if (shutdown_callback) do_later(shutdown_callback, &shutdown_callback_t::on_cache_shutdown);
+        if (shutdown_callback) {
+            do_later(boost::bind(&shutdown_callback_t::on_cache_shutdown, shutdown_callback));
+        }
         shutdown_callback = NULL;
         state = state_shut_down;
         

@@ -750,7 +750,7 @@ bool log_serializer_t::next_shutdown_step() {
         // Don't call the callback if we went through the entire
         // shutdown process in one synchronous shot.
         if (!shutdown_in_one_shot && shutdown_callback) {
-            do_later(shutdown_callback, &shutdown_callback_t::on_serializer_shutdown, this);
+            do_later(boost::bind(&shutdown_callback_t::on_serializer_shutdown, shutdown_callback, this));
         }
 
         return true;

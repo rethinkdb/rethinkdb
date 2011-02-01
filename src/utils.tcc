@@ -1,5 +1,3 @@
-#include <boost/bind.hpp>
-
 /* Functions to do something on another core in a way that is more convenient than
 continue_on_thread() is. */
 
@@ -77,14 +75,4 @@ struct later_doer_t :
 template<class callable_t>
 void do_later(const callable_t &callable) {
     new later_doer_t<callable_t>(callable);
-}
-
-template<class obj_t>
-void do_later(obj_t *obj, void (obj_t::*later)()) {
-    return do_later(boost::bind(later, obj));
-}
-
-template<class obj_t, class arg1_t>
-void do_later(obj_t *obj, void (obj_t::*later)(arg1_t), arg1_t arg1) {
-    return do_later(boost::bind(later, obj, arg1));
 }

@@ -116,13 +116,6 @@ void do_on_thread(int thread, const callable_t &callable);
 template<class callable_t>
 void do_later(const callable_t &callable);
 
-template<class obj_t>
-void do_later(obj_t *obj, bool (obj_t::*later)());
-
-template<class obj_t, class arg1_t>
-void do_later(obj_t *obj, bool (obj_t::*later)(arg1_t), arg1_t arg1);
-
-
 class cas_generator_t {
 public:
     cas_generator_t();
