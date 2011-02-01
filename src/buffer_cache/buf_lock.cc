@@ -27,8 +27,6 @@ void buf_lock_t::release() {
 }
 
 void buf_lock_t::release_if_acquired() {
-    if (buf_) {
-        buf_->release();
-        buf_ = NULL;
-    }
+    if (buf_)
+        release();
 }
