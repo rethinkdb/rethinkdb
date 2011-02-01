@@ -252,7 +252,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
 
 void writeback_t::concurrent_flush_t::on_lock_available() {
     rassert(parent->writeback_in_progress);
-    coro_t::spawn(&writeback_t::concurrent_flush_t::do_writeback, this);
+    coro_t::spawn(boost::bind(&writeback_t::concurrent_flush_t::do_writeback, this));
 }
 
 struct buf_writer_t :
@@ -301,7 +301,7 @@ void writeback_t::concurrent_flush_t::do_writeback() {
 
     // Go through the different flushing steps...
     acquire_bufs();
-    coro_t::spawn(&writeback_t::concurrent_flush_t::do_write, this);
+    coro_t::spawn(boost::bind(&writeback_t::concurrent_flush_t::do_write, this));
     coro_t::wait(); // Wait until writes have finished
     do_cleanup();
 

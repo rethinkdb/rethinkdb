@@ -23,7 +23,7 @@ slave_t::slave_t(store_t *internal_store, replication_config_t replication_confi
       failover_reset_control(std::string("failover reset"), this),
       new_master_control(std::string("new master"), this)
 {
-    coro_t::spawn(&run, this);
+    coro_t::spawn(boost::bind(&run, this));
 }
 
 slave_t::~slave_t() {

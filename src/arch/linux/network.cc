@@ -544,7 +544,7 @@ void linux_tcp_listener_t::on_event(int events) {
             destructor will be called before handle(). One solution would be to acquire a
             lock in the destructor, which would delay until after handle() starts. Another solution
             would be to make spawn() guaranteed to run immediately. */
-            coro_t::spawn(&linux_tcp_listener_t::handle, this, new_sock);
+            coro_t::spawn(boost::bind(&linux_tcp_listener_t::handle, this, new_sock));
         }
     }
 }

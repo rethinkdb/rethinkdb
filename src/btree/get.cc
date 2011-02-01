@@ -111,7 +111,7 @@ void co_btree_get(const btree_key *key, btree_slice_t *slice,
 
 store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
     promise_t<store_t::get_result_t, threadsafe_cond_t> res;
-    coro_t::spawn(co_btree_get, key, slice, &res);
+    coro_t::spawn(boost::bind(co_btree_get, key, slice, &res));
     return res.wait();
 }
 

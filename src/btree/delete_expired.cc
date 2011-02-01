@@ -27,5 +27,5 @@ void co_btree_delete_expired(btree_key *key_copy, btree_slice_t *slice) {
 void btree_delete_expired(const btree_key *key, btree_slice_t *slice) {
     btree_key *key_copy = (btree_key *) malloc(key->size + sizeof(btree_key));
     keycpy(key_copy, key);
-    coro_t::spawn(co_btree_delete_expired, key_copy, slice);
+    coro_t::spawn(boost::bind(co_btree_delete_expired, key_copy, slice));
 }

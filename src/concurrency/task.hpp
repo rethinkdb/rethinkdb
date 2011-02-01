@@ -65,7 +65,7 @@ template<typename return_t, typename callable_t>
 task_t<return_t> *task(callable_t fun) {
     task_t<return_t> *t = new task_t<return_t>();
     void (task_t<return_t>::*f2)(callable_t*) = &task_t<return_t>::run;
-    coro_t::spawn(f2, t, new callable_t(fun));
+    coro_t::spawn(boost::bind(f2, t, new callable_t(fun)));
     return t;
 }
 

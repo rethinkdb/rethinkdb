@@ -159,7 +159,7 @@ void mlog_end() {
         delete current_message;
     } else {
         log_controller_lock->co_lock(rwi_read);
-        coro_t::spawn(&write_log_message, current_message, log_controller);
+        coro_t::spawn(boost::bind(&write_log_message, current_message, log_controller));
     }
     current_message = NULL;
 }

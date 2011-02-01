@@ -450,7 +450,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     rhcg.rh = rh;
     rhcg.cas_gen = cas_gen;
     if (noreply) {
-        coro_t::spawn(&run_storage_command, rhcg, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, true);
+        coro_t::spawn(boost::bind(&run_storage_command, rhcg, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, true));
     } else {
         run_storage_command(rhcg, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, false);
     }
@@ -530,7 +530,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv, ca
     rh->begin_write_command();
 
     if (noreply) {
-        coro_t::spawn(&run_incr_decr, rh, key, delta, i, cas_gen, true);
+        coro_t::spawn(boost::bind(&run_incr_decr, rh, key, delta, i, cas_gen, true));
     } else {
         run_incr_decr(rh, key, delta, i, cas_gen, false);
     }
@@ -598,7 +598,7 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
     rh->begin_write_command();
 
     if (noreply) {
-        coro_t::spawn(&run_delete, rh, key, true);
+        coro_t::spawn(boost::bind(&run_delete, rh, key, true));
     } else {
         run_delete(rh, key, false);
     }

@@ -196,7 +196,7 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
 }
 
 void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
-    coro_t::spawn(&message_parser_t::do_parse_messages, this, conn, receiver);
+    coro_t::spawn(boost::bind(&message_parser_t::do_parse_messages, this, conn, receiver));
 }
 
 bool message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
