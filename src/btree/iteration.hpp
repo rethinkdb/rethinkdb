@@ -7,7 +7,13 @@
 #include "btree/leaf_node.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "btree/slice.hpp"
+#include "store.hpp"
 
+/* leaf_iterator_t returns the keys of a btree leaf node one by one.
+ * When it's done, it releases (deletes) the buf_lock object.
+ *
+ * TODO: should the buf_lock be released by the caller instead?
+ */
 struct leaf_iterator_t : public one_way_iterator_t<key_with_data_provider_t> {
     leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<transactor_t>& transactor);
 
@@ -25,11 +31,13 @@ private:
 };
 
 /* slice_leaves_iterator_t finds the first leaf that contains the given key (or
- * the next key, if left_open is true). It returns that a leaf iterator (which
- * also contains the lock), however it doesn't release the leaf lock itself.
+ * the next key, if left_open is true). It returns that leaf iterator (which
+ * also contains the lock), however it doesn't release the leaf lock itself
+ * (it's done by the leaf iterator).
  *
  * slice_leaves_iterator_t maintains internal state by locking some internal
- * nodes and unlocking them as iteration progresses.
+ * nodes and unlocking them as iteration progresses. Currently this locking is
+ * done in DFS manner, as described in the btree/rget.cc file comment.
  */
 class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t*> {
     struct internal_node_state {
@@ -66,6 +74,12 @@ private:
     volatile bool nevermore;
 };
 
+/* slice_keys_iterator_t combines slice_leaves_iterator_t and leaf_iterator_t to allow you
+ * to iterate through the keys of a particular slice in order.
+ *
+ * Use merge_ordered_data_iterator_t class to funnel multiple slice_keys_iterator_t instances,
+ * e.g. to get a range query for all the slices.
+ */
 class slice_keys_iterator_t : public one_way_iterator_t<key_with_data_provider_t> {
 public:
     slice_keys_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open);

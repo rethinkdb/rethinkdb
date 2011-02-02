@@ -90,6 +90,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
         buf_lock_t tmp(*transactor, root_id, rwi_read);
         buf_lock->swap(tmp);
     }
+
     // read root node
     const node_t *node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
     rassert(node != NULL);
@@ -143,7 +144,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_next_leaf() {
             block_id_t child_id = get_child_id(state.node, state.index);
             return get_leftmost_leaf(child_id);
         } else {
-            delete state.lock;  // this also releases state.node
+            delete state.lock;  // this also releases the memory used by state.node
         }
     }
     return boost::none;
