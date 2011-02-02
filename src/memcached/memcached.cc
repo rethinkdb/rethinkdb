@@ -76,6 +76,14 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
             }
         }
     }
+    void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size) {
+        writef("VALUE %*.*s %u %zu\r\n",
+            key_size, key_size, key, mcflags, value_size);
+    }
+    void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size, cas_t cas) {
+        writef("VALUE %*.*s %u %zu %llu\r\n",
+            key_size, key_size, key, mcflags, value_size, cas);
+    }
 
     void error() {
         writef("ERROR\r\n");
@@ -206,12 +214,10 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, c
 
                 /* Write the "VALUE ..." header */
                 if (with_cas) {
-                    rh->writef("VALUE %*.*s %u %u %llu\r\n",
-                        key.size, key.size, key.contents, res.flags, res.value->get_size(), res.cas);
+                    rh->write_value_header(key.contents, key.size, res.flags, res.value->get_size(), res.cas);
                 } else {
                     rassert(res.cas == 0);
-                    rh->writef("VALUE %*.*s %u %u\r\n",
-                        key.size, key.size, key.contents, res.flags, res.value->get_size());
+                    rh->write_value_header(key.contents, key.size, res.flags, res.value->get_size());
                 }
 
                 rh->write_from_data_provider(res.value.get());
@@ -268,7 +274,7 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv, cas_generator_t
         std::string& key = (*it).key;
         boost::shared_ptr<data_provider_t> dp = (*it).value_provider;
 
-        rh->writef("VALUE %*.*s %d ", key.length(), key.length(), key.c_str(), (*it).mcflags);
+        rh->write_value_header(key.c_str(), key.length(), (*it).mcflags, dp->get_size());
         rh->write_from_data_provider(dp.get());
         rh->writef("\r\n");
     }
