@@ -19,6 +19,8 @@ class masterstore_t {
     bool has_slave() { return slave_ != NULL; }
     void add_slave(tcp_conn_t *conn);
 
+    void hello();
+
     void get_cas(store_key_t *key, castime_t castime);
 
     void set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
@@ -30,6 +32,8 @@ class masterstore_t {
     void append(store_key_t *key, data_provider_t *data, castime_t castime);
     void prepend(store_key_t *key, data_provider_t *data, castime_t castime);
     void delete_key(store_key_t *key);
+
+
 
 private:
     // Spawns a coroutine.
@@ -45,6 +49,8 @@ private:
     mutex_t message_contiguity_;
     tcp_conn_t *slave_;
     thick_list<data_provider_t *, uint32_t> sources_;
+
+
 };
 
 

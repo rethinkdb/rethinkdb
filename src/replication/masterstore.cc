@@ -12,6 +12,28 @@ void masterstore_t::add_slave(tcp_conn_t *conn) {
         throw masterstore_exc_t("We already have a slave.");
     }
     slave_ = conn;
+
+    hello();
+}
+
+void masterstore_t::hello() {
+    net_hello_t msg;
+    rassert(sizeof(msg.hello_magic) == 16);
+    // TODO make a #define for this.
+    memcpy(msg.hello_magic, "13rethinkdbrepl", 16);
+    msg.replication_protocol_version = 1;
+    msg.role = role_master;
+    // TODO have this use actual database_magic!  Or die!
+    msg.database_magic = 0;
+    rassert(sizeof(msg.informal_name) == 32);
+    // TODO possibly have a user configurable name.  Or decide not to.
+    char informal_name[32] = "master";
+    memcpy(msg.informal_name, informal_name, 32);
+
+    {
+        mutex_acquisition_t lock(&message_contiguity_);
+        slave_->write(&msg, sizeof(msg));
+    }
 }
 
 void masterstore_t::get_cas(store_key_t *key, castime_t castime) {
@@ -26,7 +48,7 @@ void masterstore_t::get_cas(store_key_t *key, castime_t castime) {
 
     {
         mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write_buffered(message.get(), n);
+        slave_->write(message.get(), n);
     }
 }
 
@@ -79,7 +101,7 @@ void masterstore_t::incr(store_key_t *key, uint64_t amount, castime_t castime) {
 
     {
         mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write_buffered(&msg, sizeof(msg));
+        slave_->write(&msg, sizeof(msg));
     }
 }
 
@@ -94,7 +116,7 @@ void masterstore_t::decr(store_key_t *key, uint64_t amount, castime_t castime) {
 
     {
         mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write_buffered(&msg, sizeof(msg));
+        slave_->write(&msg, sizeof(msg));
     }
 }
 
@@ -130,7 +152,7 @@ void masterstore_t::delete_key(store_key_t *key) {
 
     {
         mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write_buffered(message.get(), n);
+        slave_->write(message.get(), n);
     }
 }
 
@@ -153,7 +175,7 @@ void masterstore_t::stereotypical(int msgcode, store_key_t *key, data_provider_t
 
         {
             mutex_acquisition_t lock(&message_contiguity_);
-            slave_->write_buffered(message.get(), n);
+            slave_->write(message.get(), n);
         }
     } else {
         // For now, we have no way to get the first chunk of all the
@@ -176,7 +198,7 @@ void masterstore_t::stereotypical(int msgcode, store_key_t *key, data_provider_t
 
         {
             mutex_acquisition_t lock(&message_contiguity_);
-            slave_->write_buffered(message.get(), n);
+            slave_->write(message.get(), n);
         }
 
         // TODO: make sure we aren't taking liberties with the data_provider_t lifetime.
