@@ -277,8 +277,8 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
 
 void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
     rassert(data == inner_buf->data);
-    rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->get_block_size().value());
-    rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->get_block_size().value());
+    rassert(dest >= data && (size_t)dest < (size_t)data + inner_buf->cache->get_block_size().value());
+    rassert((size_t)dest + n <= (size_t)data + inner_buf->cache->get_block_size().value());
 
     if (inner_buf->writeback_buf.needs_flush) {
         // Save the allocation / construction of a patch object
@@ -292,10 +292,10 @@ void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
 
 void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     rassert(data == inner_buf->data);
-    rassert(dest >= data && (const char*)dest < (const char*)data + inner_buf->cache->get_block_size().value());
-    rassert((const char*)dest + n <= (const char*)data + inner_buf->cache->get_block_size().value());
-    rassert(src >= data && src < (const char*)data + inner_buf->cache->get_block_size().value());
-    rassert((const char*)src + n <= (const char*)data + inner_buf->cache->get_block_size().value());
+    rassert(dest >= data && (size_t)dest < (size_t)data + inner_buf->cache->get_block_size().value());
+    rassert((size_t)dest + n <= (size_t)data + inner_buf->cache->get_block_size().value());
+    rassert(src >= data && (size_t)src < (size_t)data + inner_buf->cache->get_block_size().value());
+    rassert((size_t)src + n <= (size_t)data + inner_buf->cache->get_block_size().value());
 
     if (inner_buf->writeback_buf.needs_flush) {
         // Save the allocation / construction of a patch object
@@ -583,8 +583,11 @@ bool mc_cache_t::next_starting_up_step() {
 
 void mc_cache_t::init_diff_storage() {
     rassert(state == state_starting_up_init_fixed_blocks);
+#ifndef NDEBUG
     diff_oocore_storage.init(SUPERBLOCK_ID + 1, 2400); // TODO!
-    //diff_oocore_storage.init(SUPERBLOCK_ID + 1, 10); // TODO!
+#else
+    diff_oocore_storage.init(SUPERBLOCK_ID + 1, 32); // TODO!
+#endif
     diff_oocore_storage.load_patches(diff_core_storage);
 
     state = state_starting_up_finish;
