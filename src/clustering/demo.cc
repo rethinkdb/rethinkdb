@@ -48,6 +48,7 @@ void serve(int serve_port, query_mailbox_t::address_t address) {
             address.call(key2);
             return get_result_t();
         }
+        rget_result_t rget(store_key_t *key1, store_key_t *key2, bool end1, bool end2, uint64_t, castime_t) { unreachable(""); }
         get_result_t get_cas(store_key_t *key, castime_t) { unreachable(""); }
         set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t) { unreachable(""); }
         set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t) { unreachable(""); }
@@ -129,7 +130,7 @@ int run_cluster(int argc, char *argv[]) {
         cluster_config_t config;
         thread_pool_t *thread_pool;
         void on_thread_switch() {
-            coro_t::spawn(&cluster_main, config, thread_pool);
+            coro_t::spawn(boost::bind(&cluster_main, config, thread_pool));
         }
     } starter;
     

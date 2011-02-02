@@ -164,7 +164,7 @@ cluster_address_t::cluster_address_t(cluster_mailbox_t *mailbox) :
 void cluster_address_t::send(unique_ptr_t<cluster_message_t> msg) {
     if (!cluster) {
         /* Address of a local mailbox */
-        coro_t::spawn(&cluster_mailbox_t::run, mailbox, msg);
+        coro_t::spawn(boost::bind(&cluster_mailbox_t::run, mailbox, msg));
     } else {
         /* Address of a remote mailbox */
         cluster->send_message(peer, mailbox, msg);
