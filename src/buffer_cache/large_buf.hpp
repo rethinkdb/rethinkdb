@@ -91,6 +91,7 @@ public:
     void mark_deleted();
     void release();
 
+    transaction_t *get_transaction() const;
     const large_buf_ref& get_root_ref() const;
 
     int64_t get_num_segments();

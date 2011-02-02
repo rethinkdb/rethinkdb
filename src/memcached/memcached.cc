@@ -13,7 +13,7 @@
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
 
-struct txt_memcached_handler_t {
+struct txt_memcached_handler_t : public home_thread_mixin_t {
     tcp_conn_t *conn;
     store_t *store;
 
@@ -32,6 +32,7 @@ struct txt_memcached_handler_t {
     processing requests even if the client is no longer listening for replies */
     void write(const char *buffer, size_t bytes) {
         try {
+            ensure_thread();
             conn->write_buffered(buffer, bytes);
         } catch (tcp_conn_t::write_closed_exc_t) {
         }

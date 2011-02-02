@@ -17,6 +17,7 @@ struct co_block_available_callback_t : public block_available_callback_t {
 };
 
 buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode) {
+    transaction->ensure_thread();
     co_block_available_callback_t cb;
     buf_t *value = transaction->acquire(block_id, mode, &cb);
     if (!value) {
@@ -41,6 +42,8 @@ void co_acquire_large_value(large_buf_t *large_value, large_buf_ref root_ref_, a
     // One way to fix this possible bug without learning about
     // coroutines: make large_value->acquire return bool, the usual
     // way, and then do what co_commit does.
+
+    large_value->get_transaction()->ensure_thread();
     large_value->acquire(root_ref_, access_, &acquired);
     coro_t::wait();
 }
@@ -76,6 +79,7 @@ struct transaction_begun_callback_t : public transaction_begin_callback_t {
 };
 
 transaction_t *co_begin_transaction(cache_t *cache, access_t access) {
+    cache->ensure_thread();
     transaction_begun_callback_t cb;
     transaction_t *value = cache->begin_transaction(access, &cb);
     if (!value) {
@@ -97,6 +101,7 @@ struct transaction_committed_t : public transaction_commit_callback_t {
 
 
 void co_commit_transaction(transaction_t *transaction) {
+    transaction->ensure_thread();
     transaction_committed_t cb;
     if (!transaction->commit(&cb)) {
         coro_t::wait();
