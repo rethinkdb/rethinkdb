@@ -227,7 +227,8 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     if (!inner_buf->writeback_buf.needs_flush) {
         // TODO! Refactor
         const size_t MAX_PATCH_SIZE = inner_buf->cache->serializer->get_block_size().value() / 4;
-        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 64;
+        //const size_t PATCH_COUNT_FLUSH_THRESHOLD = 64;
+        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 96;
 
         if (    (patch.get_serialized_size() > MAX_PATCH_SIZE) ||
                 (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id) &&

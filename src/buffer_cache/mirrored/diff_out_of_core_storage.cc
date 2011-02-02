@@ -214,12 +214,17 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
 
         guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
         current_offset = sizeof(LOG_BLOCK_MAGIC);
-        for (std::vector<buf_patch_t*>::const_iterator patch = live_patches.begin(); patch != live_patches.end(); ++patch) {
+        for (std::vector<buf_patch_t*>::iterator patch = live_patches.begin(); patch != live_patches.end(); ++patch) {
             (*patch)->serialize((char*)buf_data + current_offset);
             current_offset += (*patch)->get_serialized_size();
+            delete *patch;
         }
 
         log_buf->release();
+    } else {
+        for (std::vector<buf_patch_t*>::iterator patch = live_patches.begin(); patch != live_patches.end(); ++patch) {
+            delete *patch;
+        }
     }
 
     //fprintf(stderr, " done\n");
