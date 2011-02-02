@@ -25,8 +25,8 @@ class masterstore_t {
     void add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
     void replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
     void cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
-    void incr(store_key_t *key, unsigned long long amount, castime_t castime);
-    void decr(store_key_t *key, unsigned long long amount, castime_t castime);
+    void incr(store_key_t *key, uint64_t amount, castime_t castime);
+    void decr(store_key_t *key, uint64_t amount, castime_t castime);
     void append(store_key_t *key, data_provider_t *data, castime_t castime);
     void prepend(store_key_t *key, data_provider_t *data, castime_t castime);
     void delete_key(store_key_t *key);
@@ -35,6 +35,7 @@ private:
     // Spawns a coroutine.
     void send_data_with_ident(data_provider_t *data, uint32_t ident);
 
+    template <class net_struct_type>
     void setlike(int msgcode, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
 
     template <class net_struct_type>

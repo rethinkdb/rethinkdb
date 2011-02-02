@@ -31,28 +31,91 @@ void masterstore_t::get_cas(store_key_t *key, castime_t castime) {
 }
 
 void masterstore_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    setlike(SET, key, data, flags, exptime, castime);
+    setlike<net_set_t>(SET, key, data, flags, exptime, castime);
 }
 
 void masterstore_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    setlike(ADD, key, data, flags, exptime, castime);
+    setlike<net_add_t>(ADD, key, data, flags, exptime, castime);
 }
 
 void masterstore_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    setlike(REPLACE, key, data, flags, exptime, castime);
+    setlike<net_replace_t>(REPLACE, key, data, flags, exptime, castime);
 }
 
-
+template <class net_struct_type>
 void masterstore_t::setlike(int msgcode, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    net_set_t setstruct;
-    setstruct.proposed_cas = castime.proposed_cas;
+    net_struct_type setstruct;
     setstruct.timestamp = castime.timestamp;
+    setstruct.proposed_cas = castime.proposed_cas;
     setstruct.flags = flags;
     setstruct.exptime = exptime;
     setstruct.key_size = key->size;
     setstruct.value_size = data->get_size();
 
     stereotypical(msgcode, key, data, setstruct);
+}
+
+void masterstore_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
+    net_cas_t casstruct;
+    casstruct.timestamp = castime.timestamp;
+    casstruct.expected_cas = unique;
+    casstruct.proposed_cas = castime.proposed_cas;
+    casstruct.flags = flags;
+    casstruct.exptime = exptime;
+    casstruct.key_size = key->size;
+    casstruct.value_size = data->get_size();
+
+    stereotypical(CAS, key, data, casstruct);
+}
+
+void masterstore_t::incr(store_key_t *key, uint64_t amount, castime_t castime) {
+    headed<net_incr_t> msg;
+    msg.hdr.message_multipart_aspect = SMALL;
+    msg.hdr.msgcode = INCR;
+    msg.hdr.msgsize = sizeof(msg);
+    msg.data.timestamp = castime.timestamp;
+    msg.data.proposed_cas = castime.proposed_cas;
+    msg.data.amount = amount;
+
+    {
+        mutex_acquisition_t lock(&message_contiguity_);
+        slave_->write_buffered(&msg, sizeof(msg));
+    }
+}
+
+void masterstore_t::decr(store_key_t *key, uint64_t amount, castime_t castime) {
+    headed<net_decr_t> msg;
+    msg.hdr.message_multipart_aspect = SMALL;
+    msg.hdr.msgcode = DECR;
+    msg.hdr.msgsize = sizeof(msg);
+    msg.data.timestamp = castime.timestamp;
+    msg.data.proposed_cas = castime.proposed_cas;
+    msg.data.amount = amount;
+
+    {
+        mutex_acquisition_t lock(&message_contiguity_);
+        slave_->write_buffered(&msg, sizeof(msg));
+    }
+}
+
+void masterstore_t::append(store_key_t *key, data_provider_t *data, castime_t castime) {
+    net_append_t appendstruct;
+    appendstruct.timestamp = castime.timestamp;
+    appendstruct.proposed_cas = castime.proposed_cas;
+    appendstruct.key_size = key->size;
+    appendstruct.value_size = data->get_size();
+
+    stereotypical(APPEND, key, data, appendstruct);
+}
+
+void masterstore_t::prepend(store_key_t *key, data_provider_t *data, castime_t castime) {
+    net_prepend_t prependstruct;
+    prependstruct.timestamp = castime.timestamp;
+    prependstruct.proposed_cas = castime.proposed_cas;
+    prependstruct.key_size = key->size;
+    prependstruct.value_size = data->get_size();
+
+    stereotypical(PREPEND, key, data, prependstruct);
 }
 
 
