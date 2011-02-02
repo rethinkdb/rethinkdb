@@ -367,12 +367,13 @@ mc_buf_t* diff_oocore_storage_t::acquire_block_no_locking(const block_id_t block
     }
     
     // We still have to acquire the lock once to wait for the buf to get ready
-    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write);
+    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_read);
 
     if (buf->ready) {
         // Release the lock we've got
         buf->inner_buf->lock.unlock();
         buf->non_locking_access = true;
+        buf->mode = rwi_write;
         return buf;
     } else {
         co_block_available_callback_2_t cb;
@@ -381,6 +382,7 @@ mc_buf_t* diff_oocore_storage_t::acquire_block_no_locking(const block_id_t block
         // Release the lock we've got
         buf->inner_buf->lock.unlock();
         buf->non_locking_access = true;
+        buf->mode = rwi_write;
         return buf;
     }
 }
