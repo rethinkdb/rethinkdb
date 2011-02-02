@@ -138,16 +138,19 @@ private:
     segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> bufs;
     
     ready_callback_t *ready_callback;
-    bool load_blocks_from_serializer();
+    bool load_blocks_from_serializer(ready_callback_t *cb);
+    void do_load_blocks_from_serializer(ready_callback_t *cb);
     int blocks_to_load;
     void on_serializer_read();
-    bool have_loaded_blocks();
+    void have_loaded_blocks();
     
     shutdown_callback_t *shutdown_callback;
     bool shutdown_write_bufs();
     bool shutdown_do_send_bufs_to_serializer();
+    void do_shutdown_do_send_bufs_to_serializer();
     void on_serializer_write_txn();
     bool shutdown_destroy_bufs();
+    void do_shutdown_destroy_bufs();
     void shutdown_finish();
 };
 

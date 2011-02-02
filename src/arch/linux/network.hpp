@@ -42,6 +42,12 @@ public:
     Returns when the buffer is full, or throws read_closed_exc_t. */
     void read(void *buf, size_t size);
 
+    // If you don't know how many bytes you want to read, but still
+    // masochistically want to handle buffering yourself.  Makes at
+    // most one call to ::read(), reads some data or throws
+    // read_closed_exc_t.
+    size_t read_some(void *buf, size_t size);
+
     // If you don't know how many bytes you want to read, use peek()
     // and then, if you're satisfied, pop what you've read, or if
     // you're unsatisfied, read_more_buffered() and then try again.

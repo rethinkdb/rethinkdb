@@ -21,7 +21,15 @@
 
 namespace replication {
 
+/* The slave_t class is responsible for connecting to another RethinkDB process
+ * and pushing the values that it receives in to its internal store. It also
+ * handles the failover module if failover is enabled. Currently the slave_t
+ * also is itself a failover callback and derives from the store_t class, thus
+ * allowing it to modify the behaviour of the store. */ 
 
+/* It has been suggested that the failover callback and replication
+ * functionality of the slave_t class be separated. I don't think this is such
+ * a bad idea but it doesn't seem particularly urgent to me right now. */
 
 struct slave_t :
     public home_thread_mixin_t,
@@ -33,6 +41,9 @@ friend void run(slave_t *);
 public:
     slave_t(store_t *, replication_config_t, failover_config_t);
     ~slave_t();
+
+    /* failover module which is alerted by an on_failure() call when we go out
+     * of contact with the master */
     failover_t failover;
 
 private:
@@ -52,6 +63,7 @@ public:
 
     get_result_t get(store_key_t *key);
     get_result_t get_cas(store_key_t *key, castime_t castime);
+    rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results, castime_t castime);
     set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
     set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
     set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
@@ -64,16 +76,17 @@ public:
 
 public:
     /* message_callback_t interface */
-    void hello(scoped_malloc<net_hello_t>& message);
-    void send(scoped_malloc<net_backfill_t>& message);
-    void send(scoped_malloc<net_announce_t>& message);
+    // These call .swap on their parameter, taking ownership of the pointee.
+    void hello(net_hello_t message);
+    void send(buffed_data_t<net_backfill_t>& message);
+    void send(buffed_data_t<net_announce_t>& message);
     void send(stream_pair<net_set_t>& message);
     void send(stream_pair<net_append_t>& message);
     void send(stream_pair<net_prepend_t>& message);
-    void send(scoped_malloc<net_nop_t>& message);
-    void send(scoped_malloc<net_ack_t>& message);
-    void send(scoped_malloc<net_shutting_down_t>& message);
-    void send(scoped_malloc<net_goodbye_t>& message);
+    void send(buffed_data_t<net_nop_t>& message);
+    void send(buffed_data_t<net_ack_t>& message);
+    void send(buffed_data_t<net_shutting_down_t>& message);
+    void send(buffed_data_t<net_goodbye_t>& message);
     void conn_closed();
 
 private:
@@ -111,6 +124,7 @@ private:
     /* Failover controllers */
 
 private:
+    /* Control to  allow the failover state to be reset during run time */
     std::string failover_reset();
 
     struct failover_reset_control_t
@@ -127,6 +141,7 @@ private:
     failover_reset_control_t failover_reset_control;
 
 private:
+    /* Control to allow the master to be changed during run time */
     std::string new_master(std::string args);
 
     struct new_master_control_t

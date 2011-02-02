@@ -6,7 +6,10 @@
 
 class failover_t;
 
-/* base class for failover callbacks */
+/* base class for failover callbacks: 
+ * To make something react to failover derive from this class and then add it
+ * to a failover_t with failover_t::add_callback.
+ */
 class failover_callback_t : 
     public intrusive_list_node_t<failover_callback_t>
 {
@@ -37,6 +40,11 @@ private:
     char *script_path;
 };
 
+/* Failover module:
+ * The failover module allows a list of failover callbacks to be registered
+ * with it, when failover_t::on_failure is called it will call all of its
+ * registered callback's on_failure functions. Equivalent behaviour for
+ * on_resume. */
 class failover_t :
     public home_thread_mixin_t
 {
@@ -45,7 +53,6 @@ public:
     ~failover_t();
 
 private:
-    friend class failover_callback_t;
     intrusive_list_t<failover_callback_t> callbacks;
 public:
     void add_callback(failover_callback_t *cb);

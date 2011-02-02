@@ -23,7 +23,7 @@ slave_t::slave_t(store_t *internal_store, replication_config_t replication_confi
       failover_reset_control(std::string("failover reset"), this),
       new_master_control(std::string("new master"), this)
 {
-    coro_t::spawn(&run, this);
+    coro_t::spawn(boost::bind(&run, this));
 }
 
 slave_t::~slave_t() {
@@ -65,6 +65,10 @@ store_t::get_result_t slave_t::get_cas(store_key_t *key, castime_t castime)
 {
     // TODO: ask joe why this used get(key) before (back when we did not have castime).
     return internal_store->get_cas(key, castime);
+}
+
+store_t::rget_result_t slave_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results, castime_t castime) {
+    return store_t::rget_result_t();
 }
 
 store_t::set_result_t slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
@@ -152,16 +156,16 @@ std::string slave_t::failover_reset() {
 }
 
  /* message_callback_t interface */
-void slave_t::hello(scoped_malloc<net_hello_t>& message) { }
-void slave_t::send(scoped_malloc<net_backfill_t>& message) { }
-void slave_t::send(scoped_malloc<net_announce_t>& message) { }
+void slave_t::hello(net_hello_t message) { }
+void slave_t::send(buffed_data_t<net_backfill_t>& message) { }
+void slave_t::send(buffed_data_t<net_announce_t>& message) { }
 void slave_t::send(stream_pair<net_set_t>& message) { }
 void slave_t::send(stream_pair<net_append_t>& message) { }
 void slave_t::send(stream_pair<net_prepend_t>& message) { }
-void slave_t::send(scoped_malloc<net_nop_t>& message) { }
-void slave_t::send(scoped_malloc<net_ack_t>& message) { }
-void slave_t::send(scoped_malloc<net_shutting_down_t>& message) { }
-void slave_t::send(scoped_malloc<net_goodbye_t>& message) { }
+void slave_t::send(buffed_data_t<net_nop_t>& message) { }
+void slave_t::send(buffed_data_t<net_ack_t>& message) { }
+void slave_t::send(buffed_data_t<net_shutting_down_t>& message) { }
+void slave_t::send(buffed_data_t<net_goodbye_t>& message) { }
 void slave_t::conn_closed() {
     coro->notify();
 }

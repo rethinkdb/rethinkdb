@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include "utils.hpp"
 
+// TODO: Sometime before the year 3000, compare the performance to
+// using boost::shared_array, which uses atomic incr/decr operations.
+
 // This helps us avoid copying stuff out of a network buffer, and then
 // copying it into another buffer, and then copying it into another
 // buffer, and so on.
@@ -16,9 +19,10 @@ struct shared_buf_buffer_t {
 
     friend class shared_buf_t;
 private:
-    bool incr_refcount() { refcount++; return true; }
-    bool decr_refcount() { refcount--; if (refcount == 0) { free(this); } return true; }
+    void decr_refcount() { refcount--; if (refcount == 0) { free(this); } }
 };
+
+class weak_buf_t;
 
 class shared_buf_t {
 public:
@@ -31,17 +35,9 @@ public:
         shbuf->length = n;
     }
 
-    // Avoid using this capriciously.  It would be nice if we could
-    // compress cross-thread reference count incr/decr messages so
-    // that only one is sent per event loop, but right now we don't.
-    // Use swap if it's appropriate.
-    explicit shared_buf_t(shared_buf_t& other) {
-        buffer_ = other.buffer_;
-        if (buffer_) {
-            shared_buf_buffer_t *shbuf = reinterpret_cast<shared_buf_buffer_t *>(buffer_ - sizeof(shared_buf_buffer_t));
-            do_on_thread(shbuf->home_thread, shbuf, &shared_buf_buffer_t::incr_refcount);
-        }
-    }
+    // Must be called on the home_thread of the shared_buf_buffer_t.
+    explicit shared_buf_t(weak_buf_t other);
+
     ~shared_buf_t() {
         release();
     }
@@ -71,13 +67,42 @@ public:
     void release() {
         if (buffer_) {
             shared_buf_buffer_t *shbuf = reinterpret_cast<shared_buf_buffer_t *>(buffer_ - sizeof(shared_buf_buffer_t));
-            do_on_thread(shbuf->home_thread, shbuf, &shared_buf_buffer_t::decr_refcount);
+            do_on_thread(shbuf->home_thread, boost::bind(&shared_buf_buffer_t::decr_refcount, shbuf));
             buffer_ = NULL;
         }
     }
 
+    friend class weak_buf_t;
+
 private:
     // Points to the data field of the shared_buf_buffer_t!
+    char *buffer_;
+
+    DISABLE_COPYING(shared_buf_t);
+};
+
+class weak_buf_t {
+public:
+    weak_buf_t() : buffer_(NULL) { }
+    explicit weak_buf_t(shared_buf_t& buf) {
+        buffer_ = buf.buffer_;
+    }
+    ~weak_buf_t() {
+        buffer_ = NULL;
+    }
+    size_t size() {
+        rassert(buffer_);
+        shared_buf_buffer_t *shbuf = reinterpret_cast<shared_buf_buffer_t *>(buffer_ - sizeof(shared_buf_buffer_t));
+        return shbuf->length;
+    }
+    template <class T>
+    T *get(size_t off) {
+        rassert(buffer_ != NULL);
+        return reinterpret_cast<T *>(buffer_ + off);
+    }
+
+    friend class shared_buf_t;
+private:
     char *buffer_;
 };
 
@@ -87,12 +112,17 @@ class buffed_data_t {
 public:
     buffed_data_t() : buf_(), offset_(0) { }
 
-    buffed_data_t(shared_buf_t& sharebuf, size_t offset) {
-        
-    }
+    // HACK, the third parameter gives us the same interface as
+    // streampair, which is used in replication::check_pass.
+    buffed_data_t(weak_buf_t buf, size_t offset, size_t end = 0)
+        : buf_(buf), offset_(offset) { }
 
-    void swapset(shared_buf_t& buf, size_t offset);
-    void swap(buffed_data_t<T>& other);
+    void swap(buffed_data_t<T>& other) {
+        size_t tmp = other.offset_;
+        other.offset_ = offset_;
+        offset_ = tmp;
+        buf_.swap(other.buf_);
+    }
 
     T *get() { return buf_.get<T>(offset_); }
 

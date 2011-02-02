@@ -126,6 +126,7 @@ bool begins_with_minus(const char *string);
 // sign. strtoul_strict() and strtoull_strict() do.
 unsigned long strtoul_strict(const char *string, char **end, int base);
 unsigned long long strtoull_strict(const char *string, char **end, int base);
+bool strtobool_strict(const char *string, char **end);
 
 // Put this in a private: section.
 #define DISABLE_COPYING(T)                      \

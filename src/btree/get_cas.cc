@@ -81,6 +81,6 @@ void co_btree_get_cas(const btree_key *key, castime_t castime, btree_slice_t *sl
 store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice, castime_t castime) {
     block_pm_duration get_timer(&pm_cmd_get);
     promise_t<store_t::get_result_t, threadsafe_cond_t> res;
-    coro_t::spawn(co_btree_get_cas, key, castime, slice, &res);
+    coro_t::spawn(boost::bind(co_btree_get_cas, key, castime, slice, &res));
     return res.wait();
 }
