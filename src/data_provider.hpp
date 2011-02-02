@@ -1,11 +1,14 @@
 #ifndef __DATA_PROVIDER_HPP__
 #define __DATA_PROVIDER_HPP__
 
+#include <boost/shared_ptr.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <vector>
 #include <exception>
 #include "errors.hpp"
+#include "btree/value.hpp"
+#include "buffer_cache/transactor.hpp"
 
 struct buffer_group_t {
     struct buffer_t {
@@ -146,6 +149,50 @@ private:
     // when our data is requested. This way we behave exactly the same whether or not we buffer.
     bool exception_was_thrown;
     boost::scoped_ptr<buffered_data_provider_t> buffer;   // NULL if we decide not to buffer
+};
+
+class rget_value_provider_t : public auto_copying_data_provider_t {
+protected:
+    rget_value_provider_t() { }
+public:
+    virtual ~rget_value_provider_t() { }
+
+    static rget_value_provider_t *create_provider(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
+};
+
+class rget_small_value_provider_t : public rget_value_provider_t {
+private:
+    rget_small_value_provider_t(const btree_value *value);
+
+public:
+    size_t get_size() const;
+    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+
+private:
+    typedef std::vector<byte> buffer_t;
+    buffer_t value;
+    boost::scoped_ptr<const_buffer_group_t> buffers;
+
+    friend class rget_value_provider_t;
+};
+
+class rget_large_value_provider_t : public rget_value_provider_t {
+private:
+    rget_large_value_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
+
+public:
+    virtual ~rget_large_value_provider_t();
+
+    size_t get_size() const;
+    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+
+private:
+    boost::shared_ptr<transactor_t> transactor;
+    boost::scoped_ptr<const_buffer_group_t> buffers;
+    boost::scoped_ptr<large_buf_t> large_value;
+    large_buf_ref lb_ref;
+
+    friend class rget_value_provider_t;
 };
 
 #endif /* __DATA_PROVIDER_HPP__ */

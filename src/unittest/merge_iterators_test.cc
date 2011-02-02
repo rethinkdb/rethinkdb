@@ -2,12 +2,12 @@
 #include <functional>
 #include <list>
 #include <iostream>
-#include "btree/rget_internal.hpp"
+#include "containers/iterators.hpp"
 #include "unittest/gtest.hpp"
 
 namespace unittest {
 
-struct test_iterator : ordered_data_iterator<int> {
+struct test_iterator : one_way_iterator_t<int> {
     typedef std::list<std::list<int> > data_blocks_t;
     test_iterator(data_blocks_t data_blocks) : prefetches_count(0), blocked_without_prefetch(0), data_blocks(data_blocks) {
         // remove empty blocks
@@ -98,12 +98,12 @@ TEST(MergeIteratorsTest, merge_empty) {
     test_iterator b(empty_blocks);
     test_iterator c(empty_blocks);
 
-    std::vector<ordered_data_iterator<int>*> mergees;
+    std::vector<one_way_iterator_t<int>*> mergees;
     mergees.push_back(&a);
     mergees.push_back(&b);
     mergees.push_back(&c);
 
-    merge_ordered_data_iterator<int> merged(mergees);
+    merge_ordered_data_iterator_t<int> merged(mergees);
     ASSERT_FALSE(merged.next());
     ASSERT_EQ(a.blocked_without_prefetch, 0);
     ASSERT_EQ(b.blocked_without_prefetch, 0);
@@ -125,11 +125,11 @@ TEST(MergeIteratorsTest, three_way_merge) {
     test_iterator a(a_db);
     test_iterator b(b_db);
     test_iterator c(c_db);
-    std::vector<ordered_data_iterator<int>*> mergees;
+    std::vector<one_way_iterator_t<int>*> mergees;
     mergees.push_back(&a);
     mergees.push_back(&b);
     mergees.push_back(&c);
-    merge_ordered_data_iterator<int> merge_iterator(mergees);
+    merge_ordered_data_iterator_t<int> merge_iterator(mergees);
 
     std::list<int> merged;
     boost::optional<int> next;

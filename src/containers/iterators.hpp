@@ -1,27 +1,18 @@
-#ifndef __BTREE_RGET_INTERNAL_HPP__
-#define __BTREE_RGET_INTERNAL_HPP__
+#ifndef __CONTAINERS_ITERATOR_HPP__
+#define __CONTAINERS_ITERATOR_HPP__
 
 #include <algorithm>
 #include <functional>
-#include <iterator>
-#include <vector>
 #include <queue>
 #include <boost/optional.hpp>
-#include "errors.hpp"
-
-
-/* This file is separate from rget.{cc,hpp} because we need to test the
- * iterator merging, but we don't really want to expose the types outside of
- * rget.cc for now.
- */
 
 template <typename T>
-struct ordered_data_iterator {
-    virtual ~ordered_data_iterator() { }
-    virtual typename boost::optional<T> next() = 0; // next can block until it can read the next value
-    virtual void prefetch() = 0;    // fetch all the necessary data to be able to give the next value without blocking.
-                                    // prefetch() is assumed to be asynchronous. Thus if next is called before the data
-                                    // is available, it can block.
+struct one_way_iterator_t {
+    virtual ~one_way_iterator_t() { }
+    virtual typename boost::optional<T> next() = 0; // next() can block until it can read the next value
+    virtual void prefetch() = 0;    // Fetch all the necessary data to be able to give the next value without blocking.
+                                    // prefetch() is assumed to be asynchronous. Thus if next() is called before the data
+                                    // is available, next() can still block.
 };
 
 template <typename F, typename S, typename Cmp = std::less<F> >
@@ -34,15 +25,17 @@ struct first_not_less {
 };
 
 template <typename T, typename Cmp = std::less<T> >
-struct merge_ordered_data_iterator : public ordered_data_iterator<T> {
-    typedef ordered_data_iterator<T> mergee_t;
+class merge_ordered_data_iterator_t : public one_way_iterator_t<T> {
+public:
+    typedef one_way_iterator_t<T> mergee_t;
     typedef std::vector<mergee_t*> mergees_t;
 
     typedef std::pair<T, mergee_t*> heap_elem_t;
     typedef std::vector<heap_elem_t> heap_container_t;
 
-    merge_ordered_data_iterator(const mergees_t& mergees)
-        : mergees(mergees), next_to_pop_from(NULL), merge_heap(first_not_less<T, mergee_t*, Cmp>(), heap_container_t()) { }
+
+    merge_ordered_data_iterator_t(const mergees_t& mergees) : mergees(mergees), next_to_pop_from(NULL),
+        merge_heap(first_not_less<T, mergee_t*, Cmp>(), heap_container_t()) { }
 
     typename boost::optional<T> next() {
         // if we are getting the first element, we have to request the data from all of the mergees
@@ -81,4 +74,4 @@ private:
 
 };
 
-#endif // __BTREE_RGET_INTERNAL_HPP__
+#endif /* __CONTAINERS_ITERATOR_HPP__ */
