@@ -379,12 +379,11 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
     if (log_storage_failure)
         parent->force_diff_storage_flush = true; // Make sure we solve the problem for the next flush...
 
-    if (log_storage_failure)
-        fprintf(stderr, "%u patches stored to disk", patches_stored);
+    /*fprintf(stderr, "%u patches stored to disk", patches_stored);
     if (log_storage_failure)
         fprintf(stderr, " (storage failure occured)\n");
-    //else
-    //    fprintf(stderr, "\n");
+    else
+        fprintf(stderr, "\n");*/
     
     
     /* Part 2: Request read locks on all of the blocks we need to flush. */

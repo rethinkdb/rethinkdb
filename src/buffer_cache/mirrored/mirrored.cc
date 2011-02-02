@@ -227,7 +227,6 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     if (!inner_buf->writeback_buf.needs_flush) {
         // TODO! Refactor
         const size_t MAX_PATCH_SIZE = inner_buf->cache->serializer->get_block_size().value() / 4;
-        //const size_t PATCH_COUNT_FLUSH_THRESHOLD = 64;
         const size_t PATCH_COUNT_FLUSH_THRESHOLD = 96;
 
         if (    (patch.get_serialized_size() > MAX_PATCH_SIZE) ||
@@ -529,7 +528,7 @@ mc_cache_t::mc_cache_t(
 
 mc_cache_t::~mc_cache_t() {
     rassert(state == state_unstarted || state == state_shut_down);
-    
+
     while (inner_buf_t *buf = page_repl.get_first_buf()) {
        delete buf;
     }
@@ -683,6 +682,8 @@ bool mc_cache_t::next_shutting_down_step() {
     }
     
     if (state == state_shutting_down_finish) {
+        diff_oocore_storage.shutdown();
+
         /* Use do_later() rather than calling it immediately because it might call
         our destructor, and it might not be safe to call our destructor right here. */
         if (shutdown_callback) do_later(shutdown_callback, &shutdown_callback_t::on_cache_shutdown);

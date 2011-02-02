@@ -15,8 +15,10 @@ static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'
 class diff_oocore_storage_t {
 public:
     diff_oocore_storage_t(mc_cache_t &cache);
+    ~diff_oocore_storage_t();
 
     void init(const block_id_t first_block, const block_id_t number_of_blocks);
+    void shutdown();
 
     // Loads on-disk data into memory
     void load_patches(diff_core_storage_t &in_core_storage);
@@ -33,7 +35,7 @@ private:
     block_id_t select_log_block_for_compression(); // For now: just always select the oldest (=next) block
     void compress_block(const block_id_t log_block_id);
 
-    void flush_block(const block_id_t log_block_id);
+    void flush_block(const block_id_t log_block_id, coro_t* notify_coro = NULL);
     void set_active_log_block(const block_id_t log_block_id);
 
     void init_log_block(const block_id_t log_block_id);
@@ -49,6 +51,9 @@ private:
     mc_cache_t &cache;
     block_id_t first_block;
     block_id_t number_of_blocks;
+    std::vector<bool> block_is_empty;
+    unsigned int waiting_for_flushes;
+    std::vector<mc_buf_t*> log_block_bufs;
 };
 
 #endif	/* __DIFF_OUT_OF_CORE_STORAGE_HPP__ */

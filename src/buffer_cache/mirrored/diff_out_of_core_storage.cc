@@ -12,39 +12,57 @@ diff_oocore_storage_t::diff_oocore_storage_t(mc_cache_t &cache) : cache(cache) {
     next_patch_offset = 0;
 }
 
+diff_oocore_storage_t::~diff_oocore_storage_t() {
+    rassert(log_block_bufs.size() == 0);
+}
+
+void diff_oocore_storage_t::shutdown() {
+    for (size_t i = 0; i < log_block_bufs.size(); ++i)
+        log_block_bufs[i]->release();
+    log_block_bufs.clear();
+}
+
 void diff_oocore_storage_t::init(const block_id_t first_block, const block_id_t number_of_blocks) {
     cache.assert_thread();
     this->first_block = first_block;
     this->number_of_blocks = number_of_blocks;
+    block_is_empty.resize(number_of_blocks, false);
 
     if (number_of_blocks == 0)
         return;
 
+    // Load all log blocks into memory
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
         coro_t::move_to_thread(cache.serializer->home_thread);
         bool block_in_use = cache.serializer->block_in_use(current_block);
         coro_t::move_to_thread(cache.home_thread);
         if (block_in_use) {
+            log_block_bufs.push_back(acquire_block_no_locking(current_block));
+
             // Check that this is a valid log block
-            mc_buf_t *log_buf = acquire_block_no_locking(current_block);
+            mc_buf_t *log_buf = log_block_bufs[current_block - first_block];
             void *buf_data = log_buf->get_data_major_write();
             guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
-            log_buf->release();
         } else {
             //fprintf(stderr, "Initializing a new log block with id %d\n", current_block);
             // Initialize a new log block here (we rely on the property block_id assignment properties)
             mc_inner_buf_t *new_ibuf = new mc_inner_buf_t(&cache);
             guarantee(new_ibuf->block_id == current_block);
 
+            log_block_bufs.push_back(acquire_block_no_locking(current_block));
+
             init_log_block(current_block);
+            block_is_empty[current_block - first_block] = true;
         }
     }
+    rassert(log_block_bufs.size() == number_of_blocks);
 
     set_active_log_block(first_block);
 }
 
 // Loads on-disk data into memory
 void diff_oocore_storage_t::load_patches(diff_core_storage_t &in_core_storage) {
+    rassert(log_block_bufs.size() == number_of_blocks);
     cache.assert_thread();
     if (number_of_blocks == 0)
         return;
@@ -53,7 +71,7 @@ void diff_oocore_storage_t::load_patches(diff_core_storage_t &in_core_storage) {
 
     // Scan through all log blocks, build a map block_id -> patch list
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
-        mc_buf_t *log_buf = acquire_block_no_locking(current_block);
+        mc_buf_t *log_buf = log_block_bufs[current_block - first_block];
         const void *buf_data = log_buf->get_data_read();
         guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
         uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
@@ -75,7 +93,6 @@ void diff_oocore_storage_t::load_patches(diff_core_storage_t &in_core_storage) {
                     delete patch;
             }
         }
-        log_buf->release();
     }
 
     for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = patch_map.begin(); patch_list != patch_map.end(); ++patch_list) {
@@ -90,6 +107,7 @@ void diff_oocore_storage_t::load_patches(diff_core_storage_t &in_core_storage) {
 // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
 // This function never blocks and must only be called while the flush_lock is held.
 bool diff_oocore_storage_t::store_patch(buf_patch_t &patch) {
+    rassert(log_block_bufs.size() == number_of_blocks);
     cache.assert_thread();
     // TODO: assert flush_in_progress somehow?
 
@@ -117,21 +135,22 @@ bool diff_oocore_storage_t::store_patch(buf_patch_t &patch) {
     }
 
     // Serialize patch at next_patch_offset, increase offset
-    mc_buf_t *log_buf = acquire_block_no_locking(active_log_block);
+    mc_buf_t *log_buf = log_block_bufs[active_log_block - first_block];
     rassert(log_buf);
+    block_is_empty[active_log_block - first_block] = false;
 
     //fprintf(stderr, "Stored to log block %d at offset %d\n", (int)active_log_block, (int)next_patch_offset);
 
     void *buf_data = log_buf->get_data_major_write();
     patch.serialize((char*)buf_data + next_patch_offset);
     next_patch_offset += patch_serialized_size;
-    log_buf->release();
 
     return true;
 }
 
 // This function might block while it acquires old blocks from disk.
 void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
+    rassert(log_block_bufs.size() == number_of_blocks);
     cache.assert_thread();
     // TODO: assert flush_in_progress somehow?
 
@@ -140,15 +159,27 @@ void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
 
     n = std::min(number_of_blocks, n);
 
-    // TODO: Parallelize (spawn coroutines!)
-
     // Flush the n oldest blocks
+    waiting_for_flushes = 0;
     for (block_id_t i = 1; i <= n; ++i) {
         block_id_t current_block = active_log_block + i;
         if (current_block >= first_block + number_of_blocks)
             current_block -= number_of_blocks;
-        flush_block(current_block);
+
+        if (!block_is_empty[current_block - first_block]) {
+            // Spawn one coroutine for each block
+            if (n > 1) {
+                ++waiting_for_flushes;
+                coro_t::spawn(&diff_oocore_storage_t::flush_block, this, current_block, coro_t::self());
+            }
+            else {
+                flush_block(current_block); // save one roundtrip
+            }
+        }
     }
+
+    if (waiting_for_flushes > 0)
+        coro_t::wait();
 
     // If we affected the active block, we have to reset next_patch_offset
     if (n == number_of_blocks)
@@ -177,7 +208,7 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
     live_patches.reserve(cache.get_block_size().value() / 30);
 
     // Scan over the block and save patches that we want to preserve
-    mc_buf_t *log_buf = acquire_block_no_locking(log_block_id);
+    mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];
     void *buf_data = log_buf->get_data_major_write();
     guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
@@ -201,14 +232,12 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
             }
         }
     }
-    log_buf->release();
 
     if (log_block_changed) {
         // Wipe the log block
         init_log_block(log_block_id);
 
         // Write back live patches
-        log_buf = acquire_block_no_locking(log_block_id);
         rassert(log_buf);
         buf_data = log_buf->get_data_major_write();
 
@@ -219,8 +248,6 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
             current_offset += (*patch)->get_serialized_size();
             delete *patch;
         }
-
-        log_buf->release();
     } else {
         for (std::vector<buf_patch_t*>::iterator patch = live_patches.begin(); patch != live_patches.end(); ++patch) {
             delete *patch;
@@ -230,26 +257,23 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
     //fprintf(stderr, " done\n");
 }
 
-void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
+void diff_oocore_storage_t::flush_block(const block_id_t log_block_id, coro_t* notify_coro) {
     //fprintf(stderr, "Flushing log block %d...", (int)log_block_id);
     cache.assert_thread();
 
     // TODO: Parallelize block reads
 
     // Scan over the block
-    mc_buf_t *log_buf = acquire_block_no_locking(log_block_id);
+    mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];;
     const void *buf_data = log_buf->get_data_read();
     guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
-    bool log_block_changed = false;
     while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
         buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
         if (!patch) {
             break;
         }
         else {
-            log_block_changed = true;
-
             current_offset += patch->get_serialized_size();
 
             // For each patch, acquire the affected block and call ensure_flush()
@@ -270,15 +294,17 @@ void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
             delete patch;
         }
     }
-    log_buf->release();
 
     // Wipe the log block
-    if (log_block_changed)
-        init_log_block(log_block_id);
-    //else
-    //    fprintf(stderr, " (nothing changed)");
+    init_log_block(log_block_id);
+    block_is_empty[log_block_id - first_block] = true;
 
     //fprintf(stderr, " done\n");
+    if (notify_coro) {
+        --waiting_for_flushes;
+        if (waiting_for_flushes == 0)
+            notify_coro->notify();
+    }
 }
 
 void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) {
@@ -286,7 +312,7 @@ void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) 
     active_log_block = log_block_id;
 
     // Scan through the block to determine next_patch_offset
-    mc_buf_t *log_buf = acquire_block_no_locking(active_log_block);
+    mc_buf_t *log_buf = log_block_bufs[active_log_block - first_block];
     const void *buf_data = log_buf->get_data_read();
     guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
@@ -300,19 +326,16 @@ void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) 
             delete tmp_patch;
         }
     }
-    log_buf->release();
     
     next_patch_offset = current_offset;
 }
 
 void diff_oocore_storage_t::init_log_block(const block_id_t log_block_id) {
-    mc_buf_t *log_buf = acquire_block_no_locking(log_block_id);
+    mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];;
     void *buf_data = log_buf->get_data_major_write();
 
     memcpy(buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC));
     bzero((char*)buf_data + sizeof(LOG_BLOCK_MAGIC), cache.serializer->get_block_size().value() - sizeof(LOG_BLOCK_MAGIC));
-
-    log_buf->release();
 }
 
 // Just the same as in buffer_cache/co_functions.cc (TODO: Refactor)
@@ -351,6 +374,10 @@ mc_buf_t* diff_oocore_storage_t::acquire_block_no_locking(const block_id_t log_b
     } else {
         co_block_available_callback_2_t cb;
         buf->callback = &cb;
-        return cb.join();
+        buf = cb.join();
+        // Release the lock we've got
+        buf->inner_buf->lock.unlock();
+        buf->non_locking_access = true;
+        return buf;
     }
 }
