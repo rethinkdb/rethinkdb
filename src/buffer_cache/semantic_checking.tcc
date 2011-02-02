@@ -4,31 +4,37 @@
 
 template<class inner_cache_t>
 block_id_t scc_buf_t<inner_cache_t>::get_block_id() {
+    rassert(inner_buf);
     return inner_buf->get_block_id();
 }
 
 template<class inner_cache_t>
 bool scc_buf_t<inner_cache_t>::is_dirty() {
+    rassert(inner_buf);
     return inner_buf->is_dirty();
 }
 
 template<class inner_cache_t>
 const void *scc_buf_t<inner_cache_t>::get_data_read() {
+    rassert(inner_buf);
     return inner_buf->get_data_read();
 }
 
 template<class inner_cache_t>
 void *scc_buf_t<inner_cache_t>::get_data_write() {
+    rassert(inner_buf);
     return inner_buf->get_data_write();
 }
 
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::mark_deleted() {
+    rassert(inner_buf);
     inner_buf->mark_deleted();
 }
 
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::release() {
+    rassert(inner_buf);
     if (!inner_buf->is_dirty() && cache->crc_map.get(inner_buf->get_block_id())) {
         rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
     } else {
@@ -42,6 +48,8 @@ void scc_buf_t<inner_cache_t>::release() {
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::on_block_available(typename inner_cache_t::buf_t *buf) {
     rassert(!inner_buf);
+    rassert(buf);
+
     inner_buf = buf;
     if (cache->crc_map.get(inner_buf->get_block_id())) {
         rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));

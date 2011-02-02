@@ -102,7 +102,6 @@ void co_btree_get(const btree_key *key, btree_slice_t *slice,
         /* Clean up large value */
         large_value->release();
         delete large_value;
-
     } else {
         /* Simple small-value delivery */
         res->pulse(store_t::get_result_t(dp, value.mcflags(), 0));

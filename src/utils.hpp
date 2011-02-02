@@ -73,26 +73,35 @@ class home_thread_mixin_t {
 public:
     int home_thread;
 
-#ifndef NDEBUG
-    void assert_thread() { rassert(home_thread == get_thread_id()); }
-#else
-    void assert_thread() { }
-#endif
+    void assert_thread() {
+        rassert(home_thread == get_thread_id());
+    }
 
+    void ensure_thread() {
+        coro_t::move_to_thread(home_thread);
+    }
 protected:
     home_thread_mixin_t() : home_thread(get_thread_id()) { }
     ~home_thread_mixin_t() { assert_thread(); }
 };
 
-struct on_thread_t :
-    public home_thread_mixin_t
-{
+struct on_thread_t : public home_thread_mixin_t {
     on_thread_t(int thread) {
         coro_t::move_to_thread(thread);
     }
     ~on_thread_t() {
         coro_t::move_to_thread(home_thread);
     }
+};
+
+struct thread_saver_t {
+    thread_saver_t() : thread_id(get_thread_id()) { }
+    thread_saver_t(int thread_id) : thread_id(thread_id) { }
+    ~thread_saver_t() {
+        coro_t::move_to_thread(thread_id);
+    }
+
+    int thread_id;
 };
 
 template <class ForwardIterator, class StrictWeakOrdering>
