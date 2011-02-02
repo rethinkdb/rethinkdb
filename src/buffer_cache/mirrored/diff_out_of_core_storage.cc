@@ -140,6 +140,8 @@ void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
 
     n = std::min(number_of_blocks, n);
 
+    // TODO: Parallelize (spawn coroutines!)
+
     // Flush the n oldest blocks
     for (block_id_t i = 1; i <= n; ++i) {
         block_id_t current_block = active_log_block + i;
@@ -226,6 +228,8 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
 void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
     //fprintf(stderr, "Flushing log block %d...", (int)log_block_id);
     cache.assert_thread();
+
+    // TODO: Parallelize block reads
 
     // Scan over the block
     mc_buf_t *log_buf = acquire_block_no_locking(log_block_id);

@@ -227,7 +227,7 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     if (!inner_buf->writeback_buf.needs_flush) {
         // TODO! Refactor
         const size_t MAX_PATCH_SIZE = inner_buf->cache->serializer->get_block_size().value() / 4;
-        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 30;
+        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 32;
         //const size_t PATCH_COUNT_FLUSH_THRESHOLD = 15;
 
         if (    (patch.get_serialized_size() > MAX_PATCH_SIZE) ||
@@ -583,8 +583,8 @@ bool mc_cache_t::next_starting_up_step() {
 
 void mc_cache_t::init_diff_storage() {
     rassert(state == state_starting_up_init_fixed_blocks);
-    //diff_oocore_storage.init(SUPERBLOCK_ID + 1, 1000); // TODO!
-    diff_oocore_storage.init(SUPERBLOCK_ID + 1, 10); // TODO!
+    diff_oocore_storage.init(SUPERBLOCK_ID + 1, 2400); // TODO!
+    //diff_oocore_storage.init(SUPERBLOCK_ID + 1, 10); // TODO!
     diff_oocore_storage.load_patches(diff_core_storage);
 
     state = state_starting_up_finish;

@@ -67,6 +67,7 @@ writeback_t::writeback_t(
       active_write_transactions(0),
       writeback_in_progress(false),
       active_flushes(0),
+      force_diff_storage_flush(false),
       cache(cache),
       start_next_sync_immediately(false) {
 }
@@ -233,8 +234,12 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     pm_flushes_diff_flush.begin(&start_time2);
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock
     // we instead try to reclaim some space in the on-disk diff storage now.
-    parent->cache->diff_oocore_storage.flush_n_oldest_blocks(2); // TODO! Calculate a sane value for n
-    // TODO! This currently is a guarantee for slowness in strong durability. Don't do it at every flush...
+    // (we only do this occasionally, hoping that most of the time a compression of the log will do the trick)
+    if (parent->force_diff_storage_flush || randint(800) < (int)parent->dirty_bufs.size()) {
+        // TODO! Refactor the constants in here
+        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(std::min((unsigned int)(parent->force_diff_storage_flush ? 16 : 4), parent->dirty_bufs.size() / 8 + 1));
+        parent->force_diff_storage_flush = false;
+    }
     pm_flushes_diff_flush.end(&start_time2);
 
     /* Start a read transaction so we can request bufs. */
@@ -371,6 +376,9 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
         }
     }
     pm_flushes_diff_store.end(&start_time2);
+    if (log_storage_failure)
+        parent->force_diff_storage_flush = true; // Make sure we solve the problem for the next flush...
+
     if (log_storage_failure)
         fprintf(stderr, "%u patches stored to disk", patches_stored);
     if (log_storage_failure)

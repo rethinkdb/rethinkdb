@@ -129,6 +129,8 @@ private:
     bool writeback_in_progress;
     unsigned int active_flushes;
 
+    bool force_diff_storage_flush;
+
     cache_t *cache;
 
     /* The flush lock is necessary because if we acquire dirty blocks

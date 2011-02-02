@@ -31,6 +31,8 @@ struct serializer_config_block_t {
     each serializer. */
     btree_config_t btree_config;
 
+    // TODO! Add a log block count thing!
+
     static const block_magic_t expected_magic;
 };
 
