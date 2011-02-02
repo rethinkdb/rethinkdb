@@ -74,10 +74,10 @@
 // The number of ways we split a BTree (the most optimal is the number
 // of cores, but we use a higher split factor to allow upgrading to
 // more cores without migrating the database file).
-#ifndef NDEBUG
-#define DEFAULT_BTREE_SHARD_FACTOR                16
-#else
+#ifdef NDEBUG
 #define DEFAULT_BTREE_SHARD_FACTOR                64
+#else
+#define DEFAULT_BTREE_SHARD_FACTOR                16
 #endif
 
 // Default port to listen on
