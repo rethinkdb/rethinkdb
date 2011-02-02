@@ -94,7 +94,7 @@ public:
     cluster_delegate_t returned from introduce_new_node(). Its return value becomes this cluster's
     cluster_delegate_t. */
     cluster_t(int port, const char *contact_host, int contact_port,
-        boost::function<cluster_delegate_t *(cluster_address_t)> start_function);
+        boost::function<cluster_delegate_t *(cluster_inpipe_t *)> start_function);
 
     /* Returns the delegate you gave it. The cluster_t owns its delegate and will free it! */
     cluster_delegate_t *get_delegate() { return delegate.get(); }
@@ -125,7 +125,7 @@ certain application-specific operations. */
 
 struct cluster_delegate_t {
 
-    virtual cluster_address_t introduce_new_node() = 0;
+    virtual void introduce_new_node(cluster_outpipe_t *) = 0;
 
     virtual ~cluster_delegate_t() { }
 };

@@ -33,7 +33,7 @@ cluster_t::cluster_t(int port, cluster_delegate_t *d) :
 }
 
 cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
-        boost::function<cluster_delegate_t *(cluster_address_t)> startup_function) :
+        boost::function<cluster_delegate_t *(cluster_inpipe_t *)> startup_function) :
     listener(port)
 {
     listener.set_callback(this);
@@ -76,15 +76,12 @@ cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
     us = peers.size();
     peers.push_back(boost::make_shared<cluster_peer_t>(port));
 
-    /* Get our introductory message from the peer */
+    /* Get our introductory message from the peer, pass it to the start function, and get ourselves
+    a delegate. */
     cluster_inpipe_t intro_msg_pipe;
     intro_msg_pipe.cluster = this;
     intro_msg_pipe.conn = &contact_conn;
-    cluster_address_t intro_msg;
-    intro_msg_pipe.read_address(&intro_msg);
-
-    /* Pass on the intro message to the start_function and get ourselves a delegate */
-    delegate.reset(startup_function(intro_msg));
+    delegate.reset(startup_function(&intro_msg_pipe));
 }
 
 void cluster_t::on_tcp_listener_accept(tcp_conn_t *conn) {
@@ -104,8 +101,7 @@ void cluster_t::on_tcp_listener_accept(tcp_conn_t *conn) {
         cluster_outpipe_t intro_msg_pipe;
         intro_msg_pipe.cluster = this;
         intro_msg_pipe.conn = conn;
-        cluster_address_t intro_msg = delegate->introduce_new_node();
-        intro_msg_pipe.write_address(&intro_msg);
+        delegate->introduce_new_node(&intro_msg_pipe);
 
     } else if (!memcmp(msg, "HELO", 4)) {
 

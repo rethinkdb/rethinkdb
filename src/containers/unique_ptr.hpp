@@ -22,7 +22,6 @@ public:
     unique_ptr_t(T *p) throw () :
         ptr(p)
     {
-        printf("%p create %p\n", this, p);
 #ifndef NDEBUG
         ok = true;
 #endif
@@ -48,7 +47,6 @@ public:
     unique_ptr_t(const unique_ptr_t<T2> &other) throw () :
         ptr(other.release())
     {
-        printf("%p take %p\n", this, ptr);
 #ifndef NDEBUG
         ok = true;
 #endif
@@ -73,10 +71,8 @@ public:
     void reset(T *x = 0) {
         if (ptr) {
             rassert(ok);
-            printf("%p delete %p\n", this, ptr);
             delete ptr;
         }
-        printf("%p reset %p\n", this, x);
         ok = true;
         ptr = x;
     };
@@ -87,7 +83,6 @@ public:
 #ifndef NDEBUG
         ok = false;
 #endif
-        printf("%p release %p\n", this, p);
         return p;
     }
 

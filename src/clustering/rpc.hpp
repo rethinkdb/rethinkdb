@@ -7,11 +7,11 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include "clustering/serialize.hpp"
 #include "concurrency/cond_var.hpp"
 
-template<int format_id, class proto_t> class async_mailbox_t;
-template<int format_id, class proto_t> class sync_mailbox_t;
+template<class proto_t> class async_mailbox_t;
+template<class proto_t> class sync_mailbox_t;
 
-template<int f_id>
-class async_mailbox_t< f_id, void() > : private cluster_mailbox_t {
+template<>
+class async_mailbox_t< void() > : private cluster_mailbox_t {
 
 public:
     async_mailbox_t(const boost::function< void() > &fun) :
@@ -52,8 +52,8 @@ private:
     }
 };
 
-template<int f_id>
-class sync_mailbox_t< f_id, void() > : private cluster_mailbox_t {
+template<>
+class sync_mailbox_t< void() > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< void() > &fun) :
@@ -74,7 +74,7 @@ public:
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             reply_listener.wait();
         }
@@ -92,22 +92,33 @@ public:
 private:
     struct call_message_t : public cluster_message_t {
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
+        void serialize(cluster_outpipe_t *p) {
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< void() > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
         callback();
-        m.reply_to.send(m2);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class ret_t>
-class sync_mailbox_t< f_id, ret_t() > : private cluster_mailbox_t {
+template<class ret_t>
+class sync_mailbox_t< ret_t() > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< ret_t() > &fun) :
@@ -130,7 +141,7 @@ public:
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             return reply_listener.wait();
         }
@@ -148,23 +159,35 @@ public:
 private:
     struct call_message_t : public cluster_message_t {
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &ret);
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< ret_t() > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2.ret = callback();
-        m.reply_to.send(m2);
+        m2->ret = callback();
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class arg0_t>
-class async_mailbox_t< f_id, void(arg0_t) > : private cluster_mailbox_t {
+template<class arg0_t>
+class async_mailbox_t< void(arg0_t) > : private cluster_mailbox_t {
 
 public:
     async_mailbox_t(const boost::function< void(arg0_t) > &fun) :
@@ -209,8 +232,8 @@ private:
     }
 };
 
-template<int f_id, class arg0_t>
-class sync_mailbox_t< f_id, void(arg0_t) > : private cluster_mailbox_t {
+template<class arg0_t>
+class sync_mailbox_t< void(arg0_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< void(arg0_t) > &fun) :
@@ -232,7 +255,7 @@ public:
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             reply_listener.wait();
         }
@@ -251,22 +274,35 @@ private:
     struct call_message_t : public cluster_message_t {
         arg0_t arg0;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
+        void serialize(cluster_outpipe_t *p) {
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< void(arg0_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
         callback(m->arg0);
-        m.reply_to.send(m2);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class ret_t, class arg0_t>
-class sync_mailbox_t< f_id, ret_t(arg0_t) > : private cluster_mailbox_t {
+template<class ret_t, class arg0_t>
+class sync_mailbox_t< ret_t(arg0_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< ret_t(arg0_t) > &fun) :
@@ -290,7 +326,7 @@ public:
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             return reply_listener.wait();
         }
@@ -309,23 +345,37 @@ private:
     struct call_message_t : public cluster_message_t {
         arg0_t arg0;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &ret);
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< ret_t(arg0_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2.ret = callback(m->arg0);
-        m.reply_to.send(m2);
+        m2->ret = callback(m->arg0);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t>
-class async_mailbox_t< f_id, void(arg0_t, arg1_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t>
+class async_mailbox_t< void(arg0_t, arg1_t) > : private cluster_mailbox_t {
 
 public:
     async_mailbox_t(const boost::function< void(arg0_t, arg1_t) > &fun) :
@@ -374,8 +424,8 @@ private:
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t>
-class sync_mailbox_t< f_id, void(arg0_t, arg1_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t>
+class sync_mailbox_t< void(arg0_t, arg1_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< void(arg0_t, arg1_t) > &fun) :
@@ -398,7 +448,7 @@ public:
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             reply_listener.wait();
         }
@@ -418,22 +468,37 @@ private:
         arg0_t arg0;
         arg1_t arg1;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
+        void serialize(cluster_outpipe_t *p) {
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< void(arg0_t, arg1_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
         callback(m->arg0, m->arg1);
-        m.reply_to.send(m2);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class ret_t, class arg0_t, class arg1_t>
-class sync_mailbox_t< f_id, ret_t(arg0_t, arg1_t) > : private cluster_mailbox_t {
+template<class ret_t, class arg0_t, class arg1_t>
+class sync_mailbox_t< ret_t(arg0_t, arg1_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t) > &fun) :
@@ -458,7 +523,7 @@ public:
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             return reply_listener.wait();
         }
@@ -478,23 +543,39 @@ private:
         arg0_t arg0;
         arg1_t arg1;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &ret);
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< ret_t(arg0_t, arg1_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2.ret = callback(m->arg0, m->arg1);
-        m.reply_to.send(m2);
+        m2->ret = callback(m->arg0, m->arg1);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t>
-class async_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t>
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t) > : private cluster_mailbox_t {
 
 public:
     async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) :
@@ -547,8 +628,8 @@ private:
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t>
-class sync_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t>
+class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) :
@@ -572,7 +653,7 @@ public:
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             reply_listener.wait();
         }
@@ -593,22 +674,39 @@ private:
         arg1_t arg1;
         arg2_t arg2;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
+        void serialize(cluster_outpipe_t *p) {
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< void(arg0_t, arg1_t, arg2_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
         callback(m->arg0, m->arg1, m->arg2);
-        m.reply_to.send(m2);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class ret_t, class arg0_t, class arg1_t, class arg2_t>
-class sync_mailbox_t< f_id, ret_t(arg0_t, arg1_t, arg2_t) > : private cluster_mailbox_t {
+template<class ret_t, class arg0_t, class arg1_t, class arg2_t>
+class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t) > &fun) :
@@ -634,7 +732,7 @@ public:
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             return reply_listener.wait();
         }
@@ -655,23 +753,41 @@ private:
         arg1_t arg1;
         arg2_t arg2;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &ret);
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< ret_t(arg0_t, arg1_t, arg2_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2.ret = callback(m->arg0, m->arg1, m->arg2);
-        m.reply_to.send(m2);
+        m2->ret = callback(m->arg0, m->arg1, m->arg2);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t>
-class async_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > : private cluster_mailbox_t {
 
 public:
     async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
@@ -728,8 +844,8 @@ private:
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t>
-class sync_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
+class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
@@ -754,7 +870,7 @@ public:
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             reply_listener.wait();
         }
@@ -776,22 +892,41 @@ private:
         arg2_t arg2;
         arg3_t arg3;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
+        void serialize(cluster_outpipe_t *p) {
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
         callback(m->arg0, m->arg1, m->arg2, m->arg3);
-        m.reply_to.send(m2);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t>
-class sync_mailbox_t< f_id, ret_t(arg0_t, arg1_t, arg2_t, arg3_t) > : private cluster_mailbox_t {
+template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t>
+class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
@@ -818,7 +953,7 @@ public:
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             return reply_listener.wait();
         }
@@ -840,23 +975,43 @@ private:
         arg2_t arg2;
         arg3_t arg3;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &ret);
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3);
-        m.reply_to.send(m2);
+        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-class async_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > : private cluster_mailbox_t {
 
 public:
     async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
@@ -917,8 +1072,8 @@ private:
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-class sync_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
+class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
@@ -944,7 +1099,7 @@ public:
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             reply_listener.wait();
         }
@@ -967,22 +1122,43 @@ private:
         arg3_t arg3;
         arg4_t arg4;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &arg4);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
+        void serialize(cluster_outpipe_t *p) {
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->arg4);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
         callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4);
-        m.reply_to.send(m2);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
-class sync_mailbox_t< f_id, ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > : private cluster_mailbox_t {
+template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
+class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
@@ -1010,7 +1186,7 @@ public:
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             return reply_listener.wait();
         }
@@ -1033,23 +1209,45 @@ private:
         arg3_t arg3;
         arg4_t arg4;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &arg4);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &ret);
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->arg4);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4);
-        m.reply_to.send(m2);
+        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
-class async_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > : private cluster_mailbox_t {
 
 public:
     async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
@@ -1114,8 +1312,8 @@ private:
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
-class sync_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
+class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
@@ -1142,7 +1340,7 @@ public:
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             reply_listener.wait();
         }
@@ -1166,22 +1364,45 @@ private:
         arg4_t arg4;
         arg5_t arg5;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &arg4);
+            ::serialize(p, &arg5);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
+        void serialize(cluster_outpipe_t *p) {
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->arg4);
+        ::unserialize(p, &mp->arg5);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
         callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5);
-        m.reply_to.send(m2);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
-class sync_mailbox_t< f_id, ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > : private cluster_mailbox_t {
+template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t>
+class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
@@ -1210,7 +1431,7 @@ public:
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             return reply_listener.wait();
         }
@@ -1234,23 +1455,47 @@ private:
         arg4_t arg4;
         arg5_t arg5;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &arg4);
+            ::serialize(p, &arg5);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &ret);
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->arg4);
+        ::unserialize(p, &mp->arg5);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5);
-        m.reply_to.send(m2);
+        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
-class async_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > : private cluster_mailbox_t {
 
 public:
     async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
@@ -1319,8 +1564,8 @@ private:
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
-class sync_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
+class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
@@ -1348,7 +1593,7 @@ public:
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             reply_listener.wait();
         }
@@ -1373,22 +1618,47 @@ private:
         arg5_t arg5;
         arg6_t arg6;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &arg4);
+            ::serialize(p, &arg5);
+            ::serialize(p, &arg6);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
+        void serialize(cluster_outpipe_t *p) {
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->arg4);
+        ::unserialize(p, &mp->arg5);
+        ::unserialize(p, &mp->arg6);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
         callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6);
-        m.reply_to.send(m2);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
-class sync_mailbox_t< f_id, ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > : private cluster_mailbox_t {
+template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t>
+class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
@@ -1418,7 +1688,7 @@ public:
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             return reply_listener.wait();
         }
@@ -1443,23 +1713,49 @@ private:
         arg5_t arg5;
         arg6_t arg6;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &arg4);
+            ::serialize(p, &arg5);
+            ::serialize(p, &arg6);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &ret);
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->arg4);
+        ::unserialize(p, &mp->arg5);
+        ::unserialize(p, &mp->arg6);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6);
-        m.reply_to.send(m2);
+        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
-class async_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > : private cluster_mailbox_t {
 
 public:
     async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
@@ -1532,8 +1828,8 @@ private:
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
-class sync_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
+class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
@@ -1562,7 +1858,7 @@ public:
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             reply_listener.wait();
         }
@@ -1588,22 +1884,49 @@ private:
         arg6_t arg6;
         arg7_t arg7;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &arg4);
+            ::serialize(p, &arg5);
+            ::serialize(p, &arg6);
+            ::serialize(p, &arg7);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
+        void serialize(cluster_outpipe_t *p) {
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->arg4);
+        ::unserialize(p, &mp->arg5);
+        ::unserialize(p, &mp->arg6);
+        ::unserialize(p, &mp->arg7);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
         callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7);
-        m.reply_to.send(m2);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
-class sync_mailbox_t< f_id, ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > : private cluster_mailbox_t {
+template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t>
+class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
@@ -1634,7 +1957,7 @@ public:
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             return reply_listener.wait();
         }
@@ -1660,23 +1983,51 @@ private:
         arg6_t arg6;
         arg7_t arg7;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &arg4);
+            ::serialize(p, &arg5);
+            ::serialize(p, &arg6);
+            ::serialize(p, &arg7);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &ret);
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->arg4);
+        ::unserialize(p, &mp->arg5);
+        ::unserialize(p, &mp->arg6);
+        ::unserialize(p, &mp->arg7);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7);
-        m.reply_to.send(m2);
+        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
-class async_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
+class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > : private cluster_mailbox_t {
 
 public:
     async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
@@ -1753,8 +2104,8 @@ private:
     }
 };
 
-template<int f_id, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
-class sync_mailbox_t< f_id, void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > : private cluster_mailbox_t {
+template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
+class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
@@ -1784,7 +2135,7 @@ public:
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             reply_listener.wait();
         }
@@ -1811,22 +2162,51 @@ private:
         arg7_t arg7;
         arg8_t arg8;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &arg4);
+            ::serialize(p, &arg5);
+            ::serialize(p, &arg6);
+            ::serialize(p, &arg7);
+            ::serialize(p, &arg8);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
+        void serialize(cluster_outpipe_t *p) {
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->arg4);
+        ::unserialize(p, &mp->arg5);
+        ::unserialize(p, &mp->arg6);
+        ::unserialize(p, &mp->arg7);
+        ::unserialize(p, &mp->arg8);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
         callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7, m->arg8);
-        m.reply_to.send(m2);
+        m->reply_to.send(m2);
     }
 };
 
-template<int f_id, class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
-class sync_mailbox_t< f_id, ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > : private cluster_mailbox_t {
+template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, class arg5_t, class arg6_t, class arg7_t, class arg8_t>
+class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > : private cluster_mailbox_t {
 
 public:
     sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
@@ -1858,7 +2238,7 @@ public:
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = &reply_listener;
+            m->reply_to = cluster_address_t(&reply_listener);
             addr.send(m);
             return reply_listener.wait();
         }
@@ -1885,18 +2265,48 @@ private:
         arg7_t arg7;
         arg8_t arg8;
         cluster_address_t reply_to;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &arg0);
+            ::serialize(p, &arg1);
+            ::serialize(p, &arg2);
+            ::serialize(p, &arg3);
+            ::serialize(p, &arg4);
+            ::serialize(p, &arg5);
+            ::serialize(p, &arg6);
+            ::serialize(p, &arg7);
+            ::serialize(p, &arg8);
+            ::serialize(p, &reply_to);
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
+        void serialize(cluster_outpipe_t *p) {
+            ::serialize(p, &ret);
+        }
     };
+
+    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
+        unique_ptr_t<call_message_t> mp(new call_message_t);
+        ::unserialize(p, &mp->arg0);
+        ::unserialize(p, &mp->arg1);
+        ::unserialize(p, &mp->arg2);
+        ::unserialize(p, &mp->arg3);
+        ::unserialize(p, &mp->arg4);
+        ::unserialize(p, &mp->arg5);
+        ::unserialize(p, &mp->arg6);
+        ::unserialize(p, &mp->arg7);
+        ::unserialize(p, &mp->arg8);
+        ::unserialize(p, &mp->reply_to);
+        return mp;
+    }
 
     boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > callback;
     void run(unique_ptr_t<cluster_message_t> cm) {
         unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
         unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7, m->arg8);
-        m.reply_to.send(m2);
+        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7, m->arg8);
+        m->reply_to.send(m2);
     }
 };
 

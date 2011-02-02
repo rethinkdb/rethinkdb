@@ -5,8 +5,8 @@ def generate_async_message_template(nargs):
 
     argtypes = ", ".join("arg%d_t" % i for i in xrange(nargs))
 
-    print "template<%s>" % ", ".join(["int f_id"] + ["class arg%d_t" % i for i in xrange(nargs)])
-    print "class async_mailbox_t< f_id, void(%s) > : private cluster_mailbox_t {" % argtypes
+    print "template<%s>" % ", ".join("class arg%d_t" % i for i in xrange(nargs))
+    print "class async_mailbox_t< void(%s) > : private cluster_mailbox_t {" % argtypes
     print
     print "public:"
     print "    async_mailbox_t(const boost::function< void(%s) > &fun) :" % argtypes
@@ -62,10 +62,10 @@ def generate_sync_message_template(nargs, void):
     ret = "ret_t" if not void else "void"
 
     if void:
-        print "template<%s>" % ", ".join(["int f_id"] + ["class arg%d_t" % i for i in xrange(nargs)])
+        print "template<%s>" % ", ".join("class arg%d_t" % i for i in xrange(nargs))
     else:
-        print "template<%s>" % ", ".join(["int f_id", "class ret_t"] + ["class arg%d_t" % i for i in xrange(nargs)])
-    print "class sync_mailbox_t< f_id, %s(%s) > : private cluster_mailbox_t {" % (ret, argtypes)
+        print "template<%s>" % ", ".join(["class ret_t"] + ["class arg%d_t" % i for i in xrange(nargs)])
+    print "class sync_mailbox_t< %s(%s) > : private cluster_mailbox_t {" % (ret, argtypes)
     print
     print "public:"
     print "    sync_mailbox_t(const boost::function< %s(%s) > &fun) :" % (ret, argtypes)
@@ -93,7 +93,7 @@ def generate_sync_message_template(nargs, void):
         print "                    pulse();"
     print "                }"
     print "            } reply_listener;"
-    print "            m->reply_to = &reply_listener;"
+    print "            m->reply_to = cluster_address_t(&reply_listener);"
     print "            addr.send(m);"
     if not void:
         print "            return reply_listener.wait();"
@@ -116,22 +116,39 @@ def generate_sync_message_template(nargs, void):
     for i in xrange(nargs):
         print "        arg%d_t arg%d;" % (i, i)
     print "        cluster_address_t reply_to;"
+    print "        void serialize(cluster_outpipe_t *p) {"
+    for i in xrange(nargs):
+        print "            ::serialize(p, &arg%d);" % i
+    print "            ::serialize(p, &reply_to);"
+    print "        }"
     print "    };"
     print
     print "    struct ret_message_t : public cluster_message_t {"
     if not void:
         print "        ret_t ret;"
+    print "        void serialize(cluster_outpipe_t *p) {"
+    if not void:
+        print "            ::serialize(p, &ret);"
+    print "        }"
     print "    };"
+    print
+    print "    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {"
+    print "        unique_ptr_t<call_message_t> mp(new call_message_t);"
+    for i in xrange(nargs):
+        print "        ::unserialize(p, &mp->arg%d);" % i
+    print "        ::unserialize(p, &mp->reply_to);"
+    print "        return mp;"
+    print "    }"
     print
     print "    boost::function< %s(%s) > callback;" % (ret, argtypes)
     print "    void run(unique_ptr_t<cluster_message_t> cm) {"
     print "        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));"
     print "        unique_ptr_t<ret_message_t> m2(new ret_message_t);"
     if not void:
-        print "        m2.ret = callback(%s);" % ", ".join("m->arg%d" % i for i in xrange(nargs))
+        print "        m2->ret = callback(%s);" % ", ".join("m->arg%d" % i for i in xrange(nargs))
     else:
         print "        callback(%s);" % ", ".join("m->arg%d" % i for i in xrange(nargs))
-    print "        m.reply_to.send(m2);"
+    print "        m->reply_to.send(m2);"
     print "    }"
     print "};"
     print
@@ -150,8 +167,8 @@ if __name__ == "__main__":
     print "#include \"concurrency/cond_var.hpp\""
     print
 
-    print "template<int format_id, class proto_t> class async_mailbox_t;"
-    print "template<int format_id, class proto_t> class sync_mailbox_t;"
+    print "template<class proto_t> class async_mailbox_t;"
+    print "template<class proto_t> class sync_mailbox_t;"
     print
 
     for nargs in xrange(10):

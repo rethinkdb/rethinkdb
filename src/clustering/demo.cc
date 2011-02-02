@@ -9,20 +9,15 @@
 #include "logger.hpp"
 #include "utils.hpp"
 
-typedef async_mailbox_t<2, void(store_key_and_buffer_t)> query_mailbox_t;
+typedef async_mailbox_t<void(store_key_and_buffer_t)> query_mailbox_t;
 
 /* demo_delegate_t */
 
 struct demo_delegate_t : public cluster_delegate_t {
-
     query_mailbox_t::address_t master_address;
-
-    demo_delegate_t(const cluster_address_t &addr) {
-        master_address.addr = addr;
-    }
-
-    cluster_address_t introduce_new_node() {
-        return master_address.addr;
+    demo_delegate_t(const query_mailbox_t::address_t &addr) : master_address(addr) { }
+    void introduce_new_node(cluster_outpipe_t *p) {
+        ::serialize(p, &master_address);
     }
 };
 
@@ -82,7 +77,9 @@ void serve(int serve_port, query_mailbox_t::address_t address) {
     wait_for_interrupt();
 }
 
-cluster_delegate_t *make_delegate(cluster_address_t addr) {
+cluster_delegate_t *make_delegate(cluster_inpipe_t *pipe) {
+    query_mailbox_t::address_t addr;
+    ::unserialize(pipe, &addr);
     return new demo_delegate_t(addr);
 }
 
@@ -102,7 +99,7 @@ void cluster_main(cluster_config_t config, thread_pool_t *thread_pool) {
 
         query_mailbox_t::address_t master_address(&master_mailbox);
 
-        cluster_t cluster(config.port, new demo_delegate_t(master_address.addr));
+        cluster_t cluster(config.port, new demo_delegate_t(master_address));
 
         logINF("Cluster started.\n");
 
