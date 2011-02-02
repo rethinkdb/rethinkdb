@@ -17,6 +17,7 @@
 
 template <typename T>
 struct ordered_data_iterator {
+    virtual ~ordered_data_iterator() { }
     virtual typename boost::optional<T> next() = 0; // next can block until it can read the next value
     virtual void prefetch() = 0;    // fetch all the necessary data to be able to give the next value without blocking.
                                     // prefetch() is assumed to be asynchronous. Thus if next is called before the data

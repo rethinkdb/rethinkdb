@@ -11,7 +11,7 @@
 #include <boost/shared_ptr.hpp>
 
 struct rget_value_provider_t : public auto_copying_data_provider_t {
-    static rget_value_provider_t *create_provider(const btree_value *value, boost::shared_ptr<transactor_t> transactor);
+    static rget_value_provider_t *create_provider(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
     virtual ~rget_value_provider_t() { }
 protected:
     rget_value_provider_t() { }
@@ -44,20 +44,23 @@ protected:
 };
 
 struct rget_large_value_provider_t : public rget_value_provider_t {
-    ~rget_large_value_provider_t();
+    virtual ~rget_large_value_provider_t();
 
     size_t get_size() const {
         return lb_ref.size;
     }
 
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t) {
-        rassert(!buffers.get());
+        rassert(!buffers);
+        rassert(!large_value);
 
-        large_value = new large_buf_t(transactor->transaction());
-        co_acquire_large_value(large_value, lb_ref, rwi_read);
+        large_value.reset(new large_buf_t(transactor->transaction()));
+        co_acquire_large_value(large_value.get(), lb_ref, rwi_read);
+
         rassert(large_value->state == large_buf_t::loaded);
         rassert(large_value->get_root_ref().block_id == lb_ref.block_id);
 
+        buffers.reset(new const_buffer_group_t());
         for (int i = 0; i < large_value->get_num_segments(); i++) {
             uint16_t size;
             const void *data = large_value->get_segment(i, &size);
@@ -66,22 +69,16 @@ struct rget_large_value_provider_t : public rget_value_provider_t {
         return buffers.get();
     }
 private:
-    rget_large_value_provider_t(const btree_value *value, boost::shared_ptr<transactor_t> transactor)
+    rget_large_value_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor)
         : transactor(transactor), buffers(), lb_ref(value->lb_ref()) {
     }
 
     boost::shared_ptr<transactor_t> transactor;
     boost::scoped_ptr<const_buffer_group_t> buffers;
+    boost::scoped_ptr<large_buf_t> large_value; // RSI unique_ptr
     large_buf_ref lb_ref;
-    large_buf_t *large_value;
 
     friend class rget_value_provider_t;
-};
-
-struct rget_key_value_pair_t {
-    std::string key;
-    mcflags_t flags;
-    boost::shared_ptr<data_provider_t> value;
 };
 
 store_t::rget_result_t btree_rget(btree_key_value_store_t *store, store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results);

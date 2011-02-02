@@ -62,7 +62,11 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     void write_from_data_provider(data_provider_t *dp) {
         /* Write the value itself. If the value is small, write it into the send buffer;
         otherwise, stream it. */
-        const const_buffer_group_t *bg = dp->get_data_as_buffers();
+        const const_buffer_group_t *bg;
+        {
+            thread_saver_t thread_saver;
+            bg = dp->get_data_as_buffers();
+        }
         for (size_t i = 0; i < bg->buffers.size(); i++) {
             const_buffer_group_t::buffer_t b = bg->buffers[i];
             if (dp->get_size() < MAX_BUFFERED_GET_SIZE) {
@@ -803,6 +807,7 @@ void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) 
         }
 
         /* Dispatch to the appropriate subclass */
+        thread_saver_t thread_saver;
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
             do_get(&rh, false, args.size(), args.data(), cas_gen);
         } else if (!strcmp(args[0], "gets")) {

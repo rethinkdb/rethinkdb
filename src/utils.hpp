@@ -94,6 +94,16 @@ struct on_thread_t : public home_thread_mixin_t {
     }
 };
 
+struct thread_saver_t {
+    thread_saver_t() : thread_id(get_thread_id()) { }
+    thread_saver_t(int thread_id) : thread_id(thread_id) { }
+    ~thread_saver_t() {
+        coro_t::move_to_thread(thread_id);
+    }
+
+    int thread_id;
+};
+
 template <class ForwardIterator, class StrictWeakOrdering>
 bool is_sorted(ForwardIterator first, ForwardIterator last,
                        StrictWeakOrdering comp) {

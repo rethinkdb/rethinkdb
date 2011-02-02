@@ -54,7 +54,7 @@
  */
 
 struct leaf_iterator_t : public ordered_data_iterator<key_with_data_provider_t> {
-    leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, boost::shared_ptr<transactor_t> transactor) :
+    leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<transactor_t>& transactor) :
         leaf(leaf), index(index), lock(lock), transactor(transactor) {
 
         rassert(leaf != NULL);
@@ -63,16 +63,25 @@ struct leaf_iterator_t : public ordered_data_iterator<key_with_data_provider_t> 
 
     boost::optional<key_with_data_provider_t> next() {
         rassert(index >= 0);
-        if (index >= leaf->npairs)
+        if (index >= leaf->npairs) {
+            done();
             return boost::none;
+        }
 
         return boost::make_optional(pair_to_key_with_data_provider(leaf::get_pair_by_index(leaf, index++)));
     }
     void prefetch() { /* this space intentionally left blank */ }
     virtual ~leaf_iterator_t() {
-        delete lock;
+        done();
     }
 private:
+    void done() {
+        if (lock) {
+            transactor->transaction()->ensure_thread();
+            delete lock;
+            lock = NULL;
+        }
+    }
 
     key_with_data_provider_t pair_to_key_with_data_provider(const btree_leaf_pair* pair) {
         rget_value_provider_t *data_provider = rget_value_provider_t::create_provider(pair->value(), transactor); 
@@ -103,7 +112,7 @@ class slice_leaves_iterator_t : public ordered_data_iterator<leaf_iterator_t*> {
         buf_lock_t *lock;
     };
 public:
-    slice_leaves_iterator_t(boost::shared_ptr<transactor_t> transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) : 
+    slice_leaves_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) : 
         transactor(transactor), slice(slice), start(start), end(end), left_open(left_open), right_open(right_open), started(false), nevermore(false) { }
 
     boost::optional<leaf_iterator_t*> next() {
@@ -253,17 +262,12 @@ private:
 
 class slice_keys_iterator : public ordered_data_iterator<key_with_data_provider_t> {
 public:
-    slice_keys_iterator(boost::shared_ptr<transactor_t> transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) :
+    slice_keys_iterator(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) :
         transactor(transactor), slice(slice), start(start), start_str(key_to_str(start)), end(end), end_str(key_to_str(end)), left_open(left_open), right_open(right_open),
         no_more_data(false), active_leaf(NULL), leaves_iterator(NULL) { }
 
     virtual ~slice_keys_iterator() {
-        if (active_leaf) {
-            delete active_leaf;
-        }
-        if (leaves_iterator) {
-            delete leaves_iterator;
-        }
+        done();
     }
     boost::optional<key_with_data_provider_t> next() {
         if (no_more_data)
@@ -339,7 +343,10 @@ private:
     }
 
     void done() {
-        // we don't delete the active_leaf here because someone may still be using its data
+        if (active_leaf) {
+            delete active_leaf;
+            active_leaf = NULL;
+        }
         if (leaves_iterator) {
             delete leaves_iterator;
             leaves_iterator = NULL;
@@ -365,6 +372,8 @@ store_t::rget_result_t btree_rget(btree_key_value_store_t *store, store_key_t *s
     store_t::rget_result_t result;
     std::vector<boost::shared_ptr<transactor_t> > transactors;
 
+    thread_saver_t thread_saver;
+
     merge_ordered_data_iterator<key_with_data_provider_t,key_with_data_provider_t::less>::mergees_t ms;
     for (int s = 0; s < store->btree_static_config.n_slices; s++) {
         btree_slice_t *slice = store->slices[s];
@@ -382,8 +391,9 @@ store_t::rget_result_t btree_rget(btree_key_value_store_t *store, store_key_t *s
             break;
     }
 
-    for (merge_ordered_data_iterator<key_with_data_provider_t,key_with_data_provider_t::less>::mergees_t::iterator i = ms.begin(); i != ms.end(); i++) {
-        delete *i;
+    while (!ms.empty()) {
+        delete ms.back();
+        ms.pop_back();
     }
     return result;
 }
@@ -395,23 +405,14 @@ store_t::rget_result_t btree_rget_slice_iterator(btree_slice_t *slice, store_key
 store_t::rget_result_t btree_rget_slice(btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {
     return store_t::rget_result_t();
 }
-/*
-rget_large_value_provider_t::rget_large_value_provider_t(const btree_value *value, boost::shared_ptr<transactor_t> transactor)
-    : transactor(transactor), large_value(new large_buf_t(transactor->transaction())) {
-
-    co_acquire_large_value(large_value, value->lb_ref(), rwi_read);
-    rassert(large_value->state == large_buf_t::loaded);
-    rassert(large_value->get_root_ref().block_id == value.lb_ref().block_id);
-}
-*/
 
 rget_large_value_provider_t::~rget_large_value_provider_t() {
     if (large_value) {
-        delete large_value;
+        large_value->release();
     }
 }
 
-rget_value_provider_t *rget_value_provider_t::create_provider(const btree_value *value, boost::shared_ptr<transactor_t> transactor) {
+rget_value_provider_t *rget_value_provider_t::create_provider(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor) {
     if (value->is_large())
         return new rget_large_value_provider_t(value, transactor);
     else
