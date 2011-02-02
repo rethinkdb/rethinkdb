@@ -561,7 +561,7 @@ void initialize_times(leaf_timestamps_t *times, repli_timestamp current_time) {
 void rotate_time(leaf_timestamps_t *times, repli_timestamp latest_time, int prev_timestamp_offset) {
     int32_t diff = latest_time.time - times->last_modified.time;
     if (diff < 0) {
-        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d", latest_time.time, times->last_modified);
+        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d\n", latest_time.time, times->last_modified);
         // Something strange happened, wipe out everything.
         initialize_times(times, latest_time);
     } else {
