@@ -25,39 +25,39 @@ struct load_buf_fsm_t :
             if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this))
                 on_serializer_read();
         } else {
+            const std::list<buf_patch_t*>* patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
+            // Remove obsolete patches from diff storage
+            if (patches) {
+                inner_buf->cache->diff_core_storage.filter_applied_patches(inner_buf->block_id, inner_buf->get_transaction_id());
+                patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
+            }
+            // All patches that currently exist must have been materialized out of core...
+            if (patches) {
+                inner_buf->writeback_buf.last_patch_materialized = patches->back()->get_patch_counter();
+            } else {
+                inner_buf->writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
+            }
+
+            // TODO!
+            if (patches) {
+                fprintf(stderr, "Replaying %d patches on block %d\n", (int)patches->size(), inner_buf->block_id);
+            }
+
+            // Apply outstanding patches
+            if (inner_buf->cache->diff_core_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data))
+                inner_buf->writeback_buf.set_dirty();
+            // Set next_patch_counter such that the next patches get values consistent with the existing patches
+            if (patches) {
+                inner_buf->next_patch_counter = patches->back()->get_patch_counter() + 1;
+            } else {
+                inner_buf->next_patch_counter = 1;
+            }
+
             inner_buf->lock.unlock();
             delete this;
         }
     }
     void on_serializer_read() {
-        const std::list<buf_patch_t*>* patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
-        // Remove obsolete patches from diff storage
-        if (patches) {
-            inner_buf->cache->diff_core_storage.filter_applied_patches(inner_buf->block_id, inner_buf->get_transaction_id());
-            patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
-        }
-        // All patches that currently exist must have been materialized out of core...
-        if (patches) {
-            inner_buf->writeback_buf.last_patch_materialized = patches->back()->get_patch_counter();
-        } else {
-            inner_buf->writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
-        }
-
-        // TODO!
-        if (patches) {
-            fprintf(stderr, "Replaying %d patches on block %d\n", (int)patches->size(), inner_buf->block_id);
-        }
-
-        // Apply outstanding patches
-        if (inner_buf->cache->diff_core_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data))
-            inner_buf->writeback_buf.set_dirty();
-        // Set next_patch_counter such that the next patches get values consistent with the existing patches
-        if (patches) {
-            inner_buf->next_patch_counter = patches->back()->get_patch_counter() + 1;
-        } else {
-            inner_buf->next_patch_counter = 1;
-        }
-
         have_loaded = true;
         if (continue_on_thread(inner_buf->cache->home_thread, this)) on_thread_switch();
     }
@@ -147,12 +147,12 @@ perfmon_duration_sampler_t
     pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
-mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode, bool do_not_acquire_lock)
-    : ready(false), callback(NULL), mode(mode), non_locking_access(do_not_acquire_lock), inner_buf(inner)
+mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
+    : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner)
 {
     pm_bufs_acquiring.begin(&start_time);
     inner_buf->refcount++;
-    if (do_not_acquire_lock || inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
+    if (inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
         on_lock_available();
     }
 }
@@ -223,11 +223,12 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     if (get_transaction_id() == NULL_SER_TRANSACTION_ID)
         ensure_flush();
 
-    // Check if we want to switch disable patching for this block and flush it directly instead
+    // Check if we want to disable patching for this block and flush it directly instead
     if (!inner_buf->writeback_buf.needs_flush) {
         // TODO! Refactor
         const size_t MAX_PATCH_SIZE = inner_buf->cache->serializer->get_block_size().value() / 4;
-        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 96;
+        //const size_t PATCH_COUNT_FLUSH_THRESHOLD = 64;
+        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 64000;
 
         if (    (patch.get_serialized_size() > MAX_PATCH_SIZE) ||
                 (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id) &&
@@ -271,6 +272,10 @@ void mc_buf_t::ensure_flush() {
 }
 
 patch_counter_t mc_buf_t::get_next_patch_counter() {
+    rassert(ready);
+    rassert(!inner_buf->do_delete);
+    rassert(mode == rwi_write);
+    rassert(data == inner_buf->data);
     return inner_buf->next_patch_counter++;
 }
 

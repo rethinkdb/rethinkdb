@@ -194,8 +194,9 @@ void diff_oocore_storage_t::reclaim_space(const size_t space_required) {
 
 block_id_t diff_oocore_storage_t::select_log_block_for_compression() {
     block_id_t result = active_log_block + 1;
-    if (result >= first_block + number_of_blocks)
+    if (result >= first_block + number_of_blocks) {
         result -= number_of_blocks;
+    }
     return result;
 }
 
@@ -285,8 +286,9 @@ void diff_oocore_storage_t::flush_block(const block_id_t log_block_id, coro_t* n
                 // and then make writeback write it back in the next flush
                 mc_buf_t *data_buf = acquire_block_no_locking(patch->get_block_id());
                 // Check in-core storage again, now that the block has been acquired (old patches might have been evicted from it by doing so)
-                if (cache.diff_core_storage.get_patches(patch->get_block_id()))
+                if (cache.diff_core_storage.get_patches(patch->get_block_id())) {
                     data_buf->ensure_flush();
+                }
 
                 data_buf->release();
             }
@@ -355,21 +357,22 @@ struct co_block_available_callback_2_t : public mc_block_available_callback_t {
     }
 };
 
-mc_buf_t* diff_oocore_storage_t::acquire_block_no_locking(const block_id_t log_block_id) {
+mc_buf_t* diff_oocore_storage_t::acquire_block_no_locking(const block_id_t block_id) {
     cache.assert_thread();
 
-    mc_inner_buf_t *inner_buf = cache.page_map.find(log_block_id);
-    mc_buf_t *buf;
+    mc_inner_buf_t *inner_buf = cache.page_map.find(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
-        inner_buf = new mc_inner_buf_t(&cache, log_block_id);
-        // Im this case, we still have to wait for the lock
-        buf = new mc_buf_t(inner_buf, rwi_write, false);
+        inner_buf = new mc_inner_buf_t(&cache, block_id);
     }
-    else
-        buf = new mc_buf_t(inner_buf, rwi_write, true); // No locking necessary
+    
+    // We still have to acquire the lock once to wait for the buf to get ready
+    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write);
 
     if (buf->ready) {
+        // Release the lock we've got
+        buf->inner_buf->lock.unlock();
+        buf->non_locking_access = true;
         return buf;
     } else {
         co_block_available_callback_2_t cb;

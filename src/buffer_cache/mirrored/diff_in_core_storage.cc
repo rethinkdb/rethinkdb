@@ -11,7 +11,24 @@ diff_core_storage_t::diff_core_storage_t() {
 void diff_core_storage_t::load_block_patch_list(const block_id_t block_id, const std::list<buf_patch_t*>& patches) {
     rassert(patch_map.find(block_id) == patch_map.end());
 
+    // Verify patches list
+    ser_transaction_id_t previous_transaction = 0;
+    patch_counter_t previous_patch_counter = 0;
+    for(std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
+        if ((*p)->get_transaction_id() != previous_transaction) {
+            guarantee((*p)->get_transaction_id() > previous_transaction, "Non-sequential patch list: Transaction id %ll follows %ll", (*p)->get_transaction_id(), previous_transaction);
+        }
+        if (previous_transaction == 0 || (*p)->get_transaction_id() != previous_transaction) {
+            previous_patch_counter = 0;
+        }
+        guarantee(previous_patch_counter == 0 || (*p)->get_patch_counter() > previous_patch_counter, "Non-sequential patch list: Patch counter %d follows %d", (*p)->get_patch_counter(), previous_patch_counter);
+        previous_patch_counter = (*p)->get_patch_counter();
+        previous_transaction = (*p)->get_transaction_id();
+    }
+
     patch_map[block_id].assign(patches.begin(), patches.end());
+
+
 }
 
 // Removes all patches which are obsolete w.r.t. the given transaction_id
@@ -21,6 +38,25 @@ void diff_core_storage_t::filter_applied_patches(const block_id_t block_id, cons
     map_entry->second.filter_before_transaction(transaction_id);
     if (map_entry->second.size() == 0)
         patch_map.erase(map_entry);
+#ifndef NDEBUG
+    else {
+        // Verify patches list (this time with strict start patch counter)
+        ser_transaction_id_t previous_transaction = 0;
+        patch_counter_t previous_patch_counter = 0;
+        for(std::list<buf_patch_t*>::const_iterator p = map_entry->second.begin(); p != map_entry->second.end(); ++p) {
+            rassert((*p)->get_transaction_id() >= transaction_id);
+            if ((*p)->get_transaction_id() != previous_transaction) {
+                guarantee((*p)->get_transaction_id() > previous_transaction, "Non-sequential patch list: Transaction id %ll follows %ll", (*p)->get_transaction_id(), previous_transaction);
+            }
+            if (previous_transaction == 0 || (*p)->get_transaction_id() != previous_transaction) {
+                previous_patch_counter = 0;
+            }
+            guarantee((*p)->get_patch_counter() == previous_patch_counter + 1, "Non-sequential patch list: Patch counter %d follows %d", (*p)->get_patch_counter(), previous_patch_counter);
+            ++previous_patch_counter;
+            previous_transaction = (*p)->get_transaction_id();
+        }
+    }
+#endif
 }
 
 // Returns true iff any changes have been made to the buf

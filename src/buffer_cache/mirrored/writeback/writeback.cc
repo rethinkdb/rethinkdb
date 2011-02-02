@@ -235,7 +235,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock
     // we instead try to reclaim some space in the on-disk diff storage now.
     // (we only do this occasionally, hoping that most of the time a compression of the log will do the trick)
-    if (parent->force_diff_storage_flush || randint(800) < (int)parent->dirty_bufs.size()) {
+    if (parent->force_diff_storage_flush || randint(1600) < (int)parent->dirty_bufs.size()) {
         // TODO! Refactor the constants in here
         parent->cache->diff_oocore_storage.flush_n_oldest_blocks(std::min((unsigned int)(parent->force_diff_storage_flush ? 16 : 4), parent->dirty_bufs.size() / 8 + 1));
         parent->force_diff_storage_flush = false;
@@ -352,7 +352,11 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
         if (!lbuf->needs_flush) {
             const std::list<buf_patch_t*>* patches = parent->cache->diff_core_storage.get_patches(inner_buf->block_id);
             if (patches != NULL) {
+#ifndef NDEBUG
+                patch_counter_t previous_patch_counter = 0;
+#endif
                 for (std::list<buf_patch_t*>::const_iterator patch = patches->begin(); patch != patches->end(); ++patch) {
+                    rassert((*patch)->get_patch_counter() == previous_patch_counter + 1);
                     if (lbuf->last_patch_materialized < (*patch)->get_patch_counter()) {
                         if (log_storage_failure || !parent->cache->diff_oocore_storage.store_patch(**patch)) {
                             lbuf->needs_flush = true;
@@ -366,6 +370,9 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
                             lbuf->last_patch_materialized = (*patch)->get_patch_counter();
                         }
                     }
+#ifndef NDEBUG
+                    previous_patch_counter = (*patch)->get_patch_counter();
+#endif
                 }
             }
         }
