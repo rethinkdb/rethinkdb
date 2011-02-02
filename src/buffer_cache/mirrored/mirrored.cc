@@ -44,8 +44,8 @@ struct load_buf_fsm_t :
             }
 
             // Apply outstanding patches
-            if (inner_buf->cache->diff_core_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data))
-                inner_buf->writeback_buf.set_dirty();
+            inner_buf->cache->diff_core_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data);
+            
             // Set next_patch_counter such that the next patches get values consistent with the existing patches
             if (patches) {
                 inner_buf->next_patch_counter = patches->back()->get_patch_counter() + 1;
