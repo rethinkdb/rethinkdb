@@ -362,7 +362,7 @@ store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime
     return slice_for_key(key)->get_cas(key, castime);
 }
 
-store_t::rget_result_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results, castime_t castime) {
+store_t::rget_result_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {
     return btree_rget(this, start, end, left_open, right_open, max_results);
 }
 

@@ -68,6 +68,13 @@ struct castime_t {
 
     castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
         : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
+
+    static castime_t dummy() {
+        return castime_t(0, repli_timestamp::invalid);
+    }
+    bool is_dummy() {
+        return proposed_cas == 0 && timestamp.time == repli_timestamp::invalid.time;
+    }
 };
 
 struct store_t {
@@ -94,7 +101,7 @@ struct store_t {
     struct rget_result_t {
         std::vector<key_with_data_provider_t> results;
     };
-    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results, castime_t castime) = 0;
+    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) = 0;
 
     /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
     to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on

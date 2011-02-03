@@ -269,7 +269,7 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv, cas_generator_t
     }
 
     repli_timestamp timestamp = current_time();
-    store_t::rget_result_t result = rh->store->rget(&start.key, &end.key, left_open, right_open, max_items, castime_t(cas_gen->gen_cas(), timestamp));
+    store_t::rget_result_t result = rh->store->rget(&start.key, &end.key, left_open, right_open, max_items);
     for (std::vector<key_with_data_provider_t>::iterator it = result.results.begin(); it != result.results.end(); it++) {
         std::string& key = (*it).key;
         boost::shared_ptr<data_provider_t> dp = (*it).value_provider;

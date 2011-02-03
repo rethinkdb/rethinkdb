@@ -63,11 +63,10 @@ store_t::get_result_t slave_t::get(store_key_t *key)
 
 store_t::get_result_t slave_t::get_cas(store_key_t *key, castime_t castime)
 {
-    // TODO: ask joe why this used get(key) before (back when we did not have castime).
     return internal_store->get_cas(key, castime);
 }
 
-store_t::rget_result_t slave_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results, castime_t castime) {
+store_t::rget_result_t slave_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {
     return store_t::rget_result_t();
 }
 
