@@ -85,7 +85,7 @@ void remove(block_size_t block_size, leaf_node_t *node, const btree_key *key) {
 #endif
 
     int index = impl::find_key(node, key);
-    rassert(index != -1);
+    rassert(index != impl::key_not_found);
     rassert(index != node->npairs);
 
     uint16_t offset = node->pair_offsets[index];
@@ -107,9 +107,8 @@ void remove(block_size_t block_size, leaf_node_t *node, const btree_key *key) {
 
 bool lookup(const leaf_node_t *node, const btree_key *key, btree_value *value) {
     int index = impl::find_key(node, key);
-    if (index != -1) {
-        uint16_t offset = node->pair_offsets[index];
-        const btree_leaf_pair *pair = get_pair(node, offset);
+    if (index != impl::key_not_found) {
+        const btree_leaf_pair *pair = get_pair_by_index(node, index);
         const btree_value *stored_value = pair->value();
         memcpy(value, stored_value, stored_value->full_size());
         return true;
@@ -528,7 +527,7 @@ int find_key(const leaf_node_t *node, const btree_key *key) {
     if (index < node->npairs && impl::is_equal(key, &get_pair_by_index(node, index)->key) ) {
         return index;
     } else {
-        return -1;
+        return impl::key_not_found;
     }
 }
 void delete_offset(leaf_node_t *node, int index) {

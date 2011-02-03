@@ -151,18 +151,18 @@ private:
     boost::scoped_ptr<buffered_data_provider_t> buffer;   // NULL if we decide not to buffer
 };
 
-class rget_value_provider_t : public auto_copying_data_provider_t {
+class value_data_provider_t : public auto_copying_data_provider_t {
 protected:
-    rget_value_provider_t() { }
+    value_data_provider_t() { }
 public:
-    virtual ~rget_value_provider_t() { }
+    virtual ~value_data_provider_t() { }
 
-    static rget_value_provider_t *create_provider(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
+    static value_data_provider_t *create(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
 };
 
-class rget_small_value_provider_t : public rget_value_provider_t {
+class small_value_data_provider_t : public value_data_provider_t {
 private:
-    rget_small_value_provider_t(const btree_value *value);
+    small_value_data_provider_t(const btree_value *value);
 
 public:
     size_t get_size() const;
@@ -173,15 +173,15 @@ private:
     buffer_t value;
     boost::scoped_ptr<const_buffer_group_t> buffers;
 
-    friend class rget_value_provider_t;
+    friend class value_data_provider_t;
 };
 
-class rget_large_value_provider_t : public rget_value_provider_t {
+class large_value_data_provider_t : public value_data_provider_t {
 private:
-    rget_large_value_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
+    large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
 
 public:
-    virtual ~rget_large_value_provider_t();
+    virtual ~large_value_data_provider_t();
 
     size_t get_size() const;
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
@@ -192,7 +192,7 @@ private:
     boost::scoped_ptr<large_buf_t> large_value;
     large_buf_ref lb_ref;
 
-    friend class rget_value_provider_t;
+    friend class value_data_provider_t;
 };
 
 #endif /* __DATA_PROVIDER_HPP__ */

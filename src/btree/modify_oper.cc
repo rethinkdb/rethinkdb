@@ -180,19 +180,19 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
     {
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
-        transactor_t txor(&slice->cache, rwi_write);
+        boost::shared_ptr<transactor_t> txor(new transactor_t(&slice->cache, rwi_write));
 
-        buf_lock_t sb_buf(txor, SUPERBLOCK_ID, rwi_write);
+        buf_lock_t sb_buf(*txor, SUPERBLOCK_ID, rwi_write);
         buf_lock_t last_buf;
         buf_lock_t buf;
-        get_root(txor, sb_buf, block_size, &buf, castime.timestamp);
+        get_root(*txor, sb_buf, block_size, &buf, castime.timestamp);
 
         // Walk down the tree to the leaf.
         while (node::is_internal(ptr_cast<node_t>(buf.buf()->get_data_read()))) {
             // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-            check_and_handle_split(txor, buf, last_buf, sb_buf, key, NULL, block_size);
+            check_and_handle_split(*txor, buf, last_buf, sb_buf, key, NULL, block_size);
             // Check if the node is underfull, and merge/level if it is.
-            check_and_handle_underfull(txor, buf, last_buf, sb_buf, key, block_size);
+            check_and_handle_underfull(*txor, buf, last_buf, sb_buf, key, block_size);
 
             // Release the superblock, if we've gone past the root (and haven't
             // already released it). If we're still at the root or at one of
@@ -209,7 +209,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             block_id_t node_id = internal_node::lookup(ptr_cast<internal_node_t>(buf.buf()->get_data_read()), key);
             rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
-            buf_lock_t tmp(txor, node_id, rwi_write);
+            buf_lock_t tmp(*txor, node_id, rwi_write);
             last_buf.swap(tmp);
             buf.swap(last_buf);
         }
@@ -221,7 +221,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         large_buf_lock_t old_large_buflock;
 
         if (key_found && old_value.is_large()) {
-            old_large_buflock.set(new large_buf_t(txor.transaction()));
+            old_large_buflock.set(new large_buf_t(txor->transaction()));
             // We don't know whether we want to acquire all of the large value or
             // just part of it, so we let the oper acquire it for us.
             oper->actually_acquire_large_value(old_large_buflock.lv(), old_value.lb_ref());
@@ -238,7 +238,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         // Now we actually run the operation to compute the new value.
         btree_value *new_value;
         large_buf_lock_t new_large_buflock;
-        bool update_needed = oper->operate(txor.transaction(), key_found ? &old_value : NULL, old_large_buflock, &new_value, new_large_buflock);
+        bool update_needed = oper->operate(txor, key_found ? &old_value : NULL, old_large_buflock, &new_value, new_large_buflock);
 
         // Make sure that the new_value and new_large_buf returned by operate() are consistent.
         if (update_needed) {
@@ -269,7 +269,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
                 // Split the node if necessary, to make sure that we have room
                 // for the value; This isn't necessary when we're deleting,
                 // because the node isn't going to grow.
-                check_and_handle_split(txor, buf, last_buf, sb_buf, key, new_value, block_size);
+                check_and_handle_split(*txor, buf, last_buf, sb_buf, key, new_value, block_size);
 
                 // Add a CAS to the value if necessary (this won't change its size).
                 if (new_value->has_cas() && !oper->cas_already_set) {
@@ -296,7 +296,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
             // Check to see if the leaf is underfull (following a change in
             // size or a deletion), and merge/level if it is.
-            check_and_handle_underfull(txor, buf, last_buf, sb_buf, key, block_size);
+            check_and_handle_underfull(*txor, buf, last_buf, sb_buf, key, block_size);
         }
 
         // Release bufs as necessary.

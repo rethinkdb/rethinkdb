@@ -138,17 +138,17 @@ const const_buffer_group_t *maybe_buffered_data_provider_t::get_data_as_buffers(
     }
 }
 
-rget_small_value_provider_t::rget_small_value_provider_t(const btree_value *value) : value(), buffers() {
+small_value_data_provider_t::small_value_data_provider_t(const btree_value *value) : value(), buffers() {
     rassert(!value->is_large());
     const byte *data = ptr_cast<byte>(value->value());
     this->value.assign(data, data + value->value_size());
 }
 
-size_t rget_small_value_provider_t::get_size() const {
+size_t small_value_data_provider_t::get_size() const {
     return value.size();
 }
 
-const const_buffer_group_t *rget_small_value_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
+const const_buffer_group_t *small_value_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
     rassert(!buffers.get());
 
     buffers.reset(new const_buffer_group_t());
@@ -156,15 +156,15 @@ const const_buffer_group_t *rget_small_value_provider_t::get_data_as_buffers() t
     return buffers.get();
 }
 
-rget_large_value_provider_t::rget_large_value_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor)
+large_value_data_provider_t::large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor)
     : transactor(transactor), buffers(), lb_ref(value->lb_ref()) {
 }
 
-size_t rget_large_value_provider_t::get_size() const {
+size_t large_value_data_provider_t::get_size() const {
     return lb_ref.size;
 }
 
-const const_buffer_group_t *rget_large_value_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
+const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
     rassert(!buffers);
     rassert(!large_value);
 
@@ -181,5 +181,18 @@ const const_buffer_group_t *rget_large_value_provider_t::get_data_as_buffers() t
         buffers->add_buffer(size, data);
     }
     return buffers.get();
+}
+
+large_value_data_provider_t::~large_value_data_provider_t() {
+    if (large_value) {
+        large_value->release();
+    }
+}
+
+value_data_provider_t *value_data_provider_t::create(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor) {
+    if (value->is_large())
+        return new large_value_data_provider_t(value, transactor);
+    else
+        return new small_value_data_provider_t(value);
 }
 
