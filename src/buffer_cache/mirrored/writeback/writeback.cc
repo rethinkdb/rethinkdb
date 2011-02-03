@@ -238,8 +238,8 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     // we instead try to reclaim some space in the on-disk diff storage now.
     // (we only do this occasionally, hoping that most of the time a compression of the log will do the trick)
     // TODO!
-    if (parent->force_diff_storage_flush || randint(1600) < (int)parent->dirty_bufs.size()) {
-        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / 10 + 1);
+    if (parent->force_diff_storage_flush || randint(800) < (int)parent->dirty_bufs.size()) {
+        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 20 : 100) + 1);
         parent->force_diff_storage_flush = false;
     }
     //if (randint(10) == 0) {
