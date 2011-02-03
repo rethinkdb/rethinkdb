@@ -34,6 +34,26 @@ inline bool str_to_key(const char *str, store_key_t *buf) {
     }
 }
 
+inline std::string key_to_str(const store_key_t* key) {
+    return std::string(key->contents, key->size);
+}
+
+struct key_with_data_provider_t {
+    std::string key;
+    mcflags_t mcflags;
+    boost::shared_ptr<data_provider_t> value_provider;
+
+    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, boost::shared_ptr<data_provider_t> value_provider) :
+        key(key), mcflags(mcflags), value_provider(value_provider) { }
+
+    struct less {
+        bool operator()(const key_with_data_provider_t &pair1, const key_with_data_provider_t &pair2) {
+            return pair1.key < pair2.key;
+        }
+    };
+};
+
+
 union store_key_and_buffer_t {
     store_key_t key;
     char buffer[sizeof(store_key_t) + MAX_KEY_SIZE];
@@ -48,6 +68,13 @@ struct castime_t {
 
     castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
         : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
+
+    static castime_t dummy() {
+        return castime_t(0, repli_timestamp::invalid);
+    }
+    bool is_dummy() {
+        return proposed_cas == 0 && timestamp.time == repli_timestamp::invalid.time;
+    }
 };
 
 struct store_t {
@@ -70,6 +97,11 @@ struct store_t {
     };
     virtual get_result_t get(store_key_t *key) = 0;
     virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;
+
+    struct rget_result_t {
+        std::vector<key_with_data_provider_t> results;
+    };
+    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) = 0;
 
     /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
     to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on

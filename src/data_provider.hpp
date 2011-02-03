@@ -1,11 +1,14 @@
 #ifndef __DATA_PROVIDER_HPP__
 #define __DATA_PROVIDER_HPP__
 
+#include <boost/shared_ptr.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <vector>
 #include <exception>
 #include "errors.hpp"
+#include "btree/value.hpp"
+#include "buffer_cache/transactor.hpp"
 
 struct buffer_group_t {
     struct buffer_t {
@@ -71,23 +74,19 @@ that read off a socket or other one-time-use source of data. Note that it's not 
 the data at all--if a data provider really needs its data to be read, it must do it itself in the
 destructor. */
 
-class data_provider_t {
-
-public:
+struct data_provider_t {
     virtual ~data_provider_t() { }
 
     /* Consumers can call get_size() to figure out how many bytes long the byte array is. Producers
     should override get_size(). */
     virtual size_t get_size() const = 0;
 
-public:
     /* Consumers can call get_data_into_buffers() to ask the data_provider_t to fill a set of
     buffers that are provided. Producers should override get_data_into_buffers(). Alternatively,
     subclass from auto_copying_data_provider_t to get this behavior automatically in terms of
     get_data_as_buffers(). */
     virtual void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t) = 0;
 
-public:
     /* Consumers can call get_data_as_buffers() to ask the data_provider_t to provide a set of
     buffers that already contain the data. The reason for this alternative interface is that some
     data providers already have the data in buffers, so this is more efficient than doing an extra
@@ -101,10 +100,7 @@ public:
 of get_data_as_buffers() in terms of get_data_into_buffers(). It is itself an abstract class;
 subclasses should override get_size() and get_data_into_buffers(). */
 
-class auto_buffering_data_provider_t :
-    public data_provider_t
-{
-public:
+struct auto_buffering_data_provider_t : public data_provider_t {
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
 private:
     boost::scoped_array<char> buffer;   /* This is NULL until buffers are requested */
@@ -115,20 +111,14 @@ private:
 get_data_into_buffers() in terms of get_data_as_buffers(). It is itself an abstract class;
 subclasses should override get_size(), get_data_as_buffers(), and done_with_buffers(). */
 
-class auto_copying_data_provider_t :
-    public data_provider_t
-{
-public:
+struct auto_copying_data_provider_t : public data_provider_t {
     void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
 };
 
 /* A buffered_data_provider_t is a data_provider_t that simply owns an internal buffer that it
 provides the data from. */
 
-class buffered_data_provider_t :
-    public auto_copying_data_provider_t
-{
-public:
+struct buffered_data_provider_t : public auto_copying_data_provider_t {
     buffered_data_provider_t(data_provider_t *dp);   // Create with contents of another
     buffered_data_provider_t(const void *, size_t);   // Create by copying out of a buffer
     buffered_data_provider_t(size_t, void **);    // Allocate buffer, let creator fill it
@@ -144,10 +134,7 @@ private:
 data_provider_t it wraps, even down to throwing the same exceptions in the same places. Internally,
 it buffers the other data_provider_t if it is sufficiently small, improving performance. */
 
-class maybe_buffered_data_provider_t :
-    public data_provider_t
-{
-public:
+struct maybe_buffered_data_provider_t : public data_provider_t {
     maybe_buffered_data_provider_t(data_provider_t *dp, int threshold);
 
     size_t get_size() const;
@@ -162,6 +149,50 @@ private:
     // when our data is requested. This way we behave exactly the same whether or not we buffer.
     bool exception_was_thrown;
     boost::scoped_ptr<buffered_data_provider_t> buffer;   // NULL if we decide not to buffer
+};
+
+class rget_value_provider_t : public auto_copying_data_provider_t {
+protected:
+    rget_value_provider_t() { }
+public:
+    virtual ~rget_value_provider_t() { }
+
+    static rget_value_provider_t *create_provider(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
+};
+
+class rget_small_value_provider_t : public rget_value_provider_t {
+private:
+    rget_small_value_provider_t(const btree_value *value);
+
+public:
+    size_t get_size() const;
+    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+
+private:
+    typedef std::vector<byte> buffer_t;
+    buffer_t value;
+    boost::scoped_ptr<const_buffer_group_t> buffers;
+
+    friend class rget_value_provider_t;
+};
+
+class rget_large_value_provider_t : public rget_value_provider_t {
+private:
+    rget_large_value_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
+
+public:
+    virtual ~rget_large_value_provider_t();
+
+    size_t get_size() const;
+    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+
+private:
+    boost::shared_ptr<transactor_t> transactor;
+    boost::scoped_ptr<const_buffer_group_t> buffers;
+    boost::scoped_ptr<large_buf_t> large_value;
+    large_buf_ref lb_ref;
+
+    friend class rget_value_provider_t;
 };
 
 #endif /* __DATA_PROVIDER_HPP__ */

@@ -12,10 +12,7 @@ store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice);
 /* value_data_provider_t is a data provider that reads from a btree_value and possibly also a
 large_buf_t. If you pass it a cond_t, it will signal the cond_t when it's safe to release the
 large_buf_t. */
-struct value_data_provider_t :
-    public auto_copying_data_provider_t
-{
-public:
+struct value_data_provider_t : public auto_copying_data_provider_t {
     /* Interface used by the thing hooking the value_data_provider_t up with the btree.
 
     To use: Allocate a value_data_provider_t. Put a btree_value into its 'small_part' member. If

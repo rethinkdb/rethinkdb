@@ -30,10 +30,10 @@ public:
     // Blocks
     ~btree_slice_t();
 
-public:
     /* store_t interface. */
     get_result_t get(store_key_t *key);
     get_result_t get_cas(store_key_t *key, castime_t castime);
+    rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results);
     set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
     set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
     set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
@@ -44,11 +44,15 @@ public:
     append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime);
     delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
-public:
     /* Used by internal btree logic */
     cache_t cache;
 
 private:
+    uint32_t cas_counter;
+    castime_t gen_castime();
+    castime_t generate_if_necessary(castime_t castime);
+    repli_timestamp generate_if_necessary(repli_timestamp timestamp);
+
     DISABLE_COPYING(btree_slice_t);
 };
 
