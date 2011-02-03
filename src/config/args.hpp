@@ -90,7 +90,7 @@
 #define TIMER_TICKS_IN_MS                         5
 
 // How many milliseconds to allow changes to sit in memory before flushing to disk
-#define DEFAULT_FLUSH_TIMER_MS                    5000
+#define DEFAULT_FLUSH_TIMER_MS                    500
 
 // flush_waiting_threshold is the maximal number of transactions which can wait
 // for a sync before a flush gets triggered on any single slice. As transactions only wait for
