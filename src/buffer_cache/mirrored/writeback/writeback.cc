@@ -353,12 +353,11 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
 #ifndef NDEBUG
                 patch_counter_t previous_patch_counter = 0;
 #endif
-                const std::vector<buf_patch_t*>::const_iterator patches_end = patches->end();
-                for (std::vector<buf_patch_t*>::const_iterator patch = patches->begin(); patch != patches_end; ++patch) {
+                for (size_t patch_index = patches->size(); patch_index > 0; --patch_index) {
                     rassert(transaction_id > NULL_SER_TRANSACTION_ID);
-                    rassert((*patch)->get_patch_counter() == previous_patch_counter + 1);
-                    if (lbuf->last_patch_materialized < (*patch)->get_patch_counter()) {
-                        if (diff_storage_failure || !parent->cache->diff_oocore_storage.store_patch(**patch, transaction_id)) {
+                    rassert((*patches)[patch_index-1]->get_patch_counter() == previous_patch_counter + 1);
+                    if (lbuf->last_patch_materialized < (*patches)[patch_index-1]->get_patch_counter()) {
+                        if (diff_storage_failure || !parent->cache->diff_oocore_storage.store_patch(*(*patches)[patch_index-1], transaction_id)) {
                             lbuf->needs_flush = true;
                             // We don't need the patches anymore
                             parent->cache->diff_core_storage.drop_patches(inner_buf->block_id);
@@ -367,11 +366,14 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                         }
                         else {
                             patches_stored++;
-                            lbuf->last_patch_materialized = (*patch)->get_patch_counter();
+                            lbuf->last_patch_materialized = (*patches)[patch_index-1]->get_patch_counter();
                         }
                     }
+                    else {
+                        break;
+                    }
 #ifndef NDEBUG
-                    previous_patch_counter = (*patch)->get_patch_counter();
+                    previous_patch_counter = (*patches)[patch_index-1]->get_patch_counter();
 #endif
                 }
             }

@@ -247,8 +247,6 @@ void *mc_buf_t::get_data_major_write() {
 
     ensure_flush();
 
-    inner_buf->writeback_buf.set_dirty();
-
     return data;
 }
 

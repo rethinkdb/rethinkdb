@@ -19,13 +19,26 @@ public:
 
     // Serializes the patch to the given destination address
     void serialize(char* destination) const;
-    uint16_t get_serialized_size() const;
-    static uint16_t get_min_serialized_size();
 
-    patch_counter_t get_patch_counter() const;
-    ser_transaction_id_t get_transaction_id() const;
-    void set_transaction_id(const ser_transaction_id_t transaction_id);
-    block_id_t get_block_id() const;
+    inline uint16_t get_serialized_size() const {
+        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_transaction_id) + sizeof(operation_code) + get_data_size();
+    }
+    inline static uint16_t get_min_serialized_size() {
+        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_transaction_id) + sizeof(operation_code);
+    }
+
+    inline patch_counter_t get_patch_counter() const {
+        return patch_counter;
+    }
+    inline ser_transaction_id_t get_transaction_id() const {
+        return applies_to_transaction_id;
+    }
+    inline void set_transaction_id(const ser_transaction_id_t transaction_id) {
+        applies_to_transaction_id = transaction_id;
+    }
+    inline block_id_t get_block_id() const {
+        return block_id;
+    }
 
     // This is used in buf_t
     virtual void apply_to_buf(char* buf_data) = 0;
