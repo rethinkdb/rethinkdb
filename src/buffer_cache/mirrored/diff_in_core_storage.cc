@@ -41,7 +41,7 @@ void diff_core_storage_t::filter_applied_patches(const block_id_t block_id, cons
         // Verify patches list (this time with strict start patch counter)
         ser_transaction_id_t previous_transaction = 0;
         patch_counter_t previous_patch_counter = 0;
-        for(std::list<buf_patch_t*>::const_iterator p = map_entry->second.begin(); p != map_entry->second.end(); ++p) {
+        for(std::vector<buf_patch_t*>::const_iterator p = map_entry->second.begin(); p != map_entry->second.end(); ++p) {
             rassert((*p)->get_transaction_id() >= transaction_id || (*p)->get_transaction_id() == 0);
             if ((*p)->get_transaction_id() != previous_transaction) {
                 guarantee((*p)->get_transaction_id() > previous_transaction, "Non-sequential patch list: Transaction id %ll follows %ll", (*p)->get_transaction_id(), previous_transaction);
@@ -77,7 +77,7 @@ void diff_core_storage_t::store_patch(buf_patch_t &patch) {
 }
 
 // Return NULL if no patches exist for that block
-const std::list<buf_patch_t*>* diff_core_storage_t::get_patches(const block_id_t block_id) const {
+const std::vector<buf_patch_t*>* diff_core_storage_t::get_patches(const block_id_t block_id) const {
     patch_map_t::const_iterator map_entry = patch_map.find(block_id);
     if (map_entry == patch_map.end())
         return NULL;
@@ -98,13 +98,14 @@ diff_core_storage_t::block_patch_list_t::~block_patch_list_t() {
 }
 
 void diff_core_storage_t::block_patch_list_t::filter_before_transaction(const ser_transaction_id_t transaction_id) {
+    iterator last_patch_to_delete = begin();
     for (iterator patch = begin(); patch != end(); ++patch) {
         if ((*patch)->get_transaction_id() < transaction_id) {
             delete *patch;
-            erase(patch);
-            --patch;
         } else {
+            last_patch_to_delete = patch;
             break;
         }
     }
+    erase(begin(), last_patch_to_delete);
 }

@@ -75,7 +75,7 @@
 // of cores, but we use a higher split factor to allow upgrading to
 // more cores without migrating the database file).
 #ifdef NDEBUG
-#define DEFAULT_BTREE_SHARD_FACTOR                48
+#define DEFAULT_BTREE_SHARD_FACTOR                64
 #else
 #define DEFAULT_BTREE_SHARD_FACTOR                16
 #endif

@@ -297,8 +297,10 @@ writeback_t::concurrent_flush_t::concurrent_flush_t(writeback_t* parent) :
 
     // Start flushing immediately
 
-    if (parent->dirty_bufs.size() == 0 && parent->sync_callbacks.size() == 0)
+    if (parent->dirty_bufs.size() == 0 && parent->sync_callbacks.size() == 0) {
+        delete this;
         return;
+    }
 
     rassert(!parent->writeback_in_progress);
     parent->writeback_in_progress = true;
@@ -314,8 +316,11 @@ void writeback_t::concurrent_flush_t::do_writeback() {
     pm_flushes_locking.end(&start_time);
 
     // Go through the different flushing steps...
-    prepare_patches();
+    prepare_patches(); // TODO!
     acquire_bufs();
+
+    // Write transactions can now proceed again.
+    parent->flush_lock.unlock();
 
     do_on_thread(parent->cache->serializer->home_thread, this, &writeback_t::concurrent_flush_t::do_write, false);
     // ... continue in on_serializer_write_txn
@@ -342,13 +347,14 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
 
         const ser_transaction_id_t transaction_id = inner_buf->transaction_id;
 
-        if (!lbuf->needs_flush) {
-            const std::list<buf_patch_t*>* patches = parent->cache->diff_core_storage.get_patches(inner_buf->block_id);
+        if (!lbuf->needs_flush) { // TODO!
+            const std::vector<buf_patch_t*>* patches = parent->cache->diff_core_storage.get_patches(inner_buf->block_id);
             if (patches != NULL) {
 #ifndef NDEBUG
                 patch_counter_t previous_patch_counter = 0;
 #endif
-                for (std::list<buf_patch_t*>::const_iterator patch = patches->begin(); patch != patches->end(); ++patch) {
+                const std::vector<buf_patch_t*>::const_iterator patches_end = patches->end();
+                for (std::vector<buf_patch_t*>::const_iterator patch = patches->begin(); patch != patches_end; ++patch) {
                     rassert((*patch)->get_patch_counter() == previous_patch_counter + 1);
                     if (lbuf->last_patch_materialized < (*patch)->get_patch_counter()) {
                         rassert(transaction_id > NULL_SER_TRANSACTION_ID);
@@ -467,9 +473,6 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
     }
 
     pm_flushes_blocks_dirty.record(really_dirty);
-
-    // Write transactions can now proceed again.
-    parent->flush_lock.unlock();
 }
 
 bool writeback_t::concurrent_flush_t::do_write(const bool write_issued) {

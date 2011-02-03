@@ -21,13 +21,13 @@ public:
     void store_patch(buf_patch_t &patch);
 
     // Return NULL if no patches exist for that block
-    const std::list<buf_patch_t*>* get_patches(const block_id_t block_id) const;
+    const std::vector<buf_patch_t*>* get_patches(const block_id_t block_id) const;
 
     // Remove all patches for that block (e.g. after patches have been applied and the block gets flushed to disk)
     void drop_patches(const block_id_t block_id);
 
 private:
-    struct block_patch_list_t : public std::list<buf_patch_t*> {
+    struct block_patch_list_t : public std::vector<buf_patch_t*> {
         ~block_patch_list_t(); // Deletes all stored patches
         void filter_before_transaction(const ser_transaction_id_t transaction_id); // Deletes all patches that apply to transactions lower than the given transaction id
     };

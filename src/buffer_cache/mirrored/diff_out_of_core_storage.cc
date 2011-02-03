@@ -163,26 +163,15 @@ void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
     n = std::min(number_of_blocks, n);
 
     // Flush the n oldest blocks
-    waiting_for_flushes = 0;
     for (block_id_t i = 1; i <= n; ++i) {
         block_id_t current_block = active_log_block + i;
         if (current_block >= first_block + number_of_blocks)
             current_block -= number_of_blocks;
 
         if (!block_is_empty[current_block - first_block]) {
-            // Spawn one coroutine for each block
-            if (n > 1) {
-                ++waiting_for_flushes;
-                coro_t::spawn(&diff_oocore_storage_t::flush_block, this, current_block, coro_t::self());
-            }
-            else {
-                flush_block(current_block); // save one roundtrip
-            }
+            flush_block(current_block);
         }
     }
-
-    if (waiting_for_flushes > 0)
-        coro_t::wait();
 
     // If we affected the active block, we have to reset next_patch_offset
     if (n == number_of_blocks)
@@ -255,7 +244,7 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
             current_offset += patch->get_serialized_size();
 
             // We want to preserve this patch iff it is >= the oldest patch that we have in the in-core storage
-            const std::list<buf_patch_t*>* patches = cache.diff_core_storage.get_patches(patch->get_block_id());
+            const std::vector<buf_patch_t*>* patches = cache.diff_core_storage.get_patches(patch->get_block_id());
             rassert(!patches || patches->size() > 0);
             if (patches && !(*patch < *patches->front()))
                 live_patches.push_back(patch);
@@ -290,8 +279,7 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
     //fprintf(stderr, " done\n");
 }
 
-void diff_oocore_storage_t::flush_block(const block_id_t log_block_id, coro_t* notify_coro) {
-    //fprintf(stderr, "Flushing log block %d...", (int)log_block_id);
+void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
     cache.assert_thread();
 
     // TODO: Parallelize block reads
@@ -332,13 +320,6 @@ void diff_oocore_storage_t::flush_block(const block_id_t log_block_id, coro_t* n
     // Wipe the log block
     init_log_block(log_block_id);
     block_is_empty[log_block_id - first_block] = true;
-
-    //fprintf(stderr, " done\n");
-    if (notify_coro) {
-        --waiting_for_flushes;
-        if (waiting_for_flushes == 0)
-            notify_coro->notify();
-    }
 }
 
 void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) {

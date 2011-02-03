@@ -30,7 +30,7 @@ struct load_buf_fsm_t :
             ser_data--;
             inner_buf->transaction_id = ser_data->transaction_id;
 
-            const std::list<buf_patch_t*>* patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
+            const std::vector<buf_patch_t*>* patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
             // Remove obsolete patches from diff storage
             if (patches) {
                 inner_buf->cache->diff_core_storage.filter_applied_patches(inner_buf->block_id, inner_buf->transaction_id);
