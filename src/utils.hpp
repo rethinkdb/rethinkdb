@@ -125,20 +125,6 @@ void do_on_thread(int thread, const callable_t &callable);
 template<class callable_t>
 void do_later(const callable_t &callable);
 
-class cas_generator_t {
-public:
-    cas_generator_t();
-    cas_t gen_cas();
-private:
-    union {
-        uint32_t counter;
-        void *p;
-    } cas_counters[MAX_THREADS];
-    int n_threads;
-
-    DISABLE_COPYING(cas_generator_t);
-};
-
 
 #include "utils.tcc"
 
