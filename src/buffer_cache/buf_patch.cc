@@ -65,6 +65,10 @@ ser_transaction_id_t buf_patch_t::get_transaction_id() const {
     return applies_to_transaction_id;
 }
 
+void buf_patch_t::set_transaction_id(const ser_transaction_id_t transaction_id) {
+    applies_to_transaction_id = transaction_id;
+}
+
 block_id_t buf_patch_t::get_block_id() const {
     return block_id;
 }
@@ -125,8 +129,8 @@ void memcpy_patch_t::apply_to_buf(char* buf_data) {
 
 memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const uint16_t dest_offset, const uint16_t src_offset, const uint16_t n) :
             buf_patch_t(block_id, patch_counter, applies_to_transaction_id, buf_patch_t::OPER_MEMMOVE),
-            src_offset(src_offset),
             dest_offset(dest_offset),
+            src_offset(src_offset),
             n(n) {
 }
 memmove_patch_t::memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const char* data, const uint16_t data_length)  :

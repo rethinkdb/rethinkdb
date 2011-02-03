@@ -75,7 +75,7 @@
 // of cores, but we use a higher split factor to allow upgrading to
 // more cores without migrating the database file).
 #ifdef NDEBUG
-#define DEFAULT_BTREE_SHARD_FACTOR                64
+#define DEFAULT_BTREE_SHARD_FACTOR                48
 #else
 #define DEFAULT_BTREE_SHARD_FACTOR                16
 #endif
@@ -90,7 +90,7 @@
 #define TIMER_TICKS_IN_MS                         5
 
 // How many milliseconds to allow changes to sit in memory before flushing to disk
-#define DEFAULT_FLUSH_TIMER_MS                    5000
+#define DEFAULT_FLUSH_TIMER_MS                    1000
 
 // flush_waiting_threshold is the maximal number of transactions which can wait
 // for a sync before a flush gets triggered on any single slice. As transactions only wait for

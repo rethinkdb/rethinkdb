@@ -25,10 +25,14 @@ public:
 
     // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
     // This function never blocks and must only be called while the flush_lock is held.
-    bool store_patch(buf_patch_t &patch);
+    bool store_patch(buf_patch_t &patch, const ser_transaction_id_t current_block_transaction_id);
 
     // This function might block while it acquires old blocks from disk.
     void flush_n_oldest_blocks(unsigned int n);
+
+    void compress_n_oldest_blocks(unsigned int n);
+
+    unsigned int get_number_of_log_blocks() const;
     
 private:
     void reclaim_space(const size_t space_required); // Calls compress_block for select_log_block_for_compression()

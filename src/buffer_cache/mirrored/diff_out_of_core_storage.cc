@@ -2,7 +2,6 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 
-// TODO! Add a number of perfmons
 
 diff_oocore_storage_t::diff_oocore_storage_t(mc_cache_t &cache) : cache(cache) {
     first_block = 0;
@@ -30,6 +29,8 @@ void diff_oocore_storage_t::init(const block_id_t first_block, const block_id_t 
 
     if (number_of_blocks == 0)
         return;
+
+    // TODO! Make this parallel maybe to speed up database loading on HDD? (would it even help?)
 
     // Load all log blocks into memory
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
@@ -106,10 +107,12 @@ void diff_oocore_storage_t::load_patches(diff_core_storage_t &in_core_storage) {
 
 // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
 // This function never blocks and must only be called while the flush_lock is held.
-bool diff_oocore_storage_t::store_patch(buf_patch_t &patch) {
+bool diff_oocore_storage_t::store_patch(buf_patch_t &patch, const ser_transaction_id_t current_block_transaction_id) {
     rassert(log_block_bufs.size() == number_of_blocks);
     cache.assert_thread();
     // TODO: assert flush_in_progress somehow?
+    rassert(patch.get_transaction_id() == NULL_SER_TRANSACTION_ID);
+    patch.set_transaction_id(current_block_transaction_id);
 
     if (number_of_blocks == 0)
         return false;
@@ -184,6 +187,35 @@ void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
     // If we affected the active block, we have to reset next_patch_offset
     if (n == number_of_blocks)
         set_active_log_block(active_log_block);
+}
+
+void diff_oocore_storage_t::compress_n_oldest_blocks(unsigned int n) {
+    rassert(log_block_bufs.size() == number_of_blocks);
+    cache.assert_thread();
+
+    if (number_of_blocks == 0)
+        return;
+
+    n = std::min(number_of_blocks, n);
+
+    // Compress the n oldest blocks
+    for (block_id_t i = 1; i <= n; ++i) {
+        block_id_t current_block = active_log_block + i;
+        if (current_block >= first_block + number_of_blocks)
+            current_block -= number_of_blocks;
+
+        if (!block_is_empty[current_block - first_block]) {
+            compress_block(current_block);
+        }
+    }
+
+    // If we affected the active block, we have to reset next_patch_offset
+    if (n == number_of_blocks)
+        set_active_log_block(active_log_block);
+}
+
+unsigned int diff_oocore_storage_t::get_number_of_log_blocks() const {
+    return (unsigned int)number_of_blocks;
 }
 
 void diff_oocore_storage_t::reclaim_space(const size_t space_required) {
@@ -319,13 +351,12 @@ void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) 
     guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
     while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
-        buf_patch_t *tmp_patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
-        if (!tmp_patch) {
+        uint16_t length = *(uint16_t*)((char*)buf_data + current_offset);
+        if (length == 0) {
             break;
         }
         else {
-            current_offset += tmp_patch->get_serialized_size();
-            delete tmp_patch;
+            current_offset += length;
         }
     }
     

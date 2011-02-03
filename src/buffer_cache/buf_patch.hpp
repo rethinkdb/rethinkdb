@@ -24,6 +24,7 @@ public:
 
     patch_counter_t get_patch_counter() const;
     ser_transaction_id_t get_transaction_id() const;
+    void set_transaction_id(const ser_transaction_id_t transaction_id);
     block_id_t get_block_id() const;
 
     // This is used in buf_t
@@ -61,9 +62,9 @@ protected:
     virtual uint16_t get_data_size() const;
 
 private:
-    char* src_buf;
     uint16_t dest_offset;
     uint16_t n;
+    char* src_buf;
 };
 
 class memmove_patch_t : public buf_patch_t {
@@ -78,8 +79,8 @@ protected:
     virtual uint16_t get_data_size() const;
 
 private:
-    uint16_t src_offset;
     uint16_t dest_offset;
+    uint16_t src_offset;
     uint16_t n;
 };
 

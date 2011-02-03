@@ -69,19 +69,15 @@ patch_counter_t mock_buf_t::get_next_patch_counter() {
     return 0;
 }
 
-ser_transaction_id_t mock_buf_t::get_transaction_id() {
-    return 0;
-}
-
 void mock_buf_t::set_data(const void* dest, const void* src, const size_t n) {
     size_t offset = (const char*)dest - (const char*)internal_buf->data;
-    apply_patch(*(new memcpy_patch_t(internal_buf->block_id, get_next_patch_counter(), get_transaction_id(), offset, (const char*)src, n)));
+    apply_patch(*(new memcpy_patch_t(internal_buf->block_id, get_next_patch_counter(), 0, offset, (const char*)src, n)));
 }
 
 void mock_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     size_t dest_offset = (const char*)dest - (const char*)internal_buf->data;
     size_t src_offset = (const char*)src - (const char*)internal_buf->data;
-    apply_patch(*(new memmove_patch_t(internal_buf->block_id, get_next_patch_counter(), get_transaction_id(), dest_offset, src_offset, n)));
+    apply_patch(*(new memmove_patch_t(internal_buf->block_id, get_next_patch_counter(), 0, dest_offset, src_offset, n)));
 }
 
 void mock_buf_t::mark_deleted() {

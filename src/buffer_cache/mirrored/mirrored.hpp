@@ -82,7 +82,7 @@ class mc_inner_buf_t {
     
     ~mc_inner_buf_t();
 
-    ser_transaction_id_t get_transaction_id() const;
+    ser_transaction_id_t transaction_id;
 };
 
 /* This class represents a hold on a mc_inner_buf_t. */
@@ -116,17 +116,6 @@ public:
 
     void apply_patch(buf_patch_t& patch); // This might delete the supplied patch, do not use patch after its applicatio
     patch_counter_t get_next_patch_counter();
-    ser_transaction_id_t get_transaction_id() const {
-        rassert(ready);
-        // The transaction_id is only guaranteed to be up-to-date when owning the write lock.
-        // This is due to how the writeback cache and the serializer work, as consistency
-        // is only ensured because of the flush_lock being held while issuing a write to
-        // the serializer
-        rassert(mode == rwi_write);
-        rassert(data == inner_buf->data);
-
-        return inner_buf->get_transaction_id();
-    }
 
     const void *get_data_read() const {
         rassert(ready);

@@ -181,17 +181,16 @@ public:
 
         /* Functions and callbacks for different phases of the writeback */
         void start_and_acquire_lock();   // Called on cache thread
+        void prepare_patches(); // Called on cache thread
         void do_writeback();  // Called on cache thread
         virtual void on_lock_available();   // Called on cache thread
-        void init_flush_locals();    // Called on cache thread
         void acquire_bufs();   // Called on cache thread
-        void do_write();   // Called on serializer thread
+        bool do_write(const bool write_issued);   // Called on serializer thread
         virtual void on_serializer_write_txn();   // Called on serializer thread
-        void do_cleanup();   // Called on cache thread
+        bool do_cleanup();   // Called on cache thread
 
         writeback_t* parent; // We need this for flush concurrency control (i.e. flush_lock, active_flushes etc.)
 
-        coro_t *flusher_coro;
         ticks_t start_time;
         ticks_t start_time2;
 
@@ -203,6 +202,9 @@ public:
 
         // Transaction to submit to the serializer
         std::vector<translator_serializer_t::write_t> serializer_writes;
+
+        // We need these to update the transaction ids after issuing a serializer write
+        std::vector<inner_buf_t*> serializer_inner_bufs;
     };
 };
 

@@ -41,10 +41,6 @@ template<class inner_cache_t>
 patch_counter_t scc_buf_t<inner_cache_t>::get_next_patch_counter() {
     return inner_buf->get_next_patch_counter();
 }
-template<class inner_cache_t>
-ser_transaction_id_t scc_buf_t<inner_cache_t>::get_transaction_id() {
-    return inner_buf->get_transaction_id();
-}
 
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::mark_deleted() {

@@ -27,8 +27,6 @@ void diff_core_storage_t::load_block_patch_list(const block_id_t block_id, const
     }
 
     patch_map[block_id].assign(patches.begin(), patches.end());
-
-
 }
 
 // Removes all patches which are obsolete w.r.t. the given transaction_id
@@ -44,7 +42,7 @@ void diff_core_storage_t::filter_applied_patches(const block_id_t block_id, cons
         ser_transaction_id_t previous_transaction = 0;
         patch_counter_t previous_patch_counter = 0;
         for(std::list<buf_patch_t*>::const_iterator p = map_entry->second.begin(); p != map_entry->second.end(); ++p) {
-            rassert((*p)->get_transaction_id() >= transaction_id);
+            rassert((*p)->get_transaction_id() >= transaction_id || (*p)->get_transaction_id() == 0);
             if ((*p)->get_transaction_id() != previous_transaction) {
                 guarantee((*p)->get_transaction_id() > previous_transaction, "Non-sequential patch list: Transaction id %ll follows %ll", (*p)->get_transaction_id(), previous_transaction);
             }
@@ -105,6 +103,8 @@ void diff_core_storage_t::block_patch_list_t::filter_before_transaction(const se
             delete *patch;
             erase(patch);
             --patch;
+        } else {
+            break;
         }
     }
 }

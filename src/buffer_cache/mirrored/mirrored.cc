@@ -25,10 +25,15 @@ struct load_buf_fsm_t :
             if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this))
                 on_serializer_read();
         } else {
+            // Read the transaction id
+            buf_data_t *ser_data = (buf_data_t*)inner_buf->data;
+            ser_data--;
+            inner_buf->transaction_id = ser_data->transaction_id;
+
             const std::list<buf_patch_t*>* patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
             // Remove obsolete patches from diff storage
             if (patches) {
-                inner_buf->cache->diff_core_storage.filter_applied_patches(inner_buf->block_id, inner_buf->get_transaction_id());
+                inner_buf->cache->diff_core_storage.filter_applied_patches(inner_buf->block_id, inner_buf->transaction_id);
                 patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
             }
             // All patches that currently exist must have been materialized out of core...
@@ -75,7 +80,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
       cow_will_be_needed(false),
       writeback_buf(this),
       page_repl_buf(this),
-      page_map_buf(this) {
+      page_map_buf(this),
+      transaction_id(NULL_SER_TRANSACTION_ID) {
     new load_buf_fsm_t(this);
 
     pm_n_blocks_in_memory++;
@@ -96,7 +102,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
       cow_will_be_needed(false),
       writeback_buf(this),
       page_repl_buf(this),
-      page_map_buf(this) {
+      page_map_buf(this),
+      transaction_id(NULL_SER_TRANSACTION_ID) {
     cache->assert_thread();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
@@ -134,13 +141,6 @@ mc_inner_buf_t::~mc_inner_buf_t() {
 
 bool mc_inner_buf_t::safe_to_unload() {
     return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && !cow_will_be_needed;
-}
-
-ser_transaction_id_t mc_inner_buf_t::get_transaction_id() const {
-    rassert(!do_delete);
-    buf_data_t volatile *ser_data = (buf_data_t*)data;
-    ser_data--;
-    return ser_data->transaction_id;
 }
 
 perfmon_duration_sampler_t
@@ -181,13 +181,8 @@ void mc_buf_t::on_lock_available() {
         }
         case rwi_write: {
             if (inner_buf->cow_will_be_needed) {
-                // Include buf_data header in copy to preserve transaction_id
-                buf_data_t *src_data = (buf_data_t*)inner_buf->data;
-                src_data--;
                 data = inner_buf->cache->serializer->malloc();
-                buf_data_t *full_data = (buf_data_t*)data;
-                full_data--;
-                memcpy(full_data, src_data, inner_buf->cache->get_block_size().ser_value());
+                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
                 inner_buf->data = data;
                 inner_buf->cow_will_be_needed = false;
             }
@@ -220,7 +215,7 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     inner_buf->writeback_buf.set_dirty();
 
     // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks)
-    if (get_transaction_id() == NULL_SER_TRANSACTION_ID)
+    if (inner_buf->transaction_id == NULL_SER_TRANSACTION_ID)
         ensure_flush();
 
     // Check if we want to disable patching for this block and flush it directly instead
@@ -291,7 +286,8 @@ void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
         memcpy(const_cast<void*>(dest), src, n);
     } else {
         size_t offset = (const char*)dest - (const char*)data;
-        apply_patch(*(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), get_transaction_id(), offset, (const char*)src, n)));
+        // transaction ID will be set later...
+        apply_patch(*(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), NULL_SER_TRANSACTION_ID, offset, (const char*)src, n)));
     }
 }
 
@@ -311,7 +307,8 @@ void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     } else {
         size_t dest_offset = (const char*)dest - (const char*)data;
         size_t src_offset = (const char*)src - (const char*)data;
-        apply_patch(*(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), get_transaction_id(), dest_offset, src_offset, n)));
+        // transaction ID will be set later...
+        apply_patch(*(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), NULL_SER_TRANSACTION_ID, dest_offset, src_offset, n)));
     }
 }
 
