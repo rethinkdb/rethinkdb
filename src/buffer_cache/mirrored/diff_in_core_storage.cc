@@ -91,6 +91,10 @@ void diff_core_storage_t::drop_patches(const block_id_t block_id) {
         patch_map.erase(map_entry);
 }
 
+diff_core_storage_t::block_patch_list_t::block_patch_list_t() : std::vector<buf_patch_t*>() {
+    reserve(64); // TODO! Use the max number of patches from the configuration
+}
+
 // Deletes all stored patches
 diff_core_storage_t::block_patch_list_t::~block_patch_list_t() {
     for (iterator patch = begin(); patch != end(); ++patch)
@@ -98,14 +102,14 @@ diff_core_storage_t::block_patch_list_t::~block_patch_list_t() {
 }
 
 void diff_core_storage_t::block_patch_list_t::filter_before_transaction(const ser_transaction_id_t transaction_id) {
-    iterator last_patch_to_delete = begin();
+    iterator first_patch_to_keep = end();
     for (iterator patch = begin(); patch != end(); ++patch) {
         if ((*patch)->get_transaction_id() < transaction_id) {
             delete *patch;
         } else {
-            last_patch_to_delete = patch;
+            first_patch_to_keep = patch;
             break;
         }
     }
-    erase(begin(), last_patch_to_delete);
+    erase(begin(), first_patch_to_keep);
 }

@@ -316,7 +316,7 @@ void writeback_t::concurrent_flush_t::do_writeback() {
     pm_flushes_locking.end(&start_time);
 
     // Go through the different flushing steps...
-    prepare_patches(); // TODO!
+    prepare_patches();
     acquire_bufs();
 
     // Write transactions can now proceed again.
@@ -337,9 +337,9 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
     rassert(parent->writeback_in_progress);
 
     /* Write patches for blocks we don't want to flush now */
-    // Please note: Writing patches to disk can alter the dirty_bufs list!
+    // Please note: Writing patches to the oocore_storage can still alter the dirty_bufs list!
     pm_flushes_diff_store.begin(&start_time2);
-    bool log_storage_failure = false;
+    bool diff_storage_failure = false;
     unsigned int patches_stored = 0;
     for (intrusive_list_t<local_buf_t>::iterator lbuf_it = parent->dirty_bufs.begin(); lbuf_it != parent->dirty_bufs.end(); lbuf_it++) {
         local_buf_t *lbuf = &(*lbuf_it);
@@ -347,7 +347,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
 
         const ser_transaction_id_t transaction_id = inner_buf->transaction_id;
 
-        if (!lbuf->needs_flush) { // TODO!
+        if (!lbuf->needs_flush) {
             const std::vector<buf_patch_t*>* patches = parent->cache->diff_core_storage.get_patches(inner_buf->block_id);
             if (patches != NULL) {
 #ifndef NDEBUG
@@ -355,14 +355,14 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
 #endif
                 const std::vector<buf_patch_t*>::const_iterator patches_end = patches->end();
                 for (std::vector<buf_patch_t*>::const_iterator patch = patches->begin(); patch != patches_end; ++patch) {
+                    rassert(transaction_id > NULL_SER_TRANSACTION_ID);
                     rassert((*patch)->get_patch_counter() == previous_patch_counter + 1);
                     if (lbuf->last_patch_materialized < (*patch)->get_patch_counter()) {
-                        rassert(transaction_id > NULL_SER_TRANSACTION_ID);
-                        if (log_storage_failure || !parent->cache->diff_oocore_storage.store_patch(**patch, transaction_id)) {
+                        if (diff_storage_failure || !parent->cache->diff_oocore_storage.store_patch(**patch, transaction_id)) {
                             lbuf->needs_flush = true;
                             // We don't need the patches anymore
                             parent->cache->diff_core_storage.drop_patches(inner_buf->block_id);
-                            log_storage_failure = true;
+                            diff_storage_failure = true;
                             break;
                         }
                         else {
@@ -384,11 +384,11 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
         }
     }
     pm_flushes_diff_store.end(&start_time2);
-    if (log_storage_failure)
+    if (diff_storage_failure)
         parent->force_diff_storage_flush = true; // Make sure we solve the problem for the next flush...
 
     pm_flushes_diff_patches_stored.record(patches_stored);
-    if (log_storage_failure)
+    if (diff_storage_failure)
         pm_flushes_diff_storage_failures.record(patches_stored); // TODO! (this does not do what I expected)
 }
 

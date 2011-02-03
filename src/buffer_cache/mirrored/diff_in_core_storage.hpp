@@ -28,6 +28,7 @@ public:
 
 private:
     struct block_patch_list_t : public std::vector<buf_patch_t*> {
+        block_patch_list_t();
         ~block_patch_list_t(); // Deletes all stored patches
         void filter_before_transaction(const ser_transaction_id_t transaction_id); // Deletes all patches that apply to transactions lower than the given transaction id
     };
