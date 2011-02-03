@@ -334,8 +334,6 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
     /* Write patches for blocks we don't want to flush now */
     // Please note: Writing patches to disk can alter the dirty_bufs list!
     pm_flushes_diff_store.begin(&start_time2);
-    std::vector<local_buf_t*> blocks_needing_patch_write;
-    blocks_needing_patch_write.reserve(parent->dirty_bufs.size());
     bool log_storage_failure = false;
     unsigned int patches_stored = 0;
     for (intrusive_list_t<local_buf_t>::iterator lbuf_it = parent->dirty_bufs.begin(); lbuf_it != parent->dirty_bufs.end(); lbuf_it++) {
