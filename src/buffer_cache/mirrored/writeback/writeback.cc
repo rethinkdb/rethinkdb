@@ -366,7 +366,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                         }
                         else {
                             patches_stored++;
-                            lbuf->last_patch_materialized = (*patches)[patch_index-1]->get_patch_counter();
+                            lbuf->last_patch_materialized = std::max(lbuf->last_patch_materialized, (*patches)[patch_index-1]->get_patch_counter());
                         }
                     }
                     else {
