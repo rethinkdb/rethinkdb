@@ -355,7 +355,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
 #endif
                 for (size_t patch_index = patches->size(); patch_index > 0; --patch_index) {
                     rassert(transaction_id > NULL_SER_TRANSACTION_ID);
-                    rassert((*patches)[patch_index-1]->get_patch_counter() == previous_patch_counter + 1);
+                    rassert(previous_patch_counter == 0 || (*patches)[patch_index-1]->get_patch_counter() == previous_patch_counter - 1);
                     if (lbuf->last_patch_materialized < (*patches)[patch_index-1]->get_patch_counter()) {
                         if (diff_storage_failure || !parent->cache->diff_oocore_storage.store_patch(*(*patches)[patch_index-1], transaction_id)) {
                             lbuf->needs_flush = true;
