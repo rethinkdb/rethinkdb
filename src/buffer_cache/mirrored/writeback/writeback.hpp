@@ -192,7 +192,6 @@ public:
         writeback_t* parent; // We need this for flush concurrency control (i.e. flush_lock, active_flushes etc.)
 
         ticks_t start_time;
-        ticks_t start_time2;
 
         // Callbacks for the current sync
         intrusive_list_t<sync_callback_t> current_sync_callbacks;

@@ -148,7 +148,7 @@ perfmon_duration_sampler_t
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
-    : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner)
+    : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner), num_patches_at_start(-1)
 {
     pm_bufs_acquiring.begin(&start_time);
     inner_buf->refcount++;
@@ -187,6 +187,14 @@ void mc_buf_t::on_lock_available() {
                 inner_buf->cow_will_be_needed = false;
             }
             data = inner_buf->data;
+#ifndef FAST_PERFMON
+            if (!inner_buf->writeback_buf.needs_flush && num_patches_at_start == -1) {
+                if (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id))
+                    num_patches_at_start = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id)->size();
+                else
+                    num_patches_at_start = 0;
+            }
+#endif
             break;
         }
         case rwi_intent:
@@ -221,8 +229,8 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     // Check if we want to disable patching for this block and flush it directly instead
     if (!inner_buf->writeback_buf.needs_flush) {
         // TODO! Refactor
-        const size_t MAX_PATCH_SIZE = inner_buf->cache->serializer->get_block_size().value() / 8;
-        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 64;
+        const size_t MAX_PATCH_SIZE = inner_buf->cache->serializer->get_block_size().value() / 5;
+        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 16; // One transaction causes about 6 patches on average
         if (    (patch.get_serialized_size() > MAX_PATCH_SIZE) ||
                 (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id) &&
                     inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id)->size() + 1 >= PATCH_COUNT_FLUSH_THRESHOLD)) {
@@ -314,8 +322,21 @@ void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     }
 }
 
+#ifndef FAST_PERFMON
+perfmon_sampler_t pm_patches_per_write("patches_per_write_buf", secs_to_ticks(1), false);
+#endif
+
 void mc_buf_t::release() {
     pm_bufs_held.end(&start_time);
+
+#ifndef FAST_PERFMON
+    if (mode == rwi_write && !inner_buf->writeback_buf.needs_flush && num_patches_at_start >= 0) {
+        if (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id) && inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id)->size() > (size_t)num_patches_at_start)
+            pm_patches_per_write.record(inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id)->size() - num_patches_at_start);
+    }
+#endif
+    // TODO! If write  & if !flush: Log to perfmon number of patches (TODO: Store initial number in acquire)
+    // (only if FAST_PERFMON=0)
     
     inner_buf->cache->assert_thread();
     

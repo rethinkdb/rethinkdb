@@ -111,6 +111,10 @@ private:
 
     ~mc_buf_t();
 
+#ifndef FAST_PERFMON
+    int num_patches_at_start;
+#endif
+
 public:
     void release();
 

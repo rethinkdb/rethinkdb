@@ -222,7 +222,7 @@ void writeback_t::flush_timer_callback(void *ctx) {
 void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     pm_flushes_locking.begin(&start_time);
     parent->cache->assert_thread();
-        
+    
     // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
     // us later. This happens only if the flush timer is running, and writeback starts for some
     // other reason before the flush timer goes off; if this writeback had been started by the
@@ -233,20 +233,19 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
         parent->flush_timer = NULL;
     }
 
-    pm_flushes_diff_flush.begin(&start_time2);
-    // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock
+    // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock,
     // we instead try to reclaim some space in the on-disk diff storage now.
     // (we only do this occasionally, hoping that most of the time a compression of the log will do the trick)
-    // TODO!
+    // TODO! Tune etc...
     if (parent->force_diff_storage_flush || randint(800) < (int)parent->dirty_bufs.size()) {
-        //parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 50 : 200) + 1);
-        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 30 : 100) + 1);
+        ticks_t start_time2;
+        pm_flushes_diff_flush.begin(&start_time2);
+        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 50 : 200) + 1);
         parent->force_diff_storage_flush = false;
+        pm_flushes_diff_flush.end(&start_time2);
     }
 
     //parent->cache->diff_oocore_storage.compress_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 20 : 50) + 1);
-
-    pm_flushes_diff_flush.end(&start_time2);
 
     /* Start a read transaction so we can request bufs. */
     rassert(transaction == NULL);
@@ -329,9 +328,8 @@ void writeback_t::concurrent_flush_t::do_writeback() {
 
 perfmon_sampler_t pm_flushes_blocks("flushes_blocks", secs_to_ticks(1), true),
         pm_flushes_blocks_dirty("flushes_blocks_need_flush", secs_to_ticks(1), true),
-        pm_flushes_diff_patches_stored("flushes_diff_patches_stored", secs_to_ticks(1), true);
-
-perfmon_sampler_t pm_flushes_diff_storage_failures("flushes_diff_storage_failures", secs_to_ticks(1));
+        pm_flushes_diff_patches_stored("flushes_diff_patches_stored", secs_to_ticks(1), false),
+        pm_flushes_diff_storage_failures("flushes_diff_storage_failures", secs_to_ticks(30), true);
 
 void writeback_t::concurrent_flush_t::prepare_patches() {
     parent->cache->assert_thread();
@@ -339,6 +337,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
 
     /* Write patches for blocks we don't want to flush now */
     // Please note: Writing patches to the oocore_storage can still alter the dirty_bufs list!
+    ticks_t start_time2;
     pm_flushes_diff_store.begin(&start_time2);
     bool diff_storage_failure = false;
     unsigned int patches_stored = 0;
@@ -394,7 +393,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
 
     pm_flushes_diff_patches_stored.record(patches_stored);
     if (diff_storage_failure)
-        pm_flushes_diff_storage_failures.record(patches_stored); // TODO! (this does not do what I expected)
+        pm_flushes_diff_storage_failures.record(patches_stored);
 }
 
 void writeback_t::concurrent_flush_t::acquire_bufs() {
