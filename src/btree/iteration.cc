@@ -1,5 +1,5 @@
 #include "btree/iteration.hpp"
-#include "data_provider.hpp"
+#include "btree/btree_data_provider.hpp"
 
 leaf_iterator_t::leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<transactor_t>& transactor) :
     leaf(leaf), index(index), lock(lock), transactor(transactor) {

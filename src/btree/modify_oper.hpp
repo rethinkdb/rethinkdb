@@ -7,7 +7,7 @@
 #include "buffer_cache/large_buf.hpp"
 #include "buffer_cache/large_buf_lock.hpp"
 #include "btree/key_value_store.hpp"
-
+#include "buffer_cache/transactor.hpp"
 #include "buffer_cache/co_functions.hpp"
 
 #define BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS 0

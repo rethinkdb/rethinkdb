@@ -2,7 +2,7 @@
 
 #include "btree/modify_oper.hpp"
 #include "concurrency/cond_var.hpp"
-#include "btree/get.hpp"   // For value_data_provider_t
+#include "btree/btree_data_provider.hpp"
 
 // This function is like get(), except that it sets a CAS value if there isn't
 // one already, so it has to be a btree_modify_oper_t. Potentially we can use a

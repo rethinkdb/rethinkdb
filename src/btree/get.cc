@@ -1,5 +1,6 @@
 #include "btree/get.hpp"
 
+#include <boost/shared_ptr.hpp>
 #include "utils.hpp"
 #include "btree/delete_expired.hpp"
 #include "btree/internal_node.hpp"
@@ -10,8 +11,7 @@
 #include "store.hpp"
 #include "concurrency/cond_var.hpp"
 #include "btree/leaf_node.hpp"
-#include "data_provider.hpp"
-#include <boost/shared_ptr.hpp>
+#include "btree/btree_data_provider.hpp"
 
 store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
     block_pm_duration get_time(&pm_cmd_get);
