@@ -32,6 +32,7 @@ btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
                              mirrored_cache_config_t *config,
                              replication::masterstore_t *masterstore)
     : cache(serializer, config),
+      cas_counter_(0),
       masterstore_(masterstore) {
     // Start up cache
     struct : public cache_t::ready_callback_t, public cond_t {
