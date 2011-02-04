@@ -12,7 +12,9 @@
 #include "store.hpp"
 #include "control.hpp"
 
-
+namespace replication {
+class masterstore_t;
+}  // namespace replication
 
 
 /* btree_key_value_store_t represents a collection of slices, possibly distributed
@@ -25,13 +27,13 @@ class btree_key_value_store_t :
 {
 public:
     // Blocks
-    static void create(
-        btree_key_value_store_dynamic_config_t *dynamic_config,
-        btree_key_value_store_static_config_t *static_config);
+    static void create(btree_key_value_store_dynamic_config_t *dynamic_config,
+                       btree_key_value_store_static_config_t *static_config,
+                       replication::masterstore_t *masterstore);
 
     // Blocks
-    btree_key_value_store_t(
-        btree_key_value_store_dynamic_config_t *dynamic_config);
+    btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
+                            replication::masterstore_t *masterstore);
 
     // Blocks
     ~btree_key_value_store_t();

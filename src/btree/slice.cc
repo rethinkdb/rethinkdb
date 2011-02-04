@@ -12,12 +12,11 @@
 #include "btree/get_cas.hpp"
 #include <boost/scoped_ptr.hpp>
 
-void btree_slice_t::create(
-    translator_serializer_t *serializer,
-    mirrored_cache_config_t *config)
-{
+void btree_slice_t::create(translator_serializer_t *serializer,
+                           mirrored_cache_config_t *config,
+                           replication::masterstore_t *masterstore) {
     /* Put slice in a scoped pointer because it's way to big to allocate on a coroutine stack */
-    boost::scoped_ptr<btree_slice_t> slice(new btree_slice_t(serializer, config));
+    boost::scoped_ptr<btree_slice_t> slice(new btree_slice_t(serializer, config, masterstore));
 
     /* Initialize the root block */
     transactor_t transactor(&slice->cache, rwi_write);
@@ -29,11 +28,11 @@ void btree_slice_t::create(
     // Destructors handle cleanup and stuff
 }
 
-btree_slice_t::btree_slice_t(
-        translator_serializer_t *serializer,
-        mirrored_cache_config_t *config) :
-    cache(serializer, config)
-{
+btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
+                             mirrored_cache_config_t *config,
+                             replication::masterstore_t *masterstore)
+    : cache(serializer, config),
+      masterstore_(masterstore) {
     // Start up cache
     struct : public cache_t::ready_callback_t, public cond_t {
         void on_cache_ready() { pulse(); }
@@ -99,7 +98,7 @@ store_t::delete_result_t btree_slice_t::delete_key(store_key_t *key, repli_times
 
 castime_t btree_slice_t::gen_castime() {
     repli_timestamp timestamp = current_time();
-    cas_t cas = (uint64_t(timestamp.time) << 32) | ++cas_counter;
+    cas_t cas = (uint64_t(timestamp.time) << 32) | ++cas_counter_;
     return castime_t(cas, timestamp);
 }
 

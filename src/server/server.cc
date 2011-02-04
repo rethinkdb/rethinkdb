@@ -5,6 +5,7 @@
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
 #include "server/cmd_args.hpp"
+#include "replication/masterstore.hpp"
 #include "replication/slave.hpp"
 #include "replication/load_balancer.hpp"
 #include "control.hpp"
@@ -89,12 +90,14 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         /* Record information about disk drives to log file */
         log_disk_info(cmd_config->store_dynamic_config.serializer_private);
 
+        replication::masterstore_t masterstore;
+
         /* Create store if necessary */
         if (cmd_config->create_store) {
             logINF("Creating database...\n");
-            btree_key_value_store_t::create(
-                &cmd_config->store_dynamic_config,
-                &cmd_config->store_static_config);
+            btree_key_value_store_t::create(&cmd_config->store_dynamic_config,
+                                            &cmd_config->store_static_config,
+                                            &masterstore);
             logINF("Done creating.\n");
         }
 
@@ -103,7 +106,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* Start key-value store */
             logINF("Loading database...\n");
             //store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config);
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config, &masterstore);
 
             /* Are we a replication slave? */
             if (cmd_config->replication_config.active) {
