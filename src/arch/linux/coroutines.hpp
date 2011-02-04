@@ -35,12 +35,13 @@ struct coro_t :
     friend bool is_coroutine_stack_overflow(void *);
 
 public:
-    template<typename callable_t>
-    static void spawn(const callable_t& fun) {
-        new coro_t(fun);
-    }
+    static void spawn(const boost::function<void()>& deed);
 
     // Use coro_t::spawn(boost::bind(...)) for multiparamater spawnings.
+
+    static void spawn_on_thread(int thread, const boost::function<void()>& deed) {
+        new coro_t(deed, thread);
+    }
 
 public:
     static void wait(); //Pauses the current coroutine until it's notified
@@ -56,7 +57,7 @@ private:
     coro_context_t object. */
     coro_context_t *context;
 
-    coro_t(const boost::function<void()>& deed);
+    coro_t(const boost::function<void()>& deed, int thread);
     boost::function<void()> deed_;
     void run();
     ~coro_t();

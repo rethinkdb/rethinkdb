@@ -193,9 +193,10 @@ coro_context_t::~coro_context_t() {
 
 /* coro_t */
 
-coro_t::coro_t(const boost::function<void()>& deed) :
+
+coro_t::coro_t(const boost::function<void()>& deed, int thread) :
     deed_(deed),
-    current_thread_(linux_thread_pool_t::thread_id),
+    current_thread_(thread),
     notified_(false)
 {
 
@@ -295,4 +296,8 @@ the stack. */
 bool is_coroutine_stack_overflow(void *addr) {
     void *base = (void *)floor_aligned((intptr_t)addr, getpagesize());
     return current_coro && current_coro->context->stack == base;
+}
+
+void coro_t::spawn(const boost::function<void()>& deed) {
+    spawn_on_thread(linux_thread_pool_t::thread_id, deed);
 }
