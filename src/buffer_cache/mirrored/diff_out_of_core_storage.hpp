@@ -39,7 +39,7 @@ private:
     block_id_t select_log_block_for_compression(); // For now: just always select the oldest (=next) block
     void compress_block(const block_id_t log_block_id);
 
-    void flush_block(const block_id_t log_block_id);
+    void flush_block(const block_id_t log_block_id, coro_t* notify_coro);
     void set_active_log_block(const block_id_t log_block_id);
 
     void init_log_block(const block_id_t log_block_id);
@@ -51,6 +51,8 @@ private:
 
     block_id_t active_log_block;
     uint16_t next_patch_offset;
+
+    unsigned int waiting_for_flush;
 
     mc_cache_t &cache;
     block_id_t first_block;

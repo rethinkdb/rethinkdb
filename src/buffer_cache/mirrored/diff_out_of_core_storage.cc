@@ -127,14 +127,14 @@ bool diff_oocore_storage_t::store_patch(buf_patch_t &patch, const ser_transactio
         const uint16_t initial_next_patch_offset = next_patch_offset;
 
         // TODO! Check if this is a good idea...
-        //reclaim_space(patch_serialized_size);
-        block_id_t next_block_id = select_log_block_for_compression();
-        set_active_log_block(next_block_id);
+        reclaim_space(patch_serialized_size);
+        /*block_id_t next_block_id = select_log_block_for_compression();
+        set_active_log_block(next_block_id);*/
 
         free_space = cache.get_block_size().value() - (size_t)next_patch_offset;
 
         // TODO!
-        const size_t min_reclaimed_space = cache.get_block_size().value() / 4;
+        const size_t min_reclaimed_space = cache.get_block_size().value() / 10;
 
         // Check if enough space could be reclaimed
         if (std::max(patch_serialized_size, min_reclaimed_space) > free_space) {
@@ -172,6 +172,7 @@ void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
 
     n = std::min(number_of_blocks, n);
 
+    waiting_for_flush = 0;
     // Flush the n oldest blocks
     for (block_id_t i = 1; i <= n; ++i) {
         block_id_t current_block = active_log_block + i;
@@ -179,9 +180,13 @@ void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
             current_block -= number_of_blocks;
 
         if (!block_is_empty[current_block - first_block]) {
-            flush_block(current_block);
+            ++waiting_for_flush;
+            //flush_block(current_block);
+            coro_t::spawn(&diff_oocore_storage_t::flush_block, this, current_block, coro_t::self());
         }
     }
+    if (waiting_for_flush > 0)
+        coro_t::wait();
 
     // If we affected the active block, we have to reset next_patch_offset
     if (n == number_of_blocks)
@@ -286,7 +291,7 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
     }
 }
 
-void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
+void diff_oocore_storage_t::flush_block(const block_id_t log_block_id, coro_t* notify_coro) {
     cache.assert_thread();
 
     // TODO: Parallelize block reads?
@@ -327,6 +332,10 @@ void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
     // Wipe the log block
     init_log_block(log_block_id);
     block_is_empty[log_block_id - first_block] = true;
+
+    --waiting_for_flush;
+    if (waiting_for_flush == 0)
+        notify_coro->notify();
 }
 
 void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) {

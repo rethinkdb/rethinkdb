@@ -239,11 +239,12 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     // (we only do this occasionally, hoping that most of the time a compression of the log will do the trick)
     // TODO!
     if (parent->force_diff_storage_flush || randint(800) < (int)parent->dirty_bufs.size()) {
-        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 50 : 200) + 1);
+        //parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 50 : 200) + 1);
+        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 30 : 100) + 1);
         parent->force_diff_storage_flush = false;
     }
 
-    parent->cache->diff_oocore_storage.compress_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 20 : 50) + 1);
+    //parent->cache->diff_oocore_storage.compress_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 20 : 50) + 1);
 
     pm_flushes_diff_flush.end(&start_time2);
 
@@ -345,13 +346,16 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
         local_buf_t *lbuf = &(*lbuf_it);
         inner_buf_t *inner_buf = lbuf->gbuf;
 
-        const ser_transaction_id_t transaction_id = inner_buf->transaction_id;
+        if (diff_storage_failure && lbuf->dirty && !lbuf->needs_flush) {
+            lbuf->needs_flush = true;
+        }
 
-        if (!lbuf->needs_flush) {
+        if (!lbuf->needs_flush && lbuf->dirty) {
+            const ser_transaction_id_t transaction_id = inner_buf->transaction_id;
             const std::vector<buf_patch_t*>* patches = parent->cache->diff_core_storage.get_patches(inner_buf->block_id);
             if (patches != NULL) {
 #ifndef NDEBUG
-                patch_counter_t previous_patch_counter = 0;
+                patch_counter_t previous_patch_counter fl= 0;
 #endif
                 for (size_t patch_index = patches->size(); patch_index > 0; --patch_index) {
                     rassert(transaction_id > NULL_SER_TRANSACTION_ID);
@@ -359,6 +363,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                     if (lbuf->last_patch_materialized < (*patches)[patch_index-1]->get_patch_counter()) {
                         if (!parent->cache->diff_oocore_storage.store_patch(*(*patches)[patch_index-1], transaction_id)) {
                             diff_storage_failure = true;
+                            lbuf->needs_flush = true;
                             break;
                         }
                         else {
@@ -375,12 +380,6 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                 if (!diff_storage_failure)
                     lbuf->last_patch_materialized = (*patches)[patches->size()-1]->get_patch_counter();
             }
-        }
-
-        if (diff_storage_failure && lbuf->dirty && !lbuf->needs_flush) {
-            lbuf->needs_flush = true;
-            // We don't need the patches anymore
-            parent->cache->diff_core_storage.drop_patches(inner_buf->block_id);
         }
 
         if (lbuf->needs_flush) {

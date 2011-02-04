@@ -232,6 +232,11 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
 
     // Store the patch if the buffer does not have to be flushed anyway
     if (!inner_buf->writeback_buf.needs_flush) {
+        if (patch.get_patch_counter() == 1) {
+            // Clean up any left-over patches
+            inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
+        }
+
         inner_buf->cache->diff_core_storage.store_patch(patch);
     }
     else
