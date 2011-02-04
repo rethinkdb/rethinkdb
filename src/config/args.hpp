@@ -102,6 +102,13 @@
 // on a specific slice at any given time.
 #define DEFAULT_MAX_CONCURRENT_FLUSHES            1
 
+// If the size of the data affected by the current set of patches in a block is larger than
+// block size / MAX_PATCHES_SIZE_RATIO, we flush the block instead of waiting for
+// more patches to come.
+// Note: An average write transaction under canonical workload leads to patches of about 160
+// bytes of affected data.
+#define MAX_PATCHES_SIZE_RATIO                    10
+
 // If more than this many bytes of dirty data accumulate in the cache, then write
 // transactions will be throttled.
 // A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION

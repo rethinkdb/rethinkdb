@@ -236,7 +236,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock,
     // we instead try to reclaim some space in the on-disk diff storage now.
     // (we only do this occasionally, hoping that most of the time a compression of the log will do the trick)
-    // TODO! Tune etc...
+    // TODO: Tune, refactor constants etc.
     if (parent->force_diff_storage_flush || randint(800) < (int)parent->dirty_bufs.size()) {
         ticks_t start_time2;
         pm_flushes_diff_flush.begin(&start_time2);
@@ -244,7 +244,6 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
         parent->force_diff_storage_flush = false;
         pm_flushes_diff_flush.end(&start_time2);
     }
-
     //parent->cache->diff_oocore_storage.compress_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 20 : 50) + 1);
 
     /* Start a read transaction so we can request bufs. */
@@ -349,7 +348,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
             lbuf->needs_flush = true;
         }
 
-        if (!lbuf->needs_flush && lbuf->dirty) {
+        if (!lbuf->needs_flush && lbuf->dirty && inner_buf->next_patch_counter > 1) {
             const ser_transaction_id_t transaction_id = inner_buf->transaction_id;
             const std::vector<buf_patch_t*>* patches = parent->cache->diff_core_storage.get_patches(inner_buf->block_id);
             if (patches != NULL) {

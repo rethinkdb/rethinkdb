@@ -43,10 +43,9 @@ struct load_buf_fsm_t :
                 inner_buf->writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
             }
 
-            // TODO!
-            if (patches) {
+            /*if (patches) {
                 fprintf(stderr, "Replaying %d patches on block %d\n", (int)patches->size(), inner_buf->block_id);
-            }
+            }*/
 
             // Apply outstanding patches
             inner_buf->cache->diff_core_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data);
@@ -151,7 +150,7 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
     : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner)
 {
 #ifndef FAST_PERFMON
-    num_patches_at_start = -1;
+    patches_affected_data_size_at_start = -1;
 #endif
 
     pm_bufs_acquiring.begin(&start_time);
@@ -192,11 +191,8 @@ void mc_buf_t::on_lock_available() {
             }
             data = inner_buf->data;
 #ifndef FAST_PERFMON
-            if (!inner_buf->writeback_buf.needs_flush && num_patches_at_start == -1) {
-                if (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id))
-                    num_patches_at_start = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id)->size();
-                else
-                    num_patches_at_start = 0;
+            if (!inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start == -1) {
+                patches_affected_data_size_at_start = inner_buf->cache->diff_core_storage.get_affected_data_size(inner_buf->block_id);
             }
 #endif
             break;
@@ -214,7 +210,6 @@ void mc_buf_t::on_lock_available() {
     if (callback) callback->on_block_available(this);
 }
 
-// TODO! Add perfmon to count number of patches applied
 void mc_buf_t::apply_patch(buf_patch_t& patch) {
     rassert(ready);
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
@@ -232,12 +227,8 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
 
     // Check if we want to disable patching for this block and flush it directly instead
     if (!inner_buf->writeback_buf.needs_flush) {
-        // TODO! Refactor
-        const size_t MAX_PATCH_SIZE = inner_buf->cache->serializer->get_block_size().value() / 5;
-        const size_t PATCH_COUNT_FLUSH_THRESHOLD = 16; // One transaction causes about 6 patches on average
-        if (    (patch.get_serialized_size() > MAX_PATCH_SIZE) ||
-                (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id) &&
-                    inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id)->size() + 1 >= PATCH_COUNT_FLUSH_THRESHOLD)) {
+        const size_t MAX_PATCHES_SIZE = inner_buf->cache->serializer->get_block_size().value() / MAX_PATCHES_SIZE_RATIO;
+        if (patch.get_affected_data_size() + inner_buf->cache->diff_core_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
             ensure_flush();
         }
     }
@@ -327,20 +318,18 @@ void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
 }
 
 #ifndef FAST_PERFMON
-perfmon_sampler_t pm_patches_per_write("patches_per_write_buf", secs_to_ticks(1), false);
+perfmon_sampler_t pm_patches_size_per_write("patches_size_per_write_buf", secs_to_ticks(1), false);
 #endif
 
 void mc_buf_t::release() {
     pm_bufs_held.end(&start_time);
 
 #ifndef FAST_PERFMON
-    if (mode == rwi_write && !inner_buf->writeback_buf.needs_flush && num_patches_at_start >= 0) {
-        if (inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id) && inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id)->size() > (size_t)num_patches_at_start)
-            pm_patches_per_write.record(inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id)->size() - num_patches_at_start);
+    if (mode == rwi_write && !inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start >= 0) {
+        if (inner_buf->cache->diff_core_storage.get_affected_data_size(inner_buf->block_id) > (size_t)patches_affected_data_size_at_start)
+            pm_patches_size_per_write.record(inner_buf->cache->diff_core_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
     }
 #endif
-    // TODO! If write  & if !flush: Log to perfmon number of patches (TODO: Store initial number in acquire)
-    // (only if FAST_PERFMON=0)
     
     inner_buf->cache->assert_thread();
     

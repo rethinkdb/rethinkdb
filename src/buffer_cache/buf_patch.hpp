@@ -40,6 +40,8 @@ public:
         return block_id;
     }
 
+    virtual size_t get_affected_data_size() const = 0;
+
     // This is used in buf_t
     virtual void apply_to_buf(char* buf_data) = 0;
 
@@ -70,6 +72,8 @@ public:
 
     virtual void apply_to_buf(char* buf_data);
 
+    virtual size_t get_affected_data_size() const;
+
 protected:
     virtual void serialize_data(char* destination) const;
     virtual uint16_t get_data_size() const;
@@ -86,6 +90,8 @@ public:
     memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const ser_transaction_id_t applies_to_transaction_id, const char* data, const uint16_t data_length);
 
     virtual void apply_to_buf(char* buf_data);
+
+    virtual size_t get_affected_data_size() const;
 
 protected:
     virtual void serialize_data(char* destination) const;

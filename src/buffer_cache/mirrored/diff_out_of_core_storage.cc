@@ -30,7 +30,7 @@ void diff_oocore_storage_t::init(const block_id_t first_block, const block_id_t 
     if (number_of_blocks == 0)
         return;
 
-    // TODO! Make this parallel maybe to speed up database loading on HDD? (would it even help?)
+    // TODO: Make this parallel maybe to speed up database loading on HDD? (but would that even help?)
 
     // Load all log blocks into memory
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
@@ -45,7 +45,6 @@ void diff_oocore_storage_t::init(const block_id_t first_block, const block_id_t 
             void *buf_data = log_buf->get_data_major_write();
             guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
         } else {
-            //fprintf(stderr, "Initializing a new log block with id %d\n", current_block);
             // Initialize a new log block here (we rely on the property block_id assignment properties)
             mc_inner_buf_t *new_ibuf = new mc_inner_buf_t(&cache);
             guarantee(new_ibuf->block_id == current_block);
@@ -110,7 +109,6 @@ void diff_oocore_storage_t::load_patches(diff_core_storage_t &in_core_storage) {
 bool diff_oocore_storage_t::store_patch(buf_patch_t &patch, const ser_transaction_id_t current_block_transaction_id) {
     rassert(log_block_bufs.size() == number_of_blocks);
     cache.assert_thread();
-    // TODO: assert flush_in_progress somehow?
     rassert(patch.get_transaction_id() == NULL_SER_TRANSACTION_ID);
     patch.set_transaction_id(current_block_transaction_id);
 
@@ -126,14 +124,13 @@ bool diff_oocore_storage_t::store_patch(buf_patch_t &patch, const ser_transactio
         const block_id_t initial_log_block = active_log_block;
         const uint16_t initial_next_patch_offset = next_patch_offset;
 
-        // TODO! Check if this is a good idea...
         reclaim_space(patch_serialized_size);
-        /*block_id_t next_block_id = select_log_block_for_compression();
-        set_active_log_block(next_block_id);*/
 
         free_space = cache.get_block_size().value() - (size_t)next_patch_offset;
 
-        // TODO!
+        // Enforce a certain fraction of the block to be freed up. If that is not possible
+        // we rather fail than continue trying to free up space for the following patches,
+        // as the latter might make everything very inefficient.
         const size_t min_reclaimed_space = cache.get_block_size().value() / 10;
 
         // Check if enough space could be reclaimed
@@ -152,8 +149,6 @@ bool diff_oocore_storage_t::store_patch(buf_patch_t &patch, const ser_transactio
     rassert(log_buf);
     block_is_empty[active_log_block - first_block] = false;
 
-    //fprintf(stderr, "Stored to log block %d at offset %d\n", (int)active_log_block, (int)next_patch_offset);
-
     void *buf_data = log_buf->get_data_major_write();
     patch.serialize((char*)buf_data + next_patch_offset);
     next_patch_offset += patch_serialized_size;
@@ -165,7 +160,6 @@ bool diff_oocore_storage_t::store_patch(buf_patch_t &patch, const ser_transactio
 void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
     rassert(log_block_bufs.size() == number_of_blocks);
     cache.assert_thread();
-    // TODO: assert flush_in_progress somehow?
 
     if (number_of_blocks == 0)
         return;
@@ -294,8 +288,6 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
 void diff_oocore_storage_t::flush_block(const block_id_t log_block_id, coro_t* notify_coro) {
     cache.assert_thread();
 
-    // TODO: Parallelize block reads?
-
     // Scan over the block
     mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];;
     const void *buf_data = log_buf->get_data_read();
@@ -374,7 +366,7 @@ void diff_oocore_storage_t::init_log_block(const block_id_t log_block_id) {
     bzero((char*)buf_data + sizeof(LOG_BLOCK_MAGIC), cache.serializer->get_block_size().value() - sizeof(LOG_BLOCK_MAGIC));
 }
 
-// Just the same as in buffer_cache/co_functions.cc (TODO: Refactor)
+// Just the same as in buffer_cache/co_functions.cc (TODO: Refactor?)
 struct co_block_available_callback_2_t : public mc_block_available_callback_t {
     coro_t *self;
     mc_buf_t *value;

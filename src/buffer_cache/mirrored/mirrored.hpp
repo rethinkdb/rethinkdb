@@ -112,7 +112,7 @@ private:
     ~mc_buf_t();
 
 #ifndef FAST_PERFMON
-    int num_patches_at_start;
+    long int patches_affected_data_size_at_start;
 #endif
 
 public:

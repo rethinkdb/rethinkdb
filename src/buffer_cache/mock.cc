@@ -65,7 +65,6 @@ void mock_buf_t::apply_patch(buf_patch_t& patch) {
 }
 
 patch_counter_t mock_buf_t::get_next_patch_counter() {
-    // TODO! Implement
     return 0;
 }
 
