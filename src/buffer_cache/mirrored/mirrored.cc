@@ -148,8 +148,12 @@ perfmon_duration_sampler_t
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
-    : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner), num_patches_at_start(-1)
+    : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner)
 {
+#ifndef FAST_PERFMON
+    num_patches_at_start = -1;
+#endif
+
     pm_bufs_acquiring.begin(&start_time);
     inner_buf->refcount++;
     if (inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
