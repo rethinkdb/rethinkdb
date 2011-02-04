@@ -14,7 +14,8 @@ public:
     masterstore_exc_t(const char *wat) : std::runtime_error(wat) { }
 };
 
-class masterstore_t {
+
+class masterstore_t : public home_thread_mixin_t {
 public:
     masterstore_t() { }
 

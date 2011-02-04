@@ -5,6 +5,7 @@
 #include <list>
 #include <vector>
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
 #include "arch/linux/message_hub.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
@@ -33,27 +34,10 @@ struct coro_t :
     friend class coro_context_t;
     friend bool is_coroutine_stack_overflow(void *);
 
-private:
-    /* A deed_t is a virtual superclass for callable objects. */
-    struct deed_t {
-        virtual void operator()() = 0;
-    protected:
-        ~deed_t() { }
-    };
-
 public:
     template<typename callable_t>
-    static void spawn(callable_t fun) {
-        /* fun_runner_t converts any callable into a deed_t. */
-        struct fun_runner_t : public deed_t {
-            callable_t fun;
-            fun_runner_t(callable_t fun) : fun(fun) { }
-            virtual void operator()() {
-                fun();
-                delete this;
-            }
-        };
-        new coro_t(new fun_runner_t(fun));
+    static void spawn(const callable_t& fun) {
+        new coro_t(fun);
     }
 
     // Use coro_t::spawn(boost::bind(...)) for multiparamater spawnings.
@@ -72,16 +56,17 @@ private:
     coro_context_t object. */
     coro_context_t *context;
 
-    coro_t(deed_t *deed);
-    deed_t *deed;
+    coro_t(const boost::function<void()>& deed);
+    boost::function<void()> deed_;
     void run();
     ~coro_t();
 
     virtual void on_thread_switch();
 
-    int current_thread;
+    int current_thread_;
 
-    bool notified;   // Sanity check variable
+    // Sanity check variable
+    bool notified_;
 
     DISABLE_COPYING(coro_t);
 };

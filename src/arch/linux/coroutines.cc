@@ -193,10 +193,10 @@ coro_context_t::~coro_context_t() {
 
 /* coro_t */
 
-coro_t::coro_t(deed_t *deed) :
-    deed(deed),
-    current_thread(linux_thread_pool_t::thread_id),
-    notified(false)
+coro_t::coro_t(const boost::function<void()>& deed) :
+    deed_(deed),
+    current_thread_(linux_thread_pool_t::thread_id),
+    notified_(false)
 {
 
     pm_active_coroutines++;
@@ -225,7 +225,7 @@ void coro_t::run() {
 
     rassert(current_coro == this);
 
-    (*deed)();
+    deed_();
 
     delete this;
 }
@@ -252,31 +252,31 @@ void coro_t::wait() {   /* class method */
 
 void coro_t::notify() {
 
-    rassert(!notified);
-    notified = true;
+    rassert(!notified_);
+    notified_ = true;
 
     /* notify() doesn't switch to the coroutine immediately; instead, it just pushes
     the coroutine onto the event queue. */
 
     /* current_thread is the thread that the coroutine lives on, which may or may not be the
     same as get_thread_id(). */
-    linux_thread_pool_t::thread->message_hub.store_message(current_thread, this);
+    linux_thread_pool_t::thread->message_hub.store_message(current_thread_, this);
 }
 
 void coro_t::move_to_thread(int thread) {   /* class method */
-    if (thread == self()->current_thread) {
+    if (thread == self()->current_thread_) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
-    self()->current_thread = thread;
+    self()->current_thread_ = thread;
     self()->notify();
     wait();
 }
 
 void coro_t::on_thread_switch() {
 
-    rassert(notified);
-    notified = false;
+    rassert(notified_);
+    notified_ = false;
 
     rassert(current_coro == NULL);
     current_coro = this;
