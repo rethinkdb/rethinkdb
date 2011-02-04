@@ -216,6 +216,9 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
                 rh->writef("\r\n");
             }
         }
+        if (res.to_signal_when_done) {
+            res.to_signal_when_done->pulse();
+        }
     }
 
     rh->write_end();
