@@ -448,4 +448,6 @@ $(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc
 	rm -f $@.$$$$
 # Include the dependencies into the makefile so that they take effect
 
+ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPS)
+endif
