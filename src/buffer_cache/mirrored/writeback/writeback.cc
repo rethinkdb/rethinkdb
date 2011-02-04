@@ -355,7 +355,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
             const std::vector<buf_patch_t*>* patches = parent->cache->diff_core_storage.get_patches(inner_buf->block_id);
             if (patches != NULL) {
 #ifndef NDEBUG
-                patch_counter_t previous_patch_counter fl= 0;
+                patch_counter_t previous_patch_counter = 0;
 #endif
                 for (size_t patch_index = patches->size(); patch_index > 0; --patch_index) {
                     rassert(transaction_id > NULL_SER_TRANSACTION_ID);
