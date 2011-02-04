@@ -124,15 +124,25 @@ bool diff_oocore_storage_t::store_patch(buf_patch_t &patch, const ser_transactio
     if (patch_serialized_size > free_space) {
         // Try reclaiming some space (this usually switches to another log block)
         const block_id_t initial_log_block = active_log_block;
-        reclaim_space(patch_serialized_size);
+        const uint16_t initial_next_patch_offset = next_patch_offset;
+
+        // TODO! Check if this is a good idea...
+        //reclaim_space(patch_serialized_size);
+        block_id_t next_block_id = select_log_block_for_compression();
+        set_active_log_block(next_block_id);
+
         free_space = cache.get_block_size().value() - (size_t)next_patch_offset;
 
+        // TODO!
+        const size_t min_reclaimed_space = cache.get_block_size().value() / 4;
+
         // Check if enough space could be reclaimed
-        if (patch_serialized_size > free_space) {
+        if (std::max(patch_serialized_size, min_reclaimed_space) > free_space) {
             // No success :-(
             // We go back to the initial block to make sure that this one gets flushed
             // when flush_n_oldest_blocks is called next (as it is obviously full)...
-            set_active_log_block(initial_log_block);
+            active_log_block = initial_log_block;
+            next_patch_offset = initial_next_patch_offset;
             return false;
         }
     }
@@ -209,7 +219,8 @@ unsigned int diff_oocore_storage_t::get_number_of_log_blocks() const {
 
 void diff_oocore_storage_t::reclaim_space(const size_t space_required) {
     block_id_t compress_block_id = select_log_block_for_compression();
-    compress_block(compress_block_id);
+    if (!block_is_empty[compress_block_id - first_block])
+        compress_block(compress_block_id);
     set_active_log_block(compress_block_id);
 }
 
@@ -222,8 +233,6 @@ block_id_t diff_oocore_storage_t::select_log_block_for_compression() {
 }
 
 void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
-    //fprintf(stderr, "Compressing log block %d...", (int)log_block_id);
-
     cache.assert_thread();
 
     std::vector<buf_patch_t*> live_patches;
@@ -275,14 +284,12 @@ void diff_oocore_storage_t::compress_block(const block_id_t log_block_id) {
             delete *patch;
         }
     }
-
-    //fprintf(stderr, " done\n");
 }
 
 void diff_oocore_storage_t::flush_block(const block_id_t log_block_id) {
     cache.assert_thread();
 
-    // TODO: Parallelize block reads
+    // TODO: Parallelize block reads?
 
     // Scan over the block
     mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];;
@@ -326,22 +333,28 @@ void diff_oocore_storage_t::set_active_log_block(const block_id_t log_block_id) 
     rassert (log_block_id >= first_block && log_block_id < first_block + number_of_blocks);
     active_log_block = log_block_id;
 
-    // Scan through the block to determine next_patch_offset
-    mc_buf_t *log_buf = log_block_bufs[active_log_block - first_block];
-    const void *buf_data = log_buf->get_data_read();
-    guarantee(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
-    uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
-    while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
-        uint16_t length = *(uint16_t*)((char*)buf_data + current_offset);
-        if (length == 0) {
-            break;
+    if (!block_is_empty[log_block_id - first_block]) {
+        // Scan through the block to determine next_patch_offset
+        mc_buf_t *log_buf = log_block_bufs[active_log_block - first_block];
+        const void *buf_data = log_buf->get_data_read();
+        rassert(strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
+        uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+
+        while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
+            uint16_t length = *(uint16_t*)((char*)buf_data + current_offset);
+            if (length == 0) {
+                break;
+            }
+            else {
+                current_offset += length;
+            }
         }
-        else {
-            current_offset += length;
-        }
+
+        next_patch_offset = current_offset;
     }
-    
-    next_patch_offset = current_offset;
+    else {
+        next_patch_offset = sizeof(LOG_BLOCK_MAGIC);
+    }
 }
 
 void diff_oocore_storage_t::init_log_block(const block_id_t log_block_id) {

@@ -242,9 +242,9 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
         parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 50 : 200) + 1);
         parent->force_diff_storage_flush = false;
     }
-    //if (randint(10) == 0) {
-    //    parent->cache->diff_oocore_storage.compress_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / 5);
-    //}
+
+    parent->cache->diff_oocore_storage.compress_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 20 : 50) + 1);
+
     pm_flushes_diff_flush.end(&start_time2);
 
     /* Start a read transaction so we can request bufs. */
@@ -357,10 +357,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                     rassert(transaction_id > NULL_SER_TRANSACTION_ID);
                     rassert(previous_patch_counter == 0 || (*patches)[patch_index-1]->get_patch_counter() == previous_patch_counter - 1);
                     if (lbuf->last_patch_materialized < (*patches)[patch_index-1]->get_patch_counter()) {
-                        if (diff_storage_failure || !parent->cache->diff_oocore_storage.store_patch(*(*patches)[patch_index-1], transaction_id)) {
-                            lbuf->needs_flush = true;
-                            // We don't need the patches anymore
-                            parent->cache->diff_core_storage.drop_patches(inner_buf->block_id);
+                        if (!parent->cache->diff_oocore_storage.store_patch(*(*patches)[patch_index-1], transaction_id)) {
                             diff_storage_failure = true;
                             break;
                         }
@@ -378,6 +375,12 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                 if (!diff_storage_failure)
                     lbuf->last_patch_materialized = (*patches)[patches->size()-1]->get_patch_counter();
             }
+        }
+
+        if (diff_storage_failure && lbuf->dirty && !lbuf->needs_flush) {
+            lbuf->needs_flush = true;
+            // We don't need the patches anymore
+            parent->cache->diff_core_storage.drop_patches(inner_buf->block_id);
         }
 
         if (lbuf->needs_flush) {
