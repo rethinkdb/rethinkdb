@@ -18,6 +18,15 @@ def gen_value(prefix, num):
         return prefix + value_padding + str(num).zfill(6)
 
 
+def sock_readline(sock_file):
+    ls = []
+    while True:
+        l = sock_file.readline()
+        ls.append(l)
+        if len(l) >= 2 and l[-2:] == '\r\n':
+            break
+    return ''.join(ls)
+
 value_line = line("^VALUE\s+([^\s]+)\s+(\d+)\s+(\d+)\r\n$", [('key', 's'), ('flags', 'd'), ('length', 'd')])
 def is_sorted_output(kvs):
     k = None
@@ -37,15 +46,15 @@ def get_results(s):
 
     f = s.makefile()
     while True:
-        l = f.readline()
+        l = sock_readline(f)
         if l == 'END\r\n':
             break
         val_def = value_line.parse_line(l)
         if not val_def:
             raise ValueError("received unexpected line from rget: %s" % l)
-        val = f.read(val_def['length'])
-        if f.read(2) != '\r\n':
-            raise ValueError("received unexpected line from rget (expected '\\r\\n'): %s" % l)
+        val = sock_readline(f).rstrip()
+        if len(val) != val_def['length']:
+            raise ValueError("received value of unexpected length (expected %d, got %d: '%s')" % (val_def['length'], len(val), val))
             
         res.append({'key': val_def['key'], 'value': val})
     return res
@@ -66,6 +75,7 @@ def test_function(opts, port, test_dir):
 
     print "Creating test data"
     mc = connect_to_port(opts, port)
+    mc.set('z1', 'bar', time=1) # we expect it to expire before we check it later
     for i in range(0,foo_count):
         mc.set(gen_key('foo', i), gen_value('foo', i))
     for i in range(0,fop_count):
@@ -130,8 +140,13 @@ def test_function(opts, port, test_dir):
         if kv['value'] != expected_value:
             raise ValueError("received wrong value (expected: '%s', got: '%s')" % (expected_key, kv['value']))
 
-    print "Check empty results"
+    print "Checking empty results being returned when no keys match"
     s.send('rget %s %s %d %d %d\r\n' % ('a', 'b', 0, 0, max_results))
+    res = get_results(s)
+    check_results(res, 0)
+
+    print "Checking that expired values are not returned"
+    s.send('rget z0 z2 1 1 100\r\n')
     res = get_results(s)
     check_results(res, 0)
 
