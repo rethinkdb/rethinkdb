@@ -10,11 +10,14 @@
 #include "btree/append_prepend.hpp"
 #include "btree/delete.hpp"
 #include "btree/get_cas.hpp"
+#include "replication/masterstore.hpp"
 #include <boost/scoped_ptr.hpp>
+
+using replication::masterstore_t;
 
 void btree_slice_t::create(translator_serializer_t *serializer,
                            mirrored_cache_config_t *config,
-                           replication::masterstore_t *masterstore) {
+                           masterstore_t *masterstore) {
     /* Put slice in a scoped pointer because it's way to big to allocate on a coroutine stack */
     boost::scoped_ptr<btree_slice_t> slice(new btree_slice_t(serializer, config, masterstore));
 
@@ -30,7 +33,7 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
                              mirrored_cache_config_t *config,
-                             replication::masterstore_t *masterstore)
+                             masterstore_t *masterstore)
     : cache(serializer, config),
       cas_counter_(0),
       masterstore_(masterstore) {
@@ -54,6 +57,7 @@ store_t::get_result_t btree_slice_t::get(store_key_t *key) {
 }
 
 store_t::get_result_t btree_slice_t::get_cas(store_key_t *key, castime_t castime) {
+    spawn_on_home(masterstore_, boost::bind(&masterstore_t::get_cas, _1, key, castime));
     return btree_get_cas(key, this, generate_if_necessary(castime));
 }
 

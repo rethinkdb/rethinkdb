@@ -120,7 +120,10 @@ The method will be called on the other thread. If the thread to call the method 
 the current thread, returns the method's return value. Otherwise, returns false. */
 
 template<class callable_t>
-void do_on_thread(int thread, const callable_t &callable);
+void do_on_thread(int thread, const callable_t& callable);
+
+template <class obj_t, class fun_t>
+void spawn_on_home(const obj_t& obj, const fun_t& fun);
 
 template<class callable_t>
 void do_later(const callable_t &callable);
