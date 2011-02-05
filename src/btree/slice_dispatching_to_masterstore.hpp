@@ -1,36 +1,17 @@
-#ifndef __BTREE_SLICE_HPP__
-#define __BTREE_SLICE_HPP__
+#ifndef __BTREE_SLICE_DISPATCHING_TO_MASTERSTORE_HPP__
+#define __BTREE_SLICE_DISPATCHING_TO_MASTERSTORE_HPP__
 
+#include "btree/slice.hpp"
 #include "store.hpp"
-#include "buffer_cache/buffer_cache.hpp"
-#include "serializer/translator.hpp"
 
-class initialize_superblock_fsm_t;
-struct btree_replicant_t;
-
-namespace replication {
-class masterstore_t;
-}  // namespace replication
-
-/* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
-cache for the purpose of storing a btree. There are many btree_slice_ts per
-btree_key_value_store_t. */
-
-class btree_slice_t :
-    public store_t,
-    public home_thread_mixin_t
-{
+class btree_slice_dispatching_to_masterstore_t : public store_t {
 public:
-    // Blocks
-    static void create(translator_serializer_t *serializer,
-                       mirrored_cache_config_t *config);
+    btree_slice_dispatching_to_masterstore_t(btree_slice_t *slice, replication::masterstore_t *masterstore)
+        : slice_(slice), masterstore_(masterstore) { }
 
-    // Blocks
-    btree_slice_t(translator_serializer_t *serializer,
-                  mirrored_cache_config_t *config);
-
-    // Blocks
-    ~btree_slice_t();
+    ~btree_slice_dispatching_to_masterstore_t() {
+        delete slice_;
+    }
 
     /* store_t interface. */
     get_result_t get(store_key_t *key);
@@ -46,12 +27,20 @@ public:
     append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime);
     delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
-    /* Used by internal btree logic */
-    cache_t cache;
+
 
 private:
+    btree_slice_t *slice_;
+    replication::masterstore_t *masterstore_;
 
-    DISABLE_COPYING(btree_slice_t);
+    uint32_t cas_counter_;
+    castime_t gen_castime();
+    castime_t generate_if_necessary(castime_t castime);
+    repli_timestamp generate_if_necessary(repli_timestamp timestamp);
+
+    DISABLE_COPYING(btree_slice_dispatching_to_masterstore_t);
 };
 
-#endif /* __BTREE_SLICE_HPP__ */
+
+
+#endif  // __BTREE_SLICE_DISPATCHING_TO_MASTERSTORE_HPP__

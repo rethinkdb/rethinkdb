@@ -139,7 +139,7 @@ void prep_for_btree(
 
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    btree_slice_t::create(pseudoserializers[i], config, masterstore);
+    btree_slice_t::create(pseudoserializers[i], config);
 }
 
 void create_existing_btree(
@@ -153,7 +153,7 @@ void create_existing_btree(
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    slices[i] = new btree_slice_t(pseudoserializers[i], config, masterstore);
+    slices[i] = new btree_slice_t(pseudoserializers[i], config);
 }
 
 void destroy_btree(

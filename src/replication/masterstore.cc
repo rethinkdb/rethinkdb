@@ -140,13 +140,13 @@ void masterstore_t::prepend(store_key_t *key, data_provider_t *data, castime_t c
     stereotypical(PREPEND, key, data, prependstruct);
 }
 
-void masterstore_t::delete_key(store_key_t *key) {
+void masterstore_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
     size_t n = sizeof(headed<net_delete_t>) + key->size;
     scoped_malloc<headed<net_delete_t> > message(n);
     message->hdr.message_multipart_aspect = SMALL;
     message->hdr.msgcode = DELETE;
     message->hdr.msgsize = n;
-    message->data.timestamp = current_time();  // HACK
+    message->data.timestamp = timestamp;
     message->data.key_size = key->size;
     memcpy(message->data.key, key->contents, key->size);
 

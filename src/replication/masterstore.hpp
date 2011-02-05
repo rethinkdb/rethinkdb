@@ -34,7 +34,7 @@ public:
     void decr(store_key_t *key, uint64_t amount, castime_t castime);
     void append(store_key_t *key, data_provider_t *data, castime_t castime);
     void prepend(store_key_t *key, data_provider_t *data, castime_t castime);
-    void delete_key(store_key_t *key);
+    void delete_key(store_key_t *key, repli_timestamp timestamp);
 
 
 
