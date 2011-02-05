@@ -184,7 +184,8 @@ mock_transaction_t::~mock_transaction_t() {
 
 mock_cache_t::mock_cache_t(
     translator_serializer_t *serializer,
-    mirrored_cache_config_t *config)
+    mirrored_cache_config_t *dynamic_config,
+    mirrored_cache_static_config_t *static_config)
     : serializer(serializer), running(false), n_transactions(0), block_size(serializer->get_block_size()) { }
 
 mock_cache_t::~mock_cache_t() {

@@ -116,7 +116,8 @@ public:
         // mock_cache gets a serializer so its constructor is consistent with
         // the mirrored cache's serializer, but it doesn't use it.
         translator_serializer_t *serializer,
-        mirrored_cache_config_t *config);
+        mirrored_cache_config_t *dynamic_config,
+        mirrored_cache_static_config_t *static_config);
     ~mock_cache_t();
     
     struct ready_callback_t {
