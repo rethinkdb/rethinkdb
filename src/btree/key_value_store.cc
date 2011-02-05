@@ -100,8 +100,16 @@ void create_existing_serializer(
         c->this_serializer < (int)dynamic_config->serializer_private.size());
     magics[c->this_serializer] = c->database_magic;
 
-    if (i == 0) *btree_static_config_out = c->btree_config;
-    if (i == 0) *cache_static_config_out = c->cache_config;
+    if (i == 0) {
+        *btree_static_config_out = c->btree_config;
+        *cache_static_config_out = c->cache_config;
+        if (cache_static_config_out->n_diff_log_blocks * btree_static_config_out->n_slices * serializer->get_block_size().ser_value() > (unsigned long long)dynamic_config->cache.max_size) {
+            fail_due_to_user_error("The cache of size %d megabytes is too small to hold this database's diff log of size %d megabytes.",
+                (int)(dynamic_config->cache.max_size / MEGABYTE),
+                (int)(cache_static_config_out->n_diff_log_blocks * btree_static_config_out->n_slices * serializer->get_block_size().ser_value() / MEGABYTE));
+        }
+    }
+
     rassert(!serializers[c->this_serializer]);
     serializers[c->this_serializer] = serializer;
 
