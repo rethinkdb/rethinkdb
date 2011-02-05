@@ -48,6 +48,9 @@ void usage(const char *name) {
     printf("\t-k, --keys\n\t\tKey distribution in DISTR format (see below). Defaults to [");
     _d.keys.print();
     printf("].\n");
+    printf("\t-K, --keys-prefix\n\t\tPrefix every key with the following string. Defaults to [");
+    printf("%s", _d.keys.prefix.c_str());
+    printf("].\n");
     printf("\t-v, --values\n\t\tValue distribution in DISTR format (see below). Maximum possible\n");
     printf("\t\tvalue size is [%d]. Defaults to [", MAX_VALUE_SIZE);
     _d.values.print();
@@ -101,6 +104,7 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"clients",        required_argument, 0, 'c'},
                 {"workload",       required_argument, 0, 'w'},
                 {"keys",           required_argument, 0, 'k'},
+                {"keys-prefix",    required_argument, 0, 'K'},
                 {"values",         required_argument, 0, 'v'},
                 {"duration",       required_argument, 0, 'd'},
                 {"batch-factor",   required_argument, 0, 'b'},
@@ -115,7 +119,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:v:d:b:l:q:o:i:h:f:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:l:q:o:i:h:f:", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -142,6 +146,9 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'k':
             config->keys.parse(optarg);
+            break;
+        case 'K':
+            config->keys.prefix = optarg;
             break;
         case 'v':
             config->values.parse(optarg);

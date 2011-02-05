@@ -5,7 +5,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.
 from test_common import *
 
 def test_function(opts, port, test_dir):
-
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", port))
 
