@@ -36,16 +36,18 @@ struct coro_t :
 
 public:
     static void spawn(const boost::function<void()>& deed);
+    static void spawn_now(const boost::function<void()> &deed);
 
     // Use coro_t::spawn(boost::bind(...)) for multiparamater spawnings.
 
     static void spawn_on_thread(int thread, const boost::function<void()>& deed) {
-        new coro_t(deed, thread);
+        (new coro_t(deed, thread))->notify();
     }
 
 public:
     static void wait(); //Pauses the current coroutine until it's notified
     static coro_t *self(); //Returns the current coroutine
+    void notify_now(); // Switches to a coroutine immediately (will switch back when it returns or wait()s)
     void notify(); //Wakes up the coroutine, allowing the scheduler to trigger it to continue
     static void move_to_thread(int thread); //Wait and notify self on the CPU (avoiding race conditions)
 
@@ -66,8 +68,9 @@ private:
 
     int current_thread_;
 
-    // Sanity check variable
+    // Sanity check variables
     bool notified_;
+    bool waiting_;
 
     DISABLE_COPYING(coro_t);
 };

@@ -102,6 +102,9 @@ static __thread coro_t *current_coro = NULL;
 /* The main context. */
 static __thread ucontext_t scheduler;
 
+/* The previous context. */
+static __thread coro_t *prev_coro = NULL;
+
 /* A list of coro_context_t objects that are not in use. */
 static __thread intrusive_list_t<coro_context_t> *free_contexts = NULL;
 
@@ -173,8 +176,11 @@ void coro_context_t::run() {
 
         current_coro->run();
 
-        current_coro = NULL;
-        lightweight_swapcontext(&self->env, &scheduler);
+        if (prev_coro) {
+            lightweight_swapcontext(&self->env, &prev_coro->context->env);
+        } else {
+            lightweight_swapcontext(&self->env, &scheduler);
+        }
     }
 }
 
@@ -197,7 +203,8 @@ coro_context_t::~coro_context_t() {
 coro_t::coro_t(const boost::function<void()>& deed, int thread) :
     deed_(deed),
     current_thread_(thread),
-    notified_(false)
+    notified_(false),
+    waiting_(true)
 {
 
     pm_active_coroutines++;
@@ -209,9 +216,6 @@ coro_t::coro_t(const boost::function<void()>& deed, int thread) :
         context = free_contexts->tail();
         free_contexts->remove(context);
     }
-
-    /* Eventually our run() method will be called within the coroutine. */
-    notify();
 }
 
 coro_t::~coro_t() {
@@ -223,8 +227,8 @@ coro_t::~coro_t() {
 }
 
 void coro_t::run() {
-
     rassert(current_coro == this);
+    waiting_ = false;
 
     deed_();
 
@@ -244,11 +248,40 @@ void coro_t::wait() {   /* class method */
     rassert(!abi::__cxa_current_exception_type());
 #endif
 
-    rassert(current_coro != NULL);
-    coro_context_t *context = current_coro->context;
-    current_coro = NULL;
-    lightweight_swapcontext(&context->env, &scheduler);
-    rassert(current_coro != NULL);
+    rassert(!current_coro->waiting_);
+    current_coro->waiting_ = true;
+
+    rassert(current_coro);
+    if (prev_coro) {
+        lightweight_swapcontext(&current_coro->context->env, &prev_coro->context->env);
+    } else {
+        lightweight_swapcontext(&current_coro->context->env, &scheduler);
+    }
+
+    rassert(current_coro);
+
+    rassert(current_coro->waiting_);
+    current_coro->waiting_ = false;
+}
+
+void coro_t::notify_now() {
+    rassert(waiting_);
+    rassert(!notified_);
+    rassert(current_thread_ == linux_thread_pool_t::thread_id);
+
+    coro_t *prev_prev_coro = prev_coro;
+    prev_coro = current_coro;
+    current_coro = this;
+
+    if (prev_coro) {
+        lightweight_swapcontext(&prev_coro->context->env, &context->env);
+    } else {
+        lightweight_swapcontext(&scheduler, &context->env);
+    }
+
+    rassert(current_coro == this);
+    current_coro = prev_coro;
+    prev_coro = prev_prev_coro;
 }
 
 void coro_t::notify() {
@@ -279,10 +312,7 @@ void coro_t::on_thread_switch() {
     rassert(notified_);
     notified_ = false;
 
-    rassert(current_coro == NULL);
-    current_coro = this;
-    lightweight_swapcontext(&scheduler, &context->env);
-    rassert(current_coro == NULL);
+    notify_now();
 }
 
 void coro_t::set_coroutine_stack_size(size_t size) {
@@ -300,4 +330,8 @@ bool is_coroutine_stack_overflow(void *addr) {
 
 void coro_t::spawn(const boost::function<void()>& deed) {
     spawn_on_thread(linux_thread_pool_t::thread_id, deed);
+}
+
+void coro_t::spawn_now(const boost::function<void()> &deed) {
+    (new coro_t(deed, linux_thread_pool_t::thread_id))->notify_now();
 }

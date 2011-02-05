@@ -23,7 +23,7 @@ void pmap(int count, const callable_t &c) {
     cond_t cond;
     int outstanding = count - 1;
     for (int i = 0; i < count - 1; i++) {
-        coro_t::spawn(boost::bind(&pmap_one<callable_t>, i, &c, &outstanding, &cond));
+        coro_t::spawn_now(boost::bind(&pmap_one<callable_t>, i, &c, &outstanding, &cond));
     }
     c(count - 1);
     cond.wait();
