@@ -19,7 +19,7 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     boost::scoped_ptr<btree_slice_t> slice(new btree_slice_t(serializer, config));
 
     /* Initialize the root block */
-    transactor_t transactor(&slice->cache, rwi_write);
+    transactor_t transactor(&slice->cache_, rwi_write);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = (btree_superblock_t*)(superblock.buf()->get_data_write());
     sb->magic = btree_superblock_t::expected_magic;
@@ -30,12 +30,12 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
                              mirrored_cache_config_t *config)
-    : cache(serializer, config) {
+    : cache_(serializer, config) {
     // Start up cache
     struct : public cache_t::ready_callback_t, public cond_t {
         void on_cache_ready() { pulse(); }
     } ready_cb;
-    if (!cache.start(&ready_cb)) ready_cb.wait();
+    if (!cache_.start(&ready_cb)) ready_cb.wait();
 }
 
 btree_slice_t::~btree_slice_t() {
@@ -43,7 +43,7 @@ btree_slice_t::~btree_slice_t() {
     struct : public cache_t::shutdown_callback_t, public cond_t {
         void on_cache_shutdown() { pulse(); }
     } shutdown_cb;
-    if (!cache.shutdown(&shutdown_cb)) shutdown_cb.wait();
+    if (!cache_.shutdown(&shutdown_cb)) shutdown_cb.wait();
 }
 
 store_t::get_result_t btree_slice_t::get(store_key_t *key) {

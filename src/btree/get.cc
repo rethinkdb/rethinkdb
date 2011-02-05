@@ -21,7 +21,7 @@ store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
 
     block_pm_duration get_time_2(&pm_cmd_get_without_threads);
 
-    boost::shared_ptr<transactor_t> transactor(new transactor_t(&slice->cache, rwi_read));
+    boost::shared_ptr<transactor_t> transactor(new transactor_t(&slice->cache(), rwi_read));
 
     // Acquire the superblock
 
@@ -43,7 +43,7 @@ store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
         }
 
 #ifndef NDEBUG
-        node::validate(slice->cache.get_block_size(), ptr_cast<node_t>(buf_lock.buf()->get_data_read()));
+        node::validate(slice->cache().get_block_size(), ptr_cast<node_t>(buf_lock.buf()->get_data_read()));
 #endif
 
         const node_t *node = ptr_cast<node_t>(buf_lock.buf()->get_data_read());

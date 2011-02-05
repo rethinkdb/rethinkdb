@@ -8,16 +8,19 @@
 class initialize_superblock_fsm_t;
 struct btree_replicant_t;
 
-namespace replication {
-class masterstore_t;
-}  // namespace replication
+class slice_store_t : public store_t {
+public:
+    virtual int slice_home_thread() = 0;
+    virtual cache_t& cache() = 0;
+};
+
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
 btree_key_value_store_t. */
 
 class btree_slice_t :
-    public store_t,
+    public slice_store_t,
     public home_thread_mixin_t
 {
 public:
@@ -46,10 +49,12 @@ public:
     append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime);
     delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
-    /* Used by internal btree logic */
-    cache_t cache;
+    cache_t& cache() { return cache_; }
+
+    int slice_home_thread() { return home_thread; }
 
 private:
+    cache_t cache_;
 
     DISABLE_COPYING(btree_slice_t);
 };

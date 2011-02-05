@@ -78,7 +78,8 @@ struct castime_t {
     }
 };
 
-struct store_t {
+class store_t {
+public:
     /* To get a value from the store, call get() or get_cas(), providing the key you want to get.
     The store will return a get_result_t with either the value or NULL. If it returns a value, you
     must call the provided done_callback_t when you are done to release the buffers holding the

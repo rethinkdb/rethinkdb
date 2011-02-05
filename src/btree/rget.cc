@@ -61,8 +61,8 @@ store_t::rget_result_t btree_rget(btree_key_value_store_t *store, store_key_t *s
 
     merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less>::mergees_t ms;
     for (int s = 0; s < store->btree_static_config.n_slices; s++) {
-        btree_slice_t *slice = store->slices[s];
-        boost::shared_ptr<transactor_t> transactor = boost::shared_ptr<transactor_t>(new transactor_t(&slice->cache, rwi_read));
+        slice_store_t *slice = store->slices[s];
+        boost::shared_ptr<transactor_t> transactor = boost::shared_ptr<transactor_t>(new transactor_t(&slice->cache(), rwi_read));
         transactors.push_back(transactor);
         ms.push_back(new slice_keys_iterator_t(transactor, slice, start, end, left_open, right_open));
     }

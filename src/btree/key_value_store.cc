@@ -144,7 +144,7 @@ void prep_for_btree(
 
 void create_existing_btree(
         translator_serializer_t **pseudoserializers,
-        btree_slice_t **slices,
+        slice_store_t **slices,
         mirrored_cache_config_t *config,
         replication::masterstore_t *masterstore,
         int i) {
@@ -157,10 +157,10 @@ void create_existing_btree(
 }
 
 void destroy_btree(
-        btree_slice_t **slices,
+        slice_store_t **slices,
         int i) {
 
-    on_thread_t thread_switcher(slices[i]->home_thread);
+    on_thread_t thread_switcher(slices[i]->slice_home_thread());
 
     delete slices[i];
 }
@@ -349,7 +349,7 @@ uint32_t btree_key_value_store_t::slice_num(const btree_key *key) {
     return hash(key) % btree_static_config.n_slices;
 }
 
-btree_slice_t *btree_key_value_store_t::slice_for_key(const btree_key *key) {
+slice_store_t *btree_key_value_store_t::slice_for_key(const btree_key *key) {
     return slices[slice_num(key)];
 }
 

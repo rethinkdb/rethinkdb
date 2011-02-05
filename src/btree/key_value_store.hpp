@@ -69,10 +69,10 @@ public:
     multiplex requests onto the actual serializers. */
     standard_serializer_t *serializers[MAX_SERIALIZERS];
     translator_serializer_t *pseudoserializers[MAX_SLICES];
-    btree_slice_t *slices[MAX_SLICES];
+    slice_store_t *slices[MAX_SLICES];
 
     uint32_t slice_num(const btree_key *key);
-    btree_slice_t *slice_for_key(const btree_key *key);
+    slice_store_t *slice_for_key(const btree_key *key);
 
     static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
     static uint32_t hash(const btree_key *key);
@@ -111,7 +111,7 @@ private:
 
                 uint32_t hash = btkvs->hash((store_key_t*) store_key);
                 uint32_t slice = btkvs->slice_num((store_key_t *) store_key);
-                int thread = btkvs->slice_for_key((store_key_t *) store_key)->home_thread;
+                int thread = btkvs->slice_for_key((store_key_t *) store_key)->slice_home_thread();
 
                 result += strprintf("%*s: %08lx [slice: %03lu, thread: %03d]\r\n", key.length(), key.c_str(), hash, slice, thread);
             }

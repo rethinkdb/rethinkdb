@@ -3,6 +3,7 @@
 
 #include "btree/slice.hpp"
 #include "store.hpp"
+#include "replication/masterstore.hpp"
 
 class btree_slice_dispatching_to_masterstore_t : public store_t {
 public:
@@ -27,7 +28,8 @@ public:
     append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime);
     delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
-
+    cache_t& cache() { return slice_->cache(); }
+    int slice_home_thread() { return slice_->slice_home_thread(); }
 
 private:
     btree_slice_t *slice_;
