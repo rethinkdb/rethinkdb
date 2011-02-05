@@ -60,6 +60,7 @@ public:
 public:
     int n_files;
     btree_config_t btree_static_config;
+    mirrored_cache_static_config_t cache_static_config;
 
     /* The key-value store typically has more slices than serializers. The slices share
     serializers via the "pseudoserializers": translator-serializers, one per slice, that

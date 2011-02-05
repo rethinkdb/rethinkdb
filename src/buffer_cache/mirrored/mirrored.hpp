@@ -231,6 +231,8 @@ public:
     typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
     
 private:
+
+    mirrored_cache_static_config_t *static_config;
     
     // TODO: how do we design communication between cache policies?
     // Should they all have access to the cache, or should they only
@@ -250,7 +252,8 @@ private:
 public:
     mc_cache_t(
             translator_serializer_t *serializer,
-            mirrored_cache_config_t *config);
+            mirrored_cache_config_t *dynamic_config,
+            mirrored_cache_static_config_t *static_config);
     ~mc_cache_t();
     
     /* You must call start() before using the cache. If it starts up immediately, it will return

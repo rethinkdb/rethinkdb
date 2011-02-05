@@ -26,8 +26,9 @@ void usage(const char *name) {
                 "On disk format options:\n"
                 "      --force-block-size    Specifies block size, overriding file headers\n"
                 "      --force-extent-size   Specifies extent size, overriding file headers\n"
-                "      --force-slice-count     Specifies number of slices in *this* file,\n"
-                "                            overriding file headers.\n");
+                "      --force-slice-count   Specifies number of slices in *this* file,\n"
+                "                            overriding file headers.\n"
+                "      --ignore-diff-log     Do not apply patches from the diff log\n");
     help->pagef("\n"
                 "Output options:\n"
                 "  -l  --log-file            File to log to.  If not provided, messages will be\n"

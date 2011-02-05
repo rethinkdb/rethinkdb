@@ -520,21 +520,23 @@ repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
 
 mc_cache_t::mc_cache_t(
             translator_serializer_t *serializer,
-            mirrored_cache_config_t *config) :
-    
+            mirrored_cache_config_t *dynamic_config,
+            mirrored_cache_static_config_t *static_config) :
+
+    static_config(static_config),
     serializer(serializer),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
-        config->max_size / serializer->get_block_size().ser_value(),
+        dynamic_config->max_size / serializer->get_block_size().ser_value(),
         this),
     writeback(
         this,
-        config->wait_for_flush,
-        config->flush_timer_ms,
-        config->flush_dirty_size / serializer->get_block_size().ser_value(),
-        config->max_dirty_size / serializer->get_block_size().ser_value(),
-        config->flush_waiting_threshold,
-        config->max_concurrent_flushes),
+        dynamic_config->wait_for_flush,
+        dynamic_config->flush_timer_ms,
+        dynamic_config->flush_dirty_size / serializer->get_block_size().ser_value(),
+        dynamic_config->max_dirty_size / serializer->get_block_size().ser_value(),
+        dynamic_config->flush_waiting_threshold,
+        dynamic_config->max_concurrent_flushes),
     free_list(serializer),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
@@ -603,11 +605,7 @@ bool mc_cache_t::next_starting_up_step() {
 
 void mc_cache_t::init_diff_storage() {
     rassert(state == state_starting_up_init_fixed_blocks);
-#ifdef NDEBUG
-    diff_oocore_storage.init(SUPERBLOCK_ID + 1, 2400); // TODO!
-#else
-    diff_oocore_storage.init(SUPERBLOCK_ID + 1, 32); // TODO!
-#endif
+    diff_oocore_storage.init(SUPERBLOCK_ID + 1, static_config->n_diff_log_blocks);
     diff_oocore_storage.load_patches(diff_core_storage);
 
     state = state_starting_up_finish;

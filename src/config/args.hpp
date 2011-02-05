@@ -12,7 +12,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define VERSION_STRING "0.1"
+#define VERSION_STRING "0.2"
 
 /**
  * Basic configuration parameters.
@@ -78,6 +78,13 @@
 #define DEFAULT_BTREE_SHARD_FACTOR                64
 #else
 #define DEFAULT_BTREE_SHARD_FACTOR                16
+#endif
+
+// The size allocated to the on-disk diff log for newly created databases
+#ifdef NDEBUG
+#define DEFAULT_DIFF_LOG_SIZE                     (512 * MEGABYTE)
+#else
+#define DEFAULT_DIFF_LOG_SIZE                     (4 * MEGABYTE)
 #endif
 
 // Default port to listen on

@@ -13,10 +13,11 @@
 
 void btree_slice_t::create(
     translator_serializer_t *serializer,
-    mirrored_cache_config_t *config)
+    mirrored_cache_config_t *dynamic_config,
+    mirrored_cache_static_config_t *static_config)
 {
     /* Put slice in a scoped pointer because it's way to big to allocate on a coroutine stack */
-    boost::scoped_ptr<btree_slice_t> slice(new btree_slice_t(serializer, config));
+    boost::scoped_ptr<btree_slice_t> slice(new btree_slice_t(serializer, dynamic_config, static_config));
 
     /* Initialize the root block */
     transactor_t transactor(&slice->cache, rwi_write);
@@ -30,8 +31,9 @@ void btree_slice_t::create(
 
 btree_slice_t::btree_slice_t(
         translator_serializer_t *serializer,
-        mirrored_cache_config_t *config) :
-    cache(serializer, config)
+        mirrored_cache_config_t *dynamic_config,
+        mirrored_cache_static_config_t *static_config) :
+    cache(serializer, dynamic_config, static_config)
 {
     // Start up cache
     struct : public cache_t::ready_callback_t, public cond_t {

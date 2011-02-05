@@ -20,12 +20,14 @@ public:
     // Blocks
     static void create(
         translator_serializer_t *serializer,
-        mirrored_cache_config_t *config);
+        mirrored_cache_config_t *dynamic_config,
+        mirrored_cache_static_config_t *static_config);
 
     // Blocks
     btree_slice_t(
         translator_serializer_t *serializer,
-        mirrored_cache_config_t *config);
+        mirrored_cache_config_t *dynamic_config,
+        mirrored_cache_static_config_t *static_config);
 
     // Blocks
     ~btree_slice_t();

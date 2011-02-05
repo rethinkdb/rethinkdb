@@ -46,6 +46,7 @@ void create_new_serializer(
     c->n_files = dynamic_config->serializer_private.size();
     c->this_serializer = i;
     c->btree_config = static_config->btree;
+    c->cache_config = static_config->cache;
     serializer_t::write_t w = serializer_t::write_t::make(CONFIG_BLOCK_ID.ser_id, repli_timestamp::invalid, c, NULL);
 
     /* Write the initial configuration block */
@@ -59,7 +60,8 @@ void create_new_serializer(
 
 void create_existing_serializer(
         btree_key_value_store_dynamic_config_t *dynamic_config,
-        btree_config_t *static_config_out,
+        btree_config_t *btree_static_config_out,
+        mirrored_cache_static_config_t *cache_static_config_out,
         standard_serializer_t **serializers,
         uint32_t *magics,
         int i) {
@@ -98,7 +100,8 @@ void create_existing_serializer(
         c->this_serializer < (int)dynamic_config->serializer_private.size());
     magics[c->this_serializer] = c->database_magic;
 
-    if (i == 0) *static_config_out = c->btree_config;
+    if (i == 0) *btree_static_config_out = c->btree_config;
+    if (i == 0) *cache_static_config_out = c->cache_config;
     rassert(!serializers[c->this_serializer]);
     serializers[c->this_serializer] = serializer;
 
@@ -132,25 +135,27 @@ void create_pseudoserializer(
 
 void prep_for_btree(
         translator_serializer_t **pseudoserializers,
-        mirrored_cache_config_t *config,
+        mirrored_cache_config_t *dynamic_config,
+        mirrored_cache_static_config_t *static_config,
         int i) {
 
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    btree_slice_t::create(pseudoserializers[i], config);
+    btree_slice_t::create(pseudoserializers[i], dynamic_config, static_config);
 }
 
 void create_existing_btree(
         translator_serializer_t **pseudoserializers,
         btree_slice_t **slices,
-        mirrored_cache_config_t *config,
+        mirrored_cache_config_t *dynamic_config,
+        mirrored_cache_static_config_t *static_config,
         int i) {
 
     // TODO try to align slices with serializers so that when possible, a slice is on the
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    slices[i] = new btree_slice_t(pseudoserializers[i], config);
+    slices[i] = new btree_slice_t(pseudoserializers[i], dynamic_config, static_config);
 }
 
 void destroy_btree(
@@ -205,7 +210,7 @@ void btree_key_value_store_t::create(
 
     /* Initialize the btrees. Don't bother splitting the memory between the slices since we're just
     creating, which takes almost no memory. */
-    pmap(static_config->btree.n_slices, &prep_for_btree, pseudoserializers, &dynamic_config->cache);
+    pmap(static_config->btree.n_slices, &prep_for_btree, pseudoserializers, &dynamic_config->cache, &static_config->cache);
 
     /* Destroy pseudoserializers */
     pmap(static_config->btree.n_slices, &destroy_pseudoserializer, pseudoserializers);
@@ -225,7 +230,7 @@ btree_key_value_store_t::btree_key_value_store_t(
     uint32_t magics[n_files];
     for (int i = 0; i < n_files; i++) serializers[i] = NULL;
     pmap(n_files, &create_existing_serializer,
-        dynamic_config, &btree_static_config, serializers, magics);
+        dynamic_config, &btree_static_config, &cache_static_config, serializers, magics);
     for (int i = 1; i < n_files; i++) {
         if (magics[i] != magics[0]) {
             fail_due_to_user_error("The files that the server was started with didn't all come from the same database.");
@@ -243,7 +248,7 @@ btree_key_value_store_t::btree_key_value_store_t(
     per_slice_config.max_dirty_size /= btree_static_config.n_slices;
     per_slice_config.flush_dirty_size /= btree_static_config.n_slices;
     pmap(btree_static_config.n_slices, &create_existing_btree,
-        pseudoserializers, slices, &per_slice_config);
+        pseudoserializers, slices, &per_slice_config, &cache_static_config);
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {

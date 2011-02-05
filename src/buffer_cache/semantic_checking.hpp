@@ -120,7 +120,8 @@ public:
     
     scc_cache_t(
         translator_serializer_t *serializer,
-        mirrored_cache_config_t *config);
+        mirrored_cache_config_t *dynamic_config,
+        mirrored_cache_static_config_t *static_config);
     
     typedef typename inner_cache_t::ready_callback_t ready_callback_t;
     bool start(ready_callback_t *cb);
