@@ -5,7 +5,7 @@
 #include "store.hpp"
 #include "replication/masterstore.hpp"
 
-class btree_slice_dispatching_to_masterstore_t : public store_t {
+class btree_slice_dispatching_to_masterstore_t : public slice_store_t {
 public:
     btree_slice_dispatching_to_masterstore_t(btree_slice_t *slice, replication::masterstore_t *masterstore)
         : slice_(slice), masterstore_(masterstore) { }

@@ -1,9 +1,10 @@
 #include "btree/key_value_store.hpp"
+#include "btree/rget.hpp"
 #include "btree/serializer_config_block.hpp"
-#include "db_thread_info.hpp"
+#include "btree/slice_dispatching_to_masterstore.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
-#include "btree/rget.hpp"
+#include "db_thread_info.hpp"
 
 /* The key-value store slices up the serializers as follows:
 
@@ -134,7 +135,6 @@ void create_pseudoserializer(
 void prep_for_btree(
         translator_serializer_t **pseudoserializers,
         mirrored_cache_config_t *config,
-        replication::masterstore_t *masterstore,
         int i) {
 
     on_thread_t thread_switcher(i % get_num_db_threads());
@@ -153,7 +153,12 @@ void create_existing_btree(
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    slices[i] = new btree_slice_t(pseudoserializers[i], config);
+    btree_slice_t *sl = new btree_slice_t(pseudoserializers[i], config);
+    if (masterstore) {
+        slices[i] = new btree_slice_dispatching_to_masterstore_t(sl, masterstore);
+    } else {
+        slices[i] = sl;
+    }
 }
 
 void destroy_btree(
@@ -208,7 +213,7 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
 
     /* Initialize the btrees. Don't bother splitting the memory between the slices since we're just
     creating, which takes almost no memory. */
-    pmap(static_config->btree.n_slices, &prep_for_btree, pseudoserializers, &dynamic_config->cache, masterstore);
+    pmap(static_config->btree.n_slices, &prep_for_btree, pseudoserializers, &dynamic_config->cache);
 
     /* Destroy pseudoserializers */
     pmap(static_config->btree.n_slices, &destroy_pseudoserializer, pseudoserializers);
