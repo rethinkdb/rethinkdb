@@ -8,6 +8,10 @@
 class initialize_superblock_fsm_t;
 struct btree_replicant_t;
 
+namespace replication {
+class masterstore_t;
+}  // namespace replication
+
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
 btree_key_value_store_t. */
@@ -18,14 +22,14 @@ class btree_slice_t :
 {
 public:
     // Blocks
-    static void create(
-        translator_serializer_t *serializer,
-        mirrored_cache_config_t *config);
+    static void create(translator_serializer_t *serializer,
+                       mirrored_cache_config_t *config,
+                       replication::masterstore_t *masterstore);
 
     // Blocks
-    btree_slice_t(
-        translator_serializer_t *serializer,
-        mirrored_cache_config_t *config);
+    btree_slice_t(translator_serializer_t *serializer,
+                  mirrored_cache_config_t *config,
+                  replication::masterstore_t *masterstore);
 
     // Blocks
     ~btree_slice_t();
@@ -48,10 +52,11 @@ public:
     cache_t cache;
 
 private:
-    uint32_t cas_counter;
+    uint32_t cas_counter_;
     castime_t gen_castime();
     castime_t generate_if_necessary(castime_t castime);
     repli_timestamp generate_if_necessary(repli_timestamp timestamp);
+    replication::masterstore_t *masterstore_;
 
     DISABLE_COPYING(btree_slice_t);
 };

@@ -452,7 +452,7 @@ $(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc
 	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \
 	rm -f $@.$$$$
 # Include the dependencies into the makefile so that they take effect
-ifneq ($(MAKECMDGOALS),clean)
-	-include $(DEPS)
-endif
 
+ifneq ($(MAKECMDGOALS),clean)
+-include $(DEPS)
+endif

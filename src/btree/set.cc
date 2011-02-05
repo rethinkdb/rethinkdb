@@ -1,13 +1,8 @@
 #include "set.hpp"
-
 #include "btree/modify_oper.hpp"
-
 #include "buffer_cache/co_functions.hpp"
 
-
-
 struct btree_set_oper_t : public btree_modify_oper_t {
-
     explicit btree_set_oper_t(data_provider_t *data, set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas)
         : btree_modify_oper_t(), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas)
     {
@@ -18,8 +13,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         pm_cmd_set.end(&start_time);
     }
 
-
-    bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
+    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         try {
             if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
                 result = store_t::sr_not_stored;
@@ -66,7 +60,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 buffer_group.add_buffer(data->get_size(), value.value());
                 data->get_data_into_buffers(&buffer_group);
             } else {
-                large_buflock.set(new large_buf_t(txn));
+                large_buflock.set(new large_buf_t(txor->transaction()));
                 large_buflock.lv()->allocate(data->get_size(), value.large_buf_ref_ptr());
                 for (int64_t i = 0; i < large_buflock.lv()->get_num_segments(); i++) {
                     uint16_t size;
@@ -110,7 +104,6 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 
     store_t::set_result_t result;
 };
-
 
 store_t::set_result_t btree_set(const btree_key *key, btree_slice_t *slice, data_provider_t *data, set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas, castime_t castime) {
     btree_set_oper_t oper(data, type, mcflags, exptime, req_cas);

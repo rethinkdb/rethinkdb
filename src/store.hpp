@@ -4,6 +4,7 @@
 #include "utils.hpp"
 #include "arch/arch.hpp"
 #include "data_provider.hpp"
+#include "concurrency/cond_var.hpp"
 #include <boost/shared_ptr.hpp>
 
 typedef uint32_t mcflags_t;
@@ -85,15 +86,18 @@ struct store_t {
     the value of 'cas' is undefined and should be ignored. */
 
     struct get_result_t {
-        get_result_t(boost::shared_ptr<data_provider_t> v, mcflags_t f, cas_t c) :
-            value(v), flags(f), cas(c) { }
-        get_result_t() : flags(0), cas(0) { }
+        get_result_t(boost::shared_ptr<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
+            value(v), flags(f), cas(c), to_signal_when_done(s) { }
+        get_result_t() :
+            value(), flags(0), cas(0), to_signal_when_done(NULL) { }
+
         // NULL means not found. If non-NULL you are responsible for calling get_data_as_buffer(),
         // or get_data_into_buffer() on value. Parts of the store may wait for the data_provider_t's
         // destructor, so don't hold on to it forever.
         boost::shared_ptr<data_provider_t> value;
         mcflags_t flags;
         cas_t cas;
+        threadsafe_cond_t *to_signal_when_done;
     };
     virtual get_result_t get(store_key_t *key) = 0;
     virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;

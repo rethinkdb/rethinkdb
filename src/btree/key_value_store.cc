@@ -134,24 +134,26 @@ void create_pseudoserializer(
 void prep_for_btree(
         translator_serializer_t **pseudoserializers,
         mirrored_cache_config_t *config,
+        replication::masterstore_t *masterstore,
         int i) {
 
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    btree_slice_t::create(pseudoserializers[i], config);
+    btree_slice_t::create(pseudoserializers[i], config, masterstore);
 }
 
 void create_existing_btree(
         translator_serializer_t **pseudoserializers,
         btree_slice_t **slices,
         mirrored_cache_config_t *config,
+        replication::masterstore_t *masterstore,
         int i) {
 
     // TODO try to align slices with serializers so that when possible, a slice is on the
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    slices[i] = new btree_slice_t(pseudoserializers[i], config);
+    slices[i] = new btree_slice_t(pseudoserializers[i], config, masterstore);
 }
 
 void destroy_btree(
@@ -186,9 +188,9 @@ void destroy_serializer(
     delete serializers[i];
 }
 
-void btree_key_value_store_t::create(
-        btree_key_value_store_dynamic_config_t *dynamic_config,
-        btree_key_value_store_static_config_t *static_config) {
+void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dynamic_config,
+                                     btree_key_value_store_static_config_t *static_config,
+                                     replication::masterstore_t *masterstore) {
 
     /* Create serializers */
     int n_files = dynamic_config->serializer_private.size();
@@ -206,7 +208,7 @@ void btree_key_value_store_t::create(
 
     /* Initialize the btrees. Don't bother splitting the memory between the slices since we're just
     creating, which takes almost no memory. */
-    pmap(static_config->btree.n_slices, &prep_for_btree, pseudoserializers, &dynamic_config->cache);
+    pmap(static_config->btree.n_slices, &prep_for_btree, pseudoserializers, &dynamic_config->cache, masterstore);
 
     /* Destroy pseudoserializers */
     pmap(static_config->btree.n_slices, &destroy_pseudoserializer, pseudoserializers);
@@ -215,10 +217,9 @@ void btree_key_value_store_t::create(
     pmap(n_files, &destroy_serializer, serializers);
 }
 
-btree_key_value_store_t::btree_key_value_store_t(
-        btree_key_value_store_dynamic_config_t *dynamic_config)
-            : hash_control(this)
-{
+btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
+                                                 replication::masterstore_t *masterstore)
+    : hash_control(this) {
     /* Start serializers */
     n_files = dynamic_config->serializer_private.size();
     rassert(n_files > 0);
@@ -235,7 +236,7 @@ btree_key_value_store_t::btree_key_value_store_t(
 
     /* Create pseudoserializers */
     pmap(btree_static_config.n_slices, &create_pseudoserializer,
-        dynamic_config, &btree_static_config, serializers, pseudoserializers);
+         dynamic_config, &btree_static_config, serializers, pseudoserializers);
 
     /* Load btrees */
     mirrored_cache_config_t per_slice_config = dynamic_config->cache;
@@ -244,7 +245,7 @@ btree_key_value_store_t::btree_key_value_store_t(
     per_slice_config.max_dirty_size /= btree_static_config.n_slices;
     per_slice_config.flush_dirty_size /= btree_static_config.n_slices;
     pmap(btree_static_config.n_slices, &create_existing_btree,
-        pseudoserializers, slices, &per_slice_config);
+         pseudoserializers, slices, &per_slice_config, masterstore);
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {

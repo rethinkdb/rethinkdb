@@ -14,7 +14,10 @@ public:
     masterstore_exc_t(const char *wat) : std::runtime_error(wat) { }
 };
 
-class masterstore_t {
+
+class masterstore_t : public home_thread_mixin_t {
+public:
+    masterstore_t() { }
 
     bool has_slave() { return slave_ != NULL; }
     void add_slave(tcp_conn_t *conn);
@@ -50,7 +53,7 @@ private:
     tcp_conn_t *slave_;
     thick_list<data_provider_t *, uint32_t> sources_;
 
-
+    DISABLE_COPYING(masterstore_t);
 };
 
 

@@ -42,7 +42,8 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         rassert(bytes < sizeof(buffer));
         write(buffer, bytes);
     }
-    void writef(const char *format, ...) {
+    void writef(const char *format, ...)
+        __attribute__ ((format (printf, 2, 3))) {
         va_list args;
         va_start(args, format);
         vwritef(format, args);
@@ -73,11 +74,11 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     }
     void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size) {
         writef("VALUE %*.*s %u %zu\r\n",
-            key_size, key_size, key, mcflags, value_size);
+               int(key_size), int(key_size), key, mcflags, value_size);
     }
     void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size, cas_t cas) {
         writef("VALUE %*.*s %u %zu %llu\r\n",
-            key_size, key_size, key, mcflags, value_size, cas);
+               int(key_size), int(key_size), key, mcflags, value_size, (long long unsigned int)cas);
     }
 
     void error() {
@@ -86,14 +87,16 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     void write_end() {
         writef("END\r\n");
     }
-    void client_error(const char *format, ...) {
+    void client_error(const char *format, ...)
+        __attribute__ ((format (printf, 2, 3))) {
         writef("CLIENT_ERROR ");
         va_list args;
         va_start(args, format);
         vwritef(format, args);
         va_end(args);
     }
-    void server_error(const char *format, ...) {
+    void server_error(const char *format, ...)
+        __attribute__ ((format (printf, 2, 3))) {
         writef("SERVER_ERROR ");
         va_list args;
         va_start(args, format);
@@ -212,6 +215,9 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
                 rh->write_from_data_provider(res.value.get());
                 rh->writef("\r\n");
             }
+        }
+        if (res.to_signal_when_done) {
+            res.to_signal_when_done->pulse();
         }
     }
 
