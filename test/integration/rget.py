@@ -18,7 +18,7 @@ def gen_value(prefix, num):
         return prefix + value_padding + str(num).zfill(6)
 
 
-value_line = line("^VALUE\s+([^\s]+)\s+(\d+)\s+(\d+)\r\n", [('key', 's'), ('flags', 'd'), ('length', 'd')])
+value_line = line("^VALUE\s+([^\s]+)\s+(\d+)\s+(\d+)\r\n$", [('key', 's'), ('flags', 'd'), ('length', 'd')])
 def is_sorted_output(kvs):
     k = None
     for kv in kvs:
@@ -44,7 +44,7 @@ def get_results(s):
         if not val_def:
             raise ValueError("received unexpected line from rget: %s" % l)
         val = f.read(val_def['length'])
-        if f.readline() != '\r\n':
+        if f.read(2) != '\r\n':
             raise ValueError("received unexpected line from rget (expected '\\r\\n'): %s" % l)
             
         res.append({'key': val_def['key'], 'value': val})
