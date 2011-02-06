@@ -8,7 +8,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         : data(data), append(append)
     { }
 
-    bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
+    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         try {
             if (!old_value) {
                 result = store_t::apr_not_found;
@@ -40,7 +40,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
             } else {
                 // Prepare the large value if necessary.
                 if (!old_value->is_large()) { // small -> large; allocate a new large value and copy existing value into it.
-                    large_buflock.set(new large_buf_t(txn));
+                    large_buflock.set(new large_buf_t(txor->transaction()));
                     large_buflock.lv()->allocate(new_size, value.large_buf_ref_ptr());
                     if (append) large_buflock.lv()->fill_at(0, old_value->value(), old_value->value_size());
                     else        large_buflock.lv()->fill_at(data->get_size(), old_value->value(), old_value->value_size());
@@ -130,8 +130,8 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     buffer_group_t buffer_group;
 };
 
-store_t::append_prepend_result_t btree_append_prepend(const btree_key *key, btree_slice_t *slice, data_provider_t *data, bool append, cas_t proposed_cas) {
+store_t::append_prepend_result_t btree_append_prepend(const btree_key *key, btree_slice_t *slice, data_provider_t *data, bool append, castime_t castime) {
     btree_append_prepend_oper_t oper(data, append);
-    run_btree_modify_oper(&oper, slice, key, proposed_cas);
+    run_btree_modify_oper(&oper, slice, key, castime);
     return oper.result;
 }

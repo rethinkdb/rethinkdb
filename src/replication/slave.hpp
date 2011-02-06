@@ -9,7 +9,8 @@
 #include "control.hpp"
 
 #define INITIAL_TIMEOUT  (100) //initial time we wait reconnect to the master server on failure in ms
-#define TIMEOUT_GROWTH_FACTOR   (2) //every failed reconnect the timeoute increase by this factor
+#define TIMEOUT_GROWTH_FACTOR   (2) //every failed reconnect the timeout increase by this factor
+#define TIMEOUT_CAP (1000*60*2) //until it reaches the cap (that's 2 minutes over there)
 
 /* if we mave more than MAX_RECONNECTS_PER_N_SECONDS in N_SECONDS then we give
  * up on the master server for a longer time (possibly until the user tells us
@@ -20,7 +21,15 @@
 
 namespace replication {
 
+/* The slave_t class is responsible for connecting to another RethinkDB process
+ * and pushing the values that it receives in to its internal store. It also
+ * handles the failover module if failover is enabled. Currently the slave_t
+ * also is itself a failover callback and derives from the store_t class, thus
+ * allowing it to modify the behaviour of the store. */ 
 
+/* It has been suggested that the failover callback and replication
+ * functionality of the slave_t class be separated. I don't think this is such
+ * a bad idea but it doesn't seem particularly urgent to me right now. */
 
 struct slave_t :
     public home_thread_mixin_t,
@@ -32,6 +41,9 @@ friend void run(slave_t *);
 public:
     slave_t(store_t *, replication_config_t, failover_config_t);
     ~slave_t();
+
+    /* failover module which is alerted by an on_failure() call when we go out
+     * of contact with the master */
     failover_t failover;
 
 private:
@@ -50,31 +62,33 @@ public:
     /* store_t interface. */
 
     get_result_t get(store_key_t *key);
-    get_result_t get_cas(store_key_t *key, cas_t proposed_cas);
-    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
-    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
-    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
-    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, cas_t proposed_cas);
-    incr_decr_result_t incr(store_key_t *key, unsigned long long amount, cas_t proposed_cas);
-    incr_decr_result_t decr(store_key_t *key, unsigned long long amount, cas_t proposed_cas);
-    append_prepend_result_t append(store_key_t *key, data_provider_t *data, cas_t proposed_cas);
-    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, cas_t proposed_cas);
-    delete_result_t delete_key(store_key_t *key);
+    get_result_t get_cas(store_key_t *key, castime_t castime);
+    rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results);
+    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
+    incr_decr_result_t incr(store_key_t *key, unsigned long long amount, castime_t castime);
+    incr_decr_result_t decr(store_key_t *key, unsigned long long amount, castime_t castime);
+    append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime);
+    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime);
+    delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
 public:
     /* message_callback_t interface */
-    void hello(boost::scoped_ptr<hello_message_t>& message);
-    void send(boost::scoped_ptr<backfill_message_t>& message);
-    void send(boost::scoped_ptr<announce_message_t>& message);
-    void send(boost::scoped_ptr<set_message_t>& message);
-    void send(boost::scoped_ptr<append_message_t>& message);
-    void send(boost::scoped_ptr<prepend_message_t>& message);
-    void send(boost::scoped_ptr<nop_message_t>& message);
-    void send(boost::scoped_ptr<ack_message_t>& message);
-    void send(boost::scoped_ptr<shutting_down_message_t>& message);
-    void send(boost::scoped_ptr<goodbye_message_t>& message);
+    // These call .swap on their parameter, taking ownership of the pointee.
+    void hello(net_hello_t message);
+    void send(buffed_data_t<net_backfill_t>& message);
+    void send(buffed_data_t<net_announce_t>& message);
+    void send(stream_pair<net_set_t>& message);
+    void send(stream_pair<net_append_t>& message);
+    void send(stream_pair<net_prepend_t>& message);
+    void send(buffed_data_t<net_nop_t>& message);
+    void send(buffed_data_t<net_ack_t>& message);
+    void send(buffed_data_t<net_shutting_down_t>& message);
+    void send(buffed_data_t<net_goodbye_t>& message);
     void conn_closed();
-    
+
 private:
     friend class failover_t;
 
@@ -110,6 +124,7 @@ private:
     /* Failover controllers */
 
 private:
+    /* Control to  allow the failover state to be reset during run time */
     std::string failover_reset();
 
     struct failover_reset_control_t
@@ -126,6 +141,7 @@ private:
     failover_reset_control_t failover_reset_control;
 
 private:
+    /* Control to allow the master to be changed during run time */
     std::string new_master(std::string args);
 
     struct new_master_control_t

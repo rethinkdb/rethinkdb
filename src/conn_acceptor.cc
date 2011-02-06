@@ -2,13 +2,12 @@
 #include "db_thread_info.hpp"
 #include "concurrency/pmap.hpp"
 #include "perfmon.hpp"
-#include "logger.hpp"
 
-conn_acceptor_t::conn_acceptor_t(int port, handler_t *handler, bool run_behind_elb)
-    : handler(handler), port(port), listener(), next_thread(0)
+conn_acceptor_t::conn_acceptor_t(int port, handler_t *handler)
+    : handler(handler), listener(new tcp_listener_t(port)), next_thread(0)
 {
-    if (!run_behind_elb)
-        make_listener();
+    listener->set_callback(this);
+    if (listener->defunct) throw address_in_use_exc_t();
 }
 
 void conn_acceptor_t::on_tcp_listener_accept(tcp_conn_t *conn) {
@@ -49,29 +48,11 @@ void conn_acceptor_t::conn_agent_t::run() {
 }
 
 conn_acceptor_t::~conn_acceptor_t() {
+    on_thread_t thread_switcher(home_thread); //make sure the listener gets deregistered on the right thread
 
     listener.reset();   // Stop accepting any more new connections
 
-    pmap(get_num_db_threads() - 1, &conn_acceptor_t::close_connections, this);
-}
-
-void conn_acceptor_t::make_listener() {
-    logINF("Make listener\n");
-    guarantee(listener.get() == NULL, "Trying to recreate the listener without deleting the old one (or listener wasn't set to NULL initially)\n");
-    listener.reset(new tcp_listener_t(port));
-
-    listener->set_callback(this);
-    if (listener->defunct) throw address_in_use_exc_t();
-}
-
-void conn_acceptor_t::on_failure() {
-    logINF("on failure\n");
-    make_listener();
-}
-
-void conn_acceptor_t::on_resume() {
-    logINF("on resume\n");
-    listener.reset();
+    pmap(get_num_db_threads() - 1, boost::bind(&conn_acceptor_t::close_connections, this, _1));
 }
 
 void conn_acceptor_t::close_connections(int thread) {

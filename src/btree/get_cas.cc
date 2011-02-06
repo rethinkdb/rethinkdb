@@ -2,7 +2,7 @@
 
 #include "btree/modify_oper.hpp"
 #include "concurrency/cond_var.hpp"
-#include "btree/get.hpp"   // For value_data_provider_t
+#include "btree/btree_data_provider.hpp"
 
 // This function is like get(), except that it sets a CAS value if there isn't
 // one already, so it has to be a btree_modify_oper_t. Potentially we can use a
@@ -11,12 +11,10 @@
 // be unnecessary.
 
 struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mixin_t {
-
     btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<store_t::get_result_t, threadsafe_cond_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
-    bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
-
+    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         if (!old_value) {
             /* If not found, there's nothing to do */
             res->pulse(store_t::get_result_t());
@@ -24,7 +22,6 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         }
 
         // Duplicate the value and put a CAS on it if necessary
-
         valuecpy(&value, old_value);   // Can we fix this extra copy?
         bool there_was_cas_before = value.has_cas();
         if (!value.has_cas()) { // We have always been at war with Eurasia.
@@ -35,24 +32,19 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
             this->cas_already_set = true;
         }
 
+        // Need to block on the caller so we don't free the large value before it's done
         // Deliver the value to the client via the promise_t we got
-
-        boost::shared_ptr<value_data_provider_t> dp(new value_data_provider_t);
-        valuecpy(&dp->small_part, &value);
+        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
         if (value.is_large()) {
-            dp->large_part = old_large_buflock.lv();
-            // Need to block on the caller so we don't free the large value before it's done
             threadsafe_cond_t to_signal_when_done;
-            dp->to_signal_when_done = &to_signal_when_done;
-            res->pulse(store_t::get_result_t(dp, value.mcflags(), value.cas()));
-            dp.reset();   // So the destructor can get called
+            res->pulse(store_t::get_result_t(dp, value.mcflags(), value.cas(), &to_signal_when_done));
             to_signal_when_done.wait();
         } else {
-            res->pulse(store_t::get_result_t(dp, value.mcflags(), value.cas()));
+            res->pulse(store_t::get_result_t(dp, value.mcflags(), value.cas(), NULL));
         }
 
-        // Return the new value to the code that will put it into the tree
 
+        // Return the new value to the code that will put it into the tree
         if (there_was_cas_before) {
             return false; // We didn't actually fail, but we made no change
         } else {
@@ -72,15 +64,15 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     };
 };
 
-void co_btree_get_cas(const btree_key *key, cas_t proposed_cas, btree_slice_t *slice,
+void co_btree_get_cas(const btree_key *key, castime_t castime, btree_slice_t *slice,
         promise_t<store_t::get_result_t, threadsafe_cond_t> *res) {
-    btree_get_cas_oper_t oper(proposed_cas, res);
-    run_btree_modify_oper(&oper, slice, key, proposed_cas);
+    btree_get_cas_oper_t oper(castime.proposed_cas, res);
+    run_btree_modify_oper(&oper, slice, key, castime);
 }
 
-store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice, cas_t proposed_cas) {
+store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice, castime_t castime) {
     block_pm_duration get_timer(&pm_cmd_get);
     promise_t<store_t::get_result_t, threadsafe_cond_t> res;
-    coro_t::spawn(co_btree_get_cas, key, proposed_cas, slice, &res);
+    coro_t::spawn(boost::bind(co_btree_get_cas, key, castime, slice, &res));
     return res.wait();
 }

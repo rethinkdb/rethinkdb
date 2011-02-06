@@ -73,26 +73,35 @@ class home_thread_mixin_t {
 public:
     int home_thread;
 
-#ifndef NDEBUG
-    void assert_thread() { rassert(home_thread == get_thread_id()); }
-#else
-    void assert_thread() { }
-#endif
+    void assert_thread() {
+        rassert(home_thread == get_thread_id());
+    }
 
+    void ensure_thread() {
+        coro_t::move_to_thread(home_thread);
+    }
 protected:
     home_thread_mixin_t() : home_thread(get_thread_id()) { }
     ~home_thread_mixin_t() { assert_thread(); }
 };
 
-struct on_thread_t :
-    public home_thread_mixin_t
-{
+struct on_thread_t : public home_thread_mixin_t {
     on_thread_t(int thread) {
         coro_t::move_to_thread(thread);
     }
     ~on_thread_t() {
         coro_t::move_to_thread(home_thread);
     }
+};
+
+struct thread_saver_t {
+    thread_saver_t() : thread_id(get_thread_id()) { }
+    thread_saver_t(int thread_id) : thread_id(thread_id) { }
+    ~thread_saver_t() {
+        coro_t::move_to_thread(thread_id);
+    }
+
+    int thread_id;
 };
 
 template <class ForwardIterator, class StrictWeakOrdering>
@@ -111,40 +120,10 @@ The method will be called on the other thread. If the thread to call the method 
 the current thread, returns the method's return value. Otherwise, returns false. */
 
 template<class callable_t>
-bool do_on_thread(int thread, const callable_t &callable);
-
-template<class obj_t>
-bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)());
-
-template<class obj_t, class arg1_t>
-bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t), arg1_t arg);
-
-template<class obj_t, class arg1_t, class arg2_t>
-bool do_on_thread(int thread, obj_t *obj, bool (obj_t::*on_other_core)(arg1_t, arg2_t), arg1_t arg1, arg2_t arg2);
+void do_on_thread(int thread, const callable_t &callable);
 
 template<class callable_t>
 void do_later(const callable_t &callable);
-
-template<class obj_t>
-void do_later(obj_t *obj, bool (obj_t::*later)());
-
-template<class obj_t, class arg1_t>
-void do_later(obj_t *obj, bool (obj_t::*later)(arg1_t), arg1_t arg1);
-
-
-class cas_generator_t {
-public:
-    cas_generator_t();
-    cas_t gen_cas();
-private:
-    union {
-        uint32_t counter;
-        void *p;
-    } cas_counters[MAX_THREADS];
-    int n_threads;
-
-    DISABLE_COPYING(cas_generator_t);
-};
 
 // Provides a compare operator which compares the dereferenced values of pointers T* (for use in std:sort etc)
 template <typename obj_t>
@@ -154,7 +133,6 @@ public:
         return *o1 < *o2;
     }
 };
-
 
 #include "utils.tcc"
 

@@ -5,7 +5,7 @@
 class btree_delete_expired_oper_t : public btree_modify_oper_t
 {
 public:
-    bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
+    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         /* Don't do anything. run_btree_modify_oper() will take advantage of
          * the fact that we got to the leaf in write mode to automatically
          * delete the expired key if necessary. */
@@ -20,12 +20,12 @@ public:
 
 void co_btree_delete_expired(btree_key *key_copy, btree_slice_t *slice) {
     btree_delete_expired_oper_t oper;
-    run_btree_modify_oper(&oper, slice, key_copy, BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
+    run_btree_modify_oper(&oper, slice, key_copy, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp::invalid));
     free(key_copy);
 }
 
 void btree_delete_expired(const btree_key *key, btree_slice_t *slice) {
     btree_key *key_copy = (btree_key *) malloc(key->size + sizeof(btree_key));
     keycpy(key_copy, key);
-    coro_t::spawn(co_btree_delete_expired, key_copy, slice);
+    coro_t::spawn(boost::bind(co_btree_delete_expired, key_copy, slice));
 }

@@ -305,7 +305,7 @@ writeback_t::concurrent_flush_t::concurrent_flush_t(writeback_t* parent) :
     parent->writeback_in_progress = true;
     ++parent->active_flushes;
 
-    coro_t::spawn(&writeback_t::concurrent_flush_t::start_and_acquire_lock, this);
+    coro_t::spawn(boost::bind(&writeback_t::concurrent_flush_t::start_and_acquire_lock, this));
 }
 
 void writeback_t::concurrent_flush_t::do_writeback() {
@@ -321,7 +321,7 @@ void writeback_t::concurrent_flush_t::do_writeback() {
     // Write transactions can now proceed again.
     parent->flush_lock.unlock();
 
-    do_on_thread(parent->cache->serializer->home_thread, this, &writeback_t::concurrent_flush_t::do_write, false);
+    do_on_thread(parent->cache->serializer->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_write, this, false));
     // ... continue in on_serializer_write_txn
 }
 
@@ -492,7 +492,7 @@ bool writeback_t::concurrent_flush_t::do_write(const bool write_issued) {
         bool continue_instantly = serializer_writes.empty() ||
                 parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this);
 
-        do_on_thread(parent->cache->home_thread, this, &writeback_t::concurrent_flush_t::do_write, true);
+        do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_write, this, true));
 
         if (continue_instantly)
             on_serializer_write_txn();
@@ -529,7 +529,7 @@ bool writeback_t::concurrent_flush_t::do_write(const bool write_issued) {
 }
 
 void writeback_t::concurrent_flush_t::on_serializer_write_txn() {
-    do_on_thread(parent->cache->home_thread, this, &writeback_t::concurrent_flush_t::do_cleanup);
+    do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_cleanup, this));
 }
 
 bool writeback_t::concurrent_flush_t::do_cleanup() {

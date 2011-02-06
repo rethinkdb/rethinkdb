@@ -155,7 +155,8 @@ enum {
     heartbeat_timeout,
     flush_concurrency,
     flush_threshold,
-    run_behind_elb
+    run_behind_elb,
+    failover
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -204,10 +205,11 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
                 {"help",                 no_argument, &do_help, 1},
-                {"slave-of",             required_argument, 0, slave_of}, //TODO document this @jdoliner
-                {"failover-script",      required_argument, 0, failover_script}, //TODO document this @jdoliner
-                {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO document this @jdoliner
-                {"run-behind-elb",       no_argument, 0, run_behind_elb}, //TODO document this @jdoliner
+                {"slave_of",             required_argument, 0, slave_of},
+                {"failover-script",      required_argument, 0, failover_script},
+                {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO @sam push this through to where you want it
+                {"run-behind-elb",       required_argument, 0, run_behind_elb},
+                {"failover",             no_argument, 0, failover}, //TODO @sam @jdoliner push this through when we know where it goes
                 {0, 0, 0, 0}
             };
 
@@ -276,8 +278,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 not_implemented();
                 break;
             case run_behind_elb:
-                config.failover_config.run_behind_elb = true;
-                break;
+                config.set_elb_port(optarg); break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -604,6 +605,16 @@ void parsing_cmd_config_t::set_heartbeat_timeout(const char* value) {
 
     if (failover_config.heartbeat_timeout < 0)
         fail_due_to_user_error("Heartbeat cannot be negative");
+}
+
+void parsing_cmd_config_t::set_elb_port(const char *value) {
+    int& target = failover_config.elb_port;
+    const int minimum_value = 0;
+    const int maximum_value = 65535;
+    
+    target = parse_int(optarg);
+    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
+        fail_due_to_user_error("Invalid TCP port (must be a number from %d to %d).", minimum_value, maximum_value);
 }
 
 long long int parsing_cmd_config_t::parse_longlong(const char* value) {

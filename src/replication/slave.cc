@@ -23,7 +23,7 @@ slave_t::slave_t(store_t *internal_store, replication_config_t replication_confi
       failover_reset_control(std::string("failover reset"), this),
       new_master_control(std::string("new master"), this)
 {
-    coro_t::spawn(&run, this);
+    coro_t::spawn(boost::bind(&run, this));
 }
 
 slave_t::~slave_t() {
@@ -61,76 +61,79 @@ store_t::get_result_t slave_t::get(store_key_t *key)
     return internal_store->get(key);
 }
 
-store_t::get_result_t slave_t::get_cas(store_key_t *key, cas_t proposed_cas)
+store_t::get_result_t slave_t::get_cas(store_key_t *key, castime_t castime)
 {
-    // TODO: ask joe why this used get(key) before (back when we did not have proposed_cas).
-    return internal_store->get_cas(key, proposed_cas);
+    return internal_store->get_cas(key, castime);
 }
 
-store_t::set_result_t slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) {
+store_t::rget_result_t slave_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {
+    return store_t::rget_result_t();
+}
+
+store_t::set_result_t slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
     if (respond_to_queries)
-        return internal_store->set(key, data, flags, exptime, proposed_cas);
+        return internal_store->set(key, data, flags, exptime, castime);
     else
         return store_t::sr_not_allowed;
 }
 
-store_t::set_result_t slave_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas)
+store_t::set_result_t slave_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime)
 {
-    return internal_store->add(key, data,  flags,  exptime, proposed_cas);
+    return internal_store->add(key, data,  flags,  exptime, castime);
 }
 
-store_t::set_result_t slave_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas)
+store_t::set_result_t slave_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime)
 {
     if (respond_to_queries)
-        return internal_store->replace(key, data, flags, exptime, proposed_cas);
+        return internal_store->replace(key, data, flags, exptime, castime);
     else
         return store_t::sr_not_allowed;
 }
 
-store_t::set_result_t slave_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, cas_t proposed_cas)
+store_t::set_result_t slave_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime)
 {
     if (respond_to_queries)
-        return internal_store->cas(key, data, flags, exptime, unique, proposed_cas);
+        return internal_store->cas(key, data, flags, exptime, unique, castime);
     else
         return store_t::sr_not_allowed;
 }
 
-store_t::incr_decr_result_t slave_t::incr(store_key_t *key, unsigned long long amount, cas_t proposed_cas)
+store_t::incr_decr_result_t slave_t::incr(store_key_t *key, unsigned long long amount, castime_t castime)
 {
     if (respond_to_queries)
-        return internal_store->incr(key, amount, proposed_cas);
+        return internal_store->incr(key, amount, castime);
     else
         return store_t::incr_decr_result_t::idr_not_allowed;
 }
 
-store_t::incr_decr_result_t slave_t::decr(store_key_t *key, unsigned long long amount, cas_t proposed_cas)
+store_t::incr_decr_result_t slave_t::decr(store_key_t *key, unsigned long long amount, castime_t castime)
 {
     if (respond_to_queries)
-        return internal_store->decr(key, amount, proposed_cas);
+        return internal_store->decr(key, amount, castime);
     else
         return store_t::incr_decr_result_t::idr_not_allowed;
 }
 
-store_t::append_prepend_result_t slave_t::append(store_key_t *key, data_provider_t *data, cas_t proposed_cas)
+store_t::append_prepend_result_t slave_t::append(store_key_t *key, data_provider_t *data, castime_t castime)
 {
     if (respond_to_queries)
-        return internal_store->append(key, data, proposed_cas);
+        return internal_store->append(key, data, castime);
     else
         return store_t::apr_not_allowed;
 }
 
-store_t::append_prepend_result_t slave_t::prepend(store_key_t *key, data_provider_t *data, cas_t proposed_cas)
+store_t::append_prepend_result_t slave_t::prepend(store_key_t *key, data_provider_t *data, castime_t castime)
 {
     if (respond_to_queries)
-        return internal_store->prepend(key, data, proposed_cas);
+        return internal_store->prepend(key, data, castime);
     else
         return store_t::apr_not_allowed;
 }
 
-store_t::delete_result_t slave_t::delete_key(store_key_t *key)
+store_t::delete_result_t slave_t::delete_key(store_key_t *key, repli_timestamp timestamp)
 {
     if (respond_to_queries)
-        return internal_store->delete_key(key);
+        return internal_store->delete_key(key, timestamp);
     else
         return dr_not_allowed;
 }
@@ -152,28 +155,17 @@ std::string slave_t::failover_reset() {
 }
 
  /* message_callback_t interface */
-void slave_t::hello(boost::scoped_ptr<hello_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<backfill_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<announce_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<set_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<append_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<prepend_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<nop_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<ack_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<shutting_down_message_t>& message)
-{}
-void slave_t::send(boost::scoped_ptr<goodbye_message_t>& message)
-{}
-void slave_t::conn_closed()
-{
+void slave_t::hello(net_hello_t message) { }
+void slave_t::send(buffed_data_t<net_backfill_t>& message) { }
+void slave_t::send(buffed_data_t<net_announce_t>& message) { }
+void slave_t::send(stream_pair<net_set_t>& message) { }
+void slave_t::send(stream_pair<net_append_t>& message) { }
+void slave_t::send(stream_pair<net_prepend_t>& message) { }
+void slave_t::send(buffed_data_t<net_nop_t>& message) { }
+void slave_t::send(buffed_data_t<net_ack_t>& message) { }
+void slave_t::send(buffed_data_t<net_shutting_down_t>& message) { }
+void slave_t::send(buffed_data_t<net_goodbye_t>& message) { }
+void slave_t::conn_closed() {
     coro->notify();
 }
 
@@ -254,7 +246,10 @@ void run(slave_t *slave) {
         /* The connection has failed. Let's see what se should do */
         if (!slave->give_up.give_up()) {
             slave->timer_token = fire_timer_once(slave->timeout, &slave->reconnect_timer_callback, slave);
+
             slave->timeout *= TIMEOUT_GROWTH_FACTOR;
+            if (slave->timeout > TIMEOUT_CAP) slave->timeout = TIMEOUT_CAP;
+
             coro_t::wait(); //waiting on a timer
             slave->timer_token = NULL;
         } else {

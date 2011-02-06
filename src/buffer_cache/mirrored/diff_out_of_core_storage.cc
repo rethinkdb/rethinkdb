@@ -176,7 +176,7 @@ void diff_oocore_storage_t::flush_n_oldest_blocks(unsigned int n) {
         if (!block_is_empty[current_block - first_block]) {
             ++waiting_for_flush;
             //flush_block(current_block);
-            coro_t::spawn(&diff_oocore_storage_t::flush_block, this, current_block, coro_t::self());
+            coro_t::spawn(boost::bind(&diff_oocore_storage_t::flush_block, this, current_block, coro_t::self()));
         }
     }
     if (waiting_for_flush > 0)

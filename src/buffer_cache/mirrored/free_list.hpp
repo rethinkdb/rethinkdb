@@ -4,7 +4,6 @@
 #include "serializer/serializer.hpp"
 #include "serializer/translator.hpp"
 #include "buffer_cache/types.hpp"
-#include "containers/segmented_vector.hpp"
 #include "utils.hpp"
 
 /* TODO We could implement a free list in the unused cells of the page map, saving a little bit
@@ -28,8 +27,8 @@ public:
 
 private:
     ready_callback_t *ready_callback;
-    bool do_make_list();   // Called on serializer thread
-    bool have_made_list();   // Called on cache thread
+    void do_make_list();   // Called on serializer thread
+    void have_made_list();   // Called on cache thread
     
     translator_serializer_t *serializer;
     

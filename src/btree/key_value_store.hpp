@@ -12,7 +12,9 @@
 #include "store.hpp"
 #include "control.hpp"
 
-
+namespace replication {
+class masterstore_t;
+}  // namespace replication
 
 
 /* btree_key_value_store_t represents a collection of slices, possibly distributed
@@ -25,13 +27,13 @@ class btree_key_value_store_t :
 {
 public:
     // Blocks
-    static void create(
-        btree_key_value_store_dynamic_config_t *dynamic_config,
-        btree_key_value_store_static_config_t *static_config);
+    static void create(btree_key_value_store_dynamic_config_t *dynamic_config,
+                       btree_key_value_store_static_config_t *static_config,
+                       replication::masterstore_t *masterstore);
 
     // Blocks
-    btree_key_value_store_t(
-        btree_key_value_store_dynamic_config_t *dynamic_config);
+    btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
+                            replication::masterstore_t *masterstore);
 
     // Blocks
     ~btree_key_value_store_t();
@@ -46,16 +48,17 @@ public:
     /* store_t interface. */
 
     get_result_t get(store_key_t *key);
-    get_result_t get_cas(store_key_t *key, cas_t proposed_cas);
-    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
-    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
-    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas);
-    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, cas_t proposed_cas);
-    incr_decr_result_t incr(store_key_t *key, unsigned long long amount, cas_t proposed_cas);
-    incr_decr_result_t decr(store_key_t *key, unsigned long long amount, cas_t proposed_cas);
-    append_prepend_result_t append(store_key_t *key, data_provider_t *data, cas_t proposed_cas);
-    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, cas_t proposed_cas);
-    delete_result_t delete_key(store_key_t *key);
+    get_result_t get_cas(store_key_t *key, castime_t castime);
+    rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results);
+    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
+    incr_decr_result_t incr(store_key_t *key, unsigned long long amount, castime_t castime);
+    incr_decr_result_t decr(store_key_t *key, unsigned long long amount, castime_t castime);
+    append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime);
+    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime);
+    delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
 public:
     int n_files;
@@ -80,13 +83,13 @@ private:
 
 private:
     /* slice debug control_t which allows us to grab, slice and hash for a key */
-    struct hash_control_t :
+    class hash_control_t :
         public control_t
     {
     public:
         hash_control_t(btree_key_value_store_t *btkvs)
 #ifndef NDEBUG  //No documentation if we're in release mode.
-            : control_t("hash", std::string("Get hash and slice of a key. Syntax: rdb hash: key")), btkvs(btkvs)
+            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash: key")), btkvs(btkvs)
 #else
             : control_t("hash", std::string("")), btkvs(btkvs)
 #endif
@@ -96,12 +99,24 @@ private:
     private:
         btree_key_value_store_t *btkvs;
     public:
-        std::string call(std::string key) {
-            char store_key[MAX_KEY_SIZE+sizeof(store_key_t)];
-            str_to_key(key.c_str(), (store_key_t *) store_key);
-            uint32_t hash = btkvs->hash((store_key_t*) store_key), slice = btkvs->slice_num((store_key_t *) store_key);
+        std::string call(std::string keys) {
+            std::string result;
+            std::stringstream str(keys);
 
-            return strprintf("Hash: %X, Slice: %d\n", hash, slice);
+            while (!str.eof()) {
+                std::string key;
+                str >> key;
+
+                char store_key[MAX_KEY_SIZE+sizeof(store_key_t)];
+                str_to_key(key.c_str(), (store_key_t *) store_key);
+
+                uint32_t hash = btkvs->hash((store_key_t*) store_key);
+                uint32_t slice = btkvs->slice_num((store_key_t *) store_key);
+                int thread = btkvs->slice_for_key((store_key_t *) store_key)->home_thread;
+
+                result += strprintf("%*s: %08lx [slice: %03lu, thread: %03d]\r\n", key.length(), key.c_str(), hash, slice, thread);
+            }
+            return result;
         }
     };
 

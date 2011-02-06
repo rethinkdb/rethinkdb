@@ -40,7 +40,7 @@ VALGRIND?=0
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
-UNIT_TESTS?=0
+UNIT_TESTS?=$(DEBUG)
 
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
@@ -452,7 +452,7 @@ $(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc
 	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \
 	rm -f $@.$$$$
 # Include the dependencies into the makefile so that they take effect
-ifneq ($(MAKECMDGOALS),clean)
-	-include $(DEPS)
-endif
 
+ifneq ($(MAKECMDGOALS),clean)
+-include $(DEPS)
+endif

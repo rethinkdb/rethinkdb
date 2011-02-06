@@ -34,7 +34,7 @@ void ls_check_existing(const char *filename, log_serializer_t::check_callback_t 
 }
 
 void log_serializer_t::check_existing(const char *filename, check_callback_t *cb) {
-    coro_t::spawn(ls_check_existing, filename, cb);
+    coro_t::spawn(boost::bind(ls_check_existing, filename, cb));
 }
 
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
@@ -81,7 +81,7 @@ void log_serializer_t::ls_start_new(static_config_t *config, ready_callback_t *r
 bool log_serializer_t::start_new(static_config_t *config, ready_callback_t *ready_cb) {
     rassert(state == state_unstarted);
     assert_thread();
-    coro_t::spawn(&log_serializer_t::ls_start_new, this, config, ready_cb);
+    coro_t::spawn(boost::bind(&log_serializer_t::ls_start_new, this, config, ready_cb));
     return false;
 }
 
@@ -750,7 +750,7 @@ bool log_serializer_t::next_shutdown_step() {
         // Don't call the callback if we went through the entire
         // shutdown process in one synchronous shot.
         if (!shutdown_in_one_shot && shutdown_callback) {
-            do_later(shutdown_callback, &shutdown_callback_t::on_serializer_shutdown, this);
+            do_later(boost::bind(&shutdown_callback_t::on_serializer_shutdown, shutdown_callback, this));
         }
 
         return true;
@@ -790,8 +790,7 @@ bool log_serializer_t::disable_gc(gc_disable_callback_t *cb) {
     return data_block_manager->disable_gc(cb);
 }
 
-bool log_serializer_t::enable_gc() {
+void log_serializer_t::enable_gc() {
     data_block_manager->enable_gc();
-    return true;
 }
 
