@@ -141,10 +141,10 @@ struct failover_config_t {
     char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
     int     heartbeat_timeout; /* noncommunicative period after which the other server is considered to be unreachable we can maybe take this out TODO @jdoliner */
     bool    active;
-    bool    run_behind_elb;
+    int     elb_port;
 
     failover_config_t()
-        : active(false), run_behind_elb(false)
+        : active(false), elb_port(-1)
     {}
 };
 
@@ -211,6 +211,7 @@ public:
     void set_master_addr(char *value);
     void set_failover_file(const char* value);
     void set_heartbeat_timeout(const char* value);
+    void set_elb_port(const char* value);
     void push_private_config(const char* value);
     
 private:

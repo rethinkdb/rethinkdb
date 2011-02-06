@@ -5,6 +5,7 @@
 #include <list>
 #include <vector>
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
 #include "arch/linux/message_hub.hpp"
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
@@ -33,77 +34,20 @@ struct coro_t :
     friend class coro_context_t;
     friend bool is_coroutine_stack_overflow(void *);
 
-private:
-    /* A deed_t is a virtual superclass for callable objects. */
-    struct deed_t {
-        virtual void operator()() = 0;
-    protected:
-        ~deed_t() { }
-    };
-
 public:
-    template<typename callable_t>
-    static void spawn(callable_t fun) {
-        /* fun_runner_t converts any callable into a deed_t. */
-        struct fun_runner_t : public deed_t {
-            callable_t fun;
-            fun_runner_t(callable_t fun) : fun(fun) { }
-            virtual void operator()() {
-                fun();
-                delete this;
-            }
-        };
-        new coro_t(new fun_runner_t(fun));
-    }
+    static void spawn(const boost::function<void()>& deed);
+    static void spawn_now(const boost::function<void()> &deed);
 
-    template<typename callable_t, typename arg_t>
-    static void spawn(callable_t fun, arg_t arg) {
-        spawn(boost::bind(fun, arg));
-    }
+    // Use coro_t::spawn(boost::bind(...)) for multiparamater spawnings.
 
-    template<typename callable_t, typename arg1_t, typename arg2_t>
-    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2) {
-        spawn(boost::bind(fun, arg1, arg2));
-    }
-
-    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t>
-    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3) {
-        spawn(boost::bind(fun, arg1, arg2, arg3));
-    }
-
-    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t>
-    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4) {
-        spawn(boost::bind(fun, arg1, arg2, arg3, arg4));
-    }
-
-    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t>
-    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5) {
-        spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5));
-    }
-
-    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t, typename arg6_t>
-    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5, arg6_t arg6) {
-        spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5, arg6));
-    }
-
-    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t, typename arg6_t, typename arg7_t>
-    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5, arg6_t arg6, arg7_t arg7) {
-        spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5, arg6, arg7));
-    }
-
-    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t, typename arg6_t, typename arg7_t, typename arg8_t>
-    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5, arg6_t arg6, arg7_t arg7, arg8_t arg8) {
-        spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8));
-    }
-
-    template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t, typename arg6_t, typename arg7_t, typename arg8_t, typename arg9_t>
-    static void spawn(callable_t fun, arg1_t arg1, arg2_t arg2, arg3_t arg3, arg4_t arg4, arg5_t arg5, arg6_t arg6, arg7_t arg7, arg8_t arg8, arg9_t arg9) {
-        spawn(boost::bind(fun, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9));
+    static void spawn_on_thread(int thread, const boost::function<void()>& deed) {
+        (new coro_t(deed, thread))->notify();
     }
 
 public:
     static void wait(); //Pauses the current coroutine until it's notified
     static coro_t *self(); //Returns the current coroutine
+    void notify_now(); // Switches to a coroutine immediately (will switch back when it returns or wait()s)
     void notify(); //Wakes up the coroutine, allowing the scheduler to trigger it to continue
     static void move_to_thread(int thread); //Wait and notify self on the CPU (avoiding race conditions)
 
@@ -115,16 +59,18 @@ private:
     coro_context_t object. */
     coro_context_t *context;
 
-    coro_t(deed_t *deed);
-    deed_t *deed;
+    coro_t(const boost::function<void()>& deed, int thread);
+    boost::function<void()> deed_;
     void run();
     ~coro_t();
 
     virtual void on_thread_switch();
 
-    int current_thread;
+    int current_thread_;
 
-    bool notified;   // Sanity check variable
+    // Sanity check variables
+    bool notified_;
+    bool waiting_;
 
     DISABLE_COPYING(coro_t);
 };

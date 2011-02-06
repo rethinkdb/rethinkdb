@@ -3,6 +3,7 @@
 #define __DISTR_HPP__
 
 #include <stdio.h>
+#include <string>
 #include <string.h>
 #include <stdint.h>
 #include "load.hpp"
@@ -30,11 +31,11 @@ void prepend(payload_t *p, payload_t *other) {
 struct distr_t {
 public:
     distr_t(int _min, int _max)
-        : min(_min), max(_max), append_client_suffix(false)
+        : min(_min), max(_max), append_client_suffix(false), prefix("")
         {}
 
     distr_t()
-        : min(8), max(16), append_client_suffix(false)
+        : min(8), max(16), append_client_suffix(false), prefix("")
         {}
 
     // Generates a random payload within given bounds. It is the
@@ -56,8 +57,12 @@ public:
         size %= max - min + 1;
         size += min;
 
-        char *l = payload->first;
-        payload->second = size;
+        size_t prefix_len = prefix.length();
+        char *l = payload->first + prefix_len;
+
+        strncpy(payload->first, prefix.c_str(), prefix_len);
+        payload->second = size + prefix_len;
+
         int _size = size;
         do {
             uint64_t hash = seed;
@@ -102,6 +107,7 @@ public:
             }
             payload->second += suffix_length;
         }
+
     }
     
     size_t calculate_max_length(const int client_id = -1) {
@@ -119,7 +125,7 @@ public:
                 ++suffix_length;
             }
         }
-        return max + suffix_length;
+        return max + suffix_length + prefix.length();
     }
 
     void parse(char *str) {
@@ -164,6 +170,7 @@ public:
 public:
     int min, max;
     bool append_client_suffix;
+    std::string prefix;
 };
 
 #endif // __DISTR_HPP__

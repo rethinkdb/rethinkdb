@@ -195,23 +195,36 @@ mock_cache_t::~mock_cache_t() {
 
 bool mock_cache_t::start(ready_callback_t *cb) {
     ready_callback = NULL;
-    if (do_on_thread(serializer->home_thread, this, &mock_cache_t::load_blocks_from_serializer)) {
-        return true;
+    if (home_thread == serializer->home_thread) {
+        return load_blocks_from_serializer(cb);
     } else {
-        ready_callback = cb;
+        do_on_thread(serializer->home_thread, boost::bind(&mock_cache_t::do_load_blocks_from_serializer, this, cb));
         return false;
     }
 }
 
-bool mock_cache_t::load_blocks_from_serializer() {
+void mock_cache_t::do_load_blocks_from_serializer(ready_callback_t *cb) {
+    load_blocks_from_serializer(cb);
+}
+
+bool mock_cache_t::load_blocks_from_serializer(ready_callback_t *cb) {
+    rassert(get_thread_id() == serializer->home_thread);
+
     block_id_t end_block_id = serializer->max_block_id();
     if (end_block_id == 0) {
         // Create the superblock
         bufs.set_size(1);
         rassert(SUPERBLOCK_ID == 0);
         bufs[SUPERBLOCK_ID] = new internal_buf_t(this, SUPERBLOCK_ID);
-        
-        return do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
+
+        if (home_thread == serializer->home_thread) {
+            have_loaded_blocks();
+            return true;
+        } else {
+            do_on_thread(home_thread, boost::bind(&mock_cache_t::have_loaded_blocks, this));
+            ready_callback = cb;
+            return false;
+        }
     } else {
         // Load the blocks from the serializer
         bufs.set_size(end_block_id, NULL);
@@ -224,8 +237,16 @@ bool mock_cache_t::load_blocks_from_serializer() {
             }
         }
         if (blocks_to_load == 0) {
-            return do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
+            if (home_thread == serializer->home_thread) {
+                have_loaded_blocks();
+                return true;
+            } else {
+                do_on_thread(home_thread, boost::bind(&mock_cache_t::have_loaded_blocks, this));
+                ready_callback = cb;
+                return false;
+            }
         } else {
+            ready_callback = cb;
             return false;
         }
     }
@@ -234,14 +255,15 @@ bool mock_cache_t::load_blocks_from_serializer() {
 void mock_cache_t::on_serializer_read() {
     blocks_to_load--;
     if (blocks_to_load == 0) {
-        do_on_thread(home_thread, this, &mock_cache_t::have_loaded_blocks);
+        do_on_thread(home_thread, boost::bind(&mock_cache_t::have_loaded_blocks, this));
     }
 }
 
-bool mock_cache_t::have_loaded_blocks() {
+void mock_cache_t::have_loaded_blocks() {
     running = true;
-    if (ready_callback) ready_callback->on_cache_ready();
-    return true;
+    if (ready_callback) {
+        ready_callback->on_cache_ready();
+    }
 }
 
 block_size_t mock_cache_t::get_block_size() {
@@ -288,7 +310,16 @@ bool mock_cache_t::shutdown(shutdown_callback_t *cb) {
 }
 
 bool mock_cache_t::shutdown_write_bufs() {
-    return do_on_thread(serializer->home_thread, this, &mock_cache_t::shutdown_do_send_bufs_to_serializer);
+    if (home_thread == serializer->home_thread) {
+        return shutdown_do_send_bufs_to_serializer();
+    } else {
+        do_on_thread(serializer->home_thread, boost::bind(&mock_cache_t::do_shutdown_do_send_bufs_to_serializer, this));
+        return false;
+    }
+}
+
+void mock_cache_t::do_shutdown_do_send_bufs_to_serializer() {
+    shutdown_do_send_bufs_to_serializer();
 }
 
 bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
@@ -299,14 +330,23 @@ bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
     }
 
     if (serializer->do_write(writes.data(), writes.size(), this)) {
-        return do_on_thread(home_thread, this, &mock_cache_t::shutdown_destroy_bufs);
+        if (home_thread == serializer->home_thread) {
+            return shutdown_destroy_bufs();
+        } else {
+            do_on_thread(home_thread, boost::bind(&mock_cache_t::do_shutdown_destroy_bufs, this));
+            return false;
+        }
     } else {
         return false;
     }
 }
 
 void mock_cache_t::on_serializer_write_txn() {
-    do_on_thread(home_thread, this, &mock_cache_t::shutdown_destroy_bufs);
+    do_on_thread(home_thread, boost::bind(&mock_cache_t::do_shutdown_destroy_bufs, this));
+}
+
+void mock_cache_t::do_shutdown_destroy_bufs() {
+    shutdown_destroy_bufs();
 }
 
 bool mock_cache_t::shutdown_destroy_bufs() {

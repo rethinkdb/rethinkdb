@@ -3,6 +3,7 @@
 #include "db_thread_info.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
+#include "btree/rget.hpp"
 
 /* The key-value store slices up the serializers as follows:
 
@@ -137,11 +138,12 @@ void prep_for_btree(
         translator_serializer_t **pseudoserializers,
         mirrored_cache_config_t *dynamic_config,
         mirrored_cache_static_config_t *static_config,
+        replication::masterstore_t *masterstore,
         int i) {
 
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    btree_slice_t::create(pseudoserializers[i], dynamic_config, static_config);
+    btree_slice_t::create(pseudoserializers[i], dynamic_config, static_config, masterscore);
 }
 
 void create_existing_btree(
@@ -149,13 +151,14 @@ void create_existing_btree(
         btree_slice_t **slices,
         mirrored_cache_config_t *dynamic_config,
         mirrored_cache_static_config_t *static_config,
+        replication::masterstore_t *masterstore,
         int i) {
 
     // TODO try to align slices with serializers so that when possible, a slice is on the
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    slices[i] = new btree_slice_t(pseudoserializers[i], dynamic_config, static_config);
+    slices[i] = new btree_slice_t(pseudoserializers[i], dynamic_config, static_config, masterstore);
 }
 
 void destroy_btree(
@@ -190,9 +193,9 @@ void destroy_serializer(
     delete serializers[i];
 }
 
-void btree_key_value_store_t::create(
-        btree_key_value_store_dynamic_config_t *dynamic_config,
-        btree_key_value_store_static_config_t *static_config) {
+void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dynamic_config,
+                                     btree_key_value_store_static_config_t *static_config,
+                                     replication::masterstore_t *masterstore) {
 
     /* Create serializers */
     int n_files = dynamic_config->serializer_private.size();
@@ -200,37 +203,36 @@ void btree_key_value_store_t::create(
     rassert(n_files <= MAX_SERIALIZERS);
     uint32_t creation_magic = time(NULL);
     standard_serializer_t *serializers[n_files];
-    pmap(n_files, &create_new_serializer,
-        dynamic_config, static_config, serializers, creation_magic);
+    pmap(n_files, boost::bind(&create_new_serializer,
+        dynamic_config, static_config, serializers, creation_magic, _1));
 
     /* Create pseudoserializers */
     translator_serializer_t *pseudoserializers[static_config->btree.n_slices];
-    pmap(static_config->btree.n_slices, &create_pseudoserializer,
-        dynamic_config, &static_config->btree, serializers, pseudoserializers);
+    pmap(static_config->btree.n_slices, boost::bind(&create_pseudoserializer,
+        dynamic_config, &static_config->btree, serializers, pseudoserializers, _1));
 
     /* Initialize the btrees. Don't bother splitting the memory between the slices since we're just
     creating, which takes almost no memory. */
-    pmap(static_config->btree.n_slices, &prep_for_btree, pseudoserializers, &dynamic_config->cache, &static_config->cache);
+    pmap(static_config->btree.n_slices, boost::bind(&prep_for_btree, pseudoserializers, &dynamic_config->cache, &static_config->cache, masterstore, _1));
 
     /* Destroy pseudoserializers */
-    pmap(static_config->btree.n_slices, &destroy_pseudoserializer, pseudoserializers);
+    pmap(static_config->btree.n_slices, boost::bind(&destroy_pseudoserializer, pseudoserializers, _1));
 
     /* Shut down serializers */
-    pmap(n_files, &destroy_serializer, serializers);
+    pmap(n_files, boost::bind(&destroy_serializer, serializers, _1));
 }
 
-btree_key_value_store_t::btree_key_value_store_t(
-        btree_key_value_store_dynamic_config_t *dynamic_config)
-            : hash_control(this)
-{
+btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
+                                                 replication::masterstore_t *masterstore)
+    : hash_control(this) {
     /* Start serializers */
     n_files = dynamic_config->serializer_private.size();
     rassert(n_files > 0);
     rassert(n_files <= MAX_SERIALIZERS);
     uint32_t magics[n_files];
     for (int i = 0; i < n_files; i++) serializers[i] = NULL;
-    pmap(n_files, &create_existing_serializer,
-        dynamic_config, &btree_static_config, &cache_static_config, serializers, magics);
+    pmap(n_files, boost::bind(&create_existing_serializer,
+        dynamic_config, &btree_static_config, &cache_static_config, serializers, magics, _1));
     for (int i = 1; i < n_files; i++) {
         if (magics[i] != magics[0]) {
             fail_due_to_user_error("The files that the server was started with didn't all come from the same database.");
@@ -238,8 +240,8 @@ btree_key_value_store_t::btree_key_value_store_t(
     }
 
     /* Create pseudoserializers */
-    pmap(btree_static_config.n_slices, &create_pseudoserializer,
-        dynamic_config, &btree_static_config, serializers, pseudoserializers);
+    pmap(btree_static_config.n_slices, boost::bind(&create_pseudoserializer,
+         dynamic_config, &btree_static_config, serializers, pseudoserializers, _1));
 
     /* Load btrees */
     mirrored_cache_config_t per_slice_config = dynamic_config->cache;
@@ -247,20 +249,20 @@ btree_key_value_store_t::btree_key_value_store_t(
     per_slice_config.max_size /= btree_static_config.n_slices;
     per_slice_config.max_dirty_size /= btree_static_config.n_slices;
     per_slice_config.flush_dirty_size /= btree_static_config.n_slices;
-    pmap(btree_static_config.n_slices, &create_existing_btree,
-        pseudoserializers, slices, &per_slice_config, &cache_static_config);
+    pmap(btree_static_config.n_slices, boost::bind(&create_existing_btree,
+         pseudoserializers, slices, &per_slice_config, &cache_static_config, masterstore, _1));
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {
 
     /* Shut down btrees */
-    pmap(btree_static_config.n_slices, &destroy_btree, slices);
+    pmap(btree_static_config.n_slices, boost::bind(&destroy_btree, slices, _1));
 
     /* Destroy pseudoserializers */
-    pmap(btree_static_config.n_slices, &destroy_pseudoserializer, pseudoserializers);
+    pmap(btree_static_config.n_slices, boost::bind(&destroy_pseudoserializer, pseudoserializers, _1));
 
     /* Shut down serializers */
-    pmap(n_files, &destroy_serializer, serializers);
+    pmap(n_files, boost::bind(&destroy_serializer, serializers, _1));
 }
 
 /* Function to check if any of the files seem to contain existing databases */
@@ -362,44 +364,48 @@ store_t::get_result_t btree_key_value_store_t::get(store_key_t *key) {
     return slice_for_key(key)->get(key);
 }
 
-store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key, cas_t proposed_cas) {
-    return slice_for_key(key)->get_cas(key, proposed_cas);
+store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime_t castime) {
+    return slice_for_key(key)->get_cas(key, castime);
 }
 
-store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) {
-    return slice_for_key(key)->set(key, data, flags, exptime, proposed_cas);
+store_t::rget_result_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {
+    return btree_rget(this, start, end, left_open, right_open, max_results);
 }
 
-store_t::set_result_t btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) {
-    return slice_for_key(key)->add(key, data, flags, exptime, proposed_cas);
+store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    return slice_for_key(key)->set(key, data, flags, exptime, castime);
 }
 
-store_t::set_result_t btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t proposed_cas) {
-    return slice_for_key(key)->replace(key, data, flags, exptime, proposed_cas);
+store_t::set_result_t btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    return slice_for_key(key)->add(key, data, flags, exptime, castime);
 }
 
-store_t::set_result_t btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, cas_t proposed_cas) {
-    return slice_for_key(key)->cas(key, data, flags, exptime, unique, proposed_cas);
+store_t::set_result_t btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+    return slice_for_key(key)->replace(key, data, flags, exptime, castime);
 }
 
-store_t::incr_decr_result_t btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount, cas_t proposed_cas) {
-    return slice_for_key(key)->incr(key, amount, proposed_cas);
+store_t::set_result_t btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
+    return slice_for_key(key)->cas(key, data, flags, exptime, unique, castime);
 }
 
-store_t::incr_decr_result_t btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount, cas_t proposed_cas) {
-    return slice_for_key(key)->decr(key, amount, proposed_cas);
+store_t::incr_decr_result_t btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount, castime_t castime) {
+    return slice_for_key(key)->incr(key, amount, castime);
 }
 
-store_t::append_prepend_result_t btree_key_value_store_t::append(store_key_t *key, data_provider_t *data, cas_t proposed_cas) {
-    return slice_for_key(key)->append(key, data, proposed_cas);
+store_t::incr_decr_result_t btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount, castime_t castime) {
+    return slice_for_key(key)->decr(key, amount, castime);
 }
 
-store_t::append_prepend_result_t btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data, cas_t proposed_cas) {
-    return slice_for_key(key)->prepend(key, data, proposed_cas);
+store_t::append_prepend_result_t btree_key_value_store_t::append(store_key_t *key, data_provider_t *data, castime_t castime) {
+    return slice_for_key(key)->append(key, data, castime);
 }
 
-store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key) {
-    return slice_for_key(key)->delete_key(key);
+store_t::append_prepend_result_t btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data, castime_t castime) {
+    return slice_for_key(key)->prepend(key, data, castime);
+}
+
+store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
+    return slice_for_key(key)->delete_key(key, timestamp);
 }
 
 // Stats

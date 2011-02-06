@@ -79,7 +79,8 @@ private:
 template<class inner_cache_t>
 class scc_transaction_t :
     private inner_cache_t::transaction_begin_callback_t,
-    private inner_cache_t::transaction_commit_callback_t
+    private inner_cache_t::transaction_commit_callback_t,
+    public home_thread_mixin_t
 {
     typedef scc_buf_t<inner_cache_t> buf_t;
     typedef scc_transaction_begin_callback_t<inner_cache_t> transaction_begin_callback_t;

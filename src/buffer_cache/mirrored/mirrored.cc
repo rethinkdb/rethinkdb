@@ -253,6 +253,8 @@ void *mc_buf_t::get_data_major_write() {
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
 
+    inner_buf->assert_thread();
+
     ensure_flush();
 
     return data;
@@ -407,6 +409,8 @@ bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
     rassert(state == state_open);
     pm_transactions_active.end(&start_time);
     pm_transactions_committing.begin(&start_time);
+
+    assert_thread();
     
     /* We have to call sync_patiently() before on_transaction_commit() so that if
     on_transaction_commit() starts a sync, we will get included in it */
@@ -454,8 +458,8 @@ void mc_transaction_t::on_sync() {
 
 mc_buf_t *mc_transaction_t::allocate() {
     /* Make a completely new block, complete with a shiny new block_id. */
-    
     rassert(access == rwi_write);
+    assert_thread();
     
     // This form of the inner_buf_t constructor generates a new block with a new block ID.
     inner_buf_t *inner_buf = new inner_buf_t(cache);
@@ -470,6 +474,7 @@ mc_buf_t *mc_transaction_t::allocate() {
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     block_available_callback_t *callback) {
     rassert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
+    assert_thread();
        
     inner_buf_t *inner_buf = cache->page_map.find(block_id);
     if (!inner_buf) {
@@ -628,8 +633,9 @@ block_size_t mc_cache_t::get_block_size() {
 }
 
 mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
-        transaction_begin_callback_t *callback) {\
+        transaction_begin_callback_t *callback) {
     
+    assert_thread();
     // shutdown_transaction_backdoor allows the writeback to request a transaction for the shutdown
     // sync.
     rassert(state == state_ready ||
@@ -701,7 +707,9 @@ bool mc_cache_t::next_shutting_down_step() {
 
         /* Use do_later() rather than calling it immediately because it might call
         our destructor, and it might not be safe to call our destructor right here. */
-        if (shutdown_callback) do_later(shutdown_callback, &shutdown_callback_t::on_cache_shutdown);
+        if (shutdown_callback) {
+            do_later(boost::bind(&shutdown_callback_t::on_cache_shutdown, shutdown_callback));
+        }
         shutdown_callback = NULL;
         state = state_shut_down;
         

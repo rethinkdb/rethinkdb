@@ -1,4 +1,5 @@
 #include "data_provider.hpp"
+#include "buffer_cache/co_functions.hpp"
 #include <string.h>
 
 /* auto_buffering_data_provider_t */

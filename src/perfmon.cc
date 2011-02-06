@@ -51,7 +51,7 @@ void perfmon_get_stats(perfmon_stats_t *dest) {
     int threads = get_num_threads();
     multi_wait_t *multi_wait = new multi_wait_t(threads);
     for (int i = 0; i < threads; i++) {
-        coro_t::spawn(co_perfmon_visit, i, data, multi_wait);
+        coro_t::spawn(boost::bind(co_perfmon_visit, i, data, multi_wait));
     }
     coro_t::wait();
     int i = 0;

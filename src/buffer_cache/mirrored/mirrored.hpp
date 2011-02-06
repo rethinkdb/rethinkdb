@@ -34,7 +34,7 @@ typedef array_map_t page_map_t;
 // into a coherent whole. This allows easily experimenting with
 // various components of the cache to improve performance.
 
-class mc_inner_buf_t {
+class mc_inner_buf_t : public home_thread_mixin_t {
     friend class load_buf_fsm_t;
     friend class mc_cache_t;
     friend class mc_transaction_t;
@@ -162,7 +162,8 @@ public:
 /* Transaction class. */
 class mc_transaction_t :
     public intrusive_list_node_t<mc_transaction_t>,
-    public writeback_t::sync_callback_t
+    public writeback_t::sync_callback_t,
+    public home_thread_mixin_t
 {
     typedef mc_cache_t cache_t;
     typedef mc_buf_t buf_t;

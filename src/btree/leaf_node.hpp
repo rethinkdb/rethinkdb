@@ -75,9 +75,12 @@ namespace leaf {
 // We can't use "internal" because that's for internal nodes... So we
 // have to use impl :( I'm sorry.
 namespace impl {
+    const int key_not_found = -1;
+
     void delete_pair(buf_t &node_buf, uint16_t offset);
     uint16_t insert_pair(buf_t& node_buf, const btree_leaf_pair *pair);
     uint16_t insert_pair(buf_t& node_buf, const btree_value *value, const btree_key *key);
+
     int get_offset_index(const leaf_node_t *node, const btree_key *key);
     int find_key(const leaf_node_t *node, const btree_key *key);
     void shift_pairs(buf_t &node_buf, uint16_t offset, long shift);

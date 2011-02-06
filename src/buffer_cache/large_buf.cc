@@ -603,6 +603,7 @@ void large_buf_t::mark_deleted() {
 void large_buf_t::release() {
     rassert(state == loaded || state == deleted);
 
+    transaction->ensure_thread();
     int levels = num_levels(root_ref.offset + root_ref.size);
     root = release_tree_structure(root, 0, max_offset(levels), levels);
     rassert(root == NULL);
@@ -687,6 +688,10 @@ byte *large_buf_t::get_segment_write(int64_t ix, uint16_t *seg_size) {
     large_buf_leaf *leaf = reinterpret_cast<large_buf_leaf *>(buf->get_data_major_write());
     rassert(root->level == num_levels(root_ref.offset + root_ref.size));
     return leaf->buf + seg_offset;
+}
+
+transaction_t *large_buf_t::get_transaction() const {
+    return transaction;
 }
 
 const large_buf_ref& large_buf_t::get_root_ref() const {

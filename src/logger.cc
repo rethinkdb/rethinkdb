@@ -25,7 +25,7 @@ static void install_log_controller(log_controller_t *lc, int thread) {
 
 log_controller_t::log_controller_t() {
     home_thread = get_thread_id();
-    pmap(get_num_threads(), &install_log_controller, this);
+    pmap(get_num_threads(), boost::bind(&install_log_controller, this, _1));
 }
 
 static void uninstall_log_controller(log_controller_t *lc, int thread) {
@@ -37,7 +37,7 @@ static void uninstall_log_controller(log_controller_t *lc, int thread) {
 }
 
 log_controller_t::~log_controller_t() {
-    pmap(get_num_threads(), &uninstall_log_controller, this);
+    pmap(get_num_threads(), boost::bind(&uninstall_log_controller, this, _1));
 }
 
 /* Log message class. */
@@ -159,7 +159,7 @@ void mlog_end() {
         delete current_message;
     } else {
         log_controller_lock->co_lock(rwi_read);
-        coro_t::spawn(&write_log_message, current_message, log_controller);
+        coro_t::spawn(boost::bind(&write_log_message, current_message, log_controller));
     }
     current_message = NULL;
 }

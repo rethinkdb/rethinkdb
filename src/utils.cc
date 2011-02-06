@@ -175,13 +175,3 @@ std::string format_precise_time(const precise_time_t& time) {
     format_precise_time(time, buf, sizeof(buf));
     return std::string(buf);
 }
-
-cas_generator_t::cas_generator_t() : n_threads(get_num_db_threads()) {
-    for (int i = 0; i < n_threads; ++i) {
-        cas_counters[i].counter = i;
-    }
-}
-
-cas_t cas_generator_t::gen_cas() {
-    return (uint64_t(time(NULL)) << 32) | (cas_counters[get_thread_id()].counter += n_threads);
-}

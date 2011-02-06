@@ -93,7 +93,7 @@ void remove(block_size_t block_size, buf_t &node_buf, const btree_key *key) {
 #endif
 
     int index = impl::find_key(node, key);
-    rassert(index != -1);
+    rassert(index != impl::key_not_found);
     rassert(index != node->npairs);
 
     uint16_t offset = node->pair_offsets[index];
@@ -115,9 +115,8 @@ void remove(block_size_t block_size, buf_t &node_buf, const btree_key *key) {
 
 bool lookup(const leaf_node_t *node, const btree_key *key, btree_value *value) {
     int index = impl::find_key(node, key);
-    if (index != -1) {
-        uint16_t offset = node->pair_offsets[index];
-        const btree_leaf_pair *pair = get_pair(node, offset);
+    if (index != impl::key_not_found) {
+        const btree_leaf_pair *pair = get_pair_by_index(node, index);
         const btree_value *stored_value = pair->value();
         memcpy(value, stored_value, stored_value->full_size());
         return true;
@@ -574,7 +573,7 @@ int find_key(const leaf_node_t *node, const btree_key *key) {
     if (index < node->npairs && impl::is_equal(key, &get_pair_by_index(node, index)->key) ) {
         return index;
     } else {
-        return -1;
+        return impl::key_not_found;
     }
 }
 void delete_offset(buf_t &node_buf, int index) {
@@ -615,7 +614,7 @@ void rotate_time(buf_t &node_buf, repli_timestamp latest_time, int prev_timestam
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
     int32_t diff = latest_time.time - node->times.last_modified.time;
     if (diff < 0) {
-        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d", latest_time.time, node->times.last_modified);
+        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d\n", latest_time.time, node->times.last_modified);
         // Something strange happened, wipe out everything.
         initialize_times(node_buf, latest_time);
     } else {

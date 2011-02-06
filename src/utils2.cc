@@ -98,6 +98,15 @@ bool begins_with_minus(const char *string) {
     return *string == '-';
 }
 
+bool strtobool_strict(const char *string, char **end) {
+    unsigned long res = strtoul_strict(string, end, 2);
+    if (*end == string || res > 1) {
+        *end = const_cast<char *>(string);
+        return false;
+    }
+    return res == 1;
+}
+
 unsigned long strtoul_strict(const char *string, char **end, int base) {
     if (begins_with_minus(string)) {
         *end = const_cast<char *>(string);
