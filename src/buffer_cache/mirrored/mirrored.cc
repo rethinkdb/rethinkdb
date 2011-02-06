@@ -591,7 +591,7 @@ bool mc_cache_t::next_starting_up_step() {
         }
 
         /* Initialize the diff storage (needs coro context) */
-        coro_t::spawn(&mc_cache_t::init_diff_storage, this);
+        coro_t::spawn(boost::bind(&mc_cache_t::init_diff_storage, this));
 
         return false;
     }

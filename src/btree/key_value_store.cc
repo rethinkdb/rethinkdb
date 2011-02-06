@@ -143,7 +143,7 @@ void prep_for_btree(
 
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    btree_slice_t::create(pseudoserializers[i], dynamic_config, static_config, masterscore);
+    btree_slice_t::create(pseudoserializers[i], dynamic_config, static_config, masterstore);
 }
 
 void create_existing_btree(
