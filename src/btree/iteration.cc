@@ -10,12 +10,16 @@ leaf_iterator_t::leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t 
 
 boost::optional<key_with_data_provider_t> leaf_iterator_t::next() {
     rassert(index >= 0);
-    if (index >= leaf->npairs) {
-        done();
-        return boost::none;
-    }
+    const btree_leaf_pair *pair;
+    do {
+        if (index >= leaf->npairs) {
+            done();
+            return boost::none;
+        }
+        pair = leaf::get_pair_by_index(leaf, index++);
+    } while (pair->value()->expired());
 
-    return boost::make_optional(pair_to_key_with_data_provider(leaf::get_pair_by_index(leaf, index++)));
+    return boost::make_optional(pair_to_key_with_data_provider(pair));
 }
 
 void leaf_iterator_t::prefetch() {

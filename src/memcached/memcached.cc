@@ -5,6 +5,7 @@
 #include "concurrency/semaphore.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
 #include "store.hpp"
 #include "logger.hpp"
@@ -150,8 +151,16 @@ struct get_t {
         char key_memory[MAX_KEY_SIZE+sizeof(store_key_t)];
         store_key_t key;
     };
-    task_t<store_t::get_result_t> *result;
+    store_t::get_result_t res;
 };
+
+void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i) {
+    if (with_cas) {
+        gets[i].res = rh->store->get_cas(&gets[i].key, castime_t::dummy());
+    } else {
+        gets[i].res = rh->store->get(&gets[i].key);
+    }
+}
 
 void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
     rassert(argc >= 1);
@@ -175,26 +184,11 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
     }
 
     /* Now that we're sure they're all valid, send off the requests */
-    if (with_cas) {
-        repli_timestamp timestamp = current_time();
-        for (int i = 0, n = gets.size(); i < n; i++) {
-            gets[i].result = task<store_t::get_result_t>(&store_t::get_cas,
-                                                         rh->store,
-                                                         &gets[i].key,
-                                                         castime_t::dummy());
-        }
-    } else {
-        for (int i = 0, n = gets.size(); i < n; i++) {
-            gets[i].result = task<store_t::get_result_t>(&store_t::get,
-                                                         rh->store,
-                                                         &gets[i].key);
-        }
-    }
-
+    pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1));
 
     /* Handle the results in sequence */
     for (int i = 0; i < (int)gets.size(); i++) {
-        store_t::get_result_t res = gets[i].result->join();
+        store_t::get_result_t &res = gets[i].res;
 
         /* If res.value is NULL that means the value was not found so we don't write
         anything */

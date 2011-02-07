@@ -220,7 +220,7 @@ class NetRecord(object):
 
 num_stress_clients = 0
 
-def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64):
+def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64, keys_prefix=None):
     global num_stress_clients
     num_stress_clients += 1
     
@@ -237,6 +237,9 @@ def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "in
         "-c", str(clients),
         ]
     
+    if keys_prefix and keys_prefix != "":
+        command_line.extend(['-K', keys_prefix])
+
     key_file = test_dir.make_file("stress_client/keys")
     command_line.extend(["-o", key_file])
     if os.path.exists(key_file): command_line.extend(["-i", key_file])
