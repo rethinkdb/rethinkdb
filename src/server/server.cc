@@ -97,7 +97,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             logINF("Creating database...\n");
             btree_key_value_store_t::create(&cmd_config->store_dynamic_config,
                                             &cmd_config->store_static_config,
-                                            &masterstore);
+                                            NULL /* &masterstore - commented out because masterstore eats the data_provider*/);
             logINF("Done creating.\n");
         }
 
@@ -106,7 +106,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* Start key-value store */
             logINF("Loading database...\n");
             //store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config, &masterstore);
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config, NULL /* &masterstore - commented out because masterstore eats the data_provider */);
 
             /* Are we a replication slave? */
             if (cmd_config->replication_config.active) {
