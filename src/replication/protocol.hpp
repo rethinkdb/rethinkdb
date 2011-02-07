@@ -29,9 +29,16 @@ public:
     virtual void hello(net_hello_t message) = 0;
     virtual void send(buffed_data_t<net_backfill_t>& message) = 0;
     virtual void send(buffed_data_t<net_announce_t>& message) = 0;
+    virtual void send(buffed_data_t<net_get_cas_t>& message) = 0;
     virtual void send(stream_pair<net_set_t>& message) = 0;
+    virtual void send(stream_pair<net_add_t>& message) = 0;
+    virtual void send(stream_pair<net_replace_t>& message) = 0;
+    virtual void send(stream_pair<net_cas_t>& message) = 0;
+    virtual void send(buffed_data_t<net_incr_t>& message) = 0;
+    virtual void send(buffed_data_t<net_decr_t>& message) = 0;
     virtual void send(stream_pair<net_append_t>& message) = 0;
     virtual void send(stream_pair<net_prepend_t>& message) = 0;
+    virtual void send(buffed_data_t<net_delete_t>& message) = 0;
     virtual void send(buffed_data_t<net_nop_t>& message) = 0;
     virtual void send(buffed_data_t<net_ack_t>& message) = 0;
     virtual void send(buffed_data_t<net_shutting_down_t>& message) = 0;

@@ -80,9 +80,16 @@ public:
     void hello(net_hello_t message);
     void send(buffed_data_t<net_backfill_t>& message);
     void send(buffed_data_t<net_announce_t>& message);
+    void send(buffed_data_t<net_get_cas_t>& message);
     void send(stream_pair<net_set_t>& message);
+    void send(stream_pair<net_add_t>& message);
+    void send(stream_pair<net_replace_t>& message);
+    void send(stream_pair<net_cas_t>& message);
+    void send(buffed_data_t<net_incr_t>& message);
+    void send(buffed_data_t<net_decr_t>& message);
     void send(stream_pair<net_append_t>& message);
     void send(stream_pair<net_prepend_t>& message);
+    void send(buffed_data_t<net_delete_t>& message);
     void send(buffed_data_t<net_nop_t>& message);
     void send(buffed_data_t<net_ack_t>& message);
     void send(buffed_data_t<net_shutting_down_t>& message);
