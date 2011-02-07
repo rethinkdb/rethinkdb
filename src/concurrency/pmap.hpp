@@ -2,42 +2,31 @@
 #ifndef __CONCURRENCY_PMAP_HPP__
 #define __CONCURRENCY_PMAP_HPP__
 
-#include "concurrency/task.hpp"
+#include "concurrency/cond_var.hpp"
+#include <boost/function.hpp>
 
 template<typename callable_t>
-void pmap(int count, callable_t c) {
-    task_t<void> *returns[count];
-    for (int i = 0; i < count; i++) {
-        returns[i] = task<void>(c, i);
+void pmap_one(int i, const callable_t *c, int *outstanding, cond_t *to_signal) {
+    (*c)(i);
+    (*outstanding)--;
+    if (*outstanding == 0) to_signal->pulse();
+}
+
+template<typename callable_t>
+void pmap(int count, const callable_t &c) {
+    if (count == 0) return;
+    if (count == 1) {
+        c(0);
+        return;
     }
-    for (int i = 0; i < count; i++) {
-        returns[i]->join();
+
+    cond_t cond;
+    int outstanding = count - 1;
+    for (int i = 0; i < count - 1; i++) {
+        coro_t::spawn_now(boost::bind(&pmap_one<callable_t>, i, &c, &outstanding, &cond));
     }
-}
-
-template<typename callable_t, typename arg1_t>
-void pmap(int count, callable_t c, arg1_t a1) {
-    pmap(count, boost::bind(c, a1, _1));
-}
-
-template<typename callable_t, typename arg1_t, typename arg2_t>
-void pmap(int count, callable_t c, arg1_t a1, arg2_t a2) {
-    pmap(count, boost::bind(c, a1, a2, _1));
-}
-
-template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t>
-void pmap(int count, callable_t c, arg1_t a1, arg2_t a2, arg3_t a3) {
-    pmap(count, boost::bind(c, a1, a2, a3, _1));
-}
-
-template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t>
-void pmap(int count, callable_t c, arg1_t a1, arg2_t a2, arg3_t a3, arg4_t a4) {
-    pmap(count, boost::bind(c, a1, a2, a3, a4, _1));
-}
-
-template<typename callable_t, typename arg1_t, typename arg2_t, typename arg3_t, typename arg4_t, typename arg5_t>
-void pmap(int count, callable_t c, arg1_t a1, arg2_t a2, arg3_t a3, arg4_t a4, arg5_t a5) {
-    pmap(count, boost::bind(c, a1, a2, a3, a4, a5, _1));
+    c(count - 1);
+    cond.wait();
 }
 
 #endif /* __CONCURRENCY_PMAP_HPP__ */

@@ -27,6 +27,7 @@ private_ssh_key_filename = os.path.join (cloud_config_path, "ec2_private_key.pem
 cloudtest_lib_dependencies = [("/usr/local/lib/libtcmalloc_minimal.so.0", "libtcmalloc_minimal.so.0"),
         ("/usr/local/lib/libmemcached.so.5", "libmemcached.so.5"),
         ("/usr/local/lib/libmemcached.so.6", "libmemcached.so.6"),
+        ("/usr/local/lib/libgtest.so.0", "libgtest.so.0"),
         ("/usr/lib/libstdc++.so.6", "libstdc++.so.6"),
         ("/usr/lib/libgccpp.so.1", "libgccpp.so.1")]
 for valgrind_file in ["vgpreload_memcheck-amd64-linux.so", "vgpreload_core-amd64-linux.so", "memcheck-amd64-linux", "drd-amd64-linux", "helgrind-amd64-linux"]:

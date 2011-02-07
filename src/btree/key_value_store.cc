@@ -203,23 +203,24 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
     rassert(n_files <= MAX_SERIALIZERS);
     uint32_t creation_magic = time(NULL);
     standard_serializer_t *serializers[n_files];
-    pmap(n_files, &create_new_serializer,
-        dynamic_config, static_config, serializers, creation_magic);
+    pmap(n_files, boost::bind(&create_new_serializer,
+        dynamic_config, static_config, serializers, creation_magic, _1));
 
     /* Create pseudoserializers */
     translator_serializer_t *pseudoserializers[static_config->btree.n_slices];
-    pmap(static_config->btree.n_slices, &create_pseudoserializer,
-        dynamic_config, &static_config->btree, serializers, pseudoserializers);
+    pmap(static_config->btree.n_slices, boost::bind(&create_pseudoserializer,
+        dynamic_config, &static_config->btree, serializers, pseudoserializers, _1));
 
     /* Initialize the btrees. Don't bother splitting the memory between the slices since we're just
     creating, which takes almost no memory. */
-    pmap(static_config->btree.n_slices, &prep_for_btree, pseudoserializers, &dynamic_config->cache);
+
+    pmap(static_config->btree.n_slices, boost::bind(&prep_for_btree, pseudoserializers, &dynamic_config->cache, _1));
 
     /* Destroy pseudoserializers */
-    pmap(static_config->btree.n_slices, &destroy_pseudoserializer, pseudoserializers);
+    pmap(static_config->btree.n_slices, boost::bind(&destroy_pseudoserializer, pseudoserializers, _1));
 
     /* Shut down serializers */
-    pmap(n_files, &destroy_serializer, serializers);
+    pmap(n_files, boost::bind(&destroy_serializer, serializers, _1));
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
@@ -231,8 +232,8 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     rassert(n_files <= MAX_SERIALIZERS);
     uint32_t magics[n_files];
     for (int i = 0; i < n_files; i++) serializers[i] = NULL;
-    pmap(n_files, &create_existing_serializer,
-        dynamic_config, &btree_static_config, serializers, magics);
+    pmap(n_files, boost::bind(&create_existing_serializer,
+        dynamic_config, &btree_static_config, serializers, magics, _1));
     for (int i = 1; i < n_files; i++) {
         if (magics[i] != magics[0]) {
             fail_due_to_user_error("The files that the server was started with didn't all come from the same database.");
@@ -240,8 +241,8 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     }
 
     /* Create pseudoserializers */
-    pmap(btree_static_config.n_slices, &create_pseudoserializer,
-         dynamic_config, &btree_static_config, serializers, pseudoserializers);
+    pmap(btree_static_config.n_slices, boost::bind(&create_pseudoserializer,
+         dynamic_config, &btree_static_config, serializers, pseudoserializers, _1));
 
     /* Load btrees */
     mirrored_cache_config_t per_slice_config = dynamic_config->cache;
@@ -249,20 +250,20 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     per_slice_config.max_size /= btree_static_config.n_slices;
     per_slice_config.max_dirty_size /= btree_static_config.n_slices;
     per_slice_config.flush_dirty_size /= btree_static_config.n_slices;
-    pmap(btree_static_config.n_slices, &create_existing_btree,
-         pseudoserializers, slices, &per_slice_config, masterstore);
+    pmap(btree_static_config.n_slices, boost::bind(&create_existing_btree,
+         pseudoserializers, slices, &per_slice_config, masterstore, _1));
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {
 
     /* Shut down btrees */
-    pmap(btree_static_config.n_slices, &destroy_btree, slices);
+    pmap(btree_static_config.n_slices, boost::bind(&destroy_btree, slices, _1));
 
     /* Destroy pseudoserializers */
-    pmap(btree_static_config.n_slices, &destroy_pseudoserializer, pseudoserializers);
+    pmap(btree_static_config.n_slices, boost::bind(&destroy_pseudoserializer, pseudoserializers, _1));
 
     /* Shut down serializers */
-    pmap(n_files, &destroy_serializer, serializers);
+    pmap(n_files, boost::bind(&destroy_serializer, serializers, _1));
 }
 
 /* Function to check if any of the files seem to contain existing databases */
