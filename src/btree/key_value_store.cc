@@ -154,11 +154,11 @@ void create_existing_btree(
     on_thread_t thread_switcher(i % get_num_db_threads());
 
     btree_slice_t *sl = new btree_slice_t(pseudoserializers[i], config);
-    if (masterstore) {
+    //    if (masterstore) {  /* commented out to avoid temporarily breaking master.  btree_slice_dispatching_to_masterstore_t handles NULL masterstore gracefully, for now */
         slices[i] = new btree_slice_dispatching_to_masterstore_t(sl, masterstore);
-    } else {
-        slices[i] = sl;
-    }
+        //    } else {
+        //        slices[i] = sl;
+        //    }
 }
 
 void destroy_btree(
@@ -194,8 +194,7 @@ void destroy_serializer(
 }
 
 void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dynamic_config,
-                                     btree_key_value_store_static_config_t *static_config,
-                                     replication::masterstore_t *masterstore) {
+                                     btree_key_value_store_static_config_t *static_config) {
 
     /* Create serializers */
     int n_files = dynamic_config->serializer_private.size();

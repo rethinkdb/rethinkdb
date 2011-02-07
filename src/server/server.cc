@@ -96,8 +96,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         if (cmd_config->create_store) {
             logINF("Creating database...\n");
             btree_key_value_store_t::create(&cmd_config->store_dynamic_config,
-                                            &cmd_config->store_static_config,
-                                            NULL /* &masterstore - commented out because masterstore eats the data_provider*/);
+                                            &cmd_config->store_static_config);
+
             logINF("Done creating.\n");
         }
 

@@ -28,8 +28,7 @@ class btree_key_value_store_t :
 public:
     // Blocks
     static void create(btree_key_value_store_dynamic_config_t *dynamic_config,
-                       btree_key_value_store_static_config_t *static_config,
-                       replication::masterstore_t *masterstore);
+                       btree_key_value_store_static_config_t *static_config);
 
     // Blocks
     btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
