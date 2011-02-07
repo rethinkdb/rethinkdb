@@ -17,7 +17,7 @@ public:
 
 class masterstore_t : public home_thread_mixin_t {
 public:
-    masterstore_t() { }
+    masterstore_t() : message_contiguity_(), slave_(NULL), sources_() { }
 
     bool has_slave() { return slave_ != NULL; }
     void add_slave(tcp_conn_t *conn);
