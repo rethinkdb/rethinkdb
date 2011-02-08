@@ -413,4 +413,6 @@ store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key, r
 perfmon_duration_sampler_t
     pm_cmd_set("cmd_set", secs_to_ticks(1)),
     pm_cmd_get_without_threads("cmd_get_without_threads", secs_to_ticks(1)),
-    pm_cmd_get("cmd_get", secs_to_ticks(1));
+    pm_cmd_get("cmd_get", secs_to_ticks(1)),
+    pm_cmd_rget("cmd_rget", secs_to_ticks(1));
+
