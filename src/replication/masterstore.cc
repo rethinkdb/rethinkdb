@@ -232,8 +232,8 @@ void masterstore_t::send_data_with_ident(data_provider_t *data, uint32_t ident) 
 
         slave_->write(&multi_header, sizeof(multi_header));
         while (m > 0) {
-            rassert(bufnum < group->buffers.size());
-            const_buffer_group_t::buffer_t buf = group->buffers[bufnum];
+            rassert(bufnum < group->num_buffers());
+            const_buffer_group_t::buffer_t buf = group->get_buffer(bufnum);
             size_t write_size = std::min(m, buf.size - off);
             slave_->write(reinterpret_cast<const char *>(buf.data) + off, write_size);
             m -= write_size;

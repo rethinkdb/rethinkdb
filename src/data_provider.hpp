@@ -9,47 +9,61 @@
 
 #include "concurrency/cond_var.hpp"
 
-struct buffer_group_t {
-    struct buffer_t {
-        ssize_t size;
-        void *data;
-    };
-    std::vector<buffer_t> buffers;
-    void add_buffer(size_t s, void *d) {
-        buffer_t b;
-        b.size = s;
-        b.data = d;
-        buffers.push_back(b);
-    }
-    size_t get_size() const {
-        size_t s = 0;
-        for (int i = 0; i < (int)buffers.size(); i++) {
-            s += buffers[i].size;
-        }
-        return s;
-    }
-};
-
-struct const_buffer_group_t {
+class const_buffer_group_t {
+public:
     struct buffer_t {
         ssize_t size;
         const void *data;
     };
-    std::vector<buffer_t> buffers;
     void add_buffer(size_t s, const void *d) {
         buffer_t b;
         b.size = s;
         b.data = d;
-        buffers.push_back(b);
+        buffers_.push_back(b);
+    }
+    size_t num_buffers() const {
+        return buffers_.size();
+    }
+    buffer_t get_buffer(size_t i) const {
+        return buffers_[i];
     }
     size_t get_size() const {
         size_t s = 0;
-        for (int i = 0; i < (int)buffers.size(); i++) {
-            s += buffers[i].size;
+        for (int i = 0; i < (int)buffers_.size(); i++) {
+            s += buffers_[i].size;
         }
         return s;
     }
+private:
+    std::vector<buffer_t> buffers_;
 };
+
+class buffer_group_t {
+public:
+    struct buffer_t {
+        ssize_t size;
+        void *data;
+    };
+    void add_buffer(size_t s, void *d) { inner_.add_buffer(s, d); }
+    size_t num_buffers() const { return inner_.num_buffers(); }
+    buffer_t get_buffer(size_t i) const {
+        buffer_t ret;
+        const_buffer_group_t::buffer_t tmp = inner_.get_buffer(i);
+        ret.size = tmp.size;
+        ret.data = const_cast<void *>(tmp.data);
+        return ret;
+    }
+    size_t get_size() const { return inner_.get_size(); }
+    friend const const_buffer_group_t *const_view(const buffer_group_t *group);
+
+private:
+    const_buffer_group_t inner_;
+};
+
+inline const const_buffer_group_t *const_view(const buffer_group_t *group) {
+    return &group->inner_;
+}
+
 
 /* Data providers can throw data_provider_failed_exc_t to cancel the operation they are being used
 for. In general no information can be carried along with the data_provider_failed_exc_t; it's meant

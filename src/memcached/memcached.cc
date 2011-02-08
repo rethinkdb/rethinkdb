@@ -64,8 +64,8 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
             thread_saver_t thread_saver;
             bg = dp->get_data_as_buffers();
         }
-        for (size_t i = 0; i < bg->buffers.size(); i++) {
-            const_buffer_group_t::buffer_t b = bg->buffers[i];
+        for (size_t i = 0; i < bg->num_buffers(); i++) {
+            const_buffer_group_t::buffer_t b = bg->get_buffer(i);
             if (dp->get_size() < MAX_BUFFERED_GET_SIZE) {
                 write(ptr_cast<const char>(b.data), b.size);
             } else {
@@ -311,8 +311,8 @@ public:
         was_read = true;
         on_thread_t thread_switcher(home_thread);
         try {
-            for (int i = 0; i < (int)b->buffers.size(); i++) {
-                rh->conn->read(b->buffers[i].data, b->buffers[i].size);
+            for (int i = 0; i < (int)b->num_buffers(); i++) {
+                rh->conn->read(b->get_buffer(i).data, b->get_buffer(i).size);
             }
             char crlf[2];
             rh->conn->read(crlf, 2);
