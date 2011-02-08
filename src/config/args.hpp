@@ -211,5 +211,8 @@
 //max length of a path that we have to store during run time
 #define MAX_PATH_LEN                              200
 
+// Size of a cache line (used in cache_line_padded_t).
+#define CACHE_LINE_SIZE                           64
+
 #endif // __CONFIG_ARGS_H__
 
