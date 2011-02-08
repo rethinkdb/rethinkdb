@@ -5,9 +5,10 @@
 #include "unittest/buf_helpers.hpp"
 
 #include "btree/node.hpp"
+#include "logger.hpp"
 
 namespace unittest {
-#include "logger.cc"
+
 #include "btree/leaf_node.cc" // Build a local variant which uses test_buf_t!
 
 
