@@ -22,8 +22,14 @@ store_t::rget_result_t btree_slice_dispatching_to_masterstore_t::rget(store_key_
 store_t::set_result_t btree_slice_dispatching_to_masterstore_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t maybe_castime) {
     on_thread_t th(slice_->home_thread);
     castime_t castime = generate_if_necessary(maybe_castime);
-    if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::set, _1, key, data, flags, exptime, castime));
-    return slice_->set(key, data, flags, exptime, castime);
+
+    if (masterstore_) {
+        buffer_borrowing_data_provider_t borrower(masterstore_->home_thread, data);
+        spawn_on_home(masterstore_, boost::bind(&masterstore_t::set, _1, key, borrower.side_provider(), flags, exptime, castime));
+        return slice_->set(key, &borrower, flags, exptime, castime);
+    } else {
+        return slice_->set(key, data, flags, exptime, castime);
+    }
 }
 store_t::set_result_t btree_slice_dispatching_to_masterstore_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t maybe_castime) {
     on_thread_t th(slice_->home_thread);
