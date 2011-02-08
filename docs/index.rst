@@ -208,6 +208,7 @@ following is a list of known discrepancies with the Memcached
 protocol:
 
 - Currently, only the text protocol is supported.
+- `Range queries`_  are supported, with `undefined boundary extension`_.
 - Connections over UDP are not supported.
 - Delete queues are not supported.
 - The ``flush_all`` command is not supported.
@@ -540,6 +541,39 @@ specified explicitly to allow the tool to proceed::
                                  --force-extent-size 1048576  \
                                  --force-slice-count 256
 
+-----------------------------
+Memcached protocol extensions
+-----------------------------
+
+.. _undefined boundary extension:
+
+`````````````````````````````````````````
+Undefined range boundary in range queries
+`````````````````````````````````````````
+
+In the `rget specification`_ there's no provision for the support of undefined left/right
+boundaries, which could potentially allow to stream all the database key-value pairs in the
+increasing order. Since this feature may still be valuable in some scenarios, the following
+extension to the ``rget`` command is implemented:
+
+  To specify that the boundary is undefined, use the key name ``null`` (case insensitive) and
+  openness flag of ``-1``.
+
+Some examples of valid requests:
+
+- ``rget null foo -1 1 100``
+
+  Get at most 100 key-value pairs in ascending order starting from the smallest key in the database
+  ending with the key ``foo``, and not including it.
+
+- ``rget bar null 0 -1 343``
+
+  Get at most 343 key-value pairs starting from the key ``bar``.
+
+- ``rget NULL nuLL -1 -1 9000``
+  
+  Get at most 9000 key-value pairs starting from the smallest key in the database.
+
 =======
 Support
 =======
@@ -559,3 +593,7 @@ an issue, please try to include the following pieces of information:
   and are placed into the directory where the server was run. If you do
   not see a core dump file, you may need to enable core dumps by
   running the ``ulimit -c unlimited`` command.
+
+
+.. _`Range queries`: http://memcachedb.googlecode.com/svn/trunk/doc/rget.txt
+.. _`rget specification`: http://memcachedb.googlecode.com/svn/trunk/doc/rget.txt
