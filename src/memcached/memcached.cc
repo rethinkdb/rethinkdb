@@ -14,6 +14,8 @@
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
 
+static const char *crlf = "\r\n";
+
 struct txt_memcached_handler_t : public home_thread_mixin_t {
     tcp_conn_t *conn;
     store_t *store;
@@ -84,6 +86,9 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
 
     void error() {
         writef("ERROR\r\n");
+    }
+    void write_crlf() {
+        write(crlf, 2);
     }
     void write_end() {
         writef("END\r\n");
@@ -207,7 +212,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
                 }
 
                 rh->write_from_data_provider(res.value.get());
-                rh->writef("\r\n");
+                rh->write_crlf();
             }
         }
         if (res.to_signal_when_done) {
@@ -257,17 +262,23 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
         return;
     }
 
-    repli_timestamp timestamp = current_time();
-    store_t::rget_result_t result = rh->store->rget(&start.key, &end.key, left_open, right_open, max_items);
-    for (std::vector<key_with_data_provider_t>::iterator it = result.results.begin(); it != result.results.end(); it++) {
-        std::string& key = (*it).key;
-        boost::shared_ptr<data_provider_t> dp = (*it).value_provider;
+    store_t::rget_result_t results_iterator = rh->store->rget(&start.key, &end.key, left_open, right_open);
 
-        rh->write_value_header(key.c_str(), key.length(), (*it).mcflags, dp->get_size());
+    boost::optional<key_with_data_provider_t> pair;
+    uint64_t count = 0;
+    while (++count <= max_items && (pair = results_iterator->next())) {
+        const key_with_data_provider_t& kv = pair.get();
+
+        const std::string& key = kv.key;
+        const boost::shared_ptr<data_provider_t>& dp = kv.value_provider;
+
+        rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->get_size());
         rh->write_from_data_provider(dp.get());
-        rh->writef("\r\n");
+        rh->write_crlf();
     }
     rh->write_end();
+
+    delete results_iterator;
 }
 
 /* "set", "add", "replace", "cas", "append", and "prepend" command logic */
@@ -314,9 +325,9 @@ public:
             for (int i = 0; i < (int)b->buffers.size(); i++) {
                 rh->conn->read(b->buffers[i].data, b->buffers[i].size);
             }
-            char crlf[2];
-            rh->conn->read(crlf, 2);
-            if (memcmp(crlf, "\r\n", 2) != 0) {
+            char expected_crlf[2];
+            rh->conn->read(expected_crlf, 2);
+            if (memcmp(expected_crlf, crlf, 2) != 0) {
                 if (to_signal) to_signal->pulse(false);
                 throw data_provider_failed_exc_t();   // Cancel the set/append/prepend operation
             }
@@ -688,7 +699,7 @@ perfmon_duration_sampler_t
 void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
     for (;;) {
         const_charslice sl = conn->peek();
-        void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, "\r\n", 2);
+        void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, crlf, 2);
         ssize_t threshold = MEGABYTE;
 
         if (crlf_loc) {

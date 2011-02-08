@@ -8,6 +8,8 @@
 #include <signal.h>
 #include <stdexcept>
 
+#include "debug.hpp"
+
 /* Error handling
  *
  * There are several ways to report errors in RethinkDB:
@@ -36,14 +38,6 @@
  * The names rassert* are used instead of assert* because /usr/include/assert.h undefines assert macro and redefines it with its own version
  * every single time it gets included.
  */
-
-#ifdef __linux__
-#if defined __i386 || defined __x86_64
-#define BREAKPOINT __asm__ volatile ("int3")
-#else   /* x86/amd64 */
-#define BREAKPOINT raise(SIGTRAP)
-#endif  /* x86/amd64 */
- #endif /* __linux__ */
 
 // TODO: Abort probably is not the right thing to do here.
 #define fail_due_to_user_error(msg, ...) do {                       \
