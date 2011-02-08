@@ -568,11 +568,11 @@ Some examples of valid requests:
 
 - ``rget bar null 0 -1 343``
 
-  Get at most 343 key-value pairs starting from the key ``bar``.
+  Get at most 343 key-value pairs in ascending order starting from the key ``bar``.
 
 - ``rget NULL nuLL -1 -1 9000``
   
-  Get at most 9000 key-value pairs starting from the smallest key in the database.
+  Get at most 9000 key-value pairs in ascending order starting from the smallest key in the database.
 
 =======
 Support
