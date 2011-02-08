@@ -7,7 +7,8 @@
 #include "btree/node.hpp"
 
 namespace unittest {
-    #include "btree/leaf_node.cc" // Build a local variant which uses test_buf_t!
+#include "logger.cc"
+#include "btree/leaf_node.cc" // Build a local variant which uses test_buf_t!
 
 
 // TODO: Sperg out and make these tests much more brutal.
