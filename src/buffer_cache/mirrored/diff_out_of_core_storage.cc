@@ -131,7 +131,7 @@ bool diff_oocore_storage_t::store_patch(buf_patch_t &patch, const ser_transactio
         // Enforce a certain fraction of the block to be freed up. If that is not possible
         // we rather fail than continue trying to free up space for the following patches,
         // as the latter might make everything very inefficient.
-        const size_t min_reclaimed_space = cache.get_block_size().value() / 10;
+        const size_t min_reclaimed_space = cache.get_block_size().value() / 3;
 
         // Check if enough space could be reclaimed
         if (std::max(patch_serialized_size, min_reclaimed_space) > free_space) {

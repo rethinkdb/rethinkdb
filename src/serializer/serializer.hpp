@@ -77,7 +77,7 @@ struct serializer_t :
                 bool buf_specified_, const void *buf_, write_block_callback_t *callback_)
             : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_) { }
     };
-    virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) = 0;
+    virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, bool assign_transaction_id = true) = 0;
     
     /* The size, in bytes, of each serializer block */
     

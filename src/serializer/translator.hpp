@@ -68,7 +68,7 @@ public:
                 bool buf_specified_, const void *buf_, serializer_t::write_block_callback_t *callback_)
             : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_) { }
     };
-    bool do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback);
+    bool do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback, bool assign_transaction_id = true);
     block_size_t get_block_size();
 
     // Returns the first never-used block id.  Every block with id

@@ -222,8 +222,9 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     inner_buf->writeback_buf.set_dirty();
 
     // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks)
-    if (inner_buf->transaction_id == NULL_SER_TRANSACTION_ID)
+    if (inner_buf->transaction_id == NULL_SER_TRANSACTION_ID) {
         ensure_flush();
+    }
 
     // Check if we want to disable patching for this block and flush it directly instead
     if (!inner_buf->writeback_buf.needs_flush) {
@@ -242,8 +243,9 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
 
         inner_buf->cache->diff_core_storage.store_patch(patch);
     }
-    else
+    else {
         delete &patch;
+    }
 }
 
 void *mc_buf_t::get_data_major_write() {
@@ -294,7 +296,7 @@ void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
     } else {
         size_t offset = (const char*)dest - (const char*)data;
         // transaction ID will be set later...
-        apply_patch(*(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), NULL_SER_TRANSACTION_ID, offset, (const char*)src, n)));
+        apply_patch(*(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, (const char*)src, n)));
     }
 }
 
@@ -315,7 +317,7 @@ void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
         size_t dest_offset = (const char*)dest - (const char*)data;
         size_t src_offset = (const char*)src - (const char*)data;
         // transaction ID will be set later...
-        apply_patch(*(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), NULL_SER_TRANSACTION_ID, dest_offset, src_offset, n)));
+        apply_patch(*(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n)));
     }
 }
 

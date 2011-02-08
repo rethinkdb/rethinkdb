@@ -295,9 +295,11 @@ struct ls_block_writer_t :
     // write the block id), which we write upon deletion.  Can be NULL.
     void *zerobuf;
 
+    bool assign_transaction_id;
+
     ls_block_writer_t(log_serializer_t *ser,
-                      const log_serializer_t::write_t &write)
-        : ser(ser), write(write), zerobuf(NULL) { }
+                      const log_serializer_t::write_t &write, bool assign_transaction_id)
+        : ser(ser), write(write), zerobuf(NULL), assign_transaction_id(assign_transaction_id) { }
     
     bool run(iocallback_t *cb) {
         extra_cb = NULL;
@@ -324,7 +326,8 @@ struct ls_block_writer_t :
 
             if (write.buf) {
                 off64_t new_offset;
-                done = ser->data_block_manager->write(write.buf, write.block_id, ser->current_transaction_id, &new_offset, this);
+                // TODO! preserve TID
+                done = ser->data_block_manager->write(write.buf, write.block_id, assign_transaction_id ? ser->current_transaction_id : NULL_SER_TRANSACTION_ID, &new_offset, this);
 
                 ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::real(new_offset));
             } else {
@@ -403,9 +406,11 @@ struct ls_write_fsm_t :
     waits for our notification before submitting its metablock to the metablock
     manager. This way we guarantee that the metablocks are ordered correctly. */
     ls_write_fsm_t *next_write;
+
+    bool assign_transaction_id;
     
-    ls_write_fsm_t(log_serializer_t *ser, log_serializer_t::write_t *writes, int num_writes)
-        : state(state_start), ser(ser), writes(writes), num_writes(num_writes), next_write(NULL)
+    ls_write_fsm_t(log_serializer_t *ser, log_serializer_t::write_t *writes, int num_writes, bool assign_transaction_id)
+        : state(state_start), ser(ser), writes(writes), num_writes(num_writes), next_write(NULL), assign_transaction_id(assign_transaction_id)
     {
         pm_serializer_writes.begin(&start_time);
     }
@@ -443,7 +448,7 @@ struct ls_write_fsm_t :
         
         num_writes_waited_for = 0;
         for (int i = 0; i < num_writes; i ++) {
-            ls_block_writer_t *writer = new ls_block_writer_t(ser, writes[i]);
+            ls_block_writer_t *writer = new ls_block_writer_t(ser, writes[i], assign_transaction_id);
             if (!writer->run(this)) num_writes_waited_for++;
         }
         
@@ -565,7 +570,7 @@ private:
 };
 
 
-bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
+bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, bool assign_transaction_id) {
     // Even if state != state_ready we might get a do_write from the
     // datablock manager on gc (because it's writing the final gc as
     // we're shutting down). That is ok, which is why we don't assert
@@ -583,9 +588,10 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     }
 #endif
 
-    current_transaction_id++;
+    if (assign_transaction_id)
+        current_transaction_id++;
 
-    ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
+    ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes, assign_transaction_id);
     bool res = w->run(callback);
 
 #ifndef NDEBUG

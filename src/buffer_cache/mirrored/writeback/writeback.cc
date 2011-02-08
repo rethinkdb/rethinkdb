@@ -237,10 +237,10 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     // we instead try to reclaim some space in the on-disk diff storage now.
     // (we only do this occasionally, hoping that most of the time a compression of the log will do the trick)
     // TODO: Tune, refactor constants etc.
-    if (parent->force_diff_storage_flush || randint(800) < (int)parent->dirty_bufs.size()) {
+    if (parent->force_diff_storage_flush || randint(1600) < (int)parent->dirty_bufs.size()) {
         ticks_t start_time2;
         pm_flushes_diff_flush.begin(&start_time2);
-        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 50 : 200) + 1);
+        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 20 : 200) + 1);
         parent->force_diff_storage_flush = false;
         pm_flushes_diff_flush.end(&start_time2);
     }
@@ -361,10 +361,12 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                     if (lbuf->last_patch_materialized < (*patches)[patch_index-1]->get_patch_counter()) {
                         if (!parent->cache->diff_oocore_storage.store_patch(*(*patches)[patch_index-1], transaction_id)) {
                             diff_storage_failure = true;
+                            //fprintf(stderr, "Patch storage failure\n");
                             lbuf->needs_flush = true;
                             break;
                         }
                         else {
+                            //fprintf(stderr, "Patch stored\n");
                             patches_stored++;
                         }
                     }
@@ -383,7 +385,6 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
         if (lbuf->needs_flush) {
             inner_buf->next_patch_counter = 1;
             lbuf->last_patch_materialized = 0;
-            rassert (!parent->cache->diff_core_storage.get_patches(inner_buf->block_id));
         }
     }
     pm_flushes_diff_store.end(&start_time2);

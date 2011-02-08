@@ -6,6 +6,7 @@
 #include "btree/key_value_store.hpp"
 #include "btree/serializer_config_block.hpp"
 #include "buffer_cache/large_buf.hpp"
+#include "buffer_cache/mirrored/diff_in_core_storage.hpp"
 #include "serializer/log/static_header.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "utils.hpp"
@@ -72,8 +73,12 @@ private:
     DISABLE_COPYING(dumper_t);
 };
 
+// TODO: Make this a local...
+static diff_core_storage_t diff_core_storage;
+
 void walk_extents(dumper_t &dumper, nondirect_file_t &file, const cfg_t static_config);
 void observe_blocks(block_registry &registry, nondirect_file_t &file, const cfg_t cfg, uint64_t filesize);
+void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 bool check_config(const cfg_t& cfg);
 void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter);
@@ -103,7 +108,9 @@ bool check_config(size_t filesize, const cfg_t cfg) {
     return !errors;
 }
 
-void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
+enum phase_t { LOAD_DIFF_LOG, DUMP_PAIRS };
+
+void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg, phase_t phase) {
     uint64_t filesize = file.get_size();
 
     if (!check_config(filesize, cfg)) {
@@ -115,7 +122,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
     block_registry registry;
     observe_blocks(registry, file, cfg, filesize);
 
-    // 2.  Pass 2.  Visit leaf nodes, dump their values.
+    // 2.  Pass 2.  Load diff log / Visit leaf nodes, dump their values.
     const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets = registry.destroy_transaction_ids();
 
     size_t n = offsets.get_size();
@@ -138,7 +145,6 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
         serblock.init(cfg.block_size(), &file, off, CONFIG_BLOCK_ID.ser_id);
         serializer_config_block_t *serbuf = (serializer_config_block_t *)serblock.buf;
 
-
         if (!check_magic<serializer_config_block_t>(serbuf->magic)) {
             logERR("Config block has invalid magic (offset = %lu, magic = %.*s)\n",
                    off, sizeof(serbuf->magic), serbuf->magic.bytes);
@@ -150,10 +156,22 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
         }
     }
 
-    logINF("Finished reading block ids, retrieving key-value pairs (n=%u).\n", n);
-    get_all_values(dumper, offsets, file, cfg, filesize);
-    logINF("Finished retrieving key-value pairs.\n");
-
+    switch (phase) {
+        case LOAD_DIFF_LOG:
+            if (!cfg.ignore_diff_log) {
+                logINF("Finished reading block ids, loading diff log.\n", n);
+                load_diff_log(offsets, file, cfg, filesize);
+                logINF("Finished loading diff log.\n");
+            }
+            break;
+        case DUMP_PAIRS:
+            logINF("Finished reading block ids, retrieving key-value pairs (n=%u).\n", n);
+            get_all_values(dumper, offsets, file, cfg, filesize);
+            logINF("Finished retrieving key-value pairs.\n");
+            break;
+        default:
+            rassert(false);
+    }
 }
 
 bool check_all_known_magic(block_magic_t magic) {
@@ -173,9 +191,54 @@ void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_
         block b;
         b.init(cfg.block_size().ser_value(), &file, offset);
 
-        if (check_all_known_magic(*(block_magic_t *)b.buf)) {
+        if (check_all_known_magic(*(block_magic_t *)b.buf) || memcmp((char*)b.buf, "LOGB00", 6) == 0) { // TODO: Refactor
             registry.tell_block(offset, b.buf_data());
         }
+    }
+}
+
+void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
+    std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
+
+    // Scan through all log blocks, build a map block_id -> patch list
+    for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
+         offset <= max_offset;
+         offset += cfg.block_size().ser_value()) {
+        block b;
+        b.init(cfg.block_size().ser_value(), &file, offset);
+
+        ser_block_id_t block_id = b.buf_data().block_id;
+
+        if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
+            const void *data = (char*)b.buf;
+            if (memcmp((const char*)data, "LOGB00", 6) == 0) {
+                int num_patches = 0;
+                uint16_t current_offset = 6; //sizeof(LOG_BLOCK_MAGIC);
+                while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(buf_data_t)) {
+                    buf_patch_t *patch = buf_patch_t::load_patch((char*)data + current_offset);
+                    if (!patch) {
+                        break;
+                    }
+                    else {
+                        current_offset += patch->get_serialized_size();
+                        patch_map[patch->get_block_id()].push_back(patch);
+                        ++num_patches;
+                    }
+                }
+
+                if (num_patches > 0) {
+                    logDBG("We have a log block with %d patches.\n", num_patches);
+                }
+            }
+        }
+    }
+
+    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = patch_map.begin(); patch_list != patch_map.end(); ++patch_list) {
+        // Sort the list to get patches in the right order
+        patch_list->second.sort(dereferencing_compare_t<buf_patch_t>());
+
+        // Store list into in_core_storage
+        diff_core_storage.load_block_patch_list(patch_list->first, patch_list->second);
     }
 }
 
@@ -190,8 +253,22 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
          offset += cfg.block_size().ser_value()) {
         block b;
         b.init(cfg.block_size().ser_value(), &file, offset);
-
+        
         ser_block_id_t block_id = b.buf_data().block_id;
+
+        if (!cfg.ignore_diff_log) {
+            // Replay patches
+            // (TODO: in case of error: emit a warning and fall back to original / unpatched block data?)
+            const std::vector<buf_patch_t*>* patches = diff_core_storage.get_patches(block_id.value);
+            // Remove obsolete patches from diff storage
+            if (patches && b.buf_data().transaction_id > NULL_SER_TRANSACTION_ID) {
+                for (size_t i = 0; i < patches->size(); ++i) {
+                    if ((*patches)[i]->get_transaction_id() == b.buf_data().transaction_id)
+                        (*patches)[i]->apply_to_buf((char*)b.buf);
+                }
+            }
+        }
+
         if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
             const leaf_node_t *leaf = (leaf_node_t *)b.buf;
 
@@ -367,7 +444,9 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
         overrides.extent_size = static_config.extent_size();
     }
 
-    walk_extents(dumper, file, overrides);
+    // TODO! This is completely broken. First it has to be a per slice thing and second I have to use the block ids from the LBA...
+    walk_extents(dumper, file, overrides, LOAD_DIFF_LOG);
+    walk_extents(dumper, file, overrides, DUMP_PAIRS);
 }
 
 

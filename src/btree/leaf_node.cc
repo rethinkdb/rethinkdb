@@ -43,6 +43,13 @@ bool insert(block_size_t block_size, buf_t& node_buf, const btree_key *key, cons
         return false;
     }
 
+    node_buf.apply_patch(*(new leaf_insert_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), block_size, value->size, value->metadata_flags.flags, value->contents, key->size, key->contents, insertion_time)));
+
+    validate(block_size, node);
+    return true;
+}
+
+void insert(block_size_t block_size, leaf_node_t *node, const btree_key *key, const btree_value* value, repli_timestamp insertion_time) {
     int index = impl::get_offset_index(node, key);
 
     uint16_t prev_offset;
@@ -62,22 +69,19 @@ bool insert(block_size_t block_size, buf_t& node_buf, const btree_key *key, cons
 
         int prev_timestamp_offset = impl::get_timestamp_offset(block_size, node, prev_offset);
 
-        impl::rotate_time(node_buf, insertion_time, prev_timestamp_offset);
+        impl::rotate_time(&node->times, insertion_time, prev_timestamp_offset);
 
-        impl::delete_pair(node_buf, prev_offset);
-        uint16_t new_offset = impl::insert_pair(node_buf, value, key);
-        node_buf.set_data(&node->pair_offsets[index], &new_offset, sizeof(new_offset));
+        impl::delete_pair(node, prev_offset);
+        node->pair_offsets[index] = impl::insert_pair(node, value, key);
     } else {
         // manipulate timestamps.
-        impl::rotate_time(node_buf, insertion_time, NUM_LEAF_NODE_EARLIER_TIMES);
+        impl::rotate_time(&node->times, insertion_time, NUM_LEAF_NODE_EARLIER_TIMES);
 
         // 0 <= index <= node->npairs
 
-        uint16_t offset = impl::insert_pair(node_buf, value, key);
-        impl::insert_offset(node_buf, offset, index);
+        uint16_t offset = impl::insert_pair(node, value, key);
+        impl::insert_offset(node, offset, index);
     }
-    validate(block_size, node);
-    return true;
 }
 
 // TODO: This assumes that key is in the node.  This means we're
@@ -92,25 +96,29 @@ void remove(block_size_t block_size, buf_t &node_buf, const btree_key *key) {
     print(node);
 #endif
 
-    int index = impl::find_key(node, key);
-    rassert(index != impl::key_not_found);
-    rassert(index != node->npairs);
-
-    uint16_t offset = node->pair_offsets[index];
-    impl::remove_time(node_buf, impl::get_timestamp_offset(block_size, node, offset));
-
-    impl::delete_pair(node_buf, offset);
-    impl::delete_offset(node_buf, index);
+    node_buf.apply_patch(*(new leaf_remove_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), block_size, key->size, key->contents)));
 
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
     leaf::print(node);
 #endif
 
-    validate(block_size, node);
-
     // TODO: Currently this will error incorrectly on root
     // guarantee(node->npairs != 0, "leaf became zero size!");
+
+    validate(block_size, node);
+}
+
+void remove(block_size_t block_size, leaf_node_t *node, const btree_key *key) {
+    int index = impl::find_key(node, key);
+    rassert(index != impl::key_not_found);
+    rassert(index != node->npairs);
+
+    uint16_t offset = node->pair_offsets[index];
+    impl::remove_time(&node->times, impl::get_timestamp_offset(block_size, node, offset));
+
+    impl::delete_pair(node, offset);
+    impl::delete_offset(node, index);
 }
 
 bool lookup(const leaf_node_t *node, const btree_key *key, btree_value *value) {
@@ -494,24 +502,15 @@ repli_timestamp get_timestamp_value(block_size_t block_size, const leaf_node_t *
 
 namespace impl {
 
-void shift_pairs(buf_t &node_buf, uint16_t offset, long shift) {
-    const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
+void shift_pairs(leaf_node_t *node, uint16_t offset, long shift) {
+    byte *front = ptr_cast<byte>(get_pair(node, node->frontmost_offset));
 
-    uint16_t frontmost_offset = node->frontmost_offset;
-    const byte *front = ptr_cast<byte>(get_pair(node, frontmost_offset));
-
-    node_buf.move_data(front + shift, front, offset - frontmost_offset);
-    frontmost_offset += shift;
-    node_buf.set_data(&node->frontmost_offset, &frontmost_offset, sizeof(frontmost_offset));
-    uint16_t* new_pair_offsets = new uint16_t[node->npairs];
+    memmove(front + shift, front, offset - node->frontmost_offset);
+    node->frontmost_offset += shift;
     for (int i = 0; i < node->npairs; i++) {
         if (node->pair_offsets[i] < offset)
-            new_pair_offsets[i] = node->pair_offsets[i] + shift;
-        else
-            new_pair_offsets[i] = node->pair_offsets[i];
+            node->pair_offsets[i] += shift;
     }
-    node_buf.set_data(node->pair_offsets, new_pair_offsets, sizeof(uint16_t) * node->npairs);
-    delete[] new_pair_offsets;
 }
 
 void delete_pair(buf_t &node_buf, uint16_t offset) {
@@ -519,42 +518,38 @@ void delete_pair(buf_t &node_buf, uint16_t offset) {
     const btree_leaf_pair *pair_to_delete = get_pair(node, offset);
     size_t shift = pair_size(pair_to_delete);
 
-    shift_pairs(node_buf, offset, shift);
+    node_buf.apply_patch(*(new leaf_shift_pairs_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), offset, shift)));
+}
+void delete_pair(leaf_node_t *node, uint16_t offset) {
+    const btree_leaf_pair *pair_to_delete = get_pair(node, offset);
+    size_t shift = pair_size(pair_to_delete);
+
+    shift_pairs(node, offset, shift);
 }
 
 // Copies pair contents snugly onto the front of the data region,
 // modifying the frontmost_offset.  Returns the new frontmost_offset.
 uint16_t insert_pair(buf_t &node_buf, const btree_leaf_pair *pair) {
-    const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
-    uint16_t frontmost_offset = node->frontmost_offset - pair_size(pair);
-    node_buf.set_data(&node->frontmost_offset, &frontmost_offset, sizeof(frontmost_offset));
-    // insert contents
-    node_buf.set_data(get_pair(node, frontmost_offset), pair, pair_size(pair));
-
-    return frontmost_offset;
+    return insert_pair(node_buf, pair->value(), &pair->key);
 }
 
 // Decreases frontmost_offset by the pair size, key->full_size() + value->full_size().
 // Copies key and value into pair snugly onto the front of the data region.
 // Returns the new frontmost_offset.
 uint16_t insert_pair(buf_t &node_buf, const btree_value *value, const btree_key *key) {
+    node_buf.apply_patch(*(new leaf_insert_pair_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), value->size, value->metadata_flags.flags, value->contents, key->size, key->contents)));
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
-    uint16_t frontmost_offset = node->frontmost_offset - key->full_size() - value->full_size();
-    node_buf.set_data(&node->frontmost_offset, &frontmost_offset, sizeof(frontmost_offset));
-    const btree_leaf_pair *new_pair = get_pair(node, frontmost_offset);
+    return node->frontmost_offset;
+}
 
-    // Use a buffer to prepare the key/value pair which we can then use to generate a patch
-    byte *pair_buf = new byte[key->full_size() + value->full_size()];
-    btree_leaf_pair *new_buf_pair = reinterpret_cast<btree_leaf_pair *>(pair_buf);
+uint16_t insert_pair(leaf_node_t *node, const btree_value *value, const btree_key *key) {
+    node->frontmost_offset -= key->full_size() + value->full_size();
+    btree_leaf_pair *new_pair = get_pair(node, node->frontmost_offset);
 
     // insert contents
-    keycpy(&new_buf_pair->key, key);
-    // "new_buf_pair->value()" below depends on the side effect of the keycpy line above.
-    memcpy(new_buf_pair->value(), value, value->full_size());
-
-    // Patch the new pair into node_buf
-    node_buf.set_data(new_pair, new_buf_pair, key->full_size() + value->full_size());
-    delete[] pair_buf;
+    keycpy(&new_pair->key, key);
+    // "new_pair->value()" below depends on the side effect of the keycpy line above.
+    memcpy(new_pair->value(), value, value->full_size());
 
     return node->frontmost_offset;
 }
@@ -576,6 +571,7 @@ int find_key(const leaf_node_t *node, const btree_key *key) {
         return impl::key_not_found;
     }
 }
+
 void delete_offset(buf_t &node_buf, int index) {
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
     const uint16_t *pair_offsets = node->pair_offsets;
@@ -584,14 +580,18 @@ void delete_offset(buf_t &node_buf, int index) {
     uint16_t npairs = node->npairs - 1;
     node_buf.set_data(&node->npairs, &npairs, sizeof(npairs));
 }
+void delete_offset(leaf_node_t *node, int index) {
+    uint16_t *pair_offsets = node->pair_offsets;
+    if (node->npairs > 1)
+        memmove(pair_offsets+index, pair_offsets+index+1, (node->npairs-index-1) * sizeof(uint16_t));
+    node->npairs--;
+}
 
-void insert_offset(buf_t &node_buf, uint16_t offset, int index) {
-    const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
-    const uint16_t *pair_offsets = node->pair_offsets;
-    node_buf.move_data(pair_offsets+index+1, pair_offsets+index, (node->npairs-index) * sizeof(uint16_t));
-    node_buf.set_data(&pair_offsets[index], &offset, sizeof(uint16_t));
-    uint16_t npairs = node->npairs + 1;
-    node_buf.set_data(&node->npairs, &npairs, sizeof(npairs));
+void insert_offset(leaf_node_t *node, uint16_t offset, int index) {
+    uint16_t *pair_offsets = node->pair_offsets;
+    memmove(pair_offsets+index+1, pair_offsets+index, (node->npairs-index) * sizeof(uint16_t));
+    pair_offsets[index] = offset;
+    node->npairs++;
 }
 
 // TODO: Calls to is_equal are redundant calls to sized_strcmp.  At
@@ -603,55 +603,48 @@ bool is_equal(const btree_key *key1, const btree_key *key2) {
 void initialize_times(buf_t &node_buf, repli_timestamp current_time) {
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
     leaf_timestamps_t new_times;
-    new_times.last_modified = current_time;
-    for (int i = 0; i < NUM_LEAF_NODE_EARLIER_TIMES; ++i) {
-        new_times.earlier[i] = 0;
-    }
+    initialize_times(&new_times, current_time);
     node_buf.set_data(&node->times, &new_times, sizeof(leaf_timestamps_t));
 }
-
-void rotate_time(buf_t &node_buf, repli_timestamp latest_time, int prev_timestamp_offset) {
-    const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
-    int32_t diff = latest_time.time - node->times.last_modified.time;
-    if (diff < 0) {
-        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d\n", latest_time.time, node->times.last_modified);
-        // Something strange happened, wipe out everything.
-        initialize_times(node_buf, latest_time);
-    } else {
-        leaf_timestamps_t new_times = node->times;
-
-        int i = NUM_LEAF_NODE_EARLIER_TIMES;
-        while (i-- > 1) {
-            uint32_t dt = diff + new_times.earlier[i - (i <= prev_timestamp_offset)];
-            new_times.earlier[i] = (dt > 0xFFFF ? 0xFFFF : dt);
-        }
-        uint32_t dt = (-1 == prev_timestamp_offset ? new_times.earlier[0] : diff);
-        new_times.earlier[0] = (dt > 0xFFFF ? 0xFFFF : dt);
-        new_times.last_modified = latest_time;
-
-        node_buf.set_data(&node->times, &new_times, sizeof(leaf_timestamps_t)); // For now we just set a completely new leaf_timestamps_t
+void initialize_times(leaf_timestamps_t *times, repli_timestamp current_time) {
+    times->last_modified = current_time;
+    for (int i = 0; i < NUM_LEAF_NODE_EARLIER_TIMES; ++i) {
+        times->earlier[i] = 0;
     }
 }
 
-void remove_time(buf_t &node_buf, int offset) {
-    const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
-    leaf_timestamps_t new_times = node->times;
+void rotate_time(leaf_timestamps_t *times, repli_timestamp latest_time, int prev_timestamp_offset) {
+    int32_t diff = latest_time.time - times->last_modified.time;
+    if (diff < 0) {
+        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d\n", latest_time.time, times->last_modified);
+        // Something strange happened, wipe out everything.
+        initialize_times(times, latest_time);
+    } else {
+        int i = NUM_LEAF_NODE_EARLIER_TIMES;
+        while (i-- > 1) {
+            uint32_t dt = diff + times->earlier[i - (i <= prev_timestamp_offset)];
+            times->earlier[i] = (dt > 0xFFFF ? 0xFFFF : dt);
+        }
+        uint32_t dt = (-1 == prev_timestamp_offset ? times->earlier[0] : diff);
+        times->earlier[0] = (dt > 0xFFFF ? 0xFFFF : dt);
+        times->last_modified = latest_time;
+    }
+}
 
-    uint16_t d = (offset == -1 ? new_times.earlier[0] : 0);
-    uint16_t t = new_times.earlier[NUM_LEAF_NODE_EARLIER_TIMES - 1];
+void remove_time(leaf_timestamps_t *times, int offset) {
+    uint16_t d = (offset == -1 ? times->earlier[0] : 0);
+    uint16_t t = times->earlier[NUM_LEAF_NODE_EARLIER_TIMES - 1];
 
     int i = NUM_LEAF_NODE_EARLIER_TIMES - 1;
     while (i-- > 0) {
-        uint16_t x = new_times.earlier[i];
-        new_times.earlier[i] = (offset <= i ? t : x) - d;
+        uint16_t x = times->earlier[i];
+        times->earlier[i] = (offset <= i ? t : x) - d;
         t = x;
     }
 
     if (offset == -1) {
-        new_times.last_modified.time -= d;
+        times->last_modified.time -= d;
     }
-
-    node_buf.set_data(&node->times, &new_times, sizeof(leaf_timestamps_t)); // For now we just set a completely new leaf_timestamps_t
 }
 
 // Returns the offset of the timestamp (or -1 or
