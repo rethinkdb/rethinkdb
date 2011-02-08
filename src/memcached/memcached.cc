@@ -223,6 +223,15 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
     rh->write_end();
 };
 
+static const char *rget_null_key = "null";
+static bool rget_is_null_key(long open_flag, char *key) {
+    if (open_flag == -1) {
+        return strcasecmp(rget_null_key, key) == 0;
+    } else {
+        return false;
+    }
+}
+
 void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
     if (argc != 6) {
         rh->client_error_bad_command_line_format();
@@ -243,17 +252,28 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
     char *invalid_char;
 
     /* Parse left/right-openness flags */
-    bool left_open = strtobool_strict(argv[3], &invalid_char);
+    long left_open = strtol_strict(argv[3], &invalid_char, 10);
     if (*invalid_char != '\0') {
         rh->client_error_bad_command_line_format();
         return;
     }
 
-    bool right_open = strtobool_strict(argv[4], &invalid_char);
+    long right_open = strtol_strict(argv[4], &invalid_char, 10);
     if (*invalid_char != '\0') {
         rh->client_error_bad_command_line_format();
         return;
     }
+
+    bool left_null = rget_is_null_key(left_open, argv[1]);
+    bool right_null = rget_is_null_key(right_open, argv[2]);
+
+    if (!(left_open == 0 || left_open == 1 || left_null) || !(right_open == 0 || right_open == 1 || right_null)) {
+        rh->client_error_bad_command_line_format();
+        return;
+    }
+
+    store_key_t *left_key = left_null ? NULL : &start.key;
+    store_key_t *right_key = right_null ? NULL : &end.key;
 
     /* Parse max items count */
     uint64_t max_items = strtoull_strict(argv[5], &invalid_char, 10);
@@ -262,7 +282,7 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
         return;
     }
 
-    store_t::rget_result_t results_iterator = rh->store->rget(&start.key, &end.key, left_open, right_open);
+    store_t::rget_result_t results_iterator = rh->store->rget(left_key, right_key, left_open == 1, right_open == 1);
 
     boost::optional<key_with_data_provider_t> pair;
     uint64_t count = 0;
