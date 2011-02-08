@@ -11,7 +11,7 @@
 
 
 #ifndef NDEBUG
-#define DEBUG_ONLY(expr) do { expr; } while (0);
+#define DEBUG_ONLY(expr) do { expr; } while (0)
 #else
 #define DEBUG_ONLY(expr) ((void)(0))
 #endif
