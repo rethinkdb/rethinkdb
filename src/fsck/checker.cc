@@ -6,7 +6,6 @@
 #include "serializer/log/log_serializer.hpp"
 #include "btree/key_value_store.hpp"
 #include "btree/node.hpp"
-#include "btree/serializer_config_block.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 #include "buffer_cache/large_buf.hpp"
@@ -72,7 +71,7 @@ struct file_knowledge {
     learned<log_serializer_metablock_t> metablock;
 
     // The block from CONFIG_BLOCK_ID (well, the beginning of such a block).
-    learned<serializer_config_block_t> config_block;
+    learned<multiplexer_config_block_t> config_block;
 
     explicit file_knowledge(const std::string filename) : filename(filename) {
         guarantee_err(!pthread_rwlock_init(&block_info_lock_, NULL), "pthread_rwlock_init failed");
@@ -167,7 +166,7 @@ struct slicecx {
     int mod_count;
     slicecx(nondirect_file_t *file, file_knowledge *knog, int global_slice_id)
         : file(file), knog(knog), global_slice_id(global_slice_id), local_slice_id(global_slice_id / knog->config_block->n_files),
-          mod_count(btree_key_value_store_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->btree_config.n_slices)) { }
+          mod_count(serializer_multiplexer_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->n_proxies)) { }
     ser_block_id_t to_ser_block_id(block_id_t id) const {
         return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID);
     }
@@ -552,9 +551,9 @@ bool check_config_block(nondirect_file_t *file, file_knowledge *knog, config_blo
         errs->block_open_code = config_block.err;
         return false;
     }
-    const serializer_config_block_t *buf = ptr_cast<serializer_config_block_t>(config_block.buf);
+    const multiplexer_config_block_t *buf = ptr_cast<multiplexer_config_block_t>(config_block.buf);
 
-    if (!check_magic<serializer_config_block_t>(buf->magic)) {
+    if (!check_magic<multiplexer_config_block_t>(buf->magic)) {
         errs->bad_magic = true;
         return false;
     }
@@ -638,7 +637,7 @@ private:
 
 
 bool is_valid_hash(const slicecx& cx, const btree_key *key) {
-    return btree_key_value_store_t::hash(key) % cx.knog->config_block->btree_config.n_slices == (unsigned)cx.global_slice_id;
+    return btree_key_value_store_t::hash(key) % cx.knog->config_block->n_proxies == (unsigned)cx.global_slice_id;
 }
 
 void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
@@ -1017,15 +1016,15 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
     errs->out_of_order_serializers = false;
     errs->bad_this_serializer_values = false;
 
-    serializer_config_block_t& zeroth = *knog->file_knog[0]->config_block;
+    multiplexer_config_block_t& zeroth = *knog->file_knog[0]->config_block;
 
     for (int i = 0; i < num_files; ++i) {
-        serializer_config_block_t& cb = *knog->file_knog[i]->config_block;
+        multiplexer_config_block_t& cb = *knog->file_knog[i]->config_block;
 
         errs->all_have_correct_num_files &= (cb.n_files == num_files);
         errs->all_have_same_num_files &= (cb.n_files == zeroth.n_files);
-        errs->all_have_same_num_slices &= (cb.btree_config.n_slices == zeroth.btree_config.n_slices);
-        errs->all_have_same_db_magic &= (cb.database_magic == zeroth.database_magic);
+        errs->all_have_same_num_slices &= (cb.n_proxies == zeroth.n_proxies);
+        errs->all_have_same_db_magic &= (cb.multiplexer_magic == zeroth.multiplexer_magic);
         errs->out_of_order_serializers |= (i == cb.this_serializer);
         errs->bad_this_serializer_values |= (cb.this_serializer < 0 || cb.this_serializer >= cb.n_files);
         if (cb.this_serializer < num_files && cb.this_serializer >= 0) {
@@ -1033,7 +1032,7 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
         }
     }
 
-    errs->bad_num_slices = (zeroth.btree_config.n_slices < 0);
+    errs->bad_num_slices = (zeroth.n_proxies < 0);
 
     errs->reused_serializer_numbers = false;
     for (int i = 0; i < num_files; ++i) {
@@ -1271,10 +1270,10 @@ bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
     return ok;
 }
 
-void print_interfile_summary(const serializer_config_block_t& c) {
-    printf("config_block database_magic: %u\n", c.database_magic);
+void print_interfile_summary(const multiplexer_config_block_t& c) {
+    printf("config_block multiplexer_magic: %u\n", c.multiplexer_magic);
     printf("config_block n_files: %d\n", c.n_files);
-    printf("config_block n_slices: %d\n", c.btree_config.n_slices);
+    printf("config_block n_proxies: %d\n", c.n_proxies);
 }
 
 bool check_files(const config_t& cfg) {
@@ -1312,7 +1311,7 @@ bool check_files(const config_t& cfg) {
     print_interfile_summary(*knog.file_knog[0]->config_block);
 
     // A thread for every slice.
-    int n_slices = knog.file_knog[0]->config_block->btree_config.n_slices;
+    int n_slices = knog.file_knog[0]->config_block->n_proxies;
     std::vector<pthread_t> threads(n_slices);
     all_slices_errors slices_errs(n_slices);
     for (int i = 0; i < num_files; ++i) {

@@ -28,7 +28,6 @@ public:
     append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime);
     delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
-    cache_t& cache() { return slice_->cache(); }
     int slice_home_thread() { return slice_->slice_home_thread(); }
 
 private:

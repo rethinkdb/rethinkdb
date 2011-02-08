@@ -63,17 +63,13 @@ public:
     int n_files;
     btree_config_t btree_static_config;
 
-    /* The key-value store typically has more slices than serializers. The slices share
-    serializers via the "pseudoserializers": translator-serializers, one per slice, that
-    multiplex requests onto the actual serializers. */
     standard_serializer_t *serializers[MAX_SERIALIZERS];
-    translator_serializer_t *pseudoserializers[MAX_SLICES];
+    serializer_multiplexer_t *multiplexer;   // Helps us split the serializers among the slices
     slice_store_t *slices[MAX_SLICES];
 
     uint32_t slice_num(const btree_key *key);
     slice_store_t *slice_for_key(const btree_key *key);
 
-    static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
     static uint32_t hash(const btree_key *key);
 
 private:
