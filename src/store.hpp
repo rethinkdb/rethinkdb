@@ -5,6 +5,7 @@
 #include "arch/arch.hpp"
 #include "data_provider.hpp"
 #include "concurrency/cond_var.hpp"
+#include "containers/iterators.hpp"
 #include <boost/shared_ptr.hpp>
 
 typedef uint32_t mcflags_t;
@@ -103,10 +104,8 @@ public:
     virtual get_result_t get(store_key_t *key) = 0;
     virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;
 
-    struct rget_result_t {
-        std::vector<key_with_data_provider_t> results;
-    };
-    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) = 0;
+    typedef one_way_iterator_t<key_with_data_provider_t>* rget_result_t;
+    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
 
     /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
     to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on

@@ -80,26 +80,26 @@ perfmon_t::~perfmon_t() {
 perfmon_counter_t::perfmon_counter_t(std::string name)
     : name(name)
 {
-    for (int i = 0; i < MAX_THREADS; i++) values[i] = 0;
+    for (int i = 0; i < MAX_THREADS; i++) values[i].value = 0;
 }
 
 int64_t &perfmon_counter_t::get() {
-    return values[get_thread_id()];
+    return values[get_thread_id()].value;
 }
 
 void *perfmon_counter_t::begin_stats() {
-    return new int64_t[get_num_threads()];
+    return new cache_line_padded_t<int64_t>[get_num_threads()];
 }
 
 void perfmon_counter_t::visit_stats(void *data) {
-    ((int64_t *)data)[get_thread_id()] = get();
+    ((cache_line_padded_t<int64_t> *)data)[get_thread_id()].value = get();
 }
 
 void perfmon_counter_t::end_stats(void *data, perfmon_stats_t *dest) {
     int64_t value = 0;
-    for (int i = 0; i < get_num_threads(); i++) value += ((int64_t *)data)[i];
+    for (int i = 0; i < get_num_threads(); i++) value += ((cache_line_padded_t<int64_t> *)data)[i].value;
     (*dest)[name] = format(value);
-    delete[] (int64_t *)data;
+    delete[] (cache_line_padded_t<int64_t> *)data;
 }
 
 /* perfmon_sampler_t */

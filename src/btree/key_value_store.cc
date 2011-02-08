@@ -368,8 +368,8 @@ store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime
     return slice_for_key(key)->get_cas(key, castime);
 }
 
-store_t::rget_result_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results) {
-    return btree_rget(this, start, end, left_open, right_open, max_results);
+store_t::rget_result_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
+    return btree_rget(this, start, end, left_open, right_open);
 }
 
 store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
@@ -413,4 +413,6 @@ store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key, r
 perfmon_duration_sampler_t
     pm_cmd_set("cmd_set", secs_to_ticks(1)),
     pm_cmd_get_without_threads("cmd_get_without_threads", secs_to_ticks(1)),
-    pm_cmd_get("cmd_get", secs_to_ticks(1));
+    pm_cmd_get("cmd_get", secs_to_ticks(1)),
+    pm_cmd_rget("cmd_rget", secs_to_ticks(1));
+
