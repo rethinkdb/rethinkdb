@@ -231,9 +231,9 @@ bottlenecks.
 Disk
 ````
 
-""""""""
+~~~~~~~~
 Striping
-""""""""
+~~~~~~~~
 
 Modern RAID controllers implement efficient striping across disks by
 synchronizing rotational disk spindles. Unfortunately, in the case of
@@ -257,9 +257,9 @@ implemented by advanced RAID controllers. The intention is not to
 entirely replace RAID, but to support an alternative partitioning
 method which can be very useful in certain situations.
 
-""""""""""""""
+~~~~~~~~~~~~~~
 Active extents
-""""""""""""""
+~~~~~~~~~~~~~~
 
 Rotational disks are fundamentally sequential machines—they have a
 single head that can read from, and write to a single location at a
