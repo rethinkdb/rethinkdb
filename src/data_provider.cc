@@ -1,6 +1,9 @@
 #include "data_provider.hpp"
-#include "buffer_cache/co_functions.hpp"
+
 #include <string.h>
+
+#include "buffer_cache/co_functions.hpp"
+#include "utils.hpp"
 
 /* auto_buffering_data_provider_t */
 
@@ -136,5 +139,54 @@ const const_buffer_group_t *maybe_buffered_data_provider_t::get_data_as_buffers(
     } else {
         return buffer->get_data_as_buffers();
     }
+}
+
+
+buffer_borrowing_data_provider_t::side_data_provider_t::side_data_provider_t(int reading_thread, size_t size)
+    : reading_thread_(reading_thread_), size_(size) { }
+
+buffer_borrowing_data_provider_t::side_data_provider_t::~side_data_provider_t() { done_cond_.pulse(); }
+
+
+size_t buffer_borrowing_data_provider_t::side_data_provider_t::get_size() const { return size_; }
+
+const const_buffer_group_t *buffer_borrowing_data_provider_t::side_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
+    const const_buffer_group_t *buffers = cond_.wait();
+    if (!buffers) {
+        throw data_provider_failed_exc_t();
+    }
+    return buffers;
+}
+
+void buffer_borrowing_data_provider_t::side_data_provider_t::supply_buffers_and_wait(const buffer_group_t *buffers) {
+    on_thread_t thread(reading_thread_);
+    // TODO:  This is an INSANE cast.
+    cond_.pulse((const const_buffer_group_t *)buffers);
+    done_cond_.wait();
+}
+
+buffer_borrowing_data_provider_t::buffer_borrowing_data_provider_t(int side_reader_thread, data_provider_t *inner)
+    : inner_(inner), side_(new side_data_provider_t(side_reader_thread, inner->get_size())), side_owned_(true) { }
+
+buffer_borrowing_data_provider_t::~buffer_borrowing_data_provider_t() {
+    if (side_owned_) {
+        delete side_;
+    }
+}
+
+size_t buffer_borrowing_data_provider_t::get_size() const { return inner_->get_size(); }
+
+void buffer_borrowing_data_provider_t::get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t) {
+    inner_->get_data_into_buffers(dest);
+    side_->supply_buffers_and_wait(dest);
+}
+
+const const_buffer_group_t *buffer_borrowing_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
+    return inner_->get_data_as_buffers();
+}
+
+buffer_borrowing_data_provider_t::side_data_provider_t *buffer_borrowing_data_provider_t::side_provider() {
+    side_owned_ = false;
+    return side_;
 }
 

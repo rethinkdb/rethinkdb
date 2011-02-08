@@ -7,6 +7,8 @@
 #include <exception>
 #include "errors.hpp"
 
+#include "concurrency/cond_var.hpp"
+
 struct buffer_group_t {
     struct buffer_t {
         ssize_t size;
@@ -54,9 +56,7 @@ for. In general no information can be carried along with the data_provider_faile
 to signal to the data provider consumer, not the data provider creator. The cause of the error
 should be communicated some other way. */
 
-struct data_provider_failed_exc_t :
-    public std::exception
-{
+class data_provider_failed_exc_t : public std::exception {
     const char *what() {
         return "Data provider failed.";
     }
@@ -71,7 +71,8 @@ that read off a socket or other one-time-use source of data. Note that it's not 
 the data at all--if a data provider really needs its data to be read, it must do it itself in the
 destructor. */
 
-struct data_provider_t {
+class data_provider_t {
+public:
     virtual ~data_provider_t() { }
 
     /* Consumers can call get_size() to figure out how many bytes long the byte array is. Producers
@@ -97,7 +98,8 @@ struct data_provider_t {
 of get_data_as_buffers() in terms of get_data_into_buffers(). It is itself an abstract class;
 subclasses should override get_size() and get_data_into_buffers(). */
 
-struct auto_buffering_data_provider_t : public data_provider_t {
+class auto_buffering_data_provider_t : public data_provider_t {
+public:
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
 private:
     boost::scoped_array<char> buffer;   /* This is NULL until buffers are requested */
@@ -108,15 +110,17 @@ private:
 get_data_into_buffers() in terms of get_data_as_buffers(). It is itself an abstract class;
 subclasses should override get_size(), get_data_as_buffers(), and done_with_buffers(). */
 
-struct auto_copying_data_provider_t : public data_provider_t {
+class auto_copying_data_provider_t : public data_provider_t {
+public:
     void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
 };
 
 /* A buffered_data_provider_t is a data_provider_t that simply owns an internal buffer that it
 provides the data from. */
 
-struct buffered_data_provider_t : public auto_copying_data_provider_t {
-    buffered_data_provider_t(data_provider_t *dp);   // Create with contents of another
+class buffered_data_provider_t : public auto_copying_data_provider_t {
+public:
+    explicit buffered_data_provider_t(data_provider_t *dp);   // Create with contents of another
     buffered_data_provider_t(const void *, size_t);   // Create by copying out of a buffer
     buffered_data_provider_t(size_t, void **);    // Allocate buffer, let creator fill it
     size_t get_size() const;
@@ -131,7 +135,8 @@ private:
 data_provider_t it wraps, even down to throwing the same exceptions in the same places. Internally,
 it buffers the other data_provider_t if it is sufficiently small, improving performance. */
 
-struct maybe_buffered_data_provider_t : public data_provider_t {
+class maybe_buffered_data_provider_t : public data_provider_t {
+public:
     maybe_buffered_data_provider_t(data_provider_t *dp, int threshold);
 
     size_t get_size() const;
@@ -146,6 +151,43 @@ private:
     // when our data is requested. This way we behave exactly the same whether or not we buffer.
     bool exception_was_thrown;
     boost::scoped_ptr<buffered_data_provider_t> buffer;   // NULL if we decide not to buffer
+};
+
+
+class buffer_borrowing_data_provider_t : public data_provider_t {
+public:
+    class side_data_provider_t : public auto_copying_data_provider_t {
+    public:
+        // Takes the thread that the reader reads from.  Soon after
+        // construction, this serves as the de facto home thread of
+        // the side_data_provider_t.
+        side_data_provider_t(int reading_thread, size_t size);
+        ~side_data_provider_t();
+
+        size_t get_size() const;
+        const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+        void supply_buffers_and_wait(const buffer_group_t *buffers);
+
+    private:
+        int reading_thread_;
+        unicond_t<const const_buffer_group_t *> cond_;
+        cond_t done_cond_;
+        size_t size_;
+    };
+
+
+    buffer_borrowing_data_provider_t(int side_reader_thread, data_provider_t *inner);
+    ~buffer_borrowing_data_provider_t();
+    size_t get_size() const;
+
+    void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
+
+    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+    side_data_provider_t *side_provider();
+private:
+    data_provider_t *inner_;
+    side_data_provider_t *side_;
+    bool side_owned_;
 };
 
 #endif /* __DATA_PROVIDER_HPP__ */
