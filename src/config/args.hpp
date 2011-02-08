@@ -110,7 +110,7 @@
 // more patches to come.
 // Note: An average write transaction under canonical workload leads to patches of about 75
 // bytes of affected data.
-#define MAX_PATCHES_SIZE_RATIO                    20
+#define MAX_PATCHES_SIZE_RATIO                    5 // TODO: was 30, find out which value works best
 
 // If more than this many bytes of dirty data accumulate in the cache, then write
 // transactions will be throttled.
