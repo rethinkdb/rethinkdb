@@ -705,7 +705,7 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
             // because they are read from the socket via a different
             // mechanism.)  There are better ways to handle this
             // situation.
-            logERR("Aborting connection %p because we got more than %u bytes without a CRLF\n",
+            logERR("Aborting connection %p because we got more than %ld bytes without a CRLF\n",
                    coro_t::self(), threshold);
             conn->shutdown_read();
             throw tcp_conn_t::read_closed_exc_t();

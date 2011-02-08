@@ -135,7 +135,7 @@ bool strtobool_strict(const char *string, char **end);
 
 // This is inefficient, it calls vsnprintf twice and copies the
 // arglist and output buffer excessively.
-std::string strprintf(const char *format, ...);
+std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
 #include "utils2.tcc"
 

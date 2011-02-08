@@ -51,10 +51,12 @@ void usage_serve() {
                 "                        The maximum amount (in MB) of dirty data (data which is\n"
                 "                        held in memory but has not yet been serialized to disk.)\n"
                 "                        ");
-    if (DEFAULT_UNSAVED_DATA_LIMIT == 0)
+    if (DEFAULT_UNSAVED_DATA_LIMIT == 0) {
         help->pagef("Defaults to %1.1f times the max cache size.\n", MAX_UNSAVED_DATA_LIMIT_FRACTION);
-    else
-        help->pagef("Defaults to %d MB.\n", DEFAULT_UNSAVED_DATA_LIMIT / MEGABYTE);
+    }
+    else {
+        help->pagef("Defaults to %ld MB.\n", DEFAULT_UNSAVED_DATA_LIMIT / MEGABYTE);
+    }
     help->pagef("\n"
                 "Disk options:\n");
     help->pagef("      --gc-range low-high  (e.g. --gc-range 0.5-0.75)\n"

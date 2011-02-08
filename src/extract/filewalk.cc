@@ -83,18 +83,18 @@ void walkfile(dumper_t &dumper, const char *path);
 bool check_config(size_t filesize, const cfg_t cfg) {
     // Check that we have reasonable block_size and extent_size.
     bool errors = false;
-    logINF("DEVICE_BLOCK_SIZE: %20u\n", DEVICE_BLOCK_SIZE);
-    logINF("block_size:        %20u\n", cfg.block_size().ser_value());
+    logINF("DEVICE_BLOCK_SIZE: %20lu\n", DEVICE_BLOCK_SIZE);
+    logINF("block_size:        %20lu\n", cfg.block_size().ser_value());
     if (cfg.block_size().ser_value() % DEVICE_BLOCK_SIZE != 0) {
         logERR("block_size is not a multiple of DEVICE_BLOCK_SIZE.\n");
         errors = true;
     }
-    logINF("extent_size:       %20u   (%u * block_size)\n", cfg.extent_size, cfg.extent_size / cfg.block_size().ser_value());
+    logINF("extent_size:       %20u   (%lu * block_size)\n", cfg.extent_size, cfg.extent_size / cfg.block_size().ser_value());
     if (cfg.extent_size % cfg.block_size().ser_value() != 0) {
         logERR("extent_size is not a multiple of block_size.\n");
         errors = true;
     }
-    logINF("filesize:          %20u\n", filesize);
+    logINF("filesize:          %20lu\n", filesize);
     if (filesize % cfg.extent_size != 0) {
         logWRN("filesize is not a multiple of extent_size.\n");
         // Maybe this is not so bad.
@@ -141,7 +141,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
 
         if (!check_magic<serializer_config_block_t>(serbuf->magic)) {
             logERR("Config block has invalid magic (offset = %lu, magic = %.*s)\n",
-                   off, sizeof(serbuf->magic), serbuf->magic.bytes);
+                   off, int(sizeof(serbuf->magic)), serbuf->magic.bytes);
             return;
         }
 
@@ -150,7 +150,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
         }
     }
 
-    logINF("Finished reading block ids, retrieving key-value pairs (n=%u).\n", n);
+    logINF("Finished reading block ids, retrieving key-value pairs (n=%zu).\n", n);
     get_all_values(dumper, offsets, file, cfg, filesize);
     logINF("Finished retrieving key-value pairs.\n");
 
@@ -251,8 +251,8 @@ bool get_large_buf_segments(const btree_key *key, nondirect_file_t& file, const 
         const large_buf_leaf *leafbuf = reinterpret_cast<const large_buf_leaf *>(b->buf);
 
         if (!check_magic<large_buf_leaf>(leafbuf->magic)) {
-            logERR("With key '%.*s': large_buf_leaf (offset %u) has invalid magic: '%.*s'\n",
-                   key->size, key->contents, offsets[trans.value], sizeof(leafbuf->magic), leafbuf->magic.bytes);
+            logERR("With key '%.*s': large_buf_leaf (offset %ld) has invalid magic: '%.*s'\n",
+                   key->size, key->contents, offsets[trans.value], int(sizeof(leafbuf->magic)), leafbuf->magic.bytes);
             return false;
         }
     } else {
@@ -262,8 +262,8 @@ bool get_large_buf_segments(const btree_key *key, nondirect_file_t& file, const 
         const large_buf_internal *buf = reinterpret_cast<const large_buf_internal *>(internal.buf);
 
         if (!check_magic<large_buf_internal>(buf->magic)) {
-            logERR("With key '%.*s': large_buf_internal (offset %u) has invalid magic: '%.*s'\n",
-                   key->size, key->contents, offsets[trans.value], sizeof(buf->magic), buf->magic.bytes);
+            logERR("With key '%.*s': large_buf_internal (offset %ld) has invalid magic: '%.*s'\n",
+                   key->size, key->contents, offsets[trans.value], int(sizeof(buf->magic)), buf->magic.bytes);
             return false;
         }
 
@@ -289,7 +289,7 @@ bool get_large_buf_segments(const btree_key *key, nondirect_file_t& file, const 
 // Dumps the values for a given pair.
 void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter) {
     if (pair_size_limiter < 0 || !leaf_pair_fits(pair, pair_size_limiter)) {
-        logERR("(In block %u, offset %lu) A pair juts off the end of the block.\n");
+        logERR("(In block %u) A pair juts off the end of the block.\n", this_block.value);
     }
 
     const btree_key *key = &pair->key;

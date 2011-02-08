@@ -74,7 +74,7 @@ public:
         static Help_Pager help;
         return &help;
     }
-    int pagef(const char *format, ...) {
+    int pagef(const char *format, ...) __attribute__ ((format (printf, 2, 3))) {
         int res;
         va_list arg;
         va_start(arg, format);
