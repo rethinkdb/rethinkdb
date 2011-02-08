@@ -74,7 +74,7 @@ private:
 };
 
 // TODO: Make this a local...
-static diff_core_storage_t diff_core_storage;
+static std::map<block_id_t, std::list<buf_patch_t*> > buf_patches;
 
 void walk_extents(dumper_t &dumper, nondirect_file_t &file, const cfg_t static_config);
 void observe_blocks(block_registry &registry, nondirect_file_t &file, const cfg_t cfg, uint64_t filesize);
@@ -108,9 +108,7 @@ bool check_config(size_t filesize, const cfg_t cfg) {
     return !errors;
 }
 
-enum phase_t { LOAD_DIFF_LOG, DUMP_PAIRS };
-
-void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg, phase_t phase) {
+void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
     uint64_t filesize = file.get_size();
 
     if (!check_config(filesize, cfg)) {
@@ -156,22 +154,16 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg, phase_t p
         }
     }
 
-    switch (phase) {
-        case LOAD_DIFF_LOG:
-            if (!cfg.ignore_diff_log) {
-                logINF("Finished reading block ids, loading diff log.\n", n);
-                load_diff_log(offsets, file, cfg, filesize);
-                logINF("Finished loading diff log.\n");
-            }
-            break;
-        case DUMP_PAIRS:
-            logINF("Finished reading block ids, retrieving key-value pairs (n=%u).\n", n);
-            get_all_values(dumper, offsets, file, cfg, filesize);
-            logINF("Finished retrieving key-value pairs.\n");
-            break;
-        default:
-            rassert(false);
+    buf_patches.clear();
+    if (!cfg.ignore_diff_log) {
+        logINF("Loading diff log.\n", n);
+        load_diff_log(offsets, file, cfg, filesize);
+        logINF("Finished loading diff log.\n");
     }
+    
+    logINF("Retrieving key-value pairs (n=%u).\n", n);
+    get_all_values(dumper, offsets, file, cfg, filesize);
+    logINF("Finished retrieving key-value pairs.\n");
 }
 
 bool check_all_known_magic(block_magic_t magic) {
@@ -198,8 +190,6 @@ void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_
 }
 
 void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
-    std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
-
     // Scan through all log blocks, build a map block_id -> patch list
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
          offset <= max_offset;
@@ -221,7 +211,7 @@ void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, non
                     }
                     else {
                         current_offset += patch->get_serialized_size();
-                        patch_map[patch->get_block_id()].push_back(patch);
+                        buf_patches[patch->get_block_id()].push_back(patch);
                         ++num_patches;
                     }
                 }
@@ -233,12 +223,9 @@ void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, non
         }
     }
 
-    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = patch_map.begin(); patch_list != patch_map.end(); ++patch_list) {
+    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = buf_patches.begin(); patch_list != buf_patches.end(); ++patch_list) {
         // Sort the list to get patches in the right order
         patch_list->second.sort(dereferencing_compare_t<buf_patch_t>());
-
-        // Store list into in_core_storage
-        diff_core_storage.load_block_patch_list(patch_list->first, patch_list->second);
     }
 }
 
@@ -256,20 +243,28 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
         
         ser_block_id_t block_id = b.buf_data().block_id;
 
-        if (!cfg.ignore_diff_log) {
-            // Replay patches
-            // (TODO: in case of error: emit a warning and fall back to original / unpatched block data?)
-            const std::vector<buf_patch_t*>* patches = diff_core_storage.get_patches(block_id.value);
-            // Remove obsolete patches from diff storage
-            if (patches && b.buf_data().transaction_id > NULL_SER_TRANSACTION_ID) {
-                for (size_t i = 0; i < patches->size(); ++i) {
-                    if ((*patches)[i]->get_transaction_id() == b.buf_data().transaction_id)
-                        (*patches)[i]->apply_to_buf((char*)b.buf);
-                }
-            }
-        }
+
+        int mod_id = translator_serializer_t::untranslate_block_id(block_id, cfg.mod_count, CONFIG_BLOCK_ID);
+        block_id_t cache_block_id = (block_id.value - CONFIG_BLOCK_ID.subsequent_ser_id().value - mod_id) / cfg.mod_count;
 
         if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
+            if (!cfg.ignore_diff_log) {
+                // Replay patches
+                std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = buf_patches.find(cache_block_id);
+                if (patches != buf_patches.end()) {
+                    // We apply only patches which match exactly the provided transaction ID.
+                    // Sepcifically, this ensures that we only replay patches which are for the right slice,
+                    // as transaction IDs are disjoint across slices (this relies on the current implementation
+                    // details of the cache and serializer though)
+                    for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
+                        //fprintf(stdout, "Checking patch with TID %d against TID %d...\n", (int)(*patch)->get_transaction_id(), (int)b.buf_data().transaction_id);
+                        if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
+                            (*patch)->apply_to_buf((char*)b.buf);
+                        }
+                    }
+                }
+            }
+
             const leaf_node_t *leaf = (leaf_node_t *)b.buf;
 
             if (check_magic<leaf_node_t>(leaf->magic)) {
@@ -444,9 +439,7 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
         overrides.extent_size = static_config.extent_size();
     }
 
-    // TODO! This is completely broken. First it has to be a per slice thing and second I have to use the block ids from the LBA...
-    walk_extents(dumper, file, overrides, LOAD_DIFF_LOG);
-    walk_extents(dumper, file, overrides, DUMP_PAIRS);
+    walk_extents(dumper, file, overrides);
 }
 
 
