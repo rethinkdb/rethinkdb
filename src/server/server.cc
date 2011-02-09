@@ -5,7 +5,7 @@
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
 #include "server/cmd_args.hpp"
-#include "replication/masterstore.hpp"
+#include "replication/master.hpp"
 #include "replication/slave.hpp"
 #include "replication/load_balancer.hpp"
 #include "control.hpp"
@@ -90,7 +90,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         /* Record information about disk drives to log file */
         log_disk_info(cmd_config->store_dynamic_config.serializer_private);
 
-        replication::masterstore_t masterstore;
+        replication::master_t masterstore;
 
         /* Create store if necessary */
         if (cmd_config->create_store) {

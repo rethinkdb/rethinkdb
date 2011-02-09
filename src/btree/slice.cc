@@ -10,7 +10,7 @@
 #include "btree/append_prepend.hpp"
 #include "btree/delete.hpp"
 #include "btree/get_cas.hpp"
-#include "replication/masterstore.hpp"
+#include "replication/master.hpp"
 #include <boost/scoped_ptr.hpp>
 
 void btree_slice_t::create(translator_serializer_t *serializer,

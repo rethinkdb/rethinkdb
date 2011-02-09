@@ -1,4 +1,4 @@
-#include "masterstore.hpp"
+#include "master.hpp"
 
 #include <boost/scoped_ptr.hpp>
 
@@ -8,7 +8,7 @@
 
 namespace replication {
 
-void masterstore_t::hello() {
+void master_t::hello() {
     net_hello_t msg;
     rassert(sizeof(msg.hello_magic) == 16);
     // TODO make a #define for this.
@@ -28,7 +28,7 @@ void masterstore_t::hello() {
     }
 }
 
-void masterstore_t::get_cas(store_key_t *key, castime_t castime) {
+void master_t::get_cas(store_key_t *key, castime_t castime) {
     size_t n = sizeof(headed<net_get_cas_t>) + key->size;
     scoped_malloc<headed<net_get_cas_t> > message(n);
     message->hdr.message_multipart_aspect = SMALL;
@@ -44,7 +44,7 @@ void masterstore_t::get_cas(store_key_t *key, castime_t castime) {
     }
 }
 
-void masterstore_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, store_t::add_policy_t add_policy, store_t::replace_policy_t replace_policy, cas_t old_cas) {
+void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, store_t::add_policy_t add_policy, store_t::replace_policy_t replace_policy, cas_t old_cas) {
     if (add_policy == store_t::add_policy_yes) {
         if (replace_policy == store_t::replace_policy_yes) {
             setlike<net_set_t>(SET, key, data, flags, exptime, castime);
@@ -67,7 +67,7 @@ void masterstore_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flag
 }
 
 template <class net_struct_type>
-void masterstore_t::setlike(int msgcode, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+void master_t::setlike(int msgcode, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
     net_struct_type setstruct;
     setstruct.timestamp = castime.timestamp;
     setstruct.proposed_cas = castime.proposed_cas;
@@ -79,7 +79,7 @@ void masterstore_t::setlike(int msgcode, store_key_t *key, data_provider_t *data
     stereotypical(msgcode, key, data, setstruct);
 }
 
-void masterstore_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
+void master_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
     net_cas_t casstruct;
     casstruct.timestamp = castime.timestamp;
     casstruct.expected_cas = unique;
@@ -92,7 +92,7 @@ void masterstore_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags
     stereotypical(CAS, key, data, casstruct);
 }
 
-void masterstore_t::incr_decr(store_t::incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
+void master_t::incr_decr(store_t::incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
     if (kind == store_t::incr_decr_INCR) {
         incr_decr_like<net_incr_t>(INCR, key, amount, castime);
     } else {
@@ -102,7 +102,7 @@ void masterstore_t::incr_decr(store_t::incr_decr_kind_t kind, store_key_t *key, 
 }
 
 template <class net_struct_type>
-void masterstore_t::incr_decr_like(uint8_t msgcode, store_key_t *key, uint64_t amount, castime_t castime) {
+void master_t::incr_decr_like(uint8_t msgcode, store_key_t *key, uint64_t amount, castime_t castime) {
     headed<net_struct_type> msg;
     msg.hdr.message_multipart_aspect = SMALL;
     msg.hdr.msgcode = msgcode;
@@ -117,7 +117,7 @@ void masterstore_t::incr_decr_like(uint8_t msgcode, store_key_t *key, uint64_t a
     }
 }
 
-void masterstore_t::append_prepend(store_t::append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
+void master_t::append_prepend(store_t::append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
     if (kind == store_t::append_prepend_APPEND) {
         net_append_t appendstruct;
         appendstruct.timestamp = castime.timestamp;
@@ -139,7 +139,7 @@ void masterstore_t::append_prepend(store_t::append_prepend_kind_t kind, store_ke
     }
 }
 
-void masterstore_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
+void master_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
     size_t n = sizeof(headed<net_delete_t>) + key->size;
     scoped_malloc<headed<net_delete_t> > message(n);
     message->hdr.message_multipart_aspect = SMALL;
@@ -157,7 +157,7 @@ void masterstore_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
 
 // For operations with keys and values whose structs use the stereotypical names.
 template <class net_struct_type>
-void masterstore_t::stereotypical(int msgcode, store_key_t *key, data_provider_t *data, net_struct_type netstruct) {
+void master_t::stereotypical(int msgcode, store_key_t *key, data_provider_t *data, net_struct_type netstruct) {
     size_t n = sizeof(headed<net_struct_type>) + key->size + data->get_size();
 
     if (n <= 0xFFFF) {
@@ -201,11 +201,11 @@ void masterstore_t::stereotypical(int msgcode, store_key_t *key, data_provider_t
         }
 
         // TODO: make sure we aren't taking liberties with the data_provider_t lifetime.
-        coro_t::spawn(boost::bind(&masterstore_t::send_data_with_ident, this, data, ident));
+        coro_t::spawn(boost::bind(&master_t::send_data_with_ident, this, data, ident));
     }
 }
 
-void masterstore_t::send_data_with_ident(data_provider_t *data, uint32_t ident) {
+void master_t::send_data_with_ident(data_provider_t *data, uint32_t ident) {
     size_t size = data->get_size();
 
     const const_buffer_group_t *group = data->get_data_as_buffers();
@@ -251,7 +251,7 @@ void masterstore_t::send_data_with_ident(data_provider_t *data, uint32_t ident) 
 }
 
 
-void masterstore_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
+void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     // TODO: Carefully handle case where a slave is already connected.
 
     // Right now we uncleanly close the slave connection.  What if

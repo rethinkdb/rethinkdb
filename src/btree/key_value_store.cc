@@ -1,6 +1,6 @@
 #include "btree/key_value_store.hpp"
 #include "btree/rget.hpp"
-#include "btree/slice_dispatching_to_masterstore.hpp"
+#include "btree/slice_dispatching_to_master.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "db_thread_info.hpp"
@@ -104,7 +104,7 @@ void create_existing_btree(
         translator_serializer_t **pseudoserializers,
         slice_store_t **slices,
         mirrored_cache_config_t *config,
-        replication::masterstore_t *masterstore,
+        replication::master_t *masterstore,
         int i) {
 
     // TODO try to align slices with serializers so that when possible, a slice is on the
@@ -112,15 +112,15 @@ void create_existing_btree(
     on_thread_t thread_switcher(i % get_num_db_threads());
 
     btree_slice_t *sl = new btree_slice_t(pseudoserializers[i], config);
-    //    if (masterstore) {  /* commented out to avoid temporarily breaking master.  btree_slice_dispatching_to_masterstore_t handles NULL masterstore gracefully, for now */
-        slices[i] = new btree_slice_dispatching_to_masterstore_t(sl, masterstore);
+    //    if (masterstore) {  /* commented out to avoid temporarily breaking master.  btree_slice_dispatching_to_master_t handles NULL masterstore gracefully, for now */
+        slices[i] = new btree_slice_dispatching_to_master_t(sl, masterstore);
         //    } else {
         //        slices[i] = sl;
         //    }
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                                                 replication::masterstore_t *masterstore)
+                                                 replication::master_t *masterstore)
     : hash_control(this) {
 
     /* Start serializers */

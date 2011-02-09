@@ -13,7 +13,7 @@
 #include "control.hpp"
 
 namespace replication {
-class masterstore_t;
+class master_t;
 }  // namespace replication
 
 
@@ -32,7 +32,7 @@ public:
 
     // Blocks
     btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                            replication::masterstore_t *masterstore);
+                            replication::master_t *masterstore);
 
     // Blocks
     ~btree_key_value_store_t();

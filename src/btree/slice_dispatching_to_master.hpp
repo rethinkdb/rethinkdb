@@ -1,16 +1,16 @@
-#ifndef __BTREE_SLICE_DISPATCHING_TO_MASTERSTORE_HPP__
-#define __BTREE_SLICE_DISPATCHING_TO_MASTERSTORE_HPP__
+#ifndef __BTREE_SLICE_DISPATCHING_TO_MASTER_HPP__
+#define __BTREE_SLICE_DISPATCHING_TO_MASTER_HPP__
 
 #include "btree/slice.hpp"
 #include "store.hpp"
-#include "replication/masterstore.hpp"
+#include "replication/master.hpp"
 
-class btree_slice_dispatching_to_masterstore_t : public slice_store_t {
+class btree_slice_dispatching_to_master_t : public slice_store_t {
 public:
-    btree_slice_dispatching_to_masterstore_t(btree_slice_t *slice, replication::masterstore_t *masterstore)
+    btree_slice_dispatching_to_master_t(btree_slice_t *slice, replication::master_t *masterstore)
         : slice_(slice), masterstore_(masterstore), cas_counter_(0) { }
 
-    ~btree_slice_dispatching_to_masterstore_t() {
+    ~btree_slice_dispatching_to_master_t() {
         delete slice_;
     }
 
@@ -29,16 +29,16 @@ public:
 
 private:
     btree_slice_t *slice_;
-    replication::masterstore_t *masterstore_;
+    replication::master_t *masterstore_;
 
     uint32_t cas_counter_;
     castime_t gen_castime();
     castime_t generate_if_necessary(castime_t castime);
     repli_timestamp generate_if_necessary(repli_timestamp timestamp);
 
-    DISABLE_COPYING(btree_slice_dispatching_to_masterstore_t);
+    DISABLE_COPYING(btree_slice_dispatching_to_master_t);
 };
 
 
 
-#endif  // __BTREE_SLICE_DISPATCHING_TO_MASTERSTORE_HPP__
+#endif  // __BTREE_SLICE_DISPATCHING_TO_MASTER_HPP__

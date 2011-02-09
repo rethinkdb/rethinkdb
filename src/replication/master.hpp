@@ -1,5 +1,5 @@
-#ifndef __REPLICATION_MASTERSTORE_HPP__
-#define __REPLICATION_MASTERSTORE_HPP__
+#ifndef __REPLICATION_MASTER_HPP__
+#define __REPLICATION_MASTER_HPP__
 
 #include "store.hpp"
 #include "arch/arch.hpp"
@@ -18,9 +18,9 @@ public:
 };
 
 
-class masterstore_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t {
+class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t {
 public:
-    masterstore_t() : message_contiguity_(), slave_(NULL), sources_(), listener_(REPLICATION_PORT) {
+    master_t() : message_contiguity_(), slave_(NULL), sources_(), listener_(REPLICATION_PORT) {
         listener_.set_callback(this);
     }
 
@@ -66,7 +66,7 @@ private:
 
     tcp_listener_t listener_;
 
-    DISABLE_COPYING(masterstore_t);
+    DISABLE_COPYING(master_t);
 };
 
 
@@ -75,4 +75,4 @@ private:
 
 }  // namespace replication
 
-#endif  // __REPLICATION_MASTERSTORE_HPP__
+#endif  // __REPLICATION_MASTER_HPP__
