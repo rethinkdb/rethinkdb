@@ -104,8 +104,9 @@ public:
     virtual get_result_t get(store_key_t *key) = 0;
     virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;
 
-    typedef one_way_iterator_t<key_with_data_provider_t>* rget_result_t;
-    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
+    typedef one_way_iterator_t<key_with_data_provider_t> rget_result_t;
+    typedef rget_result_t* rget_result_ptr_t;
+    virtual rget_result_ptr_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
 
     /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
     to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on

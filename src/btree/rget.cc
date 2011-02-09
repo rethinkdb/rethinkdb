@@ -1,6 +1,7 @@
 #include "btree/rget.hpp"
 #include "btree/iteration.hpp"
 #include "containers/iterators.hpp"
+#include "containers/unique_ptr.hpp"
 #include "arch/linux/coroutines.hpp"
 
 /*
@@ -76,19 +77,19 @@ private:
     block_pm_duration block_pm;
 };
 
-store_t::rget_result_t btree_rget(btree_key_value_store_t *store, store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
+store_t::rget_result_ptr_t btree_rget(btree_key_value_store_t *store, store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
     thread_saver_t thread_saver;
 
-    pm_iterator_wrapper_t<key_with_data_provider_t> *wrapped_iterator = new pm_iterator_wrapper_t<key_with_data_provider_t>(new merged_results_iterator_t(), &pm_cmd_rget);
+    unique_ptr_t<pm_iterator_wrapper_t<key_with_data_provider_t> > wrapped_iterator(new pm_iterator_wrapper_t<key_with_data_provider_t>(new merged_results_iterator_t(), &pm_cmd_rget));
     merged_results_iterator_t *merge_iterator = ptr_cast<merged_results_iterator_t>(wrapped_iterator->get_wrapped());
     for (int s = 0; s < store->btree_static_config.n_slices; s++) {
         slice_store_t *slice = store->slices[s];
         merge_iterator->add_mergee(slice->rget(start, end, left_open, right_open));
     }
-    return wrapped_iterator;
+    return wrapped_iterator.release();
 }
 
-store_t::rget_result_t btree_rget_slice(btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
+store_t::rget_result_ptr_t btree_rget_slice(btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
     boost::shared_ptr<transactor_t> transactor = boost::shared_ptr<transactor_t>(new transactor_t(&slice->cache(), rwi_read));
     return new slice_keys_iterator_t(transactor, slice, start, end, left_open, right_open);
 }
