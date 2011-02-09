@@ -165,6 +165,7 @@ struct slicecx {
     int global_slice_id;
     int local_slice_id;
     int mod_count;
+    std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
     slicecx(nondirect_file_t *file, file_knowledge *knog, int global_slice_id)
         : file(file), knog(knog), global_slice_id(global_slice_id), local_slice_id(global_slice_id / knog->config_block->n_files),
           mod_count(btree_key_value_store_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->btree_config.n_slices)) { }
@@ -190,11 +191,14 @@ public:
 
     // Uses and modifies knog->block_info[cx.to_ser_block_id(block_id)].
     bool init(slicecx &cx, block_id_t block_id) {
-        return init(cx.file, cx.knog, cx.to_ser_block_id(block_id));
+        std::list<buf_patch_t*> *patches_list = NULL;
+        if (cx.patch_map.find(block_id) != cx.patch_map.end())
+            patches_list = &cx.patch_map.find(block_id)->second;
+        return init(cx.file, cx.knog, cx.to_ser_block_id(block_id), patches_list);
     }
 
     // Modifies knog->block_info[ser_block_id].
-    bool init(nondirect_file_t *file, file_knowledge *knog, ser_block_id_t ser_block_id) {
+    bool init(nondirect_file_t *file, file_knowledge *knog, ser_block_id_t ser_block_id, std::list<buf_patch_t*> *patches_list = NULL) {
         block_knowledge info;
         {
             read_locker locker(knog);
@@ -226,7 +230,23 @@ public:
             return false;
         }
 
-        // TODO! Replay patches
+        if (patches_list) {
+            // Replay patches
+            for (std::list<buf_patch_t*>::iterator patch = patches_list->begin(); patch != patches_list->end(); ++patch) {
+                printf("Replaying a patch\n"); // TODO!
+                ser_transaction_id_t first_matching_id = NULL_SER_TRANSACTION_ID;
+                if ((*patch)->get_transaction_id() >= realbuf->transaction_id) {
+                    if (first_matching_id == NULL_SER_TRANSACTION_ID) {
+                        first_matching_id = (*patch)->get_transaction_id();
+                    }
+                    else if (first_matching_id != (*patch)->get_transaction_id()) {
+                        // TODO! (file an error: patch applies to future revision of the block)
+                        continue;
+                    }
+                    (*patch)->apply_to_buf((char*)buf);
+                }
+            }
+        }
 
         // (This line, which modifies the file_knowledge object, is
         // the main reason we have this btree_block abstraction.)
@@ -565,6 +585,84 @@ bool check_config_block(nondirect_file_t *file, file_knowledge *knog, config_blo
     return true;
 }
 
+struct diff_log_errors {
+    // TODO!
+    diff_log_errors() { }
+private:
+    DISABLE_COPYING(diff_log_errors);
+};
+
+static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'};
+void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
+    cx.patch_map.clear();
+
+    const unsigned int log_size = cx.knog->config_block->cache_config.n_diff_log_blocks;
+
+    for (block_id_t block_id = SUPERBLOCK_ID + 1; block_id < SUPERBLOCK_ID + 1 + log_size; ++block_id) {
+        ser_block_id_t ser_block_id = cx.to_ser_block_id(block_id);
+
+        block_knowledge info;
+        {
+            read_locker locker(cx.knog);
+            if (ser_block_id.value >= locker.block_info().get_size()) {
+                // TODO! (file error: Log block missing)
+                continue;
+            }
+            info = locker.block_info()[ser_block_id.value];
+        }
+
+        if (!info.offset.parts.is_delete) {
+            block b;
+            b.init(cx.knog->static_config->block_size(), cx.file, info.offset.parts.value, ser_block_id);
+            {
+                write_locker locker(cx.knog);
+                locker.block_info()[ser_block_id.value].transaction_id = b.realbuf->transaction_id;
+            }
+
+            const void *buf_data = b.buf;
+
+            if (strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
+                uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
+                while (current_offset + buf_patch_t::get_min_serialized_size() < cx.knog->static_config->block_size().value()) {
+                    buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
+                    if (!patch) {
+                        break;
+                    }
+                    else {
+                        current_offset += patch->get_serialized_size();
+                        cx.patch_map[patch->get_block_id()].push_back(patch);
+                        printf("Loaded a patch\n"); // TODO!
+                    }
+                }
+            } else {
+                // TODO! (file error: wrong log block magic (incorrect log size?) )
+            }
+
+        } else {
+            // TODO! (file error: deleted log block)
+        }
+    }
+
+
+    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = cx.patch_map.begin(); patch_list != cx.patch_map.end(); ++patch_list) {
+        // Sort the list to get patches in the right order
+        patch_list->second.sort(dereferencing_compare_t<buf_patch_t>());
+
+        // Verify patches list
+        ser_transaction_id_t previous_transaction = 0;
+        patch_counter_t previous_patch_counter = 0;
+        for(std::list<buf_patch_t*>::const_iterator p = patch_list->second.begin(); p != patch_list->second.end(); ++p) {
+            if (previous_transaction == 0 || (*p)->get_transaction_id() != previous_transaction) {
+                previous_patch_counter = 0;
+            }
+            // TODO! (file error instead of terminating)
+            guarantee(previous_patch_counter == 0 || (*p)->get_patch_counter() > previous_patch_counter, "Non-sequential patch list: Patch counter %d follows %d", (*p)->get_patch_counter(), previous_patch_counter);
+            previous_patch_counter = (*p)->get_patch_counter();
+            previous_transaction = (*p)->get_transaction_id();
+        }
+    }
+}
+
 struct value_error {
     block_id_t block_id;
     std::string key;
@@ -826,6 +924,7 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const 
 }
 
 void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_key *hi, subtree_errors *errs) {
+    printf("Checking subtree\n"); // TODO!
     /* Walk tree */
 
     btree_block node;
@@ -943,12 +1042,13 @@ struct slice_errors {
     btree_block::error superblock_code;
     bool superblock_bad_magic;
 
+    diff_log_errors diff_log_errs;
     subtree_errors tree_errs;
     other_block_errors other_block_errs;
 
     slice_errors()
         : global_slice_number(-1),
-          superblock_code(btree_block::none), superblock_bad_magic(false), tree_errs(), other_block_errs() { }
+          superblock_code(btree_block::none), superblock_bad_magic(false), diff_log_errs(), tree_errs(), other_block_errs() { }
 
     bool is_bad() const {
         return superblock_code != btree_block::none || superblock_bad_magic || tree_errs.is_bad();
@@ -972,7 +1072,9 @@ void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_
         root_block_id = buf->root_block;
     }
 
-    // TODO! Load diff log
+    check_and_load_diff_log(cx, &errs->diff_log_errs);
+
+    printf("root_block_id is %d\n", (int)root_block_id);
 
     if (root_block_id != NULL_BLOCK_ID) {
         check_subtree(cx, root_block_id, NULL, NULL, &errs->tree_errs);
@@ -1279,6 +1381,7 @@ void print_interfile_summary(const serializer_config_block_t& c) {
     printf("config_block database_magic: %u\n", c.database_magic);
     printf("config_block n_files: %d\n", c.n_files);
     printf("config_block n_slices: %d\n", c.btree_config.n_slices);
+    printf("config_block n_log_blocks: %d\n", c.cache_config.n_diff_log_blocks);
 }
 
 bool check_files(const config_t& cfg) {

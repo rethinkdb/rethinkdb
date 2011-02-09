@@ -16,7 +16,7 @@ void diff_core_storage_t::load_block_patch_list(const block_id_t block_id, const
     patch_counter_t previous_patch_counter = 0;
     for(std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
         if ((*p)->get_transaction_id() != previous_transaction) {
-            guarantee((*p)->get_transaction_id() > previous_transaction, "Non-sequential patch list: Transaction id %ll follows %ll", (*p)->get_transaction_id(), previous_transaction);
+            rassert((*p)->get_transaction_id() > previous_transaction, "Non-sequential patch list: Transaction id %ll follows %ll", (*p)->get_transaction_id(), previous_transaction);
         }
         if (previous_transaction == 0 || (*p)->get_transaction_id() != previous_transaction) {
             previous_patch_counter = 0;

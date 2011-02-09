@@ -43,10 +43,7 @@ namespace fsck {
   - that blocks in use have greater transaction ids than blocks not
     in use.  (supremacy check)
 
-  - that the live patches in the diff storage are sequentially numbered
-   TODO!
-  - that the number of diff log blocks specified in the superblock matches the
-    actual number of diff log blocks
+  - that the patches in the diff storage are sequentially numbered
 */
 
 struct config_t {

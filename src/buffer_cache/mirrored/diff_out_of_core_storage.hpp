@@ -7,7 +7,7 @@
 class mc_cache_t;
 class mc_buf_t;
 
-// Whenever the on-disk format changes, please increase the version number (currently 00)
+// Whenever the on-disk format of the patches changes, please increase the version number (currently 00)
 static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'};
 
 /* WARNING: Most of the functions in here are *not* reentrant-safe and rely on concurrency control happening */
