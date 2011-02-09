@@ -385,23 +385,52 @@ void run_storage_command(txt_memcached_handler_t *rh,
     repli_timestamp timestamp = current_time();
 
     if (sc != append_command && sc != prepend_command) {
-        store_t::set_result_t res;
+
+        store_t::add_policy_t add_policy;
+        store_t::replace_policy_t replace_policy;
+
         switch (sc) {
-        case set_command: res = rh->store->set(&key.key, &data, mcflags, exptime, castime_t::dummy()); break;
-        case add_command: res = rh->store->add(&key.key, &data, mcflags, exptime, castime_t::dummy()); break;
-        case replace_command: res = rh->store->replace(&key.key, &data, mcflags, exptime, castime_t::dummy()); break;
-        case cas_command: res = rh->store->cas(&key.key, &data, mcflags, exptime, unique, castime_t::dummy()); break;
+        case set_command:
+            add_policy = store_t::add_policy_yes;
+            replace_policy = store_t::replace_policy_yes;
+            break;
+        case add_command:
+            add_policy = store_t::add_policy_yes;
+            replace_policy = store_t::replace_policy_no;
+            break;
+        case replace_command:
+            add_policy = store_t::add_policy_no;
+            replace_policy = store_t::replace_policy_yes;
+            break;
+        case cas_command:
+            add_policy = store_t::add_policy_no;
+            replace_policy = store_t::replace_policy_if_cas_matches;
+            break;
         case append_command:
         case prepend_command:
         default:
             unreachable();
         }
+
+        store_t::set_result_t res =
+            rh->store->sarc(&key.key, &data, mcflags, exptime, castime_t::dummy(),
+                add_policy, replace_policy, unique);
+        
         if (!noreply) {
             switch (res) {
-                case store_t::sr_stored: rh->writef("STORED\r\n"); break;
-                case store_t::sr_not_stored: rh->writef("NOT_STORED\r\n"); break;
-                case store_t::sr_exists: rh->writef("EXISTS\r\n"); break;
-                case store_t::sr_not_found: rh->writef("NOT_FOUND\r\n"); break;
+                case store_t::sr_stored:
+                    rh->writef("STORED\r\n");
+                    break;
+                case store_t::sr_didnt_add:
+                    if (sc == replace_command) rh->writef("NOT_STORED\r\n");
+                    else if (sc == cas_command) rh->writef("NOT_FOUND\r\n");
+                    else unreachable();
+                    break;
+                case store_t::sr_didnt_replace:
+                    if (sc == add_command) rh->writef("NOT_STORED\r\n");
+                    else if (sc == cas_command) rh->writef("EXISTS\r\n");
+                    else unreachable();
+                    break;
                 case store_t::sr_too_large:
                     rh->server_error_object_too_large_for_cache();
                     break;
@@ -414,18 +443,13 @@ void run_storage_command(txt_memcached_handler_t *rh,
                 default: unreachable();
             }
         }
+
     } else {
-        store_t::append_prepend_result_t res;
-        switch (sc) {
-        case append_command: res = rh->store->append(&key.key, &data, castime_t::dummy()); break;
-        case prepend_command: res = rh->store->prepend(&key.key, &data, castime_t::dummy()); break;
-        case set_command:
-        case add_command:
-        case replace_command:
-        case cas_command:
-        default:
-            unreachable();
-        }
+        store_t::append_prepend_result_t res =
+            rh->store->append_prepend(
+                sc == append_command ? store_t::append_prepend_APPEND : store_t::append_prepend_PREPEND,
+                &key.key, &data, castime_t::dummy());
+
         if (!noreply) {
             switch (res) {
                 case store_t::apr_success: rh->writef("STORED\r\n"); break;
@@ -507,7 +531,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     }
 
     /* If a "cas", parse the cas_command unique */
-    cas_t unique = 0;
+    cas_t unique = store_t::NO_CAS_SUPPLIED;
     if (sc == cas_command) {
         unique = strtoull_strict(argv[5], &invalid_char, 10);
         if (*invalid_char != '\0') {
@@ -554,9 +578,9 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, uint
 
     repli_timestamp timestamp = current_time();
 
-    store_t::incr_decr_result_t res = incr ?
-        rh->store->incr(&key.key, amount, castime_t::dummy()) :
-        rh->store->decr(&key.key, amount, castime_t::dummy());
+    store_t::incr_decr_result_t res = rh->store->incr_decr(
+        incr ? store_t::incr_decr_INCR : store_t::incr_decr_DECR,
+        &key.key, amount, castime_t::dummy());
 
     if (!noreply) {
         switch (res.res) {

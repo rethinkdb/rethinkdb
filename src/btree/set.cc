@@ -3,8 +3,10 @@
 #include "buffer_cache/co_functions.hpp"
 
 struct btree_set_oper_t : public btree_modify_oper_t {
-    explicit btree_set_oper_t(data_provider_t *data, set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas)
-        : btree_modify_oper_t(), data(data), type(type), mcflags(mcflags), exptime(exptime), req_cas(req_cas)
+    explicit btree_set_oper_t(data_provider_t *data, mcflags_t mcflags, exptime_t exptime,
+            store_t::add_policy_t ap, store_t::replace_policy_t rp, cas_t req_cas)
+        : btree_modify_oper_t(), data(data), mcflags(mcflags), exptime(exptime),
+            add_policy(ap), replace_policy(rp), req_cas(req_cas)
     {
         pm_cmd_set.begin(&start_time);
     }
@@ -15,19 +17,31 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         try {
-            if ((old_value && type == set_type_add) || (!old_value && type == set_type_replace)) {
-                result = store_t::sr_not_stored;
-                return false;
-            }
 
-            if (type == set_type_cas) { // TODO: CAS stats
-                if (!old_value) {
-                    result = store_t::sr_not_found;
-                    return false;
+            /* We may be instructed to abort depending on the old value */
+            if (old_value) {
+                switch (replace_policy) {
+                    case store_t::replace_policy_yes:
+                        break;
+                    case store_t::replace_policy_no:
+                        result = store_t::sr_didnt_replace;
+                        return false;
+                    case store_t::replace_policy_if_cas_matches:
+                        if (!old_value->has_cas() || old_value->cas() != req_cas) {
+                            result = store_t::sr_didnt_replace;
+                            return false;
+                        }
+                        break;
+                    default: unreachable();
                 }
-                if (!old_value->has_cas() || old_value->cas() != req_cas) {
-                    result = store_t::sr_exists;
-                    return false;
+            } else {
+                switch (add_policy) {
+                    case store_t::add_policy_yes:
+                        break;
+                    case store_t::add_policy_no:
+                        result = store_t::sr_didnt_add;
+                        return false;
+                    default: unreachable();
                 }
             }
 
@@ -40,7 +54,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
             }
 
             value.value_size(0);
-            if (type == set_type_cas || (old_value && old_value->has_cas())) {
+            if (old_value && old_value->has_cas()) {
                 // Turns the flag on and makes
                 // room. run_btree_modify_oper() will set an actual CAS
                 // later. TODO: We should probably have a separate
@@ -88,13 +102,13 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
     }
 
-
     ticks_t start_time;
 
     data_provider_t *data;
-    set_type_t type;
     mcflags_t mcflags;
     exptime_t exptime;
+    store_t::add_policy_t add_policy;
+    store_t::replace_policy_t replace_policy;
     cas_t req_cas;
 
     union {
@@ -105,8 +119,11 @@ struct btree_set_oper_t : public btree_modify_oper_t {
     store_t::set_result_t result;
 };
 
-store_t::set_result_t btree_set(const btree_key *key, btree_slice_t *slice, data_provider_t *data, set_type_t type, mcflags_t mcflags, exptime_t exptime, cas_t req_cas, castime_t castime) {
-    btree_set_oper_t oper(data, type, mcflags, exptime, req_cas);
+store_t::set_result_t btree_set(const btree_key *key, btree_slice_t *slice,
+        data_provider_t *data, mcflags_t mcflags, exptime_t exptime,
+        store_t::add_policy_t add_policy, store_t::replace_policy_t replace_policy, cas_t req_cas,
+        castime_t castime) {
+    btree_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy, req_cas);
     run_btree_modify_oper(&oper, slice, key, castime);
     return oper.result;
 }

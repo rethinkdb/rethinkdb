@@ -60,15 +60,7 @@ store_t::rget_result_t btree_slice_t::rget(store_key_t *start, store_key_t *end,
 
 store_t::set_result_t btree_slice_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime,
                                           add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    set_type_t type;
-    if (add_policy == add_policy_yes && replace_policy == replace_policy_yes) type = set_type_set;
-    else if (add_policy == add_policy_yes && replace_policy == replace_policy_no) type = set_type_add;
-    else if (add_policy == add_policy_no && replace_policy == replace_policy_yes) type = set_type_replace;
-    else if (add_policy == add_policy_no && replace_policy == replace_policy_if_cas_matches) type = set_type_cas;
-    else crash("no possible set_type_t value");
-
-    return btree_set(key, this, data, type, flags, exptime, old_cas, castime);
-
+    return btree_set(key, this, data, flags, exptime, add_policy, replace_policy, old_cas, castime);
 }
 
 store_t::incr_decr_result_t btree_slice_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
