@@ -6,6 +6,7 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
+#include "containers/unique_ptr.hpp"
 #include "arch/arch.hpp"
 #include "store.hpp"
 #include "logger.hpp"
@@ -282,7 +283,7 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
         return;
     }
 
-    store_t::rget_result_t results_iterator = rh->store->rget(left_key, right_key, left_open == 1, right_open == 1);
+    unique_ptr_t<store_t::rget_result_t> results_iterator(rh->store->rget(left_key, right_key, left_open == 1, right_open == 1));
 
     boost::optional<key_with_data_provider_t> pair;
     uint64_t count = 0;
@@ -297,8 +298,6 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
         rh->write_crlf();
     }
     rh->write_end();
-
-    delete results_iterator;
 }
 
 /* "set", "add", "replace", "cas", "append", and "prepend" command logic */
