@@ -534,7 +534,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     promise_t<bool> value_read_promise;
 
     if (noreply) {
-        coro_t::spawn(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, true));
+        coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, true));
     } else {
         run_storage_command(rh, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, false);
     }
@@ -549,6 +549,9 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 
 /* "incr" and "decr" commands */
 void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, uint64_t amount, bool incr, bool noreply) {
+
+    rh->begin_write_command();
+
     repli_timestamp timestamp = current_time();
 
     store_t::incr_decr_result_t res = incr ?
@@ -611,10 +614,8 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
         noreply = false;
     }
 
-    rh->begin_write_command();
-
     if (noreply) {
-        coro_t::spawn(boost::bind(&run_incr_decr, rh, key, delta, i, true));
+        coro_t::spawn_now(boost::bind(&run_incr_decr, rh, key, delta, i, true));
     } else {
         run_incr_decr(rh, key, delta, i, false);
     }
@@ -624,6 +625,8 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 
 void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool noreply) {
     store_t::delete_result_t res = rh->store->delete_key(&key.key, current_time());
+
+    rh->begin_write_command();
 
     if (!noreply) {
         switch (res) {
@@ -678,11 +681,8 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
         noreply = false;
     }
 
-    /* The corresponding call to end_write_command() is in do_delete() */
-    rh->begin_write_command();
-
     if (noreply) {
-        coro_t::spawn(boost::bind(&run_delete, rh, key, true));
+        coro_t::spawn_now(boost::bind(&run_delete, rh, key, true));
     } else {
         run_delete(rh, key, false);
     }
