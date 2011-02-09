@@ -2,6 +2,7 @@
 
 #include <boost/scoped_ptr.hpp>
 
+#include "logger.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
 
