@@ -74,8 +74,8 @@ public:
     explicit internal_key_comp(const internal_node_t *_node) : node(_node), key(NULL)  { }
     internal_key_comp(const internal_node_t *_node, const btree_key *_key) : node(_node), key(_key)  { }
     bool operator()(const uint16_t offset1, const uint16_t offset2) {
-        const btree_key *key1 = offset1 == 0 ? key : &internal_node::get_pair(node, offset1)->key;
-        const btree_key *key2 = offset2 == 0 ? key : &internal_node::get_pair(node, offset2)->key;
+        const btree_key *key1 = offset1 == faux_offset ? key : &internal_node::get_pair(node, offset1)->key;
+        const btree_key *key2 = offset2 == faux_offset ? key : &internal_node::get_pair(node, offset2)->key;
         return compare(key1, key2) < 0;
     }
     static int compare(const btree_key *key1, const btree_key *key2) {
