@@ -8,15 +8,6 @@
 
 namespace replication {
 
-void masterstore_t::add_slave(tcp_conn_t *conn) {
-    if (slave_ != NULL) {
-        throw masterstore_exc_t("We already have a slave.");
-    }
-    slave_ = conn;
-
-    hello();
-}
-
 void masterstore_t::hello() {
     net_hello_t msg;
     rassert(sizeof(msg.hello_magic) == 16);
@@ -257,6 +248,24 @@ void masterstore_t::send_data_with_ident(data_provider_t *data, uint32_t ident) 
     // TODO: How do we declaim ownership of the data_provider_t?
 
     sources_.drop(ident);
+}
+
+
+void masterstore_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
+    // TODO: Carefully handle case where a slave is already connected.
+
+    // Right now we uncleanly close the slave connection.  What if
+    // somebody has partially written a message to it (and writes the
+    // rest of the message to conn?)  That will happen, the way the
+    // code is, right now.
+    slave_.reset();
+    slave_.swap(conn);
+
+    logDBG("Received replica.\n");
+
+    hello();
+    // TODO send hello handshake, use database magic to handle case
+    // where slave is already connected.
 }
 
 
