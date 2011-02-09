@@ -120,7 +120,9 @@ void usage_create() {
                 "                        specified multiple times to use multiple files.\n"
                 "  -s, --slices          Total number of slices.\n"
                 "      --block-size      Size of a block, in bytes.\n"
-                "      --extent-size     Size of an extent, in bytes.\n");
+                "      --extent-size     Size of an extent, in bytes.\n"
+                "      --diff-log-size   Size of the differential log, in megabytes\n"
+                "                        (Default: %d)\n", (DEFAULT_DIFF_LOG_SIZE / MEGABYTE));
     help->pagef("\n"
                 "Output options:\n"
                 "  -l, --log-file        File to log to. If not provided, messages will be\n"
@@ -148,6 +150,7 @@ enum {
     active_data_extents,
     block_size,
     extent_size,
+    diff_log_size,
     force_create,
     coroutine_stack_size,
     slave_of,
@@ -176,6 +179,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     }
 
     bool slices_set_by_user = false;
+    long long override_diff_log_size = -1;
     optind = 1; // reinit getopt
     while(1)
     {
@@ -191,6 +195,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"gc-range",             required_argument, 0, gc_range},
                 {"block-size",           required_argument, 0, block_size},
                 {"extent-size",          required_argument, 0, extent_size},
+                {"diff-log-size",        required_argument, 0, diff_log_size},
                 {"active-data-extents",  required_argument, 0, active_data_extents},
                 {"coroutine-stack-size", required_argument, 0, coroutine_stack_size},
                 {"cores",                required_argument, 0, 'c'},
@@ -266,6 +271,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_block_size(optarg); break;
             case extent_size:
                 config.set_extent_size(optarg); break;
+            case diff_log_size:
+                override_diff_log_size = config.parse_diff_log_size(optarg); break;
             case coroutine_stack_size:
                 config.set_coroutine_stack_size(optarg); break;
             case force_create:
@@ -368,6 +375,13 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 fail_due_to_user_error("Failed to set number of slices automatically. Please specify it manually by using the -s option.\n");
         }
     }
+
+    /* Convert values which depends on others to be set first */
+    if (override_diff_log_size >= 0) {
+        config.store_static_config.cache.n_diff_log_blocks = override_diff_log_size / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
+    } else {
+        config.store_static_config.cache.n_diff_log_blocks = DEFAULT_DIFF_LOG_SIZE / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
+    }
     
     return config;
 }
@@ -454,6 +468,18 @@ void parsing_cmd_config_t::set_extent_size(const char* value) {
         fail_due_to_user_error("Extent size must be a number from %d to %d.", minimum_value, maximum_value);
         
     store_static_config.serializer.unsafe_extent_size() = static_cast<long long unsigned int>(target);
+}
+
+long long parsing_cmd_config_t::parse_diff_log_size(const char* value) {
+    long long int result;
+    const long long int minimum_value = 0ll;
+    const long long int maximum_value = TERABYTE;
+
+    result = parse_longlong(optarg) * MEGABYTE;
+    if (parsing_failed || !is_in_range(result, minimum_value, maximum_value))
+        fail_due_to_user_error("Diff log size must be a number from %d to %d.", minimum_value, maximum_value);
+
+    return result;
 }
 
 void parsing_cmd_config_t::set_block_size(const char* value) {
@@ -752,7 +778,6 @@ cmd_config_t::cmd_config_t() {
     
     store_static_config.btree.n_slices = DEFAULT_BTREE_SHARD_FACTOR;
 
-    // TODO: Make configurable
     store_static_config.cache.n_diff_log_blocks = DEFAULT_DIFF_LOG_SIZE / store_static_config.serializer.block_size().ser_value() / store_static_config.btree.n_slices;
 }
 

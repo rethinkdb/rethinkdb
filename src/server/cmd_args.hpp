@@ -213,6 +213,8 @@ public:
     void set_heartbeat_timeout(const char* value);
     void set_elb_port(const char* value);
     void push_private_config(const char* value);
+
+    long long parse_diff_log_size(const char* value);
     
 private:
     bool parsing_failed;
