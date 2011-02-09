@@ -43,6 +43,7 @@ public:
     void free(void *ptr);
 
     bool do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback);
+    ser_transaction_id_t get_current_transaction_id(block_id_t block_id, const void* buf);
     struct write_t {
         block_id_t block_id;
         bool recency_specified;

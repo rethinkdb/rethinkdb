@@ -33,6 +33,8 @@ struct serializer_t :
         virtual ~read_callback_t() {}
     };
     virtual bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) = 0;
+
+    virtual ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf) = 0;
     
     /* do_write() updates or deletes a group of bufs.
     

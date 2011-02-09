@@ -26,9 +26,7 @@ struct load_buf_fsm_t :
                 on_serializer_read();
         } else {
             // Read the transaction id
-            buf_data_t *ser_data = (buf_data_t*)inner_buf->data;
-            ser_data--;
-            inner_buf->transaction_id = ser_data->transaction_id;
+            inner_buf->transaction_id = inner_buf->cache->serializer->get_current_transaction_id(inner_buf->block_id, inner_buf->data);
 
             const std::vector<buf_patch_t*>* patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
             // Remove obsolete patches from diff storage
@@ -110,11 +108,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     // between problems with uninitialized memory and problems with uninitialized blocks
     memset(data, 0xCD, cache->serializer->get_block_size().value());
 #endif
-
-    // Initialize the transaction id...
-    buf_data_t *ser_data = (buf_data_t*)data;
-    ser_data--;
-    ser_data->transaction_id = NULL_SER_TRANSACTION_ID;
     
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.

@@ -508,10 +508,7 @@ bool writeback_t::concurrent_flush_t::do_write(const bool write_issued) {
         rassert(serializer_inner_bufs.size() == serializer_writes.size());
         for (size_t i = 0; i < serializer_inner_bufs.size(); ++i) {
             if (serializer_writes[i].buf_specified && serializer_writes[i].buf) {
-                buf_data_t *ser_data = (buf_data_t*)serializer_writes[i].buf;
-                ser_data--;
-
-                serializer_inner_bufs[i]->transaction_id = ser_data->transaction_id;
+                serializer_inner_bufs[i]->transaction_id = parent->cache->serializer->get_current_transaction_id(serializer_writes[i].block_id, serializer_writes[i].buf);
             }
         }
 
