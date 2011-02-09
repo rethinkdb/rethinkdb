@@ -293,7 +293,7 @@ void data_block_manager_t::run_gc() {
                 gc_state.set_step(gc_write);
 
                 /* schedule the write */
-                bool done = serializer->do_write(writes.data(), writes.size(), &gc_state.gc_write_callback, false);
+                bool done = serializer->do_write(writes.data(), writes.size(), &gc_state.gc_write_callback);
                 if (!done) break;
             }
                 

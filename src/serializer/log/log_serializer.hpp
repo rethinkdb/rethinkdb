@@ -95,7 +95,7 @@ public:
     void free(void*);
 
     bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
-    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, bool assign_transaction_id = true);
+    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
     block_size_t get_block_size();
     ser_block_id_t max_block_id();
     bool block_in_use(ser_block_id_t id);

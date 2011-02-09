@@ -50,25 +50,26 @@ public:
         repli_timestamp recency;
         const void *buf;
         serializer_t::write_block_callback_t *callback;
+        bool assign_transaction_id;
 
         static write_t make_touch(block_id_t block_id_, repli_timestamp recency_, serializer_t::write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, false, NULL, callback_);
+            return write_t(block_id_, true, recency_, false, NULL, callback_, false);
         }
 
         static write_t make(block_id_t block_id_, repli_timestamp recency_, const void *buf_, serializer_t::write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, true, buf_, callback_);
+            return write_t(block_id_, true, recency_, true, buf_, callback_, true);
         }
 
     private:
         static write_t make_internal(block_id_t block_id_, const void *buf_, serializer_t::write_block_callback_t *callback_) {
-            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, callback_);
+            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, callback_, false);
         }
 
         write_t(block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
-                bool buf_specified_, const void *buf_, serializer_t::write_block_callback_t *callback_)
-            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_) { }
+                bool buf_specified_, const void *buf_, serializer_t::write_block_callback_t *callback_, bool assign_transaction_id)
+            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
     };
-    bool do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback, bool assign_transaction_id = true);
+    bool do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback);
     block_size_t get_block_size();
 
     // Returns the first never-used block id.  Every block with id

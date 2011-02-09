@@ -216,7 +216,7 @@ public:
        }
     };
 
-    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, bool assign_transaction_id = true) {
+    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
         for (int i = 0; i < num_writes; i++) {
 
             if (!writes[i].buf_specified) continue;
@@ -250,7 +250,7 @@ public:
 
         writer_t *writer = new writer_t(this, ++last_write_started);
         writer->callback = NULL;
-        if (inner_serializer.do_write(writes, num_writes, writer, assign_transaction_id)) {
+        if (inner_serializer.do_write(writes, num_writes, writer)) {
             writer->on_serializer_write_txn();
             return true;
         } else {

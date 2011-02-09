@@ -41,13 +41,13 @@ bool translator_serializer_t::do_read(block_id_t block_id, void *buf, serializer
 }
 
 
-bool translator_serializer_t::do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback, bool assign_transaction_id) {
+bool translator_serializer_t::do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback) {
     std::vector<serializer_t::write_t> writes2;
     for (int i = 0; i < num_writes; i++) {
         writes2.push_back(serializer_t::write_t(xlate(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
-                                                writes[i].buf_specified, writes[i].buf, writes[i].callback));
+                                                writes[i].buf_specified, writes[i].buf, writes[i].callback, writes[i].assign_transaction_id));
     }
-    return inner->do_write(writes2.data(), num_writes, callback, assign_transaction_id);
+    return inner->do_write(writes2.data(), num_writes, callback);
 }
 
 

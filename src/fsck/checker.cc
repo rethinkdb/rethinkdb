@@ -226,6 +226,8 @@ public:
             return false;
         }
 
+        // TODO! Replay patches
+
         // (This line, which modifies the file_knowledge object, is
         // the main reason we have this btree_block abstraction.)
         {
@@ -969,6 +971,8 @@ void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_
         }
         root_block_id = buf->root_block;
     }
+
+    // TODO! Load diff log
 
     if (root_block_id != NULL_BLOCK_ID) {
         check_subtree(cx, root_block_id, NULL, NULL, &errs->tree_errs);
