@@ -155,7 +155,7 @@ public:
         return sarc(key, data, flags, exptime, castime, add_policy_no, replace_policy_yes, NO_CAS_SUPPLIED);
     }
     set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
-        return sarc(key, data, flags, exptime, castime, add_policy_no, replace_policy_yes, unique);
+        return sarc(key, data, flags, exptime, castime, add_policy_no, replace_policy_if_cas_matches, unique);
     }
 
     /* To increment or decrement a value, use incr() or decr(). They're pretty straight-forward. */
