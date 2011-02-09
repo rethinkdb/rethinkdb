@@ -26,36 +26,31 @@ store_t::set_result_t btree_slice_dispatching_to_masterstore_t::sarc(store_key_t
     if (masterstore_) {
         buffer_borrowing_data_provider_t borrower(masterstore_->home_thread, data);
         spawn_on_home(masterstore_, boost::bind(&masterstore_t::sarc, _1, key, borrower.side_provider(), flags, exptime, castime, add_policy, replace_policy, old_cas));
-        return slice_->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
+        return slice_->sarc(key, &borrower, flags, exptime, castime, add_policy, replace_policy, old_cas);
     } else {
         return slice_->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
     }
 }
 
-store_t::incr_decr_result_t btree_slice_dispatching_to_masterstore_t::incr(store_key_t *key, unsigned long long amount, castime_t maybe_castime) {
+store_t::incr_decr_result_t btree_slice_dispatching_to_masterstore_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t maybe_castime) {
     on_thread_t th(slice_->home_thread);
     castime_t castime = generate_if_necessary(maybe_castime);
-    if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::incr, _1, key, amount, castime));
-    return slice_->incr(key, amount, castime);
+    if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::incr_decr, _1, kind, key, amount, castime));
+    return slice_->incr_decr(kind, key, amount, castime);
 }
-store_t::incr_decr_result_t btree_slice_dispatching_to_masterstore_t::decr(store_key_t *key, unsigned long long amount, castime_t maybe_castime) {
+
+store_t::append_prepend_result_t btree_slice_dispatching_to_masterstore_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t maybe_castime) {
     on_thread_t th(slice_->home_thread);
     castime_t castime = generate_if_necessary(maybe_castime);
-    if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::decr, _1, key, amount, castime));
-    return slice_->decr(key, amount, castime);
+    if (masterstore_) {
+        buffer_borrowing_data_provider_t borrower(masterstore_->home_thread, data);
+        spawn_on_home(masterstore_, boost::bind(&masterstore_t::append_prepend, _1, kind, key, borrower.side_provider(), castime));
+        return slice_->append_prepend(kind, key, &borrower, castime);
+    } else {
+        return slice_->append_prepend(kind, key, data, castime);
+    }
 }
-store_t::append_prepend_result_t btree_slice_dispatching_to_masterstore_t::append(store_key_t *key, data_provider_t *data, castime_t maybe_castime) {
-    on_thread_t th(slice_->home_thread);
-    castime_t castime = generate_if_necessary(maybe_castime);
-    if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::append, _1, key, data, castime));
-    return slice_->append(key, data, castime);
-}
-store_t::append_prepend_result_t btree_slice_dispatching_to_masterstore_t::prepend(store_key_t *key, data_provider_t *data, castime_t maybe_castime) {
-    on_thread_t th(slice_->home_thread);
-    castime_t castime = generate_if_necessary(maybe_castime);
-    if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::prepend, _1, key, data, castime));
-    return slice_->prepend(key, data, castime);
-}
+
 store_t::delete_result_t btree_slice_dispatching_to_masterstore_t::delete_key(store_key_t *key, repli_timestamp maybe_timestamp) {
     on_thread_t th(slice_->home_thread);
     repli_timestamp timestamp = generate_if_necessary(maybe_timestamp);

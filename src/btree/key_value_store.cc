@@ -376,20 +376,12 @@ store_t::set_result_t btree_key_value_store_t::sarc(store_key_t *key, data_provi
 }
 
 
-store_t::incr_decr_result_t btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount, castime_t castime) {
-    return slice_for_key(key)->incr(key, amount, castime);
+store_t::incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
+    return slice_for_key(key)->incr_decr(kind, key, amount, castime);
 }
 
-store_t::incr_decr_result_t btree_key_value_store_t::decr(store_key_t *key, unsigned long long amount, castime_t castime) {
-    return slice_for_key(key)->decr(key, amount, castime);
-}
-
-store_t::append_prepend_result_t btree_key_value_store_t::append(store_key_t *key, data_provider_t *data, castime_t castime) {
-    return slice_for_key(key)->append(key, data, castime);
-}
-
-store_t::append_prepend_result_t btree_key_value_store_t::prepend(store_key_t *key, data_provider_t *data, castime_t castime) {
-    return slice_for_key(key)->prepend(key, data, castime);
+store_t::append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
+    return slice_for_key(key)->append_prepend(kind, key, data, castime);
 }
 
 store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key, repli_timestamp timestamp) {

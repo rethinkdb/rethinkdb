@@ -100,10 +100,20 @@ void masterstore_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags
     stereotypical(CAS, key, data, casstruct);
 }
 
-void masterstore_t::incr(store_key_t *key, uint64_t amount, castime_t castime) {
-    headed<net_incr_t> msg;
+void masterstore_t::incr_decr(store_t::incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
+    if (kind == store_t::incr_decr_INCR) {
+        incr_decr_like<net_incr_t>(INCR, key, amount, castime);
+    } else {
+        rassert(kind == store_t::incr_decr_DECR);
+        incr_decr_like<net_decr_t>(DECR, key, amount, castime);
+    }
+}
+
+template <class net_struct_type>
+void masterstore_t::incr_decr_like(uint8_t msgcode, store_key_t *key, uint64_t amount, castime_t castime) {
+    headed<net_struct_type> msg;
     msg.hdr.message_multipart_aspect = SMALL;
-    msg.hdr.msgcode = INCR;
+    msg.hdr.msgcode = msgcode;
     msg.hdr.msgsize = sizeof(msg);
     msg.data.timestamp = castime.timestamp;
     msg.data.proposed_cas = castime.proposed_cas;
@@ -115,39 +125,26 @@ void masterstore_t::incr(store_key_t *key, uint64_t amount, castime_t castime) {
     }
 }
 
-void masterstore_t::decr(store_key_t *key, uint64_t amount, castime_t castime) {
-    headed<net_decr_t> msg;
-    msg.hdr.message_multipart_aspect = SMALL;
-    msg.hdr.msgcode = DECR;
-    msg.hdr.msgsize = sizeof(msg);
-    msg.data.timestamp = castime.timestamp;
-    msg.data.proposed_cas = castime.proposed_cas;
-    msg.data.amount = amount;
+void masterstore_t::append_prepend(store_t::append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
+    if (kind == store_t::append_prepend_APPEND) {
+        net_append_t appendstruct;
+        appendstruct.timestamp = castime.timestamp;
+        appendstruct.proposed_cas = castime.proposed_cas;
+        appendstruct.key_size = key->size;
+        appendstruct.value_size = data->get_size();
 
-    {
-        mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write(&msg, sizeof(msg));
+        stereotypical(APPEND, key, data, appendstruct);
+    } else {
+        rassert(kind == store_t::append_prepend_PREPEND);
+
+        net_prepend_t prependstruct;
+        prependstruct.timestamp = castime.timestamp;
+        prependstruct.proposed_cas = castime.proposed_cas;
+        prependstruct.key_size = key->size;
+        prependstruct.value_size = data->get_size();
+
+        stereotypical(PREPEND, key, data, prependstruct);
     }
-}
-
-void masterstore_t::append(store_key_t *key, data_provider_t *data, castime_t castime) {
-    net_append_t appendstruct;
-    appendstruct.timestamp = castime.timestamp;
-    appendstruct.proposed_cas = castime.proposed_cas;
-    appendstruct.key_size = key->size;
-    appendstruct.value_size = data->get_size();
-
-    stereotypical(APPEND, key, data, appendstruct);
-}
-
-void masterstore_t::prepend(store_key_t *key, data_provider_t *data, castime_t castime) {
-    net_prepend_t prependstruct;
-    prependstruct.timestamp = castime.timestamp;
-    prependstruct.proposed_cas = castime.proposed_cas;
-    prependstruct.key_size = key->size;
-    prependstruct.value_size = data->get_size();
-
-    stereotypical(PREPEND, key, data, prependstruct);
 }
 
 void masterstore_t::delete_key(store_key_t *key, repli_timestamp timestamp) {

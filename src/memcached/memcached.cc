@@ -528,7 +528,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 }
 
 /* "incr" and "decr" commands */
-void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsigned long long amount, bool incr, bool noreply) {
+void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, uint64_t amount, bool incr, bool noreply) {
     repli_timestamp timestamp = current_time();
 
     store_t::incr_decr_result_t res = incr ?
@@ -538,7 +538,7 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsi
     if (!noreply) {
         switch (res.res) {
             case store_t::incr_decr_result_t::idr_success:
-                rh->writef("%llu\r\n", res.new_value);
+                rh->writef("%llu\r\n", (unsigned long long)res.new_value);
                 break;
             case store_t::incr_decr_result_t::idr_not_found:
                 rh->writef("NOT_FOUND\r\n");
@@ -572,7 +572,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 
     /* Parse amount to change by */
     char *invalid_char;
-    unsigned long long delta = strtoull_strict(argv[2], &invalid_char, 10);
+    uint64_t delta = strtoull_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
         rh->client_error_bad_command_line_format();
         return;

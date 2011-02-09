@@ -167,15 +167,26 @@ public:
             idr_not_numeric,
             idr_not_allowed,
         } res;
-        unsigned long long new_value;   // Valid only if idr_success
+        uint64_t new_value;   // Valid only if idr_success
         incr_decr_result_t() { }
-        incr_decr_result_t(result_t r, unsigned long long n = 0) : res(r), new_value(n) { }
+        incr_decr_result_t(result_t r, uint64_t n = 0) : res(r), new_value(n) { }
     };
-    virtual incr_decr_result_t incr(store_key_t *key, unsigned long long amount, castime_t castime) = 0;
-    virtual incr_decr_result_t decr(store_key_t *key, unsigned long long amount, castime_t castime) = 0;
-    
+
+    enum incr_decr_kind_t {
+        incr_decr_INCR,
+        incr_decr_DECR
+    };
+
+    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) = 0;
+    incr_decr_result_t incr(store_key_t *key, uint64_t amount, castime_t castime) {
+        return incr_decr(incr_decr_INCR, key, amount, castime);
+    }
+    incr_decr_result_t decr(store_key_t *key, uint64_t amount, castime_t castime) {
+        return incr_decr(incr_decr_DECR, key, amount, castime);
+    }
+
     /* To append or prepend a value, use append() or prepend(). */
-    
+
     enum append_prepend_result_t {
         apr_success,
         apr_too_large,
@@ -183,11 +194,20 @@ public:
         apr_data_provider_failed,
         apr_not_allowed,
     };
-    virtual append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime) = 0;
-    virtual append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime) = 0;
-    
+
+    enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
+
+    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) = 0;
+
+    append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime) {
+        return append_prepend(append_prepend_APPEND, key, data, castime);
+    }
+    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime) {
+        return append_prepend(append_prepend_PREPEND, key, data, castime);
+    }
+
     /* To delete a key-value pair, use delete(). */
-    
+
     enum delete_result_t {
         dr_deleted,
         dr_not_found,

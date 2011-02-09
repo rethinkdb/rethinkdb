@@ -78,34 +78,18 @@ store_t::set_result_t slave_t::sarc(store_key_t *key, data_provider_t *data, mcf
     }
 }
 
-store_t::incr_decr_result_t slave_t::incr(store_key_t *key, unsigned long long amount, castime_t castime)
+store_t::incr_decr_result_t slave_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime)
 {
     if (respond_to_queries)
-        return internal_store->incr(key, amount, castime);
+        return internal_store->incr_decr(kind, key, amount, castime);
     else
         return store_t::incr_decr_result_t::idr_not_allowed;
 }
 
-store_t::incr_decr_result_t slave_t::decr(store_key_t *key, unsigned long long amount, castime_t castime)
+store_t::append_prepend_result_t slave_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime)
 {
     if (respond_to_queries)
-        return internal_store->decr(key, amount, castime);
-    else
-        return store_t::incr_decr_result_t::idr_not_allowed;
-}
-
-store_t::append_prepend_result_t slave_t::append(store_key_t *key, data_provider_t *data, castime_t castime)
-{
-    if (respond_to_queries)
-        return internal_store->append(key, data, castime);
-    else
-        return store_t::apr_not_allowed;
-}
-
-store_t::append_prepend_result_t slave_t::prepend(store_key_t *key, data_provider_t *data, castime_t castime)
-{
-    if (respond_to_queries)
-        return internal_store->prepend(key, data, castime);
+        return internal_store->append_prepend(kind, key, data, castime);
     else
         return store_t::apr_not_allowed;
 }

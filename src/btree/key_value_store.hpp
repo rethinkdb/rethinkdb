@@ -51,14 +51,9 @@ public:
     rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open);
     set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
 
-    /*    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime); */
-    incr_decr_result_t incr(store_key_t *key, unsigned long long amount, castime_t castime);
-    incr_decr_result_t decr(store_key_t *key, unsigned long long amount, castime_t castime);
-    append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime);
-    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime);
+    incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime);
+
     delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
 public:
