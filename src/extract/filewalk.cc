@@ -75,6 +75,13 @@ private:
 
 // TODO: Make this a local...
 static std::map<block_id_t, std::list<buf_patch_t*> > buf_patches;
+void clear_buf_patches() {
+    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = buf_patches.begin(); patches != buf_patches.end(); ++patches)
+        for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch)
+            delete *patch;
+
+    buf_patches.clear();
+}
 
 void walk_extents(dumper_t &dumper, nondirect_file_t &file, const cfg_t static_config);
 void observe_blocks(block_registry &registry, nondirect_file_t &file, const cfg_t cfg, uint64_t filesize);
@@ -154,7 +161,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
         }
     }
 
-    buf_patches.clear();
+    clear_buf_patches();
     if (!cfg.ignore_diff_log) {
         logINF("Loading diff log.\n", n);
         load_diff_log(offsets, file, cfg, filesize);
@@ -440,6 +447,8 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
     }
 
     walk_extents(dumper, file, overrides);
+
+    clear_buf_patches();
 }
 
 

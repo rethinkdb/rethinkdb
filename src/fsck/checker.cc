@@ -166,6 +166,14 @@ struct slicecx {
     int local_slice_id;
     int mod_count;
     std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
+    void clear_buf_patches() {
+        for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches)
+            for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch)
+                delete *patch;
+
+        patch_map.clear();
+    }
+
     slicecx(nondirect_file_t *file, file_knowledge *knog, int global_slice_id)
         : file(file), knog(knog), global_slice_id(global_slice_id), local_slice_id(global_slice_id / knog->config_block->n_files),
           mod_count(btree_key_value_store_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->btree_config.n_slices)) { }
@@ -594,7 +602,7 @@ struct diff_log_errors {
 
 static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'};
 void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
-    cx.patch_map.clear();
+    cx.clear_buf_patches();
 
     const unsigned int log_size = cx.knog->config_block->cache_config.n_diff_log_blocks;
 
@@ -1079,6 +1087,8 @@ void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_
     }
 
     check_slice_other_blocks(cx, &errs->other_block_errs);
+
+    cx.clear_buf_patches();
 }
 
 struct check_to_config_block_errors {
