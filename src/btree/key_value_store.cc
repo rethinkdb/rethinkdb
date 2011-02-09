@@ -104,7 +104,7 @@ void create_existing_btree(
         translator_serializer_t **pseudoserializers,
         slice_store_t **slices,
         mirrored_cache_config_t *config,
-        replication::master_t *masterstore,
+        replication::master_t *master,
         int i) {
 
     // TODO try to align slices with serializers so that when possible, a slice is on the
@@ -112,15 +112,15 @@ void create_existing_btree(
     on_thread_t thread_switcher(i % get_num_db_threads());
 
     btree_slice_t *sl = new btree_slice_t(pseudoserializers[i], config);
-    //    if (masterstore) {  /* commented out to avoid temporarily breaking master.  btree_slice_dispatching_to_master_t handles NULL masterstore gracefully, for now */
-        slices[i] = new btree_slice_dispatching_to_master_t(sl, masterstore);
+    //    if (master) {  /* commented out to avoid temporarily breaking master.  btree_slice_dispatching_to_master_t handles NULL master gracefully, for now */
+        slices[i] = new btree_slice_dispatching_to_master_t(sl, master);
         //    } else {
         //        slices[i] = sl;
         //    }
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                                                 replication::master_t *masterstore)
+                                                 replication::master_t *master)
     : hash_control(this) {
 
     /* Start serializers */
@@ -146,7 +146,7 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     per_slice_config.max_dirty_size /= btree_static_config.n_slices;
     per_slice_config.flush_dirty_size /= btree_static_config.n_slices;
     pmap(btree_static_config.n_slices, boost::bind(&create_existing_btree,
-         multiplexer->proxies.data(), slices, &per_slice_config, masterstore, _1));
+         multiplexer->proxies.data(), slices, &per_slice_config, master, _1));
 }
 
 void destroy_btree(

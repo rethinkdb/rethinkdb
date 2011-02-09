@@ -12,9 +12,9 @@ namespace replication {
 // TODO: Consider a good value for this port.
 const int REPLICATION_PORT = 11212;
 
-class masterstore_exc_t : public std::runtime_error {
+class master_exc_t : public std::runtime_error {
 public:
-    masterstore_exc_t(const char *what_arg) : std::runtime_error(what_arg) { }
+    master_exc_t(const char *what_arg) : std::runtime_error(what_arg) { }
 };
 
 

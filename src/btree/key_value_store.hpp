@@ -32,7 +32,7 @@ public:
 
     // Blocks
     btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                            replication::master_t *masterstore);
+                            replication::master_t *master);
 
     // Blocks
     ~btree_key_value_store_t();

@@ -7,8 +7,8 @@
 
 class btree_slice_dispatching_to_master_t : public slice_store_t {
 public:
-    btree_slice_dispatching_to_master_t(btree_slice_t *slice, replication::master_t *masterstore)
-        : slice_(slice), masterstore_(masterstore), cas_counter_(0) { }
+    btree_slice_dispatching_to_master_t(btree_slice_t *slice, replication::master_t *master)
+        : slice_(slice), master_(master), cas_counter_(0) { }
 
     ~btree_slice_dispatching_to_master_t() {
         delete slice_;
@@ -29,7 +29,7 @@ public:
 
 private:
     btree_slice_t *slice_;
-    replication::master_t *masterstore_;
+    replication::master_t *master_;
 
     uint32_t cas_counter_;
     castime_t gen_castime();

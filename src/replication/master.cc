@@ -52,7 +52,7 @@ void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, ex
             setlike<net_add_t>(ADD, key, data, flags, exptime, castime);
         } else {
             rassert(false, "invalid sarc operation");
-            logWRN("invalid sarc operation in masterstore.\n");
+            logWRN("invalid sarc operation in master.\n");
         }
     } else {
         if (replace_policy == store_t::replace_policy_yes) {
@@ -61,7 +61,7 @@ void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, ex
             cas(key, data, flags, exptime, old_cas, castime);
         } else {
             rassert(false, "invalid sarc operation");
-            logWRN("invalid sarc operation in masterstore\n");
+            logWRN("invalid sarc operation in master\n");
         }
     }
 }
