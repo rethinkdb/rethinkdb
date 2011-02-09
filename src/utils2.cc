@@ -107,14 +107,22 @@ bool strtobool_strict(const char *string, char **end) {
     return res == 1;
 }
 
+long strtol_strict(const char *string, char **end, int base) {
+    long result = strtol(string, end, base);
+    if ((result == LONG_MAX || result == LONG_MIN) && errno == ERANGE) {
+        *end = const_cast<char *>(string);
+        return 0;
+    }
+    return result;
+}
+
 unsigned long strtoul_strict(const char *string, char **end, int base) {
     if (begins_with_minus(string)) {
         *end = const_cast<char *>(string);
         return 0;
     }
     unsigned long result = strtoul(string, end, base);
-    if (result == ULONG_MAX && errno == ERANGE)
-    {
+    if (result == ULONG_MAX && errno == ERANGE) {
         *end = const_cast<char *>(string);
         return 0;
     }
@@ -127,8 +135,7 @@ unsigned long long strtoull_strict(const char *string, char **end, int base) {
         return 0;
     }
     unsigned long long result = strtoull(string, end, base);
-    if (result == ULLONG_MAX && errno == ERANGE)
-    {
+    if (result == ULLONG_MAX && errno == ERANGE) {
         *end = const_cast<char *>(string);
         return 0;
     }

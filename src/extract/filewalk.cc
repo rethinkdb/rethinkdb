@@ -4,7 +4,6 @@
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/key_value_store.hpp"
-#include "btree/serializer_config_block.hpp"
 #include "buffer_cache/large_buf.hpp"
 #include "serializer/log/static_header.hpp"
 #include "serializer/log/lba/disk_format.hpp"
@@ -136,17 +135,17 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
 
         block serblock;
         serblock.init(cfg.block_size(), &file, off, CONFIG_BLOCK_ID.ser_id);
-        serializer_config_block_t *serbuf = (serializer_config_block_t *)serblock.buf;
+        multiplexer_config_block_t *serbuf = (multiplexer_config_block_t *)serblock.buf;
 
 
-        if (!check_magic<serializer_config_block_t>(serbuf->magic)) {
+        if (!check_magic<multiplexer_config_block_t>(serbuf->magic)) {
             logERR("Config block has invalid magic (offset = %lu, magic = %.*s)\n",
                    off, int(sizeof(serbuf->magic)), serbuf->magic.bytes);
             return;
         }
 
         if (cfg.mod_count == config_t::NO_FORCED_MOD_COUNT) {
-            cfg.mod_count = btree_key_value_store_t::compute_mod_count(serbuf->this_serializer, serbuf->n_files, serbuf->btree_config.n_slices);
+            cfg.mod_count = serializer_multiplexer_t::compute_mod_count(serbuf->this_serializer, serbuf->n_files, serbuf->n_proxies);
         }
     }
 
@@ -162,7 +161,7 @@ bool check_all_known_magic(block_magic_t magic) {
         || check_magic<btree_superblock_t>(magic)
         || check_magic<large_buf_internal>(magic)
         || check_magic<large_buf_leaf>(magic)
-        || check_magic<serializer_config_block_t>(magic)
+        || check_magic<multiplexer_config_block_t>(magic)
         || magic == log_serializer_t::zerobuf_magic;
 }
 

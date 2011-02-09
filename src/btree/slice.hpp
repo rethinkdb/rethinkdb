@@ -11,7 +11,6 @@ struct btree_replicant_t;
 class slice_store_t : public store_t {
 public:
     virtual int slice_home_thread() = 0;
-    virtual cache_t& cache() = 0;
 };
 
 

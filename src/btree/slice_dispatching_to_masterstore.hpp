@@ -25,7 +25,6 @@ public:
 
     delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
-    cache_t& cache() { return slice_->cache(); }
     int slice_home_thread() { return slice_->slice_home_thread(); }
 
 private:
