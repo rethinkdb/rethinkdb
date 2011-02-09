@@ -70,32 +70,12 @@ store_t::rget_result_t slave_t::rget(store_key_t *start, store_key_t *end, bool 
     return internal_store->rget(start, end, left_open, right_open);
 }
 
-store_t::set_result_t slave_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    if (respond_to_queries)
-        return internal_store->set(key, data, flags, exptime, castime);
-    else
+store_t::set_result_t slave_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+    if (respond_to_queries) {
+        return internal_store->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
+    } else {
         return store_t::sr_not_allowed;
-}
-
-store_t::set_result_t slave_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime)
-{
-    return internal_store->add(key, data,  flags,  exptime, castime);
-}
-
-store_t::set_result_t slave_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime)
-{
-    if (respond_to_queries)
-        return internal_store->replace(key, data, flags, exptime, castime);
-    else
-        return store_t::sr_not_allowed;
-}
-
-store_t::set_result_t slave_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime)
-{
-    if (respond_to_queries)
-        return internal_store->cas(key, data, flags, exptime, unique, castime);
-    else
-        return store_t::sr_not_allowed;
+    }
 }
 
 store_t::incr_decr_result_t slave_t::incr(store_key_t *key, unsigned long long amount, castime_t castime)

@@ -26,10 +26,8 @@ public:
 
     void get_cas(store_key_t *key, castime_t castime);
 
-    void set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    void add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    void replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    void cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
+    void sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, store_t::add_policy_t add_policy, store_t::replace_policy_t replace_policy, cas_t old_cas);
+
     void incr(store_key_t *key, uint64_t amount, castime_t castime);
     void decr(store_key_t *key, uint64_t amount, castime_t castime);
     void append(store_key_t *key, data_provider_t *data, castime_t castime);
@@ -39,6 +37,10 @@ public:
 
 
 private:
+    // TODO get rid of this.. someday.
+    void cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
+
+
     // Spawns a coroutine.
     void send_data_with_ident(data_provider_t *data, uint32_t ident);
 

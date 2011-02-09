@@ -52,16 +52,26 @@ void masterstore_t::get_cas(store_key_t *key, castime_t castime) {
     }
 }
 
-void masterstore_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    setlike<net_set_t>(SET, key, data, flags, exptime, castime);
-}
-
-void masterstore_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    setlike<net_add_t>(ADD, key, data, flags, exptime, castime);
-}
-
-void masterstore_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    setlike<net_replace_t>(REPLACE, key, data, flags, exptime, castime);
+void masterstore_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, store_t::add_policy_t add_policy, store_t::replace_policy_t replace_policy, cas_t old_cas) {
+    if (add_policy == store_t::add_policy_yes) {
+        if (replace_policy == store_t::replace_policy_yes) {
+            setlike<net_set_t>(SET, key, data, flags, exptime, castime);
+        } else if (replace_policy == store_t::replace_policy_no) {
+            setlike<net_add_t>(ADD, key, data, flags, exptime, castime);
+        } else {
+            rassert(false, "invalid sarc operation");
+            logWRN("invalid sarc operation in masterstore.\n");
+        }
+    } else {
+        if (replace_policy == store_t::replace_policy_yes) {
+            setlike<net_replace_t>(REPLACE, key, data, flags, exptime, castime);
+        } else if (replace_policy == store_t::replace_policy_if_cas_matches) {
+            cas(key, data, flags, exptime, old_cas, castime);
+        } else {
+            rassert(false, "invalid sarc operation");
+            logWRN("invalid sarc operation in masterstore\n");
+        }
+    }
 }
 
 template <class net_struct_type>

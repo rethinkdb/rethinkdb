@@ -371,22 +371,10 @@ store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime
 store_t::rget_result_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
     return btree_rget(this, start, end, left_open, right_open);
 }
-
-store_t::set_result_t btree_key_value_store_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    return slice_for_key(key)->set(key, data, flags, exptime, castime);
+store_t::set_result_t btree_key_value_store_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+    return slice_for_key(key)->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
 }
 
-store_t::set_result_t btree_key_value_store_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    return slice_for_key(key)->add(key, data, flags, exptime, castime);
-}
-
-store_t::set_result_t btree_key_value_store_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    return slice_for_key(key)->replace(key, data, flags, exptime, castime);
-}
-
-store_t::set_result_t btree_key_value_store_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
-    return slice_for_key(key)->cas(key, data, flags, exptime, unique, castime);
-}
 
 store_t::incr_decr_result_t btree_key_value_store_t::incr(store_key_t *key, unsigned long long amount, castime_t castime) {
     return slice_for_key(key)->incr(key, amount, castime);

@@ -58,20 +58,21 @@ store_t::rget_result_t btree_slice_t::rget(store_key_t *start, store_key_t *end,
     return btree_rget_slice(this, start, end, left_open, right_open);
 }
 
-store_t::set_result_t btree_slice_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    return btree_set(key, this, data, set_type_set, flags, exptime, 0, castime);
-}
+store_t::set_result_t btree_slice_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime,
+                                          add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+    set_type_t type;
+    if (add_policy == store_t::add_policy_yes) {
+        if (replace_policy == replace_policy_yes) type = set_type_set;
+        else if (replace_policy == replace_policy_no) type = set_type_add;
+        else crash("no possible set_type_t value");
+    } else {
+        if (replace_policy == replace_policy_yes) type = set_type_replace;
+        else if (replace_policy == replace_policy_if_cas_matches) type = set_type_cas;
+        else crash("no possible set_type_t value");
+    }
 
-store_t::set_result_t btree_slice_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    return btree_set(key, this, data, set_type_add, flags, exptime, 0, castime);
-}
+    return btree_set(key, this, data, type, flags, exptime, old_cas, castime);
 
-store_t::set_result_t btree_slice_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    return btree_set(key, this, data, set_type_replace, flags, exptime, 0, castime);
-}
-
-store_t::set_result_t btree_slice_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
-    return btree_set(key, this, data, set_type_cas, flags, exptime, unique, castime);
 }
 
 store_t::incr_decr_result_t btree_slice_t::incr(store_key_t *key, unsigned long long amount, castime_t castime) {

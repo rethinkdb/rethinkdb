@@ -19,36 +19,19 @@ store_t::rget_result_t btree_slice_dispatching_to_masterstore_t::rget(store_key_
     on_thread_t th(slice_->home_thread);
     return slice_->rget(start, end, left_open, right_open);
 }
-store_t::set_result_t btree_slice_dispatching_to_masterstore_t::set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t maybe_castime) {
+store_t::set_result_t btree_slice_dispatching_to_masterstore_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t maybe_castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     on_thread_t th(slice_->home_thread);
     castime_t castime = generate_if_necessary(maybe_castime);
 
     if (masterstore_) {
         buffer_borrowing_data_provider_t borrower(masterstore_->home_thread, data);
-        spawn_on_home(masterstore_, boost::bind(&masterstore_t::set, _1, key, borrower.side_provider(), flags, exptime, castime));
-        return slice_->set(key, &borrower, flags, exptime, castime);
+        spawn_on_home(masterstore_, boost::bind(&masterstore_t::sarc, _1, key, borrower.side_provider(), flags, exptime, castime, add_policy, replace_policy, old_cas));
+        return slice_->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
     } else {
-        return slice_->set(key, data, flags, exptime, castime);
+        return slice_->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
     }
 }
-store_t::set_result_t btree_slice_dispatching_to_masterstore_t::add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t maybe_castime) {
-    on_thread_t th(slice_->home_thread);
-    castime_t castime = generate_if_necessary(maybe_castime);
-    if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::add, _1, key, data, flags, exptime, castime));
-    return slice_->add(key, data, flags, exptime, castime);
-}
-store_t::set_result_t btree_slice_dispatching_to_masterstore_t::replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t maybe_castime) {
-    on_thread_t th(slice_->home_thread);
-    castime_t castime = generate_if_necessary(maybe_castime);
-    if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::replace, _1, key, data, flags, exptime, castime));
-    return slice_->replace(key, data, flags, exptime, castime);
-}
-store_t::set_result_t btree_slice_dispatching_to_masterstore_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t maybe_castime) {
-    on_thread_t th(slice_->home_thread);
-    castime_t castime = generate_if_necessary(maybe_castime);
-    if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::cas, _1, key, data, flags, exptime, unique, castime));
-    return slice_->cas(key, data, flags, exptime, unique, castime);
-}
+
 store_t::incr_decr_result_t btree_slice_dispatching_to_masterstore_t::incr(store_key_t *key, unsigned long long amount, castime_t maybe_castime) {
     on_thread_t th(slice_->home_thread);
     castime_t castime = generate_if_necessary(maybe_castime);

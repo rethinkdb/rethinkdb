@@ -39,10 +39,10 @@ public:
     get_result_t get(store_key_t *key);
     get_result_t get_cas(store_key_t *key, castime_t castime);
     rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open);
-    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
+    set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime,
+                      add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+
+
     incr_decr_result_t incr(store_key_t *key, unsigned long long amount, castime_t castime);
     incr_decr_result_t decr(store_key_t *key, unsigned long long amount, castime_t castime);
     append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime);

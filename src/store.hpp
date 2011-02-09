@@ -129,10 +129,34 @@ public:
         sr_not_allowed,
     };
 
-    virtual set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) = 0;
-    virtual set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) = 0;
-    virtual set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) = 0;
-    virtual set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) = 0;
+    enum add_policy_t {
+        add_policy_yes,
+        add_policy_no
+    };
+
+    enum replace_policy_t {
+        replace_policy_yes,
+        replace_policy_if_cas_matches,
+        replace_policy_no
+    };
+
+    static const cas_t NO_CAS_SUPPLIED = 0;
+
+    virtual set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
+
+
+    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+        return sarc(key, data, flags, exptime, castime, add_policy_yes, replace_policy_yes, NO_CAS_SUPPLIED);
+    }
+    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+        return sarc(key, data, flags, exptime, castime, add_policy_yes, replace_policy_no, NO_CAS_SUPPLIED);
+    }
+    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
+        return sarc(key, data, flags, exptime, castime, add_policy_no, replace_policy_yes, NO_CAS_SUPPLIED);
+    }
+    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
+        return sarc(key, data, flags, exptime, castime, add_policy_no, replace_policy_yes, unique);
+    }
 
     /* To increment or decrement a value, use incr() or decr(). They're pretty straight-forward. */
 
