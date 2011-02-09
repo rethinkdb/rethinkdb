@@ -180,10 +180,10 @@ private:
 // error-checking dirty work.
 class btree_block : public raw_block {
 public:
-    enum { no_block = raw_block_err_count, already_accessed, transaction_id_invalid, transaction_id_too_large };
+    enum { no_block = raw_block_err_count, already_accessed, transaction_id_invalid, transaction_id_too_large, patch_transaction_id_mismatch };
 
     static const char *error_name(error code) {
-        static const char *codes[] = {"already accessed", "bad transaction id", "transaction id too large"};
+        static const char *codes[] = {"already accessed", "bad transaction id", "transaction id too large", "patch applies to future revision of the block"};
         return code >= raw_block_err_count ? codes[code - raw_block_err_count] : raw_block::error_name(code);
     }
 
@@ -239,8 +239,8 @@ public:
                         first_matching_id = (*patch)->get_transaction_id();
                     }
                     else if (first_matching_id != (*patch)->get_transaction_id()) {
-                        // TODO! (file an error: patch applies to future revision of the block)
-                        continue;
+                        err = patch_transaction_id_mismatch;
+                        return false;
                     }
                     (*patch)->apply_to_buf((char*)buf);
                 }
@@ -585,10 +585,11 @@ bool check_config_block(nondirect_file_t *file, file_knowledge *knog, config_blo
 }
 
 struct diff_log_errors {
-    // TODO!
-    diff_log_errors() { }
-private:
-    DISABLE_COPYING(diff_log_errors);
+    int missing_log_block_count; // must be 0
+    int deleted_log_block_count; // must be 0
+    int non_sequential_logs; // must be 0
+
+    diff_log_errors() : missing_log_block_count(0), deleted_log_block_count(0), non_sequential_logs(0) { }
 };
 
 static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'};
@@ -604,7 +605,7 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
         {
             read_locker locker(cx.knog);
             if (ser_block_id.value >= locker.block_info().get_size()) {
-                // TODO! (file error: Log block missing)
+                ++errs->missing_log_block_count;
                 continue;
             }
             info = locker.block_info()[ser_block_id.value];
@@ -623,6 +624,7 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
             if (strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
                 uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cx.knog->static_config->block_size().value()) {
+                    // TODO: Catch guarantees in load_patch instead of failing instantly
                     buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
                     if (!patch) {
                         break;
@@ -633,11 +635,11 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
                     }
                 }
             } else {
-                // TODO! (file error: wrong log block magic (incorrect log size?) )
+                ++errs->missing_log_block_count;
             }
 
         } else {
-            // TODO! (file error: deleted log block)
+            ++errs->deleted_log_block_count;
         }
     }
 
@@ -653,8 +655,8 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
             if (previous_transaction == 0 || (*p)->get_transaction_id() != previous_transaction) {
                 previous_patch_counter = 0;
             }
-            // TODO! (file error instead of terminating)
-            guarantee(previous_patch_counter == 0 || (*p)->get_patch_counter() > previous_patch_counter, "Non-sequential patch list: Patch counter %d follows %d", (*p)->get_patch_counter(), previous_patch_counter);
+            if (!(previous_patch_counter == 0 || (*p)->get_patch_counter() > previous_patch_counter))
+                ++errs->non_sequential_logs;
             previous_patch_counter = (*p)->get_patch_counter();
             previous_transaction = (*p)->get_transaction_id();
         }
@@ -1344,6 +1346,25 @@ bool report_other_block_errors(const other_block_errors *errs) {
     return ok;
 }
 
+bool report_diff_log_errors(const diff_log_errors *errs) {
+    bool ok = true;
+
+    if (errs->deleted_log_block_count > 0) {
+        printf("ERROR %s %d diff log blocks have been deleted\n", state, errs->deleted_log_block_count);
+        ok = false;
+    }
+    if (errs->missing_log_block_count > 0) {
+        printf("ERROR %s %d diff log blocks are missing (maybe n_log_blocks in the config_block is too large?)\n", state, errs->missing_log_block_count);
+        ok = false;
+    }
+    if (errs->non_sequential_logs > 0) {
+        printf("ERROR %s The diff log for %d blocks has non-sequential patch counters\n", state, errs->non_sequential_logs);
+        ok = false;
+    }
+
+    return ok;
+}
+
 bool report_slice_errors(const slice_errors *errs) {
     if (errs->superblock_code != btree_block::none) {
         printf("ERROR %s could not find btree superblock: %s\n", state, btree_block::error_name(errs->superblock_code));
@@ -1353,9 +1374,10 @@ bool report_slice_errors(const slice_errors *errs) {
         printf("ERROR %s btree superblock had bad magic\n", state);
         return false;
     }
+    bool no_diff_log_errors = report_diff_log_errors(&errs->diff_log_errs);
     bool no_subtree_errors = report_subtree_errors(&errs->tree_errs);
     bool no_other_block_errors = report_other_block_errors(&errs->other_block_errs);
-    return no_subtree_errors && no_other_block_errors;
+    return no_diff_log_errors && no_subtree_errors && no_other_block_errors;
 }
 
 bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
