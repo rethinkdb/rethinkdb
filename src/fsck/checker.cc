@@ -233,7 +233,6 @@ public:
         if (patches_list) {
             // Replay patches
             for (std::list<buf_patch_t*>::iterator patch = patches_list->begin(); patch != patches_list->end(); ++patch) {
-                printf("Replaying a patch\n"); // TODO!
                 ser_transaction_id_t first_matching_id = NULL_SER_TRANSACTION_ID;
                 if ((*patch)->get_transaction_id() >= realbuf->transaction_id) {
                     if (first_matching_id == NULL_SER_TRANSACTION_ID) {
@@ -631,7 +630,6 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
                     else {
                         current_offset += patch->get_serialized_size();
                         cx.patch_map[patch->get_block_id()].push_back(patch);
-                        printf("Loaded a patch\n"); // TODO!
                     }
                 }
             } else {
@@ -924,7 +922,6 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const 
 }
 
 void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_key *hi, subtree_errors *errs) {
-    printf("Checking subtree\n"); // TODO!
     /* Walk tree */
 
     btree_block node;
@@ -1057,6 +1054,9 @@ struct slice_errors {
 
 void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_number, slice_errors *errs) {
     slicecx cx(file, knog, global_slice_number);
+
+    check_and_load_diff_log(cx, &errs->diff_log_errs);
+
     block_id_t root_block_id;
     {
         btree_block btree_superblock;
@@ -1071,10 +1071,6 @@ void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_
         }
         root_block_id = buf->root_block;
     }
-
-    check_and_load_diff_log(cx, &errs->diff_log_errs);
-
-    printf("root_block_id is %d\n", (int)root_block_id);
 
     if (root_block_id != NULL_BLOCK_ID) {
         check_subtree(cx, root_block_id, NULL, NULL, &errs->tree_errs);
