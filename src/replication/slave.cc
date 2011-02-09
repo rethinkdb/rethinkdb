@@ -11,17 +11,17 @@ namespace replication {
 
 // TODO unit test offsets
 
-slave_t::slave_t(store_t *internal_store, replication_config_t replication_config, failover_config_t failover_config) 
-    : internal_store(internal_store), 
-      replication_config(replication_config), 
-      failover_config(failover_config),
-      conn(NULL),
-      shutting_down(false),
-      failover_script(failover_config.failover_script_path),
+slave_t::slave_t(store_t *internal_store_, replication_config_t replication_config_, failover_config_t failover_config_)
+    : failover_script(failover_config_.failover_script_path),
       timeout(INITIAL_TIMEOUT),
       timer_token(NULL),
       failover_reset_control(std::string("failover reset"), this),
-      new_master_control(std::string("new master"), this)
+      new_master_control(std::string("new master"), this),
+      internal_store(internal_store_),
+      replication_config(replication_config_),
+      failover_config(failover_config_),
+      conn(NULL),
+      shutting_down(false)
 {
     coro_t::spawn(boost::bind(&run, this));
 }
@@ -49,7 +49,7 @@ void slave_t::kill_conn() {
 
     { //on_thread_t scope
         on_thread_t thread_switch(get_num_threads() - 2);
-        if (conn) { 
+        if (conn) {
             delete conn;
             conn = NULL;
         }
