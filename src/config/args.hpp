@@ -114,7 +114,7 @@
 // MAX_PATCHES_SIZE_RATIO_MAX depending on how much the system is i/o bound
 #define MAX_PATCHES_SIZE_RATIO_MIN                100
 #define MAX_PATCHES_SIZE_RATIO_MAX                2
-#define MAX_PATCHES_SIZE_RATIO_DURABILITY         3 // TODO! was 5
+#define MAX_PATCHES_SIZE_RATIO_DURABILITY         5
 #define RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT 0.6
 
 // If more than this many bytes of dirty data accumulate in the cache, then write
@@ -233,6 +233,9 @@
 
 //max length of a path that we have to store during run time
 #define MAX_PATH_LEN                              200
+
+// Size of a cache line (used in cache_line_padded_t).
+#define CACHE_LINE_SIZE                           64
 
 #endif // __CONFIG_ARGS_H__
 

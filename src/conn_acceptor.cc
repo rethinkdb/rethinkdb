@@ -10,9 +10,9 @@ conn_acceptor_t::conn_acceptor_t(int port, handler_t *handler)
     if (listener->defunct) throw address_in_use_exc_t();
 }
 
-void conn_acceptor_t::on_tcp_listener_accept(tcp_conn_t *conn) {
+void conn_acceptor_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t>& conn) {
 
-    conn_agent_t agent(this, conn);
+    conn_agent_t agent(this, conn.get());
     agent.run();
 }
 

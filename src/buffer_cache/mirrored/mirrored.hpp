@@ -34,6 +34,16 @@ typedef array_map_t page_map_t;
 // into a coherent whole. This allows easily experimenting with
 // various components of the cache to improve performance.
 
+#define MC_CONFIGBLOCK_ID (SUPERBLOCK_ID + 1)
+
+struct mc_config_block_t {
+    block_magic_t magic;
+
+    mirrored_cache_static_config_t cache;
+
+    static const block_magic_t expected_magic;
+};
+
 class mc_inner_buf_t : public home_thread_mixin_t {
     friend class load_buf_fsm_t;
     friend class mc_cache_t;
@@ -233,6 +243,7 @@ public:
     
 private:
 
+    mirrored_cache_config_t *dynamic_config;
     mirrored_cache_static_config_t *static_config;
     
     // TODO: how do we design communication between cache policies?

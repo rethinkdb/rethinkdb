@@ -13,7 +13,7 @@
 #include "control.hpp"
 
 namespace replication {
-class masterstore_t;
+class master_t;
 }  // namespace replication
 
 
@@ -28,12 +28,11 @@ class btree_key_value_store_t :
 public:
     // Blocks
     static void create(btree_key_value_store_dynamic_config_t *dynamic_config,
-                       btree_key_value_store_static_config_t *static_config,
-                       replication::masterstore_t *masterstore);
+                       btree_key_value_store_static_config_t *static_config);
 
     // Blocks
     btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                            replication::masterstore_t *masterstore);
+                            replication::master_t *master);
 
     // Blocks
     ~btree_key_value_store_t();
@@ -49,15 +48,12 @@ public:
 
     get_result_t get(store_key_t *key);
     get_result_t get_cas(store_key_t *key, castime_t castime);
-    rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results);
-    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
-    incr_decr_result_t incr(store_key_t *key, unsigned long long amount, castime_t castime);
-    incr_decr_result_t decr(store_key_t *key, unsigned long long amount, castime_t castime);
-    append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime);
-    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime);
+    rget_result_ptr_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open);
+    set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+
+    incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime);
+
     delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
 public:
@@ -65,17 +61,13 @@ public:
     btree_config_t btree_static_config;
     mirrored_cache_static_config_t cache_static_config;
 
-    /* The key-value store typically has more slices than serializers. The slices share
-    serializers via the "pseudoserializers": translator-serializers, one per slice, that
-    multiplex requests onto the actual serializers. */
     standard_serializer_t *serializers[MAX_SERIALIZERS];
-    translator_serializer_t *pseudoserializers[MAX_SLICES];
-    btree_slice_t *slices[MAX_SLICES];
+    serializer_multiplexer_t *multiplexer;   // Helps us split the serializers among the slices
+    slice_store_t *slices[MAX_SLICES];
 
     uint32_t slice_num(const btree_key *key);
-    btree_slice_t *slice_for_key(const btree_key *key);
+    slice_store_t *slice_for_key(const btree_key *key);
 
-    static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
     static uint32_t hash(const btree_key *key);
 
 private:
@@ -112,9 +104,9 @@ private:
 
                 uint32_t hash = btkvs->hash((store_key_t*) store_key);
                 uint32_t slice = btkvs->slice_num((store_key_t *) store_key);
-                int thread = btkvs->slice_for_key((store_key_t *) store_key)->home_thread;
+                int thread = btkvs->slice_for_key((store_key_t *) store_key)->slice_home_thread();
 
-                result += strprintf("%*s: %08lx [slice: %03lu, thread: %03d]\r\n", key.length(), key.c_str(), hash, slice, thread);
+                result += strprintf("%*s: %08x [slice: %03u, thread: %03d]\r\n", int(key.length()), key.c_str(), hash, slice, thread);
             }
             return result;
         }
@@ -128,6 +120,7 @@ private:
 extern perfmon_duration_sampler_t
     pm_cmd_set,
     pm_cmd_get,
-    pm_cmd_get_without_threads;
+    pm_cmd_get_without_threads,
+    pm_cmd_rget;
 
 #endif /* __BTREE_KEY_VALUE_STORE_HPP__ */

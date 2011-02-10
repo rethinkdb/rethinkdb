@@ -523,6 +523,7 @@ mc_cache_t::mc_cache_t(
             mirrored_cache_config_t *dynamic_config,
             mirrored_cache_static_config_t *static_config) :
 
+    dynamic_config(dynamic_config),
     static_config(static_config),
     serializer(serializer),
     page_repl(
@@ -579,11 +580,18 @@ bool mc_cache_t::next_starting_up_step() {
     }
     
     if (state == state_starting_up_init_fixed_blocks) {
-        /* Create an initial superblock */
+        /* Create an initial superblock and config block */
         if (free_list.num_blocks_in_use == 0) {
             inner_buf_t *b = new mc_inner_buf_t(this);
             rassert(b->block_id == SUPERBLOCK_ID);
             bzero(b->data, get_block_size().value());
+
+            inner_buf_t *c_buf = new mc_inner_buf_t(this);
+            rassert(c_buf->block_id == MC_CONFIGBLOCK_ID);
+            bzero(c_buf->data, get_block_size().value());
+            mc_config_block_t *c = reinterpret_cast<mc_config_block_t *>(c_buf->data);
+            c->magic = c->expected_magic;
+            c->cache = *static_config;
         }
 
         /* Initialize the diff storage (needs coro context) */
@@ -604,9 +612,30 @@ bool mc_cache_t::next_starting_up_step() {
     unreachable("Invalid state.");
 }
 
+const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };
+
 void mc_cache_t::init_diff_storage() {
     rassert(state == state_starting_up_init_fixed_blocks);
-    diff_oocore_storage.init(SUPERBLOCK_ID + 1, static_config->n_diff_log_blocks);
+
+    // Read the existing config block
+    inner_buf_t *c_buf = page_map.find(MC_CONFIGBLOCK_ID);
+    if (!c_buf) {
+        /* The buf isn't in the cache and must be loaded from disk */
+        c_buf = new mc_inner_buf_t(this, MC_CONFIGBLOCK_ID);
+    }
+    c_buf->lock.co_lock(rwi_read);
+    mc_config_block_t *c = reinterpret_cast<mc_config_block_t *>(c_buf->data);
+    guarantee(check_magic<mc_config_block_t>(c->magic), "Invalid mirrored cache config block magic");
+    *static_config = c->cache;
+    c_buf->lock.unlock();
+    
+    if ((unsigned long long)static_config->n_diff_log_blocks > (unsigned long long)dynamic_config->max_dirty_size / get_block_size().ser_value()) {
+        fail_due_to_user_error("The cache of size %d blocks is too small to hold this database's diff log of %d blocks.",
+            (int)(dynamic_config->max_dirty_size / get_block_size().ser_value()),
+            (int)(static_config->n_diff_log_blocks));
+    }
+
+    diff_oocore_storage.init(MC_CONFIGBLOCK_ID + 1, static_config->n_diff_log_blocks);
     diff_oocore_storage.load_patches(diff_core_storage);
 
     state = state_starting_up_finish;

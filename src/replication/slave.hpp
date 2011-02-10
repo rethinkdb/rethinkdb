@@ -31,14 +31,15 @@ namespace replication {
  * functionality of the slave_t class be separated. I don't think this is such
  * a bad idea but it doesn't seem particularly urgent to me right now. */
 
-struct slave_t :
+class slave_t :
     public home_thread_mixin_t,
     public store_t,
     public failover_callback_t,
     public message_callback_t
 {
-friend void run(slave_t *);
 public:
+    friend void run(slave_t *);
+
     slave_t(store_t *, replication_config_t, failover_config_t);
     ~slave_t();
 
@@ -46,43 +47,33 @@ public:
      * of contact with the master */
     failover_t failover;
 
-private:
-    void kill_conn();
-    coro_t *coro;
-
-private:
-    store_t *internal_store;
-    replication_config_t replication_config;
-    failover_config_t failover_config;
-    tcp_conn_t *conn;
-    message_parser_t parser;
-    bool shutting_down;
-
-public:
     /* store_t interface. */
 
     get_result_t get(store_key_t *key);
     get_result_t get_cas(store_key_t *key, castime_t castime);
-    rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results);
-    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
-    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
-    incr_decr_result_t incr(store_key_t *key, unsigned long long amount, castime_t castime);
-    incr_decr_result_t decr(store_key_t *key, unsigned long long amount, castime_t castime);
-    append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime);
-    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime);
+    rget_result_ptr_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open);
+    set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime);
+
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime);
+
     delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
 
-public:
     /* message_callback_t interface */
     // These call .swap on their parameter, taking ownership of the pointee.
     void hello(net_hello_t message);
     void send(buffed_data_t<net_backfill_t>& message);
     void send(buffed_data_t<net_announce_t>& message);
+    void send(buffed_data_t<net_get_cas_t>& message);
     void send(stream_pair<net_set_t>& message);
+    void send(stream_pair<net_add_t>& message);
+    void send(stream_pair<net_replace_t>& message);
+    void send(stream_pair<net_cas_t>& message);
+    void send(buffed_data_t<net_incr_t>& message);
+    void send(buffed_data_t<net_decr_t>& message);
     void send(stream_pair<net_append_t>& message);
     void send(stream_pair<net_prepend_t>& message);
+    void send(buffed_data_t<net_delete_t>& message);
     void send(buffed_data_t<net_nop_t>& message);
     void send(buffed_data_t<net_ack_t>& message);
     void send(buffed_data_t<net_shutting_down_t>& message);
@@ -97,11 +88,9 @@ private:
     void on_resume();
 
 
-private:
     /* Other failover callbacks */
     failover_script_callback_t failover_script;
 
-private:
     /* state for failover */
     bool respond_to_queries; /* are we responding to queries */
     long timeout; /* ms to wait before trying to reconnect */
@@ -110,52 +99,57 @@ private:
     timer_token_t *timer_token;
 
     /* structure to tell us when to give up on the master */
-    struct give_up_t {
-    private:
-        std::queue<float> succesful_reconnects;
+    class give_up_t {
     public:
         void on_reconnect();
         bool give_up();
         void reset();
     private:
         void limit_to(unsigned int limit);
+        std::queue<float> succesful_reconnects;
     } give_up;
 
     /* Failover controllers */
 
-private:
     /* Control to  allow the failover state to be reset during run time */
     std::string failover_reset();
 
-    struct failover_reset_control_t
-        : public control_t
-    {
-    private:
-        slave_t *slave;
+    class failover_reset_control_t : public control_t {
     public:
         failover_reset_control_t(std::string key, slave_t *slave)
             : control_t(key, "Reset the failover module to the state at startup (will force a reconnection to the master)."), slave(slave)
         {}
         std::string call(std::string);
+    private:
+        slave_t *slave;
     };
     failover_reset_control_t failover_reset_control;
 
-private:
     /* Control to allow the master to be changed during run time */
     std::string new_master(std::string args);
 
-    struct new_master_control_t
-        : public control_t
-    {
-    private:
-        slave_t *slave;
+    class new_master_control_t : public control_t {
     public:
         new_master_control_t(std::string key, slave_t *slave)
             : control_t(key, "Set a new master for replication (the slave will disconnect and immediately reconnect to the new server). Syntax: \"rdb new master: host port\""), slave(slave)
     {}
         std::string call(std::string);
+    private:
+        slave_t *slave;
     };
     new_master_control_t new_master_control;
+
+    void kill_conn();
+    coro_t *coro;
+
+    store_t *internal_store;
+    replication_config_t replication_config;
+    failover_config_t failover_config;
+    tcp_conn_t *conn;
+    message_parser_t parser;
+    bool shutting_down;
+
+
 };
 
 void run(slave_t *); //TODO make this static and private

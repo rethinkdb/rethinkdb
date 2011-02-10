@@ -34,21 +34,8 @@ struct ser_block_id_t {
     }
 };
 
-struct config_block_id_t {
-    ser_block_id_t ser_id;
-
-    ser_block_id_t subsequent_ser_id() const { return ser_block_id_t::make(ser_id.value + 1); }
-    static inline config_block_id_t make(ser_block_id_t::number_t num) {
-        rassert(num == 0);  // only one possible config_block_id_t value.
-
-        config_block_id_t ret;
-        ret.ser_id = ser_block_id_t::make(num);
-        return ret;
-    }
-};
-
-
-
+/* TODO: buf_data_t and block_size_t depend on the serializer implementation details, so they don't
+belong in this file. */
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
 struct buf_data_t {

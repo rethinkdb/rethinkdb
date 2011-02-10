@@ -2,8 +2,8 @@
 #include "logger.hpp"
 
 
-elb_t::elb_t(role_t role, int port)
-    : role(role), port(port), conn_acceptor()
+elb_t::elb_t(role_t role_, int port_)
+    : role(role_), port(port_), conn_acceptor()
 {
     switch (role) {
     case master:
@@ -29,7 +29,7 @@ void elb_t::on_failure() {
             try {
                 conn_acceptor.reset(new conn_acceptor_t(port, &handler));
             } catch (conn_acceptor_t::address_in_use_exc_t) {
-                logERR("Attempted to listen on port: %d, for elb connections and failed. Something else is listening this will produce very unpredictable load balancing and should be fixed\n");
+                logERR("Attempted to listen on port: %d, for elb connections and failed. Something else is listening this will produce very unpredictable load balancing and should be fixed\n", port);
             }
             break;
         default:

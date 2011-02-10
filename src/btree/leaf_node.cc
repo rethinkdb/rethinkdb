@@ -243,7 +243,7 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
     int sibling_size = block_size.value() - sibling->frontmost_offset;
 
     if (sibling_size < node_size + 2) {
-        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<const buf_data_t *>(reinterpret_cast<const byte *>(node) - sizeof(buf_data_t))->block_id);
+        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<const buf_data_t *>(reinterpret_cast<const byte *>(node) - sizeof(buf_data_t))->block_id.value);
         return false;
     }
 
@@ -616,7 +616,7 @@ void initialize_times(leaf_timestamps_t *times, repli_timestamp current_time) {
 void rotate_time(leaf_timestamps_t *times, repli_timestamp latest_time, int prev_timestamp_offset) {
     int32_t diff = latest_time.time - times->last_modified.time;
     if (diff < 0) {
-        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d\n", latest_time.time, times->last_modified);
+        logWRN("We seemingly stepped backwards in time, with new timestamp %d earlier than %d\n", latest_time.time, times->last_modified.time);
         // Something strange happened, wipe out everything.
         initialize_times(times, latest_time);
     } else {

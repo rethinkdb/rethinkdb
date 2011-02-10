@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#include "btree/serializer_config_block.hpp"
 #include "btree/value.hpp"
+#include "serializer/translator.hpp"
 
 namespace replication {
 
@@ -29,7 +29,7 @@ struct net_hello_t {
     char hello_magic[16];
     uint32_t replication_protocol_version;
     uint32_t role;
-    database_magic_t database_magic;
+    multiplexer_magic_t database_magic;
     char informal_name[32];
 } __attribute__((__packed__));
 

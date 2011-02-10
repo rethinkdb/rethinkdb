@@ -1,3 +1,5 @@
+#include <boost/shared_ptr.hpp>
+
 #include "btree/modify_oper.hpp"
 
 #include "utils.hpp"
@@ -6,7 +8,6 @@
 #include "buffer_cache/large_buf.hpp"
 #include "buffer_cache/large_buf_lock.hpp"
 #include "buffer_cache/transactor.hpp"
-
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 
@@ -171,11 +172,13 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
     (void) old_value_memory;
 
     oper->slice = slice; // TODO: Figure out a way to do this more nicely -- it's only used for generating a CAS value.
-    block_size_t block_size = slice->cache.get_block_size();
+    block_size_t block_size = slice->cache().get_block_size();
 
     {
+        // temporary sanity-check
+        rassert(get_thread_id() == slice->home_thread);
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
-        boost::shared_ptr<transactor_t> txor(new transactor_t(&slice->cache, rwi_write));
+        boost::shared_ptr<transactor_t> txor(new transactor_t(&slice->cache(), rwi_write));
 
         buf_lock_t sb_buf(*txor, SUPERBLOCK_ID, rwi_write);
         buf_lock_t last_buf;

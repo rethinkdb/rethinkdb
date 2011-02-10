@@ -66,8 +66,9 @@ struct later_doer_t :
     }
     
     void on_thread_switch() {
-        callable();
+        callable_t local = callable;
         delete this;
+        local();
     }
 };
 
@@ -75,4 +76,9 @@ struct later_doer_t :
 template<class callable_t>
 void do_later(const callable_t &callable) {
     new later_doer_t<callable_t>(callable);
+}
+
+template <class obj_t, class fun_t>
+void spawn_on_home(const obj_t& obj, const fun_t& fun) {
+    coro_t::spawn_on_thread(obj->home_thread, boost::bind(fun, obj));
 }

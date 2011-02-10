@@ -17,7 +17,8 @@ enum log_level_t { DBG = 0, INF = 1, WRN, ERR };
 
 // logf is a standard library function in <math.h>.  So we use _logf.
 
-void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...);
+void _logf(const char *src_file, int src_line, log_level_t level, const char *format, ...)
+    __attribute__ ((format (printf, 4, 5)));
 
 #ifndef NDEBUG
 #define logDBG(fmt, args...) _logf(__FILE__, __LINE__, DBG, (fmt), ##args)
@@ -34,7 +35,7 @@ void _logf(const char *src_file, int src_line, log_level_t level, const char *fo
 void _mlog_start(const char *src_file, int src_line, log_level_t level);
 #define mlog_start(lvl) (_mlog_start(__FILE__, __LINE__, (lvl)))
 
-void mlogf(const char *format, ...);
+void mlogf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
 void mlog_end();
 
