@@ -54,6 +54,8 @@ struct key_with_data_provider_t {
         }
     };
 };
+typedef one_way_iterator_t<key_with_data_provider_t> rget_result_t;
+typedef rget_result_t* rget_result_ptr_t;
 
 union store_key_and_buffer_t {
     store_key_t key;
@@ -78,113 +80,92 @@ struct castime_t {
     }
 };
 
+struct get_result_t {
+    get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
+        value(v), flags(f), cas(c), to_signal_when_done(s) { }
+    get_result_t() :
+        value(), flags(0), cas(0), to_signal_when_done(NULL) { }
+
+    // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
+    // so don't hold on to it forever.
+    unique_ptr_t<data_provider_t> value;
+    mcflags_t flags;
+    cas_t cas;
+    threadsafe_cond_t *to_signal_when_done;
+};
+
+enum set_result_t {
+    /* Returned on success */
+    sr_stored,
+    /* Returned if add_policy is add_policy_no and the key is absent */
+    sr_didnt_add,
+    /* Returned if replace_policy is replace_policy_no and the key is present or replace_policy
+    is replace_policy_if_cas_matches and the CAS does not match */
+    sr_didnt_replace,
+    /* Returned if the value to be stored is too big */
+    sr_too_large,
+    /* Returned if the data_provider_t that you gave returned have_failed(). */
+    sr_data_provider_failed,
+    /* Returned if the store doesn't want you to do what you're doing. */
+    sr_not_allowed,
+};
+
+enum add_policy_t {
+    add_policy_yes,
+    add_policy_no
+};
+
+enum replace_policy_t {
+    replace_policy_yes,
+    replace_policy_if_cas_matches,
+    replace_policy_no
+};
+
+#define NO_CAS_SUPPLIED 0
+
+struct incr_decr_result_t {
+    enum result_t {
+        idr_success,
+        idr_not_found,
+        idr_not_numeric,
+        idr_not_allowed,
+    } res;
+    uint64_t new_value;   // Valid only if idr_success
+    incr_decr_result_t() { }
+    incr_decr_result_t(result_t r, uint64_t n = 0) : res(r), new_value(n) { }
+};
+
+enum incr_decr_kind_t {
+    incr_decr_INCR,
+    incr_decr_DECR
+};
+
+enum append_prepend_result_t {
+    apr_success,
+    apr_too_large,
+    apr_not_found,
+    apr_data_provider_failed,
+    apr_not_allowed,
+};
+
+enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
+
+enum delete_result_t {
+    dr_deleted,
+    dr_not_found,
+    dr_not_allowed
+};
+
 class store_t {
+
 public:
-    /* To get a value from the store, call get() or get_cas(), providing the key you want to get.
-    The store will return a get_result_t with either the value or NULL. If it returns a value, you
-    must call the provided done_callback_t when you are done to release the buffers holding the
-    value. If you call get_cas(), the cas will be in the 'cas' member of the get_result_t; if not,
-    the value of 'cas' is undefined and should be ignored. */
-
-    struct get_result_t {
-        get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
-            value(v), flags(f), cas(c), to_signal_when_done(s) { }
-        get_result_t() :
-            value(), flags(0), cas(0), to_signal_when_done(NULL) { }
-
-        // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
-        // so don't hold on to it forever.
-        unique_ptr_t<data_provider_t> value;
-        mcflags_t flags;
-        cas_t cas;
-        threadsafe_cond_t *to_signal_when_done;
-    };
     virtual get_result_t get(store_key_t *key) = 0;
     virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;
-
-    typedef one_way_iterator_t<key_with_data_provider_t> rget_result_t;
-    typedef rget_result_t* rget_result_ptr_t;
     virtual rget_result_ptr_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
 
-    /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
-    to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on
-    any core, so you must implement core-switching yourself if necessary. The data_provider_t will
-    always be called exactly once. */
-
-    enum set_result_t {
-        /* Returned on success */
-        sr_stored,
-        /* Returned if add_policy is add_policy_no and the key is absent */
-        sr_didnt_add,
-        /* Returned if replace_policy is replace_policy_no and the key is present or replace_policy
-        is replace_policy_if_cas_matches and the CAS does not match */
-        sr_didnt_replace,
-        /* Returned if the value to be stored is too big */
-        sr_too_large,
-        /* Returned if the data_provider_t that you gave returned have_failed(). */
-        sr_data_provider_failed,
-        /* Returned if the store doesn't want you to do what you're doing. */
-        sr_not_allowed,
-    };
-
-    enum add_policy_t {
-        add_policy_yes,
-        add_policy_no
-    };
-
-    enum replace_policy_t {
-        replace_policy_yes,
-        replace_policy_if_cas_matches,
-        replace_policy_no
-    };
-
-    static const cas_t NO_CAS_SUPPLIED = 0;
-
     virtual set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
-
-    /* To increment or decrement a value, use incr() or decr(). They're pretty straight-forward. */
-
-    struct incr_decr_result_t {
-        enum result_t {
-            idr_success,
-            idr_not_found,
-            idr_not_numeric,
-            idr_not_allowed,
-        } res;
-        uint64_t new_value;   // Valid only if idr_success
-        incr_decr_result_t() { }
-        incr_decr_result_t(result_t r, uint64_t n = 0) : res(r), new_value(n) { }
-    };
-
-    enum incr_decr_kind_t {
-        incr_decr_INCR,
-        incr_decr_DECR
-    };
-
     virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) = 0;
-
-    /* To append or prepend a value, use append() or prepend(). */
-
-    enum append_prepend_result_t {
-        apr_success,
-        apr_too_large,
-        apr_not_found,
-        apr_data_provider_failed,
-        apr_not_allowed,
-    };
-
-    enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
-
     virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) = 0;
-
-    /* To delete a key-value pair, use delete(). */
-
-    enum delete_result_t {
-        dr_deleted,
-        dr_not_found,
-        dr_not_allowed
-    };
-
     virtual delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp) = 0;
 
     virtual ~store_t() {}

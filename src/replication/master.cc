@@ -43,23 +43,23 @@ void master_t::get_cas(store_key_t *key, castime_t castime) {
     }
 }
 
-void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, store_t::add_policy_t add_policy, store_t::replace_policy_t replace_policy, cas_t old_cas) {
+void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     debugf("sarcing...\n");
     if (slave_) {
         debugf("the slave was alive.. sending...\n");
-        if (add_policy == store_t::add_policy_yes) {
-            if (replace_policy == store_t::replace_policy_yes) {
+        if (add_policy == add_policy_yes) {
+            if (replace_policy == replace_policy_yes) {
                 setlike<net_set_t>(SET, key, data, flags, exptime, castime);
-            } else if (replace_policy == store_t::replace_policy_no) {
+            } else if (replace_policy == replace_policy_no) {
                 setlike<net_add_t>(ADD, key, data, flags, exptime, castime);
             } else {
                 rassert(false, "invalid sarc operation");
                 logWRN("invalid sarc operation in master.\n");
             }
         } else {
-            if (replace_policy == store_t::replace_policy_yes) {
+            if (replace_policy == replace_policy_yes) {
                 setlike<net_replace_t>(REPLACE, key, data, flags, exptime, castime);
-            } else if (replace_policy == store_t::replace_policy_if_cas_matches) {
+            } else if (replace_policy == replace_policy_if_cas_matches) {
                 cas(key, data, flags, exptime, old_cas, castime);
             } else {
                 rassert(false, "invalid sarc operation");
@@ -98,12 +98,12 @@ void master_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exp
     }
 }
 
-void master_t::incr_decr(store_t::incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
+void master_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
     if (slave_) {
-        if (kind == store_t::incr_decr_INCR) {
+        if (kind == incr_decr_INCR) {
             incr_decr_like<net_incr_t>(INCR, key, amount, castime);
         } else {
-            rassert(kind == store_t::incr_decr_DECR);
+            rassert(kind == incr_decr_DECR);
             incr_decr_like<net_decr_t>(DECR, key, amount, castime);
         }
     }
@@ -125,9 +125,9 @@ void master_t::incr_decr_like(uint8_t msgcode, store_key_t *key, uint64_t amount
     }
 }
 
-void master_t::append_prepend(store_t::append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
+void master_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
     if (slave_) {
-        if (kind == store_t::append_prepend_APPEND) {
+        if (kind == append_prepend_APPEND) {
             net_append_t appendstruct;
             appendstruct.timestamp = castime.timestamp;
             appendstruct.proposed_cas = castime.proposed_cas;
@@ -136,7 +136,7 @@ void master_t::append_prepend(store_t::append_prepend_kind_t kind, store_key_t *
 
             stereotypical(APPEND, key, data, appendstruct);
         } else {
-            rassert(kind == store_t::append_prepend_PREPEND);
+            rassert(kind == append_prepend_PREPEND);
 
             net_prepend_t prependstruct;
             prependstruct.timestamp = castime.timestamp;

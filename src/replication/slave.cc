@@ -56,45 +56,45 @@ void slave_t::kill_conn() {
     }
 }
 
-store_t::get_result_t slave_t::get(store_key_t *key)
+get_result_t slave_t::get(store_key_t *key)
 {
     return internal_store->get(key);
 }
 
-store_t::get_result_t slave_t::get_cas(store_key_t *key, castime_t castime)
+get_result_t slave_t::get_cas(store_key_t *key, castime_t castime)
 {
     return internal_store->get_cas(key, castime);
 }
 
-store_t::rget_result_ptr_t slave_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
+rget_result_ptr_t slave_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
     return internal_store->rget(start, end, left_open, right_open);
 }
 
-store_t::set_result_t slave_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+set_result_t slave_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     if (respond_to_queries) {
         return internal_store->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
     } else {
-        return store_t::sr_not_allowed;
+        return sr_not_allowed;
     }
 }
 
-store_t::incr_decr_result_t slave_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime)
+incr_decr_result_t slave_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime)
 {
     if (respond_to_queries)
         return internal_store->incr_decr(kind, key, amount, castime);
     else
-        return store_t::incr_decr_result_t::idr_not_allowed;
+        return incr_decr_result_t::idr_not_allowed;
 }
 
-store_t::append_prepend_result_t slave_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime)
+append_prepend_result_t slave_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime)
 {
     if (respond_to_queries)
         return internal_store->append_prepend(kind, key, data, castime);
     else
-        return store_t::apr_not_allowed;
+        return apr_not_allowed;
 }
 
-store_t::delete_result_t slave_t::delete_key(store_key_t *key, repli_timestamp timestamp)
+delete_result_t slave_t::delete_key(store_key_t *key, repli_timestamp timestamp)
 {
     if (respond_to_queries)
         return internal_store->delete_key(key, timestamp);
