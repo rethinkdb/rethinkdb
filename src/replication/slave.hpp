@@ -33,14 +33,15 @@ namespace replication {
  * functionality of the slave_t class be separated. I don't think this is such
  * a bad idea but it doesn't seem particularly urgent to me right now. */
 
-struct slave_t :
+class slave_t :
     public home_thread_mixin_t,
     public set_store_interface_t,
     public failover_callback_t,
     public message_callback_t
 {
-friend void run(slave_t *);
 public:
+    friend void run(slave_t *);
+
     slave_t(btree_key_value_store_t *, replication_config_t, failover_config_t);
     ~slave_t();
 
@@ -48,19 +49,6 @@ public:
      * of contact with the master */
     failover_t failover;
 
-private:
-    void kill_conn();
-    coro_t *coro;
-
-private:
-    btree_key_value_store_t *internal_store;
-    replication_config_t replication_config;
-    failover_config_t failover_config;
-    tcp_conn_t *conn;
-    message_parser_t parser;
-    bool shutting_down;
-
-public:
     /* set_store_interface_t interface. This interface will not work properly for anything until
     we fail over. */
 
@@ -72,7 +60,6 @@ public:
 
     delete_result_t delete_key(store_key_t *key);
 
-public:
     /* message_callback_t interface */
     // These call .swap on their parameter, taking ownership of the pointee.
     void hello(net_hello_t message);
@@ -101,11 +88,9 @@ private:
     void on_failure();
     void on_resume();
 
-private:
     /* Other failover callbacks */
     failover_script_callback_t failover_script;
 
-private:
     /* state for failover */
     bool respond_to_queries; /* are we responding to queries */
     long timeout; /* ms to wait before trying to reconnect */
@@ -114,52 +99,57 @@ private:
     timer_token_t *timer_token;
 
     /* structure to tell us when to give up on the master */
-    struct give_up_t {
-    private:
-        std::queue<float> succesful_reconnects;
+    class give_up_t {
     public:
         void on_reconnect();
         bool give_up();
         void reset();
     private:
         void limit_to(unsigned int limit);
+        std::queue<float> succesful_reconnects;
     } give_up;
 
     /* Failover controllers */
 
-private:
     /* Control to  allow the failover state to be reset during run time */
     std::string failover_reset();
 
-    struct failover_reset_control_t
-        : public control_t
-    {
-    private:
-        slave_t *slave;
+    class failover_reset_control_t : public control_t {
     public:
         failover_reset_control_t(std::string key, slave_t *slave)
             : control_t(key, "Reset the failover module to the state at startup (will force a reconnection to the master)."), slave(slave)
         {}
         std::string call(std::string);
+    private:
+        slave_t *slave;
     };
     failover_reset_control_t failover_reset_control;
 
-private:
     /* Control to allow the master to be changed during run time */
     std::string new_master(std::string args);
 
-    struct new_master_control_t
-        : public control_t
-    {
-    private:
-        slave_t *slave;
+    class new_master_control_t : public control_t {
     public:
         new_master_control_t(std::string key, slave_t *slave)
             : control_t(key, "Set a new master for replication (the slave will disconnect and immediately reconnect to the new server). Syntax: \"rdb new master: host port\""), slave(slave)
     {}
         std::string call(std::string);
+    private:
+        slave_t *slave;
     };
     new_master_control_t new_master_control;
+
+    void kill_conn();
+    coro_t *coro;
+
+    btree_key_value_store_t *internal_store;
+    replication_config_t replication_config;
+    failover_config_t failover_config;
+    tcp_conn_t *conn;
+    message_parser_t parser;
+    bool shutting_down;
+
+
 };
 
 void run(slave_t *); //TODO make this static and private

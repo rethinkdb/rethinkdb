@@ -2,6 +2,8 @@
 #ifndef __ARCH_LINUX_NETWORK_HPP__
 #define __ARCH_LINUX_NETWORK_HPP__
 
+#include <boost/scoped_ptr.hpp>
+
 #include "utils2.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "arch/address.hpp"
@@ -98,14 +100,27 @@ public:
 
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
+    void register_with_event_loop();
+
+    void on_event(int events);
+
+    void on_shutdown_read();
+    void on_shutdown_write();
+
+    /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
+    ::read(). Returns the number of bytes read or throws read_closed_exc_t. Bypasses read_buffer. */
+    size_t read_internal(void *buffer, size_t size);
+
+    /* Writes exactly the given number of bytes--like write(), but bypasses write_buffer. If the
+    write end of the connection is closed, throws write_closed_exc_t. */
+    void write_internal(const void *buffer, size_t size);
+
+
     fd_t sock;
 
     /* Before we are being watched by any event loop, registration_thread is -1. Once an
     event loop is watching us, registration_thread is its ID. */
     int registration_thread;
-    void register_with_event_loop();
-
-    void on_event(int events);
 
     /* If read_cond is non-NULL, it will be signalled with true if there is data on the read end
     and with false if the read end is closed. Same with write_cond and writing. */
@@ -116,19 +131,8 @@ private:
     bool read_was_shut_down;
     bool write_was_shut_down;
 
-    void on_shutdown_read();
-    void on_shutdown_write();
-
-    /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
-    ::read(). Returns the number of bytes read or throws read_closed_exc_t. Bypasses read_buffer. */
-    size_t read_internal(void *buffer, size_t size);
-
     /* Holds data that we read from the socket but hasn't been consumed yet */
     std::vector<char> read_buffer;
-
-    /* Writes exactly the given number of bytes--like write(), but bypasses write_buffer. If the
-    write end of the connection is closed, throws write_closed_exc_t. */
-    void write_internal(const void *buffer, size_t size);
 
     /* Holds data that was given to us but we haven't sent to the kernel yet */
     std::vector<char> write_buffer;
@@ -139,8 +143,8 @@ connections. Create a linux_tcp_listener_t with some port and then call set_call
 the provided callback will be called in a new coroutine every time something connects. */
 
 struct linux_tcp_listener_callback_t {
-    /* Do not call 'delete' on 'conn'; it will be deleted when on_tcp_listener_accept() returns */
-    virtual void on_tcp_listener_accept(linux_tcp_conn_t *conn) = 0;
+    // Feel free to take ownership of the connection and have it deleted yourself.
+    virtual void on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn) = 0;
     virtual ~linux_tcp_listener_callback_t() {}
 };
 

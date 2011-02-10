@@ -1,5 +1,5 @@
-#ifndef __REPLICATION_MASTERSTORE_HPP__
-#define __REPLICATION_MASTERSTORE_HPP__
+#ifndef __REPLICATION_MASTER_HPP__
+#define __REPLICATION_MASTER_HPP__
 
 #include "store.hpp"
 #include "arch/arch.hpp"
@@ -9,18 +9,22 @@
 
 namespace replication {
 
-class masterstore_exc_t : public std::runtime_error {
+// TODO: Consider a good value for this port.
+const int REPLICATION_PORT = 11212;
+
+class master_exc_t : public std::runtime_error {
 public:
-    masterstore_exc_t(const char *wat) : std::runtime_error(wat) { }
+    master_exc_t(const char *what_arg) : std::runtime_error(what_arg) { }
 };
 
 
-class masterstore_t : public home_thread_mixin_t {
+class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t {
 public:
-    masterstore_t() : message_contiguity_(), slave_(NULL), sources_() { }
+    master_t() : message_contiguity_(), slave_(NULL), sources_(), listener_(REPLICATION_PORT) {
+        listener_.set_callback(this);
+    }
 
     bool has_slave() { return slave_ != NULL; }
-    void add_slave(tcp_conn_t *conn);
 
     void hello();
 
@@ -34,6 +38,8 @@ public:
 
     void delete_key(store_key_t *key, repli_timestamp timestamp);
 
+    // Listener callback functions
+    void on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn);
 
 
 private:
@@ -55,10 +61,12 @@ private:
 
 
     mutex_t message_contiguity_;
-    tcp_conn_t *slave_;
+    boost::scoped_ptr<tcp_conn_t> slave_;
     thick_list<data_provider_t *, uint32_t> sources_;
 
-    DISABLE_COPYING(masterstore_t);
+    tcp_listener_t listener_;
+
+    DISABLE_COPYING(master_t);
 };
 
 
@@ -67,4 +75,4 @@ private:
 
 }  // namespace replication
 
-#endif  // __REPLICATION_MASTERSTORE_HPP__
+#endif  // __REPLICATION_MASTER_HPP__
