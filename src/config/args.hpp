@@ -112,9 +112,10 @@
 // bytes of affected data.
 // The actual value is continuously adjusted between MAX_PATCHES_SIZE_RATIO_MIN and
 // MAX_PATCHES_SIZE_RATIO_MAX depending on how much the system is i/o bound
-#define MAX_PATCHES_SIZE_RATIO_MIN                100 // TODO! 50
+#define MAX_PATCHES_SIZE_RATIO_MIN                100
 #define MAX_PATCHES_SIZE_RATIO_MAX                2
 #define MAX_PATCHES_SIZE_RATIO_DURABILITY         5
+#define RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT 0.6
 
 // If more than this many bytes of dirty data accumulate in the cache, then write
 // transactions will be throttled.
