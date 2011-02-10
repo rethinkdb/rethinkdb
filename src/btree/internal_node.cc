@@ -295,7 +295,6 @@ void update_key(buf_t &node_buf, const btree_key *key_to_replace, const btree_ke
     guarantee(sizeof(internal_node_t) + (node->npairs) * sizeof(*node->pair_offsets) + pair_size_with_key(replacement_key) < node->frontmost_offset,
         "cannot fit updated key in internal node");
 
-    // TODO!
     uint16_t new_offset = insert_pair(node_buf, tmp_lnode, replacement_key);
     node_buf.set_data(&node->pair_offsets[index], &new_offset, sizeof(new_offset));
 #ifdef BTREE_DEBUG

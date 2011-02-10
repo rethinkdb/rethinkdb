@@ -123,7 +123,7 @@ public:
     virtual void apply_to_buf(char* buf_data);
 
     virtual size_t get_affected_data_size() const {
-        return 16; // TODO!
+        return 16; // TODO
     }
 
 protected:
