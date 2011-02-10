@@ -9,6 +9,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 #include "buffer_cache/large_buf.hpp"
+#include "buffer_cache/mirrored/mirrored.hpp"
 #include "fsck/raw_block.hpp"
 
 namespace fsck {

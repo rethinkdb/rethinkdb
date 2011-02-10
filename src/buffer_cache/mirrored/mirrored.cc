@@ -592,6 +592,8 @@ bool mc_cache_t::next_starting_up_step() {
             mc_config_block_t *c = reinterpret_cast<mc_config_block_t *>(c_buf->data);
             c->magic = c->expected_magic;
             c->cache = *static_config;
+            c_buf->writeback_buf.set_dirty();
+            c_buf->writeback_buf.needs_flush = true;
         }
 
         /* Initialize the diff storage (needs coro context) */
