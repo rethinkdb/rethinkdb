@@ -15,7 +15,7 @@ get_result_t btree_slice_dispatching_to_master_t::get_cas(store_key_t *key, cast
     if (master_) spawn_on_home(master_, boost::bind(&master_t::get_cas, _1, key, castime));
     return slice_->get_cas(key, castime);
 }
-rget_result_ptr_t btree_slice_dispatching_to_master_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
+rget_result_t *btree_slice_dispatching_to_master_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
     on_thread_t th(slice_->home_thread);
     return slice_->rget(start, end, left_open, right_open);
 }
