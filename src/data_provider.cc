@@ -143,7 +143,7 @@ const const_buffer_group_t *maybe_buffered_data_provider_t::get_data_as_buffers(
 
 
 buffer_borrowing_data_provider_t::side_data_provider_t::side_data_provider_t(int reading_thread, size_t size)
-    : reading_thread_(reading_thread_), size_(size) { }
+    : reading_thread_(reading_thread), size_(size) { }
 
 buffer_borrowing_data_provider_t::side_data_provider_t::~side_data_provider_t() { done_cond_.pulse(); }
 
@@ -159,9 +159,13 @@ const const_buffer_group_t *buffer_borrowing_data_provider_t::side_data_provider
 }
 
 void buffer_borrowing_data_provider_t::side_data_provider_t::supply_buffers_and_wait(const buffer_group_t *buffers) {
+    debugf("supply_buffers_and_wait, switching threads...\n");
     on_thread_t thread(reading_thread_);
+    debugf("supply_buffers_and_wait, pulsing buffers...\n");
     cond_.pulse(const_view(buffers));
+    debugf("supply_buffers_and_wait, waiting for done_cond_...\n");
     done_cond_.wait();
+    debugf("supply_buffers_and_wait, finished.\n");
 }
 
 buffer_borrowing_data_provider_t::buffer_borrowing_data_provider_t(int side_reader_thread, data_provider_t *inner)

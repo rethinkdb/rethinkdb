@@ -492,7 +492,7 @@ void linux_tcp_listener_t::set_callback(linux_tcp_listener_callback_t *cb) {
 }
 
 void linux_tcp_listener_t::handle(fd_t socket) {
-
+    debugf("in handle()...\n");
     boost::scoped_ptr<linux_tcp_conn_t> conn(new linux_tcp_conn_t(socket));
     callback->on_tcp_listener_accept(conn);
 }

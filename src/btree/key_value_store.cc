@@ -112,11 +112,8 @@ void create_existing_btree(
     on_thread_t thread_switcher(i % get_num_db_threads());
 
     btree_slice_t *sl = new btree_slice_t(pseudoserializers[i], config);
-    //    if (master) {  /* commented out to avoid temporarily breaking master.  btree_slice_dispatching_to_master_t handles NULL master gracefully, for now */
-        slices[i] = new btree_slice_dispatching_to_master_t(sl, master);
-        //    } else {
-        //        slices[i] = sl;
-        //    }
+    // btree_slice_dispatching_to_master_t handles NULL master gracefully, for now
+    slices[i] = new btree_slice_dispatching_to_master_t(sl, master);
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,

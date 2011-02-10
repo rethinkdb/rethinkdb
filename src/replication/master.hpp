@@ -22,14 +22,17 @@ class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_
 public:
     master_t() : message_contiguity_(), slave_(NULL), sources_(), listener_(REPLICATION_PORT) {
         listener_.set_callback(this);
+        debugf("constructed master_t...\n");
     }
 
     bool has_slave() { return slave_ != NULL; }
 
-    void hello();
+    // Must be called within the mutex acquisition lock.
+    void hello(const mutex_acquisition_t& proof_of_acquisition);
 
     void get_cas(store_key_t *key, castime_t castime);
 
+    // Takes ownership of the data_provider_t *data parameter, and deletes it.
     void sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, store_t::add_policy_t add_policy, store_t::replace_policy_t replace_policy, cas_t old_cas);
 
     void incr_decr(store_t::incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime);

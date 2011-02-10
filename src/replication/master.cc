@@ -8,7 +8,7 @@
 
 namespace replication {
 
-void master_t::hello() {
+void master_t::hello(const mutex_acquisition_t& proof_of_acquisition) {
     net_hello_t msg;
     rassert(sizeof(msg.hello_magic) == 16);
     // TODO make a #define for this.
@@ -22,48 +22,52 @@ void master_t::hello() {
     char informal_name[32] = "master";
     memcpy(msg.informal_name, informal_name, 32);
 
-    {
-        mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write(&msg, sizeof(msg));
-    }
+    slave_->write(&msg, sizeof(msg));
 }
 
 void master_t::get_cas(store_key_t *key, castime_t castime) {
-    size_t n = sizeof(headed<net_get_cas_t>) + key->size;
-    scoped_malloc<headed<net_get_cas_t> > message(n);
-    message->hdr.message_multipart_aspect = SMALL;
-    message->hdr.msgcode = GET_CAS;
-    message->hdr.msgsize = n;
-    message->data.proposed_cas = castime.proposed_cas;
-    message->data.timestamp = castime.timestamp;
-    memcpy(message->data.key, key->contents, key->size);
+    if (slave_) {
+        size_t n = sizeof(headed<net_get_cas_t>) + key->size;
+        scoped_malloc<headed<net_get_cas_t> > message(n);
+        message->hdr.message_multipart_aspect = SMALL;
+        message->hdr.msgcode = GET_CAS;
+        message->hdr.msgsize = n;
+        message->data.proposed_cas = castime.proposed_cas;
+        message->data.timestamp = castime.timestamp;
+        memcpy(message->data.key, key->contents, key->size);
 
-    {
-        mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write(message.get(), n);
+        {
+            mutex_acquisition_t lock(&message_contiguity_);
+            slave_->write(message.get(), n);
+        }
     }
 }
 
 void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, store_t::add_policy_t add_policy, store_t::replace_policy_t replace_policy, cas_t old_cas) {
-    if (add_policy == store_t::add_policy_yes) {
-        if (replace_policy == store_t::replace_policy_yes) {
-            setlike<net_set_t>(SET, key, data, flags, exptime, castime);
-        } else if (replace_policy == store_t::replace_policy_no) {
-            setlike<net_add_t>(ADD, key, data, flags, exptime, castime);
+    debugf("sarcing...\n");
+    if (slave_) {
+        debugf("the slave was alive.. sending...\n");
+        if (add_policy == store_t::add_policy_yes) {
+            if (replace_policy == store_t::replace_policy_yes) {
+                setlike<net_set_t>(SET, key, data, flags, exptime, castime);
+            } else if (replace_policy == store_t::replace_policy_no) {
+                setlike<net_add_t>(ADD, key, data, flags, exptime, castime);
+            } else {
+                rassert(false, "invalid sarc operation");
+                logWRN("invalid sarc operation in master.\n");
+            }
         } else {
-            rassert(false, "invalid sarc operation");
-            logWRN("invalid sarc operation in master.\n");
-        }
-    } else {
-        if (replace_policy == store_t::replace_policy_yes) {
-            setlike<net_replace_t>(REPLACE, key, data, flags, exptime, castime);
-        } else if (replace_policy == store_t::replace_policy_if_cas_matches) {
-            cas(key, data, flags, exptime, old_cas, castime);
-        } else {
-            rassert(false, "invalid sarc operation");
-            logWRN("invalid sarc operation in master\n");
+            if (replace_policy == store_t::replace_policy_yes) {
+                setlike<net_replace_t>(REPLACE, key, data, flags, exptime, castime);
+            } else if (replace_policy == store_t::replace_policy_if_cas_matches) {
+                cas(key, data, flags, exptime, old_cas, castime);
+            } else {
+                rassert(false, "invalid sarc operation");
+                logWRN("invalid sarc operation in master\n");
+            }
         }
     }
+    delete data;
 }
 
 template <class net_struct_type>
@@ -80,24 +84,28 @@ void master_t::setlike(int msgcode, store_key_t *key, data_provider_t *data, mcf
 }
 
 void master_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
-    net_cas_t casstruct;
-    casstruct.timestamp = castime.timestamp;
-    casstruct.expected_cas = unique;
-    casstruct.proposed_cas = castime.proposed_cas;
-    casstruct.flags = flags;
-    casstruct.exptime = exptime;
-    casstruct.key_size = key->size;
-    casstruct.value_size = data->get_size();
+    if (slave_) {
+        net_cas_t casstruct;
+        casstruct.timestamp = castime.timestamp;
+        casstruct.expected_cas = unique;
+        casstruct.proposed_cas = castime.proposed_cas;
+        casstruct.flags = flags;
+        casstruct.exptime = exptime;
+        casstruct.key_size = key->size;
+        casstruct.value_size = data->get_size();
 
-    stereotypical(CAS, key, data, casstruct);
+        stereotypical(CAS, key, data, casstruct);
+    }
 }
 
 void master_t::incr_decr(store_t::incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
-    if (kind == store_t::incr_decr_INCR) {
-        incr_decr_like<net_incr_t>(INCR, key, amount, castime);
-    } else {
-        rassert(kind == store_t::incr_decr_DECR);
-        incr_decr_like<net_decr_t>(DECR, key, amount, castime);
+    if (slave_) {
+        if (kind == store_t::incr_decr_INCR) {
+            incr_decr_like<net_incr_t>(INCR, key, amount, castime);
+        } else {
+            rassert(kind == store_t::incr_decr_DECR);
+            incr_decr_like<net_decr_t>(DECR, key, amount, castime);
+        }
     }
 }
 
@@ -118,40 +126,45 @@ void master_t::incr_decr_like(uint8_t msgcode, store_key_t *key, uint64_t amount
 }
 
 void master_t::append_prepend(store_t::append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
-    if (kind == store_t::append_prepend_APPEND) {
-        net_append_t appendstruct;
-        appendstruct.timestamp = castime.timestamp;
-        appendstruct.proposed_cas = castime.proposed_cas;
-        appendstruct.key_size = key->size;
-        appendstruct.value_size = data->get_size();
+    if (slave_) {
+        if (kind == store_t::append_prepend_APPEND) {
+            net_append_t appendstruct;
+            appendstruct.timestamp = castime.timestamp;
+            appendstruct.proposed_cas = castime.proposed_cas;
+            appendstruct.key_size = key->size;
+            appendstruct.value_size = data->get_size();
 
-        stereotypical(APPEND, key, data, appendstruct);
-    } else {
-        rassert(kind == store_t::append_prepend_PREPEND);
+            stereotypical(APPEND, key, data, appendstruct);
+        } else {
+            rassert(kind == store_t::append_prepend_PREPEND);
 
-        net_prepend_t prependstruct;
-        prependstruct.timestamp = castime.timestamp;
-        prependstruct.proposed_cas = castime.proposed_cas;
-        prependstruct.key_size = key->size;
-        prependstruct.value_size = data->get_size();
+            net_prepend_t prependstruct;
+            prependstruct.timestamp = castime.timestamp;
+            prependstruct.proposed_cas = castime.proposed_cas;
+            prependstruct.key_size = key->size;
+            prependstruct.value_size = data->get_size();
 
-        stereotypical(PREPEND, key, data, prependstruct);
+            stereotypical(PREPEND, key, data, prependstruct);
+        }
     }
+    delete data;
 }
 
 void master_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
-    size_t n = sizeof(headed<net_delete_t>) + key->size;
-    scoped_malloc<headed<net_delete_t> > message(n);
-    message->hdr.message_multipart_aspect = SMALL;
-    message->hdr.msgcode = DELETE;
-    message->hdr.msgsize = n;
-    message->data.timestamp = timestamp;
-    message->data.key_size = key->size;
-    memcpy(message->data.key, key->contents, key->size);
+    if (slave_) {
+        size_t n = sizeof(headed<net_delete_t>) + key->size;
+        scoped_malloc<headed<net_delete_t> > message(n);
+        message->hdr.message_multipart_aspect = SMALL;
+        message->hdr.msgcode = DELETE;
+        message->hdr.msgsize = n;
+        message->data.timestamp = timestamp;
+        message->data.key_size = key->size;
+        memcpy(message->data.key, key->contents, key->size);
 
-    {
-        mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write(message.get(), n);
+        {
+            mutex_acquisition_t lock(&message_contiguity_);
+            slave_->write(message.get(), n);
+        }
     }
 }
 
@@ -258,14 +271,22 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
     // somebody has partially written a message to it (and writes the
     // rest of the message to conn?)  That will happen, the way the
     // code is, right now.
-    slave_.reset();
-    slave_.swap(conn);
+    {
+        debugf("Receiving replica...\n");
+        mutex_acquisition_t lock(&message_contiguity_);
+        debugf("Acquired message contiguity lock.\n");
+        slave_.reset();
+        slave_.swap(conn);
 
-    logDBG("Received replica.\n");
 
-    hello();
-    // TODO send hello handshake, use database magic to handle case
-    // where slave is already connected.
+        debugf("Received replica.\n");
+
+        hello(lock);
+    }
+    // TODO when sending/receiving hello handshake, use database magic
+    // to handle case where slave is already connected.
+
+    // TODO receive hello handshake before sending other messages.
 }
 
 

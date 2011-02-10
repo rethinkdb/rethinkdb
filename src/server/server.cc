@@ -105,8 +105,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             /* Start key-value store */
             logINF("Loading database...\n");
-            //store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config, NULL /* &master - commented out because master eats the data_provider */);
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config, &master);
 
             /* Are we a replication slave? */
             if (cmd_config->replication_config.active) {
