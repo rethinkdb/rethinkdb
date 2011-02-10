@@ -142,16 +142,24 @@ const const_buffer_group_t *maybe_buffered_data_provider_t::get_data_as_buffers(
 }
 
 
-buffer_borrowing_data_provider_t::side_data_provider_t::side_data_provider_t(int reading_thread, size_t size)
-    : reading_thread_(reading_thread), size_(size) { }
+buffer_borrowing_data_provider_t::side_data_provider_t::side_data_provider_t(int reading_thread, size_t size, cond_t *done_cond)
+    : reading_thread_(reading_thread), done_cond_(done_cond), got_data_(false), size_(size) { }
 
-buffer_borrowing_data_provider_t::side_data_provider_t::~side_data_provider_t() { done_cond_.pulse(); }
+buffer_borrowing_data_provider_t::side_data_provider_t::~side_data_provider_t() {
+    debugf("~side_data_provider_t()\n");
+    if (!got_data_) {
+        cond_.wait();
+    }
+    done_cond_->pulse();
+}
 
 
 size_t buffer_borrowing_data_provider_t::side_data_provider_t::get_size() const { return size_; }
 
 const const_buffer_group_t *buffer_borrowing_data_provider_t::side_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
     const const_buffer_group_t *buffers = cond_.wait();
+    got_data_ = true;
+
     if (!buffers) {
         throw data_provider_failed_exc_t();
     }
@@ -162,14 +170,15 @@ void buffer_borrowing_data_provider_t::side_data_provider_t::supply_buffers_and_
     debugf("supply_buffers_and_wait, switching threads...\n");
     on_thread_t thread(reading_thread_);
     debugf("supply_buffers_and_wait, pulsing buffers...\n");
+    cond_t *done_cond_local = done_cond_;
     cond_.pulse(const_view(buffers));
     debugf("supply_buffers_and_wait, waiting for done_cond_...\n");
-    done_cond_.wait();
+    done_cond_local->wait();
     debugf("supply_buffers_and_wait, finished.\n");
 }
 
 buffer_borrowing_data_provider_t::buffer_borrowing_data_provider_t(int side_reader_thread, data_provider_t *inner)
-    : inner_(inner), side_(new side_data_provider_t(side_reader_thread, inner->get_size())), side_owned_(true) { }
+    : inner_(inner), done_cond_(), side_(new side_data_provider_t(side_reader_thread, inner->get_size(), &done_cond_)), side_owned_(true) { }
 
 buffer_borrowing_data_provider_t::~buffer_borrowing_data_provider_t() {
     if (side_owned_) {

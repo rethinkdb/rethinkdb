@@ -175,7 +175,7 @@ public:
         // Takes the thread that the reader reads from.  Soon after
         // construction, this serves as the de facto home thread of
         // the side_data_provider_t.
-        side_data_provider_t(int reading_thread, size_t size);
+        side_data_provider_t(int reading_thread, size_t size, cond_t *done_cond);
         ~side_data_provider_t();
 
         size_t get_size() const;
@@ -185,7 +185,8 @@ public:
     private:
         int reading_thread_;
         unicond_t<const const_buffer_group_t *> cond_;
-        cond_t done_cond_;
+        cond_t *done_cond_;
+        bool got_data_;
         size_t size_;
     };
 
@@ -200,6 +201,7 @@ public:
     side_data_provider_t *side_provider();
 private:
     data_provider_t *inner_;
+    cond_t done_cond_;
     side_data_provider_t *side_;
     bool side_owned_;
 };
