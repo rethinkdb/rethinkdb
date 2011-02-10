@@ -11,13 +11,13 @@
 // be unnecessary.
 
 struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mixin_t {
-    btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<store_t::get_result_t, threadsafe_cond_t> *res_)
+    btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t, threadsafe_cond_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         if (!old_value) {
             /* If not found, there's nothing to do */
-            res->pulse(store_t::get_result_t());
+            res->pulse(get_result_t());
             return false;
         }
 
@@ -34,13 +34,13 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
 
         // Need to block on the caller so we don't free the large value before it's done
         // Deliver the value to the client via the promise_t we got
-        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
+        unique_ptr_t<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
         if (value.is_large()) {
             threadsafe_cond_t to_signal_when_done;
-            res->pulse(store_t::get_result_t(dp, value.mcflags(), value.cas(), &to_signal_when_done));
+            res->pulse(get_result_t(dp, value.mcflags(), value.cas(), &to_signal_when_done));
             to_signal_when_done.wait();
         } else {
-            res->pulse(store_t::get_result_t(dp, value.mcflags(), value.cas(), NULL));
+            res->pulse(get_result_t(dp, value.mcflags(), value.cas(), NULL));
         }
 
 
@@ -55,8 +55,8 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     }
 
     cas_t proposed_cas;
-    store_t::get_result_t result;
-    promise_t<store_t::get_result_t, threadsafe_cond_t> *res;
+    get_result_t result;
+    promise_t<get_result_t, threadsafe_cond_t> *res;
 
     union {
         byte value_memory[MAX_BTREE_VALUE_SIZE];
@@ -65,14 +65,14 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
 };
 
 void co_btree_get_cas(const btree_key *key, castime_t castime, btree_slice_t *slice,
-        promise_t<store_t::get_result_t, threadsafe_cond_t> *res) {
+        promise_t<get_result_t, threadsafe_cond_t> *res) {
     btree_get_cas_oper_t oper(castime.proposed_cas, res);
     run_btree_modify_oper(&oper, slice, key, castime);
 }
 
-store_t::get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice, castime_t castime) {
+get_result_t btree_get_cas(const btree_key *key, btree_slice_t *slice, castime_t castime) {
     block_pm_duration get_timer(&pm_cmd_get);
-    promise_t<store_t::get_result_t, threadsafe_cond_t> res;
+    promise_t<get_result_t, threadsafe_cond_t> res;
     coro_t::spawn(boost::bind(co_btree_get_cas, key, castime, slice, &res));
     return res.wait();
 }

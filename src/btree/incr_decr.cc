@@ -11,7 +11,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         // If the key didn't exist before, we fail
         if (!old_value) {
-            result.res = store_t::incr_decr_result_t::idr_not_found;
+            result.res = incr_decr_result_t::idr_not_found;
             return false;
         }
         
@@ -30,7 +30,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
             valid = false;
         }
         if (!valid) {
-            result.res = store_t::incr_decr_result_t::idr_not_numeric;
+            result.res = incr_decr_result_t::idr_not_numeric;
             return false;
         }
 
@@ -44,7 +44,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
             else number -= delta;
         }
 
-        result.res = store_t::incr_decr_result_t::idr_success;
+        result.res = incr_decr_result_t::idr_success;
         result.new_value = number;
 
         // We write into our member variable 'temp_value' because the buffer we return must remain
@@ -70,10 +70,10 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         btree_value temp_value;
     };
 
-    store_t::incr_decr_result_t result;
+    incr_decr_result_t result;
 };
 
-store_t::incr_decr_result_t btree_incr_decr(const btree_key *key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime) {
+incr_decr_result_t btree_incr_decr(const btree_key *key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime) {
     btree_incr_decr_oper_t oper(increment, delta);
     run_btree_modify_oper(&oper, slice, key, castime);
     return oper.result;

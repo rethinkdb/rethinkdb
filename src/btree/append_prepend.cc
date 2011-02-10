@@ -11,13 +11,13 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
         try {
             if (!old_value) {
-                result = store_t::apr_not_found;
+                result = apr_not_found;
                 return false;
             }
 
             size_t new_size = old_value->value_size() + data->get_size();
             if (new_size > MAX_VALUE_SIZE) {
-                result = store_t::apr_too_large;
+                result = apr_too_large;
                 return false;
             }
 
@@ -75,7 +75,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
             // Dispatch the data request
 
-            result = store_t::apr_success;
+            result = apr_success;
             try {
                 data->get_data_into_buffers(&buffer_group);
             } catch (data_provider_failed_exc_t) {
@@ -103,7 +103,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
             return true;
 
         } catch (data_provider_failed_exc_t) {
-            result = store_t::apr_data_provider_failed;
+            result = apr_data_provider_failed;
             return false;
         }
     }
@@ -116,7 +116,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         }
     }
 
-    store_t::append_prepend_result_t result;
+    append_prepend_result_t result;
 
     data_provider_t *data;
     bool append;   // true = append, false = prepend
@@ -130,7 +130,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     buffer_group_t buffer_group;
 };
 
-store_t::append_prepend_result_t btree_append_prepend(const btree_key *key, btree_slice_t *slice, data_provider_t *data, bool append, castime_t castime) {
+append_prepend_result_t btree_append_prepend(const btree_key *key, btree_slice_t *slice, data_provider_t *data, bool append, castime_t castime) {
     btree_append_prepend_oper_t oper(data, append);
     run_btree_modify_oper(&oper, slice, key, castime);
     return oper.result;

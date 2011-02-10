@@ -1,3 +1,5 @@
+#include <boost/shared_ptr.hpp>
+
 #include "btree/modify_oper.hpp"
 
 #include "utils.hpp"
@@ -6,7 +8,6 @@
 #include "buffer_cache/large_buf.hpp"
 #include "buffer_cache/large_buf_lock.hpp"
 #include "buffer_cache/transactor.hpp"
-
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 

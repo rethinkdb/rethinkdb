@@ -262,31 +262,31 @@ slice_store_t *btree_key_value_store_t::slice_for_key(const btree_key *key) {
 
 /* store_t interface */
 
-store_t::get_result_t btree_key_value_store_t::get(store_key_t *key) {
+get_result_t btree_key_value_store_t::get(store_key_t *key) {
     return slice_for_key(key)->get(key);
 }
 
-store_t::get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime_t castime) {
+get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime_t castime) {
     return slice_for_key(key)->get_cas(key, castime);
 }
 
-store_t::rget_result_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
+rget_result_ptr_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
     return btree_rget(this, start, end, left_open, right_open);
 }
-store_t::set_result_t btree_key_value_store_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+set_result_t btree_key_value_store_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     return slice_for_key(key)->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
 }
 
 
-store_t::incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
+incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
     return slice_for_key(key)->incr_decr(kind, key, amount, castime);
 }
 
-store_t::append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
+append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
     return slice_for_key(key)->append_prepend(kind, key, data, castime);
 }
 
-store_t::delete_result_t btree_key_value_store_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
+delete_result_t btree_key_value_store_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
     return slice_for_key(key)->delete_key(key, timestamp);
 }
 
