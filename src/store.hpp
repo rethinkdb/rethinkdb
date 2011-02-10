@@ -75,7 +75,7 @@ struct castime_t {
     static castime_t dummy() {
         return castime_t(0, repli_timestamp::invalid);
     }
-    bool is_dummy() {
+    bool is_dummy() const {
         return proposed_cas == 0 && timestamp.time == repli_timestamp::invalid.time;
     }
 };
