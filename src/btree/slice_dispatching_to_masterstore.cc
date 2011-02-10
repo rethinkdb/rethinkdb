@@ -5,21 +5,21 @@
 using replication::masterstore_t;
 
 /* store_t interface. */
-store_t::get_result_t btree_slice_dispatching_to_masterstore_t::get(store_key_t *key) {
+get_result_t btree_slice_dispatching_to_masterstore_t::get(store_key_t *key) {
     on_thread_t th(slice_->home_thread);
     return slice_->get(key);
 }
-store_t::get_result_t btree_slice_dispatching_to_masterstore_t::get_cas(store_key_t *key, castime_t maybe_castime) {
+get_result_t btree_slice_dispatching_to_masterstore_t::get_cas(store_key_t *key, castime_t maybe_castime) {
     on_thread_t th(slice_->home_thread);
     castime_t castime = generate_if_necessary(maybe_castime);
     if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::get_cas, _1, key, castime));
     return slice_->get_cas(key, castime);
 }
-store_t::rget_result_ptr_t btree_slice_dispatching_to_masterstore_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
+rget_result_ptr_t btree_slice_dispatching_to_masterstore_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
     on_thread_t th(slice_->home_thread);
     return slice_->rget(start, end, left_open, right_open);
 }
-store_t::set_result_t btree_slice_dispatching_to_masterstore_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t maybe_castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+set_result_t btree_slice_dispatching_to_masterstore_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t maybe_castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     on_thread_t th(slice_->home_thread);
     castime_t castime = generate_if_necessary(maybe_castime);
 
@@ -32,14 +32,14 @@ store_t::set_result_t btree_slice_dispatching_to_masterstore_t::sarc(store_key_t
     }
 }
 
-store_t::incr_decr_result_t btree_slice_dispatching_to_masterstore_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t maybe_castime) {
+incr_decr_result_t btree_slice_dispatching_to_masterstore_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t maybe_castime) {
     on_thread_t th(slice_->home_thread);
     castime_t castime = generate_if_necessary(maybe_castime);
     if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::incr_decr, _1, kind, key, amount, castime));
     return slice_->incr_decr(kind, key, amount, castime);
 }
 
-store_t::append_prepend_result_t btree_slice_dispatching_to_masterstore_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t maybe_castime) {
+append_prepend_result_t btree_slice_dispatching_to_masterstore_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t maybe_castime) {
     on_thread_t th(slice_->home_thread);
     castime_t castime = generate_if_necessary(maybe_castime);
     if (masterstore_) {
@@ -51,7 +51,7 @@ store_t::append_prepend_result_t btree_slice_dispatching_to_masterstore_t::appen
     }
 }
 
-store_t::delete_result_t btree_slice_dispatching_to_masterstore_t::delete_key(store_key_t *key, repli_timestamp maybe_timestamp) {
+delete_result_t btree_slice_dispatching_to_masterstore_t::delete_key(store_key_t *key, repli_timestamp maybe_timestamp) {
     on_thread_t th(slice_->home_thread);
     repli_timestamp timestamp = generate_if_necessary(maybe_timestamp);
     if (masterstore_) spawn_on_home(masterstore_, boost::bind(&masterstore_t::delete_key, _1, key, timestamp));

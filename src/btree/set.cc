@@ -5,7 +5,7 @@
 
 struct btree_set_oper_t : public btree_modify_oper_t {
     explicit btree_set_oper_t(data_provider_t *data, mcflags_t mcflags, exptime_t exptime,
-            store_t::add_policy_t ap, store_t::replace_policy_t rp, cas_t req_cas)
+            add_policy_t ap, replace_policy_t rp, cas_t req_cas)
         : btree_modify_oper_t(), data(data), mcflags(mcflags), exptime(exptime),
             add_policy(ap), replace_policy(rp), req_cas(req_cas)
     {
@@ -22,14 +22,14 @@ struct btree_set_oper_t : public btree_modify_oper_t {
             /* We may be instructed to abort depending on the old value */
             if (old_value) {
                 switch (replace_policy) {
-                    case store_t::replace_policy_yes:
+                    case replace_policy_yes:
                         break;
-                    case store_t::replace_policy_no:
-                        result = store_t::sr_didnt_replace;
+                    case replace_policy_no:
+                        result = sr_didnt_replace;
                         return false;
-                    case store_t::replace_policy_if_cas_matches:
+                    case replace_policy_if_cas_matches:
                         if (!old_value->has_cas() || old_value->cas() != req_cas) {
-                            result = store_t::sr_didnt_replace;
+                            result = sr_didnt_replace;
                             return false;
                         }
                         break;
@@ -37,17 +37,17 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 }
             } else {
                 switch (add_policy) {
-                    case store_t::add_policy_yes:
+                    case add_policy_yes:
                         break;
-                    case store_t::add_policy_no:
-                        result = store_t::sr_didnt_add;
+                    case add_policy_no:
+                        result = sr_didnt_add;
                         return false;
                     default: unreachable();
                 }
             }
 
             if (data->get_size() > MAX_VALUE_SIZE) {
-                result = store_t::sr_too_large;
+                result = sr_too_large;
                 /* To be standards-compliant we must delete the old value when an effort is made to
                 replace it with a value that is too large. */
                 *new_value = NULL;
@@ -92,13 +92,13 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 }
             }
 
-            result = store_t::sr_stored;
+            result = sr_stored;
             *new_value = &value;
             new_large_buflock.swap(large_buflock);
             return true;
 
         } catch (data_provider_failed_exc_t) {
-            result = store_t::sr_data_provider_failed;
+            result = sr_data_provider_failed;
             return false;
         }
     }
@@ -108,8 +108,8 @@ struct btree_set_oper_t : public btree_modify_oper_t {
     data_provider_t *data;
     mcflags_t mcflags;
     exptime_t exptime;
-    store_t::add_policy_t add_policy;
-    store_t::replace_policy_t replace_policy;
+    add_policy_t add_policy;
+    replace_policy_t replace_policy;
     cas_t req_cas;
 
     union {
@@ -117,12 +117,12 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         btree_value value;
     };
 
-    store_t::set_result_t result;
+    set_result_t result;
 };
 
-store_t::set_result_t btree_set(const btree_key *key, btree_slice_t *slice,
+set_result_t btree_set(const btree_key *key, btree_slice_t *slice,
         data_provider_t *data, mcflags_t mcflags, exptime_t exptime,
-        store_t::add_policy_t add_policy, store_t::replace_policy_t replace_policy, cas_t req_cas,
+        add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
         castime_t castime) {
     btree_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy, req_cas);
     run_btree_modify_oper(&oper, slice, key, castime);

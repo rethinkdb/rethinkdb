@@ -13,7 +13,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/btree_data_provider.hpp"
 
-store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
+get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
     block_pm_duration get_time(&pm_cmd_get);
 
     /* In theory moving back might not be necessary, but not doing it causes problems right now. */
@@ -31,7 +31,7 @@ store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
 
     if (node_id == NULL_BLOCK_ID) {
         /* No root, so no keys in this entire shard */
-        return store_t::get_result_t();
+        return get_result_t();
     }
 
     // Acquire the root and work down the tree to the leaf node
@@ -70,7 +70,7 @@ store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
             btree_delete_expired(key, slice);
 
             /* No key (expired). */
-            return store_t::get_result_t();
+            return get_result_t();
         } else {
             /* Construct a data-provider to hold the result */
             unique_ptr_t<value_data_provider_t> dp(value_data_provider_t::create(value, transactor));
@@ -80,10 +80,10 @@ store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
             // lock.
             buf_lock.release();
 
-            return store_t::get_result_t(dp, value->mcflags(), 0, NULL);
+            return get_result_t(dp, value->mcflags(), 0, NULL);
         }
     } else {
         /* Key not found. */
-        return store_t::get_result_t();
+        return get_result_t();
     }
 }

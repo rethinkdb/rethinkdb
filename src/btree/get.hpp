@@ -7,6 +7,6 @@
 #include "btree/key_value_store.hpp"
 #include "concurrency/cond_var.hpp"
 
-store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice);
+get_result_t btree_get(const btree_key *key, btree_slice_t *slice);
 
 #endif // __BTREE_GET_HPP__
