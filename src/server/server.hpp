@@ -33,31 +33,10 @@ public:
     {
     }
 
-    struct all_gc_disabled_callback_t {
-        bool multiple_users_seen;
-
-        all_gc_disabled_callback_t() : multiple_users_seen(false) { }
-        virtual void on_gc_disabled() = 0;
-        virtual ~all_gc_disabled_callback_t() {}
-    };
-    bool disable_gc(all_gc_disabled_callback_t *);
-    bool do_disable_gc(all_gc_disabled_callback_t *cb);
-
-    struct all_gc_enabled_callback_t {
-        bool multiple_users_seen;
-        
-        all_gc_enabled_callback_t() : multiple_users_seen(false) { }
-        virtual void on_gc_enabled() = 0;
-        virtual ~all_gc_enabled_callback_t() {}
-    };
-    bool enable_gc(all_gc_enabled_callback_t *);
-    bool do_enable_gc(all_gc_enabled_callback_t *cb);
-
     cmd_config_t *cmd_config;
     get_store_t *get_store;
     set_store_interface_t *set_store;
     thread_pool_t *thread_pool;
-
 };
 
 #endif // __SERVER_HPP__
