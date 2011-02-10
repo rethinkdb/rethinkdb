@@ -93,7 +93,7 @@
 #define TIMER_TICKS_IN_MS                         5
 
 // How many milliseconds to allow changes to sit in memory before flushing to disk
-#define DEFAULT_FLUSH_TIMER_MS                    2500
+#define DEFAULT_FLUSH_TIMER_MS                    1000
 
 // flush_waiting_threshold is the maximal number of transactions which can wait
 // for a sync before a flush gets triggered on any single slice. As transactions only wait for
@@ -110,7 +110,11 @@
 // more patches to come.
 // Note: An average write transaction under canonical workload leads to patches of about 75
 // bytes of affected data.
-#define MAX_PATCHES_SIZE_RATIO                    25
+// The actual value is continuously adjusted between MAX_PATCHES_SIZE_RATIO_MIN and
+// MAX_PATCHES_SIZE_RATIO_MAX depending on how much the system is i/o bound
+#define MAX_PATCHES_SIZE_RATIO_MIN                100 // TODO! 50
+#define MAX_PATCHES_SIZE_RATIO_MAX                2
+#define MAX_PATCHES_SIZE_RATIO_DURABILITY         5
 
 // If more than this many bytes of dirty data accumulate in the cache, then write
 // transactions will be throttled.

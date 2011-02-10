@@ -219,24 +219,24 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
         ensure_flush();
     }
 
-    // Check if we want to disable patching for this block and flush it directly instead
     if (!inner_buf->writeback_buf.needs_flush) {
-        const size_t MAX_PATCHES_SIZE = inner_buf->cache->serializer->get_block_size().value() / MAX_PATCHES_SIZE_RATIO;
+        // Check if we want to disable patching for this block and flush it directly instead
+        const size_t MAX_PATCHES_SIZE = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
         if (patch.get_affected_data_size() + inner_buf->cache->diff_core_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
             ensure_flush();
+        } else {
+            // Store the patch if the buffer does not have to be flushed anyway
+            if (patch.get_patch_counter() == 1) {
+                // Clean up any left-over patches
+                inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
+            }
+
+            inner_buf->cache->diff_core_storage.store_patch(patch);
         }
     }
 
-    // Store the patch if the buffer does not have to be flushed anyway
-    if (!inner_buf->writeback_buf.needs_flush) {
-        if (patch.get_patch_counter() == 1) {
-            // Clean up any left-over patches
-            inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
-        }
-
-        inner_buf->cache->diff_core_storage.store_patch(patch);
-    }
-    else {
+    
+    if (inner_buf->writeback_buf.needs_flush) {
         delete &patch;
     }
 }
@@ -541,7 +541,8 @@ mc_cache_t::mc_cache_t(
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
     num_live_transactions(0),
-    diff_oocore_storage(*this)
+    diff_oocore_storage(*this),
+    max_patches_size_ratio(dynamic_config->wait_for_flush ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN)
     {
 }
 

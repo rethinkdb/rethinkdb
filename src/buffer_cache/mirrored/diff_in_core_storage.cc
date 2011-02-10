@@ -76,12 +76,6 @@ bool diff_core_storage_t::apply_patches(const block_id_t block_id, char *buf_dat
     return true;
 }
 
-void diff_core_storage_t::store_patch(buf_patch_t &patch) {
-    const block_id_t block_id = patch.get_block_id();
-    patch_map[block_id].push_back(&patch);
-    patch_map[block_id].affected_data_size += patch.get_affected_data_size();
-}
-
 // Return NULL if no patches exist for that block
 const std::vector<buf_patch_t*>* diff_core_storage_t::get_patches(const block_id_t block_id) const {
     patch_map_t::const_iterator map_entry = patch_map.find(block_id);
@@ -89,14 +83,6 @@ const std::vector<buf_patch_t*>* diff_core_storage_t::get_patches(const block_id
         return NULL;
     else
         return &(map_entry->second);
-}
-
-size_t diff_core_storage_t::get_affected_data_size(const block_id_t block_id) const {
-    patch_map_t::const_iterator map_entry = patch_map.find(block_id);
-    if (map_entry == patch_map.end())
-        return 0;
-    else
-        return map_entry->second.affected_data_size;
 }
 
 void diff_core_storage_t::drop_patches(const block_id_t block_id) {

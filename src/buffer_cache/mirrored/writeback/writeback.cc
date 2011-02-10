@@ -78,6 +78,8 @@ writeback_t::~writeback_t() {
     rassert(active_write_transactions == 0);
 }
 
+perfmon_sampler_t pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), false);
+
 bool writeback_t::sync(sync_callback_t *callback) {
     cache->assert_thread();
 
@@ -96,6 +98,7 @@ bool writeback_t::sync(sync_callback_t *callback) {
         more data that needs to be flushed that didn't become part of the current sync. So we
         start another sync right after this one. */
         start_next_sync_immediately = true;
+
         return false;
     }
 }
@@ -211,6 +214,21 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
 void writeback_t::flush_timer_callback(void *ctx) {
     writeback_t *self = static_cast<writeback_t *>(ctx);
     self->flush_timer = NULL;
+
+    pm_patches_size_ratio.record(self->cache->max_patches_size_ratio);
+
+    if (self->active_flushes < self->max_concurrent_flushes) {
+        /* The currently running writeback probably finished on-time.
+        Adjust max_patches_size_ratio to trade i/o efficiency for CPU cycles */
+        if (!self->wait_for_flush)
+            self->cache->max_patches_size_ratio = (unsigned int)(0.9f * (float)self->cache->max_patches_size_ratio + 0.1f * (float)MAX_PATCHES_SIZE_RATIO_MIN);
+            //self->cache->max_patches_size_ratio = (unsigned int)(0.7f * (float)self->cache->max_patches_size_ratio + 0.3f * (float)MAX_PATCHES_SIZE_RATIO_MIN); // TODO!
+    } else {
+        /* The currently running writeback apparently takes too long.
+        try to reduce that bottleneck by adjusting max_patches_size_ratio */
+        if (!self->wait_for_flush)
+            self->cache->max_patches_size_ratio = (unsigned int)(0.9f * (float)self->cache->max_patches_size_ratio + 0.1f * (float)MAX_PATCHES_SIZE_RATIO_MAX);
+    }
     
     /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on
     the cache, and besides we're about to sync anyway. */
@@ -237,14 +255,18 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     // we instead try to reclaim some space in the on-disk diff storage now.
     // (we only do this occasionally, hoping that most of the time a compression of the log will do the trick)
     // TODO: Tune, refactor constants etc.
-    if (parent->force_diff_storage_flush || randint(1600) < (int)parent->dirty_bufs.size()) {
+    if (parent->force_diff_storage_flush || randint(3200) < (int)parent->dirty_bufs.size()) {
         ticks_t start_time2;
         pm_flushes_diff_flush.begin(&start_time2);
-        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 20 : 200) + 1);
-        parent->force_diff_storage_flush = false;
+        unsigned int blocks_to_flush = (unsigned long long)parent->dirty_bufs.size() * 100ll / parent->cache->get_block_size().value() + 1;
+        if (parent->force_diff_storage_flush) {
+            blocks_to_flush = parent->cache->diff_oocore_storage.get_number_of_log_blocks() / 20 + 1;
+            parent->force_diff_storage_flush = false;
+        }
+        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(blocks_to_flush);
         pm_flushes_diff_flush.end(&start_time2);
     }
-    //parent->cache->diff_oocore_storage.compress_n_oldest_blocks(parent->cache->diff_oocore_storage.get_number_of_log_blocks() / (parent->force_diff_storage_flush ? 20 : 50) + 1);
+    //parent->cache->diff_oocore_storage.compress_n_oldest_blocks(2);
 
     /* Start a read transaction so we can request bufs. */
     rassert(transaction == NULL);

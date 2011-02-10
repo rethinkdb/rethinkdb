@@ -18,11 +18,22 @@ public:
     // Returns true iff any changes have been made to the buf
     bool apply_patches(const block_id_t block_id, char *buf_data) const;
 
-    void store_patch(buf_patch_t &patch);
+    inline void store_patch(buf_patch_t &patch) {
+        const block_id_t block_id = patch.get_block_id();
+        patch_map[block_id].push_back(&patch);
+        patch_map[block_id].affected_data_size += patch.get_affected_data_size();
+    }
 
     // Return NULL if no patches exist for that block
     const std::vector<buf_patch_t*>* get_patches(const block_id_t block_id) const;
-    size_t get_affected_data_size(const block_id_t block_id) const;
+
+    inline size_t get_affected_data_size(const block_id_t block_id) const  {
+        patch_map_t::const_iterator map_entry = patch_map.find(block_id);
+        if (map_entry == patch_map.end())
+            return 0;
+        else
+            return map_entry->second.affected_data_size;
+    }
 
     // Remove all patches for that block (e.g. after patches have been applied and the block gets flushed to disk)
     void drop_patches(const block_id_t block_id);

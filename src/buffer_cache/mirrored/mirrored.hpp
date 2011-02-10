@@ -332,6 +332,7 @@ private:
 private:
     diff_core_storage_t diff_core_storage;
     diff_oocore_storage_t diff_oocore_storage;
+    unsigned int max_patches_size_ratio;
 };
 
 #endif // __MIRRORED_CACHE_HPP__
