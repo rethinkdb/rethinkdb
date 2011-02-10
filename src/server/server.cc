@@ -107,21 +107,22 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             logINF("Loading database...\n");
             //store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
             btree_key_value_store_t store(&cmd_config->store_dynamic_config, NULL /* &masterstore - commented out because masterstore eats the data_provider */);
+            server.get_store = &store;   // Gets always go straight to the key-value store
 
             /* Are we a replication slave? */
             if (cmd_config->replication_config.active) {
                 logINF("Starting up as a slave...\n");
                 slave_store = new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config);
-                server.store = slave_store;
+                server.set_store = slave_store;
             } else {
-                server.store = &store;   /* So things can access it */
+                server.set_store = &store;   /* So things can access it */
             }
 
             /* Start connection acceptor */
             struct : public conn_acceptor_t::handler_t {
                 server_t *parent;
                 void handle(tcp_conn_t *conn) {
-                    serve_memcache(conn, parent->store);
+                    serve_memcache(conn, parent->get_store, parent->set_store);
                 }
             } handler;
             handler.parent = &server;

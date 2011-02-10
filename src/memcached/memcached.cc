@@ -19,11 +19,13 @@ static const char *crlf = "\r\n";
 
 struct txt_memcached_handler_t : public home_thread_mixin_t {
     tcp_conn_t *conn;
-    store_t *store;
+    get_store_t *get_store;
+    set_store_interface_t *set_store;
 
-    txt_memcached_handler_t(tcp_conn_t *conn, store_t *store) :
+    txt_memcached_handler_t(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) :
         conn(conn),
-        store(store),
+        get_store(get_store),
+        set_store(set_store),
         requests_out_sem(MAX_CONCURRENT_QUERIES_PER_CONNECTION)
     { }
 
@@ -162,9 +164,9 @@ struct get_t {
 
 void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i) {
     if (with_cas) {
-        gets[i].res = rh->store->get_cas(&gets[i].key, castime_t::dummy());
+        gets[i].res = rh->set_store->get_cas(&gets[i].key);
     } else {
-        gets[i].res = rh->store->get(&gets[i].key);
+        gets[i].res = rh->get_store->get(&gets[i].key);
     }
 }
 
@@ -283,7 +285,7 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
         return;
     }
 
-    unique_ptr_t<rget_result_t> results_iterator(rh->store->rget(left_key, right_key, left_open == 1, right_open == 1));
+    unique_ptr_t<rget_result_t> results_iterator(rh->get_store->rget(left_key, right_key, left_open == 1, right_open == 1));
 
     boost::optional<key_with_data_provider_t> pair;
     uint64_t count = 0;
@@ -412,7 +414,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
         }
 
         set_result_t res =
-            rh->store->sarc(&key.key, &data, mcflags, exptime, castime_t::dummy(),
+            rh->set_store->sarc(&key.key, &data, mcflags, exptime,
                 add_policy, replace_policy, unique);
         
         if (!noreply) {
@@ -445,9 +447,9 @@ void run_storage_command(txt_memcached_handler_t *rh,
 
     } else {
         append_prepend_result_t res =
-            rh->store->append_prepend(
+            rh->set_store->append_prepend(
                 sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
-                &key.key, &data, castime_t::dummy());
+                &key.key, &data);
 
         if (!noreply) {
             switch (res) {
@@ -577,9 +579,9 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, uint
 
     repli_timestamp timestamp = current_time();
 
-    incr_decr_result_t res = rh->store->incr_decr(
+    incr_decr_result_t res = rh->set_store->incr_decr(
         incr ? incr_decr_INCR : incr_decr_DECR,
-        &key.key, amount, castime_t::dummy());
+        &key.key, amount);
 
     if (!noreply) {
         switch (res.res) {
@@ -647,7 +649,7 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 /* "delete" commands */
 
 void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool noreply) {
-    delete_result_t res = rh->store->delete_key(&key.key, current_time());
+    delete_result_t res = rh->set_store->delete_key(&key.key);
 
     rh->begin_write_command();
 
@@ -804,11 +806,11 @@ bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
 }
 #endif  // NDEBUG
 
-void serve_memcache(tcp_conn_t *conn, store_t *store) {
+void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
     logDBG("Opened connection %p\n", coro_t::self());
 
     /* Object that we pass around to subroutines (is there a better way to do this?) */
-    txt_memcached_handler_t rh(conn, store);
+    txt_memcached_handler_t rh(conn, get_store, set_store);
 
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;

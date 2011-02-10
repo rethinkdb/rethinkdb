@@ -4,12 +4,13 @@
 
 #include "containers/segmented_vector.hpp"
 #include "serializer/log/log_serializer.hpp"
-#include "btree/key_value_store.hpp"
+#include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 #include "buffer_cache/large_buf.hpp"
 #include "fsck/raw_block.hpp"
+#include "server/key_value_store.hpp"
 
 namespace fsck {
 

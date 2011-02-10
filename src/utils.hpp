@@ -49,19 +49,6 @@ void print_hd(const void *buf, size_t offset, size_t length);
 // Fast string compare
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
-// Buffer
-template <int _size>
-struct buffer_base_t
-{
-    char buf[_size];
-    static const int size = _size;
-};
-
-template <int _size>
-struct buffer_t : public buffer_base_t<_size>
-{
-};
-
 std::string strip_spaces(std::string); 
 
 /* The home thread mixin is a simple mixin for objects that are primarily associated with

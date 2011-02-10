@@ -1,6 +1,6 @@
-#include "btree/key_value_store.hpp"
+#include "server/key_value_store.hpp"
 #include "btree/rget.hpp"
-#include "btree/slice_dispatching_to_masterstore.hpp"
+#include "server/slice_dispatching_to_masterstore.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "db_thread_info.hpp"
@@ -102,7 +102,9 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
 
 void create_existing_btree(
         translator_serializer_t **pseudoserializers,
-        slice_store_t **slices,
+        btree_slice_t **btrees,
+        btree_slice_dispatching_to_masterstore_t **dispatchers,
+        timestamping_set_store_interface_t **timestampers,
         mirrored_cache_config_t *config,
         replication::masterstore_t *masterstore,
         int i) {
@@ -111,12 +113,9 @@ void create_existing_btree(
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    btree_slice_t *sl = new btree_slice_t(pseudoserializers[i], config);
-    //    if (masterstore) {  /* commented out to avoid temporarily breaking master.  btree_slice_dispatching_to_masterstore_t handles NULL masterstore gracefully, for now */
-        slices[i] = new btree_slice_dispatching_to_masterstore_t(sl, masterstore);
-        //    } else {
-        //        slices[i] = sl;
-        //    }
+    btrees[i] = new btree_slice_t(pseudoserializers[i], config);
+    dispatchers[i] = new btree_slice_dispatching_to_masterstore_t(btrees[i], masterstore);
+    timestampers[i] = new timestamping_set_store_interface_t(dispatchers[i]);
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
@@ -146,22 +145,26 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     per_slice_config.max_dirty_size /= btree_static_config.n_slices;
     per_slice_config.flush_dirty_size /= btree_static_config.n_slices;
     pmap(btree_static_config.n_slices, boost::bind(&create_existing_btree,
-         multiplexer->proxies.data(), slices, &per_slice_config, masterstore, _1));
+         multiplexer->proxies.data(), btrees, dispatchers, timestampers, &per_slice_config, masterstore, _1));
 }
 
 void destroy_btree(
-        slice_store_t **slices,
+        btree_slice_t **btrees,
+        btree_slice_dispatching_to_masterstore_t **dispatchers,
+        timestamping_set_store_interface_t **timestampers,
         int i) {
 
-    on_thread_t thread_switcher(slices[i]->slice_home_thread());
+    on_thread_t thread_switcher(btrees[i]->home_thread);
 
-    delete slices[i];
+    delete timestampers[i];
+    delete dispatchers[i];
+    delete btrees[i];
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {
 
     /* Shut down btrees */
-    pmap(btree_static_config.n_slices, boost::bind(&destroy_btree, slices, _1));
+    pmap(btree_static_config.n_slices, boost::bind(&destroy_btree, btrees, dispatchers, timestampers, _1));
 
     /* Destroy proxy-serializers */
     delete multiplexer;
@@ -256,45 +259,102 @@ uint32_t btree_key_value_store_t::slice_num(const btree_key *key) {
     return hash(key) % btree_static_config.n_slices;
 }
 
-slice_store_t *btree_key_value_store_t::slice_for_key(const btree_key *key) {
-    return slices[slice_num(key)];
+set_store_interface_t *btree_key_value_store_t::slice_for_key_set_interface(const btree_key *key) {
+    return timestampers[slice_num(key)];
 }
 
-/* store_t interface */
+set_store_t *btree_key_value_store_t::slice_for_key_set(const btree_key *key) {
+    return dispatchers[slice_num(key)];
+}
+
+get_store_t *btree_key_value_store_t::slice_for_key_get(const btree_key *key) {
+    return btrees[slice_num(key)];
+}
+
+/* get_store_t interface */
 
 get_result_t btree_key_value_store_t::get(store_key_t *key) {
-    return slice_for_key(key)->get(key);
+    return slice_for_key_get(key)->get(key);
 }
 
-get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime_t castime) {
-    return slice_for_key(key)->get_cas(key, castime);
-}
+typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
+
+template<class T>
+struct pm_iterator_wrapper_t : one_way_iterator_t<T> {
+    pm_iterator_wrapper_t(one_way_iterator_t<T> * wrapped, perfmon_duration_sampler_t *pm) :
+        wrapped(wrapped), block_pm(pm) { }
+    ~pm_iterator_wrapper_t() {
+        delete wrapped;
+    }
+    typename boost::optional<T> next() {
+        return wrapped->next();
+    }
+    void prefetch() {
+        wrapped->prefetch();
+    }
+    one_way_iterator_t<T> *get_wrapped() {
+        return wrapped;
+    }
+private:
+    one_way_iterator_t<T> *wrapped;
+    block_pm_duration block_pm;
+};
 
 rget_result_ptr_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
-    return btree_rget(this, start, end, left_open, right_open);
-}
-set_result_t btree_key_value_store_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    return slice_for_key(key)->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
+
+    thread_saver_t thread_saver;
+
+    /* TODO: Wrapped iterators are weird and we shouldn't have them. Instead we should do all of the
+    perfmonning for different operations up at the memcached level. */
+    unique_ptr_t<pm_iterator_wrapper_t<key_with_data_provider_t> > wrapped_iterator(new pm_iterator_wrapper_t<key_with_data_provider_t>(new merged_results_iterator_t(), &pm_cmd_rget));
+
+    merged_results_iterator_t *merge_iterator = ptr_cast<merged_results_iterator_t>(wrapped_iterator->get_wrapped());
+    for (int s = 0; s < btree_static_config.n_slices; s++) {
+        merge_iterator->add_mergee(btrees[s]->rget(start, end, left_open, right_open));
+    }
+    return wrapped_iterator.release();
 }
 
+/* set_store_interface_t interface */
+
+get_result_t btree_key_value_store_t::get_cas(store_key_t *key) {
+    return slice_for_key_set_interface(key)->get_cas(key);
+}
+
+set_result_t btree_key_value_store_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+    return slice_for_key_set_interface(key)->sarc(key, data, flags, exptime, add_policy, replace_policy, old_cas);
+}
+
+incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount) {
+    return slice_for_key_set_interface(key)->incr_decr(kind, key, amount);
+}
+
+append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data) {
+    return slice_for_key_set_interface(key)->append_prepend(kind, key, data);
+}
+
+delete_result_t btree_key_value_store_t::delete_key(store_key_t *key) {
+    return slice_for_key_set_interface(key)->delete_key(key);
+}
+
+/* set_store_t interface */
+
+get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime_t castime) {
+    return slice_for_key_set(key)->get_cas(key, castime);
+}
+
+set_result_t btree_key_value_store_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+    return slice_for_key_set(key)->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
+}
 
 incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
-    return slice_for_key(key)->incr_decr(kind, key, amount, castime);
+    return slice_for_key_set(key)->incr_decr(kind, key, amount, castime);
 }
 
 append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
-    return slice_for_key(key)->append_prepend(kind, key, data, castime);
+    return slice_for_key_set(key)->append_prepend(kind, key, data, castime);
 }
 
 delete_result_t btree_key_value_store_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
-    return slice_for_key(key)->delete_key(key, timestamp);
+    return slice_for_key_set(key)->delete_key(key, timestamp);
 }
-
-// Stats
-
-perfmon_duration_sampler_t
-    pm_cmd_set("cmd_set", secs_to_ticks(1)),
-    pm_cmd_get_without_threads("cmd_get_without_threads", secs_to_ticks(1)),
-    pm_cmd_get("cmd_get", secs_to_ticks(1)),
-    pm_cmd_rget("cmd_rget", secs_to_ticks(1));
-

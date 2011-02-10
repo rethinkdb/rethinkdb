@@ -62,24 +62,6 @@ union store_key_and_buffer_t {
     char buffer[sizeof(store_key_t) + MAX_KEY_SIZE];
 };
 
-// A castime_t contains proposed cas information (if it's needed) and
-// timestamp information.  By deciding these now and passing them in
-// at the top, the precise same information gets sent to the replicas.
-struct castime_t {
-    cas_t proposed_cas;
-    repli_timestamp timestamp;
-
-    castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
-        : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
-
-    static castime_t dummy() {
-        return castime_t(0, repli_timestamp::invalid);
-    }
-    bool is_dummy() {
-        return proposed_cas == 0 && timestamp.time == repli_timestamp::invalid.time;
-    }
-};
-
 struct get_result_t {
     get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
         value(v), flags(f), cas(c), to_signal_when_done(s) { }
@@ -92,6 +74,23 @@ struct get_result_t {
     mcflags_t flags;
     cas_t cas;
     threadsafe_cond_t *to_signal_when_done;
+};
+
+struct get_store_t {
+
+    virtual get_result_t get(store_key_t *key) = 0;
+    virtual rget_result_ptr_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
+};
+
+// A castime_t contains proposed cas information (if it's needed) and
+// timestamp information.  By deciding these now and passing them in
+// at the top, the precise same information gets sent to the replicas.
+struct castime_t {
+    cas_t proposed_cas;
+    repli_timestamp timestamp;
+
+    castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
+        : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
 };
 
 enum set_result_t {
@@ -156,19 +155,68 @@ enum delete_result_t {
     dr_not_allowed
 };
 
-class store_t {
+class set_store_interface_t {
 
 public:
-    virtual get_result_t get(store_key_t *key) = 0;
+    virtual get_result_t get_cas(store_key_t *key) = 0;
+
+    virtual set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
+    virtual delete_result_t delete_key(store_key_t *key) = 0;
+
+    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount) = 0;
+    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data) = 0;
+
+    virtual ~set_store_interface_t() {}
+};
+
+/* set_store_t is different from set_store_interface_t in that it is completely deterministic. If
+you have two identical set_store_ts and you send exactly the same data to them, you will put them
+into exactly the same state. This is important for keeping replicas in sync.
+
+Usually, all of the changes for a given key must arrive at a set_store_t from the same thread;
+otherwise this would defeat the purpose of being deterministic because they would arrive in an
+arbitrary order.*/
+
+class set_store_t {
+
+public:
+    /* get_cas is in set_store_t instead of get_store_t because it may require modifying the
+    database if no CAS had ever been set for that key. */
     virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;
-    virtual rget_result_ptr_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
 
     virtual set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
-    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) = 0;
-    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) = 0;
     virtual delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp) = 0;
 
-    virtual ~store_t() {}
+    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) = 0;
+    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) = 0;
+
+    virtual ~set_store_t() {}
+};
+
+/* timestamping_store_interface_t timestamps any operations that are given to it and then passes
+them on to the underlying store_t. It also linearizes operations; it routes all operations to its
+home thread before passing them on, so they happen in a well-defined order. In this way it acts as
+a translator between set_store_interface_t and set_store_t. */
+
+class timestamping_set_store_interface_t :
+    public set_store_interface_t,
+    public home_thread_mixin_t
+{
+
+public:
+    timestamping_set_store_interface_t(set_store_t *target);
+
+    get_result_t get_cas(store_key_t *key);
+
+    set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data);
+    delete_result_t delete_key(store_key_t *key);
+
+private:
+    castime_t make_castime();
+    set_store_t *target;
+    int cas_counter;
 };
 
 #endif /* __STORE_HPP__ */

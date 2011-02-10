@@ -44,7 +44,7 @@ key_with_data_provider_t leaf_iterator_t::pair_to_key_with_data_provider(const b
         unique_ptr_t<data_provider_t>(data_provider));
 }
 
-slice_leaves_iterator_t::slice_leaves_iterator_t(const boost::shared_ptr<transactor_t>& transactor, slice_store_t *slice,
+slice_leaves_iterator_t::slice_leaves_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice,
     store_key_t *start, store_key_t *end, bool left_open, bool right_open) : 
         transactor(transactor), slice(slice),
         start(start), end(end), left_open(left_open), right_open(right_open),
@@ -78,7 +78,7 @@ void slice_leaves_iterator_t::done() {
 }
 
 boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
-    on_thread_t mover(slice->slice_home_thread()); // Move to the slice's thread.
+    on_thread_t mover(slice->home_thread); // Move to the slice's thread.
 
     started = true;
     buf_lock_t *buf_lock = new buf_lock_t(*transactor, block_id_t(SUPERBLOCK_ID), rwi_read);
@@ -161,7 +161,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_next_leaf() {
 }
 
 boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(block_id_t node_id) {
-    on_thread_t mover(slice->slice_home_thread()); // Move to the slice's thread.
+    on_thread_t mover(slice->home_thread); // Move to the slice's thread.
 
     buf_lock_t *buf_lock = new buf_lock_t(*transactor, node_id, rwi_read);
     const node_t *node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
@@ -195,7 +195,7 @@ block_id_t slice_leaves_iterator_t::get_child_id(const internal_node_t *i_node, 
     return child_id;
 }
 
-slice_keys_iterator_t::slice_keys_iterator_t(const boost::shared_ptr<transactor_t>& transactor_, slice_store_t *slice_, store_key_t *start_, store_key_t *end_, bool left_open_, bool right_open_) :
+slice_keys_iterator_t::slice_keys_iterator_t(const boost::shared_ptr<transactor_t>& transactor_, btree_slice_t *slice_, store_key_t *start_, store_key_t *end_, bool left_open_, bool right_open_) :
     transactor(transactor_), slice(slice_),
     start(start_), start_str(start_ == NULL ? std::string() : key_to_str(start_)),
     end(end_), end_str(end_ == NULL ? std::string() : key_to_str(end_)),
