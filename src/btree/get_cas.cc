@@ -34,7 +34,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
 
         // Need to block on the caller so we don't free the large value before it's done
         // Deliver the value to the client via the promise_t we got
-        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
+        unique_ptr_t<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
         if (value.is_large()) {
             threadsafe_cond_t to_signal_when_done;
             res->pulse(store_t::get_result_t(dp, value.mcflags(), value.cas(), &to_signal_when_done));

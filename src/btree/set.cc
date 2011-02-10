@@ -1,3 +1,4 @@
+#include <boost/shared_ptr.hpp>
 #include "set.hpp"
 #include "btree/modify_oper.hpp"
 #include "buffer_cache/co_functions.hpp"

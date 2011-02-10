@@ -6,7 +6,7 @@
 #include "data_provider.hpp"
 #include "concurrency/cond_var.hpp"
 #include "containers/iterators.hpp"
-#include <boost/shared_ptr.hpp>
+#include "containers/unique_ptr.hpp"
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
@@ -43,9 +43,9 @@ inline std::string key_to_str(const store_key_t* key) {
 struct key_with_data_provider_t {
     std::string key;
     mcflags_t mcflags;
-    boost::shared_ptr<data_provider_t> value_provider;
+    unique_ptr_t<data_provider_t> value_provider;
 
-    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, boost::shared_ptr<data_provider_t> value_provider) :
+    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, unique_ptr_t<data_provider_t> value_provider) :
         key(key), mcflags(mcflags), value_provider(value_provider) { }
 
     struct less {
@@ -54,7 +54,6 @@ struct key_with_data_provider_t {
         }
     };
 };
-
 
 union store_key_and_buffer_t {
     store_key_t key;
@@ -88,15 +87,14 @@ public:
     the value of 'cas' is undefined and should be ignored. */
 
     struct get_result_t {
-        get_result_t(boost::shared_ptr<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
+        get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
             value(v), flags(f), cas(c), to_signal_when_done(s) { }
         get_result_t() :
             value(), flags(0), cas(0), to_signal_when_done(NULL) { }
 
-        // NULL means not found. If non-NULL you are responsible for calling get_data_as_buffer(),
-        // or get_data_into_buffer() on value. Parts of the store may wait for the data_provider_t's
-        // destructor, so don't hold on to it forever.
-        boost::shared_ptr<data_provider_t> value;
+        // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
+        // so don't hold on to it forever.
+        unique_ptr_t<data_provider_t> value;
         mcflags_t flags;
         cas_t cas;
         threadsafe_cond_t *to_signal_when_done;

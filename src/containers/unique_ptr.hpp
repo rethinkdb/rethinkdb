@@ -13,6 +13,9 @@ this hack. It's like an auto_ptr, but with two differences:
 
 template<class T>
 class unique_ptr_t {
+
+    template<class T2> friend class unique_ptr_t;
+
     mutable T *ptr;
 #ifndef NDEBUG
     mutable bool ok;
@@ -24,25 +27,39 @@ public:
     }
 
     unique_ptr_t() throw () : ptr(NULL) {
-        DEBUG_ONLY(ok = false);
+        DEBUG_ONLY(ok = true);
     }
 
-    unique_ptr_t(const unique_ptr_t &other) throw () : ptr(other.release()) {
-        DEBUG_ONLY(ok = true);
+    unique_ptr_t(const unique_ptr_t &other) throw () : ptr(NULL) {
+        DEBUG_ONLY(ok = false);
+        *this = other;
     }
 
     template<class T2>
-    unique_ptr_t(const unique_ptr_t<T2> &other) throw () : ptr(other.release()) {
-        DEBUG_ONLY(ok = true);
+    unique_ptr_t(const unique_ptr_t<T2> &other) throw () : ptr(NULL) {
+        DEBUG_ONLY(ok = false);
+        *this = other;
     }
 
     unique_ptr_t &operator=(const unique_ptr_t &other) throw () {
+#ifndef NDEBUG
+        if (other.ok) reset(other.release());
+        else reset_invalid();
+#else
         reset(other.release());
+#endif
+        return *this;
     }
 
     template<class T2>
     unique_ptr_t &operator=(const unique_ptr_t<T2> &other) throw () {
+#ifndef NDEBUG
+        if (other.ok) reset(other.release());
+        else reset_invalid();
+#else
         reset(other.release());
+#endif
+        return *this;
     }
 
     T *get() const throw () {
@@ -51,12 +68,17 @@ public:
     }
     T *operator->() const throw () { return get(); }
     T &operator*() const throw () { return *get(); }
+    operator bool() const throw () { return bool(get()); }
 
-    void reset(T *x = NULL) {
+    void reset_invalid() {
         if (ptr) {
             rassert(ok);
             delete ptr;
         }
+    }
+
+    void reset(T *x = NULL) {
+        reset_invalid();
         DEBUG_ONLY(ok = true);
         ptr = x;
     };
@@ -69,7 +91,7 @@ public:
     }
 
     ~unique_ptr_t() {
-        reset();
+        reset_invalid();
     }
 };
 
