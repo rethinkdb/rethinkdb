@@ -66,7 +66,7 @@ store_t::get_result_t slave_t::get_cas(store_key_t *key, castime_t castime)
     return internal_store->get_cas(key, castime);
 }
 
-store_t::rget_result_t slave_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
+store_t::rget_result_ptr_t slave_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
     return internal_store->rget(start, end, left_open, right_open);
 }
 

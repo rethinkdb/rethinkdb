@@ -6,6 +6,7 @@
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
+#include "containers/unique_ptr.hpp"
 #include "arch/arch.hpp"
 #include "store.hpp"
 #include "logger.hpp"
@@ -282,7 +283,7 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
         return;
     }
 
-    store_t::rget_result_t results_iterator = rh->store->rget(left_key, right_key, left_open == 1, right_open == 1);
+    unique_ptr_t<store_t::rget_result_t> results_iterator(rh->store->rget(left_key, right_key, left_open == 1, right_open == 1));
 
     boost::optional<key_with_data_provider_t> pair;
     uint64_t count = 0;
@@ -290,15 +291,13 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
         const key_with_data_provider_t& kv = pair.get();
 
         const std::string& key = kv.key;
-        const boost::shared_ptr<data_provider_t>& dp = kv.value_provider;
+        const unique_ptr_t<data_provider_t>& dp = kv.value_provider;
 
         rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->get_size());
         rh->write_from_data_provider(dp.get());
         rh->write_crlf();
     }
     rh->write_end();
-
-    delete results_iterator;
 }
 
 /* "set", "add", "replace", "cas", "append", and "prepend" command logic */
@@ -385,23 +384,52 @@ void run_storage_command(txt_memcached_handler_t *rh,
     repli_timestamp timestamp = current_time();
 
     if (sc != append_command && sc != prepend_command) {
-        store_t::set_result_t res;
+
+        store_t::add_policy_t add_policy;
+        store_t::replace_policy_t replace_policy;
+
         switch (sc) {
-        case set_command: res = rh->store->set(&key.key, &data, mcflags, exptime, castime_t::dummy()); break;
-        case add_command: res = rh->store->add(&key.key, &data, mcflags, exptime, castime_t::dummy()); break;
-        case replace_command: res = rh->store->replace(&key.key, &data, mcflags, exptime, castime_t::dummy()); break;
-        case cas_command: res = rh->store->cas(&key.key, &data, mcflags, exptime, unique, castime_t::dummy()); break;
+        case set_command:
+            add_policy = store_t::add_policy_yes;
+            replace_policy = store_t::replace_policy_yes;
+            break;
+        case add_command:
+            add_policy = store_t::add_policy_yes;
+            replace_policy = store_t::replace_policy_no;
+            break;
+        case replace_command:
+            add_policy = store_t::add_policy_no;
+            replace_policy = store_t::replace_policy_yes;
+            break;
+        case cas_command:
+            add_policy = store_t::add_policy_no;
+            replace_policy = store_t::replace_policy_if_cas_matches;
+            break;
         case append_command:
         case prepend_command:
         default:
             unreachable();
         }
+
+        store_t::set_result_t res =
+            rh->store->sarc(&key.key, &data, mcflags, exptime, castime_t::dummy(),
+                add_policy, replace_policy, unique);
+        
         if (!noreply) {
             switch (res) {
-                case store_t::sr_stored: rh->writef("STORED\r\n"); break;
-                case store_t::sr_not_stored: rh->writef("NOT_STORED\r\n"); break;
-                case store_t::sr_exists: rh->writef("EXISTS\r\n"); break;
-                case store_t::sr_not_found: rh->writef("NOT_FOUND\r\n"); break;
+                case store_t::sr_stored:
+                    rh->writef("STORED\r\n");
+                    break;
+                case store_t::sr_didnt_add:
+                    if (sc == replace_command) rh->writef("NOT_STORED\r\n");
+                    else if (sc == cas_command) rh->writef("NOT_FOUND\r\n");
+                    else unreachable();
+                    break;
+                case store_t::sr_didnt_replace:
+                    if (sc == add_command) rh->writef("NOT_STORED\r\n");
+                    else if (sc == cas_command) rh->writef("EXISTS\r\n");
+                    else unreachable();
+                    break;
                 case store_t::sr_too_large:
                     rh->server_error_object_too_large_for_cache();
                     break;
@@ -414,18 +442,13 @@ void run_storage_command(txt_memcached_handler_t *rh,
                 default: unreachable();
             }
         }
+
     } else {
-        store_t::append_prepend_result_t res;
-        switch (sc) {
-        case append_command: res = rh->store->append(&key.key, &data, castime_t::dummy()); break;
-        case prepend_command: res = rh->store->prepend(&key.key, &data, castime_t::dummy()); break;
-        case set_command:
-        case add_command:
-        case replace_command:
-        case cas_command:
-        default:
-            unreachable();
-        }
+        store_t::append_prepend_result_t res =
+            rh->store->append_prepend(
+                sc == append_command ? store_t::append_prepend_APPEND : store_t::append_prepend_PREPEND,
+                &key.key, &data, castime_t::dummy());
+
         if (!noreply) {
             switch (res) {
                 case store_t::apr_success: rh->writef("STORED\r\n"); break;
@@ -507,7 +530,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     }
 
     /* If a "cas", parse the cas_command unique */
-    cas_t unique = 0;
+    cas_t unique = store_t::NO_CAS_SUPPLIED;
     if (sc == cas_command) {
         unique = strtoull_strict(argv[5], &invalid_char, 10);
         if (*invalid_char != '\0') {
@@ -534,7 +557,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     promise_t<bool> value_read_promise;
 
     if (noreply) {
-        coro_t::spawn(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, true));
+        coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, true));
     } else {
         run_storage_command(rh, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, false);
     }
@@ -549,11 +572,14 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 
 /* "incr" and "decr" commands */
 void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, uint64_t amount, bool incr, bool noreply) {
+
+    rh->begin_write_command();
+
     repli_timestamp timestamp = current_time();
 
-    store_t::incr_decr_result_t res = incr ?
-        rh->store->incr(&key.key, amount, castime_t::dummy()) :
-        rh->store->decr(&key.key, amount, castime_t::dummy());
+    store_t::incr_decr_result_t res = rh->store->incr_decr(
+        incr ? store_t::incr_decr_INCR : store_t::incr_decr_DECR,
+        &key.key, amount, castime_t::dummy());
 
     if (!noreply) {
         switch (res.res) {
@@ -611,10 +637,8 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
         noreply = false;
     }
 
-    rh->begin_write_command();
-
     if (noreply) {
-        coro_t::spawn(boost::bind(&run_incr_decr, rh, key, delta, i, true));
+        coro_t::spawn_now(boost::bind(&run_incr_decr, rh, key, delta, i, true));
     } else {
         run_incr_decr(rh, key, delta, i, false);
     }
@@ -624,6 +648,8 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 
 void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool noreply) {
     store_t::delete_result_t res = rh->store->delete_key(&key.key, current_time());
+
+    rh->begin_write_command();
 
     if (!noreply) {
         switch (res) {
@@ -678,11 +704,8 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
         noreply = false;
     }
 
-    /* The corresponding call to end_write_command() is in do_delete() */
-    rh->begin_write_command();
-
     if (noreply) {
-        coro_t::spawn(boost::bind(&run_delete, rh, key, true));
+        coro_t::spawn_now(boost::bind(&run_delete, rh, key, true));
     } else {
         run_delete(rh, key, false);
     }

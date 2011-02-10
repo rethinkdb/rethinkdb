@@ -6,7 +6,7 @@
 #include "data_provider.hpp"
 #include "concurrency/cond_var.hpp"
 #include "containers/iterators.hpp"
-#include <boost/shared_ptr.hpp>
+#include "containers/unique_ptr.hpp"
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
@@ -43,9 +43,9 @@ inline std::string key_to_str(const store_key_t* key) {
 struct key_with_data_provider_t {
     std::string key;
     mcflags_t mcflags;
-    boost::shared_ptr<data_provider_t> value_provider;
+    unique_ptr_t<data_provider_t> value_provider;
 
-    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, boost::shared_ptr<data_provider_t> value_provider) :
+    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, unique_ptr_t<data_provider_t> value_provider) :
         key(key), mcflags(mcflags), value_provider(value_provider) { }
 
     struct less {
@@ -54,7 +54,6 @@ struct key_with_data_provider_t {
         }
     };
 };
-
 
 union store_key_and_buffer_t {
     store_key_t key;
@@ -88,15 +87,14 @@ public:
     the value of 'cas' is undefined and should be ignored. */
 
     struct get_result_t {
-        get_result_t(boost::shared_ptr<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
+        get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
             value(v), flags(f), cas(c), to_signal_when_done(s) { }
         get_result_t() :
             value(), flags(0), cas(0), to_signal_when_done(NULL) { }
 
-        // NULL means not found. If non-NULL you are responsible for calling get_data_as_buffer(),
-        // or get_data_into_buffer() on value. Parts of the store may wait for the data_provider_t's
-        // destructor, so don't hold on to it forever.
-        boost::shared_ptr<data_provider_t> value;
+        // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
+        // so don't hold on to it forever.
+        unique_ptr_t<data_provider_t> value;
         mcflags_t flags;
         cas_t cas;
         threadsafe_cond_t *to_signal_when_done;
@@ -104,8 +102,9 @@ public:
     virtual get_result_t get(store_key_t *key) = 0;
     virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;
 
-    typedef one_way_iterator_t<key_with_data_provider_t>* rget_result_t;
-    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
+    typedef one_way_iterator_t<key_with_data_provider_t> rget_result_t;
+    typedef rget_result_t* rget_result_ptr_t;
+    virtual rget_result_ptr_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
 
     /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
     to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on
@@ -115,12 +114,11 @@ public:
     enum set_result_t {
         /* Returned on success */
         sr_stored,
-        /* Returned if you add() and it already exists or you replace() and it doesn't */
-        sr_not_stored,
-        /* Returned if you cas() and the key does not exist. */
-        sr_not_found,
-        /* Returned if you cas() and the key was modified since get_cas(). */
-        sr_exists,
+        /* Returned if add_policy is add_policy_no and the key is absent */
+        sr_didnt_add,
+        /* Returned if replace_policy is replace_policy_no and the key is present or replace_policy
+        is replace_policy_if_cas_matches and the CAS does not match */
+        sr_didnt_replace,
         /* Returned if the value to be stored is too big */
         sr_too_large,
         /* Returned if the data_provider_t that you gave returned have_failed(). */
@@ -144,20 +142,6 @@ public:
 
     virtual set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
 
-
-    set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-        return sarc(key, data, flags, exptime, castime, add_policy_yes, replace_policy_yes, NO_CAS_SUPPLIED);
-    }
-    set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-        return sarc(key, data, flags, exptime, castime, add_policy_yes, replace_policy_no, NO_CAS_SUPPLIED);
-    }
-    set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-        return sarc(key, data, flags, exptime, castime, add_policy_no, replace_policy_yes, NO_CAS_SUPPLIED);
-    }
-    set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
-        return sarc(key, data, flags, exptime, castime, add_policy_no, replace_policy_if_cas_matches, unique);
-    }
-
     /* To increment or decrement a value, use incr() or decr(). They're pretty straight-forward. */
 
     struct incr_decr_result_t {
@@ -178,12 +162,6 @@ public:
     };
 
     virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) = 0;
-    incr_decr_result_t incr(store_key_t *key, uint64_t amount, castime_t castime) {
-        return incr_decr(incr_decr_INCR, key, amount, castime);
-    }
-    incr_decr_result_t decr(store_key_t *key, uint64_t amount, castime_t castime) {
-        return incr_decr(incr_decr_DECR, key, amount, castime);
-    }
 
     /* To append or prepend a value, use append() or prepend(). */
 
@@ -198,13 +176,6 @@ public:
     enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
 
     virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) = 0;
-
-    append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime) {
-        return append_prepend(append_prepend_APPEND, key, data, castime);
-    }
-    append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime) {
-        return append_prepend(append_prepend_PREPEND, key, data, castime);
-    }
 
     /* To delete a key-value pair, use delete(). */
 

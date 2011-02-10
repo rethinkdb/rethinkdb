@@ -73,7 +73,7 @@ store_t::get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
             return store_t::get_result_t();
         } else {
             /* Construct a data-provider to hold the result */
-            boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value, transactor));
+            unique_ptr_t<value_data_provider_t> dp(value_data_provider_t::create(value, transactor));
 
             // Data provider created above copies the small value (and doesn't
             // need the buf for the large value), so we can release the buf
