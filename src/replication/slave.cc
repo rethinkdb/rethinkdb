@@ -123,10 +123,7 @@ void slave_t::hello(net_hello_t message) { }
 void slave_t::send(buffed_data_t<net_backfill_t>& message) { }
 void slave_t::send(buffed_data_t<net_announce_t>& message) { }
 void slave_t::send(buffed_data_t<net_get_cas_t>& message) { }
-void slave_t::send(stream_pair<net_set_t>& message) { }
-void slave_t::send(stream_pair<net_add_t>& message) { }
-void slave_t::send(stream_pair<net_replace_t>& message) { }
-void slave_t::send(stream_pair<net_cas_t>& message) { }
+void slave_t::send(stream_pair<net_sarc_t>& message) { }
 void slave_t::send(buffed_data_t<net_incr_t>& message) { }
 void slave_t::send(buffed_data_t<net_decr_t>& message) { }
 void slave_t::send(stream_pair<net_append_t>& message) { }

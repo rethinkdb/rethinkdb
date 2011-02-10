@@ -47,55 +47,20 @@ void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, ex
     debugf("sarcing...\n");
     if (slave_) {
         debugf("the slave was alive.. sending...\n");
-        if (add_policy == add_policy_yes) {
-            if (replace_policy == replace_policy_yes) {
-                setlike<net_set_t>(SET, key, data, flags, exptime, castime);
-            } else if (replace_policy == replace_policy_no) {
-                setlike<net_add_t>(ADD, key, data, flags, exptime, castime);
-            } else {
-                rassert(false, "invalid sarc operation");
-                logWRN("invalid sarc operation in master.\n");
-            }
-        } else {
-            if (replace_policy == replace_policy_yes) {
-                setlike<net_replace_t>(REPLACE, key, data, flags, exptime, castime);
-            } else if (replace_policy == replace_policy_if_cas_matches) {
-                cas(key, data, flags, exptime, old_cas, castime);
-            } else {
-                rassert(false, "invalid sarc operation");
-                logWRN("invalid sarc operation in master\n");
-            }
-        }
+
+        net_sarc_t stru;
+        stru.timestamp = castime.timestamp;
+        stru.proposed_cas = castime.proposed_cas;
+        stru.flags = flags;
+        stru.exptime = exptime;
+        stru.key_size = key->size;
+        stru.value_size = data->get_size();
+        stru.add_policy = add_policy;
+        stru.replace_policy = replace_policy;
+        stru.old_cas = old_cas;
+        stereotypical(SARC, key, data, stru);
     }
     delete data;
-}
-
-template <class net_struct_type>
-void master_t::setlike(int msgcode, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    net_struct_type setstruct;
-    setstruct.timestamp = castime.timestamp;
-    setstruct.proposed_cas = castime.proposed_cas;
-    setstruct.flags = flags;
-    setstruct.exptime = exptime;
-    setstruct.key_size = key->size;
-    setstruct.value_size = data->get_size();
-
-    stereotypical(msgcode, key, data, setstruct);
-}
-
-void master_t::cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
-    if (slave_) {
-        net_cas_t casstruct;
-        casstruct.timestamp = castime.timestamp;
-        casstruct.expected_cas = unique;
-        casstruct.proposed_cas = castime.proposed_cas;
-        casstruct.flags = flags;
-        casstruct.exptime = exptime;
-        casstruct.key_size = key->size;
-        casstruct.value_size = data->get_size();
-
-        stereotypical(CAS, key, data, casstruct);
-    }
 }
 
 void master_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {

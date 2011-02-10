@@ -30,10 +30,7 @@ public:
     virtual void send(buffed_data_t<net_backfill_t>& message) = 0;
     virtual void send(buffed_data_t<net_announce_t>& message) = 0;
     virtual void send(buffed_data_t<net_get_cas_t>& message) = 0;
-    virtual void send(stream_pair<net_set_t>& message) = 0;
-    virtual void send(stream_pair<net_add_t>& message) = 0;
-    virtual void send(stream_pair<net_replace_t>& message) = 0;
-    virtual void send(stream_pair<net_cas_t>& message) = 0;
+    virtual void send(stream_pair<net_sarc_t>& message) = 0;
     virtual void send(buffed_data_t<net_incr_t>& message) = 0;
     virtual void send(buffed_data_t<net_decr_t>& message) = 0;
     virtual void send(stream_pair<net_append_t>& message) = 0;

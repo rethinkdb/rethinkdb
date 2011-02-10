@@ -46,15 +46,8 @@ public:
 
 
 private:
-    // TODO get rid of this.. someday.
-    void cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
-
-
     // Spawns a coroutine.
     void send_data_with_ident(data_provider_t *data, uint32_t ident);
-
-    template <class net_struct_type>
-    void setlike(int msgcode, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
 
     template <class net_struct_type>
     void incr_decr_like(uint8_t msgcode, store_key_t *key, uint64_t amount, castime_t castime);

@@ -41,19 +41,13 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
 }
 
 template <class T> struct stream_type { typedef buffed_data_t<T> type; };
-template <> struct stream_type<net_set_t> { typedef stream_pair<net_set_t> type; };
-template <> struct stream_type<net_add_t> { typedef stream_pair<net_add_t> type; };
-template <> struct stream_type<net_replace_t> { typedef stream_pair<net_replace_t> type; };
-template <> struct stream_type<net_cas_t> { typedef stream_pair<net_cas_t> type; };
+template <> struct stream_type<net_sarc_t> { typedef stream_pair<net_sarc_t> type; };
 template <> struct stream_type<net_prepend_t> { typedef stream_pair<net_prepend_t> type; };
 template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t> type; };
 
 template <class T> size_t objsize(const T *buf) { return sizeof(T); }
 template <> size_t objsize<net_get_cas_t>(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
-template <> size_t objsize<net_set_t>(const net_set_t *buf) { return sizeof(net_set_t) + buf->key_size + buf->value_size; }
-template <> size_t objsize<net_add_t>(const net_add_t *buf) { return sizeof(net_set_t) + buf->key_size + buf->value_size; }
-template <> size_t objsize<net_replace_t>(const net_replace_t *buf) { return sizeof(net_set_t) + buf->key_size + buf->value_size; }
-template <> size_t objsize<net_cas_t>(const net_cas_t *buf) { return sizeof(net_set_t) + buf->key_size + buf->value_size; }
+template <> size_t objsize<net_sarc_t>(const net_sarc_t *buf) { return sizeof(net_sarc_t) + buf->key_size + buf->value_size; }
 template <> size_t objsize<net_append_t>(const net_append_t *buf) { return sizeof(net_append_t) + buf->key_size + buf->value_size; }
 template <> size_t objsize<net_prepend_t>(const net_prepend_t *buf) { return sizeof(net_prepend_t) + buf->key_size + buf->value_size; }
 
@@ -113,10 +107,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         case SHUTTING_DOWN: check_pass<net_shutting_down_t>(receiver, buffer, realbegin, realsize); break;
         case GOODBYE: check_pass<net_goodbye_t>(receiver, buffer, realbegin, realsize); break;
         case GET_CAS: check_pass<net_get_cas_t>(receiver, buffer, realbegin, realsize); break;
-        case SET: check_pass<net_set_t>(receiver, buffer, realbegin, realsize); break;
-        case ADD: check_pass<net_add_t>(receiver, buffer, realbegin, realsize); break;
-        case REPLACE: check_pass<net_replace_t>(receiver, buffer, realbegin, realsize); break;
-        case CAS: check_pass<net_cas_t>(receiver, buffer, realbegin, realsize); break;
+        case SARC: check_pass<net_sarc_t>(receiver, buffer, realbegin, realsize); break;
         case INCR: check_pass<net_incr_t>(receiver, buffer, realbegin, realsize); break;
         case DECR: check_pass<net_decr_t>(receiver, buffer, realbegin, realsize); break;
         case APPEND: check_pass<net_append_t>(receiver, buffer, realbegin, realsize); break;
@@ -132,10 +123,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
 
         if (hdr->message_multipart_aspect == FIRST) {
             switch (hdr->msgcode) {
-            case SET: check_first_size<net_set_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
-            case ADD: check_first_size<net_add_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
-            case REPLACE: check_first_size<net_replace_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
-            case CAS: check_first_size<net_cas_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
+            case SARC: check_first_size<net_sarc_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
             case APPEND: check_first_size<net_append_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
             case PREPEND: check_first_size<net_prepend_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
             default: throw protocol_exc_t("invalid message code for multipart message");
