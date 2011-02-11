@@ -207,7 +207,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
                 {"help",                 no_argument, &do_help, 1},
-                {"slave_of",             required_argument, 0, slave_of},
+                {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO @sam push this through to where you want it
                 {"run-behind-elb",       required_argument, 0, run_behind_elb},

@@ -115,21 +115,50 @@ std::string slave_t::failover_reset() {
 }
 
  /* message_callback_t interface */
-void slave_t::hello(net_hello_t message) { }
-void slave_t::send(buffed_data_t<net_backfill_t>& message) { }
-void slave_t::send(buffed_data_t<net_announce_t>& message) { }
-void slave_t::send(buffed_data_t<net_get_cas_t>& message) { }
-void slave_t::send(stream_pair<net_sarc_t>& message) { }
-void slave_t::send(buffed_data_t<net_incr_t>& message) { }
-void slave_t::send(buffed_data_t<net_decr_t>& message) { }
-void slave_t::send(stream_pair<net_append_t>& message) { }
-void slave_t::send(stream_pair<net_prepend_t>& message) { }
-void slave_t::send(buffed_data_t<net_delete_t>& message) { }
-void slave_t::send(buffed_data_t<net_nop_t>& message) { }
-void slave_t::send(buffed_data_t<net_ack_t>& message) { }
-void slave_t::send(buffed_data_t<net_shutting_down_t>& message) { }
-void slave_t::send(buffed_data_t<net_goodbye_t>& message) { }
+void slave_t::hello(net_hello_t message) {
+    debugf("hello message received.\n");
+}
+void slave_t::send(buffed_data_t<net_backfill_t>& message) {
+    rassert(false, "backfill message?  what?\n");
+}
+void slave_t::send(buffed_data_t<net_announce_t>& message) {
+    debugf("announce message received.\n");
+}
+void slave_t::send(buffed_data_t<net_get_cas_t>& message) {
+    debugf("get_cas message received.\n");
+}
+void slave_t::send(stream_pair<net_sarc_t>& message) {
+    debugf("sarc message received.\n");
+}
+void slave_t::send(buffed_data_t<net_incr_t>& message) {
+    debugf("incr message received.\n");
+}
+void slave_t::send(buffed_data_t<net_decr_t>& message) {
+    debugf("decr message received.\n");
+}
+void slave_t::send(stream_pair<net_append_t>& message) {
+    debugf("append message received.\n");
+}
+void slave_t::send(stream_pair<net_prepend_t>& message) {
+    debugf("prepend message received.\n");
+}
+void slave_t::send(buffed_data_t<net_delete_t>& message) {
+    debugf("delete message received.\n");
+}
+void slave_t::send(buffed_data_t<net_nop_t>& message) {
+    debugf("nop message received.\n");
+}
+void slave_t::send(buffed_data_t<net_ack_t>& message) {
+    rassert("ack message received.. as slave?\n");
+}
+void slave_t::send(buffed_data_t<net_shutting_down_t>& message) {
+    debugf("shutting_down message received.\n");
+}
+void slave_t::send(buffed_data_t<net_goodbye_t>& message) {
+    debugf("goodbye message received.\n");
+}
 void slave_t::conn_closed() {
+    debugf("conn_closed.\n");
     coro->notify();
 }
 
