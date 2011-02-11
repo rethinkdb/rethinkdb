@@ -95,8 +95,8 @@ struct mirrored_cache_config_t {
 only be set at creation time of a database */
 
 struct mirrored_cache_static_config_t {
-    // How many blocks of each slice are allocated to the diff log?
-    int32_t n_diff_log_blocks;
+    // How many blocks of each slice are allocated to the patch log?
+    int32_t n_patch_log_blocks;
 };
 
 /* Configuration for the btree that is set when the database is created and serialized in the

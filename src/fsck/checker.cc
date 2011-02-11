@@ -640,7 +640,7 @@ static char LOG_BLOCK_MAGIC[] = {'L','O','G','B','0','0'};
 void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
     cx.clear_buf_patches();
 
-    const unsigned int log_size = cx.knog->mc_config_block->cache.n_diff_log_blocks;
+    const unsigned int log_size = cx.knog->mc_config_block->cache.n_patch_log_blocks;
 
     for (block_id_t block_id = MC_CONFIGBLOCK_ID + 1; block_id < MC_CONFIGBLOCK_ID + 1 + log_size; ++block_id) {
         ser_block_id_t ser_block_id = cx.to_ser_block_id(block_id);
@@ -1453,7 +1453,7 @@ void print_interfile_summary(const multiplexer_config_block_t& c, const mc_confi
     printf("config_block multiplexer_magic: %u\n", c.multiplexer_magic);
     printf("config_block n_files: %d\n", c.n_files);
     printf("config_block n_proxies: %d\n", c.n_proxies);
-    printf("config_block n_log_blocks: %d\n", mcc.cache.n_diff_log_blocks);
+    printf("config_block n_log_blocks: %d\n", mcc.cache.n_patch_log_blocks);
 }
 
 bool check_files(const config_t& cfg) {

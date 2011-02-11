@@ -1,14 +1,14 @@
-#include "diff_in_core_storage.hpp"
+#include "patch_memory_storage.hpp"
 
 #include <list>
 #include <map>
 #include "errors.hpp"
 
-diff_core_storage_t::diff_core_storage_t() {
+patch_memory_storage_t::patch_memory_storage_t() {
 }
 
 // This assumes that patches is properly sorted. It will initialize a block_patch_list_t and store it.
-void diff_core_storage_t::load_block_patch_list(const block_id_t block_id, const std::list<buf_patch_t*>& patches) {
+void patch_memory_storage_t::load_block_patch_list(const block_id_t block_id, const std::list<buf_patch_t*>& patches) {
     rassert(patch_map.find(block_id) == patch_map.end());
 
     // Verify patches list
@@ -35,7 +35,7 @@ void diff_core_storage_t::load_block_patch_list(const block_id_t block_id, const
 }
 
 // Removes all patches which are obsolete w.r.t. the given transaction_id
-void diff_core_storage_t::filter_applied_patches(const block_id_t block_id, const ser_transaction_id_t transaction_id) {
+void patch_memory_storage_t::filter_applied_patches(const block_id_t block_id, const ser_transaction_id_t transaction_id) {
     patch_map_t::iterator map_entry = patch_map.find(block_id);
     rassert(map_entry != patch_map.end());
     map_entry->second.filter_before_transaction(transaction_id);
@@ -63,7 +63,7 @@ void diff_core_storage_t::filter_applied_patches(const block_id_t block_id, cons
 }
 
 // Returns true iff any changes have been made to the buf
-bool diff_core_storage_t::apply_patches(const block_id_t block_id, char *buf_data) const {
+bool patch_memory_storage_t::apply_patches(const block_id_t block_id, char *buf_data) const {
     patch_map_t::const_iterator map_entry = patch_map.find(block_id);
     if (map_entry == patch_map.end())
         return false;
@@ -77,7 +77,7 @@ bool diff_core_storage_t::apply_patches(const block_id_t block_id, char *buf_dat
 }
 
 // Return NULL if no patches exist for that block
-const std::vector<buf_patch_t*>* diff_core_storage_t::get_patches(const block_id_t block_id) const {
+const std::vector<buf_patch_t*>* patch_memory_storage_t::get_patches(const block_id_t block_id) const {
     patch_map_t::const_iterator map_entry = patch_map.find(block_id);
     if (map_entry == patch_map.end())
         return NULL;
@@ -85,24 +85,24 @@ const std::vector<buf_patch_t*>* diff_core_storage_t::get_patches(const block_id
         return &(map_entry->second);
 }
 
-void diff_core_storage_t::drop_patches(const block_id_t block_id) {
+void patch_memory_storage_t::drop_patches(const block_id_t block_id) {
     patch_map_t::iterator map_entry = patch_map.find(block_id);
     if (map_entry != patch_map.end())
         patch_map.erase(map_entry);
 }
 
-diff_core_storage_t::block_patch_list_t::block_patch_list_t() : std::vector<buf_patch_t*>() {
+patch_memory_storage_t::block_patch_list_t::block_patch_list_t() : std::vector<buf_patch_t*>() {
     reserve(32);
     affected_data_size = 0;
 }
 
 // Deletes all stored patches
-diff_core_storage_t::block_patch_list_t::~block_patch_list_t() {
+patch_memory_storage_t::block_patch_list_t::~block_patch_list_t() {
     for (iterator patch = begin(); patch != end(); ++patch)
         delete *patch;
 }
 
-void diff_core_storage_t::block_patch_list_t::filter_before_transaction(const ser_transaction_id_t transaction_id) {
+void patch_memory_storage_t::block_patch_list_t::filter_before_transaction(const ser_transaction_id_t transaction_id) {
     iterator first_patch_to_keep = end();
     for (iterator patch = begin(); patch != end(); ++patch) {
         if ((*patch)->get_transaction_id() < transaction_id) {

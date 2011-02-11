@@ -1,13 +1,13 @@
-#ifndef __DIFF_IN_CORE_STORAGE_HPP__
-#define	__DIFF_IN_CORE_STORAGE_HPP__
+#ifndef __PATCH_MEMORY_STORAGE_HPP__
+#define	__PATCH_MEMORY_STORAGE_HPP__
 
 #include <list>
 #include <map>
 #include "buffer_cache/buf_patch.hpp"
 
-class diff_core_storage_t {
+class patch_memory_storage_t {
 public:
-    diff_core_storage_t(); // Initialize an empty diff storage
+    patch_memory_storage_t(); // Initialize an empty diff storage
 
     // This assumes that patches is properly sorted. It will initialize a block_patch_list_t and store it.
     void load_block_patch_list(const block_id_t block_id, const std::list<buf_patch_t*>& patches);
@@ -52,5 +52,5 @@ private:
 };
 
 
-#endif	/* __DIFF_IN_CORE_STORAGE_HPP__ */
+#endif	/* __PATCH_MEMORY_STORAGE_HPP__ */
 

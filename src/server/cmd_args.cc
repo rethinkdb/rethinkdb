@@ -124,7 +124,7 @@ void usage_create() {
                 "      --block-size      Size of a block, in bytes.\n"
                 "      --extent-size     Size of an extent, in bytes.\n"
                 "      --diff-log-size   Size of the differential log, in megabytes\n"
-                "                        (Default: %d)\n", (int)(DEFAULT_DIFF_LOG_SIZE / MEGABYTE));
+                "                        (Default: %d)\n", (int)(DEFAULT_PATCH_LOG_SIZE / MEGABYTE));
     help->pagef("\n"
                 "Output options:\n"
                 "  -l, --log-file        File to log to. If not provided, messages will be\n"
@@ -380,9 +380,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
 
     /* Convert values which depends on others to be set first */
     if (override_diff_log_size >= 0) {
-        config.store_static_config.cache.n_diff_log_blocks = override_diff_log_size / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
+        config.store_static_config.cache.n_patch_log_blocks = override_diff_log_size / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
     } else {
-        config.store_static_config.cache.n_diff_log_blocks = DEFAULT_DIFF_LOG_SIZE / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
+        config.store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
     }
     
     return config;
@@ -780,6 +780,6 @@ cmd_config_t::cmd_config_t() {
     
     store_static_config.btree.n_slices = DEFAULT_BTREE_SHARD_FACTOR;
 
-    store_static_config.cache.n_diff_log_blocks = DEFAULT_DIFF_LOG_SIZE / store_static_config.serializer.block_size().ser_value() / store_static_config.btree.n_slices;
+    store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / store_static_config.serializer.block_size().ser_value() / store_static_config.btree.n_slices;
 }
 

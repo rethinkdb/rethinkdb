@@ -74,9 +74,9 @@
 
 // The size allocated to the on-disk diff log for newly created databases
 #ifdef NDEBUG
-#define DEFAULT_DIFF_LOG_SIZE                     (512 * MEGABYTE)
+#define DEFAULT_PATCH_LOG_SIZE                     (512 * MEGABYTE)
 #else
-#define DEFAULT_DIFF_LOG_SIZE                     (4 * MEGABYTE)
+#define DEFAULT_PATCH_LOG_SIZE                     (4 * MEGABYTE)
 #endif
 
 // Default port to listen on

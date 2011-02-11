@@ -13,8 +13,8 @@
 #include "server/cmd_args.hpp"
 #include "buffer_cache/stats.hpp"
 #include "buffer_cache/buf_patch.hpp"
-#include "buffer_cache/mirrored/diff_in_core_storage.hpp"
-#include "buffer_cache/mirrored/diff_out_of_core_storage.hpp"
+#include "buffer_cache/mirrored/patch_memory_storage.hpp"
+#include "buffer_cache/mirrored/patch_disk_storage.hpp"
 #include <boost/crc.hpp>
 
 #include "writeback/writeback.hpp"
@@ -56,7 +56,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
     friend class array_map_t::local_buf_t;
-    friend class diff_oocore_storage_t;
+    friend class patch_disk_storage_t;
     
     typedef mc_cache_t cache_t;
     
@@ -104,7 +104,7 @@ class mc_buf_t :
     
     friend class mc_cache_t;
     friend class mc_transaction_t;
-    friend class diff_oocore_storage_t;
+    friend class patch_disk_storage_t;
     
 private:
     mc_buf_t(mc_inner_buf_t *, access_t mode);
@@ -231,7 +231,7 @@ struct mc_cache_t :
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
     friend class array_map_t::local_buf_t;
-    friend class diff_oocore_storage_t;
+    friend class patch_disk_storage_t;
     
 public:
     typedef mc_inner_buf_t inner_buf_t;
@@ -282,7 +282,7 @@ private:
     bool next_starting_up_step();
     ready_callback_t *ready_callback;
     void on_free_list_ready();
-    void init_diff_storage();
+    void init_patch_storage();
     void on_thread_switch();
     
 public:
@@ -341,8 +341,8 @@ private:
     int num_live_transactions;
 
 private:
-    diff_core_storage_t diff_core_storage;
-    diff_oocore_storage_t diff_oocore_storage;
+    patch_memory_storage_t patch_memory_storage;
+    patch_disk_storage_t patch_disk_storage;
     unsigned int max_patches_size_ratio;
 };
 

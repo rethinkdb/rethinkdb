@@ -28,11 +28,11 @@ struct load_buf_fsm_t :
             // Read the transaction id
             inner_buf->transaction_id = inner_buf->cache->serializer->get_current_transaction_id(inner_buf->block_id, inner_buf->data);
 
-            const std::vector<buf_patch_t*>* patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
+            const std::vector<buf_patch_t*>* patches = inner_buf->cache->patch_memory_storage.get_patches(inner_buf->block_id);
             // Remove obsolete patches from diff storage
             if (patches) {
-                inner_buf->cache->diff_core_storage.filter_applied_patches(inner_buf->block_id, inner_buf->transaction_id);
-                patches = inner_buf->cache->diff_core_storage.get_patches(inner_buf->block_id);
+                inner_buf->cache->patch_memory_storage.filter_applied_patches(inner_buf->block_id, inner_buf->transaction_id);
+                patches = inner_buf->cache->patch_memory_storage.get_patches(inner_buf->block_id);
             }
             // All patches that currently exist must have been materialized out of core...
             if (patches) {
@@ -46,7 +46,7 @@ struct load_buf_fsm_t :
             }*/
 
             // Apply outstanding patches
-            inner_buf->cache->diff_core_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data);
+            inner_buf->cache->patch_memory_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data);
             
             // Set next_patch_counter such that the next patches get values consistent with the existing patches
             if (patches) {
@@ -185,7 +185,7 @@ void mc_buf_t::on_lock_available() {
             data = inner_buf->data;
 #ifndef FAST_PERFMON
             if (!inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start == -1) {
-                patches_affected_data_size_at_start = inner_buf->cache->diff_core_storage.get_affected_data_size(inner_buf->block_id);
+                patches_affected_data_size_at_start = inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id);
             }
 #endif
             break;
@@ -222,16 +222,16 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     if (!inner_buf->writeback_buf.needs_flush) {
         // Check if we want to disable patching for this block and flush it directly instead
         const size_t MAX_PATCHES_SIZE = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
-        if (patch->get_affected_data_size() + inner_buf->cache->diff_core_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
+        if (patch->get_affected_data_size() + inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
             ensure_flush();
         } else {
             // Store the patch if the buffer does not have to be flushed anyway
             if (patch->get_patch_counter() == 1) {
                 // Clean up any left-over patches
-                inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
+                inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
             }
 
-            inner_buf->cache->diff_core_storage.store_patch(*patch);
+            inner_buf->cache->patch_memory_storage.store_patch(*patch);
         }
     }
 
@@ -261,7 +261,7 @@ void mc_buf_t::ensure_flush() {
         // We bypass the patching system, make sure this buffer gets flushed.
         inner_buf->writeback_buf.needs_flush = true;
         // ... we can also get rid of existing patches at this point.
-        inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
+        inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
         // Make sure that the buf is marked as dirty
         inner_buf->writeback_buf.set_dirty();
     }
@@ -323,8 +323,8 @@ void mc_buf_t::release() {
 
 #ifndef FAST_PERFMON
     if (mode == rwi_write && !inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start >= 0) {
-        if (inner_buf->cache->diff_core_storage.get_affected_data_size(inner_buf->block_id) > (size_t)patches_affected_data_size_at_start)
-            pm_patches_size_per_write.record(inner_buf->cache->diff_core_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
+        if (inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > (size_t)patches_affected_data_size_at_start)
+            pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
     }
 #endif
     
@@ -542,7 +542,7 @@ mc_cache_t::mc_cache_t(
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
     num_live_transactions(0),
-    diff_oocore_storage(*this),
+    patch_disk_storage(*this),
     max_patches_size_ratio(dynamic_config->wait_for_flush ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN)
     {
 }
@@ -597,7 +597,7 @@ bool mc_cache_t::next_starting_up_step() {
         }
 
         /* Initialize the diff storage (needs coro context) */
-        coro_t::spawn(boost::bind(&mc_cache_t::init_diff_storage, this));
+        coro_t::spawn(boost::bind(&mc_cache_t::init_patch_storage, this));
 
         return false;
     }
@@ -616,7 +616,7 @@ bool mc_cache_t::next_starting_up_step() {
 
 const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };
 
-void mc_cache_t::init_diff_storage() {
+void mc_cache_t::init_patch_storage() {
     rassert(state == state_starting_up_init_fixed_blocks);
 
     // Read the existing config block
@@ -631,14 +631,14 @@ void mc_cache_t::init_diff_storage() {
     *static_config = c->cache;
     c_buf->lock.unlock();
     
-    if ((unsigned long long)static_config->n_diff_log_blocks > (unsigned long long)dynamic_config->max_dirty_size / get_block_size().ser_value()) {
+    if ((unsigned long long)static_config->n_patch_log_blocks > (unsigned long long)dynamic_config->max_dirty_size / get_block_size().ser_value()) {
         fail_due_to_user_error("The cache of size %d blocks is too small to hold this database's diff log of %d blocks.",
             (int)(dynamic_config->max_dirty_size / get_block_size().ser_value()),
-            (int)(static_config->n_diff_log_blocks));
+            (int)(static_config->n_patch_log_blocks));
     }
 
-    diff_oocore_storage.init(MC_CONFIGBLOCK_ID + 1, static_config->n_diff_log_blocks);
-    diff_oocore_storage.load_patches(diff_core_storage);
+    patch_disk_storage.init(MC_CONFIGBLOCK_ID + 1, static_config->n_patch_log_blocks);
+    patch_disk_storage.load_patches(patch_memory_storage);
 
     state = state_starting_up_finish;
     call_later_on_this_thread(this);
@@ -730,7 +730,7 @@ bool mc_cache_t::next_shutting_down_step() {
     }
     
     if (state == state_shutting_down_finish) {
-        diff_oocore_storage.shutdown();
+        patch_disk_storage.shutdown();
 
         /* Use do_later() rather than calling it immediately because it might call
         our destructor, and it might not be safe to call our destructor right here. */

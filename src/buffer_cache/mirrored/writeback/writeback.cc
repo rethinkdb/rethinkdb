@@ -67,7 +67,7 @@ writeback_t::writeback_t(
       active_write_transactions(0),
       writeback_in_progress(false),
       active_flushes(0),
-      force_diff_storage_flush(false),
+      force_patch_storage_flush(false),
       cache(cache),
       start_next_sync_immediately(false) {
 }
@@ -251,21 +251,17 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     }
 
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock,
-    // we instead try to reclaim some space in the on-disk diff storage now.
-    // (we only do this occasionally, hoping that most of the time a compression of the log will do the trick)
-    // TODO: Tune, refactor constants etc.
-    if (parent->force_diff_storage_flush || randint(3200) < (int)parent->dirty_bufs.size()) {
-        ticks_t start_time2;
-        pm_flushes_diff_flush.begin(&start_time2);
-        unsigned int blocks_to_flush = (unsigned long long)parent->dirty_bufs.size() * 100ll / parent->cache->get_block_size().value() + 1;
-        if (parent->force_diff_storage_flush) {
-            blocks_to_flush = parent->cache->diff_oocore_storage.get_number_of_log_blocks() / 20 + 1;
-            parent->force_diff_storage_flush = false;
-        }
-        parent->cache->diff_oocore_storage.flush_n_oldest_blocks(blocks_to_flush);
-        pm_flushes_diff_flush.end(&start_time2);
+    // we instead try to reclaim some space in the on-disk patch storage now.
+    ticks_t start_time2;
+    pm_flushes_diff_flush.begin(&start_time2);
+    unsigned int blocks_to_flush = (unsigned long long)parent->dirty_bufs.size() * 100ll / parent->cache->get_block_size().value() + 1;
+    if (parent->force_patch_storage_flush) {
+        blocks_to_flush = parent->cache->patch_disk_storage.get_number_of_log_blocks() / 20 + 1;
+        parent->force_patch_storage_flush = false;
     }
-    //parent->cache->diff_oocore_storage.compress_n_oldest_blocks(2);
+    parent->cache->patch_disk_storage.clear_n_oldest_blocks(blocks_to_flush);
+    pm_flushes_diff_flush.end(&start_time2);
+    //parent->cache->patch_disk_storage.compress_n_oldest_blocks(2);
 
     /* Start a read transaction so we can request bufs. */
     rassert(transaction == NULL);
@@ -359,19 +355,19 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
     // Please note: Writing patches to the oocore_storage can still alter the dirty_bufs list!
     ticks_t start_time2;
     pm_flushes_diff_store.begin(&start_time2);
-    bool diff_storage_failure = false;
+    bool patch_storage_failure = false;
     unsigned int patches_stored = 0;
     for (intrusive_list_t<local_buf_t>::iterator lbuf_it = parent->dirty_bufs.begin(); lbuf_it != parent->dirty_bufs.end(); lbuf_it++) {
         local_buf_t *lbuf = &(*lbuf_it);
         inner_buf_t *inner_buf = lbuf->gbuf;
 
-        if (diff_storage_failure && lbuf->dirty && !lbuf->needs_flush) {
+        if (patch_storage_failure && lbuf->dirty && !lbuf->needs_flush) {
             lbuf->needs_flush = true;
         }
 
         if (!lbuf->needs_flush && lbuf->dirty && inner_buf->next_patch_counter > 1) {
             const ser_transaction_id_t transaction_id = inner_buf->transaction_id;
-            const std::vector<buf_patch_t*>* patches = parent->cache->diff_core_storage.get_patches(inner_buf->block_id);
+            const std::vector<buf_patch_t*>* patches = parent->cache->patch_memory_storage.get_patches(inner_buf->block_id);
             if (patches != NULL) {
 #ifndef NDEBUG
                 patch_counter_t previous_patch_counter = 0;
@@ -380,8 +376,8 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                     rassert(transaction_id > NULL_SER_TRANSACTION_ID);
                     rassert(previous_patch_counter == 0 || (*patches)[patch_index-1]->get_patch_counter() == previous_patch_counter - 1);
                     if (lbuf->last_patch_materialized < (*patches)[patch_index-1]->get_patch_counter()) {
-                        if (!parent->cache->diff_oocore_storage.store_patch(*(*patches)[patch_index-1], transaction_id)) {
-                            diff_storage_failure = true;
+                        if (!parent->cache->patch_disk_storage.store_patch(*(*patches)[patch_index-1], transaction_id)) {
+                            patch_storage_failure = true;
                             //fprintf(stderr, "Patch storage failure\n");
                             lbuf->needs_flush = true;
                             break;
@@ -398,7 +394,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                     previous_patch_counter = (*patches)[patch_index-1]->get_patch_counter();
 #endif
                 }
-                if (!diff_storage_failure)
+                if (!patch_storage_failure)
                     lbuf->last_patch_materialized = (*patches)[patches->size()-1]->get_patch_counter();
             }
         }
@@ -409,11 +405,11 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
         }
     }
     pm_flushes_diff_store.end(&start_time2);
-    if (diff_storage_failure)
-        parent->force_diff_storage_flush = true; // Make sure we solve the problem for the next flush...
+    if (patch_storage_failure)
+        parent->force_patch_storage_flush = true; // Make sure we solve the problem for the next flush...
 
     pm_flushes_diff_patches_stored.record(patches_stored);
-    if (diff_storage_failure)
+    if (patch_storage_failure)
         pm_flushes_diff_storage_failures.record(patches_stored);
 }
 

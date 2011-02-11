@@ -1,8 +1,8 @@
-#ifndef __DIFF_OUT_OF_CORE_STORAGE_HPP__
-#define	__DIFF_OUT_OF_CORE_STORAGE_HPP__
+#ifndef __PATCH_DISK_STORAGE_HPP__
+#define	__PATCH_DISK_STORAGE_HPP__
 
 #include "buffer_cache/buf_patch.hpp"
-#include "buffer_cache/mirrored/diff_in_core_storage.hpp"
+#include "buffer_cache/mirrored/patch_memory_storage.hpp"
 
 class mc_cache_t;
 class mc_buf_t;
@@ -12,23 +12,23 @@ static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'
 
 /* WARNING: Most of the functions in here are *not* reentrant-safe and rely on concurrency control happening */
 /*  elsewhere (specifically in mc_cache_t and writeback_t) */
-class diff_oocore_storage_t {
+class patch_disk_storage_t {
 public:
-    diff_oocore_storage_t(mc_cache_t &cache);
-    ~diff_oocore_storage_t();
+    patch_disk_storage_t(mc_cache_t &cache);
+    ~patch_disk_storage_t();
 
     void init(const block_id_t first_block, const block_id_t number_of_blocks);
     void shutdown();
 
     // Loads on-disk data into memory
-    void load_patches(diff_core_storage_t &in_core_storage);
+    void load_patches(patch_memory_storage_t &in_memory_storage);
 
     // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
     // This function never blocks and must only be called while the flush_lock is held.
     bool store_patch(buf_patch_t &patch, const ser_transaction_id_t current_block_transaction_id);
 
     // This function might block while it acquires old blocks from disk.
-    void flush_n_oldest_blocks(unsigned int n);
+    void clear_n_oldest_blocks(unsigned int n);
 
     void compress_n_oldest_blocks(unsigned int n);
 
@@ -39,7 +39,7 @@ private:
     block_id_t select_log_block_for_compression(); // For now: just always select the oldest (=next) block
     void compress_block(const block_id_t log_block_id);
 
-    void flush_block(const block_id_t log_block_id, coro_t* notify_coro);
+    void clear_block(const block_id_t log_block_id, coro_t* notify_coro);
     void set_active_log_block(const block_id_t log_block_id);
 
     void init_log_block(const block_id_t log_block_id);
@@ -52,7 +52,7 @@ private:
     block_id_t active_log_block;
     uint16_t next_patch_offset;
 
-    unsigned int waiting_for_flush;
+    unsigned int waiting_for_clear;
 
     mc_cache_t &cache;
     block_id_t first_block;
@@ -61,5 +61,5 @@ private:
     std::vector<mc_buf_t*> log_block_bufs;
 };
 
-#endif	/* __DIFF_OUT_OF_CORE_STORAGE_HPP__ */
+#endif	/* __PATCH_DISK_STORAGE_HPP__ */
 
