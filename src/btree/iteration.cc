@@ -45,9 +45,9 @@ key_with_data_provider_t leaf_iterator_t::pair_to_key_with_data_provider(const b
 }
 
 slice_leaves_iterator_t::slice_leaves_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice,
-    store_key_t *start, store_key_t *end, bool left_open, bool right_open) : 
+    rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key) : 
         transactor(transactor), slice(slice),
-        start(start), end(end), left_open(left_open), right_open(right_open),
+        left_mode(left_mode), left_key(left_key), right_mode(right_mode), right_key(right_key),
         traversal_state(), started(false), nevermore(false) {
 }
 
@@ -90,7 +90,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
         return boost::none;
     }
 
-    if (start == NULL) {
+    if (left_mode == rget_bound_none) {
         boost::optional<leaf_iterator_t*> leftmost_leaf = get_leftmost_leaf(root_id);
         delete buf_lock;
         return leftmost_leaf;
@@ -109,10 +109,10 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
         const internal_node_t *i_node = ptr_cast<internal_node_t>(node);
 
         // push the i_node onto the traversal_state stack
-        int index = internal_node::impl::get_offset_index(i_node, start);
+        int index = internal_node::impl::get_offset_index(i_node, left_key);
         rassert(index >= 0);
         if (index >= i_node->npairs) {
-            // this subtree has all the keys smaller than 'start', move to the leaf in the next subtree
+            // this subtree has all the keys smaller than 'left_key', move to the leaf in the next subtree
             delete buf_lock;
             return get_next_leaf();
         }
@@ -129,7 +129,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
     rassert(buf_lock != NULL);
 
     const leaf_node_t *l_node = ptr_cast<leaf_node_t>(node);
-    int index = leaf::impl::get_offset_index(l_node, start);
+    int index = leaf::impl::get_offset_index(l_node, left_key);
 
     if (index < l_node->npairs) {
         return boost::make_optional(new leaf_iterator_t(l_node, index, buf_lock, transactor));
@@ -195,11 +195,11 @@ block_id_t slice_leaves_iterator_t::get_child_id(const internal_node_t *i_node, 
     return child_id;
 }
 
-slice_keys_iterator_t::slice_keys_iterator_t(const boost::shared_ptr<transactor_t>& transactor_, btree_slice_t *slice_, store_key_t *start_, store_key_t *end_, bool left_open_, bool right_open_) :
+slice_keys_iterator_t::slice_keys_iterator_t(const boost::shared_ptr<transactor_t>& transactor_, btree_slice_t *slice_,
+        rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) :
     transactor(transactor_), slice(slice_),
-    start(start_), start_str(start_ == NULL ? std::string() : key_to_str(start_)),
-    end(end_), end_str(end_ == NULL ? std::string() : key_to_str(end_)),
-    left_open(left_open_), right_open(right_open_),
+    left_mode(left_mode), left_key(left_key), right_mode(right_mode), right_key(right_key),
+    left_str(key_to_str(left_key)), right_str(key_to_str(right_key)),
     no_more_data(false), active_leaf(NULL), leaves_iterator(NULL) { }
 
 slice_keys_iterator_t::~slice_keys_iterator_t() {
@@ -221,9 +221,9 @@ void slice_keys_iterator_t::prefetch() {
 }
 
 boost::optional<key_with_data_provider_t> slice_keys_iterator_t::get_first_value() {
-    leaves_iterator = new slice_leaves_iterator_t(transactor, slice, start, end, left_open, right_open);
+    leaves_iterator = new slice_leaves_iterator_t(transactor, slice, left_mode, left_key.key(), right_mode, right_key.key());
 
-    // get the first leaf with our start key (or something greater)
+    // get the first leaf with our left key (or something greater)
     boost::optional<leaf_iterator_t*> first = leaves_iterator->next();
     if (!first)
         return boost::none;
@@ -238,10 +238,10 @@ boost::optional<key_with_data_provider_t> slice_keys_iterator_t::get_first_value
 
     key_with_data_provider_t pair = first_pair.get();
 
-    // skip the start key if left_open
-    int compare_result = pair.key.compare(start_str);
+    // skip the left key if left_mode == rget_bound_mode_open
+    int compare_result = pair.key.compare(left_str);
     rassert(compare_result >= 0);
-    if (left_open && compare_result == 0) {
+    if (left_mode == rget_bound_open && compare_result == 0) {
         return get_next_value();
     } else {
         return validate_return_value(pair);
@@ -272,11 +272,11 @@ boost::optional<key_with_data_provider_t> slice_keys_iterator_t::get_next_value(
 }
 
 boost::optional<key_with_data_provider_t> slice_keys_iterator_t::validate_return_value(key_with_data_provider_t &pair) const {
-    if (!end)
+    if (right_mode == rget_bound_none)
         return boost::make_optional(pair);
 
-    int compare_result = pair.key.compare(end_str);
-    if (compare_result < 0 || (!right_open && compare_result == 0)) {
+    int compare_result = pair.key.compare(right_str);
+    if (compare_result < 0 || (right_mode == rget_bound_closed && compare_result == 0)) {
         return boost::make_optional(pair);
     } else {
         return boost::none;

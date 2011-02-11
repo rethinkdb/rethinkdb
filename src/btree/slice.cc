@@ -46,32 +46,32 @@ btree_slice_t::~btree_slice_t() {
     if (!cache_.shutdown(&shutdown_cb)) shutdown_cb.wait();
 }
 
-get_result_t btree_slice_t::get(store_key_t *key) {
+get_result_t btree_slice_t::get(const store_key_t &key) {
     return btree_get(key, this);
 }
 
-get_result_t btree_slice_t::get_cas(store_key_t *key, castime_t castime) {
+get_result_t btree_slice_t::get_cas(const store_key_t &key, castime_t castime) {
     return btree_get_cas(key, this, castime);
 }
 
-rget_result_t btree_slice_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
-    return btree_rget_slice(this, start, end, left_open, right_open);
+rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
+    return btree_rget_slice(this, left_mode, left_key, right_mode, right_key);
 }
 
-set_result_t btree_slice_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime,
+set_result_t btree_slice_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime,
                                           add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     return btree_set(key, this, data, flags, exptime, add_policy, replace_policy, old_cas, castime);
 }
 
-incr_decr_result_t btree_slice_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
+incr_decr_result_t btree_slice_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
     return btree_incr_decr(key, this, kind == incr_decr_INCR, amount, castime);
 }
 
-append_prepend_result_t btree_slice_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
+append_prepend_result_t btree_slice_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
     return btree_append_prepend(key, this, data, kind == append_prepend_APPEND, castime);
 }
 
-delete_result_t btree_slice_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
+delete_result_t btree_slice_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
     return btree_delete(key, this, timestamp);
 }
 

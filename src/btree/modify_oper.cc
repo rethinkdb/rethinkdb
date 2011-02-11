@@ -38,7 +38,7 @@ void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
 void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                                                const btree_key *key, btree_value *new_value, block_size_t block_size) {
+                                                const btree_key_t *key, btree_value *new_value, block_size_t block_size) {
     const node_t *node = ptr_cast<node_t>(buf.buf()->get_data_read());
 
     // If the node isn't full, we don't need to split, so we're done.
@@ -54,8 +54,8 @@ void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& las
     // track of the median key in the split; then actually split.
     buf_lock_t rbuf;
     rbuf.allocate(txor);
-    byte median_memory[sizeof(btree_key) + MAX_KEY_SIZE];
-    btree_key *median = reinterpret_cast<btree_key *>(median_memory);
+    btree_key_buffer_t median_buffer;
+    btree_key_t *median = median_buffer.key();
 
     node::split(block_size, ptr_cast<node_t>(buf.buf()->get_data_write()), ptr_cast<node_t>(rbuf.buf()->get_data_write()), median);
 
@@ -90,7 +90,7 @@ void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& las
 
 // Merge or level the node if necessary.
 void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                                                    const btree_key *key, block_size_t block_size) {
+                                                    const btree_key_t *key, block_size_t block_size) {
     const node_t *node = ptr_cast<node_t>(buf.buf()->get_data_read());
     if (last_buf.is_acquired() && node::is_underfull(block_size, node)) { // The root node is never underfull.
 
@@ -112,8 +112,8 @@ void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t&
         if (node::is_mergable(block_size, node, sib_node, parent_node)) { // Merge.
 
             // This is the key that we remove.
-            char key_to_remove_buf[sizeof(btree_key) + MAX_KEY_SIZE];
-            btree_key *key_to_remove = ptr_cast<btree_key>(key_to_remove_buf);
+            btree_key_buffer_t key_to_remove_buffer;
+            btree_key_t *key_to_remove = key_to_remove_buffer.key();
 
             if (nodecmp_node_with_sib < 0) { // Nodes must be passed to merge in ascending order.
                 node::merge(block_size, node, sib_node, key_to_remove, parent_node);
@@ -137,10 +137,9 @@ void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t&
                 pm_btree_depth--;
             }
         } else { // Level
-            byte key_to_replace_buf[sizeof(btree_key) + MAX_KEY_SIZE];
-            btree_key *key_to_replace = ptr_cast<btree_key>(key_to_replace_buf);
-            byte replacement_key_buf[sizeof(btree_key) + MAX_KEY_SIZE];
-            btree_key *replacement_key = ptr_cast<btree_key>(replacement_key_buf);
+            btree_key_buffer_t key_to_replace_buffer, replacement_key_buffer;
+            btree_key_t *key_to_replace = key_to_replace_buffer.key();
+            btree_key_t *replacement_key = replacement_key_buffer.key();
 
             bool leveled = node::level(block_size, node, sib_node, key_to_replace, replacement_key, parent_node);
 
@@ -169,12 +168,15 @@ void get_root(transactor_t& txor, buf_lock_t& sb_buf, block_size_t block_size, b
 }
 
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const btree_key *key, castime_t castime) {
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime) {
     union {
         byte old_value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value old_value;
     };
     (void) old_value_memory;
+
+    btree_key_buffer_t kbuffer(store_key);
+    btree_key_t *key = kbuffer.key();
 
     oper->slice = slice; // TODO: Figure out a way to do this more nicely -- it's only used for generating a CAS value.
     block_size_t block_size = slice->cache().get_block_size();

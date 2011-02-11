@@ -29,7 +29,7 @@ int nodecmp(const node_t *node1, const node_t *node2) {
     }
 }
 
-void split(block_size_t block_size, node_t *node, node_t *rnode, btree_key *median) {
+void split(block_size_t block_size, node_t *node, node_t *rnode, btree_key_t *median) {
     if (is_leaf(node)) {
         leaf::split(block_size, ptr_cast<leaf_node_t>(node), ptr_cast<leaf_node_t>(rnode), median);
     } else {
@@ -37,7 +37,7 @@ void split(block_size_t block_size, node_t *node, node_t *rnode, btree_key *medi
     }
 }
 
-void merge(block_size_t block_size, const node_t *node, node_t *rnode, btree_key *key_to_remove, internal_node_t *parent) {
+void merge(block_size_t block_size, const node_t *node, node_t *rnode, btree_key_t *key_to_remove, internal_node_t *parent) {
     if (is_leaf(node)) {
         leaf::merge(block_size, ptr_cast<leaf_node_t>(node), ptr_cast<leaf_node_t>(rnode), key_to_remove);
     } else {
@@ -45,7 +45,7 @@ void merge(block_size_t block_size, const node_t *node, node_t *rnode, btree_key
     }
 }
 
-bool level(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, internal_node_t *parent) {
+bool level(block_size_t block_size, node_t *node, node_t *rnode, btree_key_t *key_to_replace, btree_key_t *replacement_key, internal_node_t *parent) {
     if (is_leaf(node)) {
         return leaf::level(block_size, ptr_cast<leaf_node_t>(node), ptr_cast<leaf_node_t>(rnode), key_to_replace, replacement_key);
     } else {

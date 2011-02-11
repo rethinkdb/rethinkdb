@@ -49,7 +49,7 @@ class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t*> {
         buf_lock_t *lock;
     };
 public:
-    slice_leaves_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open);
+    slice_leaves_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice, rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key);
 
     boost::optional<leaf_iterator_t*> next();
     void prefetch();
@@ -64,10 +64,10 @@ private:
 
     boost::shared_ptr<transactor_t> transactor;
     btree_slice_t *slice;
-    store_key_t *start;
-    store_key_t *end;
-    bool left_open;
-    bool right_open;
+    rget_bound_mode_t left_mode;
+    const btree_key_t *left_key;
+    rget_bound_mode_t right_mode;
+    const btree_key_t *right_key;
 
     std::list<internal_node_state> traversal_state;
     volatile bool started;
@@ -82,7 +82,8 @@ private:
  */
 class slice_keys_iterator_t : public one_way_iterator_t<key_with_data_provider_t> {
 public:
-    slice_keys_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open);
+    /* Cannot assume that 'start' and 'end' will remain valid after the constructor returns! */
+    slice_keys_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
     virtual ~slice_keys_iterator_t();
 
     boost::optional<key_with_data_provider_t> next();
@@ -97,12 +98,12 @@ private:
 
     boost::shared_ptr<transactor_t> transactor;
     btree_slice_t *slice;
-    store_key_t *start;
-    std::string start_str;
-    store_key_t *end;
-    std::string end_str;
-    bool left_open;
-    bool right_open;
+    rget_bound_mode_t left_mode;
+    btree_key_buffer_t left_key;
+    rget_bound_mode_t right_mode;
+    btree_key_buffer_t right_key;
+    std::string left_str;
+    std::string right_str;
 
     bool no_more_data;
     leaf_iterator_t *active_leaf;

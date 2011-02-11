@@ -43,10 +43,10 @@ void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_s
     }
     ASSERT_EQ(block_size.value(), expected);
 
-    const btree_key *last_key = NULL;
+    const btree_key_t *last_key = NULL;
     for (const uint16_t *p = buf->pair_offsets, *e = p + buf->npairs; p < e; ++p) {
         const btree_leaf_pair *pair = leaf::get_pair(buf, *p);
-        const btree_key *next_key = &pair->key;
+        const btree_key_t *next_key = &pair->key;
 
         if (last_key != NULL) {
             EXPECT_LT(leaf_key_comp::compare(last_key, next_key), 0);
@@ -84,8 +84,8 @@ TEST(LeafNodeTest, Offsets) {
     p.key.size = 173;
     EXPECT_EQ(174, reinterpret_cast<byte *>(p.value()) - reinterpret_cast<byte *>(&p));
 
-    EXPECT_EQ(1, sizeof(btree_key));
-    EXPECT_EQ(1, offsetof(btree_key, contents));
+    EXPECT_EQ(1, sizeof(btree_key_t));
+    EXPECT_EQ(1, offsetof(btree_key_t, contents));
     EXPECT_EQ(2, sizeof(btree_value));
 
     EXPECT_EQ(1, sizeof(metadata_flags_t));
@@ -172,18 +172,18 @@ public:
         memcpy(keyval.contents, key.c_str(), key.size());
     }
 
-    const btree_key *look() const {
+    const btree_key_t *look() const {
         return &keyval;
     }
 
-    btree_key *look_write() {
+    btree_key_t *look_write() {
         return &keyval;
     }
 
 private:
     union {
-        byte keyval_padding[sizeof(btree_key) + MAX_KEY_SIZE];
-        btree_key keyval;
+        byte keyval_padding[sizeof(btree_key_t) + MAX_KEY_SIZE];
+        btree_key_t keyval;
     };
 };
 
@@ -489,12 +489,12 @@ leaf_node_t *malloc_leaf_node(block_size_t bs) {
     return reinterpret_cast<leaf_node_t *>(malloc(bs.value()));
 }
 
-btree_key *malloc_key(const char *s) {
+btree_key_t *malloc_key(const char *s) {
     size_t origlen = strlen(s);
     EXPECT_LE(origlen, MAX_KEY_SIZE);
 
     size_t len = std::min<size_t>(origlen, MAX_KEY_SIZE);
-    btree_key *k = reinterpret_cast<btree_key *>(malloc(sizeof(btree_key) + len));
+    btree_key_t *k = reinterpret_cast<btree_key_t *>(malloc(sizeof(btree_key_t) + len));
     k->size = len;
     memcpy(k->contents, s, len);
     return k;

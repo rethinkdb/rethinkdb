@@ -28,15 +28,15 @@ public:
 
     void hello();
 
-    void get_cas(store_key_t *key, castime_t castime);
+    void get_cas(const store_key_t &key, castime_t castime);
 
-    void sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    void sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
 
-    void incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime);
+    void incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime);
 
-    void append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime);
+    void append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime);
 
-    void delete_key(store_key_t *key, repli_timestamp timestamp);
+    void delete_key(const store_key_t &key, repli_timestamp timestamp);
 
     // Listener callback functions
     void on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn);
@@ -44,20 +44,20 @@ public:
 
 private:
     // TODO get rid of this.. someday.
-    void cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
+    void cas(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime);
 
 
     // Spawns a coroutine.
     void send_data_with_ident(data_provider_t *data, uint32_t ident);
 
     template <class net_struct_type>
-    void setlike(int msgcode, store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
+    void setlike(int msgcode, const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime);
 
     template <class net_struct_type>
-    void incr_decr_like(uint8_t msgcode, store_key_t *key, uint64_t amount, castime_t castime);
+    void incr_decr_like(uint8_t msgcode, const store_key_t &key, uint64_t amount, castime_t castime);
 
     template <class net_struct_type>
-    void stereotypical(int msgcode, store_key_t *key, data_provider_t *data, net_struct_type netstruct);
+    void stereotypical(int msgcode, const store_key_t &key, data_provider_t *data, net_struct_type netstruct);
 
 
     mutex_t message_contiguity_;

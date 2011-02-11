@@ -209,9 +209,9 @@ void btree_key_value_store_t::check_existing(const std::vector<std::string>& fil
 #define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
                        +(uint32_t)(((const uint8_t *)(d))[0]) )
 
-uint32_t btree_key_value_store_t::hash(const btree_key *key) {
-    const char *data = key->contents;
-    int len = key->size;
+uint32_t btree_key_value_store_t::hash(const store_key_t &key) {
+    const char *data = key.contents;
+    int len = key.size;
     uint32_t hash = len, tmp;
     int rem;
     if (len <= 0 || data == NULL) return 0;
@@ -255,25 +255,25 @@ uint32_t btree_key_value_store_t::hash(const btree_key *key) {
     return hash;
 }
 
-uint32_t btree_key_value_store_t::slice_num(const btree_key *key) {
+uint32_t btree_key_value_store_t::slice_num(const store_key_t &key) {
     return hash(key) % btree_static_config.n_slices;
 }
 
-set_store_interface_t *btree_key_value_store_t::slice_for_key_set_interface(const btree_key *key) {
+set_store_interface_t *btree_key_value_store_t::slice_for_key_set_interface(const store_key_t &key) {
     return timestampers[slice_num(key)];
 }
 
-set_store_t *btree_key_value_store_t::slice_for_key_set(const btree_key *key) {
+set_store_t *btree_key_value_store_t::slice_for_key_set(const store_key_t &key) {
     return dispatchers[slice_num(key)];
 }
 
-get_store_t *btree_key_value_store_t::slice_for_key_get(const btree_key *key) {
+get_store_t *btree_key_value_store_t::slice_for_key_get(const store_key_t &key) {
     return btrees[slice_num(key)];
 }
 
 /* get_store_t interface */
 
-get_result_t btree_key_value_store_t::get(store_key_t *key) {
+get_result_t btree_key_value_store_t::get(const store_key_t &key) {
     return slice_for_key_get(key)->get(key);
 }
 
@@ -300,7 +300,7 @@ private:
     block_pm_duration block_pm;
 };
 
-rget_result_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
+rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
     thread_saver_t thread_saver;
 
     /* TODO: Wrapped iterators are weird and we shouldn't have them. Instead we should do all of the
@@ -309,51 +309,51 @@ rget_result_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end
 
     merged_results_iterator_t *merge_iterator = ptr_cast<merged_results_iterator_t>(wrapped_iterator->get_wrapped());
     for (int s = 0; s < btree_static_config.n_slices; s++) {
-        merge_iterator->add_mergee(btrees[s]->rget(start, end, left_open, right_open).release());
+        merge_iterator->add_mergee(btrees[s]->rget(left_mode, left_key, right_mode, right_key).release());
     }
     return wrapped_iterator;
 }
 
 /* set_store_interface_t interface */
 
-get_result_t btree_key_value_store_t::get_cas(store_key_t *key) {
+get_result_t btree_key_value_store_t::get_cas(const store_key_t &key) {
     return slice_for_key_set_interface(key)->get_cas(key);
 }
 
-set_result_t btree_key_value_store_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+set_result_t btree_key_value_store_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     return slice_for_key_set_interface(key)->sarc(key, data, flags, exptime, add_policy, replace_policy, old_cas);
 }
 
-incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount) {
+incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount) {
     return slice_for_key_set_interface(key)->incr_decr(kind, key, amount);
 }
 
-append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data) {
+append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data) {
     return slice_for_key_set_interface(key)->append_prepend(kind, key, data);
 }
 
-delete_result_t btree_key_value_store_t::delete_key(store_key_t *key) {
+delete_result_t btree_key_value_store_t::delete_key(const store_key_t &key) {
     return slice_for_key_set_interface(key)->delete_key(key);
 }
 
 /* set_store_t interface */
 
-get_result_t btree_key_value_store_t::get_cas(store_key_t *key, castime_t castime) {
+get_result_t btree_key_value_store_t::get_cas(const store_key_t &key, castime_t castime) {
     return slice_for_key_set(key)->get_cas(key, castime);
 }
 
-set_result_t btree_key_value_store_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+set_result_t btree_key_value_store_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     return slice_for_key_set(key)->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
 }
 
-incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
+incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
     return slice_for_key_set(key)->incr_decr(kind, key, amount, castime);
 }
 
-append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
+append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
     return slice_for_key_set(key)->append_prepend(kind, key, data, castime);
 }
 
-delete_result_t btree_key_value_store_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
+delete_result_t btree_key_value_store_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
     return slice_for_key_set(key)->delete_key(key, timestamp);
 }

@@ -637,8 +637,11 @@ private:
 };
 
 
-bool is_valid_hash(const slicecx& cx, const btree_key *key) {
-    return btree_key_value_store_t::hash(key) % cx.knog->config_block->n_proxies == (unsigned)cx.global_slice_id;
+bool is_valid_hash(const slicecx& cx, const btree_key_t *key) {
+    store_key_t store_key;
+    store_key.size = key->size;
+    memcpy(store_key.contents, key->contents, key->size);
+    return btree_key_value_store_t::hash(store_key) % cx.knog->config_block->n_proxies == (unsigned)cx.global_slice_id;
 }
 
 void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
@@ -713,7 +716,7 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
     return false;
 }
 
-void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         if (offsetof(leaf_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
             || buf->frontmost_offset > cx.knog->static_config->block_size().value()) {
@@ -736,7 +739,7 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
 
     }
 
-    const btree_key *prev_key = lo;
+    const btree_key_t *prev_key = lo;
     for (uint16_t i = 0; i < buf->npairs; ++i) {
         uint16_t offset = buf->pair_offsets[i];
         const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
@@ -763,9 +766,9 @@ bool internal_node_begin_offset_in_range(const slicecx& cx, const internal_node_
     return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<byte>(buf) + offset)->key.size <= cx.knog->static_config->block_size().value();
 }
 
-void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_key *hi, subtree_errors *errs);
+void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs);
 
-void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
         if (offsetof(internal_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
             || buf->frontmost_offset > cx.knog->static_config->block_size().value()) {
@@ -790,7 +793,7 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const 
 
     // Now check other things.
 
-    const btree_key *prev_key = lo;
+    const btree_key_t *prev_key = lo;
     for (uint16_t i = 0; i < buf->npairs; ++i) {
         uint16_t offset = buf->pair_offsets[i];
         const btree_internal_pair *pair = internal_node::get_pair(buf, offset);
@@ -823,7 +826,7 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const 
     }
 }
 
-void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_key *hi, subtree_errors *errs) {
+void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs) {
     /* Walk tree */
 
     btree_block node;

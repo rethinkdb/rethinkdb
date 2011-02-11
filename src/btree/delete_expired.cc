@@ -18,14 +18,11 @@ public:
 // delete_expired coroutine is actually spawned. So for now we'll make a copy
 // of the key and then free it when delete_expired is done.
 
-void co_btree_delete_expired(btree_key *key_copy, btree_slice_t *slice) {
+void co_btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
     btree_delete_expired_oper_t oper;
-    run_btree_modify_oper(&oper, slice, key_copy, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp::invalid));
-    free(key_copy);
+    run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp::invalid));
 }
 
-void btree_delete_expired(const btree_key *key, btree_slice_t *slice) {
-    btree_key *key_copy = (btree_key *) malloc(key->size + sizeof(btree_key));
-    keycpy(key_copy, key);
-    coro_t::spawn(boost::bind(co_btree_delete_expired, key_copy, slice));
+void btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
+    coro_t::spawn_now(boost::bind(co_btree_delete_expired, key, slice));
 }

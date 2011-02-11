@@ -155,18 +155,15 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
 /* do_get() is used for "get" and "gets" commands. */
 
 struct get_t {
-    union {
-        char key_memory[MAX_KEY_SIZE+sizeof(store_key_t)];
-        store_key_t key;
-    };
+    store_key_t key;
     get_result_t res;
 };
 
 void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i) {
     if (with_cas) {
-        gets[i].res = rh->set_store->get_cas(&gets[i].key);
+        gets[i].res = rh->set_store->get_cas(gets[i].key);
     } else {
-        gets[i].res = rh->get_store->get(&gets[i].key);
+        gets[i].res = rh->get_store->get(gets[i].key);
     }
 }
 
@@ -204,7 +201,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
             /* If the write half of the connection has been closed, there's no point in trying
             to send anything */
             if (rh->conn->is_write_open()) {
-                store_key_t &key = gets[i].key;
+                const store_key_t &key = gets[i].key;
 
                 /* Write the "VALUE ..." header */
                 if (with_cas) {
@@ -227,10 +224,30 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
 };
 
 static const char *rget_null_key = "null";
-static bool rget_is_null_key(long open_flag, char *key) {
-    if (open_flag == -1) {
-        return strcasecmp(rget_null_key, key) == 0;
-    } else {
+
+static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out, store_key_t *key_out) {
+
+    if (!str_to_key(key, key_out)) return false;
+
+    char *invalid_char;
+    long open_flag = strtol_strict(flag, &invalid_char, 10);
+    if (*invalid_char != '\0') return false;
+
+    switch (open_flag) {
+    case 0:
+        *mode_out = rget_bound_closed;
+        return true;
+    case 1:
+        *mode_out = rget_bound_open;
+        return true;
+    case -1:
+        if (strcasecmp(rget_null_key, key) == 0) {
+            *mode_out = rget_bound_none;
+            key_out->size = 0;   // Key is irrelevant
+            return true;
+        }
+        // Fall through
+    default:
         return false;
     }
 }
@@ -241,51 +258,25 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
         return;
     }
 
-    union {
-        char key_memory[MAX_KEY_SIZE+sizeof(store_key_t)];
-        store_key_t key;
-    } start, end;
+    /* Parse left/right boundary keys and flags */
+    rget_bound_mode_t left_mode, right_mode;
+    store_key_t left_key, right_key;
 
-    /* Get start and end keys */
-    if (!str_to_key(argv[1], &start.key) || !str_to_key(argv[2], &end.key)) {
+    if (!rget_parse_bound(argv[3], argv[1], &left_mode, &left_key) ||
+        !rget_parse_bound(argv[4], argv[2], &right_mode, &right_key)) {\
         rh->client_error_bad_command_line_format();
         return;
     }
-    
-    char *invalid_char;
-
-    /* Parse left/right-openness flags */
-    long left_open = strtol_strict(argv[3], &invalid_char, 10);
-    if (*invalid_char != '\0') {
-        rh->client_error_bad_command_line_format();
-        return;
-    }
-
-    long right_open = strtol_strict(argv[4], &invalid_char, 10);
-    if (*invalid_char != '\0') {
-        rh->client_error_bad_command_line_format();
-        return;
-    }
-
-    bool left_null = rget_is_null_key(left_open, argv[1]);
-    bool right_null = rget_is_null_key(right_open, argv[2]);
-
-    if (!(left_open == 0 || left_open == 1 || left_null) || !(right_open == 0 || right_open == 1 || right_null)) {
-        rh->client_error_bad_command_line_format();
-        return;
-    }
-
-    store_key_t *left_key = left_null ? NULL : &start.key;
-    store_key_t *right_key = right_null ? NULL : &end.key;
 
     /* Parse max items count */
+    char *invalid_char;
     uint64_t max_items = strtoull_strict(argv[5], &invalid_char, 10);
     if (*invalid_char != '\0') {
         rh->client_error_bad_command_line_format();
         return;
     }
 
-    rget_result_t results_iterator = rh->get_store->rget(left_key, right_key, left_open == 1, right_open == 1);
+    rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key);
 
     boost::optional<key_with_data_provider_t> pair;
     uint64_t count = 0;
@@ -373,7 +364,7 @@ enum storage_command_t {
 
 void run_storage_command(txt_memcached_handler_t *rh,
         storage_command_t sc,
-        store_key_and_buffer_t key,
+        store_key_t key,
         size_t value_size, promise_t<bool> *value_read_promise,
         mcflags_t mcflags, exptime_t exptime, cas_t unique,
         bool noreply) {
@@ -414,7 +405,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
         }
 
         set_result_t res =
-            rh->set_store->sarc(&key.key, &data, mcflags, exptime,
+            rh->set_store->sarc(key, &data, mcflags, exptime,
                 add_policy, replace_policy, unique);
         
         if (!noreply) {
@@ -449,7 +440,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
         append_prepend_result_t res =
             rh->set_store->append_prepend(
                 sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
-                &key.key, &data);
+                key, &data);
 
         if (!noreply) {
             switch (res) {
@@ -488,8 +479,8 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     }
 
     /* First parse the key */
-    store_key_and_buffer_t key;
-    if (!str_to_key(argv[1], &key.key)) {
+    store_key_t key;
+    if (!str_to_key(argv[1], &key)) {
         rh->client_error_bad_command_line_format();
         return;
     }
@@ -573,15 +564,13 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 }
 
 /* "incr" and "decr" commands */
-void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, uint64_t amount, bool incr, bool noreply) {
+void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount, bool incr, bool noreply) {
 
     rh->begin_write_command();
 
-    repli_timestamp timestamp = current_time();
-
     incr_decr_result_t res = rh->set_store->incr_decr(
         incr ? incr_decr_INCR : incr_decr_DECR,
-        &key.key, amount);
+        key, amount);
 
     if (!noreply) {
         switch (res.res) {
@@ -612,8 +601,8 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
     }
 
     /* Parse key */
-    store_key_and_buffer_t key;
-    if (!str_to_key(argv[1], &key.key)) {
+    store_key_t key;
+    if (!str_to_key(argv[1], &key)) {
         rh->client_error_bad_command_line_format();
         return;
     }
@@ -648,10 +637,11 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 
 /* "delete" commands */
 
-void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool noreply) {
-    delete_result_t res = rh->set_store->delete_key(&key.key);
+void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
 
     rh->begin_write_command();
+
+    delete_result_t res = rh->set_store->delete_key(key);
 
     if (!noreply) {
         switch (res) {
@@ -679,8 +669,8 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
     }
 
     /* Parse key */
-    store_key_and_buffer_t key;
-    if (!str_to_key(argv[1], &key.key)) {
+    store_key_t key;
+    if (!str_to_key(argv[1], &key)) {
         rh->client_error_bad_command_line_format();
         return;
     }
@@ -781,16 +771,6 @@ std::string join_strings(std::string separator, std::vector<char*>::iterator beg
 }
 
 #ifndef NDEBUG
-std::vector<store_key_and_buffer_t> key_array_to_keys_vector(int argc, char **argv) {
-    std::vector<store_key_and_buffer_t> keys(argc);
-    for (int i = 0; i < argc; i++) {
-        if (!str_to_key(argv[i], &keys[i].key)) {
-            throw std::runtime_error("bad key");
-        }
-    }
-    return keys;
-}
-
 bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
     if (args.size() < 1)
         return false;
