@@ -578,8 +578,6 @@ struct config_block_errors {
     bool mc_inconsistent; // must be false
 };
 
-#define MC_CONFIG_BLOCK_ID 1
-
 bool check_config_block(nondirect_file_t *file, file_knowledge *knog, config_block_errors *errs) {
     errs->block_open_code = btree_block::none;
     errs->bad_magic = false;
@@ -602,16 +600,17 @@ bool check_config_block(nondirect_file_t *file, file_knowledge *knog, config_blo
 
 
     // Load all cache config blocks and check them for consistency
+    const int mod_count = serializer_multiplexer_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->n_proxies);
     for (int slice_id = 0; slice_id < knog->config_block->n_proxies; ++slice_id) {
-        ser_block_id_t config_block_ser_id = translator_serializer_t::translate_block_id(MC_CONFIG_BLOCK_ID, knog->config_block->this_serializer, slice_id, CONFIG_BLOCK_ID);
+        ser_block_id_t config_block_ser_id = translator_serializer_t::translate_block_id(MC_CONFIGBLOCK_ID, mod_count, slice_id, CONFIG_BLOCK_ID);
         btree_block mc_config_block;
-        if (!mc_config_block.init(file, knog, ser_block_id_t::make(MC_CONFIG_BLOCK_ID))) {
+        if (!mc_config_block.init(file, knog, config_block_ser_id)) {
             errs->mc_block_open_code = mc_config_block.err;
             return false;
         }
-        const mc_config_block_t *mc_buf = ptr_cast<mc_config_block_t>(config_block.buf);
+        const mc_config_block_t *mc_buf = ptr_cast<mc_config_block_t>(mc_config_block.buf);
 
-        if (!check_magic<multiplexer_config_block_t>(mc_buf->magic)) {
+        if (!check_magic<mc_config_block_t>(mc_buf->magic)) {
             errs->mc_bad_magic = true;
             return false;
         }
@@ -620,7 +619,7 @@ bool check_config_block(nondirect_file_t *file, file_knowledge *knog, config_blo
             knog->mc_config_block = *mc_buf;
         } else {
             if (memcmp(mc_buf, &knog->mc_config_block, sizeof(mc_config_block_t)) != 0) {
-                errs->mc_inconsistent = false;
+                errs->mc_inconsistent = true;
                 return false;
             }
         }
@@ -643,7 +642,7 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
 
     const unsigned int log_size = cx.knog->mc_config_block->cache.n_diff_log_blocks;
 
-    for (block_id_t block_id = SUPERBLOCK_ID + 1; block_id < SUPERBLOCK_ID + 1 + log_size; ++block_id) {
+    for (block_id_t block_id = MC_CONFIGBLOCK_ID + 1; block_id < MC_CONFIGBLOCK_ID + 1 + log_size; ++block_id) {
         ser_block_id_t ser_block_id = cx.to_ser_block_id(block_id);
 
         block_knowledge info;
@@ -1288,7 +1287,7 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
             printf("ERROR %s config block had bad magic\n", state);
         }
         if (cb->mc_block_open_code != btree_block::none) {
-            printf("ERROR %s mirrored cache config block not found: %s\n", state, btree_block::error_name(cb->block_open_code));
+            printf("ERROR %s mirrored cache config block not found: %s\n", state, btree_block::error_name(cb->mc_block_open_code));
         } else if (cb->mc_bad_magic) {
             printf("ERROR %s mirrored cache config block had bad magic\n", state);
         }
