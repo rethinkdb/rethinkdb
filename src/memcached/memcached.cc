@@ -293,7 +293,7 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
         const key_with_data_provider_t& kv = pair.get();
 
         const std::string& key = kv.key;
-        const unique_ptr_t<data_provider_t>& dp = kv.value_provider;
+        const boost::shared_ptr<data_provider_t>& dp = kv.value_provider;
 
         rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->get_size());
         rh->write_from_data_provider(dp.get());

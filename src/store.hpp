@@ -7,6 +7,7 @@
 #include "concurrency/cond_var.hpp"
 #include "containers/iterators.hpp"
 #include "containers/unique_ptr.hpp"
+#include <boost/shared_ptr.hpp>
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
@@ -43,9 +44,9 @@ inline std::string key_to_str(const store_key_t* key) {
 struct key_with_data_provider_t {
     std::string key;
     mcflags_t mcflags;
-    unique_ptr_t<data_provider_t> value_provider;
+    boost::shared_ptr<data_provider_t> value_provider;
 
-    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, unique_ptr_t<data_provider_t> value_provider) :
+    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, boost::shared_ptr<data_provider_t> value_provider) :
         key(key), mcflags(mcflags), value_provider(value_provider) { }
 
     struct less {
