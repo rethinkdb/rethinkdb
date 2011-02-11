@@ -4,10 +4,10 @@
 #include <boost/shared_ptr.hpp>
 #include "btree/node.hpp"
 #include "utils.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/large_buf.hpp"
 #include "buffer_cache/large_buf_lock.hpp"
-#include "btree/key_value_store.hpp"
 #include "buffer_cache/transactor.hpp"
 #include "buffer_cache/co_functions.hpp"
 

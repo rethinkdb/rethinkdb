@@ -49,7 +49,7 @@ class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t*> {
         buf_lock_t *lock;
     };
 public:
-    slice_leaves_iterator_t(const boost::shared_ptr<transactor_t>& transactor, slice_store_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open);
+    slice_leaves_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open);
 
     boost::optional<leaf_iterator_t*> next();
     void prefetch();
@@ -63,7 +63,7 @@ private:
     block_id_t get_child_id(const internal_node_t *i_node, int index) const;
 
     boost::shared_ptr<transactor_t> transactor;
-    slice_store_t *slice;
+    btree_slice_t *slice;
     store_key_t *start;
     store_key_t *end;
     bool left_open;
@@ -82,7 +82,7 @@ private:
  */
 class slice_keys_iterator_t : public one_way_iterator_t<key_with_data_provider_t> {
 public:
-    slice_keys_iterator_t(const boost::shared_ptr<transactor_t>& transactor, slice_store_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open);
+    slice_keys_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open);
     virtual ~slice_keys_iterator_t();
 
     boost::optional<key_with_data_provider_t> next();
@@ -96,7 +96,7 @@ private:
     void done();
 
     boost::shared_ptr<transactor_t> transactor;
-    slice_store_t *slice;
+    btree_slice_t *slice;
     store_key_t *start;
     std::string start_str;
     store_key_t *end;

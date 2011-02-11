@@ -54,41 +54,6 @@
  * Most of the implementation now resides in btree/iteration.{hpp,cc}.
  */
 
-typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
-
-template<class T>
-struct pm_iterator_wrapper_t : one_way_iterator_t<T> {
-    pm_iterator_wrapper_t(one_way_iterator_t<T> * wrapped, perfmon_duration_sampler_t *pm) :
-        wrapped(wrapped), block_pm(pm) { }
-    ~pm_iterator_wrapper_t() {
-        delete wrapped;
-    }
-    typename boost::optional<T> next() {
-        return wrapped->next();
-    }
-    void prefetch() {
-        wrapped->prefetch();
-    }
-    one_way_iterator_t<T> *get_wrapped() {
-        return wrapped;
-    }
-private:
-    one_way_iterator_t<T> *wrapped;
-    block_pm_duration block_pm;
-};
-
-rget_result_ptr_t btree_rget(btree_key_value_store_t *store, store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
-    thread_saver_t thread_saver;
-
-    unique_ptr_t<pm_iterator_wrapper_t<key_with_data_provider_t> > wrapped_iterator(new pm_iterator_wrapper_t<key_with_data_provider_t>(new merged_results_iterator_t(), &pm_cmd_rget));
-    merged_results_iterator_t *merge_iterator = ptr_cast<merged_results_iterator_t>(wrapped_iterator->get_wrapped());
-    for (int s = 0; s < store->btree_static_config.n_slices; s++) {
-        slice_store_t *slice = store->slices[s];
-        merge_iterator->add_mergee(slice->rget(start, end, left_open, right_open));
-    }
-    return wrapped_iterator.release();
-}
-
 rget_result_ptr_t btree_rget_slice(btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
     boost::shared_ptr<transactor_t> transactor = boost::shared_ptr<transactor_t>(new transactor_t(&slice->cache(), rwi_read));
     return new slice_keys_iterator_t(transactor, slice, start, end, left_open, right_open);

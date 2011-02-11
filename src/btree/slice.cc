@@ -74,3 +74,11 @@ append_prepend_result_t btree_slice_t::append_prepend(append_prepend_kind_t kind
 delete_result_t btree_slice_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
     return btree_delete(key, this, timestamp);
 }
+
+// Stats
+
+perfmon_duration_sampler_t
+    pm_cmd_set("cmd_set", secs_to_ticks(1)),
+    pm_cmd_get_without_threads("cmd_get_without_threads", secs_to_ticks(1)),
+    pm_cmd_get("cmd_get", secs_to_ticks(1)),
+    pm_cmd_rget("cmd_rget", secs_to_ticks(1));

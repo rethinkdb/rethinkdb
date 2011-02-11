@@ -18,6 +18,8 @@
 #define N_SECONDS (5*60)
 #define MAX_RECONNECTS_PER_N_SECONDS (5)
 
+/* This is a hack and we shouldn't be tied to this particular type */
+struct btree_key_value_store_t;
 
 namespace replication {
 
@@ -33,31 +35,30 @@ namespace replication {
 
 class slave_t :
     public home_thread_mixin_t,
-    public store_t,
+    public set_store_interface_t,
     public failover_callback_t,
     public message_callback_t
 {
 public:
     friend void run(slave_t *);
 
-    slave_t(store_t *, replication_config_t, failover_config_t);
+    slave_t(btree_key_value_store_t *, replication_config_t, failover_config_t);
     ~slave_t();
 
     /* failover module which is alerted by an on_failure() call when we go out
      * of contact with the master */
     failover_t failover;
 
-    /* store_t interface. */
+    /* set_store_interface_t interface. This interface will not work properly for anything until
+    we fail over. */
 
-    get_result_t get(store_key_t *key);
-    get_result_t get_cas(store_key_t *key, castime_t castime);
-    rget_result_ptr_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open);
-    set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
-    incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime);
+    get_result_t get_cas(store_key_t *key);
+    set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount);
 
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data);
 
-    delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
+    delete_result_t delete_key(store_key_t *key);
 
     /* message_callback_t interface */
     // These call .swap on their parameter, taking ownership of the pointee.
@@ -83,7 +84,6 @@ private:
     /* failover callback interface */
     void on_failure();
     void on_resume();
-
 
     /* Other failover callbacks */
     failover_script_callback_t failover_script;
@@ -139,7 +139,7 @@ private:
     void kill_conn();
     coro_t *coro;
 
-    store_t *internal_store;
+    btree_key_value_store_t *internal_store;
     replication_config_t replication_config;
     failover_config_t failover_config;
     tcp_conn_t *conn;
