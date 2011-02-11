@@ -86,14 +86,14 @@ private:
     void on_resume();
 
     /* Other failover callbacks */
-    failover_script_callback_t failover_script;
+    failover_script_callback_t failover_script_;
 
     /* state for failover */
-    bool respond_to_queries; /* are we responding to queries */
-    long timeout; /* ms to wait before trying to reconnect */
+    bool respond_to_queries_; /* are we responding to queries */
+    long timeout_; /* ms to wait before trying to reconnect */
 
     static void reconnect_timer_callback(void *ctx);
-    timer_token_t *timer_token;
+    timer_token_t *timer_token_;
 
     /* structure to tell us when to give up on the master */
     class give_up_t {
@@ -104,7 +104,7 @@ private:
     private:
         void limit_to(unsigned int limit);
         std::queue<float> succesful_reconnects;
-    } give_up;
+    } give_up_;
 
     /* Failover controllers */
 
@@ -120,7 +120,7 @@ private:
     private:
         slave_t *slave;
     };
-    failover_reset_control_t failover_reset_control;
+    failover_reset_control_t failover_reset_control_;
 
     /* Control to allow the master to be changed during run time */
     std::string new_master(std::string args);
@@ -134,17 +134,17 @@ private:
     private:
         slave_t *slave;
     };
-    new_master_control_t new_master_control;
+    new_master_control_t new_master_control_;
 
     void kill_conn();
-    coro_t *coro;
+    coro_t *coro_;
 
-    btree_key_value_store_t *internal_store;
-    replication_config_t replication_config;
-    failover_config_t failover_config;
-    tcp_conn_t *conn;
-    message_parser_t parser;
-    bool shutting_down;
+    btree_key_value_store_t *internal_store_;
+    replication_config_t replication_config_;
+    failover_config_t failover_config_;
+    tcp_conn_t *conn_;
+    message_parser_t parser_;
+    bool shutting_down_;
 
 
 };
