@@ -8,7 +8,7 @@
 
 namespace replication {
 
-void master_t::hello(const mutex_acquisition_t& proof_of_acquisition) {
+void master_t::send_hello(const mutex_acquisition_t& proof_of_acquisition) {
     net_hello_t msg;
     rassert(sizeof(msg.hello_magic) == 16);
     // TODO make a #define for this.
@@ -23,6 +23,20 @@ void master_t::hello(const mutex_acquisition_t& proof_of_acquisition) {
     memcpy(msg.informal_name, informal_name, 32);
 
     slave_->write(&msg, sizeof(msg));
+}
+
+void master_t::receive_hello(const mutex_acquisition_t& proof_of_acquisition) {
+    net_hello_t msg = hello_receive_var_.wait();
+
+    if (msg.role != role_slave) {
+        // TODO: wtf do we do?
+        throw master_exc_t("A non-slave connected.");
+    }
+
+    // TODO have this compare against our actual database_magic!  Or die!
+    if (msg.database_magic != 0) {
+        throw master_exc_t("A slave connected, but it had bad database_magic value.");
+    }
 }
 
 void master_t::get_cas(store_key_t *key, castime_t castime) {
@@ -244,9 +258,8 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
 
         parser_.parse_messages(slave_.get(), this);
 
-        hello(lock);
-
-        //        receive_hello(lock);
+        send_hello(lock);
+        receive_hello(lock);
     }
     // TODO when sending/receiving hello handshake, use database magic
     // to handle case where slave is already connected.
@@ -262,6 +275,7 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
     }
 
     slave_.reset();
+    hello_receive_var_.reset();
 }
 
 }  // namespace replication

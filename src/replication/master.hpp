@@ -47,7 +47,7 @@ public:
     // Listener callback functions
     void on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn);
 
-    void hello(net_hello_t message) { }
+    void hello(net_hello_t message) { hello_receive_var_.pulse(message); }
     void send(buffed_data_t<net_backfill_t>& message) { }
     void send(buffed_data_t<net_announce_t>& message) { }
     void send(buffed_data_t<net_get_cas_t>& message) { }
@@ -74,8 +74,8 @@ private:
     template <class net_struct_type>
     void stereotypical(int msgcode, store_key_t *key, data_provider_t *data, net_struct_type netstruct);
 
-    void hello(const mutex_acquisition_t& proof_of_acquisition);
-    //    void receive_hello(const mutex_acquisition_t& proof_of_acquisition);
+    void send_hello(const mutex_acquisition_t& proof_of_acquisition);
+    void receive_hello(const mutex_acquisition_t& proof_of_acquisition);
 
     void destroy_existing_slave_conn_if_it_exists();
 
@@ -86,6 +86,8 @@ private:
     tcp_listener_t listener_;
 
     message_parser_t parser_;
+
+    unicond_t<net_hello_t> hello_receive_var_;
 
     DISABLE_COPYING(master_t);
 };
