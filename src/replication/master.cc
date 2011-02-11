@@ -236,18 +236,14 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
     {
         mutex_acquisition_t lock(&message_contiguity_);
 
-        if (slave_) {
-            parser_.co_shutdown();
-            slave_->shutdown_read();
-            slave_->shutdown_write();
-        }
-
-        slave_.reset();
+        destroy_existing_slave_conn_if_it_exists();
         slave_.swap(conn);
 
         parser_.parse_messages(slave_.get(), this);
 
         hello(lock);
+
+        //        receive_hello(lock);
     }
     // TODO when sending/receiving hello handshake, use database magic
     // to handle case where slave is already connected.
@@ -255,7 +251,15 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
     // TODO receive hello handshake before sending other messages.
 }
 
+void master_t::destroy_existing_slave_conn_if_it_exists() {
+    if (slave_) {
+        parser_.co_shutdown();
+        slave_->shutdown_read();
+        slave_->shutdown_write();
+    }
 
+    slave_.reset();
+}
 
 }  // namespace replication
 

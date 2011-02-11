@@ -4,6 +4,7 @@
 #include "store.hpp"
 #include "arch/arch.hpp"
 #include "concurrency/mutex.hpp"
+#include "containers/snag_ptr.hpp"
 #include "containers/thick_list.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
@@ -26,10 +27,11 @@ public:
         debugf("constructed master_t...\n");
     }
 
-    bool has_slave() { return slave_ != NULL; }
+    ~master_t() {
+        destroy_existing_slave_conn_if_it_exists();
+    }
 
-    // Must be called within the mutex acquisition lock.
-    void hello(const mutex_acquisition_t& proof_of_acquisition);
+    bool has_slave() { return slave_ != NULL; }
 
     void get_cas(store_key_t *key, castime_t castime);
 
@@ -72,7 +74,10 @@ private:
     template <class net_struct_type>
     void stereotypical(int msgcode, store_key_t *key, data_provider_t *data, net_struct_type netstruct);
 
-    void reset_parser();
+    void hello(const mutex_acquisition_t& proof_of_acquisition);
+    //    void receive_hello(const mutex_acquisition_t& proof_of_acquisition);
+
+    void destroy_existing_slave_conn_if_it_exists();
 
     mutex_t message_contiguity_;
     boost::scoped_ptr<tcp_conn_t> slave_;
