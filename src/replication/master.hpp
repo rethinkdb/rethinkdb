@@ -49,19 +49,19 @@ public:
 
     void hello(net_hello_t message) { hello_receive_var_.pulse(message); }
     void send(buffed_data_t<net_backfill_t>& message) { }
-    void send(buffed_data_t<net_announce_t>& message) { }
-    void send(buffed_data_t<net_get_cas_t>& message) { }
-    void send(stream_pair<net_sarc_t>& message) { }
-    void send(buffed_data_t<net_incr_t>& message) { }
-    void send(buffed_data_t<net_decr_t>& message) { }
-    void send(stream_pair<net_append_t>& message) { }
-    void send(stream_pair<net_prepend_t>& message) { }
-    void send(buffed_data_t<net_delete_t>& message) { }
-    void send(buffed_data_t<net_nop_t>& message) { }
+    void send(buffed_data_t<net_announce_t>& message) { rassert(false, "slave sent announce"); }
+    void send(buffed_data_t<net_get_cas_t>& message) { rassert(false, "slave sent get_cas"); }
+    void send(stream_pair<net_sarc_t>& message) { rassert(false, "slave sent sarc"); }
+    void send(buffed_data_t<net_incr_t>& message) { rassert(false, "slave sent incr"); }
+    void send(buffed_data_t<net_decr_t>& message) { rassert(false, "slave sent decr"); }
+    void send(stream_pair<net_append_t>& message) { rassert(false, "slave sent append"); }
+    void send(stream_pair<net_prepend_t>& message) { rassert(false, "slave sent prepend"); }
+    void send(buffed_data_t<net_delete_t>& message) { rassert(false, "slave sent delete"); }
+    void send(buffed_data_t<net_nop_t>& message) { rassert(false, "slave sent nop"); }
     void send(buffed_data_t<net_ack_t>& message) { }
     void send(buffed_data_t<net_shutting_down_t>& message) { }
     void send(buffed_data_t<net_goodbye_t>& message) { }
-    void conn_closed() { }
+    void conn_closed() { destroy_existing_slave_conn_if_it_exists(); }
 
 
 private:
