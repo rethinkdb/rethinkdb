@@ -377,6 +377,8 @@ bool linux_tcp_conn_t::is_write_open() {
 
 linux_tcp_conn_t::~linux_tcp_conn_t() {
 
+    debugf("Closing a linux_tcp_conn_t\n");
+
     if (is_read_open()) shutdown_read();
     if (is_write_open()) shutdown_write();
 

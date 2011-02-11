@@ -26,6 +26,9 @@ void master_t::hello(const mutex_acquisition_t& proof_of_acquisition) {
 }
 
 void master_t::get_cas(store_key_t *key, castime_t castime) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+    int c = msgcounter_++;
+    debugf("master_t::get_cas %d\n", c);
     if (slave_) {
         size_t n = sizeof(headed<net_get_cas_t>) + key->size;
         scoped_malloc<headed<net_get_cas_t> > message(n);
@@ -41,10 +44,15 @@ void master_t::get_cas(store_key_t *key, castime_t castime) {
             slave_->write(message.get(), n);
         }
     }
+    debugf("end master_t::get_cas %d\n", c);
 }
 
 void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+    int c = msgcounter_++;
+    debugf("master_t::sarc %d\n", c);
     if (slave_) {
+        debugf("impossible, there is no slave.\n");
         net_sarc_t stru;
         stru.timestamp = castime.timestamp;
         stru.proposed_cas = castime.proposed_cas;
@@ -58,9 +66,13 @@ void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, ex
         stereotypical(SARC, key, data, stru);
     }
     delete data;
+    debugf("end master_t::sarc %d\n", c);
 }
 
 void master_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+    int c = msgcounter_++;
+    debugf("master_t::incr_decr %d\n", c);
     if (slave_) {
         if (kind == incr_decr_INCR) {
             incr_decr_like<net_incr_t>(INCR, key, amount, castime);
@@ -69,6 +81,7 @@ void master_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amoun
             incr_decr_like<net_decr_t>(DECR, key, amount, castime);
         }
     }
+    debugf("end master_t::incr_decr %d\n", c);
 }
 
 template <class net_struct_type>
@@ -88,6 +101,9 @@ void master_t::incr_decr_like(uint8_t msgcode, store_key_t *key, uint64_t amount
 }
 
 void master_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+    int c = msgcounter_++;
+    debugf("master_t::append_prepend %d\n", c);
     if (slave_) {
         if (kind == append_prepend_APPEND) {
             net_append_t appendstruct;
@@ -110,9 +126,13 @@ void master_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data
         }
     }
     delete data;
+    debugf("end master_t::append_prepend %d\n", c);
 }
 
 void master_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+    int c = msgcounter_++;
+    debugf("master_t::delete_key %d\n", c);
     if (slave_) {
         size_t n = sizeof(headed<net_delete_t>) + key->size;
         scoped_malloc<headed<net_delete_t> > message(n);
@@ -128,6 +148,7 @@ void master_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
             slave_->write(message.get(), n);
         }
     }
+    debugf("end master_t::delete_key %d\n", c);
 }
 
 // For operations with keys and values whose structs use the stereotypical names.
@@ -152,6 +173,7 @@ void master_t::stereotypical(int msgcode, store_key_t *key, data_provider_t *dat
             slave_->write(message.get(), n);
         }
     } else {
+        debugf("We've got a super-long message.\n");
         // For now, we have no way to get the first chunk of all the
         // data, so the first chunk has size zero, and we send all the
         // other chunks contiguously.  Later, data_provider_t might

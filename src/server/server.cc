@@ -105,7 +105,11 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             /* Start key-value store */
             logINF("Loading database...\n");
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config, &master);
+
+            snag_ptr_t<replication::master_t> master_ptr(master);
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config, master_ptr);
+            master_ptr.reset();
+
             server.get_store = &store;   // Gets always go straight to the key-value store
 
             /* Are we a replication slave? */

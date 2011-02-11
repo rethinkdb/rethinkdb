@@ -180,7 +180,9 @@ public:
 
         size_t get_size() const;
         const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
-        void supply_buffers_and_wait(const buffer_group_t *buffers);
+
+        void supply_buffers_and_wait(const const_buffer_group_t *buffers);
+        void supply_no_buffers();
 
     private:
         int reading_thread_;
@@ -188,6 +190,7 @@ public:
         cond_t *done_cond_;
         bool got_data_;
         size_t size_;
+        bool will_never_get_data_;
     };
 
 
@@ -201,9 +204,13 @@ public:
     side_data_provider_t *side_provider();
 private:
     data_provider_t *inner_;
-    cond_t done_cond_;
+    cond_t done_cond_;  // Lives on the side_reader_thread.
     side_data_provider_t *side_;
     bool side_owned_;
+    bool supplied_buffers_;
+#ifndef NDEBUG
+    bool in_get_data_into_buffers_;
+#endif
 };
 
 #endif /* __DATA_PROVIDER_HPP__ */

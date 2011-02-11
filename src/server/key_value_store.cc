@@ -106,7 +106,7 @@ void create_existing_btree(
         btree_slice_dispatching_to_master_t **dispatchers,
         timestamping_set_store_interface_t **timestampers,
         mirrored_cache_config_t *config,
-        replication::master_t *master,
+        snag_ptr_t<replication::master_t> master,
         int i) {
 
     // TODO try to align slices with serializers so that when possible, a slice is on the
@@ -119,7 +119,7 @@ void create_existing_btree(
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                                                 replication::master_t *master)
+                                                 snag_ptr_t<replication::master_t> master)
     : hash_control(this) {
 
     /* Start serializers */
@@ -144,8 +144,9 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     per_slice_config.max_size /= btree_static_config.n_slices;
     per_slice_config.max_dirty_size /= btree_static_config.n_slices;
     per_slice_config.flush_dirty_size /= btree_static_config.n_slices;
-    pmap(btree_static_config.n_slices, boost::bind(&create_existing_btree,
-         multiplexer->proxies.data(), btrees, dispatchers, timestampers, &per_slice_config, master, _1));
+    pmap(btree_static_config.n_slices,
+         boost::bind(&create_existing_btree,
+                     multiplexer->proxies.data(), btrees, dispatchers, timestampers, &per_slice_config, master, _1));
 }
 
 void destroy_btree(

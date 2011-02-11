@@ -4,23 +4,31 @@
 #include "concurrency/cond_var.hpp"
 
 class snag_pointee_mixin_t {
+public:
     snag_pointee_mixin_t() : reference_count_(0), cond_() { }
 
     template <class T>
     friend class snag_ptr_t;
 
+
+
 protected:
-    ~snag_pointee_mixin_t() {
+    void wait_until_ready_to_delete() {
         if (reference_count_ > 0) {
             cond_.wait();
         }
     }
+    ~snag_pointee_mixin_t() {
+        wait_until_ready_to_delete();
+    }
 private:
     void incr_reference_count() {
+        debugf("++ reference_count_ == %d\n", reference_count_ + 1);
         ++ reference_count_;
     }
 
     void decr_reference_count() {
+        debugf("-- reference_count_ == %d\n", reference_count_ - 1);
         -- reference_count_;
         if (reference_count_ == 0) {
             cond_.pulse();
@@ -42,6 +50,14 @@ public:
         if (ptr_) {
             do_on_thread(ptr_->home_thread, boost::bind(&T::incr_reference_count, ptr_));
         }
+    }
+
+    snag_ptr_t() : ptr_(NULL) { }
+
+    operator bool() const { return ptr_ != NULL; }
+
+    explicit snag_ptr_t(T& ptr) : ptr_(&ptr) {
+        do_on_thread(ptr_->home_thread, boost::bind(&T::incr_reference_count, ptr_));
     }
 
     ~snag_ptr_t() {

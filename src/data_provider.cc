@@ -143,14 +143,19 @@ const const_buffer_group_t *maybe_buffered_data_provider_t::get_data_as_buffers(
 
 
 buffer_borrowing_data_provider_t::side_data_provider_t::side_data_provider_t(int reading_thread, size_t size, cond_t *done_cond)
-    : reading_thread_(reading_thread), done_cond_(done_cond), got_data_(false), size_(size) { }
+    : reading_thread_(reading_thread), done_cond_(done_cond), got_data_(false), size_(size) {
+    debugf("creating a side_data_provider_t\n");
+}
 
 buffer_borrowing_data_provider_t::side_data_provider_t::~side_data_provider_t() {
     debugf("~side_data_provider_t()\n");
     if (!got_data_) {
         cond_.wait();
     }
-    done_cond_->pulse();
+    debugf("pulsing done_cond_\n");
+    if (done_cond_) {
+        done_cond_->pulse();
+    }
 }
 
 
@@ -166,35 +171,71 @@ const const_buffer_group_t *buffer_borrowing_data_provider_t::side_data_provider
     return buffers;
 }
 
-void buffer_borrowing_data_provider_t::side_data_provider_t::supply_buffers_and_wait(const buffer_group_t *buffers) {
-    debugf("supply_buffers_and_wait, switching threads...\n");
+void buffer_borrowing_data_provider_t::side_data_provider_t::supply_buffers_and_wait(const const_buffer_group_t *buffers) {
+    debugf("supply_buffers_and_wait, switching threads... %d -> %d\n", get_thread_id(), reading_thread_);
     on_thread_t thread(reading_thread_);
     debugf("supply_buffers_and_wait, pulsing buffers...\n");
     cond_t *done_cond_local = done_cond_;
-    cond_.pulse(const_view(buffers));
+    cond_.pulse(buffers);
     debugf("supply_buffers_and_wait, waiting for done_cond_...\n");
     done_cond_local->wait();
     debugf("supply_buffers_and_wait, finished.\n");
 }
 
+void buffer_borrowing_data_provider_t::side_data_provider_t::supply_no_buffers() {
+    on_thread_t thread(reading_thread_);
+    cond_.pulse(NULL);
+    done_cond_ = NULL;
+}
+
 buffer_borrowing_data_provider_t::buffer_borrowing_data_provider_t(int side_reader_thread, data_provider_t *inner)
-    : inner_(inner), done_cond_(), side_(new side_data_provider_t(side_reader_thread, inner->get_size(), &done_cond_)), side_owned_(true) { }
+    : inner_(inner), done_cond_(),
+      side_(new side_data_provider_t(side_reader_thread, inner->get_size(), &done_cond_)),
+      side_owned_(true), supplied_buffers_(false) {
+#ifndef NDEBUG
+    in_get_data_into_buffers_ = false;
+#endif
+}
 
 buffer_borrowing_data_provider_t::~buffer_borrowing_data_provider_t() {
+    rassert(!in_get_data_into_buffers_);
+
     if (side_owned_) {
         delete side_;
+    }
+
+    if (!supplied_buffers_) {
+        side_->supply_no_buffers();
     }
 }
 
 size_t buffer_borrowing_data_provider_t::get_size() const { return inner_->get_size(); }
 
 void buffer_borrowing_data_provider_t::get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t) {
-    inner_->get_data_into_buffers(dest);
-    side_->supply_buffers_and_wait(dest);
+#ifndef NDEBUG
+    in_get_data_into_buffers_ = true;
+    try {
+#endif
+
+        supplied_buffers_ = true;
+        debugf("Calling inner_->get_data_into_buffers\n");
+        inner_->get_data_into_buffers(dest);
+        side_->supply_buffers_and_wait(const_view(dest));
+
+#ifndef NDEBUG
+    } catch (data_provider_failed_exc_t&) {
+        in_get_data_into_buffers_ = false;
+        throw;
+    }
+    in_get_data_into_buffers_ = false;
+#endif
 }
 
 const const_buffer_group_t *buffer_borrowing_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
-    return inner_->get_data_as_buffers();
+    supplied_buffers_ = true;
+    const const_buffer_group_t *group = inner_->get_data_as_buffers();
+    side_->supply_buffers_and_wait(group);
+    return group;
 }
 
 buffer_borrowing_data_provider_t::side_data_provider_t *buffer_borrowing_data_provider_t::side_provider() {

@@ -20,14 +20,18 @@ public:
 };
 
 
-class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t, public message_callback_t {
+class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t, public message_callback_t, public snag_pointee_mixin_t {
 public:
     master_t() : message_contiguity_(), slave_(NULL), sources_(), listener_(REPLICATION_PORT) {
+        msgcounter_ = 0;
         listener_.set_callback(this);
         debugf("constructed master_t...\n");
     }
 
     ~master_t() {
+        debugf("destroying master_t, we think.\n");
+        wait_until_ready_to_delete();
+        debugf("ready to destroy master_t...\n");
         destroy_existing_slave_conn_if_it_exists();
     }
 
@@ -86,6 +90,9 @@ private:
     tcp_listener_t listener_;
 
     message_parser_t parser_;
+#ifndef NDEBUG
+    int msgcounter_;
+#endif
 
     DISABLE_COPYING(master_t);
 };
