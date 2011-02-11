@@ -72,6 +72,12 @@ try:
                   "fsck"        : True},
                 repeat=1, timeout=60)
         
+        do_test_cloud("integration/rget.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol }, timeout=45)
+        
         # More advanced tests in various cores/slices configuration
         for (cores, slices) in [(1, 1)]:
             do_test_cloud("integration/many_keys.py",
