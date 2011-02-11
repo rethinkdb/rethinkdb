@@ -44,10 +44,7 @@ void master_t::get_cas(store_key_t *key, castime_t castime) {
 }
 
 void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    debugf("sarcing...\n");
     if (slave_) {
-        debugf("the slave was alive.. sending...\n");
-
         net_sarc_t stru;
         stru.timestamp = castime.timestamp;
         stru.proposed_cas = castime.proposed_cas;
@@ -237,14 +234,18 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
     // rest of the message to conn?)  That will happen, the way the
     // code is, right now.
     {
-        debugf("Receiving replica...\n");
         mutex_acquisition_t lock(&message_contiguity_);
-        debugf("Acquired message contiguity lock.\n");
+
+        if (slave_) {
+            parser_.co_shutdown();
+            slave_->shutdown_read();
+            slave_->shutdown_write();
+        }
+
         slave_.reset();
         slave_.swap(conn);
 
-
-        debugf("Received replica.\n");
+        parser_.parse_messages(slave_.get(), this);
 
         hello(lock);
     }

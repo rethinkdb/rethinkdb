@@ -48,27 +48,28 @@ public:
     message_parser_t() : shutdown_asked_for(false) {}
     ~message_parser_t() {}
 
-private:
-    bool keep_going; /* used to signal the parser when to stop */
-    bool shutdown_asked_for; /* were we asked to shutdown (used to ignore connection exceptions */
-
-public:
     void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
 
-public:
     struct message_parser_shutdown_callback_t {
         virtual void on_parser_shutdown() = 0;
+    protected:
+        ~message_parser_shutdown_callback_t() { }
     };
     bool shutdown(message_parser_shutdown_callback_t *cb);
 
-private:
-    message_parser_shutdown_callback_t *_cb;
+    void co_shutdown();
 
 private:
     size_t handle_message(message_callback_t *receiver, weak_buf_t buffer, size_t offset, size_t num_read, thick_list<value_stream_t *, uint32_t>& streams);
     void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
     void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, thick_list<value_stream_t *, uint32_t>& streams);
 
+    bool keep_going; /* used to signal the parser when to stop */
+    bool shutdown_asked_for; /* were we asked to shutdown (used to ignore connection exceptions */
+
+    message_parser_shutdown_callback_t *_cb;
+
+    DISABLE_COPYING(message_parser_t);
 };
 }  // namespace replication
 

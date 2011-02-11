@@ -6,6 +6,7 @@
 #include "concurrency/mutex.hpp"
 #include "containers/thick_list.hpp"
 #include "replication/net_structs.hpp"
+#include "replication/protocol.hpp"
 
 namespace replication {
 
@@ -18,7 +19,7 @@ public:
 };
 
 
-class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t {
+class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t, public message_callback_t {
 public:
     master_t() : message_contiguity_(), slave_(NULL), sources_(), listener_(REPLICATION_PORT) {
         listener_.set_callback(this);
@@ -44,6 +45,22 @@ public:
     // Listener callback functions
     void on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn);
 
+    void hello(net_hello_t message) { }
+    void send(buffed_data_t<net_backfill_t>& message) { }
+    void send(buffed_data_t<net_announce_t>& message) { }
+    void send(buffed_data_t<net_get_cas_t>& message) { }
+    void send(stream_pair<net_sarc_t>& message) { }
+    void send(buffed_data_t<net_incr_t>& message) { }
+    void send(buffed_data_t<net_decr_t>& message) { }
+    void send(stream_pair<net_append_t>& message) { }
+    void send(stream_pair<net_prepend_t>& message) { }
+    void send(buffed_data_t<net_delete_t>& message) { }
+    void send(buffed_data_t<net_nop_t>& message) { }
+    void send(buffed_data_t<net_ack_t>& message) { }
+    void send(buffed_data_t<net_shutting_down_t>& message) { }
+    void send(buffed_data_t<net_goodbye_t>& message) { }
+    void conn_closed() { }
+
 
 private:
     // Spawns a coroutine.
@@ -55,12 +72,15 @@ private:
     template <class net_struct_type>
     void stereotypical(int msgcode, store_key_t *key, data_provider_t *data, net_struct_type netstruct);
 
+    void reset_parser();
 
     mutex_t message_contiguity_;
     boost::scoped_ptr<tcp_conn_t> slave_;
     thick_list<data_provider_t *, uint32_t> sources_;
 
     tcp_listener_t listener_;
+
+    message_parser_t parser_;
 
     DISABLE_COPYING(master_t);
 };

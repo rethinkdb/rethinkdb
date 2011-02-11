@@ -212,4 +212,18 @@ bool message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
     return false;
 }
 
+
+void message_parser_t::co_shutdown() {
+    struct : public message_parser_shutdown_callback_t {
+        cond_t cond;
+        void on_parser_shutdown() {
+            cond.pulse();
+        }
+    } cb;
+
+    if (!shutdown(&cb)) {
+        cb.cond.wait();
+    }
+}
+
 }  // namespace replication
