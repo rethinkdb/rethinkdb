@@ -102,7 +102,7 @@ try:
                       "slices"      : slices,
                       "duration"    : 10,
                       "restart-server-prob" : "0.0005" },
-                    repeat=2, timeout=25)
+                    repeat=2, timeout=35)
         
             do_test_cloud("integration/multi_serial_mix.py",
                     { "auto"        : True,
