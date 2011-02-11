@@ -32,6 +32,7 @@ rethinkdb \- the database for solid state drives
 [<-s | \-\-slices> \fIcount\fP] 
 [\-\-block\-size \fIbytes\fP] 
 [\-\-extent\-size \fIbytes\fP] 
+[\-\-diff\-log\-size \fImegabytes\fP] 
 [<\-l | \-\-log\-file> \fIlog file\fP] 
 [\-\-force]
 .TP
@@ -39,6 +40,7 @@ rethinkdb \- the database for solid state drives
 [\-\-force\-block\-size \fIbytes\fP]
 [\-\-force\-extent\-size \fIbytes\fP]
 [\-\-force\-slice\-count \fIcount\fP]
+[\-\-ignore\-diff\-log]
 [<\-l | \-\-log\-file> \fIfile\fP]
 [<\-o | \-\-output\-file> \fIfile\fP]
 .TP
@@ -92,6 +94,9 @@ Serve:
 
 .B \-\-active\-data\-extents
     How many places in the file to write to at once.
+
+.B \-\-diff\-log\-size
+    The size which is allocated for the differential log.
 
 .B \-v, 
 .B \-\-verbose
@@ -153,6 +158,10 @@ Extract:
 
 .B \-\-force\-slice\-count     
     Specifies number of slices in *this* file, overriding file headers.
+
+.B \-\-ignore\-diff\-log     
+    Do not apply patches from the differential log. This allows to extract
+    (potentially outdated) data even if the differential log is corrupted.
 
 .B \-l, 
 .B \-\-log\-file

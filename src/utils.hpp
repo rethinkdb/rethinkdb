@@ -115,6 +115,14 @@ void spawn_on_home(const obj_t& obj, const fun_t& fun);
 template<class callable_t>
 void do_later(const callable_t &callable);
 
+// Provides a compare operator which compares the dereferenced values of pointers T* (for use in std:sort etc)
+template <typename obj_t>
+class dereferencing_compare_t {
+public:
+    bool operator()(obj_t * const &o1, obj_t * const &o2) const {
+        return *o1 < *o2;
+    }
+};
 
 #include "utils.tcc"
 

@@ -41,6 +41,7 @@ def make_option_parser():
     o["corruption_p"] = FloatFlag("--corruption-p", 0)
     o["cores"] = IntFlag("--cores", 2)
     o["slices"] = IntFlag("--slices", 3)
+    o["diff-log-size"] = IntFlag("--diff-log-size", 4)
     o["memory"] = IntFlag("--memory", 100)
     o["duration"] = IntFlag("--duration", 10)
     o["serve-flags"] = StringFlag("--serve-flags", "")
@@ -303,6 +304,7 @@ class DataFiles(object):
         run_executable([
             get_executable_path(opts, "rethinkdb"), "create", "--force",
             "-s", str(self.opts["slices"]),
+            "--diff-log-size", str(self.opts["diff-log-size"]),
             "-c", str(self.opts["cores"]),
             ] + (["--extent-size", "1048576"] if self.opts["valgrind"] else []) + self.rethinkdb_flags(),
             "creator_output.txt",

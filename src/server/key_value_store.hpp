@@ -78,6 +78,7 @@ public:
 public:
     int n_files;
     btree_config_t btree_static_config;
+    mirrored_cache_static_config_t cache_static_config;
 
     /* These five things are declared in reverse order from how they are used. (The order they are
     declared is the order in which they are created.)

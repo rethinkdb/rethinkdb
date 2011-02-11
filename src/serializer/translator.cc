@@ -214,12 +214,16 @@ bool translator_serializer_t::do_read(block_id_t block_id, void *buf, serializer
     return inner->do_read(xlate(block_id), buf, callback);
 }
 
+ser_transaction_id_t translator_serializer_t::get_current_transaction_id(block_id_t block_id, const void* buf) {
+    return inner->get_current_transaction_id(xlate(block_id), buf);
+}
+
 
 bool translator_serializer_t::do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback) {
     std::vector<serializer_t::write_t> writes2;
     for (int i = 0; i < num_writes; i++) {
         writes2.push_back(serializer_t::write_t(xlate(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
-                                                writes[i].buf_specified, writes[i].buf, writes[i].callback));
+                                                writes[i].buf_specified, writes[i].buf, writes[i].callback, writes[i].assign_transaction_id));
     }
     return inner->do_write(writes2.data(), num_writes, callback);
 }
