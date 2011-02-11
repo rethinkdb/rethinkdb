@@ -2,6 +2,7 @@
 #include "btree/leaf_node.hpp"
 #include <algorithm>
 #include "logger.hpp"
+#include "btree/buf_patches.hpp"
 
 // #define DEBUG_MAX_LEAF 10
 
@@ -43,7 +44,7 @@ bool insert(block_size_t block_size, buf_t& node_buf, const btree_key *key, cons
         return false;
     }
 
-    node_buf.apply_patch(*(new leaf_insert_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), block_size, value->size, value->metadata_flags.flags, value->contents, key->size, key->contents, insertion_time)));
+    node_buf.apply_patch(new leaf_insert_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), block_size, value->size, value->metadata_flags.flags, value->contents, key->size, key->contents, insertion_time));
 
     validate(block_size, node);
     return true;
@@ -96,7 +97,7 @@ void remove(block_size_t block_size, buf_t &node_buf, const btree_key *key) {
     print(node);
 #endif
 
-    node_buf.apply_patch(*(new leaf_remove_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), block_size, key->size, key->contents)));
+    node_buf.apply_patch(new leaf_remove_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), block_size, key->size, key->contents));
 
 #ifdef BTREE_DEBUG
     printf("\t|\n\t|\n\t|\n\tV\n");
@@ -518,7 +519,7 @@ void delete_pair(buf_t &node_buf, uint16_t offset) {
     const btree_leaf_pair *pair_to_delete = get_pair(node, offset);
     size_t shift = pair_size(pair_to_delete);
 
-    node_buf.apply_patch(*(new leaf_shift_pairs_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), offset, shift)));
+    node_buf.apply_patch(new leaf_shift_pairs_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), offset, shift));
 }
 void delete_pair(leaf_node_t *node, uint16_t offset) {
     const btree_leaf_pair *pair_to_delete = get_pair(node, offset);
@@ -537,7 +538,7 @@ uint16_t insert_pair(buf_t &node_buf, const btree_leaf_pair *pair) {
 // Copies key and value into pair snugly onto the front of the data region.
 // Returns the new frontmost_offset.
 uint16_t insert_pair(buf_t &node_buf, const btree_value *value, const btree_key *key) {
-    node_buf.apply_patch(*(new leaf_insert_pair_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), value->size, value->metadata_flags.flags, value->contents, key->size, key->contents)));
+    node_buf.apply_patch(new leaf_insert_pair_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), value->size, value->metadata_flags.flags, value->contents, key->size, key->contents));
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
     return node->frontmost_offset;
 }

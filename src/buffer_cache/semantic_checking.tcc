@@ -36,7 +36,7 @@ void scc_buf_t<inner_cache_t>::move_data(const void* dest, const void* src, cons
 }
 
 template<class inner_cache_t>
-void scc_buf_t<inner_cache_t>::apply_patch(buf_patch_t& patch) {
+void scc_buf_t<inner_cache_t>::apply_patch(buf_patch_t *patch) {
     inner_buf->apply_patch(patch);
 }
 

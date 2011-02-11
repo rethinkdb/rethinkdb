@@ -42,9 +42,9 @@ public:
         memmove((char*)dest, (char*)src, n);
     }
 
-    void apply_patch(buf_patch_t& patch) {
-        patch.apply_to_buf((char*)get_data_major_write());
-        delete &patch;
+    void apply_patch(buf_patch_t *patch) {
+        patch->apply_to_buf((char*)get_data_major_write());
+        delete patch;
     }
 
     patch_counter_t get_next_patch_counter() {

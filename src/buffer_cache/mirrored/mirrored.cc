@@ -203,15 +203,15 @@ void mc_buf_t::on_lock_available() {
     if (callback) callback->on_block_available(this);
 }
 
-void mc_buf_t::apply_patch(buf_patch_t& patch) {
+void mc_buf_t::apply_patch(buf_patch_t *patch) {
     rassert(ready);
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
-    rassert(patch.get_block_id() == inner_buf->block_id);
+    rassert(patch->get_block_id() == inner_buf->block_id);
 
-    patch.apply_to_buf((char*)data);
+    patch->apply_to_buf((char*)data);
     inner_buf->writeback_buf.set_dirty();
 
     // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks)
@@ -222,22 +222,22 @@ void mc_buf_t::apply_patch(buf_patch_t& patch) {
     if (!inner_buf->writeback_buf.needs_flush) {
         // Check if we want to disable patching for this block and flush it directly instead
         const size_t MAX_PATCHES_SIZE = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
-        if (patch.get_affected_data_size() + inner_buf->cache->diff_core_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
+        if (patch->get_affected_data_size() + inner_buf->cache->diff_core_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
             ensure_flush();
         } else {
             // Store the patch if the buffer does not have to be flushed anyway
-            if (patch.get_patch_counter() == 1) {
+            if (patch->get_patch_counter() == 1) {
                 // Clean up any left-over patches
                 inner_buf->cache->diff_core_storage.drop_patches(inner_buf->block_id);
             }
 
-            inner_buf->cache->diff_core_storage.store_patch(patch);
+            inner_buf->cache->diff_core_storage.store_patch(*patch);
         }
     }
 
     
     if (inner_buf->writeback_buf.needs_flush) {
-        delete &patch;
+        delete patch;
     }
 }
 
@@ -289,7 +289,7 @@ void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
     } else {
         size_t offset = (const char*)dest - (const char*)data;
         // transaction ID will be set later...
-        apply_patch(*(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, (const char*)src, n)));
+        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, (const char*)src, n));
     }
 }
 
@@ -310,7 +310,7 @@ void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
         size_t dest_offset = (const char*)dest - (const char*)data;
         size_t src_offset = (const char*)src - (const char*)data;
         // transaction ID will be set later...
-        apply_patch(*(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n)));
+        apply_patch(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
     }
 }
 

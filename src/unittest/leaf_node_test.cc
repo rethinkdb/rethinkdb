@@ -6,6 +6,7 @@
 
 #include "btree/node.hpp"
 #include "logger.hpp"
+#include "btree/buf_patches.hpp"
 
 namespace unittest {
 

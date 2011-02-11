@@ -1,6 +1,11 @@
 #ifndef __BUF_PATCH_HPP__
 #define	__BUF_PATCH_HPP__
 
+/*
+ * This file provides the basic buf_patch_t type as well as a few low-level binary
+ * patch implementations (currently memmove and memcpy patches)
+ */
+
 class buf_patch_t;
 
 #include "buffer_cache/types.hpp"
@@ -9,12 +14,26 @@ class buf_patch_t;
 typedef uint32_t patch_counter_t;
 typedef byte_t patch_operation_code_t;
 
+/*
+ * A buf_patch_t is an in-memory representation for a patch. A patch describes
+ * a specific change which can be applied to a buffer.
+ * Each buffer patch has a patch counter as well as a transaction id. The transaction id
+ * is used to determine to which version of a block the patch applies. Within
+ * one version of a block, the patch counter explicitly encodes an ordering, which
+ * is used to ensure that patches can be applied in the correct order
+ * (even if they get serialized to disk in a different order).
+ *
+ * While buf_patch_t provides the general interface of a buffer patch and a few
+ * universal methods, subclasses are required to implement an apply_to_buf method
+ * (which executes the actual patch operation) as well as methods which handle
+ * serializing and deserializing the subtype specific data.
+ */
 class buf_patch_t {
 public:
     virtual ~buf_patch_t() { }
 
     // Unserializes a patch an returns a buf_patch_t object
-    // If *source is 0, it returns NULL
+    // If *(uint16_t*)source is 0, it returns NULL
     static buf_patch_t* load_patch(char* source);
 
     // Serializes the patch to the given destination address
@@ -42,7 +61,7 @@ public:
 
     virtual size_t get_affected_data_size() const = 0;
 
-    // This is used in buf_t
+    // This is called from buf_t
     virtual void apply_to_buf(char* buf_data) = 0;
 
     bool operator<(const buf_patch_t& p) const;
@@ -59,6 +78,8 @@ protected:
     static const patch_operation_code_t OPER_LEAF_INSERT_PAIR = 3;
     static const patch_operation_code_t OPER_LEAF_INSERT = 4;
     static const patch_operation_code_t OPER_LEAF_REMOVE = 5;
+    /* Assign an operation id to new subtypes here */
+    /* Please note: you also have to "register" new operations in buf_patch_t::load_patch() */
 
 private:
     block_id_t block_id;
@@ -70,6 +91,7 @@ private:
 
 /* Binary patches */
 
+/* memcpy_patch_t copies n bytes from src to the offset dest_offset of a buffer */
 class memcpy_patch_t : public buf_patch_t {
 public:
     memcpy_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t dest_offset, const char *src, const uint16_t n);
@@ -91,6 +113,7 @@ private:
     char* src_buf;
 };
 
+/* memove_patch_t moves data from src_offset to dest_offset within a single buffer (with semantics equivalent to memmove()) */
 class memmove_patch_t : public buf_patch_t {
 public:
     memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t dest_offset, const uint16_t src_offset, const uint16_t n);
@@ -109,94 +132,6 @@ private:
     uint16_t src_offset;
     uint16_t n;
 };
-
-
-/* Btree leaf node logical patches */
-
-#include "store.hpp"
-
-class leaf_shift_pairs_patch_t : public buf_patch_t {
-public:
-    leaf_shift_pairs_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t offset, const uint16_t shift);
-    leaf_shift_pairs_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length);
-
-    virtual void apply_to_buf(char* buf_data);
-
-    virtual size_t get_affected_data_size() const {
-        return 16; // TODO
-    }
-
-protected:
-    virtual void serialize_data(char* destination) const;
-    virtual uint16_t get_data_size() const;
-
-private:
-    uint16_t offset;
-    uint16_t shift;
-};
-
-class leaf_insert_pair_patch_t : public buf_patch_t {
-public:
-    leaf_insert_pair_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint8_t value_size, const uint8_t value_metadata_flags, const byte *value_contents, const uint8_t key_size, const char *key_contents);
-    leaf_insert_pair_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length);
-
-    virtual ~leaf_insert_pair_patch_t();
-
-    virtual void apply_to_buf(char* buf_data);
-
-    virtual size_t get_affected_data_size() const;
-
-protected:
-    virtual void serialize_data(char* destination) const;
-    virtual uint16_t get_data_size() const;
-
-private:
-    byte *value_buf;
-    byte *key_buf;
-};
-
-class leaf_insert_patch_t : public buf_patch_t {
-public:
-    leaf_insert_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const block_size_t block_size, const uint8_t value_size, const uint8_t value_metadata_flags, const byte *value_contents, const uint8_t key_size, const char *key_contents, const repli_timestamp insertion_time);
-    leaf_insert_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length);
-
-    virtual ~leaf_insert_patch_t();
-
-    virtual void apply_to_buf(char* buf_data);
-
-    virtual size_t get_affected_data_size() const;
-
-protected:
-    virtual void serialize_data(char* destination) const;
-    virtual uint16_t get_data_size() const;
-
-private:
-    block_size_t block_size;
-    byte *value_buf;
-    byte *key_buf;
-    repli_timestamp insertion_time;
-};
-
-class leaf_remove_patch_t : public buf_patch_t {
-public:
-    leaf_remove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const block_size_t block_size, const uint8_t key_size, const char *key_contents);
-    leaf_remove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length);
-
-    virtual ~leaf_remove_patch_t();
-
-    virtual void apply_to_buf(char* buf_data);
-
-    virtual size_t get_affected_data_size() const;
-
-protected:
-    virtual void serialize_data(char* destination) const;
-    virtual uint16_t get_data_size() const;
-
-private:
-    block_size_t block_size;
-    byte *key_buf;
-};
-
 
 #endif	/* __BUF_PATCH_HPP__ */
 

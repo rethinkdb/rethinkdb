@@ -128,7 +128,7 @@ private:
 public:
     void release();
 
-    void apply_patch(buf_patch_t& patch); // This might delete the supplied patch, do not use patch after its applicatio
+    void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
 
     const void *get_data_read() const {
