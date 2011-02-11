@@ -251,7 +251,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     }
 
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock,
-    // we instead try to reclaim some space in the on-disk patch storage now.
+    // we instead to reclaim some space in the on-disk patch storage now.
     ticks_t start_time2;
     pm_flushes_diff_flush.begin(&start_time2);
     unsigned int blocks_to_flush = (unsigned long long)parent->dirty_bufs.size() * 100ll / parent->cache->get_block_size().value() + 1;
@@ -261,7 +261,6 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     }
     parent->cache->patch_disk_storage.clear_n_oldest_blocks(blocks_to_flush);
     pm_flushes_diff_flush.end(&start_time2);
-    //parent->cache->patch_disk_storage.compress_n_oldest_blocks(2);
 
     /* Start a read transaction so we can request bufs. */
     rassert(transaction == NULL);
