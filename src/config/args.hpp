@@ -70,11 +70,7 @@
 // The number of ways we split a BTree (the most optimal is the number
 // of cores, but we use a higher split factor to allow upgrading to
 // more cores without migrating the database file).
-#ifdef NDEBUG
 #define DEFAULT_BTREE_SHARD_FACTOR                64
-#else
-#define DEFAULT_BTREE_SHARD_FACTOR                16
-#endif
 
 // The size allocated to the on-disk diff log for newly created databases
 #ifdef NDEBUG

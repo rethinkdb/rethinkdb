@@ -41,7 +41,7 @@ def make_option_parser():
     o["corruption_p"] = FloatFlag("--corruption-p", 0)
     o["cores"] = IntFlag("--cores", 2)
     o["slices"] = IntFlag("--slices", 3)
-    o["diff-log-size"] = IntFlag("--diff-log-size", 8)
+    o["diff-log-size"] = IntFlag("--diff-log-size", 4)
     o["memory"] = IntFlag("--memory", 100)
     o["duration"] = IntFlag("--duration", 10)
     o["serve-flags"] = StringFlag("--serve-flags", "")

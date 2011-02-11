@@ -121,7 +121,8 @@ try:
                       "protocol"    : protocol,
                       "cores"       : cores,
                       "slices"      : slices,
-                      "memory"      : 5,
+                      "memory"      : 7,
+                      "diff-log-size" : 2,
                       "duration"    : 10 },
                     repeat=2, timeout=25)
         
