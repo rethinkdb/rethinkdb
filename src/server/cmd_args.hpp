@@ -91,6 +91,14 @@ struct mirrored_cache_config_t {
     int max_concurrent_flushes;
 };
 
+/* This part of the serializer is part of the on-disk serializer_config_block and can
+only be set at creation time of a database */
+
+struct mirrored_cache_static_config_t {
+    // How many blocks of each slice are allocated to the patch log?
+    int32_t n_patch_log_blocks;
+};
+
 /* Configuration for the btree that is set when the database is created and serialized in the
 serializer */
 
@@ -116,6 +124,7 @@ creation time */
 struct btree_key_value_store_static_config_t {
     log_serializer_static_config_t serializer;
     btree_config_t btree;
+    mirrored_cache_static_config_t cache;
     // Explicit padding for alignment.
     int32_t padding;
 };
@@ -204,6 +213,8 @@ public:
     void set_heartbeat_timeout(const char* value);
     void set_elb_port(const char* value);
     void push_private_config(const char* value);
+
+    long long parse_diff_log_size(const char* value);
     
 private:
     bool parsing_failed;

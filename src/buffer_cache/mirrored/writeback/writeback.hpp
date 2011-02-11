@@ -8,6 +8,7 @@
 #include "serializer/serializer.hpp"
 #include "serializer/translator.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
+#include "buffer_cache/buf_patch.hpp"
 
 struct mc_cache_t;
 struct mc_buf_t;
@@ -75,12 +76,19 @@ public:
         
     public:
         explicit local_buf_t(inner_buf_t *gbuf)
-            : gbuf(gbuf), dirty(false), recency_dirty(false) {}
+            : needs_flush(false), last_patch_materialized(0), gbuf(gbuf), dirty(false), recency_dirty(false) {}
         
         void set_dirty(bool _dirty = true);
         void set_recency_dirty(bool _recency_dirty = true);
         
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
+
+        /* true if we have to flush the block instead of just flushing patches. */
+        /* Specifically, this is the case if we modified the block while bypassing the patching system */
+        bool needs_flush;
+
+        /* All patches <= last_patch_materialized are in the on-disk log storage */
+        patch_counter_t last_patch_materialized;
 
     private:
         inner_buf_t *gbuf;
@@ -120,6 +128,8 @@ private:
     
     bool writeback_in_progress;
     unsigned int active_flushes;
+
+    bool force_patch_storage_flush;
 
     cache_t *cache;
 
@@ -171,17 +181,16 @@ public:
 
         /* Functions and callbacks for different phases of the writeback */
         void start_and_acquire_lock();   // Called on cache thread
+        void prepare_patches(); // Called on cache thread
         void do_writeback();  // Called on cache thread
         virtual void on_lock_available();   // Called on cache thread
-        void init_flush_locals();    // Called on cache thread
         void acquire_bufs();   // Called on cache thread
-        void do_write();   // Called on serializer thread
+        bool do_write(const bool write_issued);   // Called on serializer thread
         virtual void on_serializer_write_txn();   // Called on serializer thread
-        void do_cleanup();   // Called on cache thread
+        bool do_cleanup();   // Called on cache thread
 
         writeback_t* parent; // We need this for flush concurrency control (i.e. flush_lock, active_flushes etc.)
 
-        coro_t *flusher_coro;
         ticks_t start_time;
 
         // Callbacks for the current sync
@@ -192,6 +201,9 @@ public:
 
         // Transaction to submit to the serializer
         std::vector<translator_serializer_t::write_t> serializer_writes;
+
+        // We need these to update the transaction ids after issuing a serializer write
+        std::vector<inner_buf_t*> serializer_inner_bufs;
     };
 };
 

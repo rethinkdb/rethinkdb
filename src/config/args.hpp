@@ -12,7 +12,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define VERSION_STRING "0.1"
+#define VERSION_STRING "0.2"
 
 /**
  * Basic configuration parameters.
@@ -72,6 +72,13 @@
 // more cores without migrating the database file).
 #define DEFAULT_BTREE_SHARD_FACTOR                64
 
+// The size allocated to the on-disk diff log for newly created databases
+#ifdef NDEBUG
+#define DEFAULT_PATCH_LOG_SIZE                     (512 * MEGABYTE)
+#else
+#define DEFAULT_PATCH_LOG_SIZE                     (4 * MEGABYTE)
+#endif
+
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       11211
 
@@ -82,7 +89,7 @@
 #define TIMER_TICKS_IN_MS                         5
 
 // How many milliseconds to allow changes to sit in memory before flushing to disk
-#define DEFAULT_FLUSH_TIMER_MS                    5000
+#define DEFAULT_FLUSH_TIMER_MS                    1000
 
 // flush_waiting_threshold is the maximal number of transactions which can wait
 // for a sync before a flush gets triggered on any single slice. As transactions only wait for
@@ -93,6 +100,18 @@
 // of each single flush. max_concurrent_flushes controls how many flushes can be active
 // on a specific slice at any given time.
 #define DEFAULT_MAX_CONCURRENT_FLUSHES            1
+
+// If the size of the data affected by the current set of patches in a block is larger than
+// block size / MAX_PATCHES_SIZE_RATIO, we flush the block instead of waiting for
+// more patches to come.
+// Note: An average write transaction under canonical workload leads to patches of about 75
+// bytes of affected data.
+// The actual value is continuously adjusted between MAX_PATCHES_SIZE_RATIO_MIN and
+// MAX_PATCHES_SIZE_RATIO_MAX depending on how much the system is i/o bound
+#define MAX_PATCHES_SIZE_RATIO_MIN                100
+#define MAX_PATCHES_SIZE_RATIO_MAX                2
+#define MAX_PATCHES_SIZE_RATIO_DURABILITY         5
+#define RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT 0.6
 
 // If more than this many bytes of dirty data accumulate in the cache, then write
 // transactions will be throttled.

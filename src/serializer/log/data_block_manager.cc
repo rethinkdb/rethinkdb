@@ -140,7 +140,9 @@ bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, se
 
     buf_data_t *data = (buf_data_t*)buf_in;
     data--;
-    *const_cast<buf_data_t *>(data) = make_buf_data_t(block_id, transaction_id);
+    if (transaction_id != NULL_SER_TRANSACTION_ID) {
+        *const_cast<buf_data_t *>(data) = make_buf_data_t(block_id, transaction_id);
+    }
 
     dbfile->write_async(offset, static_config->block_size().ser_value(), data, cb);
 
