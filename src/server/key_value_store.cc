@@ -300,8 +300,7 @@ private:
     block_pm_duration block_pm;
 };
 
-rget_result_ptr_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
-
+rget_result_t btree_key_value_store_t::rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
     thread_saver_t thread_saver;
 
     /* TODO: Wrapped iterators are weird and we shouldn't have them. Instead we should do all of the
@@ -310,9 +309,9 @@ rget_result_ptr_t btree_key_value_store_t::rget(store_key_t *start, store_key_t 
 
     merged_results_iterator_t *merge_iterator = ptr_cast<merged_results_iterator_t>(wrapped_iterator->get_wrapped());
     for (int s = 0; s < btree_static_config.n_slices; s++) {
-        merge_iterator->add_mergee(btrees[s]->rget(start, end, left_open, right_open));
+        merge_iterator->add_mergee(btrees[s]->rget(start, end, left_open, right_open).release());
     }
-    return wrapped_iterator.release();
+    return wrapped_iterator;
 }
 
 /* set_store_interface_t interface */

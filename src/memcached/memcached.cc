@@ -285,7 +285,7 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
         return;
     }
 
-    unique_ptr_t<rget_result_t> results_iterator(rh->get_store->rget(left_key, right_key, left_open == 1, right_open == 1));
+    rget_result_t results_iterator = rh->get_store->rget(left_key, right_key, left_open == 1, right_open == 1);
 
     boost::optional<key_with_data_provider_t> pair;
     uint64_t count = 0;

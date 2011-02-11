@@ -54,8 +54,8 @@ struct key_with_data_provider_t {
         }
     };
 };
-typedef one_way_iterator_t<key_with_data_provider_t> rget_result_t;
-typedef rget_result_t* rget_result_ptr_t;
+
+typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
 union store_key_and_buffer_t {
     store_key_t key;
@@ -77,9 +77,8 @@ struct get_result_t {
 };
 
 struct get_store_t {
-
     virtual get_result_t get(store_key_t *key) = 0;
-    virtual rget_result_ptr_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
+    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
 };
 
 // A castime_t contains proposed cas information (if it's needed) and

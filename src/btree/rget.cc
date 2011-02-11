@@ -52,9 +52,10 @@
  *
  *
  * Most of the implementation now resides in btree/iteration.{hpp,cc}.
+ * Actual merging of the slice iterators is done in server/key_value_store.cc.
  */
 
-rget_result_ptr_t btree_rget_slice(btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
+rget_result_t btree_rget_slice(btree_slice_t *slice, store_key_t *start, store_key_t *end, bool left_open, bool right_open) {
     boost::shared_ptr<transactor_t> transactor = boost::shared_ptr<transactor_t>(new transactor_t(&slice->cache(), rwi_read));
-    return new slice_keys_iterator_t(transactor, slice, start, end, left_open, right_open);
+    return unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> >(new slice_keys_iterator_t(transactor, slice, start, end, left_open, right_open));
 }
