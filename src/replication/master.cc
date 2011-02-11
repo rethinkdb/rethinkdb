@@ -225,8 +225,6 @@ void master_t::send_data_with_ident(data_provider_t *data, uint32_t ident) {
         }
     }
 
-    // TODO: How do we declaim ownership of the data_provider_t?
-
     sources_.drop(ident);
 }
 
