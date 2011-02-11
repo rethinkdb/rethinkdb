@@ -7,6 +7,7 @@
 #include "concurrency/cond_var.hpp"
 #include "containers/iterators.hpp"
 #include "containers/unique_ptr.hpp"
+#include <boost/shared_ptr.hpp>
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
@@ -43,9 +44,9 @@ inline std::string key_to_str(const store_key_t* key) {
 struct key_with_data_provider_t {
     std::string key;
     mcflags_t mcflags;
-    unique_ptr_t<data_provider_t> value_provider;
+    boost::shared_ptr<data_provider_t> value_provider;
 
-    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, unique_ptr_t<data_provider_t> value_provider) :
+    key_with_data_provider_t(const std::string &key, mcflags_t mcflags, boost::shared_ptr<data_provider_t> value_provider) :
         key(key), mcflags(mcflags), value_provider(value_provider) { }
 
     struct less {
@@ -54,8 +55,8 @@ struct key_with_data_provider_t {
         }
     };
 };
-typedef one_way_iterator_t<key_with_data_provider_t> rget_result_t;
-typedef rget_result_t* rget_result_ptr_t;
+
+typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
 union store_key_and_buffer_t {
     store_key_t key;
@@ -77,9 +78,8 @@ struct get_result_t {
 };
 
 struct get_store_t {
-
     virtual get_result_t get(store_key_t *key) = 0;
-    virtual rget_result_ptr_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
+    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
 };
 
 // A castime_t contains proposed cas information (if it's needed) and

@@ -15,7 +15,7 @@ public:
     /* get_store_t interface */
 
     get_result_t get(store_key_t *key);
-    rget_result_ptr_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open);
+    rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open);
 
     /* set_store_t interface. */
 
