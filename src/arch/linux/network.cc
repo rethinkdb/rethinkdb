@@ -376,9 +376,6 @@ bool linux_tcp_conn_t::is_write_open() {
 }
 
 linux_tcp_conn_t::~linux_tcp_conn_t() {
-
-    debugf("Closing a linux_tcp_conn_t\n");
-
     if (is_read_open()) shutdown_read();
     if (is_write_open()) shutdown_write();
 
@@ -494,7 +491,6 @@ void linux_tcp_listener_t::set_callback(linux_tcp_listener_callback_t *cb) {
 }
 
 void linux_tcp_listener_t::handle(fd_t socket) {
-    debugf("in handle()...\n");
     boost::scoped_ptr<linux_tcp_conn_t> conn(new linux_tcp_conn_t(socket));
     callback->on_tcp_listener_accept(conn);
 }

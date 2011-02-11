@@ -144,15 +144,12 @@ const const_buffer_group_t *maybe_buffered_data_provider_t::get_data_as_buffers(
 
 buffer_borrowing_data_provider_t::side_data_provider_t::side_data_provider_t(int reading_thread, size_t size, cond_t *done_cond)
     : reading_thread_(reading_thread), done_cond_(done_cond), got_data_(false), size_(size) {
-    debugf("creating a side_data_provider_t\n");
 }
 
 buffer_borrowing_data_provider_t::side_data_provider_t::~side_data_provider_t() {
-    debugf("~side_data_provider_t()\n");
     if (!got_data_) {
         cond_.wait();
     }
-    debugf("pulsing done_cond_\n");
     if (done_cond_) {
         done_cond_->pulse();
     }
@@ -172,14 +169,10 @@ const const_buffer_group_t *buffer_borrowing_data_provider_t::side_data_provider
 }
 
 void buffer_borrowing_data_provider_t::side_data_provider_t::supply_buffers_and_wait(const const_buffer_group_t *buffers) {
-    debugf("supply_buffers_and_wait, switching threads... %d -> %d\n", get_thread_id(), reading_thread_);
     on_thread_t thread(reading_thread_);
-    debugf("supply_buffers_and_wait, pulsing buffers...\n");
     cond_t *done_cond_local = done_cond_;
     cond_.pulse(buffers);
-    debugf("supply_buffers_and_wait, waiting for done_cond_...\n");
     done_cond_local->wait();
-    debugf("supply_buffers_and_wait, finished.\n");
 }
 
 void buffer_borrowing_data_provider_t::side_data_provider_t::supply_no_buffers() {
@@ -202,10 +195,10 @@ buffer_borrowing_data_provider_t::~buffer_borrowing_data_provider_t() {
 
     if (side_owned_) {
         delete side_;
-    }
-
-    if (!supplied_buffers_) {
-        side_->supply_no_buffers();
+    } else {
+        if (!supplied_buffers_) {
+            side_->supply_no_buffers();
+        }
     }
 }
 
@@ -218,7 +211,6 @@ void buffer_borrowing_data_provider_t::get_data_into_buffers(const buffer_group_
 #endif
 
         supplied_buffers_ = true;
-        debugf("Calling inner_->get_data_into_buffers\n");
         inner_->get_data_into_buffers(dest);
         side_->supply_buffers_and_wait(const_view(dest));
 

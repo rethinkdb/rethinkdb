@@ -10,9 +10,7 @@ public:
     btree_slice_dispatching_to_master_t(btree_slice_t *slice, snag_ptr_t<replication::master_t> master)
         : slice_(slice), master_(master) { }
 
-    ~btree_slice_dispatching_to_master_t() {
-        debugf("destroying btree_slice_dispatching_to_master_t\n");
-    }
+    ~btree_slice_dispatching_to_master_t() { }
 
     /* get_store_t interface */
 

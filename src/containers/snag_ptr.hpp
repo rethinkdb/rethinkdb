@@ -23,12 +23,10 @@ protected:
     }
 private:
     void incr_reference_count() {
-        debugf("++ reference_count_ == %d\n", reference_count_ + 1);
         ++ reference_count_;
     }
 
     void decr_reference_count() {
-        debugf("-- reference_count_ == %d\n", reference_count_ - 1);
         -- reference_count_;
         if (reference_count_ == 0) {
             cond_.pulse();
