@@ -10,8 +10,22 @@ class mc_buf_t;
 // Whenever the on-disk format of the patches changes, please increase the version number (currently 00)
 static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'};
 
-/* WARNING: Most of the functions in here are *not* reentrant-safe and rely on concurrency control happening */
-/*  elsewhere (specifically in mc_cache_t and writeback_t) */
+/*
+ * patch_disk_storage_t provides an on-disk storage data structure for buffer patches.
+ * Before its first use, it has to be initialized, giving it a range of blocks it
+ * can use to store the patch log data. The store_patch method allows to store a new
+ * patch to the on-disk log. It never blocks, but might fail if it cannot find
+ * enough space to store the patch.
+ * On the other hand there is clear_n_oldest_blocks(), which completely frees a
+ * number of log blocks. For this, it might have to acquire additional blocks
+ * from disk, which makes it a blocking operation.
+ * compress_n_oldest_blocks can be used as an optimization, but is usually not necessary
+ * as store_patch compresses blocks automatically while it tries to find space to
+ * store a patch.
+ */
+
+/* WARNING: Most of the functions in here are *not* reentrant-safe and rely on concurrency control happening
+ *  elsewhere (specifically in mc_cache_t and writeback_t) */
 class patch_disk_storage_t {
 public:
     patch_disk_storage_t(mc_cache_t &cache);

@@ -35,11 +35,13 @@ uint16_t leaf_shift_pairs_patch_t::get_data_size() const {
 
 leaf_insert_pair_patch_t::leaf_insert_pair_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint8_t value_size, const uint8_t value_metadata_flags, const byte *value_contents, const uint8_t key_size, const char *key_contents) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_INSERT_PAIR) {
-    value_buf = new byte[sizeof(btree_value) + value_size];
+    metadata_flags_t metadata_flags;
+    metadata_flags.flags = value_metadata_flags;
+    value_buf = new byte[sizeof(btree_value) + value_size + metadata_size(metadata_flags)];
     btree_value *value = ptr_cast<btree_value>(value_buf);
     value->size = value_size;
-    value->metadata_flags.flags = value_metadata_flags;
-    memcpy(value->contents, value_contents, value_size + metadata_size(value->metadata_flags));
+    value->metadata_flags = metadata_flags;
+    memcpy(value->contents, value_contents, value_size + metadata_size(metadata_flags));
 
     key_buf = new byte[sizeof(btree_key) + key_size];
     btree_key *key = ptr_cast<btree_key>(key_buf);
