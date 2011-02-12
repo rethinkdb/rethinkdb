@@ -15,7 +15,7 @@ public:
     error err;
 
     // buf is a fake!  buf is sizeof(buf_data_t) greater than realbuf, which is below.
-    const void *buf;
+    void *buf;
 
 protected:
     raw_block();

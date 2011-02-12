@@ -49,10 +49,34 @@ const void *mock_buf_t::get_data_read() {
     return internal_buf->data;
 }
 
-void *mock_buf_t::get_data_write() {
+void *mock_buf_t::get_data_major_write() {
     rassert(access == rwi_write);
     dirty = true;
     return internal_buf->data;
+}
+
+void mock_buf_t::apply_patch(buf_patch_t *patch) {
+    rassert(access == rwi_write);
+
+    patch->apply_to_buf((char*)internal_buf->data);
+    dirty = true;
+
+    delete patch;
+}
+
+patch_counter_t mock_buf_t::get_next_patch_counter() {
+    return 0;
+}
+
+void mock_buf_t::set_data(const void* dest, const void* src, const size_t n) {
+    size_t offset = (const char*)dest - (const char*)internal_buf->data;
+    apply_patch(new memcpy_patch_t(internal_buf->block_id, get_next_patch_counter(), offset, (const char*)src, n));
+}
+
+void mock_buf_t::move_data(const void* dest, const void* src, const size_t n) {
+    size_t dest_offset = (const char*)dest - (const char*)internal_buf->data;
+    size_t src_offset = (const char*)src - (const char*)internal_buf->data;
+    apply_patch(new memmove_patch_t(internal_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
 }
 
 void mock_buf_t::mark_deleted() {
@@ -160,7 +184,8 @@ mock_transaction_t::~mock_transaction_t() {
 
 mock_cache_t::mock_cache_t(
     translator_serializer_t *serializer,
-    mirrored_cache_config_t *config)
+    mirrored_cache_config_t *dynamic_config,
+    mirrored_cache_static_config_t *static_config)
     : serializer(serializer), running(false), n_transactions(0), block_size(serializer->get_block_size()) { }
 
 mock_cache_t::~mock_cache_t() {

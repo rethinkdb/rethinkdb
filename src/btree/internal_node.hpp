@@ -21,17 +21,17 @@ class internal_key_comp;
 // In a perfect world, this namespace would be 'branch'.
 namespace internal_node {
 
-void init(block_size_t block_size, internal_node_t *node);
-void init(block_size_t block_size, internal_node_t *node, const internal_node_t *lnode, const uint16_t *offsets, int numpairs);
+void init(block_size_t block_size, buf_t &node_buf);
+void init(block_size_t block_size, buf_t &node_buf, const internal_node_t *lnode, const uint16_t *offsets, int numpairs);
 
 block_id_t lookup(const internal_node_t *node, const btree_key_t *key);
-bool insert(block_size_t block_size, internal_node_t *node, const btree_key_t *key, block_id_t lnode, block_id_t rnode);
-bool remove(block_size_t block_size, internal_node_t *node, const btree_key_t *key);
-void split(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key_t *median);
-void merge(block_size_t block_size, const internal_node_t *node, internal_node_t *rnode, btree_key_t *key_to_remove, internal_node_t *parent);
-bool level(block_size_t block_size, internal_node_t *node, internal_node_t *rnode, btree_key_t *key_to_replace, btree_key_t *replacement_key, internal_node_t *parent);
+bool insert(block_size_t block_size, buf_t &node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode);
+bool remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key);
+void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key_t *median);
+void merge(block_size_t block_size, const internal_node_t *node, buf_t &rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent);
+bool level(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent);
 int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib_id);
-void update_key(internal_node_t *node, const btree_key_t *key_to_replace, const btree_key_t *replacement_key);
+void update_key(buf_t &node_buf, const btree_key_t *key_to_replace, const btree_key_t *replacement_key);
 int nodecmp(const internal_node_t *node1, const internal_node_t *node2);
 bool is_full(const internal_node_t *node);
 bool is_underfull(block_size_t block_size, const internal_node_t *node);
@@ -54,13 +54,13 @@ namespace impl {
 size_t pair_size_with_key(const btree_key_t *key);
 size_t pair_size_with_key_size(uint8_t size);
 
-void delete_pair(internal_node_t *node, uint16_t offset);
-uint16_t insert_pair(internal_node_t *node, const btree_internal_pair *pair);
-uint16_t insert_pair(internal_node_t *node, block_id_t lnode, const btree_key_t *key);
+void delete_pair(buf_t &node_buf, uint16_t offset);
+uint16_t insert_pair(buf_t &node_buf, const btree_internal_pair *pair);
+uint16_t insert_pair(buf_t &node_buf, block_id_t lnode, const btree_key_t *key);
 int get_offset_index(const internal_node_t *node, const btree_key_t *key);
-void delete_offset(internal_node_t *node, int index);
-void insert_offset(internal_node_t *node, uint16_t offset, int index);
-void make_last_pair_special(internal_node_t *node);
+void delete_offset(buf_t &node_buf, int index);
+void insert_offset(buf_t &node_buf, uint16_t offset, int index);
+void make_last_pair_special(buf_t &node_buf);
 bool is_equal(const btree_key_t *key1, const btree_key_t *key2);
 }  // namespace internal_node::impl
 }  // namespace internal_node

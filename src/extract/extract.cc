@@ -26,8 +26,9 @@ void usage(const char *name) {
                 "On disk format options:\n"
                 "      --force-block-size    Specifies block size, overriding file headers\n"
                 "      --force-extent-size   Specifies extent size, overriding file headers\n"
-                "      --force-slice-count     Specifies number of slices in *this* file,\n"
-                "                            overriding file headers.\n");
+                "      --force-slice-count   Specifies number of slices in *this* file,\n"
+                "                            overriding file headers.\n"
+                "      --ignore-diff-log     Do not apply patches from the diff log\n");
     help->pagef("\n"
                 "Output options:\n"
                 "  -l  --log-file            File to log to.  If not provided, messages will be\n"
@@ -48,7 +49,8 @@ void usage(const char *name) {
 
 enum { force_block_size = 256,  // Start these values above the ASCII range.
        force_extent_size,
-       force_mod_count
+       force_mod_count,
+       ignore_diff_log
 };
 
 void parse_cmd_args(int argc, char **argv, config_t *config) {
@@ -68,6 +70,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
                 {"force-block-size", required_argument, 0, force_block_size},
                 {"force-extent-size", required_argument, 0, force_extent_size},
                 {"force-slice-count", required_argument, 0, force_mod_count},
+                {"ignore-diff-log", no_argument, 0, ignore_diff_log},
 
                 {"file", required_argument, 0, 'f'},
                 {"log-file", required_argument, 0, 'l'},
@@ -120,6 +123,9 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             if (*endptr != '\0' || config->overrides.mod_count <= 0) {
                 fail_due_to_user_error("The mod count must be a positive integer.\n");
             }
+        } break;
+        case ignore_diff_log: {
+            config->overrides.ignore_diff_log = true;
         } break;
         case 'h':
             usage(argv[0]);

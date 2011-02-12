@@ -2,11 +2,16 @@
 #include <vector>
 
 #include "unittest/gtest.hpp"
+#include "unittest/buf_helpers.hpp"
 
 #include "btree/node.hpp"
-#include "btree/leaf_node.hpp"
+#include "logger.hpp"
+#include "btree/buf_patches.hpp"
 
 namespace unittest {
+
+#include "btree/leaf_node.cc" // Build a local variant which uses test_buf_t!
+
 
 // TODO: Sperg out and make these tests much more brutal.
 
@@ -210,11 +215,12 @@ private:
 
 class LeafNodeGrinder {
 public:
-    LeafNodeGrinder(int block_size) : bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node(reinterpret_cast<leaf_node_t *>(malloc(bs.value()))), initialized(false) {
+    LeafNodeGrinder(int block_size) : bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node_buf(new test_buf_t(bs, 1)), initialized(false) {
+        node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
     }
 
     ~LeafNodeGrinder() {
-        free(node);
+        node_buf->release();
     }
 
     static int space(int frontmont_offset, int npairs) {
@@ -231,7 +237,7 @@ public:
 
     void init() {
         SCOPED_TRACE("init");
-        leaf::init(bs, node, repli_timestamp::invalid);
+        leaf::init(bs, *node_buf, repli_timestamp::invalid);
         initialized = true;
         validate();
     }
@@ -253,9 +259,9 @@ public:
         StackValue sval(v);
 
         if (expected_space() < int((1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets))) {
-            ASSERT_FALSE(leaf::insert(bs, node, skey.look(), sval.look(), repli_timestamp::invalid));
+            ASSERT_FALSE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), repli_timestamp::invalid));
         } else {
-            ASSERT_TRUE(leaf::insert(bs, node, skey.look(), sval.look(), repli_timestamp::invalid));
+            ASSERT_TRUE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), repli_timestamp::invalid));
 
             std::pair<expected_t::iterator, bool> res = expected.insert(std::make_pair(k, v));
             if (res.second) {
@@ -361,7 +367,7 @@ public:
             // in two mutually exclusive intervals.
 
             StackKey skey;
-            leaf::merge(bs, lnode.node, node, skey.look_write());
+            leaf::merge(bs, lnode.node, *node_buf, skey.look_write());
 
             for (expected_t::const_iterator p = lnode.expected.begin(), e = lnode.expected.end();
                  p != e;
@@ -390,7 +396,7 @@ public:
         int fo_sum = expected_frontmost_offset + sibling.expected_frontmost_offset;
         int npair_sum = expected_npairs + sibling.expected_npairs;
 
-        leaf::level(bs, node, sibling.node, key_to_replace.look_write(), replacement_key.look_write());
+        leaf::level(bs, *node_buf, *sibling.node_buf, key_to_replace.look_write(), replacement_key.look_write());
 
         // Sanity check that npairs and frontmost_offset are in sane ranges.
 
@@ -462,6 +468,7 @@ public:
     expected_t expected;
     int expected_frontmost_offset;
     int expected_npairs;
+    test_buf_t *node_buf;
     leaf_node_t *node;
     bool initialized;
 

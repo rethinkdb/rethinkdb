@@ -53,7 +53,8 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "num-testers" : 16,
-                    "memory"      : 10,
+                    "memory"      : 12,
+                    "diff-log-size" : 2,
                     "duration"    : 420,
                     "sigint-timeout" : sigint_timeout },
                   repeat=5, timeout = 540 + sigint_timeout)

@@ -33,6 +33,8 @@ struct serializer_t :
         virtual ~read_callback_t() {}
     };
     virtual bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) = 0;
+
+    virtual ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf) = 0;
     
     /* do_write() updates or deletes a group of bufs.
     
@@ -59,23 +61,24 @@ struct serializer_t :
         repli_timestamp recency;
         const void *buf;   /* If NULL, a deletion */
         write_block_callback_t *callback;
+        bool assign_transaction_id;
 
         friend class data_block_manager_t;
 
         static write_t make(ser_block_id_t block_id_, repli_timestamp recency_, const void *buf_, write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, true, buf_, callback_);
+            return write_t(block_id_, true, recency_, true, buf_, callback_, true);
         }
 
         friend class translator_serializer_t;
 
     private:
         static write_t make_internal(ser_block_id_t block_id_, const void *buf_, write_block_callback_t *callback_) {
-            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, callback_);
+            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, callback_, false);
         }
 
         write_t(ser_block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
-                bool buf_specified_, const void *buf_, write_block_callback_t *callback_)
-            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_) { }
+                bool buf_specified_, const void *buf_, write_block_callback_t *callback_, bool assign_transaction_id)
+            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
     };
     virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) = 0;
     

@@ -194,6 +194,11 @@ public:
         }
     }
 
+    ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf) {
+        // TODO: Implement some checking for this operation
+        return inner_serializer.get_current_transaction_id(block_id, buf);
+    }
+
 public:
     /* For writes, we make sure that the writes come back in the same order that
     we send them to the serializer. */
