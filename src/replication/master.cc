@@ -49,9 +49,11 @@ void master_t::get_cas(store_key_t *key, castime_t castime) {
         scoped_malloc<headed<net_get_cas_t> > message(n);
         message->hdr.message_multipart_aspect = SMALL;
         message->hdr.msgcode = GET_CAS;
+        debugf("get_cas_t msgsize is %zu\n", n);
         message->hdr.msgsize = n;
         message->data.proposed_cas = castime.proposed_cas;
         message->data.timestamp = castime.timestamp;
+        message->data.key_size = key->size;
         memcpy(message->data.key, key->contents, key->size);
 
         {

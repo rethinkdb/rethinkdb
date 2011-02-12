@@ -53,10 +53,11 @@ template <> size_t objsize<net_prepend_t>(const net_prepend_t *buf) { return siz
 
 template <class T>
 void check_pass(message_callback_t *receiver, weak_buf_t buffer, size_t realoffset, size_t realsize) {
-    if (realsize <= sizeof(T) && objsize<T>(buffer.get<T>(realoffset)) == realsize) {
+    if (sizeof(T) <= realsize && objsize<T>(buffer.get<T>(realoffset)) == realsize) {
         typename stream_type<T>::type buf(buffer, realoffset, realsize);
         receiver->send(buf);
     } else {
+        debugf("realsize: %zu sizeof(T): %zu objsize: %zu\n", realsize, sizeof(T), objsize<T>(buffer.get<T>(realoffset)));
         throw protocol_exc_t("message wrong length for message code");
     }
 }
@@ -96,6 +97,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
     }
 
     if (hdr->message_multipart_aspect == SMALL) {
+        debugf("received SMALL message.\n");
         size_t realbegin = offset + sizeof(net_header_t);
         size_t realsize = msgsize - sizeof(net_header_t);
 
@@ -107,7 +109,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         case SHUTTING_DOWN: check_pass<net_shutting_down_t>(receiver, buffer, realbegin, realsize); break;
         case GOODBYE: check_pass<net_goodbye_t>(receiver, buffer, realbegin, realsize); break;
         case GET_CAS: check_pass<net_get_cas_t>(receiver, buffer, realbegin, realsize); break;
-        case SARC: check_pass<net_sarc_t>(receiver, buffer, realbegin, realsize); break;
+        case SARC: debugf("small msg has SARC code\n"); check_pass<net_sarc_t>(receiver, buffer, realbegin, realsize); break;
         case INCR: check_pass<net_incr_t>(receiver, buffer, realbegin, realsize); break;
         case DECR: check_pass<net_decr_t>(receiver, buffer, realbegin, realsize); break;
         case APPEND: check_pass<net_append_t>(receiver, buffer, realbegin, realsize); break;
@@ -161,26 +163,28 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
     size_t offset = 0;
     size_t num_read = 0;
 
+    debugf("Setting keep_going to true.\n");
     keep_going = true;
     while (keep_going) {
         // Try handling the message.
         size_t handled = handle_message(receiver, weak_buf_t(shared_buf), offset, num_read, streams);
-        if (handled) {
+        if (handled > 0) {
             rassert(handled <= num_read);
             offset += handled;
-            break;
-        }
+            num_read -= handled;
+        } else {
+            if (offset + num_read == shbuf_size) {
+                shared_buf_t new_shared_buf(shbuf_size);
+                memcpy(new_shared_buf.get(), shared_buf.get() + offset, num_read);
+                offset = 0;
+                shared_buf.swap(new_shared_buf);
+            }
 
-        if (offset + num_read == shbuf_size) {
-            shared_buf_t new_shared_buf(shbuf_size);
-            memcpy(new_shared_buf.get(), shared_buf.get() + offset, num_read);
-            offset = 0;
-            shared_buf.swap(new_shared_buf);
+            num_read += conn->read_some(shared_buf.get() + offset + num_read, shbuf_size - (offset + num_read));
         }
-
-        num_read += conn->read_some(shared_buf.get() + offset + num_read, shbuf_size - (offset + num_read));
     }
 
+    debugf("We exited the loop, keep_going is %s\n", keep_going ? "true" : "false");
     /* we only get out of this loop when we've been shutdown, if the connection
      * closes then we catch an exception and never reach here */
     _cb->on_parser_shutdown();
@@ -196,6 +200,11 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
     } catch (tcp_conn_t::read_closed_exc_t& e) {
         if (!shutdown_asked_for)
             receiver->conn_closed();
+#ifndef NDEBUG
+    } catch (protocol_exc_t& e) {
+        debugf("catch 'n throwing protocol_exc_t: %s\n", e.what());
+        throw;
+#endif
     }
 }
 
@@ -204,10 +213,12 @@ void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *rece
 }
 
 bool message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
+    debugf("Calling for shutdown!.. keep_going is %s\n", keep_going ? "true" : "false");
     if (!keep_going) return true;
     shutdown_asked_for = true;
 
     _cb = cb;
+    debugf("Setting keep_going to false.\n");
     keep_going = false;
     return false;
 }
