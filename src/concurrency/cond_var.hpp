@@ -6,6 +6,81 @@
 
 // Let's use C++0x and use std::move!  Let's do it!  NOWWWWW!
 
+class interruptable_cond_token_t {
+    template <class value_type>
+    friend class interruptable_cond_t;
+    uint64_t version_number_;
+};
+
+
+template <class value_type>
+class interruptable_cond_t {
+    typedef interruptable_cond_token_t token_t;
+public:
+
+    interruptable_cond_t() : waiter_(NULL), value_(), satisfied_(false), version_(0) { }
+
+    // HACK, probably INCORRECT.  A version of pulse that doesn't take
+    // a version.  TODO get rid of this, perhaps.
+    void pulse(value_type value) {
+        value_ = value;
+        satisfied_ = true;
+        if (waiter_) {
+            waiter_->notify();
+        }
+    }
+
+    void pulse(token_t version, value_type value) {
+        if (version.version_number_ == version_) {
+            value_ = value;
+        }
+    }
+
+    bool wait(token_t version, value_type *out) {
+        if (version.version_number_ == version_) {
+            if (satisfied_) {
+                *out = value_;
+                return true;
+            } else {
+                waiter_ = coro_t::self();
+                coro_t::wait();
+                if (version.version_number_ == version_) {
+                    rassert(satisfied_);
+                    *out = value_;
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
+    }
+
+    token_t reset() {
+        ++ version_;
+        if (waiter_) {
+            rassert(!satisfied_);
+            waiter_->notify();
+        } else {
+            satisfied_ = false;
+            value_ = value_type();
+        }
+        token_t ret;
+        ret.version_number_ = version_;
+        return ret;
+    }
+
+private:
+    coro_t *waiter_;
+    value_type value_;
+    bool satisfied_;
+    uint64_t version_;
+
+    DISABLE_COPYING(interruptable_cond_t);
+};
+
+
 // value_type should be something copyable.
 template <class value_type>
 class unicond_t {

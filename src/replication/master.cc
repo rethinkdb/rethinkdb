@@ -24,9 +24,12 @@ void master_t::send_hello(const mutex_acquisition_t& proof_of_acquisition) {
 
     slave_->write(&msg, sizeof(msg));
 }
-
-void master_t::receive_hello(const mutex_acquisition_t& proof_of_acquisition) {
-    net_hello_t msg = hello_receive_var_.wait();
+/*
+void master_t::receive_hello(const mutex_acquisition_t& proof_of_acquisition, interruptable_cond_token_t token) {
+    net_hello_t msg;
+    if (!hello_receive_var_.wait(token, &msg)) {
+        throw master_exc_t("receive interrupted.\n");
+    }
 
     if (msg.role != role_slave) {
         // TODO: wtf do we do?
@@ -38,7 +41,7 @@ void master_t::receive_hello(const mutex_acquisition_t& proof_of_acquisition) {
         throw master_exc_t("A slave connected, but it had bad database_magic value.");
     }
 }
-
+*/
 void master_t::get_cas(store_key_t *key, castime_t castime) {
     snag_ptr_t<master_t> tmp_hold(*this);
     if (slave_) {
@@ -259,7 +262,6 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
         parser_.parse_messages(slave_.get(), this);
 
         send_hello(lock);
-        receive_hello(lock);
     }
     // TODO when sending/receiving hello handshake, use database magic
     // to handle case where slave is already connected.
@@ -275,7 +277,7 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
     }
 
     slave_.reset();
-    hello_receive_var_.reset();
+    //    return hello_receive_var_.reset();
 }
 
 }  // namespace replication

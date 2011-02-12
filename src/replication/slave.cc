@@ -217,8 +217,10 @@ void run(slave_t *slave) {
             slave->give_up_.on_reconnect();
 
             slave->parser_.parse_messages(slave->conn_, slave);
-            if (!first_connect) //UGLY :( but it's either this or code duplication
-                slave->failover.on_resume(); //Call on_resume if we've failed before
+            if (!first_connect) {
+                // Call on_resume if we've failed before.
+                slave->failover.on_resume();
+            }
             first_connect = false;
             logINF("Connected as slave to: %s:%d\n", slave->replication_config_.hostname, slave->replication_config_.port);
 
@@ -232,7 +234,7 @@ void run(slave_t *slave) {
             //connection then this is a user error rather than some sort of
             //failure
             if (first_connect)
-                crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up yet. But what do I know I'm just a database\n", slave->replication_config_.hostname, slave->replication_config_.port); 
+                crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up yet. But what do I know, I'm just a database.\n", slave->replication_config_.hostname, slave->replication_config_.port); 
         }
 
         /* The connection has failed. Let's see what se should do */
@@ -247,7 +249,7 @@ void run(slave_t *slave) {
         } else {
             logINF("Master at %s:%d has failed %d times in the last %d seconds," \
                     "going rogue. To resume slave behavior send the command" \
-                    "\"rethinkdb failover reset\" (over telnet)\n",
+                    "\"rethinkdb failover reset\" (over telnet).\n",
                     slave->replication_config_.hostname, slave->replication_config_.port,
                     MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS); 
             coro_t::wait(); //the only thing that can save us now is a reset
