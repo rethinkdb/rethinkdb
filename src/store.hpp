@@ -13,14 +13,9 @@ typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
 typedef uint64_t cas_t;
 
-// Note: Changing this struct changes the format of the data stored on disk.
-// If you change this struct, previous stored data will be misinterpreted.
 struct store_key_t {
     uint8_t size;
-    char contents[0];
-    uint16_t full_size() const {
-        return size + offsetof(store_key_t, contents);
-    }
+    char contents[MAX_KEY_SIZE];
     void print() const {
         printf("%*.*s", size, size, contents);
     }
@@ -37,9 +32,15 @@ inline bool str_to_key(const char *str, store_key_t *buf) {
     }
 }
 
-inline std::string key_to_str(const store_key_t* key) {
-    return std::string(key->contents, key->size);
+inline std::string key_to_str(const store_key_t &key) {
+    return std::string(key.contents, key.size);
 }
+
+enum rget_bound_mode_t {
+    rget_bound_open,   // Don't include boundary key
+    rget_bound_closed,   // Include boundary key
+    rget_bound_none   // Ignore boundary key and go all the way to the left/right side of the tree
+};
 
 struct key_with_data_provider_t {
     std::string key;
@@ -58,11 +59,6 @@ struct key_with_data_provider_t {
 
 typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
-union store_key_and_buffer_t {
-    store_key_t key;
-    char buffer[sizeof(store_key_t) + MAX_KEY_SIZE];
-};
-
 struct get_result_t {
     get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
         value(v), flags(f), cas(c), to_signal_when_done(s) { }
@@ -78,8 +74,9 @@ struct get_result_t {
 };
 
 struct get_store_t {
-    virtual get_result_t get(store_key_t *key) = 0;
-    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open) = 0;
+    virtual get_result_t get(const store_key_t &key) = 0;
+    virtual rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key,
+        rget_bound_mode_t right_mode, const store_key_t &right_key) = 0;
 };
 
 // A castime_t contains proposed cas information (if it's needed) and
@@ -158,13 +155,13 @@ enum delete_result_t {
 class set_store_interface_t {
 
 public:
-    virtual get_result_t get_cas(store_key_t *key) = 0;
+    virtual get_result_t get_cas(const store_key_t &key) = 0;
 
-    virtual set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
-    virtual delete_result_t delete_key(store_key_t *key) = 0;
+    virtual set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
+    virtual delete_result_t delete_key(const store_key_t &key) = 0;
 
-    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount) = 0;
-    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data) = 0;
+    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount) = 0;
+    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data) = 0;
 
     virtual ~set_store_interface_t() {}
 };
@@ -182,13 +179,13 @@ class set_store_t {
 public:
     /* get_cas is in set_store_t instead of get_store_t because it may require modifying the
     database if no CAS had ever been set for that key. */
-    virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;
+    virtual get_result_t get_cas(const store_key_t &key, castime_t castime) = 0;
 
-    virtual set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
-    virtual delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp) = 0;
+    virtual set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
+    virtual delete_result_t delete_key(const store_key_t &key, repli_timestamp timestamp) = 0;
 
-    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) = 0;
-    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) = 0;
+    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) = 0;
+    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) = 0;
 
     virtual ~set_store_t() {}
 };
@@ -206,12 +203,12 @@ class timestamping_set_store_interface_t :
 public:
     timestamping_set_store_interface_t(set_store_t *target);
 
-    get_result_t get_cas(store_key_t *key);
+    get_result_t get_cas(const store_key_t &key);
 
-    set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
-    incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data);
-    delete_result_t delete_key(store_key_t *key);
+    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data);
+    delete_result_t delete_key(const store_key_t &key);
 
 private:
     castime_t make_castime();

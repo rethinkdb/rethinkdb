@@ -73,7 +73,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
     incr_decr_result_t result;
 };
 
-incr_decr_result_t btree_incr_decr(const btree_key *key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime) {
+incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime) {
     btree_incr_decr_oper_t oper(increment, delta);
     run_btree_modify_oper(&oper, slice, key, castime);
     return oper.result;

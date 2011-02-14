@@ -50,7 +50,7 @@ public:
             fclose(fp);
         }
     }
-    void dump(const btree_key *key, mcflags_t flags, exptime_t exptime,
+    void dump(const btree_key_t *key, mcflags_t flags, exptime_t exptime,
               byteslice *slices, size_t num_slices) {
         int len = 0;
         for (size_t i = 0; i < num_slices; ++i) {
@@ -305,7 +305,7 @@ private:
     DISABLE_COPYING(blocks);
 };
 
-bool get_large_buf_segments(const btree_key *key, nondirect_file_t& file, const large_buf_ref& ref, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
+bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, const large_buf_ref& ref, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
     int levels = large_buf_t::compute_num_levels(cfg.block_size(), ref.offset + ref.size);
 
     ser_block_id_t trans = translator_serializer_t::translate_block_id(ref.block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
@@ -370,7 +370,7 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
         logERR("(In block %u) A pair juts off the end of the block.\n", this_block.value);
     }
 
-    const btree_key *key = &pair->key;
+    const btree_key_t *key = &pair->key;
     const btree_value *value = pair->value();
 
     mcflags_t flags = value->mcflags();

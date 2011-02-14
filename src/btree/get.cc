@@ -13,8 +13,11 @@
 #include "btree/leaf_node.hpp"
 #include "btree/btree_data_provider.hpp"
 
-get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
+get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
     block_pm_duration get_time(&pm_cmd_get);
+
+    btree_key_buffer_t kbuffer(store_key);
+    btree_key_t *key = kbuffer.key();
 
     /* In theory moving back might not be necessary, but not doing it causes problems right now. */
     on_thread_t mover(slice->home_thread);
@@ -67,7 +70,7 @@ get_result_t btree_get(const btree_key *key, btree_slice_t *slice) {
         const btree_value *value = leaf::get_pair_by_index(leaf, key_index)->value();
         if (value->expired()) {
             buf_lock.release();
-            btree_delete_expired(key, slice);
+            btree_delete_expired(store_key, slice);
 
             /* No key (expired). */
             return get_result_t();

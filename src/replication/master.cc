@@ -42,10 +42,10 @@ void master_t::receive_hello(const mutex_acquisition_t& proof_of_acquisition, in
     }
 }
 */
-void master_t::get_cas(store_key_t *key, castime_t castime) {
+void master_t::get_cas(const store_key_t& key, castime_t castime) {
     snag_ptr_t<master_t> tmp_hold(*this);
     if (slave_) {
-        size_t n = sizeof(headed<net_get_cas_t>) + key->size;
+        size_t n = sizeof(headed<net_get_cas_t>) + key.size;
         scoped_malloc<headed<net_get_cas_t> > message(n);
         message->hdr.message_multipart_aspect = SMALL;
         message->hdr.msgcode = GET_CAS;
@@ -53,8 +53,8 @@ void master_t::get_cas(store_key_t *key, castime_t castime) {
         message->hdr.msgsize = n;
         message->data.proposed_cas = castime.proposed_cas;
         message->data.timestamp = castime.timestamp;
-        message->data.key_size = key->size;
-        memcpy(message->data.key, key->contents, key->size);
+        message->data.key_size = key.size;
+        memcpy(message->data.key, key.contents, key.size);
 
         {
             mutex_acquisition_t lock(&message_contiguity_);
@@ -63,7 +63,7 @@ void master_t::get_cas(store_key_t *key, castime_t castime) {
     }
 }
 
-void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+void master_t::sarc(const store_key_t& key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     snag_ptr_t<master_t> tmp_hold(*this);
     if (slave_) {
         net_sarc_t stru;
@@ -71,7 +71,7 @@ void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, ex
         stru.proposed_cas = castime.proposed_cas;
         stru.flags = flags;
         stru.exptime = exptime;
-        stru.key_size = key->size;
+        stru.key_size = key.size;
         stru.value_size = data->get_size();
         stru.add_policy = add_policy;
         stru.replace_policy = replace_policy;
@@ -81,8 +81,7 @@ void master_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, ex
     delete data;
 }
 
-void master_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime) {
-    snag_ptr_t<master_t> tmp_hold(*this);
+void master_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
     if (slave_) {
         if (kind == incr_decr_INCR) {
             incr_decr_like<net_incr_t>(INCR, key, amount, castime);
@@ -94,7 +93,7 @@ void master_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amoun
 }
 
 template <class net_struct_type>
-void master_t::incr_decr_like(uint8_t msgcode, store_key_t *key, uint64_t amount, castime_t castime) {
+void master_t::incr_decr_like(uint8_t msgcode, const store_key_t &key, uint64_t amount, castime_t castime) {
     headed<net_struct_type> msg;
     msg.hdr.message_multipart_aspect = SMALL;
     msg.hdr.msgcode = msgcode;
@@ -109,14 +108,14 @@ void master_t::incr_decr_like(uint8_t msgcode, store_key_t *key, uint64_t amount
     }
 }
 
-void master_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime) {
-    snag_ptr_t<master_t> tmp_hold(*this);
+
+void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
     if (slave_) {
         if (kind == append_prepend_APPEND) {
             net_append_t appendstruct;
             appendstruct.timestamp = castime.timestamp;
             appendstruct.proposed_cas = castime.proposed_cas;
-            appendstruct.key_size = key->size;
+            appendstruct.key_size = key.size;
             appendstruct.value_size = data->get_size();
 
             stereotypical(APPEND, key, data, appendstruct);
@@ -126,7 +125,7 @@ void master_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data
             net_prepend_t prependstruct;
             prependstruct.timestamp = castime.timestamp;
             prependstruct.proposed_cas = castime.proposed_cas;
-            prependstruct.key_size = key->size;
+            prependstruct.key_size = key.size;
             prependstruct.value_size = data->get_size();
 
             stereotypical(PREPEND, key, data, prependstruct);
@@ -135,17 +134,16 @@ void master_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data
     delete data;
 }
 
-void master_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
-    snag_ptr_t<master_t> tmp_hold(*this);
+void master_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
+    size_t n = sizeof(headed<net_delete_t>) + key.size;
     if (slave_) {
-        size_t n = sizeof(headed<net_delete_t>) + key->size;
         scoped_malloc<headed<net_delete_t> > message(n);
         message->hdr.message_multipart_aspect = SMALL;
         message->hdr.msgcode = DELETE;
         message->hdr.msgsize = n;
         message->data.timestamp = timestamp;
-        message->data.key_size = key->size;
-        memcpy(message->data.key, key->contents, key->size);
+        message->data.key_size = key.size;
+        memcpy(message->data.key, key.contents, key.size);
 
         {
             mutex_acquisition_t lock(&message_contiguity_);
@@ -156,8 +154,8 @@ void master_t::delete_key(store_key_t *key, repli_timestamp timestamp) {
 
 // For operations with keys and values whose structs use the stereotypical names.
 template <class net_struct_type>
-void master_t::stereotypical(int msgcode, store_key_t *key, data_provider_t *data, net_struct_type netstruct) {
-    size_t n = sizeof(headed<net_struct_type>) + key->size + data->get_size();
+void master_t::stereotypical(int msgcode, const store_key_t &key, data_provider_t *data, net_struct_type netstruct) {
+    size_t n = sizeof(headed<net_struct_type>) + key.size + data->get_size();
 
     if (n <= 0xFFFF) {
         scoped_malloc<headed<net_struct_type> > message(n);
@@ -165,10 +163,10 @@ void master_t::stereotypical(int msgcode, store_key_t *key, data_provider_t *dat
         message->hdr.msgcode = msgcode;
         message->hdr.msgsize = n;
         message->data = netstruct;
-        memcpy(message->data.keyvalue, key->contents, key->size);
+        memcpy(message->data.keyvalue, key.contents, key.size);
 
         struct buffer_group_t group;
-        group.add_buffer(data->get_size(), message->data.keyvalue + key->size);
+        group.add_buffer(data->get_size(), message->data.keyvalue + key.size);
         data->get_data_into_buffers(&group);
 
         {
@@ -181,7 +179,7 @@ void master_t::stereotypical(int msgcode, store_key_t *key, data_provider_t *dat
         // other chunks contiguously.  Later, data_provider_t might
         // stream.
 
-        n = sizeof(multipart_headed<net_struct_type>) + key->size;
+        n = sizeof(multipart_headed<net_struct_type>) + key.size;
 
         scoped_malloc<multipart_headed<net_struct_type> > message(n);
 
@@ -189,7 +187,7 @@ void master_t::stereotypical(int msgcode, store_key_t *key, data_provider_t *dat
         message->hdr.msgcode = msgcode;
         message->hdr.msgsize = n;
         message->data = netstruct;
-        memcpy(message->data.keyvalue, key->contents, key->size);
+        memcpy(message->data.keyvalue, key.contents, key.size);
 
         uint32_t ident = sources_.add(data);
         message->hdr.ident = ident;

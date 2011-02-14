@@ -37,7 +37,8 @@ void init(block_size_t block_size, buf_t& node_buf, const leaf_node_t *lnode, co
     std::sort(node->pair_offsets, node->pair_offsets + numpairs, leaf_key_comp(node));
 }
 
-bool insert(block_size_t block_size, buf_t& node_buf, const btree_key *key, const btree_value* value, repli_timestamp insertion_time) {
+
+bool insert(block_size_t block_size, buf_t& node_buf, const btree_key_t *key, const btree_value* value, repli_timestamp insertion_time) {
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
 
     if (is_full(node, key, value)) {
@@ -50,7 +51,7 @@ bool insert(block_size_t block_size, buf_t& node_buf, const btree_key *key, cons
     return true;
 }
 
-void insert(block_size_t block_size, leaf_node_t *node, const btree_key *key, const btree_value* value, repli_timestamp insertion_time) {
+void insert(block_size_t block_size, leaf_node_t *node, const btree_key_t *key, const btree_value* value, repli_timestamp insertion_time) {
     int index = impl::get_offset_index(node, key);
 
     uint16_t prev_offset;
@@ -88,7 +89,7 @@ void insert(block_size_t block_size, leaf_node_t *node, const btree_key *key, co
 // TODO: This assumes that key is in the node.  This means we're
 // already sure the key is in the node.  This means we're doing an
 // unnecessary binary search.
-void remove(block_size_t block_size, buf_t &node_buf, const btree_key *key) {
+void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
 #ifdef BTREE_DEBUG
     printf("removing key: ");
@@ -110,7 +111,7 @@ void remove(block_size_t block_size, buf_t &node_buf, const btree_key *key) {
     validate(block_size, node);
 }
 
-void remove(block_size_t block_size, leaf_node_t *node, const btree_key *key) {
+void remove(block_size_t block_size, leaf_node_t *node, const btree_key_t *key) {
     int index = impl::find_key(node, key);
     rassert(index != impl::key_not_found);
     rassert(index != node->npairs);
@@ -122,7 +123,7 @@ void remove(block_size_t block_size, leaf_node_t *node, const btree_key *key) {
     impl::delete_offset(node, index);
 }
 
-bool lookup(const leaf_node_t *node, const btree_key *key, btree_value *value) {
+bool lookup(const leaf_node_t *node, const btree_key_t *key, btree_value *value) {
     int index = impl::find_key(node, key);
     if (index != impl::key_not_found) {
         const btree_leaf_pair *pair = get_pair_by_index(node, index);
@@ -139,7 +140,7 @@ bool lookup(const leaf_node_t *node, const btree_key *key, btree_value *value) {
 // plus some extra.  Let's say greater than 1500, just to be
 // comfortable.  TODO: prove that block_size - node->frontmost_offset
 // meets this 1500 lower bound.
-void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key *median_out) {
+void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key_t *median_out) {
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
     const leaf_node_t *rnode __attribute__((unused)) = ptr_cast<leaf_node_t>(rnode_buf.get_data_read());
 
@@ -176,11 +177,11 @@ void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key
 
     // Equality takes the left branch, so the median should be from this node.
     rassert(median_index > 0);
-    const btree_key *median_key = &get_pair_by_index(node, median_index-1)->key;
+    const btree_key_t *median_key = &get_pair_by_index(node, median_index-1)->key;
     keycpy(median_out, median_key);
 }
 
-void merge(block_size_t block_size, const leaf_node_t *node, buf_t &rnode_buf, btree_key *key_to_remove_out) {
+void merge(block_size_t block_size, const leaf_node_t *node, buf_t &rnode_buf, btree_key_t *key_to_remove_out) {
     const leaf_node_t *rnode = ptr_cast<leaf_node_t>(rnode_buf.get_data_read());
 
     rassert(node != rnode);
@@ -224,7 +225,7 @@ void merge(block_size_t block_size, const leaf_node_t *node, buf_t &rnode_buf, b
 #endif
 }
 
-bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_key *key_to_replace_out, btree_key *replacement_key_out) {
+bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_key_t *key_to_replace_out, btree_key_t *replacement_key_out) {
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
     const leaf_node_t *sibling = ptr_cast<leaf_node_t>(sibling_buf.get_data_read());
 
@@ -390,7 +391,7 @@ bool is_empty(const leaf_node_t *node) {
     return node->npairs == 0;
 }
 
-bool is_full(const leaf_node_t *node, const btree_key *key, const btree_value *value) {
+bool is_full(const leaf_node_t *node, const btree_key_t *key, const btree_value *value) {
 #ifdef DEBUG_MAX_LEAF
     return node->npairs >= DEBUG_MAX_LEAF;
 #endif
@@ -465,8 +466,8 @@ btree_leaf_pair *get_pair_by_index(leaf_node_t *node, int index) {
 
 // Assumes node1 and node2 are not empty.
 int nodecmp(const leaf_node_t *node1, const leaf_node_t *node2) {
-    const btree_key *key1 = &get_pair_by_index(node1, 0)->key;
-    const btree_key *key2 = &get_pair_by_index(node2, 0)->key;
+    const btree_key_t *key1 = &get_pair_by_index(node1, 0)->key;
+    const btree_key_t *key2 = &get_pair_by_index(node2, 0)->key;
 
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size);
 }
@@ -537,13 +538,13 @@ uint16_t insert_pair(buf_t &node_buf, const btree_leaf_pair *pair) {
 // Decreases frontmost_offset by the pair size, key->full_size() + value->full_size().
 // Copies key and value into pair snugly onto the front of the data region.
 // Returns the new frontmost_offset.
-uint16_t insert_pair(buf_t &node_buf, const btree_value *value, const btree_key *key) {
+uint16_t insert_pair(buf_t &node_buf, const btree_value *value, const btree_key_t *key) {
     node_buf.apply_patch(new leaf_insert_pair_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), value->size, value->metadata_flags.flags, value->contents, key->size, key->contents));
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
     return node->frontmost_offset;
 }
 
-uint16_t insert_pair(leaf_node_t *node, const btree_value *value, const btree_key *key) {
+uint16_t insert_pair(leaf_node_t *node, const btree_value *value, const btree_key_t *key) {
     node->frontmost_offset -= key->full_size() + value->full_size();
     btree_leaf_pair *new_pair = get_pair(node, node->frontmost_offset);
 
@@ -558,13 +559,13 @@ uint16_t insert_pair(leaf_node_t *node, const btree_value *value, const btree_ke
 // Gets the index at which we'd want to insert the key without
 // violating ordering.  Or returns the index at which the key already
 // exists.  Returns a value in [0, node->npairs].
-int get_offset_index(const leaf_node_t *node, const btree_key *key) {
+int get_offset_index(const leaf_node_t *node, const btree_key_t *key) {
     // lower_bound returns the first place where the key could be inserted without violating the ordering
     return std::lower_bound(node->pair_offsets, node->pair_offsets+node->npairs, (uint16_t)leaf_key_comp::faux_offset, leaf_key_comp(node, key)) - node->pair_offsets;
 }
 
 // find_key returns the index of the offset for key if it's in the node or -1 if it is not
-int find_key(const leaf_node_t *node, const btree_key *key) {
+int find_key(const leaf_node_t *node, const btree_key_t *key) {
     int index = get_offset_index(node, key);
     if (index < node->npairs && impl::is_equal(key, &get_pair_by_index(node, index)->key) ) {
         return index;
@@ -597,7 +598,7 @@ void insert_offset(leaf_node_t *node, uint16_t offset, int index) {
 
 // TODO: Calls to is_equal are redundant calls to sized_strcmp.  At
 // least they're cache-friendly.
-bool is_equal(const btree_key *key1, const btree_key *key2) {
+bool is_equal(const btree_key_t *key1, const btree_key_t *key2) {
     return sized_strcmp(key1->contents, key1->size, key2->contents, key2->size) == 0;
 }
 

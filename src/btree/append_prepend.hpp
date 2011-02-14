@@ -5,6 +5,6 @@
 #include "btree/slice.hpp"
 #include "store.hpp"
 
-append_prepend_result_t btree_append_prepend(const btree_key *key, btree_slice_t *slice, data_provider_t *data, bool append, castime_t castime);
+append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, data_provider_t *data, bool append, castime_t castime);
 
 #endif // __BTREE_APPEND_PREPEND_HPP__

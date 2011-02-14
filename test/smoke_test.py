@@ -97,7 +97,7 @@ try:
                       "cores"       : cores,
                       "slices"      : slices,
                       "duration"    : 10 },
-                    repeat=2, timeout=25)
+                    repeat=2, timeout=35)
         
             do_test_cloud("integration/serial_mix.py",
                     { "auto"        : True,
@@ -118,7 +118,7 @@ try:
                       "cores"       : cores,
                       "slices"      : slices,
                       "duration"    : 10 },
-                    repeat=2, timeout=25)
+                    repeat=2, timeout=35)
             
             do_test_cloud("integration/multi_serial_mix.py",
                     { "auto"        : True,
@@ -130,7 +130,7 @@ try:
                       "memory"      : 7,
                       "diff-log-size" : 2,
                       "duration"    : 10 },
-                    repeat=2, timeout=25)
+                    repeat=2, timeout=35)
         
     # Report the results
     report_cloud()

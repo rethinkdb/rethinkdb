@@ -51,29 +51,29 @@ public:
 public:
     /* get_store_t interface */
 
-    get_result_t get(store_key_t *key);
-    rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open);
+    get_result_t get(const store_key_t &key);
+    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
 
     /* set_store_interface_t interface */
 
-    get_result_t get_cas(store_key_t *key);
-    set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    get_result_t get_cas(const store_key_t &key);
+    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
 
-    incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data);
+    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data);
 
-    delete_result_t delete_key(store_key_t *key);
+    delete_result_t delete_key(const store_key_t &key);
 
     /* set_store_t interface */
 
-    get_result_t get_cas(store_key_t *key, castime_t castime);
+    get_result_t get_cas(const store_key_t &key, castime_t castime);
     
-    set_result_t sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime,
+    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime,
                       add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
-    delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp);
+    delete_result_t delete_key(const store_key_t &key, repli_timestamp timestamp);
 
-    incr_decr_result_t incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount, castime_t castime);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data, castime_t castime);
+    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime);
 
 public:
     int n_files;
@@ -101,12 +101,12 @@ public:
     btree_slice_dispatching_to_master_t *dispatchers[MAX_SLICES];
     timestamping_set_store_interface_t *timestampers[MAX_SLICES];
 
-    uint32_t slice_num(const btree_key *key);
-    set_store_interface_t *slice_for_key_set_interface(const btree_key *key);
-    set_store_t *slice_for_key_set(const btree_key *key);
-    get_store_t *slice_for_key_get(const btree_key *key);
+    uint32_t slice_num(const store_key_t &key);
+    set_store_interface_t *slice_for_key_set_interface(const store_key_t &key);
+    set_store_t *slice_for_key_set(const store_key_t &key);
+    get_store_t *slice_for_key_get(const store_key_t &key);
 
-    static uint32_t hash(const btree_key *key);
+    static uint32_t hash(const store_key_t &key);
 
 private:
     DISABLE_COPYING(btree_key_value_store_t);
@@ -137,11 +137,11 @@ private:
                 std::string key;
                 str >> key;
 
-                char store_key[MAX_KEY_SIZE+sizeof(store_key_t)];
-                str_to_key(key.c_str(), (store_key_t *) store_key);
+                store_key_t store_key;
+                str_to_key(key.c_str(), &store_key);
 
-                uint32_t hash = btkvs->hash((store_key_t*) store_key);
-                uint32_t slice = btkvs->slice_num((store_key_t *) store_key);
+                uint32_t hash = btkvs->hash(store_key);
+                uint32_t slice = btkvs->slice_num(store_key);
                 int thread = btkvs->btrees[slice]->home_thread;
 
                 result += strprintf("%*s: %08x [slice: %03u, thread: %03d]\r\n", int(key.length()), key.c_str(), hash, slice, thread);

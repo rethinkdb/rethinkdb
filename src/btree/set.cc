@@ -120,7 +120,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
     set_result_t result;
 };
 
-set_result_t btree_set(const btree_key *key, btree_slice_t *slice,
+set_result_t btree_set(const store_key_t &key, btree_slice_t *slice,
         data_provider_t *data, mcflags_t mcflags, exptime_t exptime,
         add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
         castime_t castime) {

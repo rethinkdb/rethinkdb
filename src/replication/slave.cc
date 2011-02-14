@@ -59,7 +59,7 @@ void slave_t::kill_conn() {
     }
 }
 
-get_result_t slave_t::get_cas(store_key_t *key) {
+get_result_t slave_t::get_cas(const store_key_t &key) {
     if (respond_to_queries_) {
         return internal_store_->get_cas(key);
     } else {
@@ -70,7 +70,7 @@ get_result_t slave_t::get_cas(store_key_t *key) {
     }
 }
 
-set_result_t slave_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+set_result_t slave_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     if (respond_to_queries_) {
         return internal_store_->sarc(key, data, flags, exptime, add_policy, replace_policy, old_cas);
     } else {
@@ -78,21 +78,21 @@ set_result_t slave_t::sarc(store_key_t *key, data_provider_t *data, mcflags_t fl
     }
 }
 
-incr_decr_result_t slave_t::incr_decr(incr_decr_kind_t kind, store_key_t *key, uint64_t amount) {
+incr_decr_result_t slave_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount) {
     if (respond_to_queries_)
         return internal_store_->incr_decr(kind, key, amount);
     else
         return incr_decr_result_t::idr_not_allowed;
 }
 
-append_prepend_result_t slave_t::append_prepend(append_prepend_kind_t kind, store_key_t *key, data_provider_t *data) {
+append_prepend_result_t slave_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data) {
     if (respond_to_queries_)
         return internal_store_->append_prepend(kind, key, data);
     else
         return apr_not_allowed;
 }
 
-delete_result_t slave_t::delete_key(store_key_t *key) {
+delete_result_t slave_t::delete_key(const store_key_t &key) {
     if (respond_to_queries_)
         return internal_store_->delete_key(key);
     else
