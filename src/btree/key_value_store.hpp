@@ -23,7 +23,7 @@ struct serializer_config_block_t {
     
     /* What time the database was created. To help catch the case where files from two
     databases are mixed. */
-    uint32_t database_magic;
+    uint32_t database_creation_timestamp;
     
     /* How many serializers the database is using (in case user creates the database with
     some number of serializers and then specifies less than that many on a subsequent
@@ -147,9 +147,9 @@ public:
     
     bool start(ready_callback_t *cb);
     
-    void create_serializers();   // Called on home thread
-    uint32_t creation_magic;   // Used in start-new mode
-    uint32_t serializer_magics[MAX_SERIALIZERS];   // Used in start-existing mode
+    void create_serializers();      // Called on home thread
+    uint32_t creation_timestamp;    // Used in start-new mode
+    uint32_t serializer_creation_timestamps[MAX_SERIALIZERS];   // Used in start-existing mode
     bool have_created_a_serializer();   // Called on home thread
     
     static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
