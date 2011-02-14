@@ -63,22 +63,25 @@ void check_pass(message_callback_t *receiver, weak_buf_t buffer, size_t realoffs
 }
 
 template <class T>
-void check_first_size(message_callback_t *receiver, weak_buf_t& buffer, size_t realbegin, size_t realsize, uint32_t ident, thick_list<value_stream_t *, uint32_t>& streams) {
+void check_first_size(message_callback_t *receiver, weak_buf_t& buffer, size_t realbegin, size_t realsize, uint32_t ident, tracker_t& streams) {
     if (sizeof(T) >= realsize
         && sizeof(T) + buffer.get<T>(realbegin)->key_size <= realsize) {
 
-        stream_pair<T> spair(buffer, realbegin, realsize);
-        if (!streams.add(ident, spair.stream)) {
+        stream_pair<T> spair(buffer, realbegin, realsize, buffer.get<T>(realbegin)->value_size);
+        size_t m = realsize - sizeof(T) - buffer.get<T>(realbegin)->key_size;
+
+        void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
+
+        if (!streams.add(ident, new std::pair<boost::function<void()>, std::pair<char *, size_t> >(boost::bind(fn, receiver, boost::ref(spair)), std::make_pair(spair.stream->peek() + m, buffer.get<T>(realbegin)->value_size - m)))) {
             throw protocol_exc_t("reused live ident code");
         }
-        receiver->send(spair);
 
     } else {
         throw protocol_exc_t("message too short for message code and key size");
     }
 }
 
-size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t buffer, size_t offset, size_t num_read, thick_list<value_stream_t *, uint32_t>& streams) {
+size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t buffer, size_t offset, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
     if (num_read < sizeof(net_multipart_header_t)) {
@@ -131,16 +134,25 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
             default: throw protocol_exc_t("invalid message code for multipart message");
             }
         } else if (hdr->message_multipart_aspect == MIDDLE || hdr->message_multipart_aspect == LAST) {
-            value_stream_t *stream = streams[ident];
+            std::pair<boost::function<void ()>, std::pair<char *, size_t> > *pair = streams[ident];
 
-            if (stream == NULL) {
+            if (pair == NULL) {
                 throw protocol_exc_t("inactive stream identifier");
             }
 
-            write_charslice(stream, const_charslice(buffer.get<char>(realbegin), buffer.get<char>(realbegin + realsize)));
+            if (realsize > pair->second.second) {
+                throw protocol_exc_t("buffer overflows value size");
+            }
+            memcpy(pair->second.first, buffer.get<char>(realbegin), realsize);
+            pair->second.first += realsize;
+            pair->second.second -= realsize;
 
             if (hdr->message_multipart_aspect == LAST) {
-                streams[ident]->shutdown_write();
+                if (pair->second.second != 0) {
+                    throw protocol_exc_t("buffer left unfilled at LAST message");
+                }
+                pair->first();
+                delete pair;
                 streams.drop(ident);
             }
         } else {
@@ -151,7 +163,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
     return msgsize;
 }
 
-void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, thick_list<value_stream_t *, uint32_t>& streams) {
+void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams) {
 
     // This is slightly inefficient: we do excess copying since
     // handle_message is forced to accept a contiguous message, even
@@ -195,7 +207,7 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
     try {
         do_parse_hello_message(conn, receiver);
 
-        thick_list<value_stream_t *, uint32_t> streams;
+        tracker_t streams;
         do_parse_normal_messages(conn, receiver, streams);
     } catch (tcp_conn_t::read_closed_exc_t& e) {
         if (!shutdown_asked_for)

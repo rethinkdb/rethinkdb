@@ -139,6 +139,8 @@ public:
     buffered_data_provider_t(size_t, void **);    // Allocate buffer, let creator fill it
     size_t get_size() const;
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+
+    char *peek() { return buffer.get(); }
 private:
     size_t size;
     const_buffer_group_t bg;
@@ -212,5 +214,6 @@ private:
     bool in_get_data_into_buffers_;
 #endif
 };
+
 
 #endif /* __DATA_PROVIDER_HPP__ */

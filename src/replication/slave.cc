@@ -125,10 +125,22 @@ void slave_t::send(buffed_data_t<net_backfill_t>& message) {
 void slave_t::send(buffed_data_t<net_announce_t>& message) {
     debugf("announce message received.\n");
 }
-void slave_t::send(buffed_data_t<net_get_cas_t>& message) {
-    debugf("get_cas message received.\n");
+void slave_t::send(buffed_data_t<net_get_cas_t>& msg) {
+    store_key_t key;
+    key.size = msg->key_size;
+    memcpy(key.contents, msg->key, key.size);
+
+    // TODO this returns a get_result_t (with cross-thread messaging),
+    // and we don't really care for that.
+    internal_store_->get_cas(key, castime_t(msg->proposed_cas, msg->timestamp));
+    debugf("get_cas message received and applied.\n");
 }
-void slave_t::send(stream_pair<net_sarc_t>& message) {
+void slave_t::send(stream_pair<net_sarc_t>& msg) {
+    store_key_t key;
+    key.size = msg->key_size;
+    memcpy(key.contents, msg->keyvalue, key.size);
+
+    internal_store_->sarc(key, msg.stream, msg->flags, msg->exptime, castime_t(msg->proposed_cas, msg->timestamp), add_policy_t(msg->add_policy), replace_policy_t(msg->replace_policy), msg->old_cas);
     debugf("sarc message received.\n");
 }
 void slave_t::send(buffed_data_t<net_incr_t>& message) {
