@@ -16,7 +16,7 @@ const block_magic_t multiplexer_config_block_t::expected_magic = { { 'c','f','g'
 
 void prep_serializer(
         const std::vector<serializer_t *> &serializers,
-        multiplexer_magic_t creation_magic,
+        creation_timestamp_t creation_timestamp,
         int n_proxies,
         int i) {
 
@@ -32,7 +32,7 @@ void prep_serializer(
 
     bzero(c, ser->get_block_size().value());
     c->magic = multiplexer_config_block_t::expected_magic;
-    c->multiplexer_magic = creation_magic;
+    c->creation_timestamp = creation_timestamp;
     c->n_files = serializers.size();
     c->this_serializer = i;
     c->n_proxies = n_proxies;
@@ -48,18 +48,17 @@ void prep_serializer(
 
 /* static */
 void serializer_multiplexer_t::create(const std::vector<serializer_t *> &underlying, int n_proxies) {
-
     /* Choose a more-or-less unique ID so that we can hopefully catch the case where files are
     mixed and mismatched. */
-    multiplexer_magic_t creation_magic = time(NULL);
+    creation_timestamp_t creation_timestamp = time(NULL);
 
     /* Write a configuration block for each one */
     pmap(underlying.size(), boost::bind(&prep_serializer,
-        underlying, creation_magic, n_proxies, _1));
+        underlying, creation_timestamp, n_proxies, _1));
 }
 
 void create_proxies(const std::vector<serializer_t *> &underlying,
-    multiplexer_magic_t creation_magic, std::vector<translator_serializer_t *> *proxies, int i) {
+    creation_timestamp_t creation_timestamp, std::vector<translator_serializer_t *> *proxies, int i) {
 
     serializer_t *ser = underlying[i];
 
@@ -72,13 +71,14 @@ void create_proxies(const std::vector<serializer_t *> &underlying,
     struct : public serializer_t::read_callback_t, public cond_t {
         void on_serializer_read() { pulse(); }
     } read_cb;
-    if (!ser->do_read(CONFIG_BLOCK_ID.ser_id, c, &read_cb)) read_cb.wait();
+    if (!ser->do_read(CONFIG_BLOCK_ID.ser_id, c, &read_cb))
+        read_cb.wait();
 
     /* Verify that stuff is sane */
     if (!check_magic<multiplexer_config_block_t>(c->magic)) {
         fail_due_to_user_error("File did not come from 'rethinkdb create'.");
     }
-    if (c->multiplexer_magic != creation_magic) {
+    if (c->creation_timestamp != creation_timestamp) {
         fail_due_to_user_error("The files that the server was started with didn't all come from "
             "the same call to 'rethinkdb create'.");
     }
@@ -103,9 +103,9 @@ void create_proxies(const std::vector<serializer_t *> &underlying,
     /* This is a slightly weird way of phrasing this; it's done this way so I can be sure it's
     equivalent to the old way of doing things */
     for (int k = 0; k < c->n_proxies; k++) {
-
         /* Are we responsible for creating this proxy? */
-        if (k % (int)underlying.size() != j) continue;
+        if (k % (int)underlying.size() != j)
+            continue;
 
         rassert(!(*proxies)[k]);
         (*proxies)[k] = new translator_serializer_t(
@@ -120,12 +120,10 @@ void create_proxies(const std::vector<serializer_t *> &underlying,
 }
 
 serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_t *> &underlying) {
-
     rassert(underlying.size() > 0);
     for (int i = 0; i < (int)underlying.size(); i++) rassert(underlying[i]);
 
     /* Figure out how many slices there are gonna be and figure out what the creation magic is */
-    multiplexer_magic_t creation_magic;
     {
         on_thread_t thread_switcher(underlying[0]->home_thread);
 
@@ -138,7 +136,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         if (!underlying[0]->do_read(CONFIG_BLOCK_ID.ser_id, c, &read_cb)) read_cb.wait();
 
         rassert(check_magic<multiplexer_config_block_t>(c->magic));
-        creation_magic = c->multiplexer_magic;
+        creation_timestamp = c->creation_timestamp;
         proxies.resize(c->n_proxies);
 
         underlying[0]->free(c);
@@ -148,25 +146,21 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
     (because we already visited it to get the creation magic and stuff) but that's OK. Also, create
     proxies for the serializers (populate the 'proxies' vector) */
     pmap(underlying.size(), boost::bind(&create_proxies,
-        underlying, creation_magic, &proxies, _1));
+        underlying, creation_timestamp, &proxies, _1));
 
     for (int i = 0; i < (int)proxies.size(); i++) rassert(proxies[i]);
 }
 
 void destroy_proxy(std::vector<translator_serializer_t *> *proxies, int i) {
-
     on_thread_t thread_switcher((*proxies)[i]->home_thread);
-
     delete (*proxies)[i];
 }
 
 serializer_multiplexer_t::~serializer_multiplexer_t() {
-
     pmap(proxies.size(), boost::bind(&destroy_proxy, &proxies, _1));
 }
 
 int serializer_multiplexer_t::compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
-
     /* If we have 'n_files', and we distribute 'n_slices' over those 'n_files' such that slice 'n'
     is on file 'n % n_files', then how many slices will be on file 'file_number'? */
     return n_slices / n_files + (n_slices % n_files > file_number);
