@@ -97,12 +97,16 @@ struct net_incr_t {
     repli_timestamp timestamp;
     cas_t proposed_cas;
     uint64_t amount;
+    uint16_t key_size;
+    char key[];
 } __attribute__((__packed__));
 
 struct net_decr_t {
     repli_timestamp timestamp;
     cas_t proposed_cas;
     uint64_t amount;
+    uint16_t key_size;
+    char key[];
 } __attribute__((__packed__));
 
 struct net_append_t {

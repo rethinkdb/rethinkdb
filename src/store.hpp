@@ -16,6 +16,13 @@ typedef uint64_t cas_t;
 struct store_key_t {
     uint8_t size;
     char contents[MAX_KEY_SIZE];
+
+    store_key_t() { }
+    store_key_t(uint8_t sz, char *buf) : size(sz) {
+        rassert(sz <= MAX_KEY_SIZE);
+        memcpy(contents, buf, sz);
+    }
+
     void print() const {
         printf("%*.*s", size, size, contents);
     }

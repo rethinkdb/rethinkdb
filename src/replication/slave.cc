@@ -126,9 +126,7 @@ void slave_t::send(buffed_data_t<net_announce_t>& message) {
     debugf("announce message received.\n");
 }
 void slave_t::send(buffed_data_t<net_get_cas_t>& msg) {
-    store_key_t key;
-    key.size = msg->key_size;
-    memcpy(key.contents, msg->key, key.size);
+    store_key_t key(msg->key_size, msg->key);
 
     // TODO this returns a get_result_t (with cross-thread messaging),
     // and we don't really care for that.
@@ -136,26 +134,39 @@ void slave_t::send(buffed_data_t<net_get_cas_t>& msg) {
     debugf("get_cas message received and applied.\n");
 }
 void slave_t::send(stream_pair<net_sarc_t>& msg) {
-    store_key_t key;
-    key.size = msg->key_size;
-    memcpy(key.contents, msg->keyvalue, key.size);
+    store_key_t key(msg->key_size, msg->keyvalue);
 
     internal_store_->sarc(key, msg.stream, msg->flags, msg->exptime, castime_t(msg->proposed_cas, msg->timestamp), add_policy_t(msg->add_policy), replace_policy_t(msg->replace_policy), msg->old_cas);
-    debugf("sarc message received.\n");
+    debugf("sarc message received and applied.\n");
 }
-void slave_t::send(buffed_data_t<net_incr_t>& message) {
+void slave_t::send(buffed_data_t<net_incr_t>& msg) {
+    store_key_t key(msg->key_size, msg->key);
+
+    internal_store_->incr_decr(incr_decr_INCR, key, msg->amount, castime_t(msg->proposed_cas, msg->timestamp));
     debugf("incr message received.\n");
 }
-void slave_t::send(buffed_data_t<net_decr_t>& message) {
-    debugf("decr message received.\n");
+void slave_t::send(buffed_data_t<net_decr_t>& msg) {
+    store_key_t key(msg->key_size, msg->key);
+
+    internal_store_->incr_decr(incr_decr_DECR, key, msg->amount, castime_t(msg->proposed_cas, msg->timestamp));
+    debugf("decr message received and applied.\n");
 }
-void slave_t::send(stream_pair<net_append_t>& message) {
-    debugf("append message received.\n");
+void slave_t::send(stream_pair<net_append_t>& msg) {
+    store_key_t key(msg->key_size, msg->keyvalue);
+
+    internal_store_->append_prepend(append_prepend_APPEND, key, msg.stream, castime_t(msg->proposed_cas, msg->timestamp));
+    debugf("append message received and applied.\n");
 }
-void slave_t::send(stream_pair<net_prepend_t>& message) {
-    debugf("prepend message received.\n");
+void slave_t::send(stream_pair<net_prepend_t>& msg) {
+    store_key_t key(msg->key_size, msg->keyvalue);
+
+    internal_store_->append_prepend(append_prepend_PREPEND, key, msg.stream, castime_t(msg->proposed_cas, msg->timestamp));
+    debugf("prepend message received and applied.\n");
 }
-void slave_t::send(buffed_data_t<net_delete_t>& message) {
+void slave_t::send(buffed_data_t<net_delete_t>& msg) {
+    store_key_t key(msg->key_size, msg->key);
+
+    internal_store_->delete_key(key, msg->timestamp);
     debugf("delete message received.\n");
 }
 void slave_t::send(buffed_data_t<net_nop_t>& message) {
