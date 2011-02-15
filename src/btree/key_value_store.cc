@@ -122,7 +122,7 @@ struct bkvs_start_new_serializer_fsm_t :
         bzero(config_block, store->serializers[i]->get_block_size().value());
         serializer_config_block_t *c = (serializer_config_block_t *)config_block;
         c->magic = serializer_config_block_t::expected_magic;
-        c->database_magic = store->creation_magic;
+        c->database_creation_timestamp = store->creation_timestamp;
         c->n_files = store->n_files;
         c->this_serializer = i;
         c->btree_config = store->btree_static_config;
@@ -180,7 +180,8 @@ struct bkvs_start_existing_serializer_fsm_t :
         assert(check_magic<serializer_config_block_t>(c->magic));
         assert(c->this_serializer >= 0 && c->this_serializer < store->n_files);
 
-        store->serializer_magics[c->this_serializer] = c->database_magic;
+        store->serializer_creation_timestamps[c->this_serializer] = c->database_creation_timestamp;
+        store->creation_timestamp = c->database_creation_timestamp;
         store->btree_static_config = c->btree_config;
 
         assert(!store->serializers[c->this_serializer]);
@@ -208,7 +209,7 @@ void btree_key_value_store_t::create_serializers() {
             f->run();
         }
     } else {
-        creation_magic = time(NULL);
+        creation_timestamp = time(NULL);
         for (int i = 0; i < n_files; i++) {
             bkvs_start_new_serializer_fsm_t *f = new bkvs_start_new_serializer_fsm_t();
             f->store = this;
@@ -222,9 +223,10 @@ bool btree_key_value_store_t::have_created_a_serializer() {
     messages_out--;
     if (messages_out == 0) {
         if (is_start_existing) {
-            /* Make sure all the magics line up */
+            /* Make sure all the creation timestamps line up */
+            assert(n_files > 0);
             for (int i = 1; i < n_files; i++) {
-                if (serializer_magics[i] != serializer_magics[0]) {
+                if (serializer_creation_timestamps[i] != serializer_creation_timestamps[0]) {
                     fail_due_to_user_error("The files that the server was started with didn't all come from the same database.");
                 }
             }
