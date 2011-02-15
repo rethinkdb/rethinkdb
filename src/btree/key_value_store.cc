@@ -181,6 +181,7 @@ struct bkvs_start_existing_serializer_fsm_t :
         assert(c->this_serializer >= 0 && c->this_serializer < store->n_files);
 
         store->serializer_creation_timestamps[c->this_serializer] = c->database_creation_timestamp;
+        store->creation_timestamp = c->database_creation_timestamp;
         store->btree_static_config = c->btree_config;
 
         assert(!store->serializers[c->this_serializer]);
@@ -223,6 +224,7 @@ bool btree_key_value_store_t::have_created_a_serializer() {
     if (messages_out == 0) {
         if (is_start_existing) {
             /* Make sure all the creation timestamps line up */
+            assert(n_files > 0);
             for (int i = 1; i < n_files; i++) {
                 if (serializer_creation_timestamps[i] != serializer_creation_timestamps[0]) {
                     fail_due_to_user_error("The files that the server was started with didn't all come from the same database.");

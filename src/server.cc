@@ -1,3 +1,4 @@
+#include <math.h>
 #include "server.hpp"
 #include "db_thread_info.hpp"
 #include "memcached/memcached.hpp"
@@ -9,6 +10,9 @@ server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
       conn_acceptor(cmd_config->port, &server_t::create_request_handler, (void*)this),
 #ifdef REPLICATION_ENABLED
       replication_acceptor(NULL),
+#endif
+#ifdef TIMEBOMB_DAYS
+      timebomb_timer(NULL),
 #endif
       toggler(this) { }
 
@@ -76,9 +80,49 @@ void server_t::on_store_ready() {
         logINF("Done creating database.\n");
         do_shutdown_store();
     } else {
+#ifdef TIMEBOMB_DAYS
+        start_timebomb_checker();
+#endif
+
         do_start_conn_acceptor();
     }
 }
+
+#ifdef TIMEBOMB_DAYS
+static const long seconds_in_a_day = 86400;
+
+static void timebomb_checker(server_t *server) {
+    bool exploded = false;
+    time_t time_now = time(NULL);
+
+    double days_since_created = difftime(time_now, server->store->creation_timestamp)/seconds_in_a_day;
+    if (days_since_created < 0) {
+        // time anomaly: database created in future (or we are in 2038)
+        logERR("Error: Database creation timestamp is in the future.\n");
+        exploded = true;
+    } else if (days_since_created > TIMEBOMB_DAYS) {
+        // trial is over
+        logERR("Thank you for evaluating %s. Trial period has expired. To continue using the software, please contact RethinkDB <support@rethinkdb.com>.\n", PRODUCT_NAME);
+        exploded = true;
+    } else {
+        int days_left = ceil((double) TIMEBOMB_DAYS - days_since_created);
+        if (days_left > 1) {
+            logWRN("This is a trial version of %s. It will expire in %d days.\n", PRODUCT_NAME, days_left);
+        } else {
+            logWRN("This is a trial version of %s. It will expire today.\n", PRODUCT_NAME);
+        }
+        exploded = false;
+    }
+    if (exploded) {
+        server->shutdown();
+    }
+}
+
+void server_t::start_timebomb_checker() {
+    fire_timer_once(0, (void (*)(void*)) timebomb_checker, this);
+    this->timebomb_timer = add_timer(seconds_in_a_day * 1000 / 2, (void (*)(void*)) timebomb_checker, this);
+}
+#endif
 
 void server_t::do_start_conn_acceptor() {
     assert_thread();
@@ -130,6 +174,12 @@ void server_t::do_shutdown() {
     logINF("Shutting down...\n");
     
     assert_thread();
+#ifdef TIMEBOMB_DAYS
+    if (timebomb_timer) {
+        cancel_timer(timebomb_timer);
+        timebomb_timer = NULL;
+    }
+#endif
     do_shutdown_conn_acceptor();
 }
 

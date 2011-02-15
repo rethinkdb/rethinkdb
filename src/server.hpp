@@ -60,6 +60,10 @@ public:
 #endif
     
 private:
+#ifdef TIMEBOMB_DAYS
+    timer_token_t *timebomb_timer;
+    void start_timebomb_checker();
+#endif
 
     bool do_disable_gc(all_gc_disabled_callback_t *cb);
     bool do_enable_gc(all_gc_enabled_callback_t *cb);
