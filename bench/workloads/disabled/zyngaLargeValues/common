@@ -13,21 +13,21 @@ function run_with_clients {
         ./dbench                                                                                      \
             -f -d "/tmp/zynga_insert" -H $SERVER_HOSTS    \
             {server}rethinkdb:"-m 16384 $SSD_DRIVES"                                            \
-            {client}stress[$STRESS_CLIENT]:"-c 128 -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
+            {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
             iostat:1 vmstat:1 rdbstat:1
     elif [ $DATABASE == "mysql" ]; then
         if [ "$NUMBER_OF_CLIENTS" -lt "1025" ]; then
             ./dbench                                                                                   \
                 -f -d "/tmp/zynga_insert" -H $SERVER_HOSTS \
                 {server}mysql:"$MYSQL_COMMON_FLAGS --innodb_buffer_pool_size=16384m $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"        \
-                {client}mysqlstress[$STRESS_CLIENT]:"-c 128 -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
+                {client}mysqlstress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
                 iostat:1 vmstat:1
         fi
     elif [ $DATABASE == "membase" ]; then
         ./dbench                                                                                   \
             -f -d "/tmp/zynga_insert" -H $SERVER_HOSTS -p 11211 \
             {server}membase:"-d $MEMBASE_DATA_PATH -m 16384"                                       \
-            {client}stress[$STRESS_CLIENT]:"-c 128 -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
+            {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
             iostat:1 vmstat:1
     fi
     
@@ -35,6 +35,7 @@ function run_with_clients {
     # Run the benchmark
     if [ $DATABASE == "rethinkdb" ]; then
         ./dbench                                                                                      \
+            --prime-caches \
             -d "$BENCH_DIR/bench_output/Zynga_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS    \
             {server}rethinkdb:"-m 16384 $SSD_DRIVES"                                            \
             {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_MULTIRUN_DURATION -v 10240-16384 -w 1/90/1/8 -i /tmp/keys" \
@@ -42,6 +43,7 @@ function run_with_clients {
     elif [ $DATABASE == "mysql" ]; then
         if [ "$NUMBER_OF_CLIENTS" -lt "1025" ]; then
             ./dbench                                                                                   \
+                --prime-caches \
                 -d "$BENCH_DIR/bench_output/Zynga_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS \
                 {server}mysql:"$MYSQL_COMMON_FLAGS --innodb_buffer_pool_size=16384m $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"        \
                 {client}mysqlstress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_MULTIRUN_DURATION -v 10240-16384 -w 1/90/1/8 -i /tmp/keys" \
@@ -51,6 +53,7 @@ function run_with_clients {
         fi
     elif [ $DATABASE == "membase" ]; then
         ./dbench                                                                                   \
+            --prime-caches \
             -d "$BENCH_DIR/bench_output/Zynga_workload/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS -p 11211 \
             {server}membase:"-d $MEMBASE_DATA_PATH -m 16384"                                       \
             {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_MULTIRUN_DURATION -v 10240-16384 -w 1/90/1/8 -i /tmp/keys" \
