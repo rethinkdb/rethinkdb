@@ -58,7 +58,7 @@ as the "home_thread" variable. */
 
 class home_thread_mixin_t {
 public:
-    int home_thread;
+    const int home_thread;
 
     void assert_thread() {
         rassert(home_thread == get_thread_id());
