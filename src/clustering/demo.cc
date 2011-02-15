@@ -17,7 +17,7 @@ struct demo_delegate_t : public cluster_delegate_t {
     query_mailbox_t::address_t master_address;
     demo_delegate_t(const query_mailbox_t::address_t &addr) : master_address(addr) { }
     void introduce_new_node(cluster_outpipe_t *p) {
-        ::serialize(p, &master_address);
+        ::serialize(p, master_address);
     }
 };
 

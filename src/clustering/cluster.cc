@@ -126,9 +126,7 @@ void cluster_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &conn) {
             cluster_inpipe_t inpipe;
             inpipe.cluster = this;
             inpipe.conn = conn.get();
-            unique_ptr_t<cluster_message_t> msg = mailbox->unserialize(&inpipe);
-
-            mailbox->run(msg);
+            mailbox->unserialize(&inpipe);
         }
     }
 }
@@ -137,7 +135,7 @@ cluster_t::~cluster_t() {
     not_implemented();
 }
 
-void cluster_t::send_message(int peer, cluster_mailbox_t *mailbox, unique_ptr_t<cluster_message_t> msg) {
+void cluster_t::send_message(int peer, cluster_mailbox_t *mailbox, cluster_message_t *msg) {
 
     on_thread_t thread_switcher(home_thread);
 
@@ -161,10 +159,10 @@ cluster_address_t::cluster_address_t(const cluster_address_t &addr) :
 cluster_address_t::cluster_address_t(cluster_mailbox_t *mailbox) :
     cluster(NULL), peer(0), mailbox(mailbox) { }
 
-void cluster_address_t::send(unique_ptr_t<cluster_message_t> msg) {
+void cluster_address_t::send(cluster_message_t *msg) const {
     if (!cluster) {
         /* Address of a local mailbox */
-        coro_t::spawn(boost::bind(&cluster_mailbox_t::run, mailbox, msg));
+        coro_t::spawn_now(boost::bind(&cluster_mailbox_t::run, mailbox, msg));
     } else {
         /* Address of a remote mailbox */
         cluster->send_message(peer, mailbox, msg);

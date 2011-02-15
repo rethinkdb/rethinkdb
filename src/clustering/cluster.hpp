@@ -20,8 +20,8 @@ subclasses of cluster_message_t; often it is necessary to static_cast<>() to the
 subclass. Every cluster_message_t knows how to write itself to a pipe. */
 
 struct cluster_message_t {
-    virtual void serialize(cluster_outpipe_t *pipe) = 0;   /* May destroy contents */
-    virtual ~cluster_message_t() { }
+    /* May smash the message, but should not free its memory. */
+    virtual void serialize(cluster_outpipe_t *pipe) = 0;
 private:
     friend class cluster_t;
 };
@@ -38,13 +38,18 @@ private:
     friend class cluster_address_t;
     friend class cluster_t;
 
-    /* Called to when a message is sent to the mailbox over the network. Its return value will be
-    passed to run(). */
-    virtual unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *) = 0;
+    /* Called to when a message is sent to the mailbox over the network. Should do basically the
+    same thing as run() after deserializing the message. */
+    virtual void unserialize(cluster_inpipe_t *) = 0;
 
-    /* Called when a message is sent to the mailbox. Should destroy the message that is passed to
-    it. Beware: may be called on any thread. */
-    virtual void run(unique_ptr_t<cluster_message_t> msg) = 0;
+    /* Called when a message is sent to the mailbox. May smash the message given to it, but should
+    not free the memory.
+
+    Beware: may be called on any thread!
+
+    Beware: the message will cease to be valid after the first call to coro_t::wait() from within
+    run()! */
+    virtual void run(cluster_message_t *msg) = 0;
 
     DISABLE_COPYING(cluster_mailbox_t);
 };
@@ -58,8 +63,8 @@ public:
     cluster_address_t(const cluster_address_t&);
     explicit cluster_address_t(cluster_mailbox_t *mailbox);
 
-    /* Send a message to an address. Destroys the message you give it. */
-    void send(unique_ptr_t<cluster_message_t> msg);
+    /* Send a message to an address. May smash the message's contents but does not free memory. */
+    void send(cluster_message_t *msg) const;
 
 private:
     friend class cluster_mailbox_t;
@@ -115,7 +120,7 @@ private:
     tcp_listener_t listener;
     void on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &conn);
 
-    void send_message(int peer, cluster_mailbox_t *mailbox, unique_ptr_t<cluster_message_t> msg);
+    void send_message(int peer, cluster_mailbox_t *mailbox, cluster_message_t *msg);
 
     DISABLE_COPYING(cluster_t);
 };

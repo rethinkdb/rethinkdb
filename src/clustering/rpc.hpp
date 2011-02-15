@@ -7,7 +7,9 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include "clustering/serialize.hpp"
 #include "concurrency/cond_var.hpp"
 
-template<class proto_t> class async_mailbox_t;
+template<class proto_t> class async_mailbox_t {
+    // BOOST_STATIC_ASSERT(false);
+};
 template<class proto_t> class sync_mailbox_t;
 
 template<>
@@ -22,11 +24,11 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call() {
-            unique_ptr_t<message_t> m(new message_t);
-            addr.send(m);
+            message_t m;
+            addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -37,17 +39,17 @@ public:
 
 private:
     struct message_t : public cluster_message_t {
+        message_t()
+            { }
         void serialize(cluster_outpipe_t *p) {
         }
     };
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<message_t> mp(new message_t);
-        return mp;
+    void unserialize(cluster_inpipe_t *p) {
+        callback();
     }
 
     boost::function< void() > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<message_t> m(static_pointer_cast<message_t>(cm));
+    void run(cluster_message_t *cm) {
         callback();
     }
 };
@@ -64,22 +66,21 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call() {
-            unique_ptr_t<call_message_t> m(new call_message_t);
+            call_message_t m;
             struct : public cluster_mailbox_t, public cond_t {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    pulse();
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
+                void run(cluster_message_t *msg) {
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -91,9 +92,11 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
+        call_message_t()
+            { }
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &reply_to);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
@@ -102,18 +105,20 @@ private:
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< void() > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        callback();
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< void() > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
         callback();
-        m->reply_to.send(m2);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -129,24 +134,23 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call() {
-            unique_ptr_t<call_message_t> m(new call_message_t);
+            call_message_t m;
             struct : public cluster_mailbox_t, public promise_t<ret_t> {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    ::unserialize(p, &m->ret);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    typename format_t<ret_t>::parser_t parser(p);
+                    pulse(parser.value());
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
-                    unique_ptr_t<ret_message_t> m(static_pointer_cast<ret_message_t>(m));
+                void run(cluster_message_t *msg) {
+                    ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             return reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -158,31 +162,35 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
+        call_message_t()
+            { }
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &reply_to);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &ret);
+            format_t<ret_t>::write(p, ret);
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< ret_t() > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        rm.ret = callback();
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< ret_t() > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2->ret = callback();
-        m->reply_to.send(m2);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
+        rm->ret = callback();
+        m->reply_to.send(&rm);
     }
 };
 
@@ -190,7 +198,7 @@ template<class arg0_t>
 class async_mailbox_t< void(arg0_t) > : private cluster_mailbox_t {
 
 public:
-    async_mailbox_t(const boost::function< void(arg0_t) > &fun) :
+    async_mailbox_t(const boost::function< void(const arg0_t &arg0) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -198,12 +206,11 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0) {
-            unique_ptr_t<message_t> m(new message_t);
-            m->arg0 = arg0;
-            addr.send(m);
+            message_t m(arg0);
+            addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -214,21 +221,23 @@ public:
 
 private:
     struct message_t : public cluster_message_t {
-        arg0_t arg0;
+        message_t(const arg0_t &arg0)
+            : arg0(arg0) { }
+        const arg0_t &arg0;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
+            format_t<arg0_t>::write(p, arg0);
         }
     };
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<message_t> mp(new message_t);
-        ::unserialize(p, &mp->arg0);
-        return mp;
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        callback(parser0.value());
     }
 
-    boost::function< void(arg0_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<message_t> m(static_pointer_cast<message_t>(cm));
-        callback(m->arg0);
+    boost::function< void(const arg0_t &arg0) > callback;
+    void run(cluster_message_t *cm) {
+        message_t *m = static_cast<message_t *>(cm);
+        arg0_t arg0(m->arg0);
+        callback(arg0);
     }
 };
 
@@ -236,7 +245,7 @@ template<class arg0_t>
 class sync_mailbox_t< void(arg0_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< void(arg0_t) > &fun) :
+    sync_mailbox_t(const boost::function< void(const arg0_t &arg0) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -244,23 +253,21 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
+            call_message_t m(arg0);
             struct : public cluster_mailbox_t, public cond_t {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    pulse();
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
+                void run(cluster_message_t *msg) {
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -272,11 +279,13 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
+        call_message_t(const arg0_t &arg0)
+            : arg0(arg0) { }
+        const arg0_t &arg0;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
@@ -285,19 +294,21 @@ private:
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< void(const arg0_t &arg0) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        callback(parser0.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< void(arg0_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
         callback(m->arg0);
-        m->reply_to.send(m2);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -305,7 +316,7 @@ template<class ret_t, class arg0_t>
 class sync_mailbox_t< ret_t(arg0_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< ret_t(arg0_t) > &fun) :
+    sync_mailbox_t(const boost::function< ret_t(const arg0_t &arg0) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -313,25 +324,23 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
+            call_message_t m(arg0);
             struct : public cluster_mailbox_t, public promise_t<ret_t> {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    ::unserialize(p, &m->ret);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    typename format_t<ret_t>::parser_t parser(p);
+                    pulse(parser.value());
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
-                    unique_ptr_t<ret_message_t> m(static_pointer_cast<ret_message_t>(m));
+                void run(cluster_message_t *msg) {
+                    ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             return reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -343,34 +352,38 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
+        call_message_t(const arg0_t &arg0)
+            : arg0(arg0) { }
+        const arg0_t &arg0;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &ret);
+            format_t<ret_t>::write(p, ret);
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< ret_t(const arg0_t &arg0) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        rm.ret = callback(parser0.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< ret_t(arg0_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2->ret = callback(m->arg0);
-        m->reply_to.send(m2);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
+        rm->ret = callback(m->arg0);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -378,7 +391,7 @@ template<class arg0_t, class arg1_t>
 class async_mailbox_t< void(arg0_t, arg1_t) > : private cluster_mailbox_t {
 
 public:
-    async_mailbox_t(const boost::function< void(arg0_t, arg1_t) > &fun) :
+    async_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -386,13 +399,11 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1) {
-            unique_ptr_t<message_t> m(new message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            addr.send(m);
+            message_t m(arg0, arg1);
+            addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -403,24 +414,27 @@ public:
 
 private:
     struct message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
+        message_t(const arg0_t &arg0, const arg1_t &arg1)
+            : arg0(arg0), arg1(arg1) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
         }
     };
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<message_t> mp(new message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        return mp;
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        callback(parser0.value(), parser1.value());
     }
 
-    boost::function< void(arg0_t, arg1_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<message_t> m(static_pointer_cast<message_t>(cm));
-        callback(m->arg0, m->arg1);
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1) > callback;
+    void run(cluster_message_t *cm) {
+        message_t *m = static_cast<message_t *>(cm);
+        arg0_t arg0(m->arg0);
+        arg1_t arg1(m->arg1);
+        callback(arg0, arg1);
     }
 };
 
@@ -428,7 +442,7 @@ template<class arg0_t, class arg1_t>
 class sync_mailbox_t< void(arg0_t, arg1_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< void(arg0_t, arg1_t) > &fun) :
+    sync_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -436,24 +450,21 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
+            call_message_t m(arg0, arg1);
             struct : public cluster_mailbox_t, public cond_t {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    pulse();
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
+                void run(cluster_message_t *msg) {
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -465,13 +476,15 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1)
+            : arg0(arg0), arg1(arg1) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
@@ -480,20 +493,22 @@ private:
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        callback(parser0.value(), parser1.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< void(arg0_t, arg1_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
         callback(m->arg0, m->arg1);
-        m->reply_to.send(m2);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -501,7 +516,7 @@ template<class ret_t, class arg0_t, class arg1_t>
 class sync_mailbox_t< ret_t(arg0_t, arg1_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t) > &fun) :
+    sync_mailbox_t(const boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -509,26 +524,23 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
+            call_message_t m(arg0, arg1);
             struct : public cluster_mailbox_t, public promise_t<ret_t> {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    ::unserialize(p, &m->ret);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    typename format_t<ret_t>::parser_t parser(p);
+                    pulse(parser.value());
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
-                    unique_ptr_t<ret_message_t> m(static_pointer_cast<ret_message_t>(m));
+                void run(cluster_message_t *msg) {
+                    ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             return reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -540,37 +552,41 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1)
+            : arg0(arg0), arg1(arg1) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &ret);
+            format_t<ret_t>::write(p, ret);
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        rm.ret = callback(parser0.value(), parser1.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< ret_t(arg0_t, arg1_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2->ret = callback(m->arg0, m->arg1);
-        m->reply_to.send(m2);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
+        rm->ret = callback(m->arg0, m->arg1);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -578,7 +594,7 @@ template<class arg0_t, class arg1_t, class arg2_t>
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t) > : private cluster_mailbox_t {
 
 public:
-    async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) :
+    async_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -586,14 +602,11 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
-            unique_ptr_t<message_t> m(new message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            addr.send(m);
+            message_t m(arg0, arg1, arg2);
+            addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -604,27 +617,31 @@ public:
 
 private:
     struct message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
+        message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2)
+            : arg0(arg0), arg1(arg1), arg2(arg2) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
         }
     };
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<message_t> mp(new message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        return mp;
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        callback(parser0.value(), parser1.value(), parser2.value());
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<message_t> m(static_pointer_cast<message_t>(cm));
-        callback(m->arg0, m->arg1, m->arg2);
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) > callback;
+    void run(cluster_message_t *cm) {
+        message_t *m = static_cast<message_t *>(cm);
+        arg0_t arg0(m->arg0);
+        arg1_t arg1(m->arg1);
+        arg2_t arg2(m->arg2);
+        callback(arg0, arg1, arg2);
     }
 };
 
@@ -632,7 +649,7 @@ template<class arg0_t, class arg1_t, class arg2_t>
 class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t) > &fun) :
+    sync_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -640,25 +657,21 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
+            call_message_t m(arg0, arg1, arg2);
             struct : public cluster_mailbox_t, public cond_t {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    pulse();
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
+                void run(cluster_message_t *msg) {
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -670,15 +683,17 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2)
+            : arg0(arg0), arg1(arg1), arg2(arg2) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
@@ -687,21 +702,23 @@ private:
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        callback(parser0.value(), parser1.value(), parser2.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
         callback(m->arg0, m->arg1, m->arg2);
-        m->reply_to.send(m2);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -709,7 +726,7 @@ template<class ret_t, class arg0_t, class arg1_t, class arg2_t>
 class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t) > &fun) :
+    sync_mailbox_t(const boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -717,27 +734,23 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
+            call_message_t m(arg0, arg1, arg2);
             struct : public cluster_mailbox_t, public promise_t<ret_t> {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    ::unserialize(p, &m->ret);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    typename format_t<ret_t>::parser_t parser(p);
+                    pulse(parser.value());
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
-                    unique_ptr_t<ret_message_t> m(static_pointer_cast<ret_message_t>(m));
+                void run(cluster_message_t *msg) {
+                    ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             return reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -749,40 +762,44 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2)
+            : arg0(arg0), arg1(arg1), arg2(arg2) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &ret);
+            format_t<ret_t>::write(p, ret);
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        rm.ret = callback(parser0.value(), parser1.value(), parser2.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< ret_t(arg0_t, arg1_t, arg2_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2->ret = callback(m->arg0, m->arg1, m->arg2);
-        m->reply_to.send(m2);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
+        rm->ret = callback(m->arg0, m->arg1, m->arg2);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -790,7 +807,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > : private cluster_mailbox_t {
 
 public:
-    async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
+    async_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -798,15 +815,11 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
-            unique_ptr_t<message_t> m(new message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            addr.send(m);
+            message_t m(arg0, arg1, arg2, arg3);
+            addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -817,30 +830,35 @@ public:
 
 private:
     struct message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
+        message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
         }
     };
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<message_t> mp(new message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        return mp;
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value());
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<message_t> m(static_pointer_cast<message_t>(cm));
-        callback(m->arg0, m->arg1, m->arg2, m->arg3);
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) > callback;
+    void run(cluster_message_t *cm) {
+        message_t *m = static_cast<message_t *>(cm);
+        arg0_t arg0(m->arg0);
+        arg1_t arg1(m->arg1);
+        arg2_t arg2(m->arg2);
+        arg3_t arg3(m->arg3);
+        callback(arg0, arg1, arg2, arg3);
     }
 };
 
@@ -848,7 +866,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
+    sync_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -856,26 +874,21 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
+            call_message_t m(arg0, arg1, arg2, arg3);
             struct : public cluster_mailbox_t, public cond_t {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    pulse();
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
+                void run(cluster_message_t *msg) {
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -887,17 +900,19 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
@@ -906,22 +921,24 @@ private:
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
         callback(m->arg0, m->arg1, m->arg2, m->arg3);
-        m->reply_to.send(m2);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -929,7 +946,7 @@ template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t>
 class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t) > &fun) :
+    sync_mailbox_t(const boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -937,28 +954,23 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
+            call_message_t m(arg0, arg1, arg2, arg3);
             struct : public cluster_mailbox_t, public promise_t<ret_t> {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    ::unserialize(p, &m->ret);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    typename format_t<ret_t>::parser_t parser(p);
+                    pulse(parser.value());
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
-                    unique_ptr_t<ret_message_t> m(static_pointer_cast<ret_message_t>(m));
+                void run(cluster_message_t *msg) {
+                    ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             return reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -970,43 +982,47 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &ret);
+            format_t<ret_t>::write(p, ret);
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3);
-        m->reply_to.send(m2);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
+        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -1014,7 +1030,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > : private cluster_mailbox_t {
 
 public:
-    async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
+    async_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1022,16 +1038,11 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
-            unique_ptr_t<message_t> m(new message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            addr.send(m);
+            message_t m(arg0, arg1, arg2, arg3, arg4);
+            addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1042,33 +1053,39 @@ public:
 
 private:
     struct message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
+        message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
         }
     };
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<message_t> mp(new message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        return mp;
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value());
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<message_t> m(static_pointer_cast<message_t>(cm));
-        callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4);
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) > callback;
+    void run(cluster_message_t *cm) {
+        message_t *m = static_cast<message_t *>(cm);
+        arg0_t arg0(m->arg0);
+        arg1_t arg1(m->arg1);
+        arg2_t arg2(m->arg2);
+        arg3_t arg3(m->arg3);
+        arg4_t arg4(m->arg4);
+        callback(arg0, arg1, arg2, arg3, arg4);
     }
 };
 
@@ -1076,7 +1093,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t>
 class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
+    sync_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1084,27 +1101,21 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
+            call_message_t m(arg0, arg1, arg2, arg3, arg4);
             struct : public cluster_mailbox_t, public cond_t {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    pulse();
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
+                void run(cluster_message_t *msg) {
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1116,19 +1127,21 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
@@ -1137,23 +1150,25 @@ private:
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
         callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4);
-        m->reply_to.send(m2);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -1161,7 +1176,7 @@ template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, cl
 class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > &fun) :
+    sync_mailbox_t(const boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1169,29 +1184,23 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
+            call_message_t m(arg0, arg1, arg2, arg3, arg4);
             struct : public cluster_mailbox_t, public promise_t<ret_t> {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    ::unserialize(p, &m->ret);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    typename format_t<ret_t>::parser_t parser(p);
+                    pulse(parser.value());
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
-                    unique_ptr_t<ret_message_t> m(static_pointer_cast<ret_message_t>(m));
+                void run(cluster_message_t *msg) {
+                    ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             return reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1203,46 +1212,50 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &ret);
+            format_t<ret_t>::write(p, ret);
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4);
-        m->reply_to.send(m2);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
+        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -1250,7 +1263,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > : private cluster_mailbox_t {
 
 public:
-    async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
+    async_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1258,17 +1271,11 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
-            unique_ptr_t<message_t> m(new message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
-            addr.send(m);
+            message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
+            addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1279,36 +1286,43 @@ public:
 
 private:
     struct message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
+        message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
         }
     };
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<message_t> mp(new message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        return mp;
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value());
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<message_t> m(static_pointer_cast<message_t>(cm));
-        callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5);
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) > callback;
+    void run(cluster_message_t *cm) {
+        message_t *m = static_cast<message_t *>(cm);
+        arg0_t arg0(m->arg0);
+        arg1_t arg1(m->arg1);
+        arg2_t arg2(m->arg2);
+        arg3_t arg3(m->arg3);
+        arg4_t arg4(m->arg4);
+        arg5_t arg5(m->arg5);
+        callback(arg0, arg1, arg2, arg3, arg4, arg5);
     }
 };
 
@@ -1316,7 +1330,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
+    sync_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1324,28 +1338,21 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
+            call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
             struct : public cluster_mailbox_t, public cond_t {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    pulse();
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
+                void run(cluster_message_t *msg) {
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1357,21 +1364,23 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
@@ -1380,24 +1389,26 @@ private:
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
         callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5);
-        m->reply_to.send(m2);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -1405,7 +1416,7 @@ template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, cl
 class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > &fun) :
+    sync_mailbox_t(const boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1413,30 +1424,23 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
+            call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
             struct : public cluster_mailbox_t, public promise_t<ret_t> {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    ::unserialize(p, &m->ret);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    typename format_t<ret_t>::parser_t parser(p);
+                    pulse(parser.value());
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
-                    unique_ptr_t<ret_message_t> m(static_pointer_cast<ret_message_t>(m));
+                void run(cluster_message_t *msg) {
+                    ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             return reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1448,49 +1452,53 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &ret);
+            format_t<ret_t>::write(p, ret);
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5);
-        m->reply_to.send(m2);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
+        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -1498,7 +1506,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > : private cluster_mailbox_t {
 
 public:
-    async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
+    async_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1506,18 +1514,11 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
-            unique_ptr_t<message_t> m(new message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
-            m->arg6 = arg6;
-            addr.send(m);
+            message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+            addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1528,39 +1529,47 @@ public:
 
 private:
     struct message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
+        message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5), arg6(arg6) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
-            ::serialize(p, &arg6);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
+            format_t<arg6_t>::write(p, arg6);
         }
     };
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<message_t> mp(new message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        ::unserialize(p, &mp->arg6);
-        return mp;
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        typename format_t<arg6_t>::parser_t parser6(p);
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value());
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<message_t> m(static_pointer_cast<message_t>(cm));
-        callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6);
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) > callback;
+    void run(cluster_message_t *cm) {
+        message_t *m = static_cast<message_t *>(cm);
+        arg0_t arg0(m->arg0);
+        arg1_t arg1(m->arg1);
+        arg2_t arg2(m->arg2);
+        arg3_t arg3(m->arg3);
+        arg4_t arg4(m->arg4);
+        arg5_t arg5(m->arg5);
+        arg6_t arg6(m->arg6);
+        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
     }
 };
 
@@ -1568,7 +1577,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
+    sync_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1576,29 +1585,21 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
-            m->arg6 = arg6;
+            call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
             struct : public cluster_mailbox_t, public cond_t {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    pulse();
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
+                void run(cluster_message_t *msg) {
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1610,23 +1611,25 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5), arg6(arg6) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
-            ::serialize(p, &arg6);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
+            format_t<arg6_t>::write(p, arg6);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
@@ -1635,25 +1638,27 @@ private:
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        ::unserialize(p, &mp->arg6);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        typename format_t<arg6_t>::parser_t parser6(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
         callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6);
-        m->reply_to.send(m2);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -1661,7 +1666,7 @@ template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, cl
 class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > &fun) :
+    sync_mailbox_t(const boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1669,31 +1674,23 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
-            m->arg6 = arg6;
+            call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
             struct : public cluster_mailbox_t, public promise_t<ret_t> {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    ::unserialize(p, &m->ret);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    typename format_t<ret_t>::parser_t parser(p);
+                    pulse(parser.value());
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
-                    unique_ptr_t<ret_message_t> m(static_pointer_cast<ret_message_t>(m));
+                void run(cluster_message_t *msg) {
+                    ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             return reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1705,52 +1702,56 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5), arg6(arg6) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
-            ::serialize(p, &arg6);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
+            format_t<arg6_t>::write(p, arg6);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &ret);
+            format_t<ret_t>::write(p, ret);
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        ::unserialize(p, &mp->arg6);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        typename format_t<arg6_t>::parser_t parser6(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6);
-        m->reply_to.send(m2);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
+        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -1758,7 +1759,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > : private cluster_mailbox_t {
 
 public:
-    async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
+    async_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1766,19 +1767,11 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
-            unique_ptr_t<message_t> m(new message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
-            m->arg6 = arg6;
-            m->arg7 = arg7;
-            addr.send(m);
+            message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+            addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1789,42 +1782,51 @@ public:
 
 private:
     struct message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
+        message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5), arg6(arg6), arg7(arg7) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
-            ::serialize(p, &arg6);
-            ::serialize(p, &arg7);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
+            format_t<arg6_t>::write(p, arg6);
+            format_t<arg7_t>::write(p, arg7);
         }
     };
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<message_t> mp(new message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        ::unserialize(p, &mp->arg6);
-        ::unserialize(p, &mp->arg7);
-        return mp;
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        typename format_t<arg6_t>::parser_t parser6(p);
+        typename format_t<arg7_t>::parser_t parser7(p);
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value());
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<message_t> m(static_pointer_cast<message_t>(cm));
-        callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7);
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) > callback;
+    void run(cluster_message_t *cm) {
+        message_t *m = static_cast<message_t *>(cm);
+        arg0_t arg0(m->arg0);
+        arg1_t arg1(m->arg1);
+        arg2_t arg2(m->arg2);
+        arg3_t arg3(m->arg3);
+        arg4_t arg4(m->arg4);
+        arg5_t arg5(m->arg5);
+        arg6_t arg6(m->arg6);
+        arg7_t arg7(m->arg7);
+        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
     }
 };
 
@@ -1832,7 +1834,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
+    sync_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1840,30 +1842,21 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
-            m->arg6 = arg6;
-            m->arg7 = arg7;
+            call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
             struct : public cluster_mailbox_t, public cond_t {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    pulse();
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
+                void run(cluster_message_t *msg) {
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1875,25 +1868,27 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5), arg6(arg6), arg7(arg7) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
-            ::serialize(p, &arg6);
-            ::serialize(p, &arg7);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
+            format_t<arg6_t>::write(p, arg6);
+            format_t<arg7_t>::write(p, arg7);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
@@ -1902,26 +1897,28 @@ private:
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        ::unserialize(p, &mp->arg6);
-        ::unserialize(p, &mp->arg7);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        typename format_t<arg6_t>::parser_t parser6(p);
+        typename format_t<arg7_t>::parser_t parser7(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
         callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7);
-        m->reply_to.send(m2);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -1929,7 +1926,7 @@ template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, cl
 class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > &fun) :
+    sync_mailbox_t(const boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -1937,32 +1934,23 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
-            m->arg6 = arg6;
-            m->arg7 = arg7;
+            call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
             struct : public cluster_mailbox_t, public promise_t<ret_t> {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    ::unserialize(p, &m->ret);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    typename format_t<ret_t>::parser_t parser(p);
+                    pulse(parser.value());
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
-                    unique_ptr_t<ret_message_t> m(static_pointer_cast<ret_message_t>(m));
+                void run(cluster_message_t *msg) {
+                    ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             return reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -1974,55 +1962,59 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5), arg6(arg6), arg7(arg7) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
-            ::serialize(p, &arg6);
-            ::serialize(p, &arg7);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
+            format_t<arg6_t>::write(p, arg6);
+            format_t<arg7_t>::write(p, arg7);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &ret);
+            format_t<ret_t>::write(p, ret);
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        ::unserialize(p, &mp->arg6);
-        ::unserialize(p, &mp->arg7);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        typename format_t<arg6_t>::parser_t parser6(p);
+        typename format_t<arg7_t>::parser_t parser7(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7);
-        m->reply_to.send(m2);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
+        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -2030,7 +2022,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class async_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > : private cluster_mailbox_t {
 
 public:
-    async_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
+    async_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -2038,20 +2030,11 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
-            unique_ptr_t<message_t> m(new message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
-            m->arg6 = arg6;
-            m->arg7 = arg7;
-            m->arg8 = arg8;
-            addr.send(m);
+            message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+            addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -2062,45 +2045,55 @@ public:
 
 private:
     struct message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
+        message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5), arg6(arg6), arg7(arg7), arg8(arg8) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
+        const arg8_t &arg8;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
-            ::serialize(p, &arg6);
-            ::serialize(p, &arg7);
-            ::serialize(p, &arg8);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
+            format_t<arg6_t>::write(p, arg6);
+            format_t<arg7_t>::write(p, arg7);
+            format_t<arg8_t>::write(p, arg8);
         }
     };
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<message_t> mp(new message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        ::unserialize(p, &mp->arg6);
-        ::unserialize(p, &mp->arg7);
-        ::unserialize(p, &mp->arg8);
-        return mp;
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        typename format_t<arg6_t>::parser_t parser6(p);
+        typename format_t<arg7_t>::parser_t parser7(p);
+        typename format_t<arg8_t>::parser_t parser8(p);
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value(), parser8.value());
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<message_t> m(static_pointer_cast<message_t>(cm));
-        callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7, m->arg8);
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) > callback;
+    void run(cluster_message_t *cm) {
+        message_t *m = static_cast<message_t *>(cm);
+        arg0_t arg0(m->arg0);
+        arg1_t arg1(m->arg1);
+        arg2_t arg2(m->arg2);
+        arg3_t arg3(m->arg3);
+        arg4_t arg4(m->arg4);
+        arg5_t arg5(m->arg5);
+        arg6_t arg6(m->arg6);
+        arg7_t arg7(m->arg7);
+        arg8_t arg8(m->arg8);
+        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
     }
 };
 
@@ -2108,7 +2101,7 @@ template<class arg0_t, class arg1_t, class arg2_t, class arg3_t, class arg4_t, c
 class sync_mailbox_t< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
+    sync_mailbox_t(const boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -2116,31 +2109,21 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
-            m->arg6 = arg6;
-            m->arg7 = arg7;
-            m->arg8 = arg8;
+            call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
             struct : public cluster_mailbox_t, public cond_t {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    pulse();
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
+                void run(cluster_message_t *msg) {
                     pulse();
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -2152,27 +2135,29 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5), arg6(arg6), arg7(arg7), arg8(arg8) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
+        const arg8_t &arg8;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
-            ::serialize(p, &arg6);
-            ::serialize(p, &arg7);
-            ::serialize(p, &arg8);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
+            format_t<arg6_t>::write(p, arg6);
+            format_t<arg7_t>::write(p, arg7);
+            format_t<arg8_t>::write(p, arg8);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
@@ -2181,27 +2166,29 @@ private:
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        ::unserialize(p, &mp->arg6);
-        ::unserialize(p, &mp->arg7);
-        ::unserialize(p, &mp->arg8);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        typename format_t<arg6_t>::parser_t parser6(p);
+        typename format_t<arg7_t>::parser_t parser7(p);
+        typename format_t<arg8_t>::parser_t parser8(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value(), parser8.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< void(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
         callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7, m->arg8);
-        m->reply_to.send(m2);
+        m->reply_to.send(&rm);
     }
 };
 
@@ -2209,7 +2196,7 @@ template<class ret_t, class arg0_t, class arg1_t, class arg2_t, class arg3_t, cl
 class sync_mailbox_t< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > : private cluster_mailbox_t {
 
 public:
-    sync_mailbox_t(const boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > &fun) :
+    sync_mailbox_t(const boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) > &fun) :
         callback(fun) { }
 
     struct address_t {
@@ -2217,33 +2204,23 @@ public:
         address_t(const address_t &other) : addr(other.addr) { }
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
-            unique_ptr_t<call_message_t> m(new call_message_t);
-            m->arg0 = arg0;
-            m->arg1 = arg1;
-            m->arg2 = arg2;
-            m->arg3 = arg3;
-            m->arg4 = arg4;
-            m->arg5 = arg5;
-            m->arg6 = arg6;
-            m->arg7 = arg7;
-            m->arg8 = arg8;
+            call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
             struct : public cluster_mailbox_t, public promise_t<ret_t> {
-                unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-                    unique_ptr_t<ret_message_t> m(new ret_message_t);
-                    ::unserialize(p, &m->ret);
-                    return m;
+                void unserialize(cluster_inpipe_t *p) {
+                    typename format_t<ret_t>::parser_t parser(p);
+                    pulse(parser.value());
                 }
-                void run(unique_ptr_t<cluster_message_t> msg) {
-                    unique_ptr_t<ret_message_t> m(static_pointer_cast<ret_message_t>(m));
+                void run(cluster_message_t *msg) {
+                    ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
             } reply_listener;
-            m->reply_to = cluster_address_t(&reply_listener);
-            addr.send(m);
+            m.reply_to = cluster_address_t(&reply_listener);
+            addr.send(&m);
             return reply_listener.wait();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t *addr) {
-            ::serialize(p, &addr->addr);
+        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
+            ::serialize(p, addr.addr);
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
@@ -2255,58 +2232,62 @@ public:
 
 private:
     struct call_message_t : public cluster_message_t {
-        arg0_t arg0;
-        arg1_t arg1;
-        arg2_t arg2;
-        arg3_t arg3;
-        arg4_t arg4;
-        arg5_t arg5;
-        arg6_t arg6;
-        arg7_t arg7;
-        arg8_t arg8;
+        call_message_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8)
+            : arg0(arg0), arg1(arg1), arg2(arg2), arg3(arg3), arg4(arg4), arg5(arg5), arg6(arg6), arg7(arg7), arg8(arg8) { }
+        const arg0_t &arg0;
+        const arg1_t &arg1;
+        const arg2_t &arg2;
+        const arg3_t &arg3;
+        const arg4_t &arg4;
+        const arg5_t &arg5;
+        const arg6_t &arg6;
+        const arg7_t &arg7;
+        const arg8_t &arg8;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &arg0);
-            ::serialize(p, &arg1);
-            ::serialize(p, &arg2);
-            ::serialize(p, &arg3);
-            ::serialize(p, &arg4);
-            ::serialize(p, &arg5);
-            ::serialize(p, &arg6);
-            ::serialize(p, &arg7);
-            ::serialize(p, &arg8);
-            ::serialize(p, &reply_to);
+            format_t<arg0_t>::write(p, arg0);
+            format_t<arg1_t>::write(p, arg1);
+            format_t<arg2_t>::write(p, arg2);
+            format_t<arg3_t>::write(p, arg3);
+            format_t<arg4_t>::write(p, arg4);
+            format_t<arg5_t>::write(p, arg5);
+            format_t<arg6_t>::write(p, arg6);
+            format_t<arg7_t>::write(p, arg7);
+            format_t<arg8_t>::write(p, arg8);
+            format_t<cluster_address_t>::write(p, reply_to);
         }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            ::serialize(p, &ret);
+            format_t<ret_t>::write(p, ret);
         }
     };
 
-    unique_ptr_t<cluster_message_t> unserialize(cluster_inpipe_t *p) {
-        unique_ptr_t<call_message_t> mp(new call_message_t);
-        ::unserialize(p, &mp->arg0);
-        ::unserialize(p, &mp->arg1);
-        ::unserialize(p, &mp->arg2);
-        ::unserialize(p, &mp->arg3);
-        ::unserialize(p, &mp->arg4);
-        ::unserialize(p, &mp->arg5);
-        ::unserialize(p, &mp->arg6);
-        ::unserialize(p, &mp->arg7);
-        ::unserialize(p, &mp->arg8);
-        ::unserialize(p, &mp->reply_to);
-        return mp;
+    boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) > callback;
+
+    void unserialize(cluster_inpipe_t *p) {
+        typename format_t<arg0_t>::parser_t parser0(p);
+        typename format_t<arg1_t>::parser_t parser1(p);
+        typename format_t<arg2_t>::parser_t parser2(p);
+        typename format_t<arg3_t>::parser_t parser3(p);
+        typename format_t<arg4_t>::parser_t parser4(p);
+        typename format_t<arg5_t>::parser_t parser5(p);
+        typename format_t<arg6_t>::parser_t parser6(p);
+        typename format_t<arg7_t>::parser_t parser7(p);
+        typename format_t<arg8_t>::parser_t parser8(p);
+        format_t<cluster_address_t>::parser_t reply_parser(p);
+        ret_message_t rm;
+        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value(), parser8.value());
+        reply_parser.value().send(&rm);
     }
 
-    boost::function< ret_t(arg0_t, arg1_t, arg2_t, arg3_t, arg4_t, arg5_t, arg6_t, arg7_t, arg8_t) > callback;
-    void run(unique_ptr_t<cluster_message_t> cm) {
-        unique_ptr_t<call_message_t> m(static_pointer_cast<call_message_t>(cm));
-        unique_ptr_t<ret_message_t> m2(new ret_message_t);
-        m2->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7, m->arg8);
-        m->reply_to.send(m2);
+    void run(cluster_message_t *cm) {
+        call_message_t *m = static_cast<call_message_t *>(cm);
+        ret_message_t rm;
+        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7, m->arg8);
+        m->reply_to.send(&rm);
     }
 };
 
