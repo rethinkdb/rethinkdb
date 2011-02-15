@@ -37,7 +37,7 @@ void linux_io_calls_base_t::aio_notify(iocb *event, int result) {
     // Schedule the requests we couldn't finish last time
     n_pending--;
     process_requests();
-    
+
     // Check for failure (because the higher-level code usually doesn't)
     if (result != (int)event->u.c.nbytes) {
         // Currently AIO is used only for disk files, not sockets.
@@ -85,6 +85,8 @@ linux_io_calls_base_t::queue_t::queue_t(linux_io_calls_base_t *parent)
 }
 
 int linux_io_calls_base_t::queue_t::process_request_batch() {
+    if (parent->n_pending > TARGET_IO_QUEUE_DEPTH)
+        return -EAGAIN;
     // Submit a batch
     int res = 0;
     if(queue.size() > 0) {
