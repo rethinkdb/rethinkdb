@@ -41,6 +41,7 @@ def make_option_parser():
     o["corruption_p"] = FloatFlag("--corruption-p", 0)
     o["cores"] = IntFlag("--cores", 2)
     o["slices"] = IntFlag("--slices", 3)
+    o["diff-log-size"] = IntFlag("--diff-log-size", 4)
     o["memory"] = IntFlag("--memory", 100)
     o["duration"] = IntFlag("--duration", 10)
     o["serve-flags"] = StringFlag("--serve-flags", "")
@@ -220,7 +221,7 @@ class NetRecord(object):
 
 num_stress_clients = 0
 
-def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64):
+def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64, keys_prefix=None):
     global num_stress_clients
     num_stress_clients += 1
     
@@ -237,6 +238,9 @@ def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "in
         "-c", str(clients),
         ]
     
+    if keys_prefix and keys_prefix != "":
+        command_line.extend(['-K', keys_prefix])
+
     key_file = test_dir.make_file("stress_client/keys")
     command_line.extend(["-o", key_file])
     if os.path.exists(key_file): command_line.extend(["-i", key_file])
@@ -300,6 +304,7 @@ class DataFiles(object):
         run_executable([
             get_executable_path(opts, "rethinkdb"), "create", "--force",
             "-s", str(self.opts["slices"]),
+            "--diff-log-size", str(self.opts["diff-log-size"]),
             "-c", str(self.opts["cores"]),
             ] + (["--extent-size", "1048576"] if self.opts["valgrind"] else []) + self.rethinkdb_flags(),
             "creator_output.txt",

@@ -5,6 +5,7 @@
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
 #include "server/cmd_args.hpp"
+#include "replication/master.hpp"
 #include "replication/slave.hpp"
 #include "replication/load_balancer.hpp"
 #include "control.hpp"
@@ -89,12 +90,14 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         /* Record information about disk drives to log file */
         log_disk_info(cmd_config->store_dynamic_config.serializer_private);
 
+        replication::master_t master;
+
         /* Create store if necessary */
         if (cmd_config->create_store) {
             logINF("Creating database...\n");
-            btree_key_value_store_t::create(
-                &cmd_config->store_dynamic_config,
-                &cmd_config->store_static_config);
+            btree_key_value_store_t::create(&cmd_config->store_dynamic_config,
+                                            &cmd_config->store_static_config);
+
             logINF("Done creating.\n");
         }
 
@@ -103,23 +106,23 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* Start key-value store */
             logINF("Loading database...\n");
             //store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config);
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config, NULL /* &master - commented out because master eats the data_provider */);
+            server.get_store = &store;   // Gets always go straight to the key-value store
 
             /* Are we a replication slave? */
             if (cmd_config->replication_config.active) {
                 logINF("Starting up as a slave...\n");
                 slave_store = new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config);
-                server.store = slave_store;
+                server.set_store = slave_store;
             } else {
-                server.store = &store;   /* So things can access it */
+                server.set_store = &store;   /* So things can access it */
             }
 
             /* Start connection acceptor */
             struct : public conn_acceptor_t::handler_t {
                 server_t *parent;
-                cas_generator_t cas_gen;
                 void handle(tcp_conn_t *conn) {
-                    serve_memcache(conn, parent->store, &cas_gen);
+                    serve_memcache(conn, parent->get_store, parent->set_store);
                 }
             } handler;
             handler.parent = &server;

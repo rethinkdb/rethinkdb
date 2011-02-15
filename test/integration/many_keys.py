@@ -44,7 +44,8 @@ if __name__ == "__main__":
     # test the btree, not the serializer, so we try to give the server enough memory to hold the entire
     # tree.
     timeout = opts["num_keys"] * 0.25
-    extra_flags = ["-m", str(opts["num_keys"] // 400 + 1)]
+    opts["diff-log-size"] = 4
+    extra_flags = ["-m", str(opts["num_keys"] // 400 + 1 + opts["diff-log-size"])]
     opts["cores"] = opts["slices"] = 1
     
     simple_test_main(test_function, opts, timeout, extra_flags)

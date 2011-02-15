@@ -18,9 +18,11 @@ struct config_t {
         // Zero if the mod count is not forced.
         int mod_count;  // TODO parse command line
 
+        bool ignore_diff_log;
+
         block_size_t block_size() const { return block_size_t::unsafe_make(block_size_); }
 
-        bool any() { return block_size_ || extent_size || mod_count; }
+        bool any() { return block_size_ || extent_size || mod_count || ignore_diff_log; }
     } overrides;
 
     // The path to the file we're going to recover from.
@@ -42,6 +44,7 @@ struct config_t {
         overrides.block_size_ = NO_FORCED_BLOCK_SIZE;
         overrides.extent_size = NO_FORCED_EXTENT_SIZE;
         overrides.mod_count = NO_FORCED_MOD_COUNT;
+        overrides.ignore_diff_log = false;
         input_files.clear();
         log_file_name = "";
         output_file = EXTRACT_CONFIG_DEFAULT_OUTPUT_FILE;

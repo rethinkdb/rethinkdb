@@ -2,17 +2,17 @@
 
 echo Reconfiguring RAID to begin priming the drives
 #SSD_DRIVES="$(sudo /usr/local/bin/raidconfig ssd single)"
-SSD_DRIVES="/dev/sdb /dev/sdc /dev/sdd /dev/sde"
+SSD_DRIVES="/dev/sdf /dev/sdg /dev/sdh /dev/sdi"
 
 sleep 3
 
-#for DRIVE in $SSD_DRIVES
-#do
-#    echo Performing security erase on $DRIVE
-#    sudo hdparm --user-master u --security-set-pass test $DRIVE
-#    sudo hdparm --user-master u --security-erase test $DRIVE
-#    echo Done
-#done
+for DRIVE in $SSD_DRIVES
+do
+    echo Performing security erase on $DRIVE
+    sudo hdparm --user-master u --security-set-pass test $DRIVE
+    sudo hdparm --user-master u --security-erase test $DRIVE
+    echo Done
+done
 
 for DRIVE in $SSD_DRIVES
 do

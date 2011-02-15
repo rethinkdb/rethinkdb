@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <ucontext.h>
+#include <arch/arch.hpp>
 
 #ifdef VALGRIND
 #include <valgrind/valgrind.h>
@@ -22,57 +23,72 @@ size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-lin
 registers, the SSE registers, or the signal mask. This is for performance reasons. */
 
 extern "C" {
-    extern int lightweight_swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
+    typedef void *lw_ucontext_t; /* A stack pointer into a stack that has all the other context registers. */
+
+    void lightweight_makecontext(lw_ucontext_t *ucp, void (*func) (void), void *stack, size_t stack_size) {
+        uint64_t *sp; /* A pointer into the stack. */
+
+        /* Start at the beginning. */
+        sp = (uint64_t *) ((uintptr_t) stack + stack_size);
+
+        /* Align stack. TODO: Is this necessary? */
+        sp = (uint64_t *) (((uintptr_t) sp) & -16L);
+
+        /* TODO: Figure out why some things (e.g. stats) break without this. */
+        sp--;
+
+        /* Set up the instruction pointer; this will be popped off the stack by
+         * ret in swapcontext once all the other registers have been "restored". */
+        sp--;
+        *sp = (uint64_t) func;
+
+        /* These registers (r12, r13, r14, r15, rbx, rbp) are going to be
+         * popped off the stack by swapcontext; they're callee-saved, so
+         * whatever happens to be in them will be ignored. */
+        sp -= 6;
+
+        /* Set up stack pointer. */
+        *ucp = sp;
+
+        /* Our coroutines never return, so we don't put anything else on the
+         * stack. */
+    }
+
+    /* The register definitions and the definition of the lightweight context functions are
+    derived from GLibC, which is covered under the LGPL. */
+
+    extern void lightweight_swapcontext(lw_ucontext_t *oucp, const lw_ucontext_t uc);
+    asm(
+        ".globl lightweight_swapcontext\n"
+        "lightweight_swapcontext:\n"
+            /* Save preserved registers (the return address is already on the stack). */
+            "pushq %r12\n"
+            "pushq %r13\n"
+            "pushq %r14\n"
+            "pushq %r15\n"
+            "pushq %rbx\n"
+            "pushq %rbp\n"
+
+            /* Save old stack pointer. */
+            "movq %rsp, (%rdi)\n"
+
+            /* Load the new stack pointer and the preserved registers. */
+            "movq %rsi, %rsp\n"
+
+            "popq %rbp\n"
+            "popq %rbx\n"
+            "popq %r15\n"
+            "popq %r14\n"
+            "popq %r13\n"
+            "popq %r12\n"
+
+            /* The following ret should return to the address set with
+             * makecontext or with the previous swapcontext. The instruction
+             * pointer is saved on the stack from the previous call (or
+             * initialized with makecontext). */
+            "ret\n"
+    );
 }
-
-/* The register definitions and the definition of lightweight_swapcontext itself are
-derived from GLibC, which is covered under the LGPL. */
-
-/* These are the byte offsets of various fields in the GLibC ucontext_t type. To be
-more portable, maybe we should define our own makecontext()/getcontext()/setcontext()
-as well; right now we're tied tightly to GLibC. */
-#define oRBP "120"
-#define oRSP "160"
-#define oRBX "128"
-#define oR12 "72"
-#define oR13 "80"
-#define oR14 "88"
-#define oR15 "96"
-#define oRIP "168"
-
-asm(
-    ".section .text\n"
-    ".globl lightweight_swapcontext\n"
-    "lightweight_swapcontext:\n"
-
-    /* Save the preserved registers and the return address */
-    "\tmovq\t%rbx, "oRBX"(%rdi)\n"
-    "\tmovq\t%rbp, "oRBP"(%rdi)\n"
-    "\tmovq\t%r12, "oR12"(%rdi)\n"
-    "\tmovq\t%r13, "oR13"(%rdi)\n"
-    "\tmovq\t%r14, "oR14"(%rdi)\n"
-    "\tmovq\t%r15, "oR15"(%rdi)\n"
-    "\tmovq\t(%rsp), %rcx\n"
-    "\tmovq\t%rcx, "oRIP"(%rdi)\n"
-    "\tleaq\t8(%rsp), %rcx\n"        /* Exclude the return address.  */
-    "\tmovq\t%rcx, "oRSP"(%rdi)\n"
-
-    /* Load the new stack pointer and the preserved registers.  */
-    "\tmovq\t"oRSP"(%rsi), %rsp\n"
-    "\tmovq\t"oRBX"(%rsi), %rbx\n"
-    "\tmovq\t"oRBP"(%rsi), %rbp\n"
-    "\tmovq\t"oR12"(%rsi), %r12\n"
-    "\tmovq\t"oR13"(%rsi), %r13\n"
-    "\tmovq\t"oR14"(%rsi), %r14\n"
-    "\tmovq\t"oR15"(%rsi), %r15\n"
-
-    /* The following ret should return to the address set with
-    getcontext.  Therefore push the address on the stack.  */
-    "\tmovq\t"oRIP"(%rsi), %rcx\n"
-    "\tpushq\t%rcx\n"
-    "\txorl\t%eax, %eax\n"
-    "\tret\n"
-);
 
 /* coro_context_t is only used internally within the coroutine logic. For performance reasons,
 we recycle stacks and ucontexts; the coro_context_t represents a stack and a ucontext. */
@@ -90,7 +106,7 @@ struct coro_context_t :
 
     /* The guts of the coro_context_t */
     void *stack;
-    ucontext_t env;
+    lw_ucontext_t env; // A pointer into the stack.
 #ifdef VALGRIND
     unsigned int valgrind_stack_id;
 #endif
@@ -100,7 +116,10 @@ struct coro_context_t :
 static __thread coro_t *current_coro = NULL;
 
 /* The main context. */
-static __thread ucontext_t scheduler;
+static __thread lw_ucontext_t scheduler;
+
+/* The previous context. */
+static __thread coro_t *prev_coro = NULL;
 
 /* A list of coro_context_t objects that are not in use. */
 static __thread intrusive_list_t<coro_context_t> *free_contexts = NULL;
@@ -147,15 +166,8 @@ coro_context_t::coro_context_t()
     valgrind_stack_id = VALGRIND_STACK_REGISTER(stack, (intptr_t)stack + coro_stack_size);
 #endif
 
-    getcontext(&env);   /* Why do we call getcontext() here? */
-
-    env.uc_stack.ss_sp = stack;
-    env.uc_stack.ss_size = coro_stack_size;
-    env.uc_stack.ss_flags = 0;
-    env.uc_link = NULL;
-
     /* run() is the main worker loop for a coroutine. */
-    makecontext(&env, &coro_context_t::run, 0);
+    lightweight_makecontext(&env, &coro_context_t::run, stack, coro_stack_size);
 }
 
 void coro_context_t::run() {
@@ -173,8 +185,11 @@ void coro_context_t::run() {
 
         current_coro->run();
 
-        current_coro = NULL;
-        lightweight_swapcontext(&self->env, &scheduler);
+        if (prev_coro) {
+            lightweight_swapcontext(&self->env, prev_coro->context->env);
+        } else {
+            lightweight_swapcontext(&self->env, scheduler);
+        }
     }
 }
 
@@ -193,10 +208,12 @@ coro_context_t::~coro_context_t() {
 
 /* coro_t */
 
-coro_t::coro_t(deed_t *deed) :
-    deed(deed),
-    current_thread(linux_thread_pool_t::thread_id),
-    notified(false)
+
+coro_t::coro_t(const boost::function<void()>& deed, int thread) :
+    deed_(deed),
+    current_thread_(thread),
+    notified_(false),
+    waiting_(true)
 {
 
     pm_active_coroutines++;
@@ -208,9 +225,6 @@ coro_t::coro_t(deed_t *deed) :
         context = free_contexts->tail();
         free_contexts->remove(context);
     }
-
-    /* Eventually our run() method will be called within the coroutine. */
-    notify();
 }
 
 coro_t::~coro_t() {
@@ -222,10 +236,10 @@ coro_t::~coro_t() {
 }
 
 void coro_t::run() {
-
     rassert(current_coro == this);
+    waiting_ = false;
 
-    (*deed)();
+    deed_();
 
     delete this;
 }
@@ -243,45 +257,71 @@ void coro_t::wait() {   /* class method */
     rassert(!abi::__cxa_current_exception_type());
 #endif
 
-    rassert(current_coro != NULL);
-    coro_context_t *context = current_coro->context;
-    current_coro = NULL;
-    lightweight_swapcontext(&context->env, &scheduler);
-    rassert(current_coro != NULL);
+    rassert(!current_coro->waiting_);
+    current_coro->waiting_ = true;
+
+    rassert(current_coro);
+    if (prev_coro) {
+        lightweight_swapcontext(&current_coro->context->env, prev_coro->context->env);
+    } else {
+        lightweight_swapcontext(&current_coro->context->env, scheduler);
+    }
+
+    rassert(current_coro);
+
+    rassert(current_coro->waiting_);
+    current_coro->waiting_ = false;
+}
+
+void coro_t::notify_now() {
+    rassert(waiting_);
+    rassert(!notified_);
+    rassert(current_thread_ == linux_thread_pool_t::thread_id);
+
+    coro_t *prev_prev_coro = prev_coro;
+    prev_coro = current_coro;
+    current_coro = this;
+
+    if (prev_coro) {
+        lightweight_swapcontext(&prev_coro->context->env, context->env);
+    } else {
+        lightweight_swapcontext(&scheduler, context->env);
+    }
+
+    rassert(current_coro == this);
+    current_coro = prev_coro;
+    prev_coro = prev_prev_coro;
 }
 
 void coro_t::notify() {
 
-    rassert(!notified);
-    notified = true;
+    rassert(!notified_);
+    notified_ = true;
 
     /* notify() doesn't switch to the coroutine immediately; instead, it just pushes
     the coroutine onto the event queue. */
 
     /* current_thread is the thread that the coroutine lives on, which may or may not be the
     same as get_thread_id(). */
-    linux_thread_pool_t::thread->message_hub.store_message(current_thread, this);
+    linux_thread_pool_t::thread->message_hub.store_message(current_thread_, this);
 }
 
 void coro_t::move_to_thread(int thread) {   /* class method */
-    if (thread == self()->current_thread) {
+    if (thread == self()->current_thread_) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
-    self()->current_thread = thread;
+    self()->current_thread_ = thread;
     self()->notify();
     wait();
 }
 
 void coro_t::on_thread_switch() {
 
-    rassert(notified);
-    notified = false;
+    rassert(notified_);
+    notified_ = false;
 
-    rassert(current_coro == NULL);
-    current_coro = this;
-    lightweight_swapcontext(&scheduler, &context->env);
-    rassert(current_coro == NULL);
+    notify_now();
 }
 
 void coro_t::set_coroutine_stack_size(size_t size) {
@@ -295,4 +335,12 @@ the stack. */
 bool is_coroutine_stack_overflow(void *addr) {
     void *base = (void *)floor_aligned((intptr_t)addr, getpagesize());
     return current_coro && current_coro->context->stack == base;
+}
+
+void coro_t::spawn(const boost::function<void()>& deed) {
+    spawn_on_thread(linux_thread_pool_t::thread_id, deed);
+}
+
+void coro_t::spawn_now(const boost::function<void()> &deed) {
+    (new coro_t(deed, linux_thread_pool_t::thread_id))->notify_now();
 }

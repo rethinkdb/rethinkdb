@@ -5,6 +5,7 @@
 The reason it is separate from utils.hpp is that the IO layer needs some of the things in
 utils2.hpp, but utils.hpp needs some things in the IO layer. */
 
+#include "config/args.hpp"
 #include <stdint.h>
 #include <time.h>
 #include "errors.hpp"
@@ -124,6 +125,7 @@ inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins with a minus
 // sign. strtoul_strict() and strtoull_strict() do.
+long strtol_strict(const char *string, char **end, int base);
 unsigned long strtoul_strict(const char *string, char **end, int base);
 unsigned long long strtoull_strict(const char *string, char **end, int base);
 bool strtobool_strict(const char *string, char **end);
@@ -135,7 +137,20 @@ bool strtobool_strict(const char *string, char **end);
 
 // This is inefficient, it calls vsnprintf twice and copies the
 // arglist and output buffer excessively.
-std::string strprintf(const char *format, ...);
+std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+
+// Pad a value to the size of a cache line to avoid false sharing.
+// TODO: This is implemented as a struct with subtraction rather than a union
+// so that it gives an error when trying to pad a value bigger than
+// CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
+// TODO: Use this in the rest of the perfmons, if it turns out to make any
+// difference.
+
+template<typename value_t>
+struct cache_line_padded_t {
+    value_t value;
+    byte padding[CACHE_LINE_SIZE - sizeof value];
+};
 
 #include "utils2.tcc"
 

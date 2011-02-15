@@ -70,7 +70,7 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
 #endif
 
     if (levels > 1) {
-        large_buf_internal *node = ptr_cast<large_buf_internal>(ret->buf->get_data_write());
+        large_buf_internal *node = ptr_cast<large_buf_internal>(ret->buf->get_data_major_write());
         node->magic = large_buf_internal::expected_magic;
 
 #ifndef NDEBUG
@@ -80,7 +80,7 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
 #endif
 
     } else {
-        large_buf_leaf *node = ptr_cast<large_buf_leaf>(ret->buf->get_data_write());
+        large_buf_leaf *node = ptr_cast<large_buf_leaf>(ret->buf->get_data_major_write());
         node->magic = large_buf_leaf::expected_magic;
     }
 
@@ -95,7 +95,7 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
     } else {
         int64_t step = max_offset(levels - 1);
 
-        large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_write());
+        large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_major_write());
 
         rassert(check_magic<large_buf_internal>(node->magic));
 
@@ -297,7 +297,7 @@ buftree_t *large_buf_t::add_level(buftree_t *tr, block_id_t id, block_id_t *new_
     num_bufs++;
 #endif
 
-    large_buf_internal *node = ptr_cast<large_buf_internal>(ret->buf->get_data_write());
+    large_buf_internal *node = ptr_cast<large_buf_internal>(ret->buf->get_data_major_write());
 
     node->magic = large_buf_internal::expected_magic;
 
@@ -382,11 +382,11 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
         }
 
         if (levels == 1) {
-            large_buf_leaf *leaf = ptr_cast<large_buf_leaf>(tr->buf->get_data_write());
+            large_buf_leaf *leaf = ptr_cast<large_buf_leaf>(tr->buf->get_data_major_write());
             memmove(leaf->buf + k, leaf->buf, back_k);
             memset(leaf->buf, 0, k);
         } else {
-            large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_write());
+            large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_major_write());
             int64_t children_back_k = tr->children.size();
             rassert(children_back_k <= back_k);
             tr->children.resize(children_back_k + k);
@@ -433,7 +433,7 @@ void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int
     rassert(tr->level == levels);
 
     if (levels == 1) {
-        large_buf_leaf *node = reinterpret_cast<large_buf_leaf *>(tr->buf->get_data_write());
+        large_buf_leaf *node = reinterpret_cast<large_buf_leaf *>(tr->buf->get_data_major_write());
         memcpy(node->buf + pos, data, fill_size);
     } else {
         int64_t step = max_offset(levels - 1);
@@ -685,7 +685,7 @@ byte *large_buf_t::get_segment_write(int64_t ix, uint16_t *seg_size) {
     uint16_t seg_offset;
     buf_t *buf = get_segment_buf(ix, seg_size, &seg_offset);
 
-    large_buf_leaf *leaf = reinterpret_cast<large_buf_leaf *>(buf->get_data_write());
+    large_buf_leaf *leaf = reinterpret_cast<large_buf_leaf *>(buf->get_data_major_write());
     rassert(root->level == num_levels(root_ref.offset + root_ref.size));
     return leaf->buf + seg_offset;
 }

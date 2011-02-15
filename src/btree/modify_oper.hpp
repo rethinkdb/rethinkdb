@@ -1,13 +1,14 @@
 #ifndef __BTREE_MODIFY_OPER_HPP__
 #define __BTREE_MODIFY_OPER_HPP__
 
+#include <boost/shared_ptr.hpp>
 #include "btree/node.hpp"
 #include "utils.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/large_buf.hpp"
 #include "buffer_cache/large_buf_lock.hpp"
-#include "btree/key_value_store.hpp"
-
+#include "buffer_cache/transactor.hpp"
 #include "buffer_cache/co_functions.hpp"
 
 #define BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS 0
@@ -30,8 +31,8 @@ public:
      * must match up). If *new_value is NULL, the value will be deleted (and
      * similarly for *new_large_buf).
      */
-    virtual bool operate(transaction_t *txn, btree_value *old_value, large_buf_lock_t& old_large_buflock,
-                                             btree_value **new_value, large_buf_lock_t& new_large_buflock) = 0;
+    virtual bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value,
+        large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) = 0;
 
     // These two variables are only used by the get_cas_oper; there should be a
     // nicer way to handle this.
@@ -48,16 +49,14 @@ public:
 };
 
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const btree_key *key, castime_t castime);
+void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &key, castime_t castime);
 
 buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size);
 void insert_root(block_id_t root_id, buf_t **sb_buf);
-void check_and_handle_split(transaction_t *txn,
-                            buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
-                            const btree_key *key, btree_value *new_value, block_size_t block_size);
-void check_and_handle_underfull(transaction_t *txn,
-                                buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
-                                const btree_key *key, block_size_t block_size);
+void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
+    const btree_key_t *key, btree_value *new_value, block_size_t block_size);
+void check_and_handle_underfull(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
+    const btree_key_t *key, block_size_t block_size);
 
 
 #endif // __BTREE_MODIFY_OPER_HPP__

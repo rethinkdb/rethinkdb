@@ -12,6 +12,9 @@
 #include "serializer/translator.hpp"
 #include "server/cmd_args.hpp"
 #include "buffer_cache/stats.hpp"
+#include "buffer_cache/buf_patch.hpp"
+#include "buffer_cache/mirrored/patch_memory_storage.hpp"
+#include "buffer_cache/mirrored/patch_disk_storage.hpp"
 #include <boost/crc.hpp>
 
 #include "writeback/writeback.hpp"
@@ -31,6 +34,16 @@ typedef array_map_t page_map_t;
 // into a coherent whole. This allows easily experimenting with
 // various components of the cache to improve performance.
 
+#define MC_CONFIGBLOCK_ID (SUPERBLOCK_ID + 1)
+
+struct mc_config_block_t {
+    block_magic_t magic;
+
+    mirrored_cache_static_config_t cache;
+
+    static const block_magic_t expected_magic;
+};
+
 class mc_inner_buf_t : public home_thread_mixin_t {
     friend class load_buf_fsm_t;
     friend class mc_cache_t;
@@ -43,6 +56,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
     friend class array_map_t::local_buf_t;
+    friend class patch_disk_storage_t;
     
     typedef mc_cache_t cache_t;
     
@@ -51,6 +65,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     repli_timestamp subtree_recency;
     void *data;
     rwi_lock_t lock;
+    patch_counter_t next_patch_counter;
     
     /* The number of mc_buf_ts that exist for this mc_inner_buf_t */
     int refcount;
@@ -76,6 +91,8 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     explicit mc_inner_buf_t(cache_t *cache);
     
     ~mc_inner_buf_t();
+
+    ser_transaction_id_t transaction_id;
 };
 
 /* This class represents a hold on a mc_inner_buf_t. */
@@ -87,6 +104,7 @@ class mc_buf_t :
     
     friend class mc_cache_t;
     friend class mc_transaction_t;
+    friend class patch_disk_storage_t;
     
 private:
     mc_buf_t(mc_inner_buf_t *, access_t mode);
@@ -97,32 +115,35 @@ private:
     ticks_t start_time;
     
     access_t mode;
+    bool non_locking_access;
     mc_inner_buf_t *inner_buf;
     void *data;   /* Same as inner_buf->data until a COW happens */
 
     ~mc_buf_t();
 
+#ifndef FAST_PERFMON
+    long int patches_affected_data_size_at_start;
+#endif
+
 public:
     void release();
 
-    void *get_data_write() {
-        rassert(ready);
-        rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
-        rassert(!inner_buf->do_delete);
-        rassert(mode == rwi_write);
+    void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
+    patch_counter_t get_next_patch_counter();
 
-        inner_buf->assert_thread();
-
-        inner_buf->writeback_buf.set_dirty();
-        
-        rassert(data == inner_buf->data);
-        return data;
-    }
-
-    const void *get_data_read() {
+    const void *get_data_read() const {
         rassert(ready);
         return data;
     }
+    // Use this only for writes which affect a large part of the block, as it bypasses the diff system
+    void *get_data_major_write();
+    // Convenience function to set some address in the buffer acquired through get_data_read. (similar to memcpy)
+    void set_data(const void* dest, const void* src, const size_t n);
+    // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
+    void move_data(const void* dest, const void* src, const size_t n);
+
+    // Makes sure the block itself gets flushed, instead of just the patch log
+    void ensure_flush();
 
     block_id_t get_block_id() const {
         return inner_buf->block_id;
@@ -133,6 +154,7 @@ public:
         rassert(!inner_buf->safe_to_unload());
         inner_buf->do_delete = true;
         inner_buf->writeback_buf.set_dirty();
+        ensure_flush(); // Disable patch log system for the buffer
     }
 
     void touch_recency() {
@@ -195,6 +217,7 @@ private:
 struct mc_cache_t :
     private free_list_t::ready_callback_t,
     private writeback_t::sync_callback_t,
+    private thread_message_t,
     public home_thread_mixin_t
 {
     friend class load_buf_fsm_t;
@@ -207,7 +230,8 @@ struct mc_cache_t :
     friend class page_repl_random_t;
     friend class page_repl_random_t::local_buf_t;
     friend class array_map_t;
-    friend class array_map_t::local_buf_t;    
+    friend class array_map_t::local_buf_t;
+    friend class patch_disk_storage_t;
     
 public:
     typedef mc_inner_buf_t inner_buf_t;
@@ -218,6 +242,9 @@ public:
     typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
     
 private:
+
+    mirrored_cache_config_t *dynamic_config;
+    mirrored_cache_static_config_t *static_config;
     
     // TODO: how do we design communication between cache policies?
     // Should they all have access to the cache, or should they only
@@ -237,7 +264,8 @@ private:
 public:
     mc_cache_t(
             translator_serializer_t *serializer,
-            mirrored_cache_config_t *config);
+            mirrored_cache_config_t *dynamic_config,
+            mirrored_cache_static_config_t *static_config);
     ~mc_cache_t();
     
     /* You must call start() before using the cache. If it starts up immediately, it will return
@@ -254,6 +282,8 @@ private:
     bool next_starting_up_step();
     ready_callback_t *ready_callback;
     void on_free_list_ready();
+    void init_patch_storage();
+    void on_thread_switch();
     
 public:
     
@@ -293,6 +323,7 @@ private:
         
         state_starting_up_create_free_list,
         state_starting_up_waiting_for_free_list,
+        state_starting_up_init_fixed_blocks,
         state_starting_up_finish,
         
         state_ready,
@@ -308,6 +339,11 @@ private:
     // Used to keep track of how many transactions there are so that we can wait for transactions to
     // complete before shutting down.
     int num_live_transactions;
+
+private:
+    patch_memory_storage_t patch_memory_storage;
+    patch_disk_storage_t patch_disk_storage;
+    unsigned int max_patches_size_ratio;
 };
 
 #endif // __MIRRORED_CACHE_HPP__

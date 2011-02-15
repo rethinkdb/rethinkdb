@@ -252,6 +252,10 @@ void *log_serializer_t::malloc() {
     // the same core as the cache that's using it, so we should expose
     // the malloc object in a different way.
     char *data = (char *)malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE);
+
+    // Initialize the transaction id...
+    ((buf_data_t*)data)->transaction_id = NULL_SER_TRANSACTION_ID;
+
     data += sizeof(buf_data_t);
     return (void *)data;
 }
@@ -324,7 +328,7 @@ struct ls_block_writer_t :
 
             if (write.buf) {
                 off64_t new_offset;
-                done = ser->data_block_manager->write(write.buf, write.block_id, ser->current_transaction_id, &new_offset, this);
+                done = ser->data_block_manager->write(write.buf, write.block_id, write.assign_transaction_id ? ser->current_transaction_id : NULL_SER_TRANSACTION_ID, &new_offset, this);
 
                 ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::real(new_offset));
             } else {
@@ -656,6 +660,12 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
     
     ls_read_fsm_t *fsm = new ls_read_fsm_t(this, block_id, buf);
     return fsm->run(callback);
+}
+
+ser_transaction_id_t log_serializer_t::get_current_transaction_id(ser_block_id_t block_id, const void* buf) {
+    buf_data_t *ser_data = (buf_data_t*)buf;
+    ser_data--;
+    return ser_data->transaction_id;
 }
 
 block_size_t log_serializer_t::get_block_size() {

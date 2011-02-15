@@ -3,9 +3,9 @@
 
 #include "arch/arch.hpp"
 
-class cas_generator_t;
-struct store_t;
+struct get_store_t;
+struct set_store_interface_t;
 
-void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen);
+void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store);
 
 #endif /* __MEMCACHED_MEMCACHED_HPP__ */

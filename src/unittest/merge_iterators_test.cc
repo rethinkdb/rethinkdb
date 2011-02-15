@@ -2,14 +2,14 @@
 #include <functional>
 #include <list>
 #include <iostream>
-#include "btree/rget_internal.hpp"
+#include "containers/iterators.hpp"
 #include "unittest/gtest.hpp"
 
 namespace unittest {
 
-struct test_iterator : ordered_data_iterator<int> {
+struct test_iterator : one_way_iterator_t<int> {
     typedef std::list<std::list<int> > data_blocks_t;
-    test_iterator(data_blocks_t data_blocks) : prefetches_count(0), blocked_without_prefetch(0), data_blocks(data_blocks) {
+    test_iterator(data_blocks_t& data_blocks) : prefetches_count(0), blocked_without_prefetch(0), data_blocks(data_blocks) {
         // remove empty blocks
         data_blocks.remove_if(std::mem_fun_ref(&data_blocks_t::value_type::empty));
         // add first empty block (so that we could check prefetch of the first block
@@ -44,6 +44,15 @@ private:
     data_blocks_t data_blocks;
 };
 
+struct delete_check_iterator : test_iterator {
+    delete_check_iterator(data_blocks_t& data_blocks, volatile bool *deleted) : test_iterator(data_blocks), deleted(deleted) { *deleted = false; } 
+    virtual ~delete_check_iterator() {
+        *deleted = true;
+    }
+private:
+    volatile bool *deleted;
+};
+
 // Helper functions
 
 std::list<int> parse_list_of_ints(const std::string &l) {
@@ -64,13 +73,17 @@ test_iterator::data_blocks_t parse_data_blocks(const std::string &db) {
     std::list<int> current_list;
     while (!str.eof()) {
         std::string w;
-        str >> w;
+
+        if ((str >> w).fail())
+            break;
+
         if (w == "|") {
             result.push_back(current_list);
             current_list = std::list<int>();
         } else {
             int v;
-            std::stringstream(w) >> v;
+            if ((std::stringstream(w) >> v).fail())
+                break;
             current_list.push_back(v);
         }
     }
@@ -94,20 +107,19 @@ std::list<int> data_blocks_to_list_of_ints(test_iterator::data_blocks_t& db) {
 
 TEST(MergeIteratorsTest, merge_empty) {
     test_iterator::data_blocks_t empty_blocks;
-    test_iterator a(empty_blocks);
-    test_iterator b(empty_blocks);
-    test_iterator c(empty_blocks);
+    test_iterator *a = new test_iterator(empty_blocks);
+    test_iterator *b = new test_iterator(empty_blocks);
+    test_iterator *c = new test_iterator(empty_blocks);
 
-    std::vector<ordered_data_iterator<int>*> mergees;
-    mergees.push_back(&a);
-    mergees.push_back(&b);
-    mergees.push_back(&c);
+    merge_ordered_data_iterator_t<int> merged;
+    merged.add_mergee(a);
+    merged.add_mergee(b);
+    merged.add_mergee(c);
 
-    merge_ordered_data_iterator<int> merged(mergees);
     ASSERT_FALSE(merged.next());
-    ASSERT_EQ(a.blocked_without_prefetch, 0);
-    ASSERT_EQ(b.blocked_without_prefetch, 0);
-    ASSERT_EQ(c.blocked_without_prefetch, 0);
+    ASSERT_EQ(a->blocked_without_prefetch, 0);
+    ASSERT_EQ(b->blocked_without_prefetch, 0);
+    ASSERT_EQ(c->blocked_without_prefetch, 0);
 }
 
 TEST(MergeIteratorsTest, parse_data_blocks) {
@@ -122,14 +134,14 @@ TEST(MergeIteratorsTest, three_way_merge) {
     test_iterator::data_blocks_t b_db = parse_data_blocks("4 | 6 8 9 | 11 13 16");
     test_iterator::data_blocks_t c_db = parse_data_blocks("5 8 | 9 | 12 15 16");
 
-    test_iterator a(a_db);
-    test_iterator b(b_db);
-    test_iterator c(c_db);
-    std::vector<ordered_data_iterator<int>*> mergees;
-    mergees.push_back(&a);
-    mergees.push_back(&b);
-    mergees.push_back(&c);
-    merge_ordered_data_iterator<int> merge_iterator(mergees);
+    test_iterator *a = new test_iterator(a_db);
+    test_iterator *b = new test_iterator(b_db);
+    test_iterator *c = new test_iterator(c_db);
+
+    merge_ordered_data_iterator_t<int> merge_iterator;
+    merge_iterator.add_mergee(a);
+    merge_iterator.add_mergee(b);
+    merge_iterator.add_mergee(c);
 
     std::list<int> merged;
     boost::optional<int> next;
@@ -147,9 +159,62 @@ TEST(MergeIteratorsTest, three_way_merge) {
     merged_expected.merge(c_db_flat);
     
     ASSERT_TRUE(std::equal(merged_expected.begin(), merged_expected.end(), merged.begin()));
-    ASSERT_EQ(a.blocked_without_prefetch, 0);
-    ASSERT_EQ(b.blocked_without_prefetch, 0);
-    ASSERT_EQ(c.blocked_without_prefetch, 0);
+    ASSERT_EQ(a->blocked_without_prefetch, 0);
+    ASSERT_EQ(b->blocked_without_prefetch, 0);
+    ASSERT_EQ(c->blocked_without_prefetch, 0);
+}
+
+TEST(MergeIteratorsTest, iterators_get_deleted) {
+    test_iterator::data_blocks_t a_db = parse_data_blocks("1 2 3 | 7 | 10");
+    test_iterator::data_blocks_t b_db = parse_data_blocks("4 | 6 8 9 | 11 13 16");
+    test_iterator::data_blocks_t c_db = parse_data_blocks("5 8 | 9 | 12 15 16");
+    test_iterator::data_blocks_t d_db = parse_data_blocks("");
+
+    volatile bool a_deleted = false, b_deleted = false, c_deleted = false, d_deleted = false;
+    test_iterator *a = new delete_check_iterator(a_db, &a_deleted);
+    test_iterator *b = new delete_check_iterator(b_db, &b_deleted);
+    test_iterator *c = new delete_check_iterator(c_db, &c_deleted);
+    test_iterator *d = new delete_check_iterator(d_db, &d_deleted);
+
+    merge_ordered_data_iterator_t<int> merge_iterator;
+    merge_iterator.add_mergee(a);
+    merge_iterator.add_mergee(b);
+    merge_iterator.add_mergee(c);
+    merge_iterator.add_mergee(d);
+
+    (void) merge_iterator.next();
+    EXPECT_TRUE(d_deleted);
+
+    boost::optional<int> next;
+    bool expect_a_deleted = false;
+    while (next = merge_iterator.next()) {
+        if (expect_a_deleted)
+            EXPECT_TRUE(a_deleted) << "merge_ordered_data_iterator_t should delete the iterator after it has exhausted";
+
+        if (next.get() == 10) {
+            expect_a_deleted = true; // when the next element is fetched, merge iterator will recognize that
+                                     // 'a' iterator has exhausted, so it can delete it
+        }
+    }
+    
+    EXPECT_TRUE(b_deleted && c_deleted) << "merge_ordered_data_iterator_t should delete the iterator after it has exhausted";
+
+    a_deleted = false;
+    b_deleted = false;
+    {
+        test_iterator *a = new delete_check_iterator(a_db, &a_deleted);
+        test_iterator *b = new delete_check_iterator(b_db, &b_deleted);
+
+        merge_ordered_data_iterator_t<int> merge_iterator;
+        merge_iterator.add_mergee(a);
+        merge_iterator.add_mergee(b);
+
+        // get some data from the merge iterator, but don't exhaust the iterators
+        (void) merge_iterator.next();
+        (void) merge_iterator.next();
+        (void) merge_iterator.next();
+    }
+    EXPECT_TRUE(a_deleted && b_deleted) << "merge_ordered_data_iterator_t should delete the iterators on destruction, even when they have not been exhausted";
 }
 
 }

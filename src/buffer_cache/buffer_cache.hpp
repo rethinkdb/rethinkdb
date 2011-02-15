@@ -27,7 +27,9 @@ typedef scc_cache_t<mock_cache_t> cache_t;
 
 /* Move elements of chosen cache into global namespace */
 
+#ifndef CUSTOM_BUF_TYPE
 typedef cache_t::buf_t buf_t;
+#endif
 typedef cache_t::transaction_t transaction_t;
 typedef cache_t::block_available_callback_t block_available_callback_t;
 typedef cache_t::transaction_begin_callback_t transaction_begin_callback_t;

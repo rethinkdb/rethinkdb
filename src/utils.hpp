@@ -49,19 +49,6 @@ void print_hd(const void *buf, size_t offset, size_t length);
 // Fast string compare
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
-// Buffer
-template <int _size>
-struct buffer_base_t
-{
-    char buf[_size];
-    static const int size = _size;
-};
-
-template <int _size>
-struct buffer_t : public buffer_base_t<_size>
-{
-};
-
 std::string strip_spaces(std::string); 
 
 /* The home thread mixin is a simple mixin for objects that are primarily associated with
@@ -120,25 +107,22 @@ The method will be called on the other thread. If the thread to call the method 
 the current thread, returns the method's return value. Otherwise, returns false. */
 
 template<class callable_t>
-void do_on_thread(int thread, const callable_t &callable);
+void do_on_thread(int thread, const callable_t& callable);
+
+template <class obj_t, class fun_t>
+void spawn_on_home(const obj_t& obj, const fun_t& fun);
 
 template<class callable_t>
 void do_later(const callable_t &callable);
 
-class cas_generator_t {
+// Provides a compare operator which compares the dereferenced values of pointers T* (for use in std:sort etc)
+template <typename obj_t>
+class dereferencing_compare_t {
 public:
-    cas_generator_t();
-    cas_t gen_cas();
-private:
-    union {
-        uint32_t counter;
-        void *p;
-    } cas_counters[MAX_THREADS];
-    int n_threads;
-
-    DISABLE_COPYING(cas_generator_t);
+    bool operator()(obj_t * const &o1, obj_t * const &o2) const {
+        return *o1 < *o2;
+    }
 };
-
 
 #include "utils.tcc"
 

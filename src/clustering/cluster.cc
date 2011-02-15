@@ -84,7 +84,7 @@ cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
     delegate.reset(startup_function(&intro_msg_pipe));
 }
 
-void cluster_t::on_tcp_listener_accept(tcp_conn_t *conn) {
+void cluster_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &conn) {
 
     char msg[4];
     conn->read(msg, 4);
@@ -100,7 +100,7 @@ void cluster_t::on_tcp_listener_accept(tcp_conn_t *conn) {
 
         cluster_outpipe_t intro_msg_pipe;
         intro_msg_pipe.cluster = this;
-        intro_msg_pipe.conn = conn;
+        intro_msg_pipe.conn = conn.get();
         delegate->introduce_new_node(&intro_msg_pipe);
 
     } else if (!memcmp(msg, "HELO", 4)) {
@@ -109,7 +109,7 @@ void cluster_t::on_tcp_listener_accept(tcp_conn_t *conn) {
         conn->read(&other_addr, sizeof(other_addr));
         int other_port;
         conn->read(&other_port, sizeof(other_port));
-        boost::shared_ptr<cluster_peer_t> peer = boost::make_shared<cluster_peer_t>(other_addr, other_port, conn);
+        boost::shared_ptr<cluster_peer_t> peer = boost::make_shared<cluster_peer_t>(other_addr, other_port, conn.get());
         peers.push_back(peer);
 
         conn->write("HELO", 4);   // Be polite, say HELO back
@@ -125,7 +125,7 @@ void cluster_t::on_tcp_listener_accept(tcp_conn_t *conn) {
 
             cluster_inpipe_t inpipe;
             inpipe.cluster = this;
-            inpipe.conn = conn;
+            inpipe.conn = conn.get();
             unique_ptr_t<cluster_message_t> msg = mailbox->unserialize(&inpipe);
 
             mailbox->run(msg);

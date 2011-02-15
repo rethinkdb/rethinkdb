@@ -25,6 +25,36 @@ struct load_buf_fsm_t :
             if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this))
                 on_serializer_read();
         } else {
+            // Read the transaction id
+            inner_buf->transaction_id = inner_buf->cache->serializer->get_current_transaction_id(inner_buf->block_id, inner_buf->data);
+
+            const std::vector<buf_patch_t*>* patches = inner_buf->cache->patch_memory_storage.get_patches(inner_buf->block_id);
+            // Remove obsolete patches from diff storage
+            if (patches) {
+                inner_buf->cache->patch_memory_storage.filter_applied_patches(inner_buf->block_id, inner_buf->transaction_id);
+                patches = inner_buf->cache->patch_memory_storage.get_patches(inner_buf->block_id);
+            }
+            // All patches that currently exist must have been materialized out of core...
+            if (patches) {
+                inner_buf->writeback_buf.last_patch_materialized = patches->back()->get_patch_counter();
+            } else {
+                inner_buf->writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
+            }
+
+            /*if (patches) {
+                fprintf(stderr, "Replaying %d patches on block %d\n", (int)patches->size(), inner_buf->block_id);
+            }*/
+
+            // Apply outstanding patches
+            inner_buf->cache->patch_memory_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data);
+            
+            // Set next_patch_counter such that the next patches get values consistent with the existing patches
+            if (patches) {
+                inner_buf->next_patch_counter = patches->back()->get_patch_counter() + 1;
+            } else {
+                inner_buf->next_patch_counter = 1;
+            }
+
             inner_buf->lock.unlock();
             delete this;
         }
@@ -41,14 +71,16 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
     : cache(cache),
       block_id(block_id),
       data(cache->serializer->malloc()),
+      next_patch_counter(1),
       refcount(0),
       do_delete(false),
       cow_will_be_needed(false),
       writeback_buf(this),
       page_repl_buf(this),
-      page_map_buf(this) {
+      page_map_buf(this),
+      transaction_id(NULL_SER_TRANSACTION_ID) {
     new load_buf_fsm_t(this);
-    
+
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
@@ -61,12 +93,14 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
       block_id(cache->free_list.gen_block_id()),
       subtree_recency(current_time()),
       data(cache->serializer->malloc()),
+      next_patch_counter(1),
       refcount(0),
       do_delete(false),
       cow_will_be_needed(false),
       writeback_buf(this),
       page_repl_buf(this),
-      page_map_buf(this) {
+      page_map_buf(this),
+      transaction_id(NULL_SER_TRANSACTION_ID) {
     cache->assert_thread();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
@@ -106,8 +140,12 @@ perfmon_duration_sampler_t
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
-    : ready(false), callback(NULL), mode(mode), inner_buf(inner)
+    : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner)
 {
+#ifndef FAST_PERFMON
+    patches_affected_data_size_at_start = -1;
+#endif
+
     pm_bufs_acquiring.begin(&start_time);
     inner_buf->refcount++;
     if (inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
@@ -145,6 +183,11 @@ void mc_buf_t::on_lock_available() {
                 inner_buf->cow_will_be_needed = false;
             }
             data = inner_buf->data;
+#ifndef FAST_PERFMON
+            if (!inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start == -1) {
+                patches_affected_data_size_at_start = inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id);
+            }
+#endif
             break;
         }
         case rwi_intent:
@@ -160,31 +203,155 @@ void mc_buf_t::on_lock_available() {
     if (callback) callback->on_block_available(this);
 }
 
+void mc_buf_t::apply_patch(buf_patch_t *patch) {
+    rassert(ready);
+    rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
+    rassert(!inner_buf->do_delete);
+    rassert(mode == rwi_write);
+    rassert(data == inner_buf->data);
+    rassert(patch->get_block_id() == inner_buf->block_id);
+
+    patch->apply_to_buf((char*)data);
+    inner_buf->writeback_buf.set_dirty();
+
+    // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks)
+    if (inner_buf->transaction_id == NULL_SER_TRANSACTION_ID) {
+        ensure_flush();
+    }
+
+    if (!inner_buf->writeback_buf.needs_flush) {
+        // Check if we want to disable patching for this block and flush it directly instead
+        const size_t MAX_PATCHES_SIZE = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
+        if (patch->get_affected_data_size() + inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
+            ensure_flush();
+        } else {
+            // Store the patch if the buffer does not have to be flushed anyway
+            if (patch->get_patch_counter() == 1) {
+                // Clean up any left-over patches
+                inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
+            }
+
+            inner_buf->cache->patch_memory_storage.store_patch(*patch);
+        }
+    }
+
+    
+    if (inner_buf->writeback_buf.needs_flush) {
+        delete patch;
+    }
+}
+
+void *mc_buf_t::get_data_major_write() {
+    rassert(ready);
+    rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
+    rassert(!inner_buf->do_delete);
+    rassert(mode == rwi_write);
+    rassert(data == inner_buf->data);
+
+    inner_buf->assert_thread();
+
+    ensure_flush();
+
+    return data;
+}
+
+void mc_buf_t::ensure_flush() {
+    rassert(data == inner_buf->data);
+    if (!inner_buf->writeback_buf.needs_flush) {
+        // We bypass the patching system, make sure this buffer gets flushed.
+        inner_buf->writeback_buf.needs_flush = true;
+        // ... we can also get rid of existing patches at this point.
+        inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
+        // Make sure that the buf is marked as dirty
+        inner_buf->writeback_buf.set_dirty();
+    }
+}
+
+patch_counter_t mc_buf_t::get_next_patch_counter() {
+    rassert(ready);
+    rassert(!inner_buf->do_delete);
+    rassert(mode == rwi_write);
+    rassert(data == inner_buf->data);
+    return inner_buf->next_patch_counter++;
+}
+
+void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
+    rassert(data == inner_buf->data);
+    if (n == 0)
+        return;
+    rassert(dest >= data && (size_t)dest < (size_t)data + inner_buf->cache->get_block_size().value());
+    rassert((size_t)dest + n <= (size_t)data + inner_buf->cache->get_block_size().value());
+
+    if (inner_buf->writeback_buf.needs_flush) {
+        // Save the allocation / construction of a patch object
+        get_data_major_write();
+        memcpy(const_cast<void*>(dest), src, n);
+    } else {
+        size_t offset = (const char*)dest - (const char*)data;
+        // transaction ID will be set later...
+        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, (const char*)src, n));
+    }
+}
+
+void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
+    rassert(data == inner_buf->data);
+    if (n == 0)
+        return;
+    rassert(dest >= data && (size_t)dest < (size_t)data + inner_buf->cache->get_block_size().value());
+    rassert((size_t)dest + n <= (size_t)data + inner_buf->cache->get_block_size().value());
+    rassert(src >= data && (size_t)src < (size_t)data + inner_buf->cache->get_block_size().value());
+    rassert((size_t)src + n <= (size_t)data + inner_buf->cache->get_block_size().value());
+
+    if (inner_buf->writeback_buf.needs_flush) {
+        // Save the allocation / construction of a patch object
+        get_data_major_write();
+        memmove(const_cast<void*>(dest), src, n);
+    } else {
+        size_t dest_offset = (const char*)dest - (const char*)data;
+        size_t src_offset = (const char*)src - (const char*)data;
+        // transaction ID will be set later...
+        apply_patch(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
+    }
+}
+
+#ifndef FAST_PERFMON
+perfmon_sampler_t pm_patches_size_per_write("patches_size_per_write_buf", secs_to_ticks(1), false);
+#endif
+
 void mc_buf_t::release() {
     pm_bufs_held.end(&start_time);
+
+#ifndef FAST_PERFMON
+    if (mode == rwi_write && !inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start >= 0) {
+        if (inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > (size_t)patches_affected_data_size_at_start)
+            pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
+    }
+#endif
     
     inner_buf->cache->assert_thread();
     
     inner_buf->refcount--;
-    
-    switch (mode) {
-        case rwi_read:
-        case rwi_write: {
-            inner_buf->lock.unlock();
-            break;
-        }
-        case rwi_read_outdated_ok: {
-            if (data == inner_buf->data) {
-                inner_buf->cow_will_be_needed = false;
-            } else {
-                inner_buf->cache->serializer->free(data);
+
+    if (!non_locking_access) {
+        switch (mode) {
+            case rwi_read:
+            case rwi_write: {
+                inner_buf->lock.unlock();
+                break;
             }
-            break;
+            case rwi_read_outdated_ok: {
+                if (data == inner_buf->data) {
+                    inner_buf->cow_will_be_needed = false;
+                } else {
+                    inner_buf->cache->serializer->free(data);
+                }
+                break;
+            }
+            case rwi_intent:
+            case rwi_upgrade:
+            default:
+                unreachable("Unexpected mode.");
         }
-        case rwi_intent:
-        case rwi_upgrade:
-        default:
-            unreachable("Unexpected mode.");
     }
     
     // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
@@ -353,30 +520,36 @@ repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
 
 mc_cache_t::mc_cache_t(
             translator_serializer_t *serializer,
-            mirrored_cache_config_t *config) :
-    
+            mirrored_cache_config_t *dynamic_config,
+            mirrored_cache_static_config_t *static_config) :
+
+    dynamic_config(dynamic_config),
+    static_config(static_config),
     serializer(serializer),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
-        config->max_size / serializer->get_block_size().value(),  // TODO: use ser_value?
+        dynamic_config->max_size / serializer->get_block_size().ser_value(),
         this),
     writeback(
         this,
-        config->wait_for_flush,
-        config->flush_timer_ms,
-        config->flush_dirty_size / serializer->get_block_size().value(),  // TODO: ser_value?
-        config->max_dirty_size / serializer->get_block_size().value(),
-        config->flush_waiting_threshold,
-        config->max_concurrent_flushes),
+        dynamic_config->wait_for_flush,
+        dynamic_config->flush_timer_ms,
+        dynamic_config->flush_dirty_size / serializer->get_block_size().ser_value(),
+        dynamic_config->max_dirty_size / serializer->get_block_size().ser_value(),
+        dynamic_config->flush_waiting_threshold,
+        dynamic_config->max_concurrent_flushes),
     free_list(serializer),
     shutdown_transaction_backdoor(false),
     state(state_unstarted),
-    num_live_transactions(0)
-    { }
+    num_live_transactions(0),
+    patch_disk_storage(*this),
+    max_patches_size_ratio(dynamic_config->wait_for_flush ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN)
+    {
+}
 
 mc_cache_t::~mc_cache_t() {
     rassert(state == state_unstarted || state == state_shut_down);
-    
+
     while (inner_buf_t *buf = page_repl.get_first_buf()) {
        delete buf;
     }
@@ -385,6 +558,7 @@ mc_cache_t::~mc_cache_t() {
 
 bool mc_cache_t::start(ready_callback_t *cb) {
     rassert(state == state_unstarted);
+
     state = state_starting_up_create_free_list;
     ready_callback = NULL;
     if (next_starting_up_step()) {
@@ -398,21 +572,37 @@ bool mc_cache_t::start(ready_callback_t *cb) {
 bool mc_cache_t::next_starting_up_step() {
     if (state == state_starting_up_create_free_list) {
         if (free_list.start(this)) {
-            state = state_starting_up_finish;
+            state = state_starting_up_init_fixed_blocks;
         } else {
             state = state_starting_up_waiting_for_free_list;
             return false;
         }
     }
     
-    if (state == state_starting_up_finish) {
-        /* Create an initial superblock */
+    if (state == state_starting_up_init_fixed_blocks) {
+        /* Create an initial superblock and config block */
         if (free_list.num_blocks_in_use == 0) {
             inner_buf_t *b = new mc_inner_buf_t(this);
             rassert(b->block_id == SUPERBLOCK_ID);
             bzero(b->data, get_block_size().value());
+
+            inner_buf_t *c_buf = new mc_inner_buf_t(this);
+            rassert(c_buf->block_id == MC_CONFIGBLOCK_ID);
+            bzero(c_buf->data, get_block_size().value());
+            mc_config_block_t *c = reinterpret_cast<mc_config_block_t *>(c_buf->data);
+            c->magic = c->expected_magic;
+            c->cache = *static_config;
+            c_buf->writeback_buf.set_dirty();
+            c_buf->writeback_buf.needs_flush = true;
         }
-        
+
+        /* Initialize the diff storage (needs coro context) */
+        coro_t::spawn(boost::bind(&mc_cache_t::init_patch_storage, this));
+
+        return false;
+    }
+
+    if (state == state_starting_up_finish) {
         state = state_ready;
         
         if (ready_callback) ready_callback->on_cache_ready();
@@ -424,9 +614,44 @@ bool mc_cache_t::next_starting_up_step() {
     unreachable("Invalid state.");
 }
 
+const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };
+
+void mc_cache_t::init_patch_storage() {
+    rassert(state == state_starting_up_init_fixed_blocks);
+
+    // Read the existing config block
+    inner_buf_t *c_buf = page_map.find(MC_CONFIGBLOCK_ID);
+    if (!c_buf) {
+        /* The buf isn't in the cache and must be loaded from disk */
+        c_buf = new mc_inner_buf_t(this, MC_CONFIGBLOCK_ID);
+    }
+    c_buf->lock.co_lock(rwi_read);
+    mc_config_block_t *c = reinterpret_cast<mc_config_block_t *>(c_buf->data);
+    guarantee(check_magic<mc_config_block_t>(c->magic), "Invalid mirrored cache config block magic");
+    *static_config = c->cache;
+    c_buf->lock.unlock();
+    
+    if ((unsigned long long)static_config->n_patch_log_blocks > (unsigned long long)dynamic_config->max_dirty_size / get_block_size().ser_value()) {
+        fail_due_to_user_error("The cache of size %d blocks is too small to hold this database's diff log of %d blocks.",
+            (int)(dynamic_config->max_dirty_size / get_block_size().ser_value()),
+            (int)(static_config->n_patch_log_blocks));
+    }
+
+    patch_disk_storage.init(MC_CONFIGBLOCK_ID + 1, static_config->n_patch_log_blocks);
+    patch_disk_storage.load_patches(patch_memory_storage);
+
+    state = state_starting_up_finish;
+    call_later_on_this_thread(this);
+}
+
+void mc_cache_t::on_thread_switch() {
+    rassert(state == state_starting_up_finish);
+    next_starting_up_step();
+}
+
 void mc_cache_t::on_free_list_ready() {
     rassert(state == state_starting_up_waiting_for_free_list);
-    state = state_starting_up_finish;
+    state = state_starting_up_init_fixed_blocks;
     next_starting_up_step();
 }
 
@@ -505,6 +730,8 @@ bool mc_cache_t::next_shutting_down_step() {
     }
     
     if (state == state_shutting_down_finish) {
+        patch_disk_storage.shutdown();
+
         /* Use do_later() rather than calling it immediately because it might call
         our destructor, and it might not be safe to call our destructor right here. */
         if (shutdown_callback) {

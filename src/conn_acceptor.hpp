@@ -48,7 +48,7 @@ private:
     handler_t *handler;
 
     boost::scoped_ptr<tcp_listener_t> listener;
-    void on_tcp_listener_accept(tcp_conn_t *conn);
+    void on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t>& conn);
 
     int next_thread;
 

@@ -5,12 +5,80 @@
 #include "serializer/serializer.hpp"
 #include "buffer_cache/types.hpp"
 
+/* Facilities for treating N serializers as M serializers. */
+
+struct translator_serializer_t;
+
+struct serializer_multiplexer_t {
+
+    /* Blocking call. Assumes the given serializers are empty; initializes them such that they can
+    be treated as 'n_proxies' proxy-serializers. */
+    static void create(const std::vector<serializer_t *> &underlying, int n_proxies);
+
+    /* Blocking call. Must give the same set of underlying serializers you gave to create(). (It
+    will abort if this is not the case.) */
+    serializer_multiplexer_t(const std::vector<serializer_t *> &underlying);
+
+    /* proxies.size() is the same as 'n_proxies' you passed to create(). Please do not mutate
+    'proxies'. */
+    std::vector<translator_serializer_t *> proxies;
+
+    /* Blocking call. */
+    ~serializer_multiplexer_t();
+
+    /* Used internally and used by fsck & friends */
+    static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
+};
+
+/* The multiplex_serializer_t writes a multiplexer_config_block_t in block ID 0 of each of its
+underlying serializers. */
+
+struct config_block_id_t {
+    /* This type is kind of silly. */
+
+    ser_block_id_t ser_id;
+
+    ser_block_id_t subsequent_ser_id() const { return ser_block_id_t::make(ser_id.value + 1); }
+    static inline config_block_id_t make(ser_block_id_t::number_t num) {
+        rassert(num == 0);  // only one possible config_block_id_t value.
+
+        config_block_id_t ret;
+        ret.ser_id = ser_block_id_t::make(num);
+        return ret;
+    }
+};
+
+#define CONFIG_BLOCK_ID (config_block_id_t::make(0))
+
+typedef uint32_t multiplexer_magic_t;
+
+struct multiplexer_config_block_t {
+
+    block_magic_t magic;
+
+    /* What time the database was created. To help catch the case where files from two
+    databases are mixed. */
+    multiplexer_magic_t multiplexer_magic;
+
+    /* How many serializers the database is using (in case user creates the database with
+    some number of serializers and then specifies less than that many on a subsequent
+    run) */
+    int32_t n_files;
+
+    /* Which serializer this is, in case user specifies serializers in a different order from
+    run to run */
+    int32_t this_serializer;
+
+    /* How many sub-serializers this serializer group is acting as */
+    int n_proxies;
+
+    static const block_magic_t expected_magic;
+};
+
 /* The translator serializer is a wrapper around another serializer. It uses some subset
 of the block IDs available on the inner serializer, but presents the illusion of a complete
 serializer. It is used for splitting one serializer among several buffer caches on different
 threads. */
-
-
 
 class translator_serializer_t : public home_thread_mixin_t
 {
@@ -43,6 +111,7 @@ public:
     void free(void *ptr);
 
     bool do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback);
+    ser_transaction_id_t get_current_transaction_id(block_id_t block_id, const void* buf);
     struct write_t {
         block_id_t block_id;
         bool recency_specified;
@@ -50,23 +119,24 @@ public:
         repli_timestamp recency;
         const void *buf;
         serializer_t::write_block_callback_t *callback;
+        bool assign_transaction_id;
 
         static write_t make_touch(block_id_t block_id_, repli_timestamp recency_, serializer_t::write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, false, NULL, callback_);
+            return write_t(block_id_, true, recency_, false, NULL, callback_, false);
         }
 
         static write_t make(block_id_t block_id_, repli_timestamp recency_, const void *buf_, serializer_t::write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, true, buf_, callback_);
+            return write_t(block_id_, true, recency_, true, buf_, callback_, true);
         }
 
     private:
         static write_t make_internal(block_id_t block_id_, const void *buf_, serializer_t::write_block_callback_t *callback_) {
-            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, callback_);
+            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, callback_, false);
         }
 
         write_t(block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
-                bool buf_specified_, const void *buf_, serializer_t::write_block_callback_t *callback_)
-            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_) { }
+                bool buf_specified_, const void *buf_, serializer_t::write_block_callback_t *callback_, bool assign_transaction_id)
+            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
     };
     bool do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback);
     block_size_t get_block_size();

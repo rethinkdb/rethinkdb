@@ -4,20 +4,18 @@
 #include "utils.hpp"
 #include "arch/arch.hpp"
 #include "data_provider.hpp"
+#include "concurrency/cond_var.hpp"
+#include "containers/iterators.hpp"
+#include "containers/unique_ptr.hpp"
 #include <boost/shared_ptr.hpp>
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
 typedef uint64_t cas_t;
 
-// Note: Changing this struct changes the format of the data stored on disk.
-// If you change this struct, previous stored data will be misinterpreted.
 struct store_key_t {
     uint8_t size;
-    char contents[0];
-    uint16_t full_size() const {
-        return size + offsetof(store_key_t, contents);
-    }
+    char contents[MAX_KEY_SIZE];
     void print() const {
         printf("%*.*s", size, size, contents);
     }
@@ -34,9 +32,15 @@ inline bool str_to_key(const char *str, store_key_t *buf) {
     }
 }
 
-inline std::string key_to_str(const store_key_t* key) {
-    return std::string(key->contents, key->size);
+inline std::string key_to_str(const store_key_t &key) {
+    return std::string(key.contents, key.size);
 }
+
+enum rget_bound_mode_t {
+    rget_bound_open,   // Don't include boundary key
+    rget_bound_closed,   // Include boundary key
+    rget_bound_none   // Ignore boundary key and go all the way to the left/right side of the tree
+};
 
 struct key_with_data_provider_t {
     std::string key;
@@ -53,10 +57,26 @@ struct key_with_data_provider_t {
     };
 };
 
+typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
-union store_key_and_buffer_t {
-    store_key_t key;
-    char buffer[sizeof(store_key_t) + MAX_KEY_SIZE];
+struct get_result_t {
+    get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
+        value(v), flags(f), cas(c), to_signal_when_done(s) { }
+    get_result_t() :
+        value(), flags(0), cas(0), to_signal_when_done(NULL) { }
+
+    // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
+    // so don't hold on to it forever.
+    unique_ptr_t<data_provider_t> value;
+    mcflags_t flags;
+    cas_t cas;
+    threadsafe_cond_t *to_signal_when_done;
+};
+
+struct get_store_t {
+    virtual get_result_t get(const store_key_t &key) = 0;
+    virtual rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key,
+        rget_bound_mode_t right_mode, const store_key_t &right_key) = 0;
 };
 
 // A castime_t contains proposed cas information (if it's needed) and
@@ -70,98 +90,130 @@ struct castime_t {
         : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
 };
 
-struct store_t {
-    /* To get a value from the store, call get() or get_cas(), providing the key you want to get.
-    The store will return a get_result_t with either the value or NULL. If it returns a value, you
-    must call the provided done_callback_t when you are done to release the buffers holding the
-    value. If you call get_cas(), the cas will be in the 'cas' member of the get_result_t; if not,
-    the value of 'cas' is undefined and should be ignored. */
+enum set_result_t {
+    /* Returned on success */
+    sr_stored,
+    /* Returned if add_policy is add_policy_no and the key is absent */
+    sr_didnt_add,
+    /* Returned if replace_policy is replace_policy_no and the key is present or replace_policy
+    is replace_policy_if_cas_matches and the CAS does not match */
+    sr_didnt_replace,
+    /* Returned if the value to be stored is too big */
+    sr_too_large,
+    /* Returned if the data_provider_t that you gave returned have_failed(). */
+    sr_data_provider_failed,
+    /* Returned if the store doesn't want you to do what you're doing. */
+    sr_not_allowed,
+};
 
-    struct get_result_t {
-        get_result_t(boost::shared_ptr<data_provider_t> v, mcflags_t f, cas_t c) :
-            value(v), flags(f), cas(c) { }
-        get_result_t() : flags(0), cas(0) { }
-        // NULL means not found. If non-NULL you are responsible for calling get_data_as_buffer(),
-        // or get_data_into_buffer() on value. Parts of the store may wait for the data_provider_t's
-        // destructor, so don't hold on to it forever.
-        boost::shared_ptr<data_provider_t> value;
-        mcflags_t flags;
-        cas_t cas;
-    };
-    virtual get_result_t get(store_key_t *key) = 0;
-    virtual get_result_t get_cas(store_key_t *key, castime_t castime) = 0;
+enum add_policy_t {
+    add_policy_yes,
+    add_policy_no
+};
 
-    struct rget_result_t {
-        std::vector<key_with_data_provider_t> results;
-    };
-    virtual rget_result_t rget(store_key_t *start, store_key_t *end, bool left_open, bool right_open, uint64_t max_results, castime_t castime) = 0;
+enum replace_policy_t {
+    replace_policy_yes,
+    replace_policy_if_cas_matches,
+    replace_policy_no
+};
 
-    /* To set a value in the database, call set(), add(), or replace(). Provide a key* for the key
-    to be set and a data_provider_t* for the data. Note that the data_provider_t may be called on
-    any core, so you must implement core-switching yourself if necessary. The data_provider_t will
-    always be called exactly once. */
+#define NO_CAS_SUPPLIED 0
 
-    enum set_result_t {
-        /* Returned on success */
-        sr_stored,
-        /* Returned if you add() and it already exists or you replace() and it doesn't */
-        sr_not_stored,
-        /* Returned if you cas() and the key does not exist. */
-        sr_not_found,
-        /* Returned if you cas() and the key was modified since get_cas(). */
-        sr_exists,
-        /* Returned if the value to be stored is too big */
-        sr_too_large,
-        /* Returned if the data_provider_t that you gave returned have_failed(). */
-        sr_data_provider_failed,
-        /* Returned if the store doesn't want you to do what you're doing. */
-        sr_not_allowed,
-    };
+struct incr_decr_result_t {
+    enum result_t {
+        idr_success,
+        idr_not_found,
+        idr_not_numeric,
+        idr_not_allowed,
+    } res;
+    uint64_t new_value;   // Valid only if idr_success
+    incr_decr_result_t() { }
+    incr_decr_result_t(result_t r, uint64_t n = 0) : res(r), new_value(n) { }
+};
 
-    virtual set_result_t set(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) = 0;
-    virtual set_result_t add(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) = 0;
-    virtual set_result_t replace(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) = 0;
-    virtual set_result_t cas(store_key_t *key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) = 0;
+enum incr_decr_kind_t {
+    incr_decr_INCR,
+    incr_decr_DECR
+};
 
-    /* To increment or decrement a value, use incr() or decr(). They're pretty straight-forward. */
+enum append_prepend_result_t {
+    apr_success,
+    apr_too_large,
+    apr_not_found,
+    apr_data_provider_failed,
+    apr_not_allowed,
+};
 
-    struct incr_decr_result_t {
-        enum result_t {
-            idr_success,
-            idr_not_found,
-            idr_not_numeric,
-            idr_not_allowed,
-        } res;
-        unsigned long long new_value;   // Valid only if idr_success
-        incr_decr_result_t() { }
-        incr_decr_result_t(result_t r, unsigned long long n = 0) : res(r), new_value(n) { }
-    };
-    virtual incr_decr_result_t incr(store_key_t *key, unsigned long long amount, castime_t castime) = 0;
-    virtual incr_decr_result_t decr(store_key_t *key, unsigned long long amount, castime_t castime) = 0;
-    
-    /* To append or prepend a value, use append() or prepend(). */
-    
-    enum append_prepend_result_t {
-        apr_success,
-        apr_too_large,
-        apr_not_found,
-        apr_data_provider_failed,
-        apr_not_allowed,
-    };
-    virtual append_prepend_result_t append(store_key_t *key, data_provider_t *data, castime_t castime) = 0;
-    virtual append_prepend_result_t prepend(store_key_t *key, data_provider_t *data, castime_t castime) = 0;
-    
-    /* To delete a key-value pair, use delete(). */
-    
-    enum delete_result_t {
-        dr_deleted,
-        dr_not_found,
-        dr_not_allowed
-    };
+enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
 
-    virtual delete_result_t delete_key(store_key_t *key, repli_timestamp timestamp) = 0;
+enum delete_result_t {
+    dr_deleted,
+    dr_not_found,
+    dr_not_allowed
+};
 
-    virtual ~store_t() {}
+class set_store_interface_t {
+
+public:
+    virtual get_result_t get_cas(const store_key_t &key) = 0;
+
+    virtual set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
+    virtual delete_result_t delete_key(const store_key_t &key) = 0;
+
+    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount) = 0;
+    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data) = 0;
+
+    virtual ~set_store_interface_t() {}
+};
+
+/* set_store_t is different from set_store_interface_t in that it is completely deterministic. If
+you have two identical set_store_ts and you send exactly the same data to them, you will put them
+into exactly the same state. This is important for keeping replicas in sync.
+
+Usually, all of the changes for a given key must arrive at a set_store_t from the same thread;
+otherwise this would defeat the purpose of being deterministic because they would arrive in an
+arbitrary order.*/
+
+class set_store_t {
+
+public:
+    /* get_cas is in set_store_t instead of get_store_t because it may require modifying the
+    database if no CAS had ever been set for that key. */
+    virtual get_result_t get_cas(const store_key_t &key, castime_t castime) = 0;
+
+    virtual set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
+    virtual delete_result_t delete_key(const store_key_t &key, repli_timestamp timestamp) = 0;
+
+    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) = 0;
+    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) = 0;
+
+    virtual ~set_store_t() {}
+};
+
+/* timestamping_store_interface_t timestamps any operations that are given to it and then passes
+them on to the underlying store_t. It also linearizes operations; it routes all operations to its
+home thread before passing them on, so they happen in a well-defined order. In this way it acts as
+a translator between set_store_interface_t and set_store_t. */
+
+class timestamping_set_store_interface_t :
+    public set_store_interface_t,
+    public home_thread_mixin_t
+{
+
+public:
+    timestamping_set_store_interface_t(set_store_t *target);
+
+    get_result_t get_cas(const store_key_t &key);
+
+    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data);
+    delete_result_t delete_key(const store_key_t &key);
+
+private:
+    castime_t make_castime();
+    set_store_t *target;
+    int cas_counter;
 };
 
 #endif /* __STORE_HPP__ */

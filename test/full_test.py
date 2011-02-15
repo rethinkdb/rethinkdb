@@ -53,7 +53,8 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "num-testers" : 16,
-                    "memory"      : 10,
+                    "memory"      : 12,
+                    "diff-log-size" : 2,
                     "duration"    : 420,
                     "sigint-timeout" : sigint_timeout },
                   repeat=5, timeout = 540 + sigint_timeout)
@@ -317,6 +318,15 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "serve-flags" : "\"--flush-timer 50\"",
                     "duration"    : 60},
                   repeat=1, timeout = 120)
+
+    do_test_cloud("integration/rget.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices},
+                  repeat=1, timeout=180)
 
     do_test_cloud("integration/command_line_sanitizing.py",
                   { "auto"        : False,

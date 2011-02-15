@@ -4,6 +4,6 @@
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
 
-void btree_delete_expired(const btree_key *key, btree_slice_t *slice);
+void btree_delete_expired(const store_key_t &key, btree_slice_t *slice);
 
 #endif // __BTREE_DELETE_EXPIRED_HPP__

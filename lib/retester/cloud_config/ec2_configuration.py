@@ -10,7 +10,8 @@ cloud_config_path = "/usr/local/cloud_config"
 
 testing_nodes_ec2_instance_type = os.getenv("EC2_INSTANCE_TYPE", "m1.large") # e.g. m1.large / t1.micro
 testing_nodes_ec2_count = int(os.getenv("EC2_INSTANCE_COUNT", "5")) # number of nodes to spin up
-testing_nodes_ec2_image_name = "ami-2272864b"
+#testing_nodes_ec2_image_name = "ami-2272864b" <-- ebs store
+testing_nodes_ec2_image_name = "ami-827185eb" # <-- instance store
 testing_nodes_ec2_image_user_name = "ec2-user"
 testing_nodes_ec2_key_pair_name = "cloudtest_default"
 testing_nodes_ec2_security_group_name = "cloudtest_default"
@@ -27,6 +28,7 @@ private_ssh_key_filename = os.path.join (cloud_config_path, "ec2_private_key.pem
 cloudtest_lib_dependencies = [("/usr/local/lib/libtcmalloc_minimal.so.0", "libtcmalloc_minimal.so.0"),
         ("/usr/local/lib/libmemcached.so.5", "libmemcached.so.5"),
         ("/usr/local/lib/libmemcached.so.6", "libmemcached.so.6"),
+        ("/usr/local/lib/libgtest.so.0", "libgtest.so.0"),
         ("/usr/lib/libstdc++.so.6", "libstdc++.so.6"),
         ("/usr/lib/libgccpp.so.1", "libgccpp.so.1")]
 for valgrind_file in ["vgpreload_memcheck-amd64-linux.so", "vgpreload_core-amd64-linux.so", "memcheck-amd64-linux", "drd-amd64-linux", "helgrind-amd64-linux"]:

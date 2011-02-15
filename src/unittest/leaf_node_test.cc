@@ -2,11 +2,16 @@
 #include <vector>
 
 #include "unittest/gtest.hpp"
+#include "unittest/buf_helpers.hpp"
 
 #include "btree/node.hpp"
-#include "btree/leaf_node.hpp"
+#include "logger.hpp"
+#include "btree/buf_patches.hpp"
 
 namespace unittest {
+
+#include "btree/leaf_node.cc" // Build a local variant which uses test_buf_t!
+
 
 // TODO: Sperg out and make these tests much more brutal.
 
@@ -43,10 +48,10 @@ void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_s
     }
     ASSERT_EQ(block_size.value(), expected);
 
-    const btree_key *last_key = NULL;
+    const btree_key_t *last_key = NULL;
     for (const uint16_t *p = buf->pair_offsets, *e = p + buf->npairs; p < e; ++p) {
         const btree_leaf_pair *pair = leaf::get_pair(buf, *p);
-        const btree_key *next_key = &pair->key;
+        const btree_key_t *next_key = &pair->key;
 
         if (last_key != NULL) {
             EXPECT_LT(leaf_key_comp::compare(last_key, next_key), 0);
@@ -84,8 +89,8 @@ TEST(LeafNodeTest, Offsets) {
     p.key.size = 173;
     EXPECT_EQ(174, reinterpret_cast<byte *>(p.value()) - reinterpret_cast<byte *>(&p));
 
-    EXPECT_EQ(1, sizeof(btree_key));
-    EXPECT_EQ(1, offsetof(btree_key, contents));
+    EXPECT_EQ(1, sizeof(btree_key_t));
+    EXPECT_EQ(1, offsetof(btree_key_t, contents));
     EXPECT_EQ(2, sizeof(btree_value));
 
     EXPECT_EQ(1, sizeof(metadata_flags_t));
@@ -172,18 +177,18 @@ public:
         memcpy(keyval.contents, key.c_str(), key.size());
     }
 
-    const btree_key *look() const {
+    const btree_key_t *look() const {
         return &keyval;
     }
 
-    btree_key *look_write() {
+    btree_key_t *look_write() {
         return &keyval;
     }
 
 private:
     union {
-        byte keyval_padding[sizeof(btree_key) + MAX_KEY_SIZE];
-        btree_key keyval;
+        byte keyval_padding[sizeof(btree_key_t) + MAX_KEY_SIZE];
+        btree_key_t keyval;
     };
 };
 
@@ -210,11 +215,12 @@ private:
 
 class LeafNodeGrinder {
 public:
-    LeafNodeGrinder(int block_size) : bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node(reinterpret_cast<leaf_node_t *>(malloc(bs.value()))), initialized(false) {
+    LeafNodeGrinder(int block_size) : bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node_buf(new test_buf_t(bs, 1)), initialized(false) {
+        node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
     }
 
     ~LeafNodeGrinder() {
-        free(node);
+        node_buf->release();
     }
 
     static int space(int frontmont_offset, int npairs) {
@@ -231,7 +237,7 @@ public:
 
     void init() {
         SCOPED_TRACE("init");
-        leaf::init(bs, node, repli_timestamp::invalid);
+        leaf::init(bs, *node_buf, repli_timestamp::invalid);
         initialized = true;
         validate();
     }
@@ -253,9 +259,9 @@ public:
         StackValue sval(v);
 
         if (expected_space() < int((1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets))) {
-            ASSERT_FALSE(leaf::insert(bs, node, skey.look(), sval.look(), repli_timestamp::invalid));
+            ASSERT_FALSE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), repli_timestamp::invalid));
         } else {
-            ASSERT_TRUE(leaf::insert(bs, node, skey.look(), sval.look(), repli_timestamp::invalid));
+            ASSERT_TRUE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), repli_timestamp::invalid));
 
             std::pair<expected_t::iterator, bool> res = expected.insert(std::make_pair(k, v));
             if (res.second) {
@@ -361,7 +367,7 @@ public:
             // in two mutually exclusive intervals.
 
             StackKey skey;
-            leaf::merge(bs, lnode.node, node, skey.look_write());
+            leaf::merge(bs, lnode.node, *node_buf, skey.look_write());
 
             for (expected_t::const_iterator p = lnode.expected.begin(), e = lnode.expected.end();
                  p != e;
@@ -390,7 +396,7 @@ public:
         int fo_sum = expected_frontmost_offset + sibling.expected_frontmost_offset;
         int npair_sum = expected_npairs + sibling.expected_npairs;
 
-        leaf::level(bs, node, sibling.node, key_to_replace.look_write(), replacement_key.look_write());
+        leaf::level(bs, *node_buf, *sibling.node_buf, key_to_replace.look_write(), replacement_key.look_write());
 
         // Sanity check that npairs and frontmost_offset are in sane ranges.
 
@@ -462,6 +468,7 @@ public:
     expected_t expected;
     int expected_frontmost_offset;
     int expected_npairs;
+    test_buf_t *node_buf;
     leaf_node_t *node;
     bool initialized;
 
@@ -489,12 +496,12 @@ leaf_node_t *malloc_leaf_node(block_size_t bs) {
     return reinterpret_cast<leaf_node_t *>(malloc(bs.value()));
 }
 
-btree_key *malloc_key(const char *s) {
+btree_key_t *malloc_key(const char *s) {
     size_t origlen = strlen(s);
     EXPECT_LE(origlen, MAX_KEY_SIZE);
 
     size_t len = std::min<size_t>(origlen, MAX_KEY_SIZE);
-    btree_key *k = reinterpret_cast<btree_key *>(malloc(sizeof(btree_key) + len));
+    btree_key_t *k = reinterpret_cast<btree_key_t *>(malloc(sizeof(btree_key_t) + len));
     k->size = len;
     memcpy(k->contents, s, len);
     return k;

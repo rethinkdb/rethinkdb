@@ -5,6 +5,8 @@
 #include "concurrency/semaphore.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/pmap.hpp"
+#include "containers/unique_ptr.hpp"
 #include "arch/arch.hpp"
 #include "store.hpp"
 #include "logger.hpp"
@@ -13,18 +15,17 @@
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
 
+static const char *crlf = "\r\n";
+
 struct txt_memcached_handler_t : public home_thread_mixin_t {
     tcp_conn_t *conn;
-    store_t *store;
+    get_store_t *get_store;
+    set_store_interface_t *set_store;
 
-    uint32_t cas_counter;
-    cas_t gen_cas() {
-        return (time(NULL) << 32) | ++cas_counter;
-    }
-
-    txt_memcached_handler_t(tcp_conn_t *conn, store_t *store) :
+    txt_memcached_handler_t(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) :
         conn(conn),
-        store(store),
+        get_store(get_store),
+        set_store(set_store),
         requests_out_sem(MAX_CONCURRENT_QUERIES_PER_CONNECTION)
     { }
 
@@ -47,7 +48,8 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         rassert(bytes < sizeof(buffer));
         write(buffer, bytes);
     }
-    void writef(const char *format, ...) {
+    void writef(const char *format, ...)
+        __attribute__ ((format (printf, 2, 3))) {
         va_list args;
         va_start(args, format);
         vwritef(format, args);
@@ -67,8 +69,8 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
             thread_saver_t thread_saver;
             bg = dp->get_data_as_buffers();
         }
-        for (size_t i = 0; i < bg->buffers.size(); i++) {
-            const_buffer_group_t::buffer_t b = bg->buffers[i];
+        for (size_t i = 0; i < bg->num_buffers(); i++) {
+            const_buffer_group_t::buffer_t b = bg->get_buffer(i);
             if (dp->get_size() < MAX_BUFFERED_GET_SIZE) {
                 write(ptr_cast<const char>(b.data), b.size);
             } else {
@@ -78,27 +80,32 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     }
     void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size) {
         writef("VALUE %*.*s %u %zu\r\n",
-            key_size, key_size, key, mcflags, value_size);
+               int(key_size), int(key_size), key, mcflags, value_size);
     }
     void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size, cas_t cas) {
         writef("VALUE %*.*s %u %zu %llu\r\n",
-            key_size, key_size, key, mcflags, value_size, cas);
+               int(key_size), int(key_size), key, mcflags, value_size, (long long unsigned int)cas);
     }
 
     void error() {
         writef("ERROR\r\n");
     }
+    void write_crlf() {
+        write(crlf, 2);
+    }
     void write_end() {
         writef("END\r\n");
     }
-    void client_error(const char *format, ...) {
+    void client_error(const char *format, ...)
+        __attribute__ ((format (printf, 2, 3))) {
         writef("CLIENT_ERROR ");
         va_list args;
         va_start(args, format);
         vwritef(format, args);
         va_end(args);
     }
-    void server_error(const char *format, ...) {
+    void server_error(const char *format, ...)
+        __attribute__ ((format (printf, 2, 3))) {
         writef("SERVER_ERROR ");
         va_list args;
         va_start(args, format);
@@ -145,23 +152,22 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     }
 };
 
-// A disgusting HACK to get around boost::bind 9-argument limitations.  Yay!
-struct rh_and_cas_gen_t {
-    txt_memcached_handler_t *rh;
-    cas_generator_t *cas_gen;
-};
-
 /* do_get() is used for "get" and "gets" commands. */
 
 struct get_t {
-    union {
-        char key_memory[MAX_KEY_SIZE+sizeof(store_key_t)];
-        store_key_t key;
-    };
-    task_t<store_t::get_result_t> *result;
+    store_key_t key;
+    get_result_t res;
 };
 
-void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, cas_generator_t *cas_gen) {
+void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i) {
+    if (with_cas) {
+        gets[i].res = rh->set_store->get_cas(gets[i].key);
+    } else {
+        gets[i].res = rh->get_store->get(gets[i].key);
+    }
+}
+
+void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
     rassert(argc >= 1);
     rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
@@ -183,26 +189,11 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, c
     }
 
     /* Now that we're sure they're all valid, send off the requests */
-    if (with_cas) {
-        repli_timestamp timestamp = current_time();
-        for (int i = 0, n = gets.size(); i < n; i++) {
-            gets[i].result = task<store_t::get_result_t>(&store_t::get_cas,
-                                                         rh->store,
-                                                         &gets[i].key,
-                                                         castime_t(cas_gen->gen_cas(), timestamp));
-        }
-    } else {
-        for (int i = 0, n = gets.size(); i < n; i++) {
-            gets[i].result = task<store_t::get_result_t>(&store_t::get,
-                                                         rh->store,
-                                                         &gets[i].key);
-        }
-    }
-
+    pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1));
 
     /* Handle the results in sequence */
     for (int i = 0; i < (int)gets.size(); i++) {
-        store_t::get_result_t res = gets[i].result->join();
+        get_result_t &res = gets[i].res;
 
         /* If res.value is NULL that means the value was not found so we don't write
         anything */
@@ -210,7 +201,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, c
             /* If the write half of the connection has been closed, there's no point in trying
             to send anything */
             if (rh->conn->is_write_open()) {
-                store_key_t &key = gets[i].key;
+                const store_key_t &key = gets[i].key;
 
                 /* Write the "VALUE ..." header */
                 if (with_cas) {
@@ -221,62 +212,83 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, c
                 }
 
                 rh->write_from_data_provider(res.value.get());
-                rh->writef("\r\n");
+                rh->write_crlf();
             }
+        }
+        if (res.to_signal_when_done) {
+            res.to_signal_when_done->pulse();
         }
     }
 
     rh->write_end();
 };
 
-void do_rget(txt_memcached_handler_t *rh, int argc, char **argv, cas_generator_t *cas_gen) {
+static const char *rget_null_key = "null";
+
+static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out, store_key_t *key_out) {
+
+    if (!str_to_key(key, key_out)) return false;
+
+    char *invalid_char;
+    long open_flag = strtol_strict(flag, &invalid_char, 10);
+    if (*invalid_char != '\0') return false;
+
+    switch (open_flag) {
+    case 0:
+        *mode_out = rget_bound_closed;
+        return true;
+    case 1:
+        *mode_out = rget_bound_open;
+        return true;
+    case -1:
+        if (strcasecmp(rget_null_key, key) == 0) {
+            *mode_out = rget_bound_none;
+            key_out->size = 0;   // Key is irrelevant
+            return true;
+        }
+        // Fall through
+    default:
+        return false;
+    }
+}
+
+void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
     if (argc != 6) {
         rh->client_error_bad_command_line_format();
         return;
     }
 
-    union {
-        char key_memory[MAX_KEY_SIZE+sizeof(store_key_t)];
-        store_key_t key;
-    } start, end;
+    /* Parse left/right boundary keys and flags */
+    rget_bound_mode_t left_mode, right_mode;
+    store_key_t left_key, right_key;
 
-    /* Get start and end keys */
-    if (!str_to_key(argv[1], &start.key) || !str_to_key(argv[2], &end.key)) {
-        rh->client_error_bad_command_line_format();
-        return;
-    }
-    
-    char *invalid_char;
-
-    /* Parse left/right-openness flags */
-    bool left_open = strtobool_strict(argv[3], &invalid_char);
-    if (*invalid_char != '\0') {
-        rh->client_error_bad_command_line_format();
-        return;
-    }
-
-    bool right_open = strtobool_strict(argv[4], &invalid_char);
-    if (*invalid_char != '\0') {
+    if (!rget_parse_bound(argv[3], argv[1], &left_mode, &left_key) ||
+        !rget_parse_bound(argv[4], argv[2], &right_mode, &right_key)) {\
         rh->client_error_bad_command_line_format();
         return;
     }
 
     /* Parse max items count */
+    char *invalid_char;
     uint64_t max_items = strtoull_strict(argv[5], &invalid_char, 10);
     if (*invalid_char != '\0') {
         rh->client_error_bad_command_line_format();
         return;
     }
 
-    repli_timestamp timestamp = current_time();
-    store_t::rget_result_t result = rh->store->rget(&start.key, &end.key, left_open, right_open, max_items, castime_t(cas_gen->gen_cas(), timestamp));
-    for (std::vector<key_with_data_provider_t>::iterator it = result.results.begin(); it != result.results.end(); it++) {
-        std::string& key = (*it).key;
-        boost::shared_ptr<data_provider_t> dp = (*it).value_provider;
+    rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key);
 
-        rh->write_value_header(key.c_str(), key.length(), (*it).mcflags, dp->get_size());
+    boost::optional<key_with_data_provider_t> pair;
+    uint64_t count = 0;
+    while (++count <= max_items && (pair = results_iterator->next())) {
+        const key_with_data_provider_t& kv = pair.get();
+
+        const std::string& key = kv.key;
+        const boost::shared_ptr<data_provider_t>& dp = kv.value_provider;
+
+        rh->write_value_header(key.c_str(), key.length(), kv.mcflags, dp->get_size());
         rh->write_from_data_provider(dp.get());
-        rh->writef("\r\n");
+        rh->write_crlf();
     }
     rh->write_end();
 }
@@ -322,12 +334,12 @@ public:
         was_read = true;
         on_thread_t thread_switcher(home_thread);
         try {
-            for (int i = 0; i < (int)b->buffers.size(); i++) {
-                rh->conn->read(b->buffers[i].data, b->buffers[i].size);
+            for (int i = 0; i < (int)b->num_buffers(); i++) {
+                rh->conn->read(b->get_buffer(i).data, b->get_buffer(i).size);
             }
-            char crlf[2];
-            rh->conn->read(crlf, 2);
-            if (memcmp(crlf, "\r\n", 2) != 0) {
+            char expected_crlf[2];
+            rh->conn->read(expected_crlf, 2);
+            if (memcmp(expected_crlf, crlf, 2) != 0) {
                 if (to_signal) to_signal->pulse(false);
                 throw data_provider_failed_exc_t();   // Cancel the set/append/prepend operation
             }
@@ -350,15 +362,12 @@ enum storage_command_t {
     prepend_command
 };
 
-void run_storage_command(rh_and_cas_gen_t rhcg,
+void run_storage_command(txt_memcached_handler_t *rh,
         storage_command_t sc,
-        store_key_and_buffer_t key,
+        store_key_t key,
         size_t value_size, promise_t<bool> *value_read_promise,
         mcflags_t mcflags, exptime_t exptime, cas_t unique,
         bool noreply) {
-
-    txt_memcached_handler_t *rh = rhcg.rh;
-    cas_generator_t *cas_gen = rhcg.cas_gen;
 
     memcached_data_provider_t unbuffered_data(rh, value_size, value_read_promise);
     maybe_buffered_data_provider_t data(&unbuffered_data, MAX_BUFFERED_SET_SIZE);
@@ -368,58 +377,82 @@ void run_storage_command(rh_and_cas_gen_t rhcg,
     repli_timestamp timestamp = current_time();
 
     if (sc != append_command && sc != prepend_command) {
-        store_t::set_result_t res;
+
+        add_policy_t add_policy;
+        replace_policy_t replace_policy;
+
         switch (sc) {
-        case set_command: res = rh->store->set(&key.key, &data, mcflags, exptime, castime_t(cas_gen->gen_cas(), timestamp)); break;
-            case add_command: res = rh->store->add(&key.key, &data, mcflags, exptime, castime_t(cas_gen->gen_cas(), timestamp)); break;
-            case replace_command: res = rh->store->replace(&key.key, &data, mcflags, exptime, castime_t(cas_gen->gen_cas(), timestamp)); break;
-            case cas_command: res = rh->store->cas(&key.key, &data, mcflags, exptime, unique, castime_t(cas_gen->gen_cas(), timestamp)); break;
-            case append_command:
-            case prepend_command:
-            default:
-                unreachable();
+        case set_command:
+            add_policy = add_policy_yes;
+            replace_policy = replace_policy_yes;
+            break;
+        case add_command:
+            add_policy = add_policy_yes;
+            replace_policy = replace_policy_no;
+            break;
+        case replace_command:
+            add_policy = add_policy_no;
+            replace_policy = replace_policy_yes;
+            break;
+        case cas_command:
+            add_policy = add_policy_no;
+            replace_policy = replace_policy_if_cas_matches;
+            break;
+        case append_command:
+        case prepend_command:
+        default:
+            unreachable();
         }
+
+        set_result_t res =
+            rh->set_store->sarc(key, &data, mcflags, exptime,
+                add_policy, replace_policy, unique);
+        
         if (!noreply) {
             switch (res) {
-                case store_t::sr_stored: rh->writef("STORED\r\n"); break;
-                case store_t::sr_not_stored: rh->writef("NOT_STORED\r\n"); break;
-                case store_t::sr_exists: rh->writef("EXISTS\r\n"); break;
-                case store_t::sr_not_found: rh->writef("NOT_FOUND\r\n"); break;
-                case store_t::sr_too_large:
+                case sr_stored:
+                    rh->writef("STORED\r\n");
+                    break;
+                case sr_didnt_add:
+                    if (sc == replace_command) rh->writef("NOT_STORED\r\n");
+                    else if (sc == cas_command) rh->writef("NOT_FOUND\r\n");
+                    else unreachable();
+                    break;
+                case sr_didnt_replace:
+                    if (sc == add_command) rh->writef("NOT_STORED\r\n");
+                    else if (sc == cas_command) rh->writef("EXISTS\r\n");
+                    else unreachable();
+                    break;
+                case sr_too_large:
                     rh->server_error_object_too_large_for_cache();
                     break;
-                case store_t::sr_data_provider_failed:
+                case sr_data_provider_failed:
                     /* The error message will be written by do_storage() */
                     break;
-                case store_t::sr_not_allowed:
+                case sr_not_allowed:
                     rh->client_error_writing_not_allowed();
                     break;
                 default: unreachable();
             }
         }
+
     } else {
-        store_t::append_prepend_result_t res;
-        switch (sc) {
-            case append_command: res = rh->store->append(&key.key, &data, castime_t(cas_gen->gen_cas(), timestamp)); break;
-            case prepend_command: res = rh->store->prepend(&key.key, &data, castime_t(cas_gen->gen_cas(), timestamp)); break;
-            case set_command:
-            case add_command:
-            case replace_command:
-            case cas_command:
-            default:
-                unreachable();
-        }
+        append_prepend_result_t res =
+            rh->set_store->append_prepend(
+                sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
+                key, &data);
+
         if (!noreply) {
             switch (res) {
-                case store_t::apr_success: rh->writef("STORED\r\n"); break;
-                case store_t::apr_not_found: rh->writef("NOT_FOUND\r\n"); break;
-                case store_t::apr_too_large:
+                case apr_success: rh->writef("STORED\r\n"); break;
+                case apr_not_found: rh->writef("NOT_FOUND\r\n"); break;
+                case apr_too_large:
                     rh->server_error_object_too_large_for_cache();
                     break;
-                case store_t::apr_data_provider_failed:
+                case apr_data_provider_failed:
                     /* The error message will be written by do_storage() */
                     break;
-                case store_t::apr_not_allowed:
+                case apr_not_allowed:
                     rh->client_error_writing_not_allowed();
                     break;
                 default: unreachable();
@@ -434,7 +467,7 @@ void run_storage_command(rh_and_cas_gen_t rhcg,
     read_value_promise here */
 }
 
-void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, char **argv, cas_generator_t *cas_gen) {
+void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, char **argv) {
     char *invalid_char;
 
     /* cmd key flags exptime size [noreply]
@@ -446,8 +479,8 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     }
 
     /* First parse the key */
-    store_key_and_buffer_t key;
-    if (!str_to_key(argv[1], &key.key)) {
+    store_key_t key;
+    if (!str_to_key(argv[1], &key)) {
         rh->client_error_bad_command_line_format();
         return;
     }
@@ -490,7 +523,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     }
 
     /* If a "cas", parse the cas_command unique */
-    cas_t unique = 0;
+    cas_t unique = NO_CAS_SUPPLIED;
     if (sc == cas_command) {
         unique = strtoull_strict(argv[5], &invalid_char, 10);
         if (*invalid_char != '\0') {
@@ -516,13 +549,10 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     /* run_storage_command() will signal this when it's done reading the value off the socket. */
     promise_t<bool> value_read_promise;
 
-    struct rh_and_cas_gen_t rhcg;
-    rhcg.rh = rh;
-    rhcg.cas_gen = cas_gen;
     if (noreply) {
-        coro_t::spawn(boost::bind(&run_storage_command, rhcg, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, true));
+        coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, true));
     } else {
-        run_storage_command(rhcg, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, false);
+        run_storage_command(rh, sc, key, value_size, &value_read_promise, mcflags, exptime, unique, false);
     }
 
     /* We can't move on to the next command until the value has been read off the socket. */
@@ -534,25 +564,26 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 }
 
 /* "incr" and "decr" commands */
-void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsigned long long amount, bool incr, cas_generator_t *cas_gen, bool noreply) {
-    repli_timestamp timestamp = current_time();
+void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount, bool incr, bool noreply) {
 
-    store_t::incr_decr_result_t res = incr ?
-        rh->store->incr(&key.key, amount, castime_t(cas_gen->gen_cas(), timestamp)) :
-        rh->store->decr(&key.key, amount, castime_t(cas_gen->gen_cas(), timestamp));
+    rh->begin_write_command();
+
+    incr_decr_result_t res = rh->set_store->incr_decr(
+        incr ? incr_decr_INCR : incr_decr_DECR,
+        key, amount);
 
     if (!noreply) {
         switch (res.res) {
-            case store_t::incr_decr_result_t::idr_success:
-                rh->writef("%llu\r\n", res.new_value);
+            case incr_decr_result_t::idr_success:
+                rh->writef("%llu\r\n", (unsigned long long)res.new_value);
                 break;
-            case store_t::incr_decr_result_t::idr_not_found:
+            case incr_decr_result_t::idr_not_found:
                 rh->writef("NOT_FOUND\r\n");
                 break;
-            case store_t::incr_decr_result_t::idr_not_numeric:
+            case incr_decr_result_t::idr_not_numeric:
                 rh->client_error("cannot increment or decrement non-numeric value\r\n");
                 break;
-            case store_t::incr_decr_result_t::idr_not_allowed:
+            case incr_decr_result_t::idr_not_allowed:
                 rh->client_error_writing_not_allowed();
                 break;
             default: unreachable();
@@ -562,7 +593,7 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_and_buffer_t key, unsi
     rh->end_write_command();
 }
 
-void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv, cas_generator_t *cas_gen) {
+void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
     /* cmd key delta [noreply] */
     if (argc != 3 && argc != 4) {
         rh->error();
@@ -570,15 +601,15 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv, ca
     }
 
     /* Parse key */
-    store_key_and_buffer_t key;
-    if (!str_to_key(argv[1], &key.key)) {
+    store_key_t key;
+    if (!str_to_key(argv[1], &key)) {
         rh->client_error_bad_command_line_format();
         return;
     }
 
     /* Parse amount to change by */
     char *invalid_char;
-    unsigned long long delta = strtoull_strict(argv[2], &invalid_char, 10);
+    uint64_t delta = strtoull_strict(argv[2], &invalid_char, 10);
     if (*invalid_char != '\0') {
         rh->client_error_bad_command_line_format();
         return;
@@ -597,29 +628,30 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv, ca
         noreply = false;
     }
 
-    rh->begin_write_command();
-
     if (noreply) {
-        coro_t::spawn(boost::bind(&run_incr_decr, rh, key, delta, i, cas_gen, true));
+        coro_t::spawn_now(boost::bind(&run_incr_decr, rh, key, delta, i, true));
     } else {
-        run_incr_decr(rh, key, delta, i, cas_gen, false);
+        run_incr_decr(rh, key, delta, i, false);
     }
 }
 
 /* "delete" commands */
 
-void run_delete(txt_memcached_handler_t *rh, store_key_and_buffer_t key, bool noreply) {
-    store_t::delete_result_t res = rh->store->delete_key(&key.key, current_time());
+void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
+
+    rh->begin_write_command();
+
+    delete_result_t res = rh->set_store->delete_key(key);
 
     if (!noreply) {
         switch (res) {
-            case store_t::dr_deleted: 
+            case dr_deleted: 
                 rh->writef("DELETED\r\n"); 
                 break;
-            case store_t::dr_not_found: 
+            case dr_not_found: 
                 rh->writef("NOT_FOUND\r\n"); 
                 break;
-            case store_t::dr_not_allowed: 
+            case dr_not_allowed: 
                 rh->client_error_writing_not_allowed();
                 break;
             default: unreachable();
@@ -637,8 +669,8 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
     }
 
     /* Parse key */
-    store_key_and_buffer_t key;
-    if (!str_to_key(argv[1], &key.key)) {
+    store_key_t key;
+    if (!str_to_key(argv[1], &key)) {
         rh->client_error_bad_command_line_format();
         return;
     }
@@ -664,11 +696,8 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv) {
         noreply = false;
     }
 
-    /* The corresponding call to end_write_command() is in do_delete() */
-    rh->begin_write_command();
-
     if (noreply) {
-        coro_t::spawn(boost::bind(&run_delete, rh, key, true));
+        coro_t::spawn_now(boost::bind(&run_delete, rh, key, true));
     } else {
         run_delete(rh, key, false);
     }
@@ -705,7 +734,7 @@ perfmon_duration_sampler_t
 void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
     for (;;) {
         const_charslice sl = conn->peek();
-        void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, "\r\n", 2);
+        void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, crlf, 2);
         ssize_t threshold = MEGABYTE;
 
         if (crlf_loc) {
@@ -722,7 +751,7 @@ void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
             // because they are read from the socket via a different
             // mechanism.)  There are better ways to handle this
             // situation.
-            logERR("Aborting connection %p because we got more than %u bytes without a CRLF\n",
+            logERR("Aborting connection %p because we got more than %ld bytes without a CRLF\n",
                    coro_t::self(), threshold);
             conn->shutdown_read();
             throw tcp_conn_t::read_closed_exc_t();
@@ -742,16 +771,6 @@ std::string join_strings(std::string separator, std::vector<char*>::iterator beg
 }
 
 #ifndef NDEBUG
-std::vector<store_key_and_buffer_t> key_array_to_keys_vector(int argc, char **argv) {
-    std::vector<store_key_and_buffer_t> keys(argc);
-    for (int i = 0; i < argc; i++) {
-        if (!str_to_key(argv[i], &keys[i].key)) {
-            throw std::runtime_error("bad key");
-        }
-    }
-    return keys;
-}
-
 bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
     if (args.size() < 1)
         return false;
@@ -767,11 +786,11 @@ bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
 }
 #endif  // NDEBUG
 
-void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) {
+void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
     logDBG("Opened connection %p\n", coro_t::self());
 
     /* Object that we pass around to subroutines (is there a better way to do this?) */
-    txt_memcached_handler_t rh(conn, store);
+    txt_memcached_handler_t rh(conn, get_store, set_store);
 
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;
@@ -815,29 +834,29 @@ void serve_memcache(tcp_conn_t *conn, store_t *store, cas_generator_t *cas_gen) 
         /* Dispatch to the appropriate subclass */
         thread_saver_t thread_saver;
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
-            do_get(&rh, false, args.size(), args.data(), cas_gen);
+            do_get(&rh, false, args.size(), args.data());
         } else if (!strcmp(args[0], "gets")) {
-            do_get(&rh, true, args.size(), args.data(), cas_gen);
+            do_get(&rh, true, args.size(), args.data());
         } else if (!strcmp(args[0], "rget")) {
-            do_rget(&rh, args.size(), args.data(), cas_gen);
+            do_rget(&rh, args.size(), args.data());
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
-            do_storage(&rh, set_command, args.size(), args.data(), cas_gen);
+            do_storage(&rh, set_command, args.size(), args.data());
         } else if (!strcmp(args[0], "add")) {
-            do_storage(&rh, add_command, args.size(), args.data(), cas_gen);
+            do_storage(&rh, add_command, args.size(), args.data());
         } else if (!strcmp(args[0], "replace")) {
-            do_storage(&rh, replace_command, args.size(), args.data(), cas_gen);
+            do_storage(&rh, replace_command, args.size(), args.data());
         } else if (!strcmp(args[0], "append")) {
-            do_storage(&rh, append_command, args.size(), args.data(), cas_gen);
+            do_storage(&rh, append_command, args.size(), args.data());
         } else if (!strcmp(args[0], "prepend")) {
-            do_storage(&rh, prepend_command, args.size(), args.data(), cas_gen);
+            do_storage(&rh, prepend_command, args.size(), args.data());
         } else if (!strcmp(args[0], "cas")) {
-            do_storage(&rh, cas_command, args.size(), args.data(), cas_gen);
+            do_storage(&rh, cas_command, args.size(), args.data());
         } else if (!strcmp(args[0], "delete")) {
             do_delete(&rh, args.size(), args.data());
         } else if (!strcmp(args[0], "incr")) {
-            do_incr_decr(&rh, true, args.size(), args.data(), cas_gen);
+            do_incr_decr(&rh, true, args.size(), args.data());
         } else if (!strcmp(args[0], "decr")) {
-            do_incr_decr(&rh, false, args.size(), args.data(), cas_gen);
+            do_incr_decr(&rh, false, args.size(), args.data());
         } else if (!strcmp(args[0], "quit")) {
             // Make sure there's no more tokens
             if (args.size() > 1) {

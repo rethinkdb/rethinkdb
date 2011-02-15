@@ -70,7 +70,7 @@ class perfmon_counter_t :
     public perfmon_t
 {
     friend class perfmon_counter_step_t;
-    int64_t values[MAX_THREADS];
+    cache_line_padded_t<int64_t> values[MAX_THREADS];
     int64_t &get();
     std::string name;
 public:

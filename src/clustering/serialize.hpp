@@ -82,14 +82,14 @@ void unserialize(cluster_inpipe_t *conn, ip_address_t *addr) {
 
 /* Serializing and unserializing keys */
 
-void serialize(cluster_outpipe_t *conn, const store_key_and_buffer_t *key) {
-    conn->write(&key->key.size, sizeof(key->key.size));
-    conn->write(key->key.contents, key->key.size);
+void serialize(cluster_outpipe_t *conn, const store_key_t *key) {
+    conn->write(&key->size, sizeof(key->size));
+    conn->write(key->contents, key->size);
 }
 
-void unserialize(cluster_inpipe_t *conn, store_key_and_buffer_t *key) {
-    conn->read(&key->key.size, sizeof(key->key.size));
-    conn->read(key->key.contents, key->key.size);
+void unserialize(cluster_inpipe_t *conn, store_key_t *key) {
+    conn->read(&key->size, sizeof(key->size));
+    conn->read(key->contents, key->size);
 }
 
 /* Serializing and unserializing data_provider_ts */
@@ -98,8 +98,8 @@ void serialize(cluster_outpipe_t *conn, const boost::shared_ptr<data_provider_t>
     int size = (*data)->get_size();
     conn->write(&size, sizeof(size));
     const const_buffer_group_t *buffers = (*data)->get_data_as_buffers();
-    for (int i = 0; i < (int)buffers->buffers.size(); i++) {
-        conn->write(buffers->buffers[i].data, buffers->buffers[i].size);
+    for (int i = 0; i < (int)buffers->num_buffers(); i++) {
+        conn->write(buffers->get_buffer(i).data, buffers->get_buffer(i).size);
     }
 }
 

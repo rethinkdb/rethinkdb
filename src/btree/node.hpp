@@ -60,14 +60,43 @@ struct leaf_node_t {
     static const block_magic_t expected_magic;
 };
 
+// Note: Changing this struct changes the format of the data stored on disk.
+// If you change this struct, previous stored data will be misinterpreted.
+struct btree_key_t {
+    uint8_t size;
+    char contents[0];
+    uint16_t full_size() const {
+        return size + offsetof(store_key_t, contents);
+    }
+    void print() const {
+        printf("%*.*s", size, size, contents);
+    }
+};
 
+/* A btree_key_t can't safely be allocated because it has a zero-length 'contents' buffer. This is
+to represent the fact that its size may vary on disk. A btree_key_buffer_t is a much easier-to-work-
+with type. */
+struct btree_key_buffer_t {
+    btree_key_buffer_t() { }
+    btree_key_buffer_t(const btree_key_t *k) {
+        btree_key.size = k->size;
+        memcpy(btree_key.contents, k->contents, k->size);
+    }
+    btree_key_buffer_t(const store_key_t &store_key) {
+        btree_key.size = store_key.size;
+        memcpy(btree_key.contents, store_key.contents, store_key.size);
+    }
+    btree_key_t *key() { return &btree_key; }
+private:
+    union {
+        btree_key_t btree_key;
+        char buffer[sizeof(btree_key_t) + MAX_KEY_SIZE];
+    };
+};
 
-
-
-
-
-typedef store_key_t btree_key;
-
+inline std::string key_to_str(const btree_key_t* key) {
+    return std::string(key->contents, key->size);
+}
 
 // A node_t is either a btree_internal_node or a btree_leaf_node.
 struct node_t {
@@ -92,9 +121,9 @@ inline bool is_internal(const node_t *node) {
 bool is_underfull(block_size_t block_size, const node_t *node);
 bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const internal_node_t *parent);
 int nodecmp(const node_t *node1, const node_t *node2);
-void split(block_size_t block_size, node_t *node, node_t *rnode, btree_key *median);
-void merge(block_size_t block_size, const node_t *node, node_t *rnode, btree_key *key_to_remove, internal_node_t *parent);
-bool level(block_size_t block_size, node_t *node, node_t *rnode, btree_key *key_to_replace, btree_key *replacement_key, internal_node_t *parent);
+void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key_t *median);
+void merge(block_size_t block_size, const node_t *node, buf_t &rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent);
+bool level(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent);
 
 void print(const node_t *node);
 
@@ -102,8 +131,8 @@ void validate(block_size_t block_size, const node_t *node);
 
 }  // namespace node
 
-inline void keycpy(btree_key *dest, const btree_key *src) {
-    memcpy(dest, src, sizeof(btree_key) + src->size);
+inline void keycpy(btree_key_t *dest, const btree_key_t *src) {
+    memcpy(dest, src, sizeof(btree_key_t) + src->size);
 }
 
 inline void valuecpy(btree_value *dest, const btree_value *src) {

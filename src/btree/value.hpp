@@ -118,7 +118,7 @@ public:
         return ret;
     }
 
-    bool expired() {
+    bool expired() const {
         return exptime() ? time(NULL) >= exptime() : false;
     }
 
