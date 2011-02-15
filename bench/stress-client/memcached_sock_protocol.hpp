@@ -137,7 +137,7 @@ protected:
         else if (does_match_at_position(response_line, "SERVER_ERROR", line_length)) {
             const std::string error_message = std::string(response_line, line_length).substr(std::string("SERVER_ERROR").length() + 1);
             // Check for special Membase temporary failure case
-            if (error_message == "temporary failure")
+            if (error_message == "temporary failure" || error_message == "proxy downstream timeout")
                 throw temporary_server_error_t(error_message);
             else
                 throw server_error_t(error_message);
