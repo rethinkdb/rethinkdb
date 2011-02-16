@@ -1,9 +1,85 @@
+#include <algorithm>
 #include <math.h>
 #include "server.hpp"
 #include "db_thread_info.hpp"
 #include "memcached/memcached.hpp"
 #include "replication/master.hpp"
 #include "diskinfo.hpp"
+
+#ifdef TIMEBOMB_DAYS
+namespace timebomb {
+
+static const long seconds_in_an_hour = 3600;
+static const long seconds_in_a_day = seconds_in_an_hour*24;
+static const long timebomb_check_period_in_sec = seconds_in_an_hour * 12;
+
+// Timebomb synchronization code is ugly: we don't want the timer to run when we have cancelled it,
+// but it's hard to do, since timers are asynchronous and can execute while we are trying to destroy them.
+// We could use a periodic timer, but then scheduling the last alarm precisely would be harder
+// (or we would have to use a separate one-shot timer).
+static spinlock_t timer_token_lock;
+static volatile bool no_more_checking;
+
+struct periodic_checker_t {
+    periodic_checker_t(server_t *server, time_t creation_timestamp) : server(server), creation_timestamp(creation_timestamp), timer_token(NULL) {
+        no_more_checking = false;
+        check(this);
+    }
+
+    ~periodic_checker_t() {
+        timer_token_lock.lock();
+        no_more_checking = true;
+        if (timer_token) {
+            cancel_timer(const_cast<timer_token_t*>(timer_token));
+        } 
+        timer_token_lock.unlock();
+    }
+
+    static void check(periodic_checker_t *timebomb_checker) {
+        timer_token_lock.lock();
+        if (!no_more_checking) {
+            timebomb_checker->timer_token = NULL;
+
+            bool exploded = false;
+            time_t time_now = time(NULL);
+
+            double seconds_since_created = difftime(time_now, timebomb_checker->creation_timestamp);
+            if (seconds_since_created < 0) {
+                // time anomaly: database created in future (or we are in 2038)
+                logERR("Error: Database creation timestamp is in the future.\n");
+                exploded = true;
+            } else if (seconds_since_created > double(TIMEBOMB_DAYS)*seconds_in_a_day) {
+                // trial is over
+                logERR("Thank you for evaluating %s. Trial period has expired. To continue using the software, please contact RethinkDB <support@rethinkdb.com>.\n", PRODUCT_NAME);
+                exploded = true;
+            } else {
+                double days_since_created = seconds_since_created / seconds_in_a_day;
+                int days_left = ceil(double(TIMEBOMB_DAYS) - days_since_created);
+                if (days_left > 1) {
+                    logWRN("This is a trial version of %s. It will expire in %d days.\n", PRODUCT_NAME, days_left);
+                } else {
+                    logWRN("This is a trial version of %s. It will expire today.\n", PRODUCT_NAME);
+                }
+                exploded = false;
+            }
+            if (exploded) {
+                timebomb_checker->server->shutdown();
+            } else {
+                // schedule next check
+                long seconds_left = ceil(double(TIMEBOMB_DAYS)*seconds_in_a_day - seconds_since_created) + 1;
+                long seconds_till_check = std::min(seconds_left, timebomb_check_period_in_sec);
+                timebomb_checker->timer_token = fire_timer_once(seconds_till_check * 1000, (void (*)(void*)) &check, timebomb_checker);
+            }
+        }
+        timer_token_lock.unlock();
+    }
+private:
+    server_t *server;
+    time_t creation_timestamp;
+    volatile timer_token_t *timer_token;
+};
+}
+#endif
 
 server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
     : cmd_config(cmd_config), thread_pool(thread_pool),
@@ -12,7 +88,7 @@ server_t::server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
       replication_acceptor(NULL),
 #endif
 #ifdef TIMEBOMB_DAYS
-      timebomb_timer(NULL),
+      timebomb_checker(NULL),
 #endif
       toggler(this) { }
 
@@ -80,49 +156,13 @@ void server_t::on_store_ready() {
         logINF("Done creating database.\n");
         do_shutdown_store();
     } else {
-#ifdef TIMEBOMB_DAYS
-        start_timebomb_checker();
-#endif
-
         do_start_conn_acceptor();
-    }
-}
 
 #ifdef TIMEBOMB_DAYS
-static const long seconds_in_a_day = 86400;
-
-static void timebomb_checker(server_t *server) {
-    bool exploded = false;
-    time_t time_now = time(NULL);
-
-    double days_since_created = difftime(time_now, server->store->creation_timestamp)/seconds_in_a_day;
-    if (days_since_created < 0) {
-        // time anomaly: database created in future (or we are in 2038)
-        logERR("Error: Database creation timestamp is in the future.\n");
-        exploded = true;
-    } else if (days_since_created > TIMEBOMB_DAYS) {
-        // trial is over
-        logERR("Thank you for evaluating %s. Trial period has expired. To continue using the software, please contact RethinkDB <support@rethinkdb.com>.\n", PRODUCT_NAME);
-        exploded = true;
-    } else {
-        int days_left = ceil((double) TIMEBOMB_DAYS - days_since_created);
-        if (days_left > 1) {
-            logWRN("This is a trial version of %s. It will expire in %d days.\n", PRODUCT_NAME, days_left);
-        } else {
-            logWRN("This is a trial version of %s. It will expire today.\n", PRODUCT_NAME);
-        }
-        exploded = false;
-    }
-    if (exploded) {
-        server->shutdown();
-    }
-}
-
-void server_t::start_timebomb_checker() {
-    fire_timer_once(0, (void (*)(void*)) timebomb_checker, this);
-    this->timebomb_timer = add_timer(seconds_in_a_day * 1000 / 2, (void (*)(void*)) timebomb_checker, this);
-}
+        timebomb_checker = new timebomb::periodic_checker_t(this, this->store->creation_timestamp);
 #endif
+    }
+}
 
 void server_t::do_start_conn_acceptor() {
     assert_thread();
@@ -175,9 +215,9 @@ void server_t::do_shutdown() {
     
     assert_thread();
 #ifdef TIMEBOMB_DAYS
-    if (timebomb_timer) {
-        cancel_timer(timebomb_timer);
-        timebomb_timer = NULL;
+    if (timebomb_checker) {
+        delete timebomb_checker;
+        timebomb_checker = NULL;
     }
 #endif
     do_shutdown_conn_acceptor();

@@ -7,6 +7,7 @@
 #include "conn_acceptor.hpp"
 #include "utils.hpp"
 #include "perfmon.hpp"
+#include "concurrency/spinlock.hpp"
 
 /* There is one server_t per server (obviously). It acts as a "master FSM" that is
 responsible for the entire lifetime of the server. It creates and destroys the
@@ -14,6 +15,12 @@ loggers, caches, and connection acceptor. It does NOT create the thread pool -- 
 main() creates the thread pool and then creates the server within the thread pool. */
 
 class flush_message_t;
+
+#ifdef TIMEBOMB_DAYS
+namespace timebomb {
+struct periodic_checker_t;
+}
+#endif
 
 class server_t :
     public home_thread_mixin_t,
@@ -61,8 +68,7 @@ public:
     
 private:
 #ifdef TIMEBOMB_DAYS
-    timer_token_t *timebomb_timer;
-    void start_timebomb_checker();
+    timebomb::periodic_checker_t *timebomb_checker;
 #endif
 
     bool do_disable_gc(all_gc_disabled_callback_t *cb);
