@@ -92,6 +92,8 @@ endif
 
 ifneq ($(TIMEBOMB),0)
 CXXFLAGS+=-DTIMEBOMB_DAYS=$(TIMEBOMB)
+SERVER_EXEC_NAME:=$(SERVER_EXEC_NAME)-trial
+BUILD_DIR:=$(BUILD_DIR)-trial
 endif
 
 ifeq (${STATIC_LIBGCC},1)
@@ -321,6 +323,7 @@ build-rpm: all prepare_rpm_package_dirs
 	$(QUIET) sed 																				\
 			-e "s/VERSION/$(RETHINKDB_VERSION_RPM)/"				\
 			-e "s:TOPDIR:$(realpath $(RPM_PACKAGE_DIR)):"		\
+			-e "s:SERVER_EXEC_NAME:$(SERVER_EXEC_NAME):"		\
 		../packaging/rpm.spec >$(RPM_SPEC_FILE)
 
 # Copy files to their correct places

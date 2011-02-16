@@ -1,5 +1,6 @@
 %define _topdir TOPDIR
 %define buildroot %{_topdir}/BUILD
+%define serverexecname SERVER_EXEC_NAME
 
 BuildRoot: %{buildroot}
 Summary:   RethinkDB - the database for solid drives
@@ -29,7 +30,7 @@ RethinkDB - the database for solid drives
 
 %files
 %defattr(-,root,root)
-/usr/bin/rethinkdb
+/usr/bin/%{serverexecname}
 
 %attr(0444,root,root) /etc/bash_completion.d/rethinkdb
 %doc %attr(0444,root,root) /usr/share/man/man1/rethinkdb.1.gz
