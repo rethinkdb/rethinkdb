@@ -15,17 +15,14 @@ lba_list_t::lba_list_t(extent_manager_t *em)
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) disk_structures[i] = NULL;
 }
 
-/* This form of start() is called when we are creating a new database */
-void lba_list_t::start_new(direct_file_t *file) {
-    rassert(state == state_unstarted);
-    
-    dbfile = file;
-    
+void lba_list_t::prepare_initial_metablock(metablock_mixin_t *mb) {
+
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
-        disk_structures[i] = new lba_disk_structure_t(extent_manager, dbfile);
+        mb->shards[i].lba_superblock_offset = NULL_OFFSET;
+        mb->shards[i].lba_superblock_entries_count = 0;
+        mb->shards[i].last_lba_extent_offset = NULL_OFFSET;
+        mb->shards[i].last_lba_extent_entries_count = 0;
     }
-    
-    state = state_ready;
 }
 
 struct lba_start_fsm_t :
@@ -73,7 +70,6 @@ struct lba_start_fsm_t :
     }
 };
 
-/* This form of start() is called when we are loading an existing database */
 bool lba_list_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock, ready_callback_t *cb) {
     rassert(state == state_unstarted);
     

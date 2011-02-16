@@ -25,15 +25,12 @@ perfmon_counter_t
 //perfmon_function_t
 //    pm_serializer_garbage_ratio("serializer_garbage_ratio");
 
-void data_block_manager_t::start_new(direct_file_t *file) {
-    rassert(state == state_unstarted);
-    dbfile = file;
-    
-    for (unsigned int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
-        active_extents[i] = NULL;
-    }
+void data_block_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
 
-    state = state_ready;
+    for (int i = 0; i < MAX_ACTIVE_DATA_EXTENTS; i++) {
+        mb->active_extents[i] = NULL_OFFSET;
+        mb->blocks_in_active_extent[i] = 0;
+    }
 }
 
 void data_block_manager_t::start_reconstruct() {

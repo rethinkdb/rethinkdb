@@ -5,25 +5,15 @@
 #include "concurrency/pmap.hpp"
 #include "db_thread_info.hpp"
 
-void create_new_serializer(
+void prep_for_serializer(
         btree_key_value_store_dynamic_config_t *dynamic_config,
         btree_key_value_store_static_config_t *static_config,
-        standard_serializer_t **serializers,
         int i) {
-
-    /* Go to an appropriate thread to run the serializer on */
-    on_thread_t thread_switcher(i % get_num_db_threads());
-
-    /* Create the serializer */
-    serializers[i] = new standard_serializer_t(
+    /* Prepare the file */
+    standard_serializer_t::create(
         &dynamic_config->serializer,
-        &dynamic_config->serializer_private[i]);
-
-    /* Start the serializer up */
-    struct : public standard_serializer_t::ready_callback_t, public cond_t {
-        void on_serializer_ready(standard_serializer_t *) { pulse(); }
-    } ready_cb;
-    if (!serializers[i]->start_new(&static_config->serializer, &ready_cb)) ready_cb.wait();
+        &dynamic_config->serializer_private[i],
+        &static_config->serializer);
 }
 
 void create_existing_serializer(
@@ -33,18 +23,9 @@ void create_existing_serializer(
 
     /* Go to an appropriate thread to run the serializer on */
     on_thread_t thread_switcher(i % get_num_db_threads());
-
-    /* Create the serializer */
     serializers[i] = new standard_serializer_t(
         &dynamic_config->serializer,
         &dynamic_config->serializer_private[i]);
-
-    /* Start the serializer up */
-    struct : public standard_serializer_t::ready_callback_t, public cond_t {
-        void on_serializer_ready(standard_serializer_t *) { pulse(); }
-    } ready_cb;
-
-    if (!serializers[i]->start_existing(&ready_cb)) ready_cb.wait();
 }
 
 void prep_for_btree(
@@ -54,35 +35,29 @@ void prep_for_btree(
         int i) {
 
     on_thread_t thread_switcher(i % get_num_db_threads());
-
     btree_slice_t::create(pseudoserializers[i], dynamic_config, static_config);
 }
 
-void destroy_serializer(
-        standard_serializer_t **serializers,
-        int i) {
-
+void destroy_serializer(standard_serializer_t **serializers, int i) {
     on_thread_t thread_switcher(serializers[i]->home_thread);
-
-    struct : public standard_serializer_t::shutdown_callback_t, public cond_t {
-        void on_serializer_shutdown(standard_serializer_t *) { pulse(); }
-    } shutdown_cb;
-    if (!serializers[i]->shutdown(&shutdown_cb)) shutdown_cb.wait();
-
     delete serializers[i];
 }
 
 void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dynamic_config,
                                      btree_key_value_store_static_config_t *static_config) {
 
-    /* Create serializers */
     int n_files = dynamic_config->serializer_private.size();
     rassert(n_files > 0);
     rassert(n_files <= MAX_SERIALIZERS);
 
+    /* Wipe out contents of files and initialize with an empty serializer */
+    pmap(n_files, boost::bind(&prep_for_serializer,
+        dynamic_config, static_config, _1));
+
+    /* Create serializers so we can initialize their contents */
     standard_serializer_t *serializers[n_files];
-    pmap(n_files, boost::bind(&create_new_serializer,
-        dynamic_config, static_config, serializers, _1));
+    pmap(n_files, boost::bind(&create_existing_serializer,
+        dynamic_config, serializers, _1));
 
     {
         /* Prepare serializers for multiplexing */
