@@ -224,15 +224,17 @@ void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *rece
     coro_t::spawn(boost::bind(&message_parser_t::do_parse_messages, this, conn, receiver));
 }
 
-bool message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
+void message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
     debugf("Calling for shutdown!.. keep_going is %s\n", keep_going ? "true" : "false");
-    if (!keep_going) return true;
-    shutdown_asked_for = true;
+    if (!keep_going) {
+        cb->on_parser_shutdown();
+    } else {
+        shutdown_asked_for = true;
+        _cb = cb;
 
-    _cb = cb;
-    debugf("Setting keep_going to false.\n");
-    keep_going = false;
-    return false;
+        debugf("Setting keep_going to false.\n");
+        keep_going = false;
+    }
 }
 
 
@@ -244,9 +246,8 @@ void message_parser_t::co_shutdown() {
         }
     } cb;
 
-    if (!shutdown(&cb)) {
-        cb.cond.wait();
-    }
+    shutdown(&cb);
+    cb.cond.wait();
 }
 
 }  // namespace replication

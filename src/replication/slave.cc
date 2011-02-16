@@ -40,15 +40,10 @@ slave_t::~slave_t() {
 }
 
 void slave_t::kill_conn() {
-    struct : public message_parser_t::message_parser_shutdown_callback_t, public cond_t {
-            void on_parser_shutdown() { pulse(); }
-    } parser_shutdown_cb;
-
     {
         on_thread_t thread_switch(home_thread);
 
-        if (!parser_.shutdown(&parser_shutdown_cb))
-            parser_shutdown_cb.wait();
+        parser_.co_shutdown();
     }
 
     {
@@ -261,15 +256,16 @@ void run(slave_t *slave) {
             //Presumably if the master doesn't even accept an initial
             //connection then this is a user error rather than some sort of
             //failure
-            if (first_connect)
-                crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up yet. But what do I know, I'm just a database.\n", slave->replication_config_.hostname, slave->replication_config_.port); 
+            if (first_connect) {
+                crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up yet. But what do I know, I'm just a database.\n", slave->replication_config_.hostname, slave->replication_config_.port);
+            }
         }
 
         /* The connection has failed. Let's see what we should do */
         if (!slave->give_up_.give_up()) {
             slave->reconnection_timer_token_ = fire_timer_once(slave->timeout_, &slave_t::reconnect_timer_callback, slave);
 
-            slave->timeout_ = std::min(slave->timeout_ * TIMEOUT_GROWTH_FACTOR, TIMEOUT_CAP);
+            slave->timeout_ = std::min(slave->timeout_ * TIMEOUT_GROWTH_FACTOR, (long)TIMEOUT_CAP);
 
             coro_t::wait(); //waiting on a timer
             slave->reconnection_timer_token_ = NULL;

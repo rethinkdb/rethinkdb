@@ -64,7 +64,7 @@ public:
     protected:
         ~message_parser_shutdown_callback_t() { }
     };
-    bool shutdown(message_parser_shutdown_callback_t *cb);
+    void shutdown(message_parser_shutdown_callback_t *cb);
 
     void co_shutdown();
 
