@@ -40,7 +40,7 @@ Quick start guide
 
 Install RethinkDB from http://rethinkdb.com/zWef3q/download/.
 
-Start it::
+Start it [#trial-binary]_::
 
   $ rethinkdb
 
@@ -532,4 +532,6 @@ an issue, please try to include the following pieces of information:
   and are placed into the directory where the server was run. If you do
   not see a core dump file, you may need to enable core dumps by
   running the ``ulimit -c unlimited`` command.
+
+.. [#trial-binary] If you're using the trial version of the server, the executable will be named ``rethinkdb-trial``, so be sure to adjust the command-lines accordingly.
 
