@@ -96,7 +96,7 @@ private:
         void reset();
     private:
         void limit_to(unsigned int limit);
-        std::queue<float> succesful_reconnects;
+        std::queue<float> successful_reconnects;
     };
 
     /* Failover controllers */
@@ -129,6 +129,9 @@ private:
 
     void kill_conn();
 
+
+    // This is too complicated.
+
     give_up_t give_up_;
 
     /* Other failover callbacks */
@@ -138,7 +141,7 @@ private:
     bool respond_to_queries_; /* are we responding to queries */
     long timeout_; /* ms to wait before trying to reconnect */
 
-    timer_token_t *timer_token_;
+    timer_token_t *reconnection_timer_token_;
 
     failover_reset_control_t failover_reset_control_;
 
@@ -153,8 +156,6 @@ private:
     tcp_conn_t *conn_;
     message_parser_t parser_;
     bool shutting_down_;
-
-
 };
 
 void run(slave_t *); //TODO make this static and private

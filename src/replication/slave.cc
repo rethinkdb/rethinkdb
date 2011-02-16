@@ -16,7 +16,7 @@ namespace replication {
 slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t replication_config, failover_config_t failover_config)
     : failover_script_(failover_config.failover_script_path),
       timeout_(INITIAL_TIMEOUT),
-      timer_token_(NULL),
+      reconnection_timer_token_(NULL),
       failover_reset_control_(std::string("failover reset"), this),
       new_master_control_(std::string("new master"), this),
       internal_store_(internal_store),
@@ -34,8 +34,8 @@ slave_t::~slave_t() {
     kill_conn();
 
     /* cancel the timer */
-    if (timer_token_) {
-        cancel_timer(timer_token_);
+    if (reconnection_timer_token_) {
+        cancel_timer(reconnection_timer_token_);
     }
 }
 
@@ -51,7 +51,7 @@ void slave_t::kill_conn() {
             parser_shutdown_cb.wait();
     }
 
-    { //on_thread_t scope
+    {
         on_thread_t thread_switch(get_num_threads() - 2);
 
         delete conn_;
@@ -100,19 +100,20 @@ delete_result_t slave_t::delete_key(const store_key_t &key) {
 }
 
 std::string slave_t::failover_reset() {
+    // TODO don't say get_num_threads() - 2, what does this mean?
     on_thread_t thread_switch(get_num_threads() - 2);
     give_up_.reset();
     timeout_ = INITIAL_TIMEOUT;
 
-    if (timer_token_) {
-        cancel_timer(timer_token_);
-        timer_token_ = NULL;
+    if (reconnection_timer_token_) {
+        cancel_timer(reconnection_timer_token_);
+        reconnection_timer_token_ = NULL;
     }
 
     if (conn_) kill_conn(); //this will cause a notify
     else coro_->notify();
 
-    return std::string("Reseting failover\n");
+    return std::string("Resetting failover\n");
 }
 
  /* message_callback_t interface */
@@ -188,7 +189,7 @@ void slave_t::conn_closed() {
 
 /* failover driving functions */
 void slave_t::reconnect_timer_callback(void *ctx) {
-    slave_t *self = static_cast<slave_t*>(ctx);
+    slave_t *self = static_cast<slave_t *>(ctx);
     self->coro_->notify();
 }
 
@@ -196,14 +197,14 @@ void slave_t::reconnect_timer_callback(void *ctx) {
  * the server failed. If it's failing to frequently then it will tell us to
  * give up on the server and stop trying to reconnect */
 void slave_t::give_up_t::on_reconnect() {
-    succesful_reconnects.push(ticks_to_secs(get_ticks()));
+    successful_reconnects.push(ticks_to_secs(get_ticks()));
     limit_to(MAX_RECONNECTS_PER_N_SECONDS);
 }
 
 bool slave_t::give_up_t::give_up() {
     limit_to(MAX_RECONNECTS_PER_N_SECONDS);
 
-    return (succesful_reconnects.size() == MAX_RECONNECTS_PER_N_SECONDS && (succesful_reconnects.back() - ticks_to_secs(get_ticks())) < N_SECONDS);
+    return (successful_reconnects.size() == MAX_RECONNECTS_PER_N_SECONDS && (successful_reconnects.back() - ticks_to_secs(get_ticks())) < N_SECONDS);
 }
 
 void slave_t::give_up_t::reset() {
@@ -211,8 +212,8 @@ void slave_t::give_up_t::reset() {
 }
 
 void slave_t::give_up_t::limit_to(unsigned int limit) {
-    while (succesful_reconnects.size() > limit)
-        succesful_reconnects.pop();
+    while (successful_reconnects.size() > limit)
+        successful_reconnects.pop();
 }
 
 /* failover callback */
@@ -241,16 +242,20 @@ void run(slave_t *slave) {
 
             slave->parser_.parse_messages(slave->conn_, slave);
             if (!first_connect) {
-                // Call on_resume if we've failed before.
                 slave->failover.on_resume();
             }
             first_connect = false;
             logINF("Connected as slave to: %s:%d\n", slave->replication_config_.hostname, slave->replication_config_.port);
 
 
-            coro_t::wait(); //wait for things to fail
+            // wait for things to fail
+            coro_t::wait();
+
             slave->failover.on_failure();
-            if (slave->shutting_down_) break;
+
+            if (slave->shutting_down_) {
+                break;
+            }
 
         } catch (tcp_conn_t::connect_failed_exc_t& e) {
             //Presumably if the master doesn't even accept an initial
@@ -260,21 +265,20 @@ void run(slave_t *slave) {
                 crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up yet. But what do I know, I'm just a database.\n", slave->replication_config_.hostname, slave->replication_config_.port); 
         }
 
-        /* The connection has failed. Let's see what se should do */
+        /* The connection has failed. Let's see what we should do */
         if (!slave->give_up_.give_up()) {
-            slave->timer_token_ = fire_timer_once(slave->timeout_, &slave->reconnect_timer_callback, slave);
+            slave->reconnection_timer_token_ = fire_timer_once(slave->timeout_, &slave_t::reconnect_timer_callback, slave);
 
-            slave->timeout_ *= TIMEOUT_GROWTH_FACTOR;
-            if (slave->timeout_ > TIMEOUT_CAP) slave->timeout_ = TIMEOUT_CAP;
+            slave->timeout_ = std::min(slave->timeout_ * TIMEOUT_GROWTH_FACTOR, TIMEOUT_CAP);
 
             coro_t::wait(); //waiting on a timer
-            slave->timer_token_ = NULL;
+            slave->reconnection_timer_token_ = NULL;
         } else {
-            logINF("Master at %s:%d has failed %d times in the last %d seconds," \
-                    "going rogue. To resume slave behavior send the command" \
-                    "\"rethinkdb failover reset\" (over telnet).\n",
-                    slave->replication_config_.hostname, slave->replication_config_.port,
-                    MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS); 
+            logINF("Master at %s:%d has failed %d times in the last %d seconds, "
+                   "going rogue. To resume slave behavior send the command "
+                   "\"rethinkdb failover reset\" (over telnet).\n",
+                   slave->replication_config_.hostname, slave->replication_config_.port,
+                   MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS);
             coro_t::wait(); //the only thing that can save us now is a reset
         }
     }
@@ -290,7 +294,7 @@ std::string slave_t::new_master(std::string args) {
     replication_config_.port = atoi(strip_spaces(args.substr(args.find(' ') + 1)).c_str()); //TODO this is ugly
 
     failover_reset();
-    
+
     return std::string("New master set\n");
 }
 

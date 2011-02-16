@@ -20,6 +20,15 @@ public:
 };
 
 
+// master_t is a class that manages a connection to a slave.  It
+// behaves somewhat like a set_store_t, in fact maybe it actually
+// obeys the set_store_t interface.  Right now it is like a
+// set_store_t that sends data to the slave.  You must send the
+// messages on the master_t's thread.  Use a
+// buffer_borrowing_data_provider_t whose side thread is the master's
+// home_thread, and then send its side_data_provider_t to the
+// master_t using spawn_on_thread.
+
 class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t, public message_callback_t, public snag_pointee_mixin_t {
 public:
     master_t() : message_contiguity_(), slave_(NULL), sources_(), listener_(REPLICATION_PORT) {
