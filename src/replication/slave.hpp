@@ -45,10 +45,6 @@ public:
     slave_t(btree_key_value_store_t *, replication_config_t, failover_config_t);
     ~slave_t();
 
-    /* failover module which is alerted by an on_failure() call when we go out
-     * of contact with the master */
-    failover_t failover;
-
     /* set_store_interface_t interface. This interface will not work properly for anything until
     we fail over. */
 
@@ -78,6 +74,10 @@ public:
     void send(buffed_data_t<net_goodbye_t>& message);
     void conn_closed();
 
+    /* failover module which is alerted by an on_failure() call when we go out
+     * of contact with the master */
+    failover_t failover;
+
 private:
     friend class failover_t;
 
@@ -85,15 +85,8 @@ private:
     void on_failure();
     void on_resume();
 
-    /* Other failover callbacks */
-    failover_script_callback_t failover_script_;
-
-    /* state for failover */
-    bool respond_to_queries_; /* are we responding to queries */
-    long timeout_; /* ms to wait before trying to reconnect */
 
     static void reconnect_timer_callback(void *ctx);
-    timer_token_t *timer_token_;
 
     /* structure to tell us when to give up on the master */
     class give_up_t {
@@ -104,7 +97,7 @@ private:
     private:
         void limit_to(unsigned int limit);
         std::queue<float> succesful_reconnects;
-    } give_up_;
+    };
 
     /* Failover controllers */
 
@@ -120,7 +113,6 @@ private:
     private:
         slave_t *slave;
     };
-    failover_reset_control_t failover_reset_control_;
 
     /* Control to allow the master to be changed during run time */
     std::string new_master(std::string args);
@@ -134,9 +126,25 @@ private:
     private:
         slave_t *slave;
     };
-    new_master_control_t new_master_control_;
 
     void kill_conn();
+
+    give_up_t give_up_;
+
+    /* Other failover callbacks */
+    failover_script_callback_t failover_script_;
+
+    /* state for failover */
+    bool respond_to_queries_; /* are we responding to queries */
+    long timeout_; /* ms to wait before trying to reconnect */
+
+    timer_token_t *timer_token_;
+
+    failover_reset_control_t failover_reset_control_;
+
+
+    new_master_control_t new_master_control_;
+
     coro_t *coro_;
 
     btree_key_value_store_t *internal_store_;
