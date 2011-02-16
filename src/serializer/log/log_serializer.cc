@@ -7,83 +7,32 @@
 
 const block_magic_t log_serializer_t::zerobuf_magic = { { 'z', 'e', 'r', 'o' } };
 
-log_serializer_t::log_serializer_t(dynamic_config_t *config, private_dynamic_config_t *private_dynamic_config)
-    : dynamic_config(config),
-      private_config(private_dynamic_config),
-      shutdown_callback(NULL),
-      state(state_unstarted),
-      db_path(private_dynamic_config->db_filename.c_str()),
-      dbfile(NULL),
-      extent_manager(NULL),
-      metablock_manager(NULL),
-      lba_index(NULL),
-      data_block_manager(NULL),
-      last_write(NULL),
-      active_write_count(0) {
-}
+void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, static_config_t *static_config) {
 
-log_serializer_t::~log_serializer_t() {
-    rassert(state == state_unstarted || state == state_shut_down);
-    rassert(last_write == NULL);
-    rassert(active_write_count == 0);
-}
+    direct_file_t df(private_dynamic_config->db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create);
 
-void ls_check_existing(const char *filename, log_serializer_t::check_callback_t *cb) {
-    direct_file_t df(filename, file_t::mode_read);
-    cb->on_serializer_check(static_header_check(&df));
-}
+    co_static_header_write(&df, static_config, sizeof(*static_config));
 
-void log_serializer_t::check_existing(const char *filename, check_callback_t *cb) {
-    coro_t::spawn(boost::bind(ls_check_existing, filename, cb));
+    metablock_t metablock;
+    bzero(&metablock, sizeof(metablock));
+
+    /* The extent manager's portion of the metablock includes a number indicating how many extents
+    are in use. We have to initialize that to the actual number of extents in use for an empty
+    database, which is the same as the number of metablock extents. */
+    extent_manager_t::prepare_initial_metablock(&metablock.extent_manager_part, MB_NEXTENTS);
+
+    data_block_manager_t::prepare_initial_metablock(&metablock.data_block_manager_part);
+    lba_index_t::prepare_initial_metablock(&metablock.lba_index_part);
+
+    metablock.transaction_id = FIRST_SER_TRANSACTION_ID;
+
+    mb_manager_t::create(&df, static_config->extent_size(), &metablock);
 }
 
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is not
 necessary, because there is only ever one startup process for each serializer; the serializer could
 handle its own startup process. It is done this way to make it clear which parts of the serializer
-are involved in startup and which parts are not. */
-
-void log_serializer_t::ls_start_new(static_config_t *config, ready_callback_t *ready_cb) {
-    rassert(state == log_serializer_t::state_unstarted);
-    state = log_serializer_t::state_starting_up;
-    static_config = *config;
-    dbfile = new direct_file_t(db_path, file_t::mode_read | file_t::mode_write | file_t::mode_create);
-    co_static_header_write(dbfile, &static_config, sizeof(static_config));
-    
-    log_serializer_t::metablock_t metablock_buffer;
-    extent_manager = new extent_manager_t(dbfile, &static_config, dynamic_config);
-    extent_manager->reserve_extent(0);   /* For static header */
-   
-    metablock_manager = new mb_manager_t(extent_manager);
-    lba_index = new lba_index_t(extent_manager);
-    data_block_manager = new data_block_manager_t(this, dynamic_config, extent_manager, &static_config);
-    
-    metablock_manager->start_new(dbfile);
-    lba_index->start_new(dbfile);
-    data_block_manager->start_new(dbfile);
-    
-    extent_manager->start_new();
-
-    current_transaction_id = FIRST_SER_TRANSACTION_ID;
-
-#ifndef NDEBUG
-    prepare_metablock(&debug_mb_buffer);
-#endif
-    prepare_metablock(&metablock_buffer);
-    
-    metablock_manager->co_write_metablock(&metablock_buffer);
-    
-    rassert(state == log_serializer_t::state_starting_up);
-    state = log_serializer_t::state_ready;
-
-    ready_cb->on_serializer_ready(this);
-};
-
-bool log_serializer_t::start_new(static_config_t *config, ready_callback_t *ready_cb) {
-    rassert(state == state_unstarted);
-    assert_thread();
-    coro_t::spawn(boost::bind(&log_serializer_t::ls_start_new, this, config, ready_cb));
-    return false;
-}
+are involved in startup and which parts are not. TODO: Coroutines. */
 
 struct ls_start_existing_fsm_t :
     public static_header_read_callback_t,
@@ -97,7 +46,7 @@ struct ls_start_existing_fsm_t :
     ~ls_start_existing_fsm_t() {
     }
     
-    bool run(log_serializer_t::ready_callback_t *ready_cb) {
+    bool run(cond_t *to_signal) {
         rassert(state == state_start);
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
@@ -105,11 +54,11 @@ struct ls_start_existing_fsm_t :
         ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write);
         
         state = state_read_static_header;
-        ready_callback = NULL;
+        to_signal_when_done = NULL;
         if (next_starting_up_step()) {
             return true;
         } else {
-            ready_callback = ready_cb;
+            to_signal_when_done = to_signal;
             return false;
         }
     }
@@ -177,8 +126,6 @@ struct ls_start_existing_fsm_t :
             state = state_done;
             rassert(ser->state == log_serializer_t::state_starting_up);
             ser->state = log_serializer_t::state_ready;
-            if(ready_callback)
-                ready_callback->on_serializer_ready(ser);
 
 #ifndef NDEBUG
             {
@@ -189,7 +136,8 @@ struct ls_start_existing_fsm_t :
                 rassert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
             }
 #endif
-   
+            if (to_signal_when_done) to_signal_when_done->pulse();
+
             delete this;
             return true;
         }
@@ -216,7 +164,7 @@ struct ls_start_existing_fsm_t :
     }
     
     log_serializer_t *ser;
-    log_serializer_t::ready_callback_t *ready_callback;
+    cond_t *to_signal_when_done;
     
     enum state_t {
         state_start,
@@ -235,12 +183,43 @@ struct ls_start_existing_fsm_t :
     log_serializer_t::metablock_t metablock_buffer;
 };
 
-bool log_serializer_t::start_existing(ready_callback_t *ready_cb) {
-    rassert(state == state_unstarted);
-    assert_thread();
-    
+log_serializer_t::log_serializer_t(dynamic_config_t *config, private_dynamic_config_t *private_dynamic_config)
+    : dynamic_config(config),
+      private_config(private_dynamic_config),
+      shutdown_callback(NULL),
+      state(state_unstarted),
+      db_path(private_dynamic_config->db_filename.c_str()),
+      dbfile(NULL),
+      extent_manager(NULL),
+      metablock_manager(NULL),
+      lba_index(NULL),
+      data_block_manager(NULL),
+      last_write(NULL),
+      active_write_count(0) {
+
+    /* This is because the serializer is not completely converted to coroutines yet. */
     ls_start_existing_fsm_t *s = new ls_start_existing_fsm_t(this);
-    return s->run(ready_cb);
+    cond_t cond;
+    if (!s->run(&cond)) cond.wait();
+}
+
+log_serializer_t::~log_serializer_t() {
+
+    cond_t cond;
+    if (!shutdown(&cond)) cond.wait();
+
+    rassert(state == state_unstarted || state == state_shut_down);
+    rassert(last_write == NULL);
+    rassert(active_write_count == 0);
+}
+
+void ls_check_existing(const char *filename, log_serializer_t::check_callback_t *cb) {
+    direct_file_t df(filename, file_t::mode_read);
+    cb->on_serializer_check(static_header_check(&df));
+}
+
+void log_serializer_t::check_existing(const char *filename, check_callback_t *cb) {
+    coro_t::spawn(boost::bind(ls_check_existing, filename, cb));
 }
 
 void *log_serializer_t::malloc() {
@@ -694,7 +673,7 @@ repli_timestamp log_serializer_t::get_recency(ser_block_id_t id) {
     return lba_index->get_block_recency(id);
 }
 
-bool log_serializer_t::shutdown(shutdown_callback_t *cb) {
+bool log_serializer_t::shutdown(cond_t *cb) {
     rassert(cb);
     rassert(state == state_ready);
     assert_thread();
@@ -759,9 +738,7 @@ bool log_serializer_t::next_shutdown_step() {
 
         // Don't call the callback if we went through the entire
         // shutdown process in one synchronous shot.
-        if (!shutdown_in_one_shot && shutdown_callback) {
-            do_later(boost::bind(&shutdown_callback_t::on_serializer_shutdown, shutdown_callback, this));
-        }
+        if (!shutdown_in_one_shot && shutdown_callback) shutdown_callback->pulse();
 
         return true;
     }

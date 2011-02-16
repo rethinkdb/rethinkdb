@@ -11,6 +11,7 @@
 #include "serializer/serializer.hpp"
 #include "server/cmd_args.hpp"
 #include "utils.hpp"
+#include "concurrency/cond_var.hpp"
 
 #include "metablock/metablock_manager.hpp"
 #include "extents/extent_manager.hpp"
@@ -67,26 +68,22 @@ public:
     static_config_t static_config;
 
 public:
+
+    /* Blocks. Does not check for an existing database--use check_existing for that. */
+    static void create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, static_config_t *static_config);
+
+    /* Blocks. */
     log_serializer_t(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config);
+
+    /* Blocks. */
     virtual ~log_serializer_t();
 
+    /* TODO Make this block too instead of using a callback */
     struct check_callback_t {
         virtual void on_serializer_check(bool is_existing) = 0;
         virtual ~check_callback_t() {}
     };
     static void check_existing(const char *filename, check_callback_t *cb);
-
-    /* start_new() or start_existing() must be called before the serializer can be used. If
-    start_new() is called, a new database will be created. If start_existing() is called, the
-    serializer will read from an existing database. */
-    struct ready_callback_t {
-        virtual void on_serializer_ready(log_serializer_t *) = 0;
-        virtual ~ready_callback_t() {}
-    };
-    bool start_new(static_config_t *static_config, ready_callback_t *ready_cb);
-    bool start_existing(ready_callback_t *ready_cb);
-private:
-    void ls_start_new(static_config_t *, ready_callback_t *);
 
 public:
     /* Implementation of the serializer_t API */
@@ -102,19 +99,11 @@ public:
     bool block_in_use(ser_block_id_t id);
     repli_timestamp get_recency(ser_block_id_t id);
 
-    /* shutdown() should be called when you are done with the serializer.
-    
-    If the shutdown is done immediately, shutdown() will return 'true'. Otherwise, it will return
-    'false' and then call the given callback when the shutdown is done. */
-    struct shutdown_callback_t {
-        virtual void on_serializer_shutdown(log_serializer_t *) = 0;
-        virtual ~shutdown_callback_t() {}
-    };
-    bool shutdown(shutdown_callback_t *cb);
-
 private:
+    /* This mess is because the serializer is still mostly FSM-based */
+    bool shutdown(cond_t *cb);
     bool next_shutdown_step();
-    shutdown_callback_t *shutdown_callback;
+    cond_t *shutdown_callback;
     
     enum shutdown_state_t {
         shutdown_begin,

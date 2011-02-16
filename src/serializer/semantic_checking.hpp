@@ -19,9 +19,7 @@ the log serializer. */
 
 template<class inner_serializer_t>
 class semantic_checking_serializer_t :
-    public serializer_t,
-    private inner_serializer_t::ready_callback_t,
-    private inner_serializer_t::shutdown_callback_t
+    public serializer_t
 {
 private:
     inner_serializer_t inner_serializer;
@@ -66,6 +64,11 @@ public:
     typedef typename inner_serializer_t::static_config_t static_config_t;
 
 public:
+
+    static void create(dynamic_config_t *config, private_dynamic_config_t *private_config, static_config_t *static_config) {
+        inner_serializer_t::create(config, private_config, static_config);
+    }
+
     semantic_checking_serializer_t(dynamic_config_t *config, private_dynamic_config_t *private_config)
         : inner_serializer(config, private_config),
           last_write_started(0), last_write_callbacked(0),
@@ -75,47 +78,26 @@ public:
                 O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
             if (semantic_fd == INVALID_FD)
                 fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", private_config->semantic_filename.c_str(), strerror(errno));
+
+            // fill up the blocks from the semantic checking file
+            int res = -1;
+            do {
+                persisted_block_info_t buf;
+                res = read(semantic_fd, &buf, sizeof(buf));
+                guarantee_err(res != -1, "Could not read from the semantic checker file");
+                if(res == sizeof(persisted_block_info_t)) {
+                    blocks.set(buf.block_id.value, buf.block_info);
+                }
+            } while(res == sizeof(persisted_block_info_t));
         }
 
-    virtual ~semantic_checking_serializer_t() {
+    ~semantic_checking_serializer_t() {
         close(semantic_fd);
     }
 
     typedef typename inner_serializer_t::check_callback_t check_callback_t;
     static void check_existing(const char *db_path, check_callback_t *cb) {
         inner_serializer_t::check_existing(db_path, cb);
-    }
-
-public:
-    struct ready_callback_t {
-        virtual void on_serializer_ready(semantic_checking_serializer_t *) = 0;
-        virtual ~ready_callback_t() {}
-    };
-
-    bool start_new(static_config_t *config, ready_callback_t *cb) {
-        ready_callback = cb;
-        return inner_serializer.start_new(config, this);
-    }
-
-    bool start_existing(ready_callback_t *cb) {
-        // fill up the blocks from the semantic checking file
-        int res = -1;
-        do {
-            persisted_block_info_t buf;
-            res = read(semantic_fd, &buf, sizeof(buf));
-            guarantee_err(res != -1, "Could not read from the semantic checker file");
-            if(res == sizeof(persisted_block_info_t)) {
-                blocks.set(buf.block_id.value, buf.block_info);
-            }
-        } while(res == sizeof(persisted_block_info_t));
-
-        ready_callback = cb;
-        return inner_serializer.start_existing(this);
-    }
-private:
-    ready_callback_t *ready_callback;
-    void on_serializer_ready(inner_serializer_t *ser) {
-        if (ready_callback) ready_callback->on_serializer_ready(this);
     }
 
 public:

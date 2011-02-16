@@ -27,11 +27,7 @@ public:
     ~lba_list_t();
 
 public:
-    /* When initializing the database from scratch, call start() with just the database FD. When
-    restarting an existing database, call start() with the last metablock. The first form returns
-    immediately; the second form might not. */
-    
-    void start_new(direct_file_t *dbfile);
+    static void prepare_initial_metablock(metablock_mixin_t *mb);
     
     struct ready_callback_t {
         virtual void on_lba_ready() = 0;

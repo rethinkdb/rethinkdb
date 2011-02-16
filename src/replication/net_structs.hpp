@@ -28,7 +28,7 @@ struct net_hello_t {
     char hello_magic[16];
     uint32_t replication_protocol_version;
     uint32_t role;
-    multiplexer_magic_t database_magic;
+    creation_timestamp_t database_creation_timestamp;
     char informal_name[32];
 } __attribute__((__packed__));
 

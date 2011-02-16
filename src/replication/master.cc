@@ -16,7 +16,7 @@ void master_t::send_hello(const mutex_acquisition_t& proof_of_acquisition) {
     msg.replication_protocol_version = 1;
     msg.role = role_master;
     // TODO have this use actual database_magic!  Or die!
-    msg.database_magic = 0;
+    msg.database_creation_timestamp = 0;
     rassert(sizeof(msg.informal_name) == 32);
     // TODO possibly have a user configurable name.  Or decide not to.
     char informal_name[32] = "master";

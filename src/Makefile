@@ -17,6 +17,7 @@ mandir=$(prefix)/share/man
 man1dir=$(mandir)/man1
 bashcompletiondir=/etc/bash_completion.d
 
+PRODUCT_NAME:=RethinkDB Cache
 SERVER_EXEC_NAME:=rethinkdb
 SERVER_UNIT_TEST_NAME:=rethinkdb-unittest
 
@@ -41,6 +42,7 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
+TIMEBOMB?=0
 
 # Choose our directories
 # This makefile is meant to be run from the 'src' directory.
@@ -64,6 +66,9 @@ LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
 STATIC_LIBRARIES:=
 
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
+
+CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
+
 ifeq ($(UNIT_TESTS),0)
 CXXFLAGS+=-Wswitch-default
 endif
@@ -83,6 +88,12 @@ else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
 CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
+endif
+
+ifneq ($(TIMEBOMB),0)
+CXXFLAGS+=-DTIMEBOMB_DAYS=$(TIMEBOMB)
+SERVER_EXEC_NAME:=$(SERVER_EXEC_NAME)-trial
+BUILD_DIR:=$(BUILD_DIR)-trial
 endif
 
 ifeq (${STATIC_LIBGCC},1)
@@ -192,6 +203,9 @@ SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
 #### Version number handling
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
+ifneq ($(TIMEBOMB),0)
+RETHINKDB_VERSION:=$(RETHINKDB_VERSION)-trial
+endif
 RETHINKDB_PACKAGING_VERSION?=$(RETHINKDB_VERSION)
 CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 
@@ -313,6 +327,7 @@ build-rpm: all prepare_rpm_package_dirs
 	$(QUIET) sed 																				\
 			-e "s/VERSION/$(RETHINKDB_VERSION_RPM)/"				\
 			-e "s:TOPDIR:$(realpath $(RPM_PACKAGE_DIR)):"		\
+			-e "s:SERVER_EXEC_NAME:$(SERVER_EXEC_NAME):"		\
 		../packaging/rpm.spec >$(RPM_SPEC_FILE)
 
 # Copy files to their correct places

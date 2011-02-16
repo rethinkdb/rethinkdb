@@ -71,7 +71,7 @@ public:
 
 
 public:
-    void start_new(direct_file_t *dbfile);
+    static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 
 public:
