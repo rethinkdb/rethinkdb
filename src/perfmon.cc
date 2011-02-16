@@ -1,6 +1,7 @@
 #include "perfmon.hpp"
 #include "arch/arch.hpp"
 #include "utils.hpp"
+#include "concurrency/spinlock.hpp"
 #include <stdarg.h>
 
 /* The var list keeps track of all of the perfmon_t objects. */
@@ -13,29 +14,6 @@ intrusive_list_t<perfmon_t> &get_var_list() {
     static intrusive_list_t<perfmon_t> var_list;
     return var_list;
 }
-
-/* Class that wraps a pthread spinlock.
-
-TODO: This should live in the arch/ directory. */
-
-class spinlock_t {
-    pthread_spinlock_t l;
-public:
-    spinlock_t() {
-        pthread_spin_init(&l, PTHREAD_PROCESS_PRIVATE);
-    }
-    ~spinlock_t() {
-        pthread_spin_destroy(&l);
-    }
-    void lock() {
-        int res = pthread_spin_lock(&l);
-        guarantee_err(res == 0, "could not lock spin lock");
-    }
-    void unlock() {
-        int res = pthread_spin_unlock(&l);
-        guarantee_err(res == 0, "could not unlock spin lock");
-    }
-};
 
 /* The var lock protects the var list when it is being modified. In theory, this should all work
 automagically because the constructor of every perfmon_t calls get_var_lock(), causing the var lock

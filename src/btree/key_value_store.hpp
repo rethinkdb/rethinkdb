@@ -148,7 +148,7 @@ public:
     bool start(ready_callback_t *cb);
     
     void create_serializers();      // Called on home thread
-    uint32_t creation_timestamp;    // Used in start-new mode
+    time_t creation_timestamp;    // Used in start-new mode
     uint32_t serializer_creation_timestamps[MAX_SERIALIZERS];   // Used in start-existing mode
     bool have_created_a_serializer();   // Called on home thread
     
