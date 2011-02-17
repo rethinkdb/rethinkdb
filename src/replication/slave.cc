@@ -43,7 +43,11 @@ void slave_t::kill_conn() {
     {
         on_thread_t thread_switch(home_thread);
 
+        debugf("Calling parser_.co_shutdown.\n");
+
         parser_.co_shutdown();
+
+        debugf("parser_.co_shutdown has returned.\n");
     }
 
     {

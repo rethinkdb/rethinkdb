@@ -175,9 +175,17 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
     size_t offset = 0;
     size_t num_read = 0;
 
-    debugf("Setting keep_going to true.\n");
-    keep_going = true;
-    while (keep_going) {
+    debugf("Setting is_live to true.\n");
+    is_live = true;
+
+    struct mark_unlive {
+        bool *p;
+        ~mark_unlive() { *p = false; }
+    } marker;
+
+    marker.p = &is_live;
+
+    while (is_live) {
         // Try handling the message.
         size_t handled = handle_message(receiver, weak_buf_t(shared_buf), offset, num_read, streams);
         if (handled > 0) {
@@ -196,10 +204,11 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
         }
     }
 
-    debugf("We exited the loop, keep_going is %s\n", keep_going ? "true" : "false");
     /* we only get out of this loop when we've been shutdown, if the connection
      * closes then we catch an exception and never reach here */
     _cb->on_parser_shutdown();
+
+    // marker destructor sets is_live to false
 }
 
 
@@ -221,19 +230,21 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
 }
 
 void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+    rassert(!is_live);
+
     coro_t::spawn(boost::bind(&message_parser_t::do_parse_messages, this, conn, receiver));
 }
 
 void message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
-    debugf("Calling for shutdown!.. keep_going is %s\n", keep_going ? "true" : "false");
-    if (!keep_going) {
+    debugf("Calling for shutdown!.. is_live is %s\n", is_live ? "true" : "false");
+    if (!is_live) {
         cb->on_parser_shutdown();
     } else {
         shutdown_asked_for = true;
         _cb = cb;
 
-        debugf("Setting keep_going to false.\n");
-        keep_going = false;
+        debugf("Setting is_live to false.\n");
+        is_live = false;
     }
 }
 

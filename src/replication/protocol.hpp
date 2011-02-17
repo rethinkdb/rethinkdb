@@ -54,7 +54,7 @@ typedef thick_list<std::pair<boost::function<void ()>, std::pair<char *, size_t>
 
 class message_parser_t {
 public:
-    message_parser_t() : shutdown_asked_for(false) {}
+    message_parser_t() : shutdown_asked_for(false), is_live(false) {}
     ~message_parser_t() {}
 
     void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
@@ -73,8 +73,8 @@ private:
     void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
     void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams);
 
-    bool keep_going; /* used to signal the parser when to stop */
     bool shutdown_asked_for; /* were we asked to shutdown (used to ignore connection exceptions */
+    bool is_live; /* used to signal the parser when to stop, tells whether it needs to shut down */
 
     message_parser_shutdown_callback_t *_cb;
 

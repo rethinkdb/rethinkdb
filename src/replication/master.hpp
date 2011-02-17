@@ -12,7 +12,7 @@
 namespace replication {
 
 // TODO: Consider a good value for this port.
-const int REPLICATION_PORT = 11212;
+const int REPLICATION_PORT = 11319;
 
 class master_exc_t : public std::runtime_error {
 public:
