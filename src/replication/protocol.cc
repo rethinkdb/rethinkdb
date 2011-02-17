@@ -200,7 +200,9 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
                 shared_buf.swap(new_shared_buf);
             }
 
+            debugf("reading... with num_read = %zu\n", num_read);
             num_read += conn->read_some(shared_buf.get() + offset + num_read, shbuf_size - (offset + num_read));
+            debugf("done read... with num_read = %zu\n", num_read);
         }
     }
 
@@ -230,9 +232,13 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
 }
 
 void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+    debugf("in parse_messages. is_live is %d\n", is_live);
+
     rassert(!is_live);
 
     coro_t::spawn(boost::bind(&message_parser_t::do_parse_messages, this, conn, receiver));
+
+    debugf("spawned do_parse_messages coroutine\n");
 }
 
 void message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
@@ -274,9 +280,11 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         hdr.msgcode = msgcode;
         hdr.msgsize = sizeof(net_header_t) + obsize;
 
+        debugf("writing.\n");
         mutex_acquisition_t ak(&outgoing_mutex_);
         conn_->write(&hdr, sizeof(net_header_t));
         conn_->write(msg, obsize);
+        debugf("wrote msg.\n");
     } else {
         net_multipart_header_t hdr;
         hdr.message_multipart_aspect = FIRST;

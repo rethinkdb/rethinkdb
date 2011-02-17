@@ -87,6 +87,8 @@ public:
     repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback) : recv_cb_(recv_callback) {
         conn_.swap(conn);
         parser_.parse_messages(conn_.get(), recv_callback);
+        mutex_acquisition_t ak(&outgoing_mutex_);
+        send_hello(ak);
     }
 
     ~repli_stream_t() {
