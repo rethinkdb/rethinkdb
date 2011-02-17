@@ -22,7 +22,7 @@ slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t r
       internal_store_(internal_store),
       replication_config_(replication_config),
       failover_config_(failover_config),
-      conn_(NULL),
+      stream_(NULL),
       shutting_down_(false)
 {
     coro_t::spawn(boost::bind(&run, this));
@@ -43,18 +43,20 @@ void slave_t::kill_conn() {
     {
         on_thread_t thread_switch(home_thread);
 
-        debugf("Calling parser_.co_shutdown.\n");
+        debugf("Calling stream_->co_shutdown.\n");
 
-        parser_.co_shutdown();
+        stream_->co_shutdown();
 
-        debugf("parser_.co_shutdown has returned.\n");
+        debugf("parser_->co_shutdown has returned.\n");
     }
 
     {
+        // TODO: why is this going to get_num_threads() - 2 instead of home_thread?  I don't get it.
+
         on_thread_t thread_switch(get_num_threads() - 2);
 
-        delete conn_;
-        conn_ = NULL;
+        delete stream_;
+        stream_ = NULL;
     }
 }
 
@@ -109,7 +111,7 @@ std::string slave_t::failover_reset() {
         reconnection_timer_token_ = NULL;
     }
 
-    if (conn_) kill_conn(); //this will cause a notify
+    if (stream_) kill_conn(); //this will cause a notify
     else coro_->notify();
 
     return std::string("Resetting failover\n");
@@ -231,15 +233,17 @@ void run(slave_t *slave) {
     bool first_connect = true;
     while (!slave->shutting_down_) {
         try {
-            delete slave->conn_;
-            slave->conn_ = NULL;
+            delete slave->stream_;
+            slave->stream_ = NULL;
 
             logINF("Attempting to connect as slave to: %s:%d\n", slave->replication_config_.hostname, slave->replication_config_.port);
-            slave->conn_ = new tcp_conn_t(slave->replication_config_.hostname, slave->replication_config_.port);
+            {
+                boost::scoped_ptr<tcp_conn_t> conn(new tcp_conn_t(slave->replication_config_.hostname, slave->replication_config_.port));
+                slave->stream_ = new repli_stream_t(conn, slave);
+            }
             slave->timeout_ = INITIAL_TIMEOUT;
             slave->give_up_.on_reconnect();
 
-            slave->parser_.parse_messages(slave->conn_, slave);
             if (!first_connect) {
                 slave->failover.on_resume();
             }

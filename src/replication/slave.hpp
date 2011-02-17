@@ -158,8 +158,8 @@ private:
     btree_key_value_store_t *internal_store_;
     replication_config_t replication_config_;
     failover_config_t failover_config_;
-    tcp_conn_t *conn_;
-    message_parser_t parser_;
+
+    repli_stream_t *stream_;
     bool shutting_down_;
 };
 
