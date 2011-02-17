@@ -4,12 +4,13 @@
 #include <boost/function.hpp>
 
 #include "arch/arch.hpp"
-#include "containers/thick_list.hpp"
-#include "scoped_malloc.hpp"
-#include "replication/net_structs.hpp"
+#include "concurrency/mutex.hpp"
 #include "containers/shared_buf.hpp"
-
+#include "containers/thick_list.hpp"
 #include "data_provider.hpp"
+#include "replication/net_structs.hpp"
+#include "scoped_malloc.hpp"
+
 
 namespace replication {
 
@@ -32,7 +33,7 @@ struct stream_pair {
 
 class message_callback_t {
 public:
-    // These call .swap on their parameter, taking a share of ownership of the pointee.
+    // These could call .swap on their parameter, taking ownership of the pointee.
     virtual void hello(net_hello_t message) = 0;
     virtual void send(buffed_data_t<net_backfill_t>& message) = 0;
     virtual void send(buffed_data_t<net_announce_t>& message) = 0;
@@ -80,6 +81,59 @@ private:
 
     DISABLE_COPYING(message_parser_t);
 };
+
+class repli_stream_t : public home_thread_mixin_t {
+public:
+    repli_stream_t(tcp_conn_t *conn, message_callback_t *recv_callback) : recv_cb_(recv_callback), conn_(conn) {
+
+        parser_.parse_messages(conn, recv_callback);
+
+    }
+
+    // TODO make this protocol-wise (as in street-wise).
+    void co_shutdown() {
+        parser_.co_shutdown();
+    }
+
+    // message_callback_t functions
+
+    // TODO remove this
+    void hello(net_hello_t msg);
+    void send(net_backfill_t *msg);
+    void send(net_announce_t *msg);
+    void send(net_get_cas_t *msg);
+    void send(net_sarc_t *msg, const char *key, data_provider_t *value);
+    void send(net_incr_t *msg);
+    void send(net_decr_t *msg);
+    void send(net_append_t *msg, const char *key, data_provider_t *value);
+    void send(net_prepend_t *msg, const char *key, data_provider_t *value);
+    void send(net_delete_t *msg);
+
+    // TODO remove this
+    void send(net_nop_t *msg);
+    // TODO remove this
+    void send(net_ack_t *message);
+
+
+    void send(net_shutting_down_t *msg);
+    void send(net_goodbye_t *msg);
+    void close();
+
+private:
+
+    template <class net_struct_type>
+    void sendobj(uint8_t msgcode, net_struct_type *msg);
+
+    template <class net_struct_type>
+    void sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, data_provider_t *data);
+
+    message_callback_t *recv_cb_;
+    mutex_t outgoing_mutex_;
+    tcp_conn_t *conn_;
+    message_parser_t parser_;
+};
+
+
 }  // namespace replication
 
 

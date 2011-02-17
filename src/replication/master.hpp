@@ -89,6 +89,7 @@ private:
     void destroy_existing_slave_conn_if_it_exists();
 
     mutex_t message_contiguity_;
+
     boost::scoped_ptr<tcp_conn_t> slave_;
     thick_list<data_provider_t *, uint32_t> sources_;
 

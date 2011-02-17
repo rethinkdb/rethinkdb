@@ -261,4 +261,116 @@ void message_parser_t::co_shutdown() {
     cb.cond.wait();
 }
 
+
+// REPLI_STREAM_T
+
+void repli_stream_t::hello(net_hello_t msg) {
+    mutex_acquisition_t ak(&outgoing_mutex_);
+
+    conn_->write(&msg, sizeof(msg));
+}
+
+template <class net_struct_type>
+void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
+    size_t obsize = objsize(msg);
+
+    if (obsize + sizeof(net_header_t) <= 0xFFFF) {
+        net_header_t hdr;
+        hdr.message_multipart_aspect = SMALL;
+        hdr.msgcode = msgcode;
+        hdr.msgsize = sizeof(net_header_t) + obsize;
+
+        mutex_acquisition_t ak(&outgoing_mutex_);
+        conn_->write(&hdr, sizeof(net_header_t));
+        conn_->write(msg, obsize);
+    } else {
+        net_multipart_header_t hdr;
+        hdr.message_multipart_aspect = FIRST;
+        hdr.msgcode = msgcode;
+        hdr.msgsize = 0xFFFF;
+
+        size_t offset = 0xFFFF - sizeof(net_multipart_header_t);
+        {
+            mutex_acquisition_t ak(&outgoing_mutex_);
+            conn_->write(&hdr, sizeof(net_multipart_header_t));
+            conn_->write(msg, offset);
+        }
+
+        char *buf = reinterpret_cast<char *>(msg);
+
+        while (offset + 0xFFFF < obsize) {
+            mutex_acquisition_t ak(&outgoing_mutex_);
+            hdr.message_multipart_aspect = MIDDLE;
+            conn_->write(&hdr, sizeof(net_multipart_header_t));
+            // TODO change protocol so that 0 means 0x10000 mmkay?
+            conn_->write(buf + offset, 0xFFFF);
+            offset += 0xFFFF;
+        }
+
+        {
+            rassert(obsize - offset <= 0xFFFF);
+            mutex_acquisition_t ak(&outgoing_mutex_);
+            hdr.message_multipart_aspect = LAST;
+            conn_->write(&hdr, sizeof(net_multipart_header_t));
+            conn_->write(buf + offset, obsize - offset);
+        }
+    }
+}
+
+template <class net_struct_type>
+void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, data_provider_t *data) {
+    rassert(msg->value_size == data->get_size());
+
+    size_t bufsize = objsize(msg);
+    scoped_malloc<char> buf(bufsize);
+    memcpy(buf.get(), msg, sizeof(net_struct_type));
+    memcpy(buf.get() + sizeof(net_struct_type), key, msg->key_size);
+
+    buffer_group_t group;
+    group.add_buffer(data->get_size(), buf.get() + sizeof(net_struct_type) + msg->key_size);
+    data->get_data_into_buffers(&group);
+
+    sendobj(msgcode, reinterpret_cast<net_struct_type *>(buf.get()));
+}
+
+void repli_stream_t::send(net_backfill_t *msg) {
+    sendobj(BACKFILL, msg);
+}
+
+void repli_stream_t::send(net_announce_t *msg) {
+    sendobj(ANNOUNCE, msg);
+}
+
+void repli_stream_t::send(net_get_cas_t *msg) {
+    sendobj(GET_CAS, msg);
+}
+
+void repli_stream_t::send(net_sarc_t *msg, const char *key, data_provider_t *value) {
+    sendobj(SARC, msg, key, value);
+}
+
+void repli_stream_t::send(net_incr_t *msg) {
+    sendobj(INCR, msg);
+}
+
+void repli_stream_t::send(net_decr_t *msg) {
+    sendobj(DECR, msg);
+}
+
+void repli_stream_t::send(net_append_t *msg, const char *key, data_provider_t *value) {
+    sendobj(APPEND, msg, key, value);
+}
+
+void repli_stream_t::send(net_prepend_t *msg, const char *key, data_provider_t *value) {
+    sendobj(PREPEND, msg, key, value);
+}
+
+void repli_stream_t::send(net_delete_t *msg) {
+    sendobj(DELETE, msg);
+}
+
+
+
+
+
 }  // namespace replication
