@@ -2,6 +2,7 @@ dnl Important: This is a debian control file template which is preprocessed by m
 dnl Please be gentle (and test your changes in all relevant configurations!).
 dnl
 dnl List of macros to be substituted (please update, if you're adding some):
+dnl   SOLO - 0 or 1 (are we packaging RethinkDB Cache (0), or RethinkDB Solo (1)?)
 dnl   RPM_PACKAGE_DIR - directory where RPM packaging is done
 dnl   SERVER_EXEC_NAME - name of the executable
 dnl   PACKAGE_NAME - full package name to be used (e.g. rethinkdb or rethinkdb-trial)
@@ -34,12 +35,14 @@ Requires: ifelse(LEGACY_LINUX, 1,
 Conflicts: ifelse(TRIAL, 0, `TRIAL_PACKAGE_NAME', `VANILLA_PACKAGE_NAME')
 
 %description
-Persistent storage engine using the memcache protocol
-RethinkDB is a key-value storage system designed for persistent
+ifelse(SOLO,1,
+`FIXME: Persistent storage engine using the memcache protocol
+RethinkDB Solo is a key-value storage system designed for persistent
 data.
 
 It conforms to the memcache text protocol, so any memcached client
-can have connectivity with it.
+can have connectivity with it.',
+`FIXME: Put RethinkDB Cache description here')
 
 %pre
 

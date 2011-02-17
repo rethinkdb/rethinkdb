@@ -10,14 +10,25 @@ ANSI_UL_OFF:=[0m
 
 ##### Configuring stuff
 
+# Set SOLO to 0 to build RethinkDB Cache (otherwise, RethinkDB Solo is built)
+SOLO?=1
+ifeq ($(SOLO),1)
+RETHINKDB_CACHE_PRODUCT:=0
+RETHINKDB_SOLO_PRODUCT:=1
+PRODUCT_NAME:=RethinkDB Solo
+VANILLA_PACKAGE_NAME?=rethinkdb-solo
+SERVER_EXEC_NAME?=rethinkdb
+else
+RETHINKDB_CACHE_PRODUCT:=1
+RETHINKDB_SOLO_PRODUCT:=0
 PRODUCT_NAME:=RethinkDB Cache
-VANILLA_PACKAGE_NAME:=rethinkdb
+VANILLA_PACKAGE_NAME?=rethinkdb-cache
+SERVER_EXEC_NAME?=rethinkdb-cache
+endif
+
 TRIAL_PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)-trial
 PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)
-SERVER_EXEC_NAME:=rethinkdb
-SERVER_UNIT_TEST_NAME:=rethinkdb-unittest
-
-DEBIAN_PKG_DIR:=debian
+SERVER_UNIT_TEST_NAME:=$(SERVER_EXEC_NAME)-unittest
 
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
@@ -38,6 +49,8 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=0
+
+# Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
 TIMEBOMB?=0
 
@@ -65,6 +78,12 @@ STATIC_LIBRARIES:=
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
 
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
+
+ifeq ($(SOLO),1)
+CXXFLAGS+=-DRETHINKDB_SOLO_PRODUCT
+else
+CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
+endif
 
 ifeq ($(UNIT_TESTS),0)
 CXXFLAGS+=-Wswitch-default
@@ -234,6 +253,7 @@ all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)
 endif
 
 ifeq ($(PACKAGING),1)
+DEBIAN_PKG_DIR:=debian
 SUPPRESSED_LINTIAN_TAGS:=new-package-should-close-itp-bug
 RPM_BUILD_ROOT=$(RPM_PACKAGE_DIR)/BUILD
 DEB_CONTROL_ROOT=$(DEB_PACKAGE_DIR)/DEBIAN
@@ -307,6 +327,7 @@ build-deb: all prepare_deb_package_dirs
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1);		\
 		m4																														\
+				-D "SOLO=$(SOLO)"																					\
 				-D "PACKAGE_NAME=$(PACKAGE_NAME)"													\
 				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"					\
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"							\
@@ -340,6 +361,7 @@ build-rpm: all prepare_rpm_package_dirs
 
 # Replace version/topdir fields in the spec file
 	$(QUIET) m4																											\
+				-D "SOLO=$(SOLO)"																					\
 				-D "RPM_PACKAGE_DIR=$(realpath $(RPM_PACKAGE_DIR))"				\
 				-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)"									\
 				-D "PACKAGE_NAME=$(PACKAGE_NAME)"													\
