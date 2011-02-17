@@ -264,12 +264,6 @@ void message_parser_t::co_shutdown() {
 
 // REPLI_STREAM_T
 
-void repli_stream_t::hello(net_hello_t msg) {
-    mutex_acquisition_t ak(&outgoing_mutex_);
-
-    conn_->write(&msg, sizeof(msg));
-}
-
 template <class net_struct_type>
 void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
     size_t obsize = objsize(msg);
@@ -288,8 +282,11 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         hdr.message_multipart_aspect = FIRST;
         hdr.msgcode = msgcode;
         hdr.msgsize = 0xFFFF;
+        // Right now we send every message contiguously.
+        hdr.ident = 1;
 
         size_t offset = 0xFFFF - sizeof(net_multipart_header_t);
+
         {
             mutex_acquisition_t ak(&outgoing_mutex_);
             conn_->write(&hdr, sizeof(net_multipart_header_t));
@@ -369,6 +366,22 @@ void repli_stream_t::send(net_delete_t *msg) {
     sendobj(DELETE, msg);
 }
 
+void repli_stream_t::send_hello(const mutex_acquisition_t& evidence_of_acquisition) {
+    net_hello_t msg;
+    rassert(sizeof(msg.hello_magic) == 16);
+    // TODO make a #define for this.
+    memcpy(msg.hello_magic, "13rethinkdbrepl", 16);
+    msg.replication_protocol_version = 1;
+    msg.role = role_master;
+    // TODO have this use actual database_magic!  Or die!
+    msg.database_creation_timestamp = 0;
+    rassert(sizeof(msg.informal_name) == 32);
+    // TODO possibly have a user configurable name.  Or decide not to.
+    char informal_name[32] = "master";
+    memcpy(msg.informal_name, informal_name, 32);
+
+    conn_->write(&msg, sizeof(msg));
+}
 
 
 

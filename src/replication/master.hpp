@@ -31,7 +31,7 @@ public:
 
 class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t, public message_callback_t, public snag_pointee_mixin_t {
 public:
-    master_t() : message_contiguity_(), slave_(NULL), sources_(), listener_(REPLICATION_PORT) {
+    master_t() : stream_(NULL), listener_(REPLICATION_PORT) {
         listener_.set_callback(this);
     }
 
@@ -40,7 +40,7 @@ public:
         destroy_existing_slave_conn_if_it_exists();
     }
 
-    bool has_slave() { return slave_ != NULL; }
+    bool has_slave() { return stream_ != NULL; }
 
     void get_cas(const store_key_t &key, castime_t castime);
 
@@ -83,19 +83,13 @@ private:
     template <class net_struct_type>
     void stereotypical(int msgcode, const store_key_t &key, data_provider_t *data, net_struct_type netstruct);
 
-    void send_hello(const mutex_acquisition_t& proof_of_acquisition);
-    //    void receive_hello(const mutex_acquisition_t& proof_of_acquisition, interruptable_cond_token_t token);
-
     void destroy_existing_slave_conn_if_it_exists();
 
-    mutex_t message_contiguity_;
-
-    boost::scoped_ptr<tcp_conn_t> slave_;
-    thick_list<data_provider_t *, uint32_t> sources_;
+    repli_stream_t *stream_;
 
     tcp_listener_t listener_;
 
-    message_parser_t parser_;
+
 
     DISABLE_COPYING(master_t);
 };

@@ -84,21 +84,28 @@ private:
 
 class repli_stream_t : public home_thread_mixin_t {
 public:
-    repli_stream_t(tcp_conn_t *conn, message_callback_t *recv_callback) : recv_cb_(recv_callback), conn_(conn) {
+    repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback) : recv_cb_(recv_callback) {
+        conn_.swap(conn);
+        parser_.parse_messages(conn_.get(), recv_callback);
+    }
 
-        parser_.parse_messages(conn, recv_callback);
-
+    ~repli_stream_t() {
+        if (conn_) {
+            co_shutdown();
+        }
     }
 
     // TODO make this protocol-wise (as in street-wise).
     void co_shutdown() {
+        rassert(conn_);
         parser_.co_shutdown();
+        conn_->shutdown_read();
+        conn_->shutdown_write();
+        conn_.reset();
     }
 
     // message_callback_t functions
 
-    // TODO remove this
-    void hello(net_hello_t msg);
     void send(net_backfill_t *msg);
     void send(net_announce_t *msg);
     void send(net_get_cas_t *msg);
@@ -127,9 +134,11 @@ private:
     template <class net_struct_type>
     void sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, data_provider_t *data);
 
+    void send_hello(const mutex_acquisition_t& proof_of_acquisition);
+
     message_callback_t *recv_cb_;
     mutex_t outgoing_mutex_;
-    tcp_conn_t *conn_;
+    boost::scoped_ptr<tcp_conn_t> conn_;
     message_parser_t parser_;
 };
 
