@@ -124,7 +124,7 @@ public:
     // TODO remove this
     void send(net_nop_t msg);
     // TODO remove this
-    void send(net_ack_t *message);
+    void send(net_ack_t msg);
 
 
     void send(net_shutting_down_t *msg);

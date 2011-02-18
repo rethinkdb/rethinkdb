@@ -382,6 +382,10 @@ void repli_stream_t::send(net_nop_t msg) {
     sendobj(NOP, &msg);
 }
 
+void repli_stream_t::send(net_ack_t msg) {
+    sendobj(ACK, &msg);
+}
+
 void repli_stream_t::send_hello(const mutex_acquisition_t& evidence_of_acquisition) {
     net_hello_t msg;
     rassert(sizeof(msg.hello_magic) == 16);

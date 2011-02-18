@@ -173,6 +173,10 @@ void slave_t::send(buffed_data_t<net_delete_t>& msg) {
 }
 void slave_t::send(buffed_data_t<net_nop_t>& message) {
     debugf("nop message received.\n");
+    net_ack_t ackreply;
+    ackreply.timestamp = message->timestamp;
+    stream_->send(ackreply);
+    debugf("sent ack reply\n");
 }
 void slave_t::send(buffed_data_t<net_ack_t>& message) {
     rassert("ack message received.. as slave?\n");
