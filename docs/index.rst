@@ -513,6 +513,46 @@ specified explicitly to allow the tool to proceed::
                                  --force-extent-size 1048576  \
                                  --force-slice-count 256
 
+===============
+Troubleshooting
+===============
+
+-----------------------------
+"Too many open files" problem
+-----------------------------
+
+RethinkDB can consume a large number of open file handles, for example when the
+number of socket connections is high. If you get a "Too many open files" error,
+that means that the operating system is limiting the number of open file handles
+that the application can use.
+
+On most distributions of Linux you can find out the total limit for open file
+handles in the system using ``sysctl``::
+
+  $ sysctl fs.file-max
+  fs.file-max = 764412
+
+You can set this provided that you run the following command under a root
+account or a user with sufficient privileges::
+
+  $ sysctl fs.file-max=1592260
+  fs.file-max = 1592260
+
+You can also change the per-process limit temporarily (in the current shell
+session), by using the ``ulimit`` command::
+
+  $ ulimit -n 2048
+
+Set the limit to an appropriate number (``2048`` in the example), that is higher
+than the number of simultaneous connections to RethinkDB that you plan to have.
+
+It is also possible to set per-user open file handles limits by editing
+``/etc/security/limits.conf`` and setting the soft and hard limit values for
+``nofile`` for the user or group which you use to run the RethinkDB under::
+
+  rethinkdb soft nofile 2048
+  rethinkdb hard nofile 8192
+
 =======
 Support
 =======
