@@ -523,8 +523,8 @@ Troubleshooting
 
 RethinkDB can consume a large number of open file handles, for example when the
 number of socket connections is high. If you get a "Too many open files" error,
-that means that the operating system is limiting the number of open file handles
-that the application can use.
+that means that the operating system limit on the number of open file handles
+has been reached.
 
 On most distributions of Linux you can find out the total limit for open file
 handles in the system using ``sysctl``::
@@ -532,8 +532,8 @@ handles in the system using ``sysctl``::
   $ sysctl fs.file-max
   fs.file-max = 764412
 
-You can set this provided that you run the following command under a root
-account or a user with sufficient privileges::
+You can set this by running the following command under a root account or a
+user account with sufficient privileges::
 
   $ sysctl fs.file-max=1592260
   fs.file-max = 1592260
