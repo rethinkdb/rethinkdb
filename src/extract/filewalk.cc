@@ -42,7 +42,7 @@ public:
     explicit dumper_t(const char *path) {
         fp = fopen(path, "wbx");
         if (fp == NULL) {
-            fail_due_to_user_error("could not open file");
+            fail_due_to_user_error("Could not open `%s' for writing: %s", path, strerror(errno));
         }
     }
     ~dumper_t() {
@@ -58,11 +58,11 @@ public:
         }
 
         int res = fprintf(fp, "set %.*s %u %u %u noreply\r\n", key->size, key->contents, flags, exptime, len);
-        guarantee_err(0 < res, "could not write to file");
+        guarantee_err(0 < res, "Could not write to file");
 
         for (size_t i = 0; i < num_slices; ++i) {
             size_t written_size = fwrite(slices[i].buf, 1, slices[i].len, fp);
-            guarantee_err(slices[i].len == written_size, "could not write to file");
+            guarantee_err(slices[i].len == written_size, "Could not write to file");
         }
 
         fprintf(fp, "\r\n");
@@ -358,6 +358,10 @@ void dump_pair_value(dumper_t &dumper, direct_file_t& file, const cfg_t& cfg, co
 
 void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
     direct_file_t file(db_file.c_str(), direct_file_t::mode_read, false);
+
+    if (!file.exists()) {
+        fail_due_to_user_error("Could not open `%s' for reading: %s", db_file.c_str(), strerror(errno));
+    }
 
     block headerblock;
     headerblock.init(DEVICE_BLOCK_SIZE, &file, 0);
