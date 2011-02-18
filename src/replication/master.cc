@@ -125,6 +125,12 @@ void master_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
     }
 }
 
+void nop_timer_trigger(void *master_) {
+    master_t *master = reinterpret_cast<master_t *>(master_);
+
+    master->consider_nop_dispatch_and_update_latest_timestamp(current_time());
+}
+
 void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     // TODO: Carefully handle case where a slave is already connected.
 
@@ -137,6 +143,7 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
         destroy_existing_slave_conn_if_it_exists();
         debugf("making new repli_stream..\n");
         stream_ = new repli_stream_t(conn, this);
+        next_timestamp_nop_timer_ = timer_handler_->add_timer_internal(1100, nop_timer_trigger, this, true);
         debugf("made repli_stream.\n");
     }
     // TODO when sending/receiving hello handshake, use database magic
@@ -148,6 +155,8 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
 void master_t::destroy_existing_slave_conn_if_it_exists() {
     if (stream_) {
         stream_->co_shutdown();
+        cancel_timer(next_timestamp_nop_timer_);
+        next_timestamp_nop_timer_ = NULL;
     }
 
     stream_ = NULL;
@@ -156,10 +165,13 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
 void master_t::consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp timestamp) {
     rassert(timestamp.time != repli_timestamp::invalid.time);
 
-    if (timestamp.time <= latest_timestamp_.time) return;
+    if (timestamp.time > latest_timestamp_.time) {
+        latest_timestamp_ = timestamp;
+        coro_t::spawn(boost::bind(&master_t::do_nop_rebound, this, timestamp));
+    }
 
-    latest_timestamp_ = timestamp;
-    coro_t::spawn(boost::bind(&master_t::do_nop_rebound, this, timestamp));
+    timer_handler_->cancel_timer(next_timestamp_nop_timer_);
+    next_timestamp_nop_timer_ = timer_handler_->add_timer_internal(1100, nop_timer_trigger, this, true);
 }
 
 void master_t::do_nop_rebound(repli_timestamp t) {

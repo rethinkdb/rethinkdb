@@ -174,7 +174,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         /* Record information about disk drives to log file */
         log_disk_info(cmd_config->store_dynamic_config.serializer_private);
 
-        replication::master_t master;
+        replication::master_t master(thread_pool);
 
         /* Create store if necessary */
         if (cmd_config->create_store) {

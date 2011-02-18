@@ -33,7 +33,9 @@ public:
 
 class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t, public message_callback_t, public snag_pointee_mixin_t {
 public:
-    master_t() : stream_(NULL), listener_(REPLICATION_PORT) {
+    master_t(thread_pool_t *thread_pool) : timer_handler_(&thread_pool->threads[get_thread_id()]->timer_handler),
+                                           stream_(NULL), listener_(REPLICATION_PORT),
+                                           next_timestamp_nop_timer_(NULL), latest_timestamp_(current_time()) {
         listener_.set_callback(this);
     }
 
@@ -42,6 +44,11 @@ public:
         destroy_existing_slave_conn_if_it_exists();
     }
 
+    // TODO: get rid of this, have master_t take a list of slices in
+    // the constructor?  Or register them all in a single registration
+    // function?  Tie the knot more cleanly, so that we don't have to
+    // worry about slices registering themselves while other slices
+    // send operations.
     void register_dispatcher(btree_slice_dispatching_to_master_t *dispatcher);
 
     bool has_slave() { return stream_ != NULL; }
@@ -78,6 +85,8 @@ public:
 
     void do_nop_rebound(repli_timestamp t);
 
+    void consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp timestamp);
+
 private:
     // Spawns a coroutine.
     void send_data_with_ident(data_provider_t *data, uint32_t ident);
@@ -90,13 +99,28 @@ private:
 
     void destroy_existing_slave_conn_if_it_exists();
 
+    // The thread-local timer handler, which we use to set timers.
+    timer_handler_t *timer_handler_;
+
+    // The stream to the slave, or NULL if there is no slave connected.
     repli_stream_t *stream_;
 
+    // Listens for incoming slave connections.
     tcp_listener_t listener_;
 
-    void consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp timestamp);
+    // If no actions come in, we periodically send nops to the slave
+    // anyway, to keep up a heartbeat.  This is the timer token for
+    // the next time we must send a nop (if we haven't already).  This
+    // is NULL if and only if stream_ is NULL.
+    timer_token_t *next_timestamp_nop_timer_;
 
+    // The latest timestamp we've seen.  Every time we get a new
+    // timestamp, we update this value and spawn
+    // consider_nop_dispatch_and_update_latest_timestamp(the_new_timestamp),
+    // which tells the slices to check in.
     repli_timestamp latest_timestamp_;
+
+    // All the slices.
     std::vector<btree_slice_dispatching_to_master_t *> dispatchers_;
 
     DISABLE_COPYING(master_t);
