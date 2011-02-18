@@ -175,6 +175,7 @@ from statsPlotter import *
 # TODO: Use Plot from statsPlotter to generate individual plot images and put them in an HTML e-mail
 class StatsSender(object):
     monitoring = [
+        'active_coroutines',
         'blocks_dirty[blocks]',
         'blocks_in_memory[blocks]',
         'cmd_get_avg',
@@ -203,12 +204,13 @@ class StatsSender(object):
         'timestamp'
     ]
     bucket_size = 10
-    single_plot_height = 128
+    single_plot_height = 144
     plot_style_quantile = 'quantile %d 0.05,0.5,0.95' % bucket_size
     plot_style_quantile_log = 'quantilel %d 0.05,0.5,0.95' % bucket_size
     plot_style_line = 'lines'
 
     plotters = [
+        ('active_coroutines', plot_style_quantile, simple_plotter('active_coroutines')),
         ('blocks_dirty', plot_style_quantile, simple_plotter('blocks_dirty[blocks]')),
         ('blocks_in_memory', plot_style_line, simple_plotter('blocks_in_memory[blocks]')),
         ('cmd_get_avg', plot_style_quantile_log, simple_plotter('cmd_get_avg')),
