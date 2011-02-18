@@ -380,10 +380,22 @@ void* run_client(void* data) {
         last_time = now_time;
 
         // Deal with QPS
-        if(ticks_to_secs(now_time - last_qps_time) >= 1.0f) {
+        if (ticks_to_secs(now_time - last_qps_time) >= 1.0f) {
+            // First deal with missed QPS
+            int qps_to_write = ticks_to_secs(now_time - last_qps_time);
+            while (qps_to_write > 1) {
+                shared->push_qps(0, tick);
+
+                //last_qps_time = now_time;
+                last_qps_time = last_qps_time + secs_to_ticks(1.0f);
+                tick++;
+                --qps_to_write;
+            }   
+
             shared->push_qps(qps, tick);
 
-            last_qps_time = now_time;
+            //last_qps_time = now_time;
+            last_qps_time = last_qps_time + secs_to_ticks(1.0f);
             qps = 0;
             tick++;
         }
@@ -395,7 +407,8 @@ void* run_client(void* data) {
                 keep_running = total_queries < config->duration.duration / config->clients;
                 break;
             case duration_t::seconds_t:
-                keep_running = ticks_to_secs(now_time - start_time) < config->duration.duration;
+                //keep_running = ticks_to_secs(now_time - start_time) < config->duration.duration;
+                keep_running = tick < config->duration.duration;
                 break;
             case duration_t::inserts_t:
                 keep_running = total_inserts - total_deletes < config->duration.duration / config->clients;
