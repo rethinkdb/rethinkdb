@@ -76,6 +76,8 @@ def parse_arguments(args):
     op['clients']   = IntFlag("--clients", 512)
     op['slices']    = IntFlag("--slices", 36)
     op['reporting_interval']   = IntFlag("--rinterval", 28800)
+    op['plot_width']   = IntFlag("--plot-width", 1024)
+    op['single_plot_height']   = IntFlag("--single-plot-height", 144)
     op['emailfrom'] = StringFlag("--emailfrom", 'buildbot@rethinkdb.com:allspark')
     op['recipient'] = StringFlag("--email", 'all@rethinkdb.com')
     op['db_server'] = StringFlag("--db-server", 'newton')
@@ -204,40 +206,44 @@ class StatsSender(object):
         'uptime',
         'timestamp'
     ]
-    bucket_size = 10
-    single_plot_height = 144
-    plot_style_quantile = 'quantile %d 0.05,0.5,0.95' % bucket_size
-    plot_style_quantile_log = 'quantilel %d 0.05,0.5,0.95' % bucket_size
-    plot_style_line = 'lines'
-
-    plotters = [
-        ('active_coroutines', plot_style_quantile, simple_plotter('active_coroutines')),
-        ('blocks_dirty', plot_style_quantile, simple_plotter('blocks_dirty[blocks]')),
-        ('blocks_in_memory', plot_style_line, simple_plotter('blocks_in_memory[blocks]')),
-        ('cmd_get_avg', plot_style_quantile_log, simple_plotter('cmd_get_avg')),
-        ('cmd_get/s', plot_style_quantile_log, differential_plotter('cmd_get_total')),
-        ('cmd_set_avg', plot_style_quantile_log, simple_plotter('cmd_set_avg')),
-        ('cmd_set/s', plot_style_quantile_log, differential_plotter('cmd_set_total')),
-        ('io_writes/s', plot_style_quantile, differential_plotter('io_writes_started[iowrites]')),
-        ('io_reads/s', plot_style_quantile, differential_plotter('io_reads_started[ioreads]')),
-        ('outstanding_io_writes', plot_style_quantile, two_stats_diff_plotter('io_writes_started[iowrites]', 'io_writes_completed[iowrites]')),
-        ('outstanding_io_reads', plot_style_quantile, two_stats_diff_plotter('io_reads_started[ioreads]', 'io_reads_completed[ioreads]')),
-        ('cpu_combined_avg', plot_style_quantile, simple_plotter('cpu_combined_avg')),
-        ('cpu_system_avg', plot_style_quantile, simple_plotter('cpu_system_avg')),
-        ('cpu_user_avg', plot_style_quantile, simple_plotter('cpu_user_avg')),
-        ('memory_faults_max', plot_style_quantile_log, simple_plotter('memory_faults_max')),
-        ('memory_real', plot_style_line, simple_plotter('memory_real[bytes]', 1.0/(1024*1024))),
-        ('memory_virtual', plot_style_line, simple_plotter('memory_virtual[bytes]', 1.0/(1024*1024))),
-        ('gc_ratio', plot_style_line, two_stats_ratio_plotter('serializer_old_garbage_blocks', 'serializer_old_total_blocks')),
-        ('serializer_MB_in_use', plot_style_line, simple_plotter('serializer_bytes_in_use', 1.0/(1024*1024))),
-        ('serializer_reads/s', plot_style_quantile, differential_plotter('serializer_reads_total')),
-        ('serializer_writes/s', plot_style_quantile, differential_plotter('serializer_writes_total')),
-        ('serializer_data_blks_wr/s', plot_style_quantile, differential_plotter('serializer_writes_total')),
-        ('gc_lba/s', plot_style_quantile, differential_plotter('serializer_lba_gcs')),
-        ('gc_data_ext/s', plot_style_quantile, differential_plotter('serializer_data_extents_gced[dexts]')),
-        ('txn_starting_avg', plot_style_quantile_log, simple_plotter('transactions_starting_avg')),
-    ]
     def __init__(self, opts, server):
+        self.plot_width = int(opts['plot_width'])
+        self.single_plot_height = int(opts['single_plot_height'])
+        self.reporting_interval = int(opts['reporting_interval'])
+        desired_bucket_width = 4
+        bucket_size = max(10, desired_bucket_width*float(self.reporting_interval)/float(self.plot_width))
+
+        plot_style_quantile = 'quantile %d 0.05,0.5,0.95' % bucket_size
+        plot_style_quantile_log = 'quantilel %d 0.05,0.5,0.95' % bucket_size
+        plot_style_line = 'lines'
+
+        self.plotters = [
+            ('active_coroutines', plot_style_quantile, simple_plotter('active_coroutines')),
+            ('blocks_dirty', plot_style_quantile, simple_plotter('blocks_dirty[blocks]')),
+            ('blocks_in_memory', plot_style_line, simple_plotter('blocks_in_memory[blocks]')),
+            ('cmd_get_avg', plot_style_quantile_log, simple_plotter('cmd_get_avg')),
+            ('cmd_get/s', plot_style_quantile_log, differential_plotter('cmd_get_total')),
+            ('cmd_set_avg', plot_style_quantile_log, simple_plotter('cmd_set_avg')),
+            ('cmd_set/s', plot_style_quantile_log, differential_plotter('cmd_set_total')),
+            ('io_writes/s', plot_style_quantile, differential_plotter('io_writes_started[iowrites]')),
+            ('io_reads/s', plot_style_quantile, differential_plotter('io_reads_started[ioreads]')),
+            ('outstanding_io_writes', plot_style_quantile, two_stats_diff_plotter('io_writes_started[iowrites]', 'io_writes_completed[iowrites]')),
+            ('outstanding_io_reads', plot_style_quantile, two_stats_diff_plotter('io_reads_started[ioreads]', 'io_reads_completed[ioreads]')),
+            ('cpu_combined_avg', plot_style_quantile, simple_plotter('cpu_combined_avg')),
+            ('cpu_system_avg', plot_style_quantile, simple_plotter('cpu_system_avg')),
+            ('cpu_user_avg', plot_style_quantile, simple_plotter('cpu_user_avg')),
+            ('memory_faults_max', plot_style_quantile_log, simple_plotter('memory_faults_max')),
+            ('memory_real', plot_style_line, simple_plotter('memory_real[bytes]', 1.0/(1024*1024))),
+            ('memory_virtual', plot_style_line, simple_plotter('memory_virtual[bytes]', 1.0/(1024*1024))),
+            ('gc_ratio', plot_style_line, two_stats_ratio_plotter('serializer_old_garbage_blocks', 'serializer_old_total_blocks')),
+            ('serializer_MB_in_use', plot_style_line, simple_plotter('serializer_bytes_in_use', 1.0/(1024*1024))),
+            ('serializer_reads/s', plot_style_quantile, differential_plotter('serializer_reads_total')),
+            ('serializer_writes/s', plot_style_quantile, differential_plotter('serializer_writes_total')),
+            ('serializer_data_blks_wr/s', plot_style_quantile, differential_plotter('serializer_writes_total')),
+            ('gc_lba/s', plot_style_quantile, differential_plotter('serializer_lba_gcs')),
+            ('gc_data_ext/s', plot_style_quantile, differential_plotter('serializer_data_extents_gced[dexts]')),
+            ('txn_starting_avg', plot_style_quantile_log, simple_plotter('transactions_starting_avg')),
+        ]
         def stats_aggregator(stats):
             stats_snapshot = {}
             for k in StatsSender.monitoring:
@@ -255,7 +261,7 @@ class StatsSender(object):
         self.rdbstat.start()
 
     def need_to_post(self):
-        return self.stats[-1]['uptime'] - self.stats[0]['uptime'] >= self.opts['reporting_interval']
+        return self.stats[-1]['uptime'] - self.stats[0]['uptime'] >= self.reporting_interval
 
     def reset_stats(self):
         old_stats = self.stats
@@ -266,6 +272,7 @@ class StatsSender(object):
         all_stats = self.reset_stats()
         if len(all_stats) > 0:
             from email.mime.image import MIMEImage
+            from email.mime.text import MIMEText
             from email.mime.multipart import MIMEMultipart
 
             msg = MIMEMultipart()
@@ -277,9 +284,10 @@ class StatsSender(object):
             img_number = 0
             images = self.generate_plots(all_stats)
             for img in images:
-                msg_img.add_header('Content-ID', '<'+str(img_number)+'.png>')
+                msg_img = MIMEImage(img)
+                msg_img.add_header('Content-ID', '<%d.png>' % img_number)
                 msg_img.add_header('Content-Disposition', 'inline; filename=%s-%d.png;' % (start_timestamp, img_number))
-                msg.attach(MIMEImage(img))
+                msg.attach(msg_img)
 
                 img_number = img_number + 1
 
@@ -288,7 +296,7 @@ class StatsSender(object):
     <head>
     </head>
     <body>
-        <img src="cid=0.png">
+        <img src="cid:0.png">
     </body>
 </html>
 """
@@ -301,7 +309,7 @@ class StatsSender(object):
     def generate_plots(self, all_stats):
         zipped_stats = zip(all_stats, all_stats[1:])
         plot_instructions = []
-        for (name, plot_style, plotter) in StatsSender.plotters:
+        for (name, plot_style, plotter) in self.plotters:
             plot_instructions.extend(['-k', name, plot_style])
 
         tplot = Popen(['tplot',
@@ -309,11 +317,11 @@ class StatsSender(object):
             '-o', '/dev/stdout',
             '-of', 'png',
             '-tf', 'num',
-            '-or', '1024x%d' % (len(StatsSender.plotters)*StatsSender.single_plot_height),
+            '-or', '%dx%d' % (self.plot_width, len(self.plotters)*self.single_plot_height),
             ] + plot_instructions, stdin=PIPE, stdout=PIPE)
 
         for stats_pair in zipped_stats:
-            for (name, plot_style, plotter) in StatsSender.plotters:
+            for (name, plot_style, plotter) in self.plotters:
                 val = plotter(stats_pair)
                 if val:
                     ts = stats_pair[1]['uptime']
