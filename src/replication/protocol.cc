@@ -221,8 +221,12 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
         tracker_t streams;
         do_parse_normal_messages(conn, receiver, streams);
     } catch (tcp_conn_t::read_closed_exc_t& e) {
-        if (!shutdown_asked_for)
+        if (shutdown_asked_for) {
+            _cb->on_parser_shutdown();
+        }
+        else {
             receiver->conn_closed();
+        }
 #ifndef NDEBUG
     } catch (protocol_exc_t& e) {
         debugf("catch 'n throwing protocol_exc_t: %s\n", e.what());

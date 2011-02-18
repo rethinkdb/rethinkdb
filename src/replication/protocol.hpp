@@ -100,10 +100,13 @@ public:
     // TODO make this protocol-wise (as in street-wise).
     void co_shutdown() {
         rassert(conn_);
-        parser_.co_shutdown();
+        debugf("repli_stream done co_shutdown, doing shutdown_read\n");
         conn_->shutdown_read();
         conn_->shutdown_write();
         conn_.reset();
+
+        debugf("repli_stream in co_shutdown\n");
+        parser_.co_shutdown();
     }
 
     // message_callback_t functions

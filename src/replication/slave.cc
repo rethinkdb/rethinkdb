@@ -47,13 +47,13 @@ void slave_t::kill_conn() {
 
         stream_->co_shutdown();
 
-        debugf("parser_->co_shutdown has returned.\n");
-    }
+        debugf("stream_->co_shutdown has returned.\n");
+        //    }
 
-    {
+        //    {
         // TODO: why is this going to get_num_threads() - 2 instead of home_thread?  I don't get it.
 
-        on_thread_t thread_switch(get_num_threads() - 2);
+        //        on_thread_t thread_switch(get_num_threads() - 2);
 
         delete stream_;
         stream_ = NULL;
