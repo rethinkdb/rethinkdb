@@ -9,6 +9,8 @@
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
 
+class btree_slice_dispatching_to_master_t;
+
 namespace replication {
 
 // TODO: Consider a good value for this port.
@@ -39,6 +41,8 @@ public:
         wait_until_ready_to_delete();
         destroy_existing_slave_conn_if_it_exists();
     }
+
+    void register_dispatcher(btree_slice_dispatching_to_master_t *dispatcher);
 
     bool has_slave() { return stream_ != NULL; }
 
@@ -72,6 +76,7 @@ public:
     void send(buffed_data_t<net_goodbye_t>& message) { }
     void conn_closed() { destroy_existing_slave_conn_if_it_exists(); }
 
+    void do_nop_rebound(repli_timestamp t);
 
 private:
     // Spawns a coroutine.
@@ -89,7 +94,10 @@ private:
 
     tcp_listener_t listener_;
 
+    void consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp timestamp);
 
+    repli_timestamp latest_timestamp_;
+    std::vector<btree_slice_dispatching_to_master_t *> dispatchers_;
 
     DISABLE_COPYING(master_t);
 };

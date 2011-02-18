@@ -32,7 +32,7 @@ namespace replication {
  * and pushing the values that it receives in to its internal store. It also
  * handles the failover module if failover is enabled. Currently the slave_t
  * also is itself a failover callback and derives from the store_t class, thus
- * allowing it to modify the behaviour of the store. */ 
+ * allowing it to modify the behaviour of the store. */
 
 /* It has been suggested that the failover callback and replication
  * functionality of the slave_t class be separated. I don't think this is such

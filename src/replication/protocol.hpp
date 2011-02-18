@@ -122,7 +122,7 @@ public:
     void send(net_delete_t *msg);
 
     // TODO remove this
-    void send(net_nop_t *msg);
+    void send(net_nop_t msg);
     // TODO remove this
     void send(net_ack_t *message);
 

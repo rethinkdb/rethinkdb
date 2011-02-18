@@ -5,8 +5,13 @@
 #include "logger.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
+#include "server/slice_dispatching_to_master.hpp"
 
 namespace replication {
+
+void master_t::register_dispatcher(btree_slice_dispatching_to_master_t *dispatcher) {
+    dispatchers_.push_back(dispatcher);
+}
 
 void master_t::get_cas(const store_key_t& key, castime_t castime) {
     // There is something disgusting with this.  What if the thing
@@ -19,6 +24,8 @@ void master_t::get_cas(const store_key_t& key, castime_t castime) {
     snag_ptr_t<master_t> tmp_hold(*this);
 
     if (stream_) {
+        consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
+
         size_t n = sizeof(net_get_cas_t) + key.size;
         scoped_malloc<net_get_cas_t> msg(n);
         msg->proposed_cas = castime.proposed_cas;
@@ -35,6 +42,8 @@ void master_t::sarc(const store_key_t& key, data_provider_t *data, mcflags_t fla
     snag_ptr_t<master_t> tmp_hold(*this);
 
     if (stream_) {
+        consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
+
         net_sarc_t stru;
         stru.timestamp = castime.timestamp;
         stru.proposed_cas = castime.proposed_cas;
@@ -53,6 +62,8 @@ void master_t::sarc(const store_key_t& key, data_provider_t *data, mcflags_t fla
 
 void master_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
     if (stream_) {
+        consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
+
         if (kind == incr_decr_INCR) {
             incr_decr_like<net_incr_t>(INCR, key, amount, castime);
         } else {
@@ -75,6 +86,8 @@ void master_t::incr_decr_like(uint8_t msgcode, const store_key_t &key, uint64_t 
 
 void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
     if (stream_) {
+        consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
+
         if (kind == append_prepend_APPEND) {
             net_append_t appendstruct;
             appendstruct.timestamp = castime.timestamp;
@@ -101,6 +114,8 @@ void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key
 void master_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
     size_t n = sizeof(net_delete_t) + key.size;
     if (stream_) {
+        consider_nop_dispatch_and_update_latest_timestamp(timestamp);
+
         scoped_malloc<net_delete_t> msg(n);
         msg->timestamp = timestamp;
         msg->key_size = key.size;
@@ -137,6 +152,32 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
 
     stream_ = NULL;
 }
+
+void master_t::consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp timestamp) {
+    rassert(timestamp.time != repli_timestamp::invalid.time);
+
+    if (timestamp.time <= latest_timestamp_.time) return;
+
+    latest_timestamp_ = timestamp;
+    coro_t::spawn(boost::bind(&master_t::do_nop_rebound, this, timestamp));
+}
+
+void master_t::do_nop_rebound(repli_timestamp t) {
+    cond_t cond;
+    int counter = dispatchers_.size();
+    for (std::vector<btree_slice_dispatching_to_master_t *>::iterator p = dispatchers_.begin(), e = dispatchers_.end();
+         p != e;
+         ++p) {
+        coro_t::spawn(boost::bind(&btree_slice_dispatching_to_master_t::nop_back_on_masters_thread, *p, t, &cond, &counter));
+    }
+
+    cond.wait();
+
+    net_nop_t msg;
+    msg.timestamp = t;
+    stream_->send(msg);
+}
+
 
 }  // namespace replication
 
