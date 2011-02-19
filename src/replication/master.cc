@@ -153,6 +153,7 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
 }
 
 void master_t::destroy_existing_slave_conn_if_it_exists() {
+    assert_thread();
     if (stream_) {
         stream_->co_shutdown();
         cancel_timer(next_timestamp_nop_timer_);
@@ -163,6 +164,7 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
 }
 
 void master_t::consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp timestamp) {
+    assert_thread();
     rassert(timestamp.time != repli_timestamp::invalid.time);
 
     if (timestamp.time > latest_timestamp_.time) {
@@ -175,11 +177,13 @@ void master_t::consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp
 }
 
 void master_t::do_nop_rebound(repli_timestamp t) {
+    assert_thread();
     cond_t cond;
     int counter = dispatchers_.size();
     for (std::vector<btree_slice_dispatching_to_master_t *>::iterator p = dispatchers_.begin(), e = dispatchers_.end();
          p != e;
          ++p) {
+        debugf("thread id is %d (home_thread = %d)\n", get_thread_id(), home_thread);
         coro_t::spawn(boost::bind(&btree_slice_dispatching_to_master_t::nop_back_on_masters_thread, *p, t, &cond, &counter));
     }
 

@@ -53,6 +53,7 @@ delete_result_t btree_slice_dispatching_to_master_t::delete_key(const store_key_
 }
 
 void btree_slice_dispatching_to_master_t::nop_back_on_masters_thread(repli_timestamp timestamp, cond_t *cond, int *counter) {
+    debugf("thread id is %d after spawn\n", get_thread_id());
     rassert(get_thread_id() == master_->home_thread);
 
     repli_timestamp t;
