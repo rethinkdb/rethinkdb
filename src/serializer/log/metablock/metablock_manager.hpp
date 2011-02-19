@@ -43,15 +43,19 @@ public:
         metablock_version_t version;
         metablock_t metablock;
     public:
-        void set_crc() {
-            _crc = crc();
-        }           
-
+        void prepare(metablock_t *mb, metablock_version_t vers) {
+            metablock = *mb;
+            memcpy(magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
+            memcpy(crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC));
+            memcpy(version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION));
+            version = vers;
+            _crc = compute_own_crc();
+        }
         bool check_crc() {
-            return (_crc == crc());
+            return (_crc == compute_own_crc());
         }
     private:
-        uint32_t crc() {
+        uint32_t compute_own_crc() {
             boost::crc_32_type crc_computer;
             crc_computer.process_bytes(&version, sizeof(version));
             crc_computer.process_bytes(&metablock, sizeof(metablock));
@@ -90,8 +94,8 @@ public:
     ~metablock_manager_t();
 
 public:
-    /* Starts a new database without looking for existing metablocks */
-    void start_new(direct_file_t *dbfile);
+    /* Clear metablock slots and write an initial metablock to the database file */
+    static void create(direct_file_t *dbfile, off64_t extent_size, metablock_t *initial);
     
     /* Tries to load existing metablocks */
     void co_start_existing(direct_file_t *dbfile, bool *mb_found, metablock_t *mb_out);

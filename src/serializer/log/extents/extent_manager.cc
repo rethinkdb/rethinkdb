@@ -163,7 +163,12 @@ void extent_manager_t::reserve_extent(off64_t extent) {
     zone_for_offset(extent)->reserve_extent(extent);
 }
 
-void extent_manager_t::start_new() {
+void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb, int extents_in_use) {
+    mb->debug_extents_in_use = extents_in_use;
+}
+
+void extent_manager_t::start_existing(metablock_mixin_t *last_metablock) {
+
     rassert(state == state_reserving_extents);
     current_transaction = NULL;
     for (unsigned int i = 0; i < num_zones; i++) {
@@ -180,10 +185,7 @@ void extent_manager_t::start_new() {
     }
     fprintf(stderr, "\n");
 #endif
-}
 
-void extent_manager_t::start_existing(metablock_mixin_t *last_metablock) {
-    start_new();
     rassert(n_extents_in_use == last_metablock->debug_extents_in_use);
 }
 

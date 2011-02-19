@@ -1152,7 +1152,7 @@ struct interfile_errors {
     bool all_have_correct_num_files;  // should be true
     bool all_have_same_num_files;  // must be true
     bool all_have_same_num_slices;  // must be true
-    bool all_have_same_db_magic;  // must be true
+    bool all_have_same_creation_timestamp;  // must be true
     bool out_of_order_serializers;  // should be false
     bool bad_this_serializer_values;  // must be false
     bool bad_num_slices;  // must be false
@@ -1167,7 +1167,7 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
     errs->all_have_correct_num_files = true;
     errs->all_have_same_num_files = true;
     errs->all_have_same_num_slices = true;
-    errs->all_have_same_db_magic = true;
+    errs->all_have_same_creation_timestamp = true;
     errs->out_of_order_serializers = false;
     errs->bad_this_serializer_values = false;
 
@@ -1179,7 +1179,7 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
         errs->all_have_correct_num_files &= (cb.n_files == num_files);
         errs->all_have_same_num_files &= (cb.n_files == zeroth.n_files);
         errs->all_have_same_num_slices &= (cb.n_proxies == zeroth.n_proxies);
-        errs->all_have_same_db_magic &= (cb.multiplexer_magic == zeroth.multiplexer_magic);
+        errs->all_have_same_creation_timestamp &= (cb.creation_timestamp == zeroth.creation_timestamp);
         errs->out_of_order_serializers |= (i == cb.this_serializer);
         errs->bad_this_serializer_values |= (cb.this_serializer < 0 || cb.this_serializer >= cb.n_files);
         if (cb.this_serializer < num_files && cb.this_serializer >= 0) {
@@ -1194,7 +1194,7 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
         errs->reused_serializer_numbers |= (counts[i] > 1);
     }
 
-    return (errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_db_magic && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->reused_serializer_numbers);
+    return (errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_creation_timestamp && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->reused_serializer_numbers);
 }
 
 struct all_slices_errors {
@@ -1314,7 +1314,7 @@ void report_interfile_errors(const interfile_errors &errs) {
         printf("ERROR config blocks disagree on number of slices\n");
     }
 
-    if (!errs.all_have_same_db_magic) {
+    if (!errs.all_have_same_creation_timestamp) {
         printf("ERROR config blocks have different database_magic\n");
     }
 
@@ -1454,7 +1454,7 @@ bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
 }
 
 void print_interfile_summary(const multiplexer_config_block_t& c, const mc_config_block_t& mcc) {
-    printf("config_block multiplexer_magic: %u\n", c.multiplexer_magic);
+    printf("config_block creation_timestamp: %lu\n", c.creation_timestamp);
     printf("config_block n_files: %d\n", c.n_files);
     printf("config_block n_proxies: %d\n", c.n_proxies);
     printf("config_block n_log_blocks: %d\n", mcc.cache.n_patch_log_blocks);

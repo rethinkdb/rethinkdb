@@ -74,7 +74,7 @@ public:
     void reserve_extent(off64_t extent);
 
 public:
-    void start_new();
+    static void prepare_initial_metablock(metablock_mixin_t *mb, int extents_in_use);
     void start_existing(metablock_mixin_t *last_metablock);
     void prepare_metablock(metablock_mixin_t *metablock);
     void shutdown();

@@ -2,7 +2,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#include <boost/scoped_array.hpp>
 
 /* head functions */
 
@@ -76,24 +76,28 @@ metablock_manager_t<metablock_t>::~metablock_manager_t() {
 }
 
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::start_new(direct_file_t *file) {
-    
-    rassert(state == state_unstarted);
-    dbfile = file;
-    rassert(dbfile != NULL);
-    
+void metablock_manager_t<metablock_t>::create(direct_file_t *dbfile, off64_t extent_size, metablock_t *initial) {
+
+    std::vector<off64_t> metablock_offsets;
+    initialize_metablock_offsets(extent_size, &metablock_offsets);
+
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
-    
-    /* Wipe the metablock slots so we don't mistake something left by a previous database as a
+
+    /* Allocate a buffer for doing our writes */
+    crc_metablock_t *buffer = reinterpret_cast<crc_metablock_t*>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
+    bzero(buffer, DEVICE_BLOCK_SIZE);
+
+    /* Wipe the metablock slots so we don't mistake something left by a previous database for a
     valid metablock. */
-    bzero(mb_buffer, DEVICE_BLOCK_SIZE);
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
-        dbfile->write_blocking(metablock_offsets[i], DEVICE_BLOCK_SIZE, mb_buffer);
+        co_write(dbfile, metablock_offsets[i], DEVICE_BLOCK_SIZE, buffer);
     }
-    
-    next_version_number = MB_START_VERSION;
-    
-    state = state_ready;
+
+    /* Write the first metablock */
+    buffer->prepare(initial, MB_START_VERSION);
+    co_write(dbfile, metablock_offsets[0], DEVICE_BLOCK_SIZE, buffer);
+
+    free(buffer);
 }
 
 template<class metablock_t>
@@ -183,13 +187,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
     rassert(state == state_ready);
     rassert(!mb_buffer_in_use);
     
-    mb_buffer->metablock = *mb;
-    memcpy(mb_buffer->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
-    memcpy(mb_buffer->crc_marker, MB_MARKER_CRC, sizeof(MB_MARKER_CRC));
-    memcpy(mb_buffer->version_marker, MB_MARKER_VERSION, sizeof(MB_MARKER_VERSION));
-    mb_buffer->version = next_version_number++;
-
-    mb_buffer->set_crc();
+    mb_buffer->prepare(mb, next_version_number++);
     rassert(mb_buffer->check_crc());
 
     mb_buffer_in_use = true;
