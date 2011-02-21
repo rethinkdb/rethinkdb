@@ -17,6 +17,7 @@ struct serializer_t :
     thread it was created on, and it should be destroyed on that same thread. */
     public home_thread_mixin_t
 {
+    serializer_t() { }
     virtual ~serializer_t() {}
 
     /* The buffers that are used with do_read() and do_write() must be allocated using
@@ -100,6 +101,9 @@ struct serializer_t :
 
     /* Gets a block's timestamp.  This may return repli_timestamp::invalid. */
     virtual repli_timestamp get_recency(ser_block_id_t id) = 0;
+
+private:
+    DISABLE_COPYING(serializer_t);
 };
 
 #endif /* __SERIALIZER_HPP__ */

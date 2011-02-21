@@ -135,6 +135,8 @@ private:
     buftree_t *release_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     buf_t *get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset);
     buftree_t *remove_level(buftree_t *tr, block_id_t id, block_id_t *idout);
+
+    DISABLE_COPYING(large_buf_t);
 };
 
 #endif // __LARGE_BUF_HPP__
