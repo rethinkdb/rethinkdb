@@ -89,8 +89,19 @@ def parse_arguments(args):
     op['db_password'] = StringFlag("--db-password", 'rethinkdb2010')
     op['db_database'] = StringFlag("--db-database", 'longtest')
     op['test_id'] = StringFlag("--test-id", 'Long test')
+    op['server_extra_flags'] = StringFlag("--server-extra", '')
+    op['stress_extra_flags'] = StringFlag("--stress-extra", '')
 
     opts = op.parse(args)
+
+    def split_words(s):
+        if not(s):
+            return []
+        else:
+            return s.split(' ')
+
+    opts['server_extra_flags'] = split_words(opts['server_extra_flags'])
+    opts['stress_extra_flags'] = split_words(opts['stress_extra_flags'])
 
     opts["netrecord"] = False   # We don't want to slow down the network
     opts['auto'] = True
@@ -111,7 +122,7 @@ def long_test_function(opts, test_dir):
     global stats_collector
 
     print 'Starting server...'
-    server = Server(opts, extra_flags=[], test_dir=test_dir)
+    server = Server(opts, extra_flags=opts['server_extra_flags'], test_dir=test_dir)
     server.start()
 
     stats_sender = StatsSender(opts, server)
@@ -133,9 +144,7 @@ def long_test_function(opts, test_dir):
                 , "appends":  opts["nappends"]
                 , "prepends": opts["nprepends"]
                 }, duration=opts["duration"], test_dir = test_dir,
-                clients = opts["clients"])
-    except:
-        pass
+                clients = opts["clients"], extra_flags=opts['stress_extra_flags'])
     finally:
         shutdown()
 
