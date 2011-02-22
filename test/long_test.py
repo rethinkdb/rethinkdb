@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, os, signal, math
+import sys, os, signal, math, thread
 from datetime import datetime
 from subprocess import Popen, PIPE
 from optparse import OptionParser
@@ -252,7 +252,7 @@ class StatsSender(object):
             self.stats.append(stats_snapshot)
 
             if self.need_to_post():
-                self.post_results() # new thread ?
+                thread.start_new_thread(self.post_results, ())
 
         self.opts = opts
         self.stats = []
