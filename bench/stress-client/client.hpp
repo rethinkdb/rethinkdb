@@ -17,17 +17,23 @@ struct shared_t {
 public:
     shared_t(config_t *_config)
         : config(_config),
-          qps_offset(0), latencies_offset(0),
-          qps_fd(NULL), latencies_fd(NULL),
           last_qps(0), n_op(1), n_tick(1), n_ops_so_far(0)
         {
             pthread_mutex_init(&mutex, NULL);
 
-            if(config->qps_file[0] != 0) {
+            if(strcmp(config->qps_file, "-") == 0) {
+                qps_fd = stdout;
+            } else if(config->qps_file[0] != 0) {
                 qps_fd = fopen(config->qps_file, "wa");
+            } else {
+                qps_fd = NULL;
             }
-            if(config->latency_file[0] != 0) {
+            if(strcmp(config->latency_file, "-") == 0) {
+                latencies_fd = stdout;
+            } else if(config->latency_file[0] != 0) {
                 latencies_fd = fopen(config->latency_file, "wa");
+            } else {
+                latencies_fd = NULL;
             }
 
             value_buf = new char[config->values.max];
@@ -35,12 +41,10 @@ public:
         }
 
     ~shared_t() {
-        if(qps_fd) {
-            fwrite(qps, 1, qps_offset, qps_fd);
+        if(qps_fd && qps_fd != stdout) {
             fclose(qps_fd);
         }
-        if(latencies_fd) {
-            fwrite(latencies, 1, latencies_offset, latencies_fd);
+        if(latencies_fd && latencies_fd != stdout) {
             fclose(latencies_fd);
         }
 
@@ -84,16 +88,7 @@ public:
             return;
         }
 
-        int _off = snprintf(qps + qps_offset, sizeof(qps) - qps_offset, "%d\t\t%d\n", n_tick, _qps);
-        if(_off >= sizeof(qps) - qps_offset) {
-            // Couldn't write everything, flush
-            fwrite(qps, 1, qps_offset, qps_fd);
-
-            // Write again
-            qps_offset = 0;
-            _off = snprintf(qps + qps_offset, sizeof(qps) - qps_offset, "%d\t\t%d\n", n_tick, _qps);
-        }
-        qps_offset += _off;
+        fprintf(qps_fd, "%d\t\t%d\n", n_tick, _qps);
 
         n_tick++;
 
@@ -123,16 +118,7 @@ public:
 
         lock();
 
-        int _off = snprintf(latencies + latencies_offset, sizeof(latencies) - latencies_offset, "%ld\t\t%.2f\n", n_op, latency);
-        if(_off >= sizeof(latencies) - latencies_offset) {
-            // Couldn't write everything, flush
-            fwrite(latencies, 1, latencies_offset, latencies_fd);
-
-            // Write again
-            latencies_offset = 0;
-            _off = snprintf(latencies + latencies_offset, sizeof(latencies) - latencies_offset, "%ld\t\t%.2f\n", n_op, latency);
-        }
-        latencies_offset += _off;
+        fprintf(latencies_fd, "%ld\t\t%.2f\n", n_op, latency);
 
         n_op++;
 
@@ -142,8 +128,6 @@ public:
 private:
     config_t *config;
     map<int, pair<int, int> > qps_map;
-    char qps[40960], latencies[40960];
-    int qps_offset, latencies_offset;
     FILE *qps_fd, *latencies_fd;
     pthread_mutex_t mutex;
     int last_qps;
