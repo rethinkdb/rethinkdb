@@ -89,6 +89,7 @@ public:
         }
 
         fprintf(qps_fd, "%d\t\t%d\n", n_tick, _qps);
+        fflush(qps_fd);
 
         n_tick++;
 
@@ -119,6 +120,7 @@ public:
         lock();
 
         fprintf(latencies_fd, "%ld\t\t%.2f\n", n_op, latency);
+        fflush(latencies_fd);
 
         n_op++;
 
