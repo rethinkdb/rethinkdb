@@ -63,6 +63,12 @@ try:
                   "no-valgrind" : not checker,
                   "protocol"    : protocol })
         
+        do_test_cloud("integration/big_values.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol })
+        
         do_test_cloud("integration/serial_mix.py",
                 { "auto"        : True,
                   "mode"        : mode,
