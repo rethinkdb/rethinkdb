@@ -30,7 +30,11 @@ def git_checkout(branch):
     do_test("git fetch -f origin {b}:refs/remotes/origin/{b} && git checkout -f origin/{b}".format(b=branch))
 
 def main():
-    options = parse_arguments(sys.argv)
+    try:
+        options = parse_arguments(sys.argv)
+    except OptError as e:
+        print str(e)
+        sys.exit(1)
 
     if options['checkout']:
         if repo_has_local_changes():
@@ -63,7 +67,7 @@ def parse_arguments(args):
     op = make_option_parser()
     op['cores']     = IntFlag("--cores",     rdb_num_threads)
     op['memory']    = IntFlag("--memory",    rdb_cache_size)
-    op['ssds']      = AllArgsAfterFlag("--ssds", default = rdb_db_files)
+    op['ssds']      = AllArgsAfterFlag("--ssds")
     op["ndeletes"]  = IntFlag("--ndeletes",  1)
     op["nupdates"]  = IntFlag("--nupdates",  4)
     op["ninserts"]  = IntFlag("--ninserts",  8)
@@ -79,13 +83,15 @@ def parse_arguments(args):
     op['plot_width']   = IntFlag("--plot-width", 1024)
     op['single_plot_height']   = IntFlag("--single-plot-height", 144)
     op['emailfrom'] = StringFlag("--emailfrom", 'buildbot@rethinkdb.com:allspark')
-    op['recipient'] = StringFlag("--email", 'all@rethinkdb.com')
+    op['email'] = StringFlag("--email")
     op['db_server'] = StringFlag("--db-server", 'newton')
     op['db_user'] = StringFlag("--db-user", 'longtest')
     op['db_password'] = StringFlag("--db-password", 'rethinkdb2010')
     op['db_database'] = StringFlag("--db-database", 'longtest')
+    op['test_id'] = StringFlag("--test-id", 'Long test')
 
     opts = op.parse(args)
+
     opts["netrecord"] = False   # We don't want to slow down the network
     opts['auto'] = True
     opts['mode'] = 'release'
@@ -210,6 +216,7 @@ class StatsSender(object):
         self.plot_width = int(opts['plot_width'])
         self.single_plot_height = int(opts['single_plot_height'])
         self.reporting_interval = int(opts['reporting_interval'])
+        self.test_id = opts['test_id']
         desired_bucket_width = 4
         bucket_size = max(10, desired_bucket_width*float(self.reporting_interval)/float(self.plot_width))
 
@@ -275,18 +282,32 @@ class StatsSender(object):
             from email.mime.text import MIMEText
             from email.mime.multipart import MIMEMultipart
 
-            msg = MIMEMultipart()
-            msg['Subject'] = 'Long test [%fs]' % all_stats[-1]['uptime']
-            msg['From'] = 'buildbot@rethinkdb.com'
-            msg['To'] = self.opts['recipient']
+            def format_time(sec):
+                days = int(sec/86400)
+                sec = sec - days*86400
+                hrs = int(sec/3600)
+                sec = sec - hrs*3600
+                mins = int(sec/60)
+                sec = sec - mins*60
+                if days > 0:
+                    return '%d.%02d:%02d:%02d' % (days, hrs, mins, sec)
+                else:
+                    return '%02d:%02d:%02d' % (hrs, mins, sec)
 
-            start_timestamp = all_stats[0]['timestamp']
+            start_time = all_stats[0]['uptime']
+            end_time = all_stats[-1]['uptime']
+
+            msg = MIMEMultipart()
+            msg['Subject'] = '[%s]: %s-%s' % (self.test_id, format_time(start_time), format_time(end_time))
+            msg['From'] = 'buildbot@rethinkdb.com'
+            msg['To'] = self.opts['email']
+
             img_number = 0
             images = self.generate_plots(all_stats)
             for img in images:
                 msg_img = MIMEImage(img)
                 msg_img.add_header('Content-ID', '<%d.png>' % img_number)
-                msg_img.add_header('Content-Disposition', 'inline; filename=%s-%d.png;' % (start_timestamp, img_number))
+                msg_img.add_header('Content-Disposition', 'inline; filename=%s-%s-%d.png;' % (format_time(start_time), format_time(end_time), img_number))
                 msg.attach(msg_img)
 
                 img_number = img_number + 1
@@ -303,7 +324,7 @@ class StatsSender(object):
             msg.attach(MIMEText(html, 'html'))
 
             os.environ['RETESTER_EMAIL_SENDER'] = self.opts['emailfrom']
-            send_email(None, msg, self.opts['recipient'])
+            send_email(None, msg, self.opts['email'])
             print "Sent an email"
 
     def generate_plots(self, all_stats):
