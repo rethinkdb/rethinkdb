@@ -45,6 +45,7 @@ SYMBOLS?=0
 
 DEBUG?=1
 VALGRIND?=0
+NO_TCMALLOC?=0
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
@@ -188,7 +189,9 @@ ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
 else
+ifeq ($(NO_TCMALLOC),0)
 STATIC_LIBRARIES+=tcmalloc_minimal
+endif
 endif
 
 prefix?=/usr
