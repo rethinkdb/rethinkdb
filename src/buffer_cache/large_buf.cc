@@ -546,6 +546,28 @@ void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int
     }
 }
 
+// TODO BUFTREE get rid of this std::vector copyage crap.
+std::vector<buftree_t *> large_buf_t::removes_level(const std::vector<buftree_t *>& trs, block_id_t *ids, int copyees) {
+    assert(trs.size() == 1);
+    assert((MAX_IN_NODE_VALUE_SIZE - sizeof(root_ref)) / sizeof(block_id_t) >= (size_t)copyees);
+
+    buftree_t *tr = trs[0];
+
+    const large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_read());
+    for (int i = 0; i < copyees; ++i) {
+        ids[i] = node->kids[i];
+    }
+
+    tr->buf->mark_deleted();
+    tr->buf->release();
+#ifndef NDEBUG
+    num_bufs--;
+#endif
+    std::vector<buftree_t *> ret = tr->children;
+    delete tr;
+    return ret;
+}
+
 buftree_t *large_buf_t::remove_level(buftree_t *tr, block_id_t id, block_id_t *idout) {
     tr->buf->mark_deleted();
     tr->buf->release();
@@ -561,27 +583,43 @@ buftree_t *large_buf_t::remove_level(buftree_t *tr, block_id_t id, block_id_t *i
 void large_buf_t::unappend(int64_t extra_size, large_buf_ref *refout) {
     rassert(state == loaded);
     rassert(extra_size < root_ref.size);
-
-    rassert(root->level == num_levels(root_ref.offset + root_ref.size));
+    rassert(roots[0]->level == num_sublevels(root_ref.offset + root_ref.size));
 
     int64_t back = root_ref.offset + root_ref.size - extra_size;
 
     int64_t delbeg = ceil_aligned(back, num_leaf_bytes());
     int64_t delend = ceil_aligned(back + extra_size, num_leaf_bytes());
     if (delbeg < delend) {
-        delete_tree_structure(root, delbeg, delend - delbeg, num_levels(root_ref.offset + root_ref.size));
+        delete_tree_structures(&roots, delbeg, delend - delbeg, num_sublevels(root_ref.offset + root_ref.size));
     }
 
-    block_id_t id = root_ref.block_id();
-    for (int i = num_levels(root_ref.offset + root_ref.size), e = num_levels(back); i > e; --i) {
-        root = remove_level(root, id, &id);
+    for (int i = num_sublevels(root_ref.offset + root_ref.size), e = num_sublevels(back); i > e; --i) {
+        roots = removes_level(roots, root_ref.block_ids, ceil_divide(back, max_offset(i - 1)));
     }
 
-    root_ref.block_id() = id;
     root_ref.size -= extra_size;
 
     memcpy(refout, &root_ref, root_ref.refsize(block_size));
-    rassert(root->level == num_levels(root_ref.offset + root_ref.size));
+    rassert(roots[0]->level == num_sublevels(root_ref.offset + root_ref.size));
+}
+
+void large_buf_t::walk_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *)) {
+    assert(0 <= offset);
+    assert(0 < size);
+    assert(offset + size <= int64_t(trs->size() * max_offset(sublevels)));
+
+    int64_t step = max_offset(sublevels);
+    for (int k = offset / step, ke = ceil_divide(offset + size, step); k < ke; ++k) {
+        int64_t i = int64_t(k) * step;
+        int64_t beg = std::max(offset, i);
+        int64_t end = std::min(offset + size, i + step);
+
+        buftree_t *child = k < int(trs->size()) ? (*trs)[k] : NULL;
+        buftree_t *replacement = walk_tree_structure(child, beg - i, end - beg, sublevels, bufdoer, buftree_cleaner);
+        if (k < (int64_t)trs->size()) {
+            (*trs)[k] = replacement;
+        }
+    }
 }
 
 buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *)) {
@@ -596,18 +634,7 @@ buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64
             bufdoer(this, tr->buf);
             return buftree_cleaner(tr);
         } else {
-            int64_t step = max_offset(levels - 1);
-
-            for (int k = offset / step, ke = ceil_divide(offset + size, step); k < ke; ++k) {
-                int64_t i = int64_t(k) * step;
-                int64_t beg = std::max(offset, i);
-                int64_t end = std::min(offset + size, i + step);
-                buftree_t *child = k < int(tr->children.size()) ? tr->children[k] : NULL;
-                buftree_t *replacement = walk_tree_structure(child, beg - i, end - beg, levels - 1, bufdoer, buftree_cleaner);
-                if (k < (int64_t)tr->children.size()) {
-                    tr->children[k] = replacement;
-                }
-            }
+            walk_tree_structures(&tr->children, offset, size, levels - 1, bufdoer, buftree_cleaner);
 
             if (offset == 0 && size == max_offset(levels)) {
                 bufdoer(this, tr->buf);
@@ -651,6 +678,10 @@ buftree_t *buftree_nothing(buftree_t *tr) {
 
 void large_buf_t::delete_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels) {
     walk_tree_structure(tr, offset, size, levels, mark_deleted_and_release, buftree_delete);
+}
+
+void large_buf_t::delete_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels) {
+    walk_tree_structures(trees, offset, size, sublevels, mark_deleted_and_release, buftree_delete);
 }
 
 void large_buf_t::only_mark_deleted_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels) {
