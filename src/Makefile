@@ -187,10 +187,11 @@ endif
 ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
-else
+NO_TCMALLOC:=1
+endif
+
 ifeq ($(NO_TCMALLOC),0)
 STATIC_LIBRARIES+=tcmalloc_minimal
-endif
 endif
 
 # look for the static library in the same directory as the .so file
