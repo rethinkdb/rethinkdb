@@ -139,7 +139,7 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
     } else {
         large_buf_internal *node = reinterpret_cast<large_buf_internal *>(tr->buf->get_data_major_write());
 
-        assert(check_magic<large_buf_internal>(node->magic));
+        rassert(check_magic<large_buf_internal>(node->magic));
 
         allocates_part_of_tree(&tr->children, node->kids, offset, size, levels - 1);
     }
@@ -451,24 +451,20 @@ void large_buf_t::append(int64_t extra_size, large_buf_ref *refout) {
 void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
     rassert(state == loaded);
 
-    int64_t back = root_ref.offset + root_ref.size;
-    int oldlevels = num_levels(back);
+    const int64_t back = root_ref.offset + root_ref.size;
 
-    rassert(root->level == oldlevels);
+    rassert(roots[0]->level == num_sublevels(back));
 
     int64_t newoffset = root_ref.offset - extra_size;
 
     if (newoffset >= 0) {
-        allocate_part_of_tree(root, newoffset, extra_size, oldlevels);
+        allocates_part_of_tree(&roots, root_ref.block_ids, newoffset, extra_size, num_sublevels(back));
         root_ref.offset = newoffset;
         root_ref.size += extra_size;
     } else {
-        block_id_t id = root_ref.block_id();
-        buftree_t *tr = root;
-        int levels = oldlevels;
 
     tryagain:
-        int64_t shiftsize = levels == 1 ? 1 : max_offset(levels - 1);
+        int64_t shiftsize = max_offset(num_sublevels(back));
 
         // Find minimal k s.t. newoffset + k * shiftsize >= 0.
         // I.e. find min k s.t. newoffset >= -k * shiftsize.
@@ -477,52 +473,42 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
 
         int64_t k = (-newoffset + shiftsize - 1) / shiftsize;
         int64_t back_k = (back + shiftsize - 1) / shiftsize;
-        int64_t max_k = max_offset(levels) / shiftsize;
+        int64_t max_k = (MAX_IN_NODE_VALUE_SIZE - sizeof(large_buf_ref)) / sizeof(block_id_t);
+
         if (k + back_k > max_k) {
-            tr = add_level(tr, id, &id
+            roots = adds_level(roots, root_ref.block_ids
 #ifndef NDEBUG
-                           , levels + 1
+                               , num_sublevels(back) + 1
 #endif
-                           );
-            levels++;
+                               );
             goto tryagain;
         }
 
-        if (levels == 1) {
-            large_buf_leaf *leaf = ptr_cast<large_buf_leaf>(tr->buf->get_data_major_write());
-            memmove(leaf->buf + k, leaf->buf, back_k);
-            memset(leaf->buf, 0, k);
-        } else {
-            large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_major_write());
-            int64_t children_back_k = tr->children.size();
-            rassert(children_back_k <= back_k);
-            tr->children.resize(children_back_k + k);
+        int64_t roots_back_k = roots.size();
+        rassert(roots_back_k <= back_k);
+        roots.resize(roots_back_k + k);
 
-            for (int w = back_k - 1; w >= children_back_k; --w) {
-                node->kids[w + k] = node->kids[w];
-            }
-            for (int w = children_back_k - 1; w >= 0; --w) {
-                node->kids[w + k] = node->kids[w];
-                tr->children[w + k] = tr->children[w];
-            }
-            for (int w = k; w-- > 0;) {
-                node->kids[w] = NULL_BLOCK_ID;
-                tr->children[w] = NULL;
-            }
+        for (int w = back_k - 1; w >= roots_back_k; --w) {
+            root_ref.block_ids[w + k] = root_ref.block_ids[w];
+        }
+        for (int w = roots_back_k - 1; w >= 0; --w) {
+            root_ref.block_ids[w + k] = root_ref.block_ids[w];
+            roots[w+k] = roots[w];
+        }
+        for (int w = k; w-- > 0;) {
+            root_ref.block_ids[w] = NULL_BLOCK_ID;
+            roots[w] = NULL;
         }
 
         root_ref.offset = newoffset + k * shiftsize;
-        allocate_part_of_tree(tr, root_ref.offset, extra_size, levels);
-
-        root_ref.block_id() = id;
         root_ref.size += extra_size;
-        root = tr;
+        allocates_part_of_tree(&roots, root_ref.block_ids, root_ref.offset, extra_size, num_sublevels(root_ref.offset + root_ref.size));
     }
 
     memcpy(refout, &root_ref, root_ref.refsize(block_size));
-    rassert(root->level == num_levels(root_ref.offset + root_ref.size),
-           "root-level=%d num=%d offset=%ld size=%ld extra_size=%ld\n",
-           root->level, num_levels(root_ref.offset + root_ref.size), root_ref.offset, root_ref.size, extra_size);
+    rassert(roots[0]->level == num_sublevels(root_ref.offset + root_ref.size),
+           "roots[0]->level=%d num=%d offset=%ld size=%ld extra_size=%ld\n",
+           roots[0]->level, num_sublevels(root_ref.offset + root_ref.size), root_ref.offset, root_ref.size, extra_size);
 }
 
 
