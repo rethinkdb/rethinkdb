@@ -515,11 +515,24 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
 // Reads size bytes from data.
 void large_buf_t::fill_at(int64_t pos, const byte *data, int64_t fill_size) {
     rassert(state == loaded);
-    rassert(pos >= root_ref.offset);
-    rassert(pos + fill_size <= root_ref.size);
+    rassert(0 <= pos && pos <= root_ref.size);
+    rassert(fill_size <= root_ref.size - pos);
 
-    int levels = num_levels(root_ref.offset + root_ref.size);
-    fill_tree_at(root, root_ref.offset + pos, data, fill_size, levels);
+    int sublevels = num_sublevels(root_ref.offset + root_ref.size);
+    fill_trees_at(roots, root_ref.offset + pos, data, fill_size, sublevels);
+}
+
+void large_buf_t::fill_trees_at(const std::vector<buftree_t *>& trees, int64_t pos, const byte *data, int64_t fill_size, int sublevels) {
+    assert(trees[0]->level == sublevels);
+
+    int64_t step = max_offset(sublevels);
+
+    for (int k = pos / step, ke = ceil_divide(pos + fill_size, step); k < ke; ++k) {
+        int64_t i = int64_t(k) * step;
+        int64_t beg = std::max(i, pos);
+        int64_t end = std::min(pos + fill_size, i + step);
+        fill_tree_at(trees[k], beg - i, data + (beg - pos), end - beg, sublevels);
+    }
 }
 
 void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels) {
@@ -529,16 +542,8 @@ void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int
         large_buf_leaf *node = reinterpret_cast<large_buf_leaf *>(tr->buf->get_data_major_write());
         memcpy(node->buf + pos, data, fill_size);
     } else {
-        int64_t step = max_offset(levels - 1);
-
-        for (int k = pos / step, ke = ceil_divide(pos + fill_size, step); k < ke; ++k) {
-            int64_t i = int64_t(k) * step;
-            int64_t beg = std::max(i, pos);
-            int64_t end = std::min(pos + fill_size, i + step);
-            fill_tree_at(tr->children[k], beg - i, data + (beg - pos), end - beg, levels - 1);
-        }
+        fill_trees_at(tr->children, pos, data, fill_size, levels - 1);
     }
-    rassert(root->level == num_levels(root_ref.offset + root_ref.size));
 }
 
 buftree_t *large_buf_t::remove_level(buftree_t *tr, block_id_t id, block_id_t *idout) {
