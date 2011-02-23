@@ -221,7 +221,7 @@ class NetRecord(object):
 
 num_stress_clients = 0
 
-def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64, keys_prefix=None):
+def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64, extra_flags=[], keys_prefix=None):
     global num_stress_clients
     num_stress_clients += 1
     
@@ -236,7 +236,7 @@ def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "in
             workload.get("inserts", 0), workload.get("gets", 0), workload.get("appends", 0),
             workload.get("prepends", 0), workload.get("verifies", 0)),
         "-c", str(clients),
-        ]
+        ] + extra_flags
     
     if keys_prefix and keys_prefix != "":
         command_line.extend(['-K', keys_prefix])
