@@ -151,10 +151,13 @@ private:
     void delete_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void delete_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels);
     void only_mark_deleted_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    void only_mark_deleted_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels);
     buftree_t *release_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    void release_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels);
     buf_t *get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset);
     buftree_t *remove_level(buftree_t *tr, block_id_t id, block_id_t *idout);
     std::vector<buftree_t *> removes_level(const std::vector<buftree_t *>& trs, block_id_t *ids, int copyees);
+    int try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t stepsize);
 };
 
 #endif // __LARGE_BUF_HPP__
