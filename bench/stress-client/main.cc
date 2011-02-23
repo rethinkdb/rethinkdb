@@ -48,6 +48,20 @@ protocol_t *make_protocol(protocol_enum_t protocol, config_t *config) {
     }
 }
 
+FILE *get_out_file(const char *name, const char *what) {
+    if (strcmp(name, "-") == 0) {
+        return stdout;
+    } else if (name[0] != '\0') {
+        FILE *f = fopen(name, "wa");
+        if (!f) {
+            fprintf(stderr, "Warning: Could not open \"%s\". Will not record %s.\n", name, what);
+        }
+        return f;
+    } else {
+        return NULL;
+    }
+}
+
 /* Tie it all together */
 int main(int argc, char *argv[])
 {
@@ -65,6 +79,11 @@ int main(int argc, char *argv[])
         config.mock_parse = false;
     }
     config.print();
+
+    /* Open output files */
+    FILE *qps_fd = get_out_file(config.qps_file, "QPS");
+    FILE *latencies_fd = get_out_file(config.latency_file, "latencies");
+    FILE *worst_latencies_fd = get_out_file(config.worst_latency_file, "worst latencies");
 
     /* make a directory for our sqlite files */
     if (config.db_file[0]) {
@@ -93,17 +112,17 @@ int main(int argc, char *argv[])
     int res;
     vector<pthread_t> threads(config.clients);
 
-    // Create the shared structure
-    shared_t shared(&config);
-
     client_data_t client_data[config.clients];
     for(int i = 0; i < config.clients; i++) {
         client_data[i].config = &config;
         client_data[i].server = &config.servers[i % config.servers.size()];
-        client_data[i].shared = &shared;
         client_data[i].id = i;
         client_data[i].min_seed = 0;
         client_data[i].max_seed = 0;
+
+        // Sampling latencies can be expensive because it makes many calls to random(), so we
+        // disable it if we aren't going to give latencies to the user
+        client_data[i].enable_latency_samples = latencies_fd != NULL ? true : false;
 
         // Create and connect all protocols first to avoid weird TCP
         // timeout bugs
@@ -116,6 +135,8 @@ int main(int argc, char *argv[])
         } else {
             client_data[i].sqlite = NULL;
         }
+
+        client_data[i].keep_running = true;
     }
 
     // If input keys are provided, read them in
@@ -158,6 +179,88 @@ int main(int argc, char *argv[])
         }
     }
 
+    /* The main loop polls the threads for stats once a second, and issues the order to stop when
+    it decides it is time. */
+
+    query_stats_t total_stats;
+
+    ticks_t start_time = get_ticks();
+    int seconds_of_run = 0, latency_record_counter = 0;
+
+    // TODO: If an workload contains contains no inserts and there are no keys available for a
+    // particular client (and the duration is specified in q/i), it'll just loop forever.
+
+    bool keep_running = true;
+    while(keep_running) {
+
+        /* Delay approximately one second, making sure we don't drift as time passes */
+        ticks_t now = get_ticks(), target = start_time + (seconds_of_run + 1) * secs_to_ticks(1);
+        if (now > target) {
+            fprintf(stderr, "Reporter thread way too slow for some reason\n");
+            exit(-1);
+        }
+        sleep_ticks(target - now);
+
+        /* Poll all the clients for stats */
+        query_stats_t stats_for_this_second;
+        for(int i = 0; i < config.clients; i++) {
+            /* We don't want to hold the spinlock for very long, so we copy the client stats into
+            a temporary buffer at first, and then do the (potentially expensive) aggregation
+            operation after we have released the spinlock */
+            client_data[i].spinlock.lock();
+            query_stats_t stat_buffer(client_data[i].stats);
+            client_data[i].stats = query_stats_t();
+            client_data[i].spinlock.unlock();
+            stats_for_this_second.aggregate(&stat_buffer);
+        }
+
+        /* Report the stats we got from the clients */
+        if (qps_fd) {
+            fprintf(qps_fd, "%d\t\t%d\n", seconds_of_run, stats_for_this_second.queries);
+            fflush(qps_fd);
+        }
+        if (latencies_fd) {
+            for (int i = 0; i < stats_for_this_second.latency_samples.size(); i++) {
+                fprintf(latencies_fd, "%d\t\t%.2f\n",
+                    latency_record_counter++,
+                    ticks_to_us(stats_for_this_second.latency_samples.samples[i]));
+            }
+            fflush(latencies_fd);
+        }
+        if (worst_latencies_fd) {
+            fprintf(worst_latencies_fd, "worst-latency\t%d\t%.2f\n",
+                seconds_of_run, ticks_to_us(stats_for_this_second.worst_latency));
+            fflush(worst_latencies_fd);
+        }
+
+        /* Update the aggregate total stats, and check if we are done running */
+        total_stats.aggregate(&stats_for_this_second);
+        seconds_of_run++;
+        if (config.duration.duration != -1) {
+            switch (config.duration.units) {
+            case duration_t::queries_t:
+                keep_running = total_stats.queries < config.duration.duration;
+                break;
+            case duration_t::seconds_t:
+                keep_running = seconds_of_run < config.duration.duration;
+                break;
+            case duration_t::inserts_t:
+                keep_running = total_stats.inserts_minus_deletes < config.duration.duration;
+                break;
+            default:
+                fprintf(stderr, "Unknown duration unit\n");
+                exit(-1);
+            }
+        }
+    }
+
+    // Notify the threads to shut down
+    for(int i = 0; i < config.clients; i++) {
+        client_data[i].spinlock.lock();
+        client_data[i].keep_running = false;
+        client_data[i].spinlock.unlock();
+    }
+
     // Wait for the threads to finish
     for(int i = 0; i < config.clients; i++) {
         res = pthread_join(threads[i], NULL);
@@ -188,6 +291,10 @@ int main(int argc, char *argv[])
 
         fclose(out_file);
     }
+
+    if (qps_fd && qps_fd != stdout) fclose(qps_fd);
+    if (latencies_fd && latencies_fd != stdout) fclose(latencies_fd);
+    if (worst_latencies_fd && worst_latencies_fd != stdout) fclose(worst_latencies_fd);
 
     return 0;
 }

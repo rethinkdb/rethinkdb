@@ -1,4 +1,4 @@
-
+#include <unistd.h>
 #include <time.h>
 #include <stdlib.h>
 #include "utils.hpp"
@@ -33,3 +33,13 @@ float ticks_to_us(ticks_t ticks) {
     return ticks / 1000.0f;
 }
 
+void sleep_ticks(ticks_t ticks) {
+    int secs = ticks / secs_to_ticks(1);
+    if (secs) {
+        sleep(secs);
+        ticks -= secs_to_ticks(secs);
+    }
+    if (ticks) {
+        usleep(ticks_to_ms(ticks));
+    }
+}

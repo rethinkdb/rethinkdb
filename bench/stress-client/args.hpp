@@ -64,7 +64,9 @@ void usage(const char *name) {
     printf("].\n");
     printf("\t-l, --latency-file\n\t\tFile name to output individual latency information (in us).\n" \
            "\t\tThe information is not outputted if this argument is skipped.\n");
-    printf("\t-q, --qps-file\n\t\tFile name to output QPS information.\n" \
+    printf("\t-L, --worst-latency-file\n\t\tFile name to output worst latency each second.\n" \
+           "\t\tThe information is not outputted if this argument is skipped.\n");
+    printf("\t-q, --qps-file\n\t\tFile name to output QPS information. '-' for stdout.\n" \
            "\t\tThe information is not outputted if this argument is skipped.\n");
     printf("\t-o, --out-file\n\t\tIf present, dump all inserted keys to this file.\n");
     printf("\t-i, --in-file\n\t\tIf present, populate initial keys from this file\n"\
@@ -100,26 +102,27 @@ void parse(config_t *config, int argc, char *argv[]) {
         int do_help = 0;
         struct option long_options[] =
             {
-                {"server",         required_argument, 0, 's'},
-                {"clients",        required_argument, 0, 'c'},
-                {"workload",       required_argument, 0, 'w'},
-                {"keys",           required_argument, 0, 'k'},
-                {"keys-prefix",    required_argument, 0, 'K'},
-                {"values",         required_argument, 0, 'v'},
-                {"duration",       required_argument, 0, 'd'},
-                {"batch-factor",   required_argument, 0, 'b'},
-                {"latency-file",   required_argument, 0, 'l'},
-                {"qps-file",       required_argument, 0, 'q'},
-                {"out-file",       required_argument, 0, 'o'},
-                {"in-file",        required_argument, 0, 'i'},
-                {"db-file",        required_argument, 0, 'f'},
-                {"client-suffix",  no_argument, 0, 'a'},
-                {"help",           no_argument, &do_help, 1},
+                {"server",             required_argument, 0, 's'},
+                {"clients",            required_argument, 0, 'c'},
+                {"workload",           required_argument, 0, 'w'},
+                {"keys",               required_argument, 0, 'k'},
+                {"keys-prefix",        required_argument, 0, 'K'},
+                {"values",             required_argument, 0, 'v'},
+                {"duration",           required_argument, 0, 'd'},
+                {"batch-factor",       required_argument, 0, 'b'},
+                {"latency-file",       required_argument, 0, 'l'},
+                {"worst-latency-file", required_argument, 0, 'L'},
+                {"qps-file",           required_argument, 0, 'q'},
+                {"out-file",           required_argument, 0, 'o'},
+                {"in-file",            required_argument, 0, 'i'},
+                {"db-file",            required_argument, 0, 'f'},
+                {"client-suffix",      no_argument, 0, 'a'},
+                {"help",               no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:l:q:o:i:h:f:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:l:L:q:o:i:h:f:", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -165,6 +168,9 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'l':
             strncpy(config->latency_file, optarg, MAX_FILE);
+            break;
+        case 'L':
+            strncpy(config->worst_latency_file, optarg, MAX_FILE);
             break;
         case 'q':
             strncpy(config->qps_file, optarg, MAX_FILE);

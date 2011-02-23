@@ -19,7 +19,7 @@ endif
 
 EXEC_NAME = stress
 CXX = g++
-CXXFLAGS = -g $(INCLUDE) -O3 $(DEFINES)
+CXXFLAGS = -g $(INCLUDE) $(DEFINES) # -O3
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 

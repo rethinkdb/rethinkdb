@@ -134,6 +134,7 @@ public:
     distr_t batch_factor;
     bool mock_parse;
     char latency_file[MAX_FILE];
+    char worst_latency_file[MAX_FILE];
     char qps_file[MAX_FILE];
     char out_file[MAX_FILE];
     char in_file[MAX_FILE];
