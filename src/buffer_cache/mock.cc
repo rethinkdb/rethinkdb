@@ -79,7 +79,8 @@ void mock_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     apply_patch(new memmove_patch_t(internal_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
 }
 
-void mock_buf_t::mark_deleted() {
+void mock_buf_t::mark_deleted(bool write_null) {
+    // write_null is ignored for the mock cache.
     rassert(access == rwi_write);
     deleted = true;
 }
@@ -125,7 +126,8 @@ void mock_transaction_t::finish_committing(mock_transaction_commit_callback_t *c
     delete this;
 }
 
-mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock_block_available_callback_t *callback) {
+mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock_block_available_callback_t *callback, bool should_load) {
+    // should_load is ignored for the mock cache.
     if (mode == rwi_write) rassert(this->access == rwi_write);
     
     rassert(block_id < cache->bufs.get_size());

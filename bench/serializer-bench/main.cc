@@ -48,13 +48,13 @@ struct transaction_t :
 
         repli_timestamp tstamp = current_time();
         for (unsigned i = 0; i < updates; i++) {
-            writes.push_back(serializer_t::write_t::make(ser_block_id_t::make(begin.value + i), tstamp, dummy_buf, NULL));
+            writes.push_back(serializer_t::write_t::make(ser_block_id_t::make(begin.value + i), tstamp, dummy_buf, true, NULL));
         }
 
         /* Generate new IDs to insert by simply taking (highest ID + 1) */
 
         for (unsigned i = 0; i < inserts; i++) {
-            writes.push_back(serializer_t::write_t::make(ser_block_id_t::make(ser->max_block_id().value + i), tstamp, dummy_buf, NULL));
+            writes.push_back(serializer_t::write_t::make(ser_block_id_t::make(ser->max_block_id().value + i), tstamp, dummy_buf, true, NULL));
         }
 
         start_time = get_ticks();
