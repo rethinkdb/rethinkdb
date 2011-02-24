@@ -34,7 +34,7 @@ struct large_value_acquired_t : public large_buf_available_callback_t {
     void on_large_buf_available(large_buf_t *large_value) { self->notify(); }
 };
 
-void co_acquire_large_value(large_buf_t *large_value, large_buf_ref root_ref_, access_t access_) {
+void co_acquire_large_value(large_buf_t *large_value, const large_buf_ref *root_ref_, access_t access_) {
     large_value_acquired_t acquired;
     // TODO: what if this calls acquired immediately?  Then
     // self->notify() gets called before coro_t::wait().
@@ -48,13 +48,13 @@ void co_acquire_large_value(large_buf_t *large_value, large_buf_ref root_ref_, a
     coro_t::wait();
 }
 
-void co_acquire_large_value_lhs(large_buf_t *large_value, large_buf_ref root_ref_, access_t access_) {
+void co_acquire_large_value_lhs(large_buf_t *large_value, const large_buf_ref *root_ref_, access_t access_) {
     large_value_acquired_t acquired;
     large_value->acquire_lhs(root_ref_, access_, &acquired);
     coro_t::wait();
 }
 
-void co_acquire_large_value_rhs(large_buf_t *large_value, large_buf_ref root_ref_, access_t access_) {
+void co_acquire_large_value_rhs(large_buf_t *large_value, const large_buf_ref *root_ref_, access_t access_) {
     large_value_acquired_t acquired;
     large_value->acquire_rhs(root_ref_, access_, &acquired);
     coro_t::wait();

@@ -32,7 +32,7 @@ const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() t
     rassert(!large_value);
 
     large_value.reset(new large_buf_t(transactor->transaction()));
-    co_acquire_large_value(large_value.get(), lb_ref, rwi_read);
+    co_acquire_large_value(large_value.get(), &lb_ref, rwi_read);
 
     rassert(large_value->state == large_buf_t::loaded);
     rassert(large_value->get_root_ref().block_id == lb_ref.block_id);

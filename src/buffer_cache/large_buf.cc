@@ -237,11 +237,11 @@ struct lb_tree_available_callback_t : public tree_available_callback_t {
     }
 };
 
-void large_buf_t::acquire_slice(large_buf_ref root_ref_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_) {
+void large_buf_t::acquire_slice(const large_buf_ref *root_ref_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_) {
     rassert(0 <= slice_offset);
     rassert(0 <= slice_size);
-    rassert(slice_offset + slice_size <= root_ref_.size);
-    root_ref = root_ref_;
+    rassert(slice_offset + slice_size <= root_ref_->size);
+    root_ref = *root_ref_;
     access = access_;
     callback = callback_;
 
@@ -255,19 +255,19 @@ void large_buf_t::acquire_slice(large_buf_ref root_ref_, access_t access_, int64
     f->go();
 }
 
-void large_buf_t::acquire(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
-    acquire_slice(root_ref_, access_, 0, root_ref_.size, callback_);
+void large_buf_t::acquire(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
+    acquire_slice(root_ref_, access_, 0, root_ref_->size, callback_);
 }
 
-void large_buf_t::acquire_rhs(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
-    int64_t beg = std::max(int64_t(0), root_ref_.size - 1);
-    int64_t end = root_ref_.size;
+void large_buf_t::acquire_rhs(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
+    int64_t beg = std::max(int64_t(0), root_ref_->size - 1);
+    int64_t end = root_ref_->size;
     acquire_slice(root_ref_, access_, beg, end - beg, callback_);
 }
 
-void large_buf_t::acquire_lhs(large_buf_ref root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
+void large_buf_t::acquire_lhs(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
     int64_t beg = 0;
-    int64_t end = std::min(int64_t(1), root_ref_.size);
+    int64_t end = std::min(int64_t(1), root_ref_->size);
     acquire_slice(root_ref_, access_, beg, end - beg, callback_);
 }
 
