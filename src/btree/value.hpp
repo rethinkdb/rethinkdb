@@ -101,11 +101,11 @@ public:
         rassert((size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0);
         return reinterpret_cast<const large_buf_ref *>(value());
     }
-    void set_lb_ref(const large_buf_ref& ref) {
+    void set_lb_ref(const large_buf_ref *ref) {
         rassert(is_large());
         // TODO LARGEBUF get rid of the block_size_t::unsafe_make(4096) when we do so in value_size.
-        assert(size == ref.refsize(block_size_t::unsafe_make(4096)));
-        memcpy(value(), &ref, size);
+        assert(size == ref->refsize(block_size_t::unsafe_make(4096)));
+        memcpy(value(), ref, size);
     }
 
     mcflags_t mcflags() const { return metadata_memcached_flags(metadata_flags, contents); }
