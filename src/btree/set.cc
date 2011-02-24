@@ -54,7 +54,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 return true;
             }
 
-            value.value_size(0);
+            value.value_size(0, slice->cache().get_block_size());
             if (old_value && old_value->has_cas()) {
                 // Turns the flag on and makes
                 // room. run_btree_modify_oper() will set an actual CAS
@@ -65,7 +65,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 metadata_write(&value.metadata_flags, value.contents, mcflags, exptime);
             }
 
-            value.value_size(data->get_size());
+            value.value_size(data->get_size(), slice->cache().get_block_size());
 
             large_buf_lock_t large_buflock;
             buffer_group_t buffer_group;

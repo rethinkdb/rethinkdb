@@ -72,18 +72,14 @@ public:
     // Sets the size of the actual value, but it doesn't really create
     // a large buf.
 
-    // TODO have this actually receive size _and_ offset for large
-    // bufs, so that it can accurately calculate refsize.
-    // TODO have this function take a block_size parameter.
-    void value_size(int64_t new_size) {
+    void value_size(int64_t new_size, block_size_t block_size) {
         if (new_size <= MAX_IN_NODE_VALUE_SIZE) {
             metadata_set_large_value_bit(&metadata_flags, false);
             size = new_size;
         } else {
             metadata_set_large_value_bit(&metadata_flags, true);
 
-            // TODO LARGEBUF pass in the block_size_t to this function.
-            size = large_buf_ref::refsize(block_size_t::unsafe_make(4096), new_size, 0);
+            size = large_buf_ref::refsize(block_size, new_size, 0);
             large_buf_ref_ptr()->size = new_size;
         }
     }
@@ -103,8 +99,6 @@ public:
     }
     void set_lb_ref(const large_buf_ref *ref) {
         rassert(is_large());
-        // TODO LARGEBUF get rid of the block_size_t::unsafe_make(4096) when we do so in value_size.
-        assert(size == ref->refsize(block_size_t::unsafe_make(4096)));
         memcpy(value(), ref, size);
     }
 

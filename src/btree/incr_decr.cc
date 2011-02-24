@@ -54,7 +54,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         valuecpy(&temp_value, old_value);
         int chars_written = sprintf(temp_value.value(), "%llu", (long long unsigned)number);
         rassert(chars_written <= MAX_IN_NODE_VALUE_SIZE); // Not really necessary.
-        temp_value.value_size(chars_written);
+        temp_value.value_size(chars_written, slice->cache().get_block_size());
 
         *new_value = &temp_value;
         return true;

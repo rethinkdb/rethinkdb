@@ -32,7 +32,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
                 // The vaule_size setter only behaves correctly when we're
                 // setting a new large value.
-                value.value_size(new_size);
+                value.value_size(new_size, slice->cache().get_block_size());
             }
 
 
@@ -60,7 +60,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                     int refsize_adjustment;
                     if (append) large_buflock.lv()->append(data->get_size(), value.large_buf_ref_ptr(), &refsize_adjustment);
                     else        large_buflock.lv()->prepend(data->get_size(), value.large_buf_ref_ptr(), &refsize_adjustment);
-                    //debugf("refsize_adjustment: %d (sz = %d)\n", refsize_adjustment, value.large_buf_ref_ptr()->refsize(block_size_t::unsafe_make(4096)));
+                    //debugf("refsize_adjustment: %d (sz = %d)\n", refsize_adjustment, value.large_buf_ref_ptr()->refsize(slice->cache()->get_block_size()));
                     value.size += refsize_adjustment;
                     is_old_large_value = true;
                 }
