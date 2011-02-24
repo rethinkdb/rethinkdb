@@ -696,26 +696,26 @@ void large_buf_t::unprepend(int64_t extra_size, large_buf_ref *refout) {
     rassert(state == loaded);
     rassert(extra_size < root_ref.size);
 
-    rassert(root->level == num_levels(root_ref.offset + root_ref.size));
+    rassert(roots[0]->level == num_sublevels(root_ref.offset + root_ref.size));
 
     int64_t delbeg = floor_aligned(root_ref.offset, num_leaf_bytes());
     int64_t delend = floor_aligned(root_ref.offset + extra_size, num_leaf_bytes());
     if (delbeg < delend) {
-        delete_tree_structure(root, delbeg, delend - delbeg, num_levels(root_ref.offset + root_ref.size));
+        delete_tree_structures(&roots, delbeg, delend - delbeg, num_sublevels(root_ref.offset + root_ref.size));
     }
 
-    // TODO shift top block.  This is not strictly necessary, but we want this on queue-like large values.
+    // TODO shift top block.  This is INDEED STRICTLY NECCESSARY.
 
-    block_id_t id = root_ref.block_id();
-    for (int i = num_levels(root_ref.offset + root_ref.size), e = num_levels(root_ref.offset + root_ref.size - extra_size); i > e; --i) {
-        root = remove_level(root, id, &id);
+    for (int i = num_sublevels(root_ref.offset + root_ref.size), e = num_sublevels(root_ref.offset + root_ref.size - extra_size); i > e; --i) {
+        // TODO this is broken.  This ALWAYS WAS BROKEN.  THE CODE WAS
+        // BROKEN WRITE A TEST AND SHOW HOW BROKEN THE CODE IS.
+        roots = removes_level(roots, root_ref.block_ids, ceil_divide(root_ref.offset + root_ref.size - extra_size, max_offset(i - 1)));
     }
-    root_ref.block_id() = id;
     root_ref.offset += extra_size;
     root_ref.size -= extra_size;
 
     memcpy(refout, &root_ref, root_ref.refsize(block_size));
-    rassert(root->level == num_levels(root_ref.offset + root_ref.size));
+    rassert(roots[0]->level == num_sublevels(root_ref.offset + root_ref.size));
 }
 
 
