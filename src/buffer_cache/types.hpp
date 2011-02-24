@@ -44,7 +44,5 @@ struct large_buf_ref {
     static int refsize(block_size_t block_size, int64_t size, int64_t offset);
 } __attribute((__packed__));
 
-#define LARGE_BUF_REF_SIZE (sizeof(large_buf_ref))
-
 
 #endif /* __BUFFER_CACHE_TYPES_HPP__ */

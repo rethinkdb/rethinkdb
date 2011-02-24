@@ -19,9 +19,9 @@ const const_buffer_group_t *small_value_data_provider_t::get_data_as_buffers() t
     return buffers.get();
 }
 
-large_value_data_provider_t::large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor)
-    : transactor(transactor), buffers() {
-    memcpy(&lb_ref, value->lb_ref(), LARGE_BUF_REF_SIZE);
+large_value_data_provider_t::large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor_)
+    : transactor(transactor_), buffers() {
+    memcpy(&lb_ref, value->lb_ref(), value->lb_ref()->refsize(transactor->transaction()->cache->get_block_size()));
 }
 
 size_t large_value_data_provider_t::get_size() const {
