@@ -308,11 +308,11 @@ private:
 bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, const large_buf_ref *ref, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
     int levels = large_buf_t::compute_num_levels(cfg.block_size(), ref->offset + ref->size);
 
-    ser_block_id_t trans = translator_serializer_t::translate_block_id(ref->block_id(), cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
+    ser_block_id_t trans = translator_serializer_t::translate_block_id(ref->checker_block_id(), cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
     ser_block_id_t::number_t trans_id = trans.value;
 
     if (!(trans_id < offsets.get_size())) {
-        logERR("With key '%.*s': large value has invalid block id: %u (buffer_cache block id = %u, mod_id = %d, mod_count = %d)\n", key->size, key->contents, trans_id, ref->block_id(), mod_id, cfg.mod_count);
+        logERR("With key '%.*s': large value has invalid block id: %u (buffer_cache block id = %u, mod_id = %d, mod_count = %d)\n", key->size, key->contents, trans_id, ref->checker_block_id(), mod_id, cfg.mod_count);
         return false;
     }
     if (offsets[trans_id] == block_registry::null) {
@@ -357,7 +357,7 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
             (void)r_bytes;
             r.offset = beg;
             r.size = end - beg;
-            r.block_id() = buf->kids[i / step];
+            r.checker_block_id() = buf->kids[i / step];
             if (!get_large_buf_segments(key, file, &r, cfg, mod_id, offsets, segblocks)) {
                 return false;
             }

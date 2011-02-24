@@ -24,7 +24,17 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
             // Copy flags, exptime, etc.
 
             valuecpy(&value, old_value);
-            value.value_size(new_size);
+            if (!old_value->is_large()) {
+                // HACK: we set the value.size in advance preparation when
+                // the old value was not large.  If the old value _IS_
+                // large, we leave it with the old size, and then we
+                // adjust value.size by refsize_adjustment below.
+
+                // The vaule_size setter only behaves correctly when we're
+                // setting a new large value.
+                value.value_size(new_size);
+            }
+
 
             // Figure out where the data is going to need to go and prepare a place for it
 
@@ -47,8 +57,11 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                     is_old_large_value = false;
                 } else { // large -> large; expand existing large value
                     large_buflock.swap(old_large_buflock);
-                    if (append) large_buflock.lv()->append(data->get_size(), value.large_buf_ref_ptr());
-                    else        large_buflock.lv()->prepend(data->get_size(), value.large_buf_ref_ptr());
+                    int refsize_adjustment;
+                    if (append) large_buflock.lv()->append(data->get_size(), value.large_buf_ref_ptr(), &refsize_adjustment);
+                    else        large_buflock.lv()->prepend(data->get_size(), value.large_buf_ref_ptr(), &refsize_adjustment);
+                    //debugf("refsize_adjustment: %d (sz = %d)\n", refsize_adjustment, value.large_buf_ref_ptr()->refsize(block_size_t::unsafe_make(4096)));
+                    value.size += refsize_adjustment;
                     is_old_large_value = true;
                 }
 
@@ -86,8 +99,10 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                         // that's not really a problem because it only happens on
                         // erroneous input.
 
-                        if (append) large_buflock.lv()->unappend(data->get_size(), value.large_buf_ref_ptr());
-                        else large_buflock.lv()->unprepend(data->get_size(), value.large_buf_ref_ptr());
+                        int refsize_adjustment;
+                        if (append) large_buflock.lv()->unappend(data->get_size(), value.large_buf_ref_ptr(), &refsize_adjustment);
+                        else large_buflock.lv()->unprepend(data->get_size(), value.large_buf_ref_ptr(), &refsize_adjustment);
+                        value.size += refsize_adjustment;
                     } else {
                         // The old value was small, so we just keep it and delete the large value
                         large_buf_lock_t empty;

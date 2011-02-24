@@ -36,8 +36,10 @@ struct large_buf_ref {
     int64_t offset;
     block_id_t block_ids[0];
 
-    const block_id_t& block_id() const { return block_ids[0]; }
-    block_id_t& block_id() { return block_ids[0]; }
+    // TODO fix these and fix users of these.
+    const block_id_t& checker_block_id() const { return block_ids[0]; }
+    block_id_t& checker_block_id() { return block_ids[0]; }
+
     int refsize(block_size_t block_size) const;
     static int refsize(block_size_t block_size, int64_t size, int64_t offset);
 } __attribute((__packed__));

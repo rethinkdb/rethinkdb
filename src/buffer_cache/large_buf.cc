@@ -150,6 +150,7 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
 }
 
 void large_buf_t::allocate(int64_t _size, large_buf_ref *refout) {
+    //debugf("large_buf_t::allocate(%ld)\n", _size);
     access = rwi_write;
 
     rassert(state == not_loaded);
@@ -279,6 +280,12 @@ void large_buf_t::acquire_slice(const large_buf_ref *root_ref_, access_t access_
     rassert(0 <= slice_offset);
     rassert(0 <= slice_size);
     rassert(slice_offset + slice_size <= root_ref_->size);
+#ifndef NDEBUG
+        //debugf("large_buf_t::acquire before copy: rootref .offset=%ld, .size=%ld, .refsize(...)=%d\n", root_ref_->offset, root_ref_->size, root_ref_->refsize(block_size));
+        for (int i = 0, n = (root_ref_->refsize(block_size) - sizeof(large_buf_ref)) / sizeof(block_id_t); i < n; ++i) {
+            //debugf("large_buf_t::acquire before copy: rootref .block_ids[%d] = %d\n", i, root_ref_->block_ids[i]);
+        }
+#endif
     memcpy(&root_ref, root_ref_, root_ref_->refsize(block_size));
     access = access_;
     callback = callback_;
@@ -320,16 +327,19 @@ void large_buf_t::acquire_slice(const large_buf_ref *root_ref_, access_t access_
 }
 
 void large_buf_t::acquire(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
+    //debugf("large_buf_t::acquire(size=%ld, offset=%ld)\n", root_ref_->size, root_ref_->offset);
     acquire_slice(root_ref_, access_, 0, root_ref_->size, callback_);
 }
 
 void large_buf_t::acquire_rhs(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
+    //debugf("large_buf_t::acquire_rhs(size=%ld, offset=%ld)\n", root_ref_->size, root_ref_->offset);
     int64_t beg = std::max(int64_t(0), root_ref_->size - 1);
     int64_t end = root_ref_->size;
     acquire_slice(root_ref_, access_, beg, end - beg, callback_);
 }
 
 void large_buf_t::acquire_lhs(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
+    //debugf("large_buf_t::acquire_lhs(size=%ld, offset=%ld)\n", root_ref_->size, root_ref_->offset);
     int64_t beg = 0;
     int64_t end = std::min(int64_t(1), root_ref_->size);
     acquire_slice(root_ref_, access_, beg, end - beg, callback_);
@@ -348,6 +358,7 @@ void large_buf_t::buftree_acquired(buftree_t *tr, int index) {
     num_to_acquire --;
     if (num_to_acquire == 0) {
         state = loaded;
+        //debugf("large_buf_t::buftree_acquired, calling on_large_buf_available\n");
         callback->on_large_buf_available(this);
     }
 }
@@ -429,8 +440,10 @@ std::vector<buftree_t *> large_buf_t::adds_level(const std::vector<buftree_t *>&
 }
 
 // TODO check for and support partial acquisition
-void large_buf_t::append(int64_t extra_size, large_buf_ref *refout) {
+void large_buf_t::append(int64_t extra_size, large_buf_ref *refout, int *refsize_adjustment_out) {
     rassert(state == loaded);
+
+    int original_refsize = root_ref.refsize(block_size);
 
     const int64_t back = root_ref.offset + root_ref.size;
     int prev_sublevels = num_sublevels(back);
@@ -449,15 +462,18 @@ void large_buf_t::append(int64_t extra_size, large_buf_ref *refout) {
     root_ref.size += extra_size;
 
     memcpy(refout, &root_ref, root_ref.refsize(block_size));
-    rassert(roots[0]->level = num_sublevels(root_ref.offset + root_ref.size));
+    *refsize_adjustment_out = root_ref.refsize(block_size) - original_refsize;
+    rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref.offset + root_ref.size));
 }
 
-void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
+void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout, int *refsize_adjustment_out) {
     rassert(state == loaded);
+
+    int original_refsize = root_ref.refsize(block_size);
 
     const int64_t back = root_ref.offset + root_ref.size;
 
-    rassert(roots[0]->level == num_sublevels(back));
+    rassert(roots[0] == NULL || roots[0]->level == num_sublevels(back));
 
     int64_t newoffset = root_ref.offset - extra_size;
 
@@ -488,6 +504,8 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
             goto tryagain;
         }
 
+        //debugf("k is %ld\n", k);
+
         int64_t roots_back_k = roots.size();
         rassert(roots_back_k <= back_k);
         roots.resize(roots_back_k + k);
@@ -506,10 +524,24 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
 
         root_ref.offset = newoffset + k * shiftsize;
         root_ref.size += extra_size;
+
+#ifndef NDEBUG
+        //debugf("large_buf_t::prepend before allocation: rootref .offset=%ld, .size=%ld, .refsize(...)=%d\n", root_ref.offset, root_ref.size, root_ref.refsize(block_size));
+        for (int i = 0; i < k + back_k; ++i) {
+            //debugf("large_buf_t::prepend: rootref .block_ids[%d] = %d\n", i, root_ref.block_ids[i]);
+        }
+#endif
         allocates_part_of_tree(&roots, root_ref.block_ids, root_ref.offset, extra_size, num_sublevels(root_ref.offset + root_ref.size));
+#ifndef NDEBUG
+        //debugf("large_buf_t::prepend after allocation: rootref .offset=%ld, .size=%ld, .refsize(...)=%d\n", root_ref.offset, root_ref.size, root_ref.refsize(block_size));
+        for (int i = 0; i < k + back_k; ++i) {
+            //debugf("large_buf_t::prepend: rootref .block_ids[%d] = %d\n", i, root_ref.block_ids[i]);
+        }
+#endif
     }
 
     memcpy(refout, &root_ref, root_ref.refsize(block_size));
+    *refsize_adjustment_out = root_ref.refsize(block_size) - original_refsize;
     rassert(roots[0]->level == num_sublevels(root_ref.offset + root_ref.size),
            "roots[0]->level=%d num=%d offset=%ld size=%ld extra_size=%ld\n",
            roots[0]->level, num_sublevels(root_ref.offset + root_ref.size), root_ref.offset, root_ref.size, extra_size);
@@ -584,10 +616,11 @@ buftree_t *large_buf_t::remove_level(buftree_t *tr, block_id_t id, block_id_t *i
     return ret;
 }
 
-void large_buf_t::unappend(int64_t extra_size, large_buf_ref *refout) {
+void large_buf_t::unappend(int64_t extra_size, large_buf_ref *refout, int *refsize_adjustment_out) {
     rassert(state == loaded);
     rassert(extra_size < root_ref.size);
-    rassert(roots[0]->level == num_sublevels(root_ref.offset + root_ref.size));
+
+    int original_refsize = root_ref.refsize(block_size);
 
     int64_t back = root_ref.offset + root_ref.size - extra_size;
 
@@ -604,6 +637,7 @@ void large_buf_t::unappend(int64_t extra_size, large_buf_ref *refout) {
     root_ref.size -= extra_size;
 
     memcpy(refout, &root_ref, root_ref.refsize(block_size));
+    *refsize_adjustment_out = root_ref.refsize(block_size) - original_refsize;
     rassert(roots[0]->level == num_sublevels(root_ref.offset + root_ref.size));
 }
 
@@ -718,9 +752,11 @@ int large_buf_t::try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_i
     return ret;
 }
 
-void large_buf_t::unprepend(int64_t extra_size, large_buf_ref *refout) {
+void large_buf_t::unprepend(int64_t extra_size, large_buf_ref *refout, int *refsize_adjustment_out) {
     rassert(state == loaded);
     rassert(extra_size < root_ref.size);
+
+    int original_refsize = root_ref.refsize(block_size);
 
     int64_t sublevels = num_sublevels(root_ref.offset + root_ref.size);
     rassert(roots[0]->level == sublevels);
@@ -770,6 +806,7 @@ void large_buf_t::unprepend(int64_t extra_size, large_buf_ref *refout) {
     }
 
     memcpy(refout, &root_ref, root_ref.refsize(block_size));
+    *refsize_adjustment_out = root_ref.refsize(block_size) - original_refsize;
     rassert(roots[0]->level == num_sublevels(root_ref.offset + root_ref.size));
 }
 
