@@ -838,7 +838,8 @@ void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_err
     } else {
         errs->lv_too_small = (size <= MAX_IN_NODE_VALUE_SIZE);
 
-        large_buf_ref root_ref = value->lb_ref();
+        large_buf_ref root_ref;
+        memcpy(&root_ref, &value->lb_ref(), LARGE_BUF_REF_SIZE);
 
         check_large_buf(cx, root_ref, errs);
     }

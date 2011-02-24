@@ -138,7 +138,7 @@ void large_buf_t::allocate(int64_t _size, large_buf_ref *refout) {
 
     state = loaded;
 
-    *refout = root_ref;
+    memcpy(refout, &root_ref, LARGE_BUF_REF_SIZE);
     rassert(root->level == num_levels(root_ref.offset + root_ref.size));
 }
 
@@ -241,7 +241,7 @@ void large_buf_t::acquire_slice(const large_buf_ref *root_ref_, access_t access_
     rassert(0 <= slice_offset);
     rassert(0 <= slice_size);
     rassert(slice_offset + slice_size <= root_ref_->size);
-    root_ref = *root_ref_;
+    memcpy(&root_ref, root_ref_, LARGE_BUF_REF_SIZE);
     access = access_;
     callback = callback_;
 
@@ -337,7 +337,7 @@ void large_buf_t::append(int64_t extra_size, large_buf_ref *refout) {
     root_ref.size += extra_size;
     root_ref.block_id = id;
     root = tr;
-    *refout = root_ref;
+    memcpy(refout, &root_ref, LARGE_BUF_REF_SIZE);
     rassert(root->level == num_levels(root_ref.offset + root_ref.size));
 }
 
@@ -412,7 +412,7 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
         root = tr;
     }
 
-    *refout = root_ref;
+    memcpy(refout, &root_ref, LARGE_BUF_REF_SIZE);
     rassert(root->level == num_levels(root_ref.offset + root_ref.size),
            "root-level=%d num=%d offset=%ld size=%ld extra_size=%ld\n",
            root->level, num_levels(root_ref.offset + root_ref.size), root_ref.offset, root_ref.size, extra_size);
@@ -482,7 +482,7 @@ void large_buf_t::unappend(int64_t extra_size, large_buf_ref *refout) {
     root_ref.block_id = id;
     root_ref.size -= extra_size;
 
-    *refout = root_ref;
+    memcpy(refout, &root_ref, LARGE_BUF_REF_SIZE);
     rassert(root->level == num_levels(root_ref.offset + root_ref.size));
 }
 
@@ -585,7 +585,7 @@ void large_buf_t::unprepend(int64_t extra_size, large_buf_ref *refout) {
     root_ref.offset += extra_size;
     root_ref.size -= extra_size;
 
-    *refout = root_ref;
+    memcpy(refout, &root_ref, LARGE_BUF_REF_SIZE);
     rassert(root->level == num_levels(root_ref.offset + root_ref.size));
 }
 

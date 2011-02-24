@@ -77,7 +77,7 @@ public:
             size = new_size;
         } else {
             metadata_set_large_value_bit(&metadata_flags, true);
-            size = sizeof(large_buf_ref);
+            size = LARGE_BUF_REF_SIZE;
 
             // This is kind of fake, kind of paranoid, doing this
             // here.  The fact that we have this is a sign of scary
@@ -95,13 +95,13 @@ public:
 
     const large_buf_ref& lb_ref() const {
         rassert(is_large());
-        rassert(size == sizeof(large_buf_ref));
+        rassert(size == LARGE_BUF_REF_SIZE);
         return *reinterpret_cast<const large_buf_ref *>(value());
     }
     void set_lb_ref(const large_buf_ref& ref) {
         rassert(is_large());
-        rassert(size == sizeof(large_buf_ref));
-        *reinterpret_cast<large_buf_ref *>(value()) = ref;
+        rassert(size == LARGE_BUF_REF_SIZE);
+        memcpy(value(), &ref, LARGE_BUF_REF_SIZE);
     }
 
     mcflags_t mcflags() const { return metadata_memcached_flags(metadata_flags, contents); }

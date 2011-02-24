@@ -20,7 +20,8 @@ const const_buffer_group_t *small_value_data_provider_t::get_data_as_buffers() t
 }
 
 large_value_data_provider_t::large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor)
-    : transactor(transactor), buffers(), lb_ref(value->lb_ref()) {
+    : transactor(transactor), buffers() {
+    memcpy(&lb_ref, &value->lb_ref(), LARGE_BUF_REF_SIZE);
 }
 
 size_t large_value_data_provider_t::get_size() const {

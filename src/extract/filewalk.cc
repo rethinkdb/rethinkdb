@@ -393,7 +393,8 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
 
         int64_t seg_size = large_buf_t::cache_size_to_leaf_bytes(cfg.block_size());
 
-        large_buf_ref ref = value->lb_ref();
+        large_buf_ref ref;
+        memcpy(&ref, &value->lb_ref(), LARGE_BUF_REF_SIZE);
 
         if (!get_large_buf_segments(key, file, ref, cfg, mod_id, offsets, &segblocks)) {
             return;

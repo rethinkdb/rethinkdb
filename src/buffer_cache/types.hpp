@@ -31,10 +31,15 @@ bool check_magic(block_magic_t magic) {
 
 
 struct large_buf_ref {
+    large_buf_ref() { }
     int64_t size;
     int64_t offset;
     block_id_t block_id;
+private:
+    DISABLE_COPYING(large_buf_ref);
 } __attribute((__packed__));
+
+#define LARGE_BUF_REF_SIZE (sizeof(large_buf_ref))
 
 
 #endif /* __BUFFER_CACHE_TYPES_HPP__ */
