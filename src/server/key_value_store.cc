@@ -184,6 +184,10 @@ void btree_key_value_store_t::check_existing(const std::vector<std::string>& fil
 
 /* Hashing keys and choosing a slice for each key */
 
+/* The following hash function was developed by Paul Hsieh, its source
+ * is taken from <http://www.azillionmonkeys.com/qed/hash.html>.
+ * According to the site, the source is licensed under LGPL 2.1.
+ */
 #define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
                        +(uint32_t)(((const uint8_t *)(d))[0]) )
 
