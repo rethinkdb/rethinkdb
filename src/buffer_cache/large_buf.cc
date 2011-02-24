@@ -134,7 +134,7 @@ void large_buf_t::allocate(int64_t _size, large_buf_ref *refout) {
 
     root_ref.offset = 0;
     root_ref.size = _size;
-    root = allocate_buftree(0, _size, num_levels(_size), &root_ref.block_id);
+    root = allocate_buftree(0, _size, num_levels(_size), &root_ref.block_id());
 
     state = loaded;
 
@@ -251,7 +251,7 @@ void large_buf_t::acquire_slice(const large_buf_ref *root_ref_, access_t access_
 
     int levels = num_levels(root_ref.offset + root_ref.size);
     tree_available_callback_t *cb = new lb_tree_available_callback_t(this);
-    acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref.block_id, root_ref.offset + slice_offset, slice_size, levels, cb, -1);
+    acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref.block_id(), root_ref.offset + slice_offset, slice_size, levels, cb, -1);
     f->go();
 }
 
@@ -324,7 +324,7 @@ void large_buf_t::append(int64_t extra_size, large_buf_ref *refout) {
 
     rassert(tr->level == num_levels(back));
 
-    block_id_t id = root_ref.block_id;
+    block_id_t id = root_ref.block_id();
     for (int i = num_levels(root_ref.offset + root_ref.size); i < levels; ++i) {
         tr = add_level(tr, id, &id
 #ifndef NDEBUG
@@ -335,7 +335,7 @@ void large_buf_t::append(int64_t extra_size, large_buf_ref *refout) {
 
     allocate_part_of_tree(tr, back, extra_size, levels);
     root_ref.size += extra_size;
-    root_ref.block_id = id;
+    root_ref.block_id() = id;
     root = tr;
     memcpy(refout, &root_ref, LARGE_BUF_REF_SIZE);
     rassert(root->level == num_levels(root_ref.offset + root_ref.size));
@@ -356,7 +356,7 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
         root_ref.offset = newoffset;
         root_ref.size += extra_size;
     } else {
-        block_id_t id = root_ref.block_id;
+        block_id_t id = root_ref.block_id();
         buftree_t *tr = root;
         int levels = oldlevels;
 
@@ -407,7 +407,7 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout) {
         root_ref.offset = newoffset + k * shiftsize;
         allocate_part_of_tree(tr, root_ref.offset, extra_size, levels);
 
-        root_ref.block_id = id;
+        root_ref.block_id() = id;
         root_ref.size += extra_size;
         root = tr;
     }
@@ -474,12 +474,12 @@ void large_buf_t::unappend(int64_t extra_size, large_buf_ref *refout) {
         delete_tree_structure(root, delbeg, delend - delbeg, num_levels(root_ref.offset + root_ref.size));
     }
 
-    block_id_t id = root_ref.block_id;
+    block_id_t id = root_ref.block_id();
     for (int i = num_levels(root_ref.offset + root_ref.size), e = num_levels(back); i > e; --i) {
         root = remove_level(root, id, &id);
     }
 
-    root_ref.block_id = id;
+    root_ref.block_id() = id;
     root_ref.size -= extra_size;
 
     memcpy(refout, &root_ref, LARGE_BUF_REF_SIZE);
@@ -577,11 +577,11 @@ void large_buf_t::unprepend(int64_t extra_size, large_buf_ref *refout) {
 
     // TODO shift top block.  This is not strictly necessary, but we want this on queue-like large values.
 
-    block_id_t id = root_ref.block_id;
+    block_id_t id = root_ref.block_id();
     for (int i = num_levels(root_ref.offset + root_ref.size), e = num_levels(root_ref.offset + root_ref.size - extra_size); i > e; --i) {
         root = remove_level(root, id, &id);
     }
-    root_ref.block_id = id;
+    root_ref.block_id() = id;
     root_ref.offset += extra_size;
     root_ref.size -= extra_size;
 

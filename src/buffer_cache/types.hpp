@@ -31,12 +31,12 @@ bool check_magic(block_magic_t magic) {
 
 
 struct large_buf_ref {
-    large_buf_ref() { }
     int64_t size;
     int64_t offset;
-    block_id_t block_id;
-private:
-    DISABLE_COPYING(large_buf_ref);
+    block_id_t block_ids[0];
+
+    const block_id_t& block_id() const { return block_ids[0]; }
+    block_id_t& block_id() { return block_ids[0]; }
 } __attribute((__packed__));
 
 #define LARGE_BUF_REF_SIZE (sizeof(large_buf_ref))

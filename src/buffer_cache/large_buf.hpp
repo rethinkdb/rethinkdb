@@ -45,7 +45,10 @@ struct tree_available_callback_t;
 
 class large_buf_t {
 private:
-    large_buf_ref root_ref;
+    union {
+        large_buf_ref root_ref;
+        char root_ref_bytes[LARGE_BUF_REF_SIZE];
+    };
     buftree_t *root;
     access_t access;
     large_buf_available_callback_t *callback;

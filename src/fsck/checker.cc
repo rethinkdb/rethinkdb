@@ -793,9 +793,9 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
     int levels = large_buf_t::compute_num_levels(cx.knog->static_config->block_size(), ref.offset + ref.size);
 
     btree_block b;
-    if (!b.init(cx, ref.block_id)) {
+    if (!b.init(cx, ref.block_id())) {
         value_error::segment_error err;
-        err.block_id = ref.block_id;
+        err.block_id = ref.block_id();
         err.block_code = b.err;
         err.bad_magic = false;
         errs->lv_segment_errors.push_back(err);
@@ -804,7 +804,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
         if ((levels == 1 && !check_magic<large_buf_leaf>(ptr_cast<large_buf_leaf>(b.buf)->magic))
             || (levels > 1 && !check_magic<large_buf_internal>(ptr_cast<large_buf_internal>(b.buf)->magic))) {
             value_error::segment_error err;
-            err.block_id = ref.block_id;
+            err.block_id = ref.block_id();
             err.block_code = btree_block::none;
             err.bad_magic = true;
             return;
@@ -818,10 +818,14 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
                 int64_t beg = std::max(ref.offset, i) - i;
                 int64_t end = std::min(ref.offset + ref.size, i + step) - i;
 
-                large_buf_ref r;
+                union {
+                    large_buf_ref r;
+                    char r_bytes[LARGE_BUF_REF_SIZE];
+                };
+                (void)r_bytes;
                 r.offset = beg;
                 r.size = end - beg;
-                r.block_id = ptr_cast<large_buf_internal>(b.buf)->kids[i / step];
+                r.block_id() = ptr_cast<large_buf_internal>(b.buf)->kids[i / step];
 
                 check_large_buf(cx, r, errs);
             }
@@ -838,7 +842,11 @@ void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_err
     } else {
         errs->lv_too_small = (size <= MAX_IN_NODE_VALUE_SIZE);
 
-        large_buf_ref root_ref;
+        union {
+            large_buf_ref root_ref;
+            char root_ref_bytes[LARGE_BUF_REF_SIZE];
+        };
+        (void)root_ref_bytes;
         memcpy(&root_ref, &value->lb_ref(), LARGE_BUF_REF_SIZE);
 
         check_large_buf(cx, root_ref, errs);
