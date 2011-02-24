@@ -137,35 +137,11 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
     if (levels == 1) {
         rassert(offset + size <= num_leaf_bytes());
     } else {
-        int64_t step = max_offset(levels - 1);
+        large_buf_internal *node = reinterpret_cast<large_buf_internal *>(tr->buf->get_data_major_write());
 
-        large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_major_write());
+        assert(check_magic<large_buf_internal>(node->magic));
 
-        rassert(check_magic<large_buf_internal>(node->magic));
-
-        for (int k = 0; int64_t(k) * step < offset + size; ++k) {
-            int64_t i = int64_t(k) * step;
-            rassert((int)tr->children.size() >= k);
-
-            if ((int64_t)tr->children.size() == k) {
-                tr->children.push_back(NULL);
-                node->kids[k] = NULL_BLOCK_ID;
-            }
-
-            if (i + step > offset) {
-                int64_t child_offset = std::max(offset - i, 0L);
-                int64_t child_end_offset = std::min(offset + size - i, step);
-
-                if (tr->children[k] == NULL) {
-                    block_id_t id;
-                    buftree_t *child = allocate_buftree(child_offset, child_end_offset - child_offset, levels - 1, &id);
-                    tr->children[k] = child;
-                    node->kids[k] = id;
-                } else {
-                    allocate_part_of_tree(tr->children[k], child_offset, child_end_offset - child_offset, levels - 1);
-                }
-            }
-        }
+        allocates_part_of_tree(&tr->children, node->kids, offset, size, levels - 1);
     }
 }
 
@@ -355,7 +331,7 @@ void large_buf_t::acquire_lhs(const large_buf_ref *root_ref_, access_t access_, 
     acquire_slice(root_ref_, access_, beg, end - beg, callback_);
 }
 
-void large_buf_t::buftree_acquired(buftree_t *tr) {
+void large_buf_t::buftree_acquired(buftree_t *tr, int index) {
     rassert(state == loading);
     rassert(tr);
     rassert(0 <= index && size_t(index) < roots.size());
@@ -418,13 +394,15 @@ std::vector<buftree_t *> large_buf_t::adds_level(const std::vector<buftree_t *>&
 #endif
 
     block_id_t new_id;
-    ret->buf = transaction->allocate(&new_id);
+    ret->buf = transaction->allocate();
+    new_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
     num_bufs++;
 #endif
 
-    large_buf_internal *node = ptr_cast<large_buf_internal>(ret->buf->get_data_write());
+    // TODO: Do we really want a major_write?
+    large_buf_internal *node = ptr_cast<large_buf_internal>(ret->buf->get_data_major_write());
 
     node->magic = large_buf_internal::expected_magic;
 
