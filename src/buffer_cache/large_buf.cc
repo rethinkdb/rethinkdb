@@ -303,6 +303,7 @@ void large_buf_t::acquire_slice(const large_buf_ref *root_ref_, access_t access_
     if (num_inlined == 1) {
         num_to_acquire = 1;
         tree_available_callback_t *cb = new lb_tree_available_callback_t(this);
+        // TODO LARGEBUF acquire for delete properly.
         acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref.block_ids[0], root_ref.offset + slice_offset, slice_size, levels, cb, 0);
         f->go();
     } else {
@@ -348,9 +349,9 @@ void large_buf_t::acquire_lhs(const large_buf_ref *root_ref_, access_t access_, 
 }
 
 void large_buf_t::acquire_for_delete(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
-    // TODO: Insert the proper implementation for this.
-
-
+    // TODO why do we have access_?
+    // TODO wait, how does this acquire for delete?
+    acquire_slice(root_ref_, access_, 0, root_ref_->size, callback_);
 }
 
 void large_buf_t::buftree_acquired(buftree_t *tr, int index) {
