@@ -694,9 +694,9 @@ transaction_t *large_buf_t::get_transaction() const {
     return transaction;
 }
 
-const large_buf_ref& large_buf_t::get_root_ref() const {
+const large_buf_ref *large_buf_t::get_root_ref() const {
     rassert(root->level == num_levels(root_ref.offset + root_ref.size));
-    return root_ref;
+    return &root_ref;
 }
 
 int64_t large_buf_t::pos_to_ix(int64_t pos) {

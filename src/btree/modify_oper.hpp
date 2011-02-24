@@ -43,8 +43,8 @@ public:
 
     // Acquires the old large value; this exists because some
     // btree_modify_opers need to acquire it in a particular way.
-    virtual void actually_acquire_large_value(large_buf_t *lb, const large_buf_ref& lbref) {
-        co_acquire_large_value(lb, &lbref, rwi_write);
+    virtual void actually_acquire_large_value(large_buf_t *lb, const large_buf_ref *lbref) {
+        co_acquire_large_value(lb, lbref, rwi_write);
     }
 };
 

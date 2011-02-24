@@ -61,7 +61,7 @@ public:
     // The size of the actual value, which might be the size of the large buf.
     int64_t value_size() const {
         if (is_large()) {
-            int64_t ret = lb_ref().size;
+            int64_t ret = lb_ref()->size;
             rassert(ret > MAX_IN_NODE_VALUE_SIZE);
             return ret;
         } else {
@@ -93,10 +93,10 @@ public:
 
     large_buf_ref *large_buf_ref_ptr() { return reinterpret_cast<large_buf_ref *>(value()); }
 
-    const large_buf_ref& lb_ref() const {
+    const large_buf_ref *lb_ref() const {
         rassert(is_large());
         rassert(size == LARGE_BUF_REF_SIZE);
-        return *reinterpret_cast<const large_buf_ref *>(value());
+        return reinterpret_cast<const large_buf_ref *>(value());
     }
     void set_lb_ref(const large_buf_ref& ref) {
         rassert(is_large());

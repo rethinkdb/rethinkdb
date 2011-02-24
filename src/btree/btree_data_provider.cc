@@ -21,7 +21,7 @@ const const_buffer_group_t *small_value_data_provider_t::get_data_as_buffers() t
 
 large_value_data_provider_t::large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor)
     : transactor(transactor), buffers() {
-    memcpy(&lb_ref, &value->lb_ref(), LARGE_BUF_REF_SIZE);
+    memcpy(&lb_ref, value->lb_ref(), LARGE_BUF_REF_SIZE);
 }
 
 size_t large_value_data_provider_t::get_size() const {
@@ -36,7 +36,7 @@ const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() t
     co_acquire_large_value(large_value.get(), &lb_ref, rwi_read);
 
     rassert(large_value->state == large_buf_t::loaded);
-    rassert(large_value->get_root_ref().block_id() == lb_ref.block_id());
+    rassert(large_value->get_root_ref()->block_id() == lb_ref.block_id());
 
     buffers.reset(new const_buffer_group_t());
     for (int i = 0; i < large_value->get_num_segments(); i++) {

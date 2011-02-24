@@ -108,11 +108,11 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         }
     }
 
-    void actually_acquire_large_value(large_buf_t *lb, const large_buf_ref& lbref) {
+    void actually_acquire_large_value(large_buf_t *lb, const large_buf_ref *lbref) {
         if (append) {
-            co_acquire_large_value_rhs(lb, &lbref, rwi_write);
+            co_acquire_large_value_rhs(lb, lbref, rwi_write);
         } else {
-            co_acquire_large_value_lhs(lb, &lbref, rwi_write);
+            co_acquire_large_value_lhs(lb, lbref, rwi_write);
         }
     }
 
