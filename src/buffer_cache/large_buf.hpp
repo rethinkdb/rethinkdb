@@ -51,8 +51,9 @@ private:
         large_buf_ref root_ref;
         char root_ref_bytes[LBREF_SIZE];
     };
-    buftree_t *root;
+    std::vector<buftree_t *> roots;
     access_t access;
+    int num_to_acquire;
     large_buf_available_callback_t *callback;
 
     transaction_t *transaction;
@@ -109,7 +110,7 @@ public:
 
     void index_acquired(buf_t *buf);
     void segment_acquired(buf_t *buf, uint16_t ix);
-    void buftree_acquired(buftree_t *tr);
+    void buftree_acquired(buftree_t *tr, int index);
 
     friend struct acquire_buftree_fsm_t;
 
@@ -117,6 +118,7 @@ public:
     static int64_t cache_size_to_internal_kids(block_size_t block_size);
     static int64_t compute_max_offset(block_size_t block_size, int levels);
     static int compute_num_levels(block_size_t block_size, int64_t end_offset);
+    static int compute_num_sublevels(block_size_t block_size, int64_t end_offset);
 
     static int compute_large_buf_ref_num_inlined(block_size_t block_size, int64_t end_offset);
 
@@ -125,6 +127,7 @@ private:
     int64_t num_internal_kids() const;
     int64_t max_offset(int levels) const;
     int num_levels(int64_t end_offset) const;
+    int num_sublevels(int64_t end_offset) const;
 
     buftree_t *allocate_buftree(int64_t size, int64_t offset, int levels, block_id_t *block_id);
     buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
@@ -135,7 +138,13 @@ private:
                          , int nextlevels
 #endif
                          );
+    std::vector<buftree_t *> adds_level(const std::vector<buftree_t *>& tr, block_id_t *ids
+#ifndef NDEBUG
+                                        , int nextlevels
+#endif
+                                        );
     void allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t size, int levels);
+    void allocates_part_of_tree(std::vector<buftree_t *> *ptrs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t sublevels);
     buftree_t *walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *));
     void delete_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void only_mark_deleted_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels);
