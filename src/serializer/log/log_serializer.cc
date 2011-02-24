@@ -316,6 +316,20 @@ struct ls_block_writer_t :
                 /* We tell the data_block_manager to write a zero block to
                    make recovery from a corrupted file more likely. */
 
+                // We write a zero buffer with the given block_id at the front, if necessary.
+                if (write.write_empty_deleted_block) {
+                    zerobuf = ser->malloc();
+                    bzero(zerobuf, ser->get_block_size().value());
+                    memcpy(zerobuf, &log_serializer_t::zerobuf_magic, sizeof(block_magic_t));
+
+                    off64_t new_offset;
+                    done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
+                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
+                } else {
+                    done = true;
+                    // TODO this should not be flagged_off64_t::padding(), use a different constant.
+                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::padding());
+                }
                 // We write a zero buffer with the given block_id at the front.
                 zerobuf = ser->malloc();
                 bzero(zerobuf, ser->get_block_size().value());

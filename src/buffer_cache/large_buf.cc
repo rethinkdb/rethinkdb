@@ -194,19 +194,21 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     buftree_t *tr;
     int index;
     large_buf_t *lb;
+    bool should_load_leaves;
 
     // When this becomes 0, we return and destroy.
     int life_counter;
 
-    acquire_buftree_fsm_t(large_buf_t *lb_, block_id_t block_id_, int64_t offset_, int64_t size_, int levels_, tree_available_callback_t *cb_, int index_)
-        : block_id(block_id_), offset(offset_), size(size_), levels(levels_), cb(cb_), tr(new buftree_t()), index(index_), lb(lb_) {
+    acquire_buftree_fsm_t(large_buf_t *lb_, block_id_t block_id_, int64_t offset_, int64_t size_, int levels_, tree_available_callback_t *cb_, int index_, bool should_load_leaves_ = true)
+        : block_id(block_id_), offset(offset_), size(size_), levels(levels_), cb(cb_), tr(new buftree_t()), index(index_), lb(lb_), should_load_leaves(should_load_leaves_) {
 #ifndef NDEBUG
         tr->level = levels_;
 #endif
 }
 
     void go() {
-        buf_t *buf = lb->transaction->acquire(block_id, lb->access, this);
+        bool should_load = should_load_leaves || levels != 1;
+        buf_t *buf = lb->transaction->acquire(block_id, lb->access, this, should_load);
         if (buf) {
             on_block_available(buf);
         }
@@ -343,6 +345,12 @@ void large_buf_t::acquire_lhs(const large_buf_ref *root_ref_, access_t access_, 
     int64_t beg = 0;
     int64_t end = std::min(int64_t(1), root_ref_->size);
     acquire_slice(root_ref_, access_, beg, end - beg, callback_);
+}
+
+void large_buf_t::acquire_for_delete(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_) {
+    // TODO: Insert the proper implementation for this.
+
+
 }
 
 void large_buf_t::buftree_acquired(buftree_t *tr, int index) {
@@ -594,7 +602,7 @@ std::vector<buftree_t *> large_buf_t::removes_level(const std::vector<buftree_t 
         ids[i] = node->kids[i];
     }
 
-    tr->buf->mark_deleted();
+    tr->buf->mark_deleted(false);
     tr->buf->release();
 #ifndef NDEBUG
     num_bufs--;
@@ -605,7 +613,7 @@ std::vector<buftree_t *> large_buf_t::removes_level(const std::vector<buftree_t 
 }
 
 buftree_t *large_buf_t::remove_level(buftree_t *tr, block_id_t id, block_id_t *idout) {
-    tr->buf->mark_deleted();
+    tr->buf->mark_deleted(false);
     tr->buf->release();
 #ifndef NDEBUG
     num_bufs--;
@@ -686,7 +694,7 @@ buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64
 }
 
 void mark_deleted_and_release(large_buf_t *lb, buf_t *b) {
-    b->mark_deleted();
+    b->mark_deleted(false);
     b->release();
 #ifndef NDEBUG
     lb->num_bufs--;
@@ -694,7 +702,7 @@ void mark_deleted_and_release(large_buf_t *lb, buf_t *b) {
 }
 
 void mark_deleted_only(large_buf_t *lb, buf_t *b) {
-    b->mark_deleted();
+    b->mark_deleted(false);
 }
 void release_only(large_buf_t *lb, buf_t *b) {
     b->release();

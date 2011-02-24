@@ -103,6 +103,10 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
     }
 
+    virtual void actually_acquire_large_value(large_buf_t *lb, const large_buf_ref *lbref) {
+        co_acquire_large_value_for_delete(lb, lbref, rwi_write);
+    }
+
     ticks_t start_time;
 
     data_provider_t *data;

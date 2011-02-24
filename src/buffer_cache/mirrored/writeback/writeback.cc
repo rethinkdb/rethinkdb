@@ -465,6 +465,7 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
                     inner_buf->block_id,
                     inner_buf->subtree_recency,
                     buf->get_data_read(),
+                    inner_buf->write_empty_deleted_block,
                     new buf_writer_t(parent, buf)
                     ));
 
@@ -474,6 +475,7 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
                     inner_buf->block_id,
                     inner_buf->subtree_recency,
                     NULL,
+                    inner_buf->write_empty_deleted_block,
                     NULL
                     ));
 

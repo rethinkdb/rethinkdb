@@ -72,6 +72,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     
     /* true if we are being deleted */
     bool do_delete;
+    bool write_empty_deleted_block;
     
     /* true if there is a mc_buf_t that holds a pointer to the data in read-only outdated-OK
     mode. */
@@ -85,7 +86,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     bool safe_to_unload();
     
     // Load an existing buf from disk
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load);
     
     // Create an entirely new buf
     explicit mc_inner_buf_t(cache_t *cache);
@@ -149,10 +150,11 @@ public:
         return inner_buf->block_id;
     }
     
-    void mark_deleted() {
+    void mark_deleted(bool write_null = true) {
         rassert(mode == rwi_write);
         rassert(!inner_buf->safe_to_unload());
         inner_buf->do_delete = true;
+        inner_buf->write_empty_deleted_block = write_null;
         inner_buf->writeback_buf.set_dirty();
         ensure_flush(); // Disable patch log system for the buffer
     }
@@ -193,7 +195,7 @@ public:
     bool commit(transaction_commit_callback_t *callback);
 
     buf_t *acquire(block_id_t block_id, access_t mode,
-                   block_available_callback_t *callback);
+                   block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
     repli_timestamp get_subtree_recency(block_id_t block_id);
 

@@ -60,6 +60,11 @@ void co_acquire_large_value_rhs(large_buf_t *large_value, const large_buf_ref *r
     coro_t::wait();
 }
 
+void co_acquire_large_value_for_delete(large_buf_t *large_value, const large_buf_ref *root_ref_, access_t access_) {
+    large_value_acquired_t acquired;
+    large_value->acquire_for_delete(root_ref_, access_, &acquired);
+    coro_t::wait();
+}
 
 // Well this is repetitive.
 struct transaction_begun_callback_t : public transaction_begin_callback_t {

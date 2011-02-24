@@ -56,7 +56,7 @@ public:
     void move_data(const void* dest, const void* src, const size_t n);
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
-    void mark_deleted();
+    void mark_deleted(bool write_null = true);
     void release();
 
 private:
@@ -91,7 +91,7 @@ public:
     bool commit(transaction_commit_callback_t *callback);
 
     buf_t *acquire(block_id_t block_id, access_t mode,
-                   block_available_callback_t *callback);
+                   block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
     repli_timestamp get_subtree_recency(block_id_t block_id);
 

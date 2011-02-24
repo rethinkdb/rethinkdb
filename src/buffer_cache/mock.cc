@@ -326,7 +326,7 @@ bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
     std::vector<translator_serializer_t::write_t> writes;
     for (block_id_t i = 0; i < bufs.get_size(); i++) {
         writes.push_back(translator_serializer_t::write_t::make(i, bufs[i] ? bufs[i]->subtree_recency : repli_timestamp::invalid,
-                                                                bufs[i] ? bufs[i]->data : NULL, NULL));
+                                                                bufs[i] ? bufs[i]->data : NULL, true, NULL));
     }
 
     if (serializer->do_write(writes.data(), writes.size(), this)) {

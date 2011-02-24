@@ -82,6 +82,7 @@ public:
     void acquire(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
     void acquire_rhs(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
     void acquire_lhs(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_for_delete(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
 
     // refsize_adjustment_out parameter forces callers to recognize
     // that the size may change, so hopefully they'll update their

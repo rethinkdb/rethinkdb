@@ -46,9 +46,9 @@ patch_counter_t scc_buf_t<inner_cache_t>::get_next_patch_counter() {
 }
 
 template<class inner_cache_t>
-void scc_buf_t<inner_cache_t>::mark_deleted() {
+void scc_buf_t<inner_cache_t>::mark_deleted(bool write_null) {
     rassert(inner_buf);
-    inner_buf->mark_deleted();
+    inner_buf->mark_deleted(write_null);
 }
 
 template<class inner_cache_t>
@@ -97,10 +97,10 @@ bool scc_transaction_t<inner_cache_t>::commit(transaction_commit_callback_t *cal
 
 template<class inner_cache_t>
 scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t block_id, access_t mode,
-                   block_available_callback_t *callback) {
+                   block_available_callback_t *callback, bool should_load) {
     scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache);
     buf->cache = this->cache;
-    if (typename inner_cache_t::buf_t *inner_buf = inner_transaction->acquire(block_id, mode, buf)) {
+    if (typename inner_cache_t::buf_t *inner_buf = inner_transaction->acquire(block_id, mode, buf, should_load)) {
         buf->inner_buf = inner_buf;
         rassert(block_id == buf->get_block_id());
         if (cache->crc_map.get(block_id)) {

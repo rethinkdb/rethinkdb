@@ -67,19 +67,22 @@ struct load_buf_fsm_t :
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
 
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load)
     : cache(cache),
       block_id(block_id),
       data(cache->serializer->malloc()),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
+      write_empty_deleted_block(false),
       cow_will_be_needed(false),
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
       transaction_id(NULL_SER_TRANSACTION_ID) {
-    new load_buf_fsm_t(this);
+    if (should_load) {
+        new load_buf_fsm_t(this);
+    }
 
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
@@ -96,6 +99,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
+      write_empty_deleted_block(false),
       cow_will_be_needed(false),
       writeback_buf(this),
       page_repl_buf(this),
@@ -467,14 +471,14 @@ mc_buf_t *mc_transaction_t::allocate() {
 }
 
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
-                                    block_available_callback_t *callback) {
+                                    block_available_callback_t *callback, bool should_load) {
     rassert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
     assert_thread();
        
     inner_buf_t *inner_buf = cache->page_map.find(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
-        inner_buf = new inner_buf_t(cache, block_id);
+        inner_buf = new inner_buf_t(cache, block_id, should_load);
     }
 
     buf_t *buf = new buf_t(inner_buf, mode);
@@ -623,7 +627,7 @@ void mc_cache_t::init_patch_storage() {
     inner_buf_t *c_buf = page_map.find(MC_CONFIGBLOCK_ID);
     if (!c_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
-        c_buf = new mc_inner_buf_t(this, MC_CONFIGBLOCK_ID);
+        c_buf = new mc_inner_buf_t(this, MC_CONFIGBLOCK_ID, true);
     }
     c_buf->lock.co_lock(rwi_read);
     mc_config_block_t *c = reinterpret_cast<mc_config_block_t *>(c_buf->data);

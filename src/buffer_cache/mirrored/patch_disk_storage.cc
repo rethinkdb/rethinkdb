@@ -388,7 +388,7 @@ mc_buf_t* patch_disk_storage_t::acquire_block_no_locking(const block_id_t block_
     mc_inner_buf_t *inner_buf = cache.page_map.find(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
-        inner_buf = new mc_inner_buf_t(&cache, block_id);
+        inner_buf = new mc_inner_buf_t(&cache, block_id, true);
     }
     
     // We still have to acquire the lock once to wait for the buf to get ready
