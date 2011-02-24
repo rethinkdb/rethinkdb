@@ -71,17 +71,19 @@ public:
 
     // Sets the size of the actual value, but it doesn't really create
     // a large buf.
+
+    // TODO have this actually receive size _and_ offset for large
+    // bufs, so that it can accurately calculate refsize.
+    // TODO have this function take a block_size parameter.
     void value_size(int64_t new_size) {
         if (new_size <= MAX_IN_NODE_VALUE_SIZE) {
             metadata_set_large_value_bit(&metadata_flags, false);
             size = new_size;
         } else {
             metadata_set_large_value_bit(&metadata_flags, true);
-            size = LARGE_BUF_REF_SIZE;
 
-            // This is kind of fake, kind of paranoid, doing this
-            // here.  The fact that we have this is a sign of scary
-            // bad code.
+            // TODO LARGEBUF pass in the block_size_t to this function.
+            size = large_buf_ref::refsize(block_size_t::unsafe_make(4096), new_size, 0);
             large_buf_ref_ptr()->size = new_size;
         }
     }
@@ -95,13 +97,15 @@ public:
 
     const large_buf_ref *lb_ref() const {
         rassert(is_large());
-        rassert(size == LARGE_BUF_REF_SIZE);
+        rassert(size >= sizeof(large_buf_ref));
+        rassert((size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0);
         return reinterpret_cast<const large_buf_ref *>(value());
     }
     void set_lb_ref(const large_buf_ref& ref) {
         rassert(is_large());
-        rassert(size == LARGE_BUF_REF_SIZE);
-        memcpy(value(), &ref, LARGE_BUF_REF_SIZE);
+        // TODO LARGEBUF get rid of the block_size_t::unsafe_make(4096) when we do so in value_size.
+        assert(size == ref.refsize(block_size_t::unsafe_make(4096)));
+        memcpy(value(), &ref, size);
     }
 
     mcflags_t mcflags() const { return metadata_memcached_flags(metadata_flags, contents); }

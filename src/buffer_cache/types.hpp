@@ -2,6 +2,7 @@
 #define __BUFFER_CACHE_TYPES_HPP__
 
 #include "utils2.hpp"
+#include "serializer/types.hpp"
 
 typedef uint32_t block_id_t;
 #define NULL_BLOCK_ID (block_id_t(-1))
@@ -37,6 +38,8 @@ struct large_buf_ref {
 
     const block_id_t& block_id() const { return block_ids[0]; }
     block_id_t& block_id() { return block_ids[0]; }
+    int refsize(block_size_t block_size) const;
+    static int refsize(block_size_t block_size, int64_t size, int64_t offset);
 } __attribute((__packed__));
 
 #define LARGE_BUF_REF_SIZE (sizeof(large_buf_ref))

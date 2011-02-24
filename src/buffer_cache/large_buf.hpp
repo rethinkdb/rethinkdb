@@ -43,11 +43,13 @@ struct buftree_t {
 
 struct tree_available_callback_t;
 
+#define LBREF_SIZE MAX_IN_NODE_VALUE_SIZE
+
 class large_buf_t {
 private:
     union {
         large_buf_ref root_ref;
-        char root_ref_bytes[LARGE_BUF_REF_SIZE];
+        char root_ref_bytes[LBREF_SIZE];
     };
     buftree_t *root;
     access_t access;
@@ -115,6 +117,8 @@ public:
     static int64_t cache_size_to_internal_kids(block_size_t block_size);
     static int64_t compute_max_offset(block_size_t block_size, int levels);
     static int compute_num_levels(block_size_t block_size, int64_t end_offset);
+
+    static int compute_large_buf_ref_num_inlined(block_size_t block_size, int64_t end_offset);
 
 private:
     int64_t num_leaf_bytes() const;

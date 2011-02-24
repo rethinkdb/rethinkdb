@@ -352,7 +352,7 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
             int64_t end = std::min(ref->offset + ref->size, i + step) - i;
             union {
                 large_buf_ref r;
-                char r_bytes[LARGE_BUF_REF_SIZE];
+                char r_bytes[LBREF_SIZE];
             };
             (void)r_bytes;
             r.offset = beg;
@@ -399,10 +399,10 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
 
         union {
             large_buf_ref ref;
-            char ref_bytes[LARGE_BUF_REF_SIZE];
+            char ref_bytes[LBREF_SIZE];
         };
         (void)ref_bytes;
-        memcpy(&ref, value->lb_ref(), LARGE_BUF_REF_SIZE);
+        memcpy(&ref, value->lb_ref(), LBREF_SIZE);
 
         if (!get_large_buf_segments(key, file, &ref, cfg, mod_id, offsets, &segblocks)) {
             return;

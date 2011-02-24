@@ -820,7 +820,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref *ref, value_error *errs) {
 
                 union {
                     large_buf_ref r;
-                    char r_bytes[LARGE_BUF_REF_SIZE];
+                    char r_bytes[LBREF_SIZE];
                 };
                 (void)r_bytes;
                 r.offset = beg;
@@ -844,10 +844,10 @@ void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_err
 
         union {
             large_buf_ref root_ref;
-            char root_ref_bytes[LARGE_BUF_REF_SIZE];
+            char root_ref_bytes[LBREF_SIZE];
         };
         (void)root_ref_bytes;
-        memcpy(&root_ref, value->lb_ref(), LARGE_BUF_REF_SIZE);
+        memcpy(&root_ref, value->lb_ref(), LBREF_SIZE);
 
         check_large_buf(cx, &root_ref, errs);
     }
