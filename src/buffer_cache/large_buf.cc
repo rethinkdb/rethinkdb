@@ -372,39 +372,6 @@ void large_buf_t::buftree_acquired(buftree_t *tr, int index) {
     }
 }
 
-buftree_t *large_buf_t::add_level(buftree_t *tr, block_id_t id, block_id_t *new_id
-#ifndef NDEBUG
-                                  , int nextlevels
-#endif
-                                  ) {
-    buftree_t *ret = new buftree_t();
-#ifndef NDEBUG
-    ret->level = nextlevels;
-#endif
-
-    ret->buf = transaction->allocate();
-    *new_id = ret->buf->get_block_id();
-
-#ifndef NDEBUG
-    num_bufs++;
-#endif
-
-    large_buf_internal *node = ptr_cast<large_buf_internal>(ret->buf->get_data_major_write());
-
-    node->magic = large_buf_internal::expected_magic;
-
-#ifndef NDEBUG
-    for (int i = 0; i < num_internal_kids(); ++i) {
-        node->kids[i] = NULL_BLOCK_ID;
-    }
-#endif
-
-    node->kids[0] = id;
-
-    ret->children.push_back(tr);
-    return ret;
-}
-
 std::vector<buftree_t *> large_buf_t::adds_level(const std::vector<buftree_t *>& tr, block_id_t *ids
 #ifndef NDEBUG
                                                  , int nextlevels
@@ -613,18 +580,6 @@ std::vector<buftree_t *> large_buf_t::removes_level(const std::vector<buftree_t 
     return ret;
 }
 
-buftree_t *large_buf_t::remove_level(buftree_t *tr, block_id_t id, block_id_t *idout) {
-    tr->buf->mark_deleted(false);
-    tr->buf->release();
-#ifndef NDEBUG
-    num_bufs--;
-#endif
-    buftree_t *ret = tr->children[0];
-    delete tr;
-    *idout = ret->buf->get_block_id();
-    return ret;
-}
-
 void large_buf_t::unappend(int64_t extra_size, large_buf_ref *refout, int *refsize_adjustment_out) {
     rassert(state == loaded);
     rassert(extra_size < root_ref.size);
@@ -722,24 +677,12 @@ buftree_t *buftree_nothing(buftree_t *tr) {
 }
 
 
-void large_buf_t::delete_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels) {
-    walk_tree_structure(tr, offset, size, levels, mark_deleted_and_release, buftree_delete);
-}
-
 void large_buf_t::delete_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels) {
     walk_tree_structures(trees, offset, size, sublevels, mark_deleted_and_release, buftree_delete);
 }
 
-void large_buf_t::only_mark_deleted_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels) {
-    walk_tree_structure(tr, offset, size, levels, mark_deleted_only, buftree_nothing);
-}
-
 void large_buf_t::only_mark_deleted_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels) {
     walk_tree_structures(trees, offset, size, sublevels, mark_deleted_only, buftree_nothing);
-}
-
-buftree_t *large_buf_t::release_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels) {
-    return walk_tree_structure(tr, offset, size, levels, release_only, buftree_delete);
 }
 
 void large_buf_t::release_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels) {
