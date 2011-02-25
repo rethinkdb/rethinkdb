@@ -226,7 +226,6 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
 static const char *rget_null_key = "null";
 
 static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out, store_key_t *key_out) {
-
     if (!str_to_key(key, key_out)) return false;
 
     char *invalid_char;
@@ -377,7 +376,6 @@ void run_storage_command(txt_memcached_handler_t *rh,
     repli_timestamp timestamp = current_time();
 
     if (sc != append_command && sc != prepend_command) {
-
         add_policy_t add_policy;
         replace_policy_t replace_policy;
 
@@ -565,7 +563,6 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 
 /* "incr" and "decr" commands */
 void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount, bool incr, bool noreply) {
-
     rh->begin_write_command();
 
     incr_decr_result_t res = rh->set_store->incr_decr(
@@ -638,7 +635,6 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 /* "delete" commands */
 
 void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
-
     rh->begin_write_command();
 
     delete_result_t res = rh->set_store->delete_key(key);
