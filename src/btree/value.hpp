@@ -97,10 +97,6 @@ public:
         rassert((size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0);
         return reinterpret_cast<const large_buf_ref *>(value());
     }
-    void set_lb_ref(const large_buf_ref *ref) {
-        rassert(is_large());
-        memcpy(value(), ref, size);
-    }
 
     mcflags_t mcflags() const { return metadata_memcached_flags(metadata_flags, contents); }
     exptime_t exptime() const { return metadata_memcached_exptime(metadata_flags, contents); }
