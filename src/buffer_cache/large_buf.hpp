@@ -138,11 +138,11 @@ private:
     void acquire_slice(const large_buf_ref *root_ref_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_ = true);
     void fill_trees_at(const std::vector<buftree_t *>& trees, int64_t pos, const byte *data, int64_t fill_size, int sublevels);
     void fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels);
-    std::vector<buftree_t *> adds_level(const std::vector<buftree_t *>& tr, block_id_t *ids
+    void adds_level(block_id_t *ids
 #ifndef NDEBUG
-                                        , int nextlevels
+                    , int nextlevels
 #endif
-                                        );
+                    );
     void allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void allocates_part_of_tree(std::vector<buftree_t *> *ptrs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t sublevels);
     buftree_t *walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *));
@@ -151,7 +151,7 @@ private:
     void only_mark_deleted_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels);
     void release_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels);
     buf_t *get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset);
-    std::vector<buftree_t *> removes_level(const std::vector<buftree_t *>& trs, block_id_t *ids, int copyees);
+    void removes_level(block_id_t *ids, int copyees);
     int try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t stepsize);
 };
 

@@ -372,11 +372,11 @@ void large_buf_t::buftree_acquired(buftree_t *tr, int index) {
     }
 }
 
-std::vector<buftree_t *> large_buf_t::adds_level(const std::vector<buftree_t *>& tr, block_id_t *ids
+void large_buf_t::adds_level(block_id_t *ids
 #ifndef NDEBUG
-                                                 , int nextlevels
+                             , int nextlevels
 #endif
-                                                 ) {
+                             ) {
     // We only need one buftree because the inlined memory size must
     // be less than internal node size
     buftree_t *ret = new buftree_t();
@@ -403,16 +403,18 @@ std::vector<buftree_t *> large_buf_t::adds_level(const std::vector<buftree_t *>&
     }
 #endif
 
-    for (int i = 0, ie = tr.size(); i < ie; i++) {
+    for (int i = 0, ie = roots.size(); i < ie; i++) {
         node->kids[i] = ids[i];
 #ifndef NDEBUG
         ids[i] = NULL_BLOCK_ID;
 #endif
     }
 
-    ret->children = tr;
-    std::vector<buftree_t *> retvec(1, ret);
-    return retvec;
+    ret->children.swap(roots);
+
+    // Make sure that our .swap logic works the way we expect it to.
+    rassert(roots.size() == 0);
+    roots.push_back(ret);
 }
 
 // TODO check for and support partial acquisition
@@ -426,11 +428,11 @@ void large_buf_t::append(int64_t extra_size, large_buf_ref *refout, int *refsize
     int new_sublevels = num_sublevels(back + extra_size);
 
     for (int i = prev_sublevels; i < new_sublevels; ++i) {
-        roots = adds_level(roots, root_ref.block_ids
+        adds_level(root_ref.block_ids
 #ifndef NDEBUG
-                           , i + 1
+                   , i + 1
 #endif
-                           );
+                   );
     }
 
     allocates_part_of_tree(&roots, root_ref.block_ids, back, extra_size, new_sublevels);
@@ -472,11 +474,11 @@ void large_buf_t::prepend(int64_t extra_size, large_buf_ref *refout, int *refsiz
         int64_t max_k = (MAX_IN_NODE_VALUE_SIZE - sizeof(large_buf_ref)) / sizeof(block_id_t);
 
         if (k + back_k > max_k) {
-            roots = adds_level(roots, root_ref.block_ids
+            adds_level(root_ref.block_ids
 #ifndef NDEBUG
-                               , num_sublevels(back) + 1
+                       , num_sublevels(back) + 1
 #endif
-                               );
+                       );
             goto tryagain;
         }
 
@@ -558,12 +560,11 @@ void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int
     }
 }
 
-// TODO BUFTREE get rid of this std::vector copyage crap.
-std::vector<buftree_t *> large_buf_t::removes_level(const std::vector<buftree_t *>& trs, block_id_t *ids, int copyees) {
-    rassert(trs.size() == 1);
+void large_buf_t::removes_level(block_id_t *ids, int copyees) {
+    rassert(roots.size() == 1);
     rassert((MAX_IN_NODE_VALUE_SIZE - sizeof(root_ref)) / sizeof(block_id_t) >= (size_t)copyees);
 
-    buftree_t *tr = trs[0];
+    buftree_t *tr = roots[0];
 
     const large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_read());
     for (int i = 0; i < copyees; ++i) {
@@ -575,9 +576,9 @@ std::vector<buftree_t *> large_buf_t::removes_level(const std::vector<buftree_t 
 #ifndef NDEBUG
     num_bufs--;
 #endif
-    std::vector<buftree_t *> ret = tr->children;
+
+    roots.swap(tr->children);
     delete tr;
-    return ret;
 }
 
 void large_buf_t::unappend(int64_t extra_size, large_buf_ref *refout, int *refsize_adjustment_out) {
@@ -595,7 +596,7 @@ void large_buf_t::unappend(int64_t extra_size, large_buf_ref *refout, int *refsi
     }
 
     for (int i = num_sublevels(root_ref.offset + root_ref.size), e = num_sublevels(back); i > e; --i) {
-        roots = removes_level(roots, root_ref.block_ids, ceil_divide(back, max_offset(i - 1)));
+        removes_level(root_ref.block_ids, ceil_divide(back, max_offset(i - 1)));
     }
 
     root_ref.size -= extra_size;
@@ -751,7 +752,7 @@ void large_buf_t::unprepend(int64_t extra_size, large_buf_ref *refout, int *refs
             // Consider removing a level.
             int num_copied = ceil_divide(root_ref.offset + root_ref.size, substepsize);
             if (num_copied <= int((MAX_IN_NODE_VALUE_SIZE - sizeof(large_buf_ref)) / sizeof(block_id_t))) {
-                roots = removes_level(roots, root_ref.block_ids, num_copied);
+                removes_level(root_ref.block_ids, num_copied);
                 goto tryagain;
             }
         }
