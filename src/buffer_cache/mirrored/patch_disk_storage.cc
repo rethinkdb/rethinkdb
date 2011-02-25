@@ -39,6 +39,8 @@ void patch_disk_storage_t::init(const block_id_t first_block, const block_id_t n
         }
     }
     coro_t::move_to_thread(cache.home_thread);
+    coro_t::self()->notify();
+    coro_t::wait();
 
     // Load all log blocks into memory
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
