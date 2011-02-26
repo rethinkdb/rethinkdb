@@ -197,9 +197,11 @@ int main(int argc, char *argv[])
         ticks_t now = get_ticks(), target = start_time + (seconds_of_run + 1) * secs_to_ticks(1);
         if (now > target) {
             fprintf(stderr, "Reporter thread way too slow for some reason\n");
-            exit(-1);
+            //exit(-1);
         }
-        sleep_ticks(target - now);
+        else {
+            sleep_ticks(target - now);
+        }
 
         /* Poll all the clients for stats */
         query_stats_t stats_for_this_second;

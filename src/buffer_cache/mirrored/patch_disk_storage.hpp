@@ -56,6 +56,7 @@ private:
     void clear_block(const block_id_t log_block_id, coro_t* notify_coro);
     void set_active_log_block(const block_id_t log_block_id);
 
+    void preload_block(const block_id_t log_block_id);
     void init_log_block(const block_id_t log_block_id);
 
     // We use our own acquire function which does not care about locks

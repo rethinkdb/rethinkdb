@@ -1,4 +1,6 @@
+#include "arch/linux/arch.hpp"
 #include "arch/linux/coroutines.hpp"
+#include "concurrency/cond_var.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "config/args.hpp"
 #include <stdio.h>
@@ -93,9 +95,7 @@ extern "C" {
 /* coro_context_t is only used internally within the coroutine logic. For performance reasons,
 we recycle stacks and ucontexts; the coro_context_t represents a stack and a ucontext. */
 
-struct coro_context_t :
-    public intrusive_list_node_t<coro_context_t>
-{
+struct coro_context_t : public intrusive_list_node_t<coro_context_t> {
     coro_context_t();
 
     /* The run() function is at the bottom of every coro_context_t's call stack. It repeatedly
@@ -126,16 +126,14 @@ static __thread intrusive_list_t<coro_context_t> *free_contexts = NULL;
 
 /* coro_globals_t */
 
-coro_globals_t::coro_globals_t()
-{
+coro_globals_t::coro_globals_t() {
     rassert(!current_coro);
 
     rassert(free_contexts == NULL);
     free_contexts = new intrusive_list_t<coro_context_t>;
 }
 
-coro_globals_t::~coro_globals_t()
-{
+coro_globals_t::~coro_globals_t() {
     rassert(!current_coro);
 
     /* Destroy remaining coroutines */
@@ -150,8 +148,7 @@ coro_globals_t::~coro_globals_t()
 
 /* coro_context_t */
 
-coro_context_t::coro_context_t()
-{
+coro_context_t::coro_context_t() {
     pm_allocated_coroutines++;
 
     stack = malloc_aligned(coro_stack_size, getpagesize());
@@ -171,7 +168,6 @@ coro_context_t::coro_context_t()
 }
 
 void coro_context_t::run() {
-
     coro_context_t *self = current_coro->context;
 
     /* Make sure we're on the right stack. */
@@ -182,7 +178,6 @@ void coro_context_t::run() {
 #endif
 
     while (true) {
-
         current_coro->run();
 
         if (prev_coro) {
@@ -194,7 +189,6 @@ void coro_context_t::run() {
 }
 
 coro_context_t::~coro_context_t() {
-
 #ifdef VALGRIND
     VALGRIND_STACK_DEREGISTER(valgrind_stack_id);
 #endif
@@ -228,7 +222,6 @@ coro_t::coro_t(const boost::function<void()>& deed, int thread) :
 }
 
 coro_t::~coro_t() {
-
     /* Return the context to the free-contexts list */
     free_contexts->push_back(context);
 
@@ -249,6 +242,7 @@ coro_t *coro_t::self() {   /* class method */
 }
 
 void coro_t::wait() {   /* class method */
+    rassert(self(), "Not in a coroutine context");
 
 #ifndef NDEBUG
     /* It's not safe to wait() in a catch clause of an exception handler. We use the non-standard
@@ -273,6 +267,29 @@ void coro_t::wait() {   /* class method */
     current_coro->waiting_ = false;
 }
 
+void coro_t::yield() {  /* class method */
+    rassert(self(), "Not in a coroutine context");
+    self()->notify();
+    self()->wait();
+}
+
+static void coro_t_wakeup(threadsafe_cond_t *turnstile) {
+    turnstile->pulse();
+}
+
+void coro_t::sleep(long ms) {   /* class method */
+    rassert(self(), "Not in a coroutine context");
+    rassert(ms >= 0);
+
+    if (ms != 0) {
+        threadsafe_cond_t turnstile;
+        (void) fire_timer_once(ms, (void (*)(void*)) coro_t_wakeup, &turnstile);
+        turnstile.wait();
+    } else {
+        coro_t::yield();
+    }
+}
+
 void coro_t::notify_now() {
     rassert(waiting_);
     rassert(!notified_);
@@ -294,7 +311,6 @@ void coro_t::notify_now() {
 }
 
 void coro_t::notify() {
-
     rassert(!notified_);
     notified_ = true;
 
@@ -317,7 +333,6 @@ void coro_t::move_to_thread(int thread) {   /* class method */
 }
 
 void coro_t::on_thread_switch() {
-
     rassert(notified_);
     notified_ = false;
 
