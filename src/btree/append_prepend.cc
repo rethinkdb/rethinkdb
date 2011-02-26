@@ -58,8 +58,15 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 } else { // large -> large; expand existing large value
                     large_buflock.swap(old_large_buflock);
                     int refsize_adjustment;
-                    if (append) large_buflock.lv()->append(data->get_size(), value.large_buf_ref_ptr(), &refsize_adjustment);
-                    else        large_buflock.lv()->prepend(data->get_size(), value.large_buf_ref_ptr(), &refsize_adjustment);
+
+                    if (append) {
+                        // TIED large_buflock TO value.
+                        large_buflock.lv()->append(data->get_size(), &refsize_adjustment);
+                    }
+                    else {
+                        large_buflock.lv()->prepend(data->get_size(), &refsize_adjustment);
+                    }
+
                     //debugf("refsize_adjustment: %d (sz = %d)\n", refsize_adjustment, value.large_buf_ref_ptr()->refsize(slice->cache()->get_block_size()));
                     value.size += refsize_adjustment;
                     is_old_large_value = true;
@@ -100,8 +107,14 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                         // erroneous input.
 
                         int refsize_adjustment;
-                        if (append) large_buflock.lv()->unappend(data->get_size(), value.large_buf_ref_ptr(), &refsize_adjustment);
-                        else large_buflock.lv()->unprepend(data->get_size(), value.large_buf_ref_ptr(), &refsize_adjustment);
+                        if (append) {
+                            // TIED large_buflock TO value
+                            large_buflock.lv()->unappend(data->get_size(), &refsize_adjustment);
+                        }
+                        else {
+                            // TIED large_buflock TO value
+                            large_buflock.lv()->unprepend(data->get_size(), &refsize_adjustment);
+                        }
                         value.size += refsize_adjustment;
                     } else {
                         // The old value was small, so we just keep it and delete the large value
@@ -123,7 +136,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         }
     }
 
-    void actually_acquire_large_value(large_buf_t *lb, const large_buf_ref *lbref) {
+    void actually_acquire_large_value(large_buf_t *lb, large_buf_ref *lbref) {
         if (append) {
             co_acquire_large_value_rhs(lb, lbref, rwi_write);
         } else {

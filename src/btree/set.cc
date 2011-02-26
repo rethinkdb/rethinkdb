@@ -77,10 +77,12 @@ struct btree_set_oper_t : public btree_modify_oper_t {
             } else {
                 large_buflock.set(new large_buf_t(txor->transaction()));
                 large_buflock.lv()->allocate(data->get_size(), value.large_buf_ref_ptr());
+                debugf("Allocated buflock with %d bytes intended.\n", data->get_size());
                 for (int64_t i = 0; i < large_buflock.lv()->get_num_segments(); i++) {
                     uint16_t size;
                     void *data = large_buflock.lv()->get_segment_write(i, &size);
                     buffer_group.add_buffer(size, data);
+                    debugf("buffer_group.get_size() is %d\n", buffer_group.get_size());
                 }
 
                 try {
@@ -103,7 +105,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
     }
 
-    virtual void actually_acquire_large_value(large_buf_t *lb, const large_buf_ref *lbref) {
+    virtual void actually_acquire_large_value(large_buf_t *lb, large_buf_ref *lbref) {
         co_acquire_large_value_for_delete(lb, lbref, rwi_write);
     }
 

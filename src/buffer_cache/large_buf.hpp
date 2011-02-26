@@ -47,10 +47,7 @@ struct tree_available_callback_t;
 
 class large_buf_t {
 private:
-    union {
-        large_buf_ref root_ref;
-        char root_ref_bytes[LBREF_SIZE];
-    };
+    large_buf_ref *root_ref;
     std::vector<buftree_t *> roots;
     access_t access;
     int num_to_acquire;
@@ -79,20 +76,20 @@ public:
     ~large_buf_t();
 
     void allocate(int64_t _size, large_buf_ref *refout);
-    void acquire(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_rhs(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_lhs(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_for_delete(const large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire(large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_rhs(large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_lhs(large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_for_delete(large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
 
     // refsize_adjustment_out parameter forces callers to recognize
     // that the size may change, so hopefully they'll update their
     // btree_value size field appropriately.
-    void append(int64_t extra_size, large_buf_ref *refout, int *refsize_adjustment_out);
-    void prepend(int64_t extra_size, large_buf_ref *refout, int *refsize_adjustment_out);
+    void append(int64_t extra_size, int *refsize_adjustment_out);
+    void prepend(int64_t extra_size, int *refsize_adjustment_out);
     void fill_at(int64_t pos, const byte *data, int64_t fill_size);
 
-    void unappend(int64_t extra_size, large_buf_ref *refout, int *refsize_adjustment_out);
-    void unprepend(int64_t extra_size, large_buf_ref *refout, int *refsize_adjustment_out);
+    void unappend(int64_t extra_size, int *refsize_adjustment_out);
+    void unprepend(int64_t extra_size, int *refsize_adjustment_out);
 
     int64_t pos_to_ix(int64_t pos);
     uint16_t pos_to_seg_pos(int64_t pos);
@@ -101,9 +98,12 @@ public:
     void release();
 
     transaction_t *get_transaction() const { return transaction; }
+
+    // TODO get rid of this function, why do we need it if the user of
+    // the large buf owns the root ref?
     const large_buf_ref *get_root_ref() const {
-        rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref.offset + root_ref.size));
-        return &root_ref;
+        rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
+        return root_ref;
     }
 
     int64_t get_num_segments();
@@ -138,7 +138,7 @@ private:
 
     buftree_t *allocate_buftree(int64_t size, int64_t offset, int levels, block_id_t *block_id);
     buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
-    void acquire_slice(const large_buf_ref *root_ref_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_ = true);
+    void acquire_slice(large_buf_ref *root_ref_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_ = true);
     void fill_trees_at(const std::vector<buftree_t *>& trees, int64_t pos, const byte *data, int64_t fill_size, int sublevels);
     void fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels);
     void adds_level(block_id_t *ids
