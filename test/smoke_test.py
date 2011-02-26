@@ -68,7 +68,13 @@ try:
                   "mode"        : mode,
                   "no-valgrind" : not checker,
                   "protocol"    : protocol })
-        
+
+        do_test_cloud("integration/extraction.py",
+                      { "auto"        : True,
+                        "mode"        : mode,
+                        "no-valgrind" : not checker,
+                        "protocol"    : protocol })
+
         do_test_cloud("integration/serial_mix.py",
                 { "auto"        : True,
                   "mode"        : mode,

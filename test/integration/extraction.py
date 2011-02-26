@@ -23,7 +23,7 @@ if __name__ == "__main__":
     mc = connect_to_port(opts, server1.port)
     for i in xrange(0, 100):
         key = str(i)
-        value = str(str(random.randint(0, 9)) * random.randint(0, 10000))
+        value = str(str(random.randint(0, 9)) * (random.randint(0, 10000) if i > 0 else 1001001))
         ok = mc.set(key, value)
         if ok == 0:
             raise ValueError("Could not insert %r" % value)
