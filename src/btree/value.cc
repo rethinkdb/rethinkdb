@@ -1,5 +1,6 @@
 #include "value.hpp"
 
+const lbref_limit_t btree_value::lbref_limit(MAX_IN_NODE_VALUE_SIZE);
 
 
 

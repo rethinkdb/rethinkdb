@@ -43,11 +43,10 @@ struct buftree_t {
 
 struct tree_available_callback_t;
 
-#define BTREE_LBREF_SIZE MAX_IN_NODE_VALUE_SIZE
-
 class large_buf_t {
 private:
     large_buf_ref *root_ref;
+    lbref_limit_t root_ref_limit;
     std::vector<buftree_t *> roots;
     access_t access;
     int num_to_acquire;
@@ -75,11 +74,11 @@ public:
     explicit large_buf_t(transaction_t *txn);
     ~large_buf_t();
 
-    void allocate(int64_t _size, large_buf_ref *refout);
-    void acquire(large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_rhs(large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_lhs(large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_for_delete(large_buf_ref *root_ref_, access_t access_, large_buf_available_callback_t *callback_);
+    void allocate(int64_t _size, large_buf_ref *refout, lbref_limit_t ref_limit);
+    void acquire(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_rhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_lhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_for_delete(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
 
     // refsize_adjustment_out parameter forces callers to recognize
     // that the size may change, so hopefully they'll update their
@@ -125,9 +124,9 @@ public:
     static int64_t cache_size_to_internal_kids(block_size_t block_size);
     static int64_t compute_max_offset(block_size_t block_size, int levels);
     static int compute_num_levels(block_size_t block_size, int64_t end_offset);
-    static int compute_num_sublevels(block_size_t block_size, int64_t end_offset);
+    static int compute_num_sublevels(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit);
 
-    static int compute_large_buf_ref_num_inlined(block_size_t block_size, int64_t end_offset);
+    static int compute_large_buf_ref_num_inlined(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit);
 
 private:
     int64_t num_leaf_bytes() const;
@@ -138,7 +137,7 @@ private:
 
     buftree_t *allocate_buftree(int64_t size, int64_t offset, int levels, block_id_t *block_id);
     buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
-    void acquire_slice(large_buf_ref *root_ref_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_ = true);
+    void acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_ = true);
     void fill_trees_at(const std::vector<buftree_t *>& trees, int64_t pos, const byte *data, int64_t fill_size, int sublevels);
     void fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels);
     void adds_level(block_id_t *ids

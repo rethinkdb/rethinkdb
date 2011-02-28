@@ -51,7 +51,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 // Prepare the large value if necessary.
                 if (!old_value->is_large()) { // small -> large; allocate a new large value and copy existing value into it.
                     large_buflock.set(new large_buf_t(txor->transaction()));
-                    large_buflock.lv()->allocate(new_size, value.large_buf_ref_ptr());
+                    large_buflock.lv()->allocate(new_size, value.large_buf_ref_ptr(), btree_value::lbref_limit);
                     if (append) large_buflock.lv()->fill_at(0, old_value->value(), old_value->value_size());
                     else        large_buflock.lv()->fill_at(data->get_size(), old_value->value(), old_value->value_size());
                     is_old_large_value = false;
@@ -138,9 +138,9 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
     void actually_acquire_large_value(large_buf_t *lb, large_buf_ref *lbref) {
         if (append) {
-            co_acquire_large_value_rhs(lb, lbref, rwi_write);
+            co_acquire_large_value_rhs(lb, lbref, btree_value::lbref_limit, rwi_write);
         } else {
-            co_acquire_large_value_lhs(lb, lbref, rwi_write);
+            co_acquire_large_value_lhs(lb, lbref, btree_value::lbref_limit, rwi_write);
         }
     }
 
