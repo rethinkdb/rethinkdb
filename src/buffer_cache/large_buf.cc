@@ -869,15 +869,6 @@ byte *large_buf_t::get_segment_write(int64_t ix, uint16_t *seg_size) {
     return leaf->buf + seg_offset;
 }
 
-transaction_t *large_buf_t::get_transaction() const {
-    return transaction;
-}
-
-const large_buf_ref *large_buf_t::get_root_ref() const {
-    rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref.offset + root_ref.size));
-    return &root_ref;
-}
-
 int64_t large_buf_t::pos_to_ix(int64_t pos) {
     int64_t nlb = num_leaf_bytes();
     int64_t base = floor_aligned(root_ref.offset, nlb);

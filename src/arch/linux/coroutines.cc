@@ -273,16 +273,16 @@ void coro_t::yield() {  /* class method */
     self()->wait();
 }
 
-static void coro_t_wakeup(threadsafe_cond_t *turnstile) {
+static void coro_t_wakeup(cond_t *turnstile) {
     turnstile->pulse();
 }
 
-void coro_t::sleep(long ms) {   /* class method */
+void coro_t::nap(long ms) {   /* class method */
     rassert(self(), "Not in a coroutine context");
     rassert(ms >= 0);
 
     if (ms != 0) {
-        threadsafe_cond_t turnstile;
+        cond_t turnstile;
         (void) fire_timer_once(ms, (void (*)(void*)) coro_t_wakeup, &turnstile);
         turnstile.wait();
     } else {
