@@ -182,10 +182,12 @@ int main(int argc, char *argv[])
     /* The main loop polls the threads for stats once a second, and issues the order to stop when
     it decides it is time. */
 
+    // Used to sum up total number of queries and total inserts_minus_deletes. Its worst_latency
+    // is valid but not used. Its latency sample pool is not valid.
     query_stats_t total_stats;
 
     ticks_t start_time = get_ticks();
-    int seconds_of_run = 0, latency_record_counter = 0;
+    int seconds_of_run = 0;
 
     // TODO: If an workload contains contains no inserts and there are no keys available for a
     // particular client (and the duration is specified in q/i), it'll just loop forever.
@@ -193,15 +195,13 @@ int main(int argc, char *argv[])
     bool keep_running = true;
     while(keep_running) {
 
-        /* Delay approximately one second, making sure we don't drift as time passes */
-        ticks_t now = get_ticks(), target = start_time + (seconds_of_run + 1) * secs_to_ticks(1);
-        if (now > target) {
-            fprintf(stderr, "Reporter thread way too slow for some reason\n");
-            //exit(-1);
+        /* Delay an integer number of seconds, preferably 1. */
+        int delay_seconds = 1;
+        ticks_t now = get_ticks();
+        while (now > start_time + (seconds_of_run + delay_seconds) * secs_to_ticks(1)) {
+            delay_seconds++;
         }
-        else {
-            sleep_ticks(target - now);
-        }
+        sleep_ticks(start_time + (seconds_of_run + delay_seconds) * secs_to_ticks(1) - now);
 
         /* Poll all the clients for stats */
         query_stats_t stats_for_this_second;
@@ -218,13 +218,13 @@ int main(int argc, char *argv[])
 
         /* Report the stats we got from the clients */
         if (qps_fd) {
-            fprintf(qps_fd, "%d\t\t%d\n", seconds_of_run, stats_for_this_second.queries);
+            fprintf(qps_fd, "%d\t\t%d\n", seconds_of_run, stats_for_this_second.queries / delay_seconds);
             fflush(qps_fd);
         }
         if (latencies_fd) {
             for (int i = 0; i < stats_for_this_second.latency_samples.size(); i++) {
                 fprintf(latencies_fd, "%d\t\t%.2f\n",
-                    latency_record_counter++,
+                    seconds_of_run,
                     ticks_to_us(stats_for_this_second.latency_samples.samples[i]));
             }
             fflush(latencies_fd);
@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
 
         /* Update the aggregate total stats, and check if we are done running */
         total_stats.aggregate(&stats_for_this_second);
-        seconds_of_run++;
+        seconds_of_run += delay_seconds;
         if (config.duration.duration != -1) {
             switch (config.duration.units) {
             case duration_t::queries_t:
