@@ -44,7 +44,7 @@ public:
 public:
     static void wait();         // Pauses the current coroutine until it's notified
     static void yield();        // Pushes the current coroutine to the end of the notify queue and waits
-    static void sleep(long ms); // Pauses the current coroutine for at least ms amount of milliseconds
+    static void nap(long ms);   // Pauses the current coroutine for at least ms amount of milliseconds
     static coro_t *self();      // Returns the current coroutine
     void notify_now();          // Switches to a coroutine immediately (will switch back when it returns or wait()s)
     void notify();              // Wakes up the coroutine, allowing the scheduler to trigger it to continue

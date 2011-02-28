@@ -95,6 +95,7 @@ public:
         {
             mock_parse = true;
             latency_file[0] = 0;
+            worst_latency_file[0] = 0;
             qps_file[0] = 0;
             out_file[0] = 0;
             in_file[0] = 0;
