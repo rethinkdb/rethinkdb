@@ -43,7 +43,7 @@ struct buftree_t {
 
 struct tree_available_callback_t;
 
-#define LBREF_SIZE MAX_IN_NODE_VALUE_SIZE
+#define BTREE_LBREF_SIZE MAX_IN_NODE_VALUE_SIZE
 
 class large_buf_t {
 private:
