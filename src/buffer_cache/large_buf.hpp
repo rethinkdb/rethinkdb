@@ -85,7 +85,8 @@ public:
     // btree_value size field appropriately.
     void append(int64_t extra_size, int *refsize_adjustment_out);
     void prepend(int64_t extra_size, int *refsize_adjustment_out);
-    void fill_at(int64_t pos, const byte *data, int64_t fill_size);
+    void fill_at(int64_t pos, const void *data, int64_t fill_size);
+    void read_at(int64_t pos, void *data_out, int64_t read_size);
 
     void unappend(int64_t extra_size, int *refsize_adjustment_out);
     void unprepend(int64_t extra_size, int *refsize_adjustment_out);
@@ -138,6 +139,10 @@ private:
     buftree_t *allocate_buftree(int64_t size, int64_t offset, int levels, block_id_t *block_id);
     buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
     void acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_ = true);
+
+    void read_trees_at(const std::vector<buftree_t *>& trees, int64_t pos, byte *data_out, int64_t read_size, int sublevels);
+    void read_tree_at(buftree_t *tr, int64_t pos, byte *data_out, int64_t read_size, int levels);
+
     void fill_trees_at(const std::vector<buftree_t *>& trees, int64_t pos, const byte *data, int64_t fill_size, int sublevels);
     void fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels);
     void adds_level(block_id_t *ids

@@ -530,8 +530,49 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
 }
 
 
+// TODO: read_at is literally identical to fill_at except for the
+// direction of a memcpy statement.
+
+// Copies bytes from the large buffer to the given vector.
+void large_buf_t::read_at(int64_t pos, void *data_out_, int64_t read_size) {
+    byte *data_out = reinterpret_cast<byte *>(data_out_);
+    rassert(state == loaded);
+    rassert(0 <= pos && pos <= root_ref->size);
+    rassert(read_size <= root_ref->size - pos);
+
+    int sublevels = num_sublevels(root_ref->offset + root_ref->size);
+    read_trees_at(roots, root_ref->offset + pos, data_out, read_size, sublevels);
+}
+
+void large_buf_t::read_trees_at(const std::vector<buftree_t *>& trees, int64_t pos, byte *data_out, int64_t read_size, int sublevels) {
+    rassert(trees[0]->level == sublevels);
+
+    int64_t step = max_offset(sublevels);
+
+    for (int k = pos / step, ke = ceil_divide(pos + read_size, step); k < ke; ++k) {
+        int64_t i = int64_t(k) * step;
+        int64_t beg = std::max(i, pos);
+        int64_t end = std::min(pos + read_size, i + step);
+        fill_tree_at(trees[k], beg - i, data_out + (beg - pos), end - beg, sublevels);
+    }
+}
+
+void large_buf_t::read_tree_at(buftree_t *tr, int64_t pos, byte *data_out, int64_t read_size, int levels) {
+    rassert(tr->level == levels);
+
+    if (levels == 1) {
+        large_buf_leaf *node = reinterpret_cast<large_buf_leaf *>(tr->buf->get_data_major_write());
+        memcpy(data_out, node->buf + pos, read_size);
+    } else {
+        fill_trees_at(tr->children, pos, data_out, read_size, levels - 1);
+    }
+}
+
+
+
 // Reads size bytes from data.
-void large_buf_t::fill_at(int64_t pos, const byte *data, int64_t fill_size) {
+void large_buf_t::fill_at(int64_t pos, const void *data_, int64_t fill_size) {
+    const byte *data = reinterpret_cast<const byte *>(data_);
     rassert(state == loaded);
     rassert(0 <= pos && pos <= root_ref->size);
     rassert(fill_size <= root_ref->size - pos);

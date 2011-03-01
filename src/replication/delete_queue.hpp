@@ -1,6 +1,8 @@
 #ifndef __REPLICATION_DELETE_QUEUE_HPP__
 #define __REPLICATION_DELETE_QUEUE_HPP__
 
+#include "buffer_cache/buffer_cache.hpp"
+
 /*
                        D E L E T E   Q U E U E
 
@@ -56,6 +58,8 @@ needs to manage its backfilling separately anyway, and this splits up
 the work across cores.
 
 */
+
+struct store_key_t;
 
 namespace replication {
 

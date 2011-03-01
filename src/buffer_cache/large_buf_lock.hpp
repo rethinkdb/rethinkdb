@@ -27,6 +27,8 @@ public:
 
     large_buf_t *lv() { return lv_; }
 
+    large_buf_t *operator->() { return lv_; }
+
     bool has_lv() const { return lv_ != NULL; }
 
     // TODO remove this
