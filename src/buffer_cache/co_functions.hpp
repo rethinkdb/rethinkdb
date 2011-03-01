@@ -1,8 +1,6 @@
 #ifndef __BUFFER_CACHE_CO_FUNCTIONS_HPP__
 #define __BUFFER_CACHE_CO_FUNCTIONS_HPP__
 
-// TODO: Some of this stuff (all of it?) actually belongs in buffer_cache/.
-
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/large_buf.hpp"
 

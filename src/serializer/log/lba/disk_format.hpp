@@ -113,7 +113,7 @@ struct lba_entry_t {
     static inline lba_entry_t make_padding_entry() {
         return make(PADDING_BLOCK_ID, repli_timestamp::invalid, flagged_off64_t::padding());
     }
-} __attribute((__packed__));
+} __attribute__((__packed__));
 
 
 
