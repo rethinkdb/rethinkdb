@@ -381,13 +381,13 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
                 // ensure no overflow for ref->offset + ref->size:
                 if (0x7fffFfffFfffFfffLL - ref->offset > ref->size) {
 
-                    int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cfg.block_size(), ref->offset + ref->size);
+                    int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cfg.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
 
                     // The part before '&&' ensures no overflow in the part after.
                     if (inlined < int((INT_MAX - sizeof(large_buf_ref)) / sizeof(block_id_t))
                         && int(sizeof(large_buf_ref) + inlined * sizeof(block_id_t)) == ref_size_bytes) {
 
-                        int sublevels = large_buf_t::compute_num_sublevels(cfg.block_size(), ref->offset + ref->size);
+                        int sublevels = large_buf_t::compute_num_sublevels(cfg.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
 
                         // We aren't interested in making sure that
                         // the buffer is properly left-shifted because

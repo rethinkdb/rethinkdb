@@ -224,7 +224,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             old_large_buflock.set(new large_buf_t(txor->transaction()));
             // We don't know whether we want to acquire all of the large value or
             // just part of it, so we let the oper acquire it for us.
-            oper->actually_acquire_large_value(old_large_buflock.lv(), old_value.lb_ref());
+            // TIED old_large_buflock TO old_value
+            oper->actually_acquire_large_value(old_large_buflock.lv(), old_value.large_buf_ref_ptr());
             rassert(old_large_buflock.lv()->state == large_buf_t::loaded);
         }
 
@@ -244,7 +245,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         if (update_needed) {
             if (new_value && new_value->is_large()) {
                 rassert(new_large_buflock.has_lv());
-                rassert(0 == memcmp(new_value->lb_ref()->block_ids, new_large_buflock.lv()->get_root_ref()->block_ids, new_large_buflock.lv()->get_root_ref()->refsize(slice->cache().get_block_size()) - sizeof(large_buf_ref)));
+                rassert(0 == memcmp(new_value->lb_ref()->block_ids, new_large_buflock.lv()->get_root_ref()->block_ids, new_large_buflock.lv()->get_root_ref()->refsize(slice->cache().get_block_size(), btree_value::lbref_limit) - sizeof(large_buf_ref)));
             } else {
                 rassert(!new_large_buflock.has_lv());
             }
@@ -311,7 +312,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             if (old_large_buflock.has_lv() && new_large_buflock.lv() != old_large_buflock.lv()) {
                 // operate() switched to a new large buf, so we need to delete the old one.
                 rassert(old_value.is_large());
-                rassert(0 == memcmp(old_value.lb_ref()->block_ids, old_large_buflock.lv()->get_root_ref()->block_ids, old_large_buflock.lv()->get_root_ref()->refsize(slice->cache().get_block_size()) - sizeof(large_buf_ref)));
+                rassert(0 == memcmp(old_value.lb_ref()->block_ids, old_large_buflock.lv()->get_root_ref()->block_ids, old_large_buflock.lv()->get_root_ref()->refsize(slice->cache().get_block_size(), btree_value::lbref_limit) - sizeof(large_buf_ref)));
                 old_large_buflock.lv()->mark_deleted();
             }
         }

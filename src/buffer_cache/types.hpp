@@ -31,6 +31,12 @@ bool check_magic(block_magic_t magic) {
 }
 
 
+struct lbref_limit_t {
+    int value;
+    lbref_limit_t() : value(-1) { }
+    explicit lbref_limit_t(int value_) : value(value_) { }
+};
+
 struct large_buf_ref {
     int64_t size;
     int64_t offset;
@@ -40,8 +46,9 @@ struct large_buf_ref {
     const block_id_t& checker_block_id() const { return block_ids[0]; }
     block_id_t& checker_block_id() { return block_ids[0]; }
 
-    int refsize(block_size_t block_size) const;
-    static int refsize(block_size_t block_size, int64_t size, int64_t offset);
+    // Computes the reference size for leaf nodes' references.
+    int refsize(block_size_t block_size, lbref_limit_t ref_limit) const;
+    static int refsize(block_size_t block_size, int64_t size, int64_t offset, lbref_limit_t ref_limit);
 } __attribute((__packed__));
 
 
