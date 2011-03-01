@@ -54,6 +54,8 @@ struct btree_value {
     byte contents[];
 
 public:
+    static const lbref_limit_t lbref_limit;
+
     uint16_t full_size() const {
         return sizeof(btree_value) + metadata_size(metadata_flags) + size;
     }
@@ -79,7 +81,7 @@ public:
         } else {
             metadata_set_large_value_bit(&metadata_flags, true);
 
-            size = large_buf_ref::refsize(block_size, new_size, 0);
+            size = large_buf_ref::refsize(block_size, new_size, 0, lbref_limit);
             large_buf_ref_ptr()->size = new_size;
         }
     }
