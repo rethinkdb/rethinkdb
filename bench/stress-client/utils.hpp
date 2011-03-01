@@ -10,6 +10,21 @@
 size_t random(size_t min, size_t max);
 size_t seeded_random(size_t min, size_t max, unsigned long seed);
 
+/* Returns random number between [min, max] using various distributions */
+enum rnd_distr_t {
+    rnd_uniform_t,
+    rnd_normal_t
+};
+
+struct rnd_gen_t
+{
+    void *gsl_rnd;
+    rnd_distr_t rnd_distr;
+};
+rnd_gen_t xrandom_create();
+size_t xrandom(rnd_gen_t rnd, size_t min, size_t max);
+size_t seeded_xrandom(rnd_gen_t rnd, size_t min, size_t max, unsigned long seed);
+
 /* Timing related functions */
 typedef unsigned long long ticks_t;
 ticks_t secs_to_ticks(float secs);
