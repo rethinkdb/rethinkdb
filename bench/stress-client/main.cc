@@ -256,6 +256,10 @@ int main(int argc, char *argv[])
         }
     }
 
+    printf("Total running time: %f seconds\n", ticks_to_secs(get_ticks() - start_time));
+    printf("Total operations: %d\n", total_stats.queries);
+    printf("Total keys inserted minus keys deleted: %d\n", total_stats.inserts_minus_deletes);
+
     // Notify the threads to shut down
     for(int i = 0; i < config.clients; i++) {
         client_data[i].spinlock.lock();
