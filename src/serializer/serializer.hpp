@@ -64,7 +64,7 @@ struct serializer_t :
         write_block_callback_t *callback;
         bool assign_transaction_id;
 
-        friend class data_block_manager_t;
+        friend class log_serializer_t;
 
         static write_t make(ser_block_id_t block_id_, repli_timestamp recency_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_) {
             return write_t(block_id_, true, recency_, true, buf_, write_empty_deleted_block_, callback_, true);
