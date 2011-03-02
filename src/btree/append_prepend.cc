@@ -56,7 +56,9 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                     else        large_buflock.lv()->fill_at(data->get_size(), old_value->value(), old_value->value_size());
                     is_old_large_value = false;
                 } else { // large -> large; expand existing large value
+                    memcpy(&value, old_value, MAX_BTREE_VALUE_SIZE);
                     large_buflock.swap(old_large_buflock);
+                    large_buflock.lv()->HACK_ROOT_REF(value.large_buf_ref_ptr());
                     int refsize_adjustment;
 
                     if (append) {
@@ -74,13 +76,18 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
                 // Figure out the pointers and sizes where data needs to go
 
+                debugf("Getting segments!\n");
+
                 uint32_t fill_size = data->get_size();
                 uint32_t start_pos = append ? old_value->value_size() : 0;
+                debugf("start_pos=%u, fill_size=%u\n", start_pos, fill_size);
 
                 int64_t ix = large_buflock.lv()->pos_to_ix(start_pos);
                 uint16_t seg_pos = large_buflock.lv()->pos_to_seg_pos(start_pos);
+                debugf("ix=%u, seg_pos=%u\n", ix, seg_pos);
 
                 while (fill_size > 0) {
+                    debugf("ix=%u, fill_size=%u\n", ix, fill_size);
                     uint16_t seg_len;
                     byte_t *seg = large_buflock.lv()->get_segment_write(ix, &seg_len);
 
