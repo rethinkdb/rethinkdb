@@ -354,9 +354,8 @@ void large_buf_t::acquire_lhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_
     acquire_slice(root_ref_, ref_limit_, access_, beg, end - beg, callback_);
 }
 
-void large_buf_t::acquire_for_delete(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_) {
-    // TODO why do we have access_?
-    acquire_slice(root_ref_, ref_limit_, access_, 0, root_ref_->size, callback_, false);
+void large_buf_t::acquire_for_delete(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, large_buf_available_callback_t *callback_) {
+    acquire_slice(root_ref_, ref_limit_, rwi_write, 0, root_ref_->size, callback_, false);
 }
 
 void large_buf_t::buftree_acquired(buftree_t *tr, int index) {

@@ -78,7 +78,7 @@ public:
     void acquire(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
     void acquire_rhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
     void acquire_lhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_for_delete(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_for_delete(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, large_buf_available_callback_t *callback_);
 
     // refsize_adjustment_out parameter forces callers to recognize
     // that the size may change, so hopefully they'll update their
