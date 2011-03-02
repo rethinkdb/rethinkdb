@@ -63,13 +63,17 @@ struct store_key_t;
 
 namespace replication {
 
-class deletion_key_receiver_t {
+// Instead of passing keys one by one, we just pass the buffers that
+// contain all the keys.  These can then get passed in the same manner
+// to the slave, without so much needless processing and reprocessing,
+// unpacking and packing and unpacking and repacking.  The boundaries
+// of the individual buffers will not lie on key boundaries.  The
+// sequence of buffers contains a bunch of concatenated btree keys.
+class deletion_key_stream_receiver_t {
 public:
-    // We could easily pass the delete operation's timestamp to
-    // receive_deletion, but nobody is interested in that information.
-    virtual void receive_deletion(const store_key_t *key) = 0;
+    virtual void receive_keys(const void *data, size_t size) = 0;
 protected:
-    ~deletion_key_receiver_t() { }
+    ~deletion_key_stream_receiver_t() { }
 };
 
 // Acquires a delete queue, appends a (timestamp, key) pair to the
@@ -81,7 +85,7 @@ void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root, repli_ti
 // the interval have been passed to the recipient.  All keys whose
 // timestamps are grequal to the begin_timestamp and less than the
 // end_timestamp are passed to recipient, in no particular order.
-void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_receiver_t *recipient);
+void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_stream_receiver_t *recipient);
 
 
 

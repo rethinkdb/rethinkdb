@@ -2,6 +2,7 @@
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/co_functions.hpp"
 #include "buffer_cache/large_buf_lock.hpp"
+#include "scoped_malloc.hpp"
 #include "store.hpp"
 
 namespace replication {
@@ -72,8 +73,9 @@ void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli
 
             if (last_tao.timestamp.time > timestamp.time) {
                 logWRN("The delete queue is receiving updates out of order (t1 = %d, t2 = %d), or the system clock has been set back!  Bringing up a replica may be excessively inefficient.\n", last_tao.timestamp.time, timestamp.time);
-                // TODO make sure we're handling weird cases like this
-                // with correct behavior.
+
+                // Timestamps must be monotonically increasing, so sorry.
+                timestamp = last_tao.timestamp;
             }
 
             if (last_tao.timestamp.time != timestamp.time) {
@@ -106,11 +108,83 @@ void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli
     }
 }
 
-void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_receiver_t *recipient) {
+void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_stream_receiver_t *recipient) {
+    // Beware: Right now, some aspects of correctness depend on the
+    // fact that we hold the queue_root lock for the entire operation.
+    buf_lock_t queue_root(txn, queue_root_id, rwi_read);
 
-    // TODO: Implement this.
+    void *queue_root_buf = const_cast<void *>(queue_root.buf()->get_data_read());
 
+    off64_t primal_offset = delete_queue::primal_offset(queue_root_buf);
+    large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);
+    large_buf_ref *keys_ref = delete_queue::keys_largebuf(queue_root_buf);
 
+    rassert(t_o_ref->size % sizeof(delete_queue::t_and_o) == 0);
+
+    // TODO: DON'T hold the queue_root lock for the entire operation.  Sheesh.
+
+    int64_t begin_offset, end_offset;
+
+    {
+        large_buf_lock_t t_o_largebuf(new large_buf_t(txn));
+        co_acquire_large_value(t_o_largebuf.lv(), t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_read);
+
+        delete_queue::t_and_o tao;
+        int64_t i = 0, ie = t_o_ref->size;
+        bool begin_found = false, end_found = false;
+        while (i < ie) {
+            t_o_largebuf->read_at(i, &tao, sizeof(tao));
+            if (!begin_found && begin_timestamp.time <= tao.timestamp.time) {
+                begin_offset = tao.offset - primal_offset;
+                begin_found = true;
+            }
+            if (end_timestamp.time <= tao.timestamp.time) {
+                rassert(begin_found);
+                end_offset = tao.offset - primal_offset;
+                end_found = true;
+                break;
+            }
+            i += sizeof(tao);
+        }
+
+        t_o_largebuf->release();
+
+        if (!begin_found) {
+            return;
+            // Nothing to do!
+        }
+
+        if (!end_found) {
+            end_offset = t_o_ref->size;
+        }
+
+        // So we have a begin_offset and an end_offset;
+    }
+
+    rassert(begin_offset <= end_offset);
+
+    if (begin_offset < end_offset) {
+        large_buf_lock_t keys_largebuf(new large_buf_t(txn));
+
+        // TODO: acquire subinterval.
+        co_acquire_large_value(keys_largebuf.lv(), keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size(txn->cache->get_block_size())), rwi_read);
+
+        int64_t n = end_offset - begin_offset;
+
+        // TODO: don't copy needlessly... sheesh.  This is a fake
+        // implementation, make something that actually streams later.
+        scoped_malloc<byte> buf(n);
+
+        keys_largebuf->fill_at(begin_offset, buf.get(), n);
+
+        // To force deletion_key_stream_receiver_t to be designed to
+        // accept multiple calls, we send two calls.
+        int64_t half_n = n / 2;
+        recipient->receive_keys(buf.get(), half_n);
+        recipient->receive_keys(buf.get() + half_n, n - half_n);
+
+        keys_largebuf->release();
+    }
 }
 
 
