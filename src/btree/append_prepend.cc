@@ -82,7 +82,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
                 while (fill_size > 0) {
                     uint16_t seg_len;
-                    byte_t *seg = large_buflock.lv()->get_segment_write(ix, &seg_len);
+                    byte *seg = large_buflock.lv()->get_segment_write(ix, &seg_len);
 
                     rassert(seg_len >= seg_pos);
                     uint16_t seg_bytes_to_fill = std::min((uint32_t)(seg_len - seg_pos), fill_size);
