@@ -369,16 +369,11 @@ perfmon_duration_sampler_t pm_serializer_writes("serializer_writes", secs_to_tic
 
 struct ls_write_fsm_t :
     private iocallback_t,
+    private lock_available_callback_t,
+    private thread_message_t,
     private lba_index_t::sync_callback_t,
     private mb_manager_t::metablock_write_callback_t
 {
-    enum state_t {
-        state_start,
-        state_waiting_for_data_and_lba,
-        state_waiting_for_metablock,
-        state_done
-    } state;
-    
     ticks_t start_time;
     
     log_serializer_t *ser;
@@ -393,10 +388,15 @@ struct ls_write_fsm_t :
     manager. This way we guarantee that the metablocks are ordered correctly. */
     ls_write_fsm_t *next_write;
     
+    bool done;
+    log_serializer_t::write_txn_callback_t *callback;
+    
     ls_write_fsm_t(log_serializer_t *ser, log_serializer_t::write_t *writes, int num_writes)
-        : state(state_start), ser(ser), writes(writes), num_writes(num_writes), next_write(NULL)
+        : ser(ser), writes(writes), num_writes(num_writes), next_write(NULL)
     {
         pm_serializer_writes.begin(&start_time);
+        callback = NULL;
+        done = false;
     }
     
     ~ls_write_fsm_t() {
@@ -406,6 +406,8 @@ struct ls_write_fsm_t :
     
     bool run(log_serializer_t::write_txn_callback_t *cb) {
         rassert(state == state_start);
+
+        ser->main_mutex.lock(this);
         
         callback = NULL;
         if (do_start_writes_and_lba()) {
@@ -416,25 +418,53 @@ struct ls_write_fsm_t :
         }
     }
     
-    bool do_start_writes_and_lba() {
+    void on_lock_available() {
+#ifndef NDEBUG
+        {
+            log_serializer_t::metablock_t _debug_mb_buffer;
+            ser->prepare_metablock(&_debug_mb_buffer);
+            // Make sure that the metablock has not changed since the last
+            // time we recorded it
+            rassert(memcmp(&_debug_mb_buffer, &ser->debug_mb_buffer, sizeof(ser->debug_mb_buffer)) == 0);
+        }
+#endif
+        
+        ser->current_transaction_id++;
+        
         ser->active_write_count++;
         
         /* Start an extent manager transaction so we can allocate and release extents */
         extent_txn = ser->extent_manager->begin_transaction();
         
-        state = state_waiting_for_data_and_lba;
-        
         /* Just to make sure that the LBA GC gets exercised */
         
         ser->lba_index->consider_gc();
         
-        /* Launch each individual block writer */
+        /* Start the process of launching individual block writers */
         
         num_writes_waited_for = 0;
-        for (int i = 0; i < num_writes; i ++) {
-            ls_block_writer_t *writer = new ls_block_writer_t(ser, writes[i]);
+        
+        on_thread_switch();
+    }
+    
+    void on_thread_switch() {
+        
+        /* Launch up to this many block writers at a time, then yield the CPU */
+        const int target_chunk_size = 100;
+        int chunk_size = 0;
+        while (num_writes > 0 && chunk_size < target_chunk_size) {
+            ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes);
             if (!writer->run(this)) num_writes_waited_for++;
+            num_writes--;
+            writes++;
+            chunk_size++;
         }
+        
+        if (num_writes == 0) done_preparing_writes();
+        else call_later_on_this_thread(this);
+    }
+    
+    void done_preparing_writes() {
         
         /* Sync the LBA */
         
@@ -460,70 +490,62 @@ struct ls_write_fsm_t :
         }
         ser->last_write = this;
         
+#ifndef NDEBUG
+        ser->prepare_metablock(&ser->debug_mb_buffer);
+#endif
+        
+        ser->main_mutex.unlock();
+        
         /* If we're already done, go on to the next step */
         
-        return maybe_write_metablock();
-    }
-    
-    void on_io_complete() {
-        rassert(state == state_waiting_for_data_and_lba);
-        rassert(num_writes_waited_for > 0);
-        num_writes_waited_for--;
         maybe_write_metablock();
     }
     
+    void on_io_complete() {
+        rassert(num_writes_waited_for > 0);
+
+        num_writes_waited_for--;
+        if (num_writes == 0) {   // if num_writes != 0, we haven't dispatched all the writes yet
+            maybe_write_metablock();
+        }
+    }
+    
     void on_lba_sync() {
-        rassert(state == state_waiting_for_data_and_lba);
         rassert(!offsets_were_written);
         offsets_were_written = true;
         maybe_write_metablock();
     }
     
     void on_prev_write_submitted_metablock() {
-        rassert(state == state_waiting_for_data_and_lba);
         rassert(waiting_for_prev_write);
         waiting_for_prev_write = false;
         maybe_write_metablock();
     }
     
-    bool maybe_write_metablock() {
+    void maybe_write_metablock() {
         if (offsets_were_written && num_writes_waited_for == 0 && !waiting_for_prev_write) {
-            return do_write_metablock();
-        } else {
-            return false;
+            bool done_with_metablock = ser->metablock_manager->write_metablock(&mb_buffer, this);
+            
+            /* If there was another transaction waiting for us to write our metablock so it could
+            write its metablock, notify it now so it can write its metablock. */
+            if (next_write) {
+                next_write->on_prev_write_submitted_metablock();
+            } else {
+                rassert(this == ser->last_write);
+                ser->last_write = NULL;
+            }
+            
+            if (done_with_metablock) on_metablock_write();
         }
-    }
-    
-    bool do_write_metablock() {
-        state = state_waiting_for_metablock;
-        
-        bool done = ser->metablock_manager->write_metablock(&mb_buffer, this);
-        
-        /* If there was another transaction waiting for us to write our metablock so it could
-        write its metablock, notify it now so it can write its metablock. */
-        if (next_write) {
-            next_write->on_prev_write_submitted_metablock();
-        } else {
-            rassert(this == ser->last_write);
-            ser->last_write = NULL;
-        }
-        
-        if (done) return do_finish();
-        else return false;
     }
     
     void on_metablock_write() {
-        rassert(state == state_waiting_for_metablock);
-        do_finish();
-    }
-    
-    bool do_finish() {
         ser->active_write_count--;
 
         /* End the extent manager transaction so the extents can actually get reused. */
         ser->extent_manager->commit_transaction(extent_txn);
         
-        state = state_done;
+        done = true;
         
         //TODO I'm kind of unhappy that we're calling this from in here we should figure out better where to trigger gc
         ser->consider_start_gc();
@@ -540,19 +562,18 @@ struct ls_write_fsm_t :
             ser->next_shutdown_step();
         }
 
-        delete this;
-        return true;
+        if (callback) delete this;
     }
     
 private:
     bool offsets_were_written;
     int num_writes_waited_for;
     bool waiting_for_prev_write;
-    log_serializer_t::write_txn_callback_t *callback;
     
     log_serializer_t::metablock_t mb_buffer;
 };
 
+perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_ticks(2));
 
 bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
     // Even if state != state_ready we might get a do_write from the
@@ -562,26 +583,15 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     
     assert_thread();
 
-#ifndef NDEBUG
-    {
-        metablock_t _debug_mb_buffer;
-        prepare_metablock(&_debug_mb_buffer);
-        // Make sure that the metablock has not changed since the last
-        // time we recorded it
-        rassert(memcmp(&_debug_mb_buffer, &debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
-    }
-#endif
-
-    current_transaction_id++;
-
     ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
-    bool res = w->run(callback);
-
-#ifndef NDEBUG
-    prepare_metablock(&debug_mb_buffer);
-#endif
-
-    return res;
+    w->run();
+    if (w->done) {
+        delete w;
+        return true;
+    } else {
+        w->callback = callback;
+        return false;
+    }
 }
 
 bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb) {
@@ -619,7 +629,8 @@ bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, in
 perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1));
 
 struct ls_read_fsm_t :
-    private iocallback_t
+    private iocallback_t,
+    private lock_available_callback_t
 {
     ticks_t start_time;
     log_serializer_t *ser;
@@ -630,34 +641,19 @@ struct ls_read_fsm_t :
         : ser(ser), block_id(block_id), buf(buf)
     {
         pm_serializer_reads.begin(&start_time);
+        callback = NULL;
+        done = false;
     }
     
     ~ls_read_fsm_t() {
         pm_serializer_reads.end(&start_time);
     }
     
-    serializer_t::read_callback_t *read_callback;
+    serializer_t::read_callback_t *callback;
+    bool done;
     
-    bool run(serializer_t::read_callback_t *cb) {
-        read_callback = NULL;
-        if (do_read()) {
-            return true;
-        } else {
-            read_callback = cb;
-            return false;
-        }
-    }
-    
-    bool do_read() {
-        
-        flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
-        rassert(!offset.parts.is_delete);   // Make sure the block actually exists
-        
-        if (ser->data_block_manager->read(offset.parts.value, buf, this)) {
-            return done();
-        } else {
-            return false;
-        }
+    void run() {
+        ser->main_mutex.lock(this);
     }
     
     void on_io_complete() {
@@ -669,6 +665,29 @@ struct ls_read_fsm_t :
         delete this;
         return true;
     }
+
+    void on_lock_available() {
+
+        /* Should not cause anything else to go immediately */
+        ser->main_mutex.unlock();
+        
+        flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
+        rassert(!offset.parts.is_delete);   // Make sure the block actually exists
+
+        if (ser->data_block_manager->read(offset.parts.value, buf, this)) {
+            return done();
+        } else {
+            return false;
+        }
+    }
+    
+    void on_io_complete(event_t *e) {
+        done = true;
+        if (callback) {
+            callback->on_serializer_read();
+            delete this;
+        }
+    }
 };
 
 bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
@@ -676,7 +695,14 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
     assert_thread();
     
     ls_read_fsm_t *fsm = new ls_read_fsm_t(this, block_id, buf);
-    return fsm->run(callback);
+    fsm->run();
+    if (fsm->done) {
+        delete fsm;
+        return true;
+    } else {
+        fsm->callback = callback;
+        return false;
+    }
 }
 
 ser_transaction_id_t log_serializer_t::get_current_transaction_id(ser_block_id_t block_id, const void* buf) {
