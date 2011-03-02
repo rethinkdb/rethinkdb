@@ -35,6 +35,12 @@ union flagged_off64_t {
         return ret;
     }
 
+    static inline flagged_off64_t delete_id() {
+        flagged_off64_t ret;
+        ret.whole_value = -1;
+        return ret;
+    }
+
     static inline bool is_padding(flagged_off64_t offset) {
         return offset.whole_value == -1;
     }
@@ -60,6 +66,10 @@ union flagged_off64_t {
 
     static inline bool can_be_gced(flagged_off64_t offset) {
         return has_value(offset);
+    }
+
+    static inline bool is_delete_id(flagged_off64_t offset) {
+        return offset.whole_value == delete_id().whole_value;
     }
 };
 
