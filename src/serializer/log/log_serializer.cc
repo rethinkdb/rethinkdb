@@ -592,6 +592,38 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     return res;
 }
 
+bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb) {
+
+    std::vector<write_t> writes;
+    for (int i = 0; i < num_writes; i++) {
+        /* If the block is not currently in use, we must write a deletion. Otherwise we
+        would write the zero-buf that was written when we first deleted it. */
+        if (block_in_use(gc_writes[i].block_id)) {
+            /* make_internal() makes a write_t that will not change the timestamp. */
+            writes.push_back(write_t::make_internal(gc_writes[i].block_id, gc_writes[i].buf, NULL));
+        } else {
+            rassert(memcmp(gc_writes[i].buf, "zero", 4) == 0);   // Check for zerobuf magic
+            writes.push_back(write_t::make_internal(gc_writes[i].block_id, NULL, NULL));
+        }
+    }
+
+    struct gc_callback_wrapper_t : public write_txn_callback_t {
+        virtual void on_serializer_write_txn() {
+            target->on_gc_write_done();
+            delete this;
+        }
+        data_block_manager_t::gc_write_callback_t *target;
+    } *cb_wrapper = new gc_callback_wrapper_t;
+    cb_wrapper->target = cb;
+
+    if (do_write(writes.data(), writes.size(), cb_wrapper)) {
+        delete cb_wrapper;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1));
 
 struct ls_read_fsm_t :

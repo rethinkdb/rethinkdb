@@ -1,5 +1,5 @@
 
-LIBS = -lpthread -ldl
+LIBS = -lpthread -ldl -lgsl -lgslcblas
 SRC = main.cc utils.cc random.cc sqlite3.c
 
 MYSQL ?= 1

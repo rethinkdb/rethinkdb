@@ -26,15 +26,35 @@ extern perfmon_counter_t
 //extern perfmon_function_t
 //    pm_serializer_garbage_ratio;
 
-class log_serializer_t;
+struct data_block_manager_gc_write_callback_t {
 
-class data_block_manager_t {
+    virtual void on_gc_write_done() = 0;
+};
+
+class data_block_manager_t :
+    public data_block_manager_gc_write_callback_t
+{
 
     friend class dbm_read_fsm_t;
 
 public:
-    data_block_manager_t(log_serializer_t *ser, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, const log_serializer_static_config_t *static_config)
-        : shutdown_callback(NULL), state(state_unstarted), serializer(ser),
+
+    typedef data_block_manager_gc_write_callback_t gc_write_callback_t;
+    
+    struct gc_write_t {
+        ser_block_id_t block_id;
+        const void *buf;
+        gc_write_t(ser_block_id_t i, const void *b) : block_id(i), buf(b) { }
+    };
+    
+    struct gc_writer_t {
+    
+        virtual bool write_gcs(gc_write_t *writes, int num_writes, gc_write_callback_t *cb) = 0;
+    };
+
+public:
+    data_block_manager_t(gc_writer_t *gc_writer, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, const log_serializer_static_config_t *static_config)
+        : shutdown_callback(NULL), state(state_unstarted), gc_writer(gc_writer),
           dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
           next_active_extent(0),
           gc_state(extent_manager->extent_size)//,
@@ -42,7 +62,7 @@ public:
     {
         rassert(dynamic_config);
         rassert(static_config);
-        rassert(serializer);
+        rassert(gc_writer);
         rassert(extent_manager);
     }
     ~data_block_manager_t() {
@@ -141,7 +161,7 @@ private:
         state_shut_down
     } state;
 
-    log_serializer_t* const serializer;
+    gc_writer_t* gc_writer;
 
     const log_serializer_dynamic_config_t* const dynamic_config;
     const log_serializer_static_config_t* const static_config;
@@ -291,13 +311,7 @@ private:
         }
     };
 
-    struct gc_write_callback_t : public serializer_t::write_txn_callback_t {
-        public:
-            data_block_manager_t *parent;
-            void on_serializer_write_txn() {
-                parent->run_gc();
-            }
-    };
+    void on_gc_write_done();
 
     enum gc_step {
         gc_reconstruct, /* reconstructing on startup */
@@ -317,7 +331,6 @@ private:
         char *gc_blocks;            /* !< buffer for blocks we're transferring */
         gc_entry *current_entry;    /* !< entry we're currently GCing */
         data_block_manager_t::gc_read_callback_t gc_read_callback;
-        data_block_manager_t::gc_write_callback_t gc_write_callback;
         data_block_manager_t::gc_disable_callback_t *gc_disable_callback;
 
         explicit gc_state_t(size_t extent_size) : step_(gc_ready), should_be_stopped(0), refcount(0), current_entry(NULL)
