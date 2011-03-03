@@ -427,8 +427,9 @@ bool is_valid_extent(file_knowledge *knog, off64_t offset) {
     return is_valid_offset(knog, offset, knog->static_config->extent_size());
 }
 
-bool is_valid_btree_block(file_knowledge *knog, off64_t offset) {
-    return is_valid_offset(knog, offset, knog->static_config->block_size().ser_value());
+bool is_valid_btree_offset(file_knowledge *knog, flagged_off64_t offset) {
+    return is_valid_offset(knog, offset.parts.value, knog->static_config->block_size().ser_value())
+        || flagged_off64_t::is_delete_id(offset);
 }
 
 bool is_valid_device_block(file_knowledge *knog, off64_t offset) {
@@ -478,7 +479,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge *knog, unsigned int
             errs->bad_block_id_count++;
         } else if (entry.block_id.value % LBA_SHARD_FACTOR != shard_number) {
             errs->wrong_shard_count++;
-        } else if (!is_valid_btree_block(knog, entry.offset.parts.value)) {
+        } else if (!is_valid_btree_offset(knog, entry.offset)) {
             errs->bad_offset_count++;
         } else {
             write_locker locker(knog);

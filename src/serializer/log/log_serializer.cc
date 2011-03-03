@@ -327,8 +327,8 @@ struct ls_block_writer_t :
                     ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
                 } else {
                     done = true;
-                    // TODO this should not be flagged_off64_t::padding(), use a different constant.
-                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::padding());
+                    // TODO this should not be equal to flagged_off64_t::padding(), use a different constant.
+                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::delete_id());
                 }
                 // We write a zero buffer with the given block_id at the front.
                 zerobuf = ser->malloc();
