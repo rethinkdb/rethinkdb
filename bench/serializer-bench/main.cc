@@ -2,7 +2,11 @@
 #include "serializer/log/log_serializer.hpp"
 
 #undef __UTILS_HPP__   /* Hack because both RethinkDB and stress-client have a utils.hpp */
-#include "../stress-client/utils.hpp"
+namespace stress {
+    #include "../stress-client/utils.hpp"
+    #include "../stress-client/utils.cc"
+    #include "../stress-client/random.cc"
+}
 
 struct txn_info_t {
     ticks_t start, end;
@@ -44,7 +48,7 @@ struct transaction_t :
         /* As a simple way to avoid updating the same block twice in one transaction, select
         a contiguous range of blocks starting at a random offset within range */
         
-        ser_block_id_t begin = ser_block_id_t::make(random(0, ser->max_block_id().value - updates));
+        ser_block_id_t begin = ser_block_id_t::make(stress::random(0, ser->max_block_id().value - updates));
 
         repli_timestamp tstamp = current_time();
         for (unsigned i = 0; i < updates; i++) {
@@ -95,9 +99,7 @@ struct config_t {
 
 struct tester_t :
     public thread_message_t,
-    public log_serializer_t::ready_callback_t,
-    public transaction_t::callback_t,
-    public log_serializer_t::shutdown_callback_t
+    public transaction_t::callback_t
 {
     log_t *log;
     FILE *tps_log_fd;
@@ -136,7 +138,7 @@ struct tester_t :
     test or the shutdown message from call_later_on_this_thread(). We differentiate by checking 'ser'. */
     void on_thread_switch() {
         if (!ser) start();
-        else shutdown();
+        else coro_t::spawn(boost::bind(&tester_t::shutdown, this));
     }
     
     void start() {
@@ -149,7 +151,7 @@ struct tester_t :
         
         fprintf(stderr, "Starting serializer...\n");
         ser = new log_serializer_t(&config->ser_dynamic_config, &config->ser_private_dynamic_config);
-        if (ser->start_new(&config->ser_static_config, this)) on_serializer_ready(ser);
+        on_serializer_ready(ser);
     }
     
     void on_serializer_ready(log_serializer_t *ls) {
@@ -236,12 +238,12 @@ struct tester_t :
     
     void shutdown() {
         fprintf(stderr, "Waiting for serializer to shut down...\n");
-        if (ser->shutdown(this)) on_serializer_shutdown(ser);
+        delete ser;
+        on_serializer_shutdown();
     }
     
-    void on_serializer_shutdown(log_serializer_t *ser) {
+    void on_serializer_shutdown() {
         fprintf(stderr, "Done.\n");
-        delete(ser);
         pool->shutdown();
     }
 };
