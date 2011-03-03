@@ -191,9 +191,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     
     for (int i = 0; i < n_threads; i++) {
         // Cause child thread to break out of its loop
-        
-        threads[i]->do_shutdown = true;
-        threads[i]->shutdown_notify_event.write(1);
+        threads[i]->initiate_shut_down();
     }
     
     for (int i = 0; i < n_threads; i++) {
@@ -265,6 +263,9 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
       iosys(&queue),
       do_shutdown(false)
 {
+    // Initialize the mutex which synchronizes access to the do_shutdown variable
+    pthread_mutex_init(&do_shutdown_mutex, NULL);
+
     // Watch an eventfd for shutdown notifications
     queue.watch_resource(shutdown_notify_event.get_notify_fd(), poll_event_in, this);
     
@@ -279,6 +280,8 @@ linux_thread_t::~linux_thread_t() {
 #ifndef LEGACY_LINUX
     timer_handler.cancel_timer(perfmon_stats_timer);
 #endif
+
+    guarantee(pthread_mutex_destroy(&do_shutdown_mutex) == 0);
 }
 
 void linux_thread_t::pump() {
@@ -295,6 +298,15 @@ void linux_thread_t::on_event(int events) {
 }
 
 bool linux_thread_t::should_shut_down() {
-    return do_shutdown;
+    pthread_mutex_lock(&do_shutdown_mutex);
+    bool result = do_shutdown;
+    rassert(pthread_mutex_unlock(&do_shutdown_mutex) == 0);
+    return result;
 }
 
+void linux_thread_t::initiate_shut_down() {
+    pthread_mutex_lock(&do_shutdown_mutex);
+    do_shutdown = true;
+    shutdown_notify_event.write(1);
+    pthread_mutex_unlock(&do_shutdown_mutex);
+}
