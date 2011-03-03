@@ -35,9 +35,11 @@ union flagged_off64_t {
         return ret;
     }
 
+    // TODO: Rename this from delete_id.
     static inline flagged_off64_t delete_id() {
         flagged_off64_t ret;
-        ret.whole_value = -1;
+        ret.parts.value = -2;
+        ret.parts.is_delete = 1;
         return ret;
     }
 
@@ -60,8 +62,7 @@ union flagged_off64_t {
     }
 
     static inline bool has_value(flagged_off64_t offset) {
-        offset.parts.is_delete = 1;
-        return offset.whole_value != off64_t(-1);
+        return offset.parts.value >= 0;
     }
 
     static inline bool can_be_gced(flagged_off64_t offset) {
