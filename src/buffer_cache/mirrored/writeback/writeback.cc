@@ -239,16 +239,6 @@ void writeback_t::flush_timer_callback(void *ctx) {
 void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     pm_flushes_locking.begin(&start_time);
     parent->cache->assert_thread();
-    
-    // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
-    // us later. This happens only if the flush timer is running, and writeback starts for some
-    // other reason before the flush timer goes off; if this writeback had been started by the
-    // flush timer, then flush_timer would be NULL here, because flush_timer_callback sets it
-    // to NULL.
-    if (parent->flush_timer) {
-        cancel_timer(parent->flush_timer);
-        parent->flush_timer = NULL;
-    }
 
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock,
     // we instead to reclaim some space in the on-disk patch storage now.
@@ -418,7 +408,17 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
     current_sync_callbacks.append_and_clear(&parent->sync_callbacks);
     
     // Also, at this point we can still clear the start_next_sync_immediately...
-    parent->start_next_sync_immediately = false;    
+    parent->start_next_sync_immediately = false;
+
+    // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
+    // us later. This happens only if the flush timer is running, and writeback starts for some
+    // other reason before the flush timer goes off; if this writeback had been started by the
+    // flush timer, then flush_timer would be NULL here, because flush_timer_callback sets it
+    // to NULL.
+    if (parent->flush_timer) {
+        cancel_timer(parent->flush_timer);
+        parent->flush_timer = NULL;
+    }
     
     /* Request read locks on all of the blocks we need to flush. */
     pm_flushes_writing.begin(&start_time);
