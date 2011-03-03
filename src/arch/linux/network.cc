@@ -73,6 +73,8 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
         logINF("Failed to make a connection with error: %s\n", strerror(errno));
         throw connect_failed_exc_t();
     }
+
+    guarantee_err(fcntl(sock, F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t sock) :

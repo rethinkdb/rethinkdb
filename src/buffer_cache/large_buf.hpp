@@ -52,10 +52,11 @@ private:
     int num_to_acquire;
     large_buf_available_callback_t *callback;
 
-    transaction_t *transaction;
-    block_size_t block_size;
+    transaction_t *txn;
+    block_size_t block_size() const { return txn->cache->get_block_size(); }
 
-public: // XXX Should this be private?
+#ifndef NDEBUG
+public:
     enum state_t {
         not_loaded,
         loading,
@@ -65,7 +66,6 @@ public: // XXX Should this be private?
     };
     state_t state;
 
-#ifndef NDEBUG
     int64_t num_bufs;
 #endif
 
@@ -76,7 +76,7 @@ public:
 
     // This is a COMPLETE HACK
     void HACK_root_ref(large_buf_ref *alternate_root_ref) {
-        rassert(0 == memcmp(alternate_root_ref->block_ids, root_ref->block_ids, root_ref->refsize(block_size, root_ref_limit) - sizeof(large_buf_ref)));
+        rassert(0 == memcmp(alternate_root_ref->block_ids, root_ref->block_ids, root_ref->refsize(block_size(), root_ref_limit) - sizeof(large_buf_ref)));
         root_ref = alternate_root_ref;
     }
 
@@ -102,7 +102,7 @@ public:
     void mark_deleted();
     void release();
 
-    transaction_t *get_transaction() const { return transaction; }
+    transaction_t *get_transaction() const { return txn; }
 
     // TODO get rid of this function, why do we need it if the user of
     // the large buf owns the root ref?
@@ -161,6 +161,8 @@ private:
     buf_t *get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset);
     void removes_level(block_id_t *ids, int copyees);
     int try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t stepsize);
+
+    DISABLE_COPYING(large_buf_t);
 };
 
 #endif // __LARGE_BUF_HPP__
