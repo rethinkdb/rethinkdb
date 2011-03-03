@@ -9,9 +9,9 @@
 
 
 // An off64_t with the highest bit saying that a block is deleted.
-// Deleted blocks still have an offset, since there's a zero block
-// sitting in place for them.  The remaining 63 bits give the offset
-// to the block (whether it is deleted or not).
+// Some deleted blocks still have an offset, since there's a zero
+// block sitting in place for them.  The remaining 63 bits give the
+// offset to the block, if it has one (whether it is deleted or not).
 union flagged_off64_t {
     off64_t whole_value;
     struct {
@@ -30,6 +30,12 @@ union flagged_off64_t {
     }
 
     static inline flagged_off64_t padding() {
+        flagged_off64_t ret;
+        ret.whole_value = -1;
+        return ret;
+    }
+
+    static inline flagged_off64_t delete_id() {
         flagged_off64_t ret;
         ret.whole_value = -1;
         return ret;
@@ -60,6 +66,10 @@ union flagged_off64_t {
 
     static inline bool can_be_gced(flagged_off64_t offset) {
         return has_value(offset);
+    }
+
+    static inline bool is_delete_id(flagged_off64_t offset) {
+        return offset.whole_value == delete_id().whole_value;
     }
 };
 

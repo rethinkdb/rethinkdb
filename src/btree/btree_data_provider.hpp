@@ -46,7 +46,10 @@ private:
     boost::shared_ptr<transactor_t> transactor;
     boost::scoped_ptr<const_buffer_group_t> buffers;
     boost::scoped_ptr<large_buf_t> large_value;
-    large_buf_ref lb_ref;
+    union {
+        large_buf_ref lb_ref;
+        char lb_ref_bytes[MAX_IN_NODE_VALUE_SIZE];
+    };
 
     friend class value_data_provider_t;
 };

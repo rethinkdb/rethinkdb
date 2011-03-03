@@ -10,18 +10,25 @@ ANSI_UL_OFF:=[0m
 
 ##### Configuring stuff
 
-prefix?=/usr
-bindir=$(prefix)/bin
-docdir=$(prefix)/share/doc/rethinkdb
-mandir=$(prefix)/share/man
-man1dir=$(mandir)/man1
-bashcompletiondir=/etc/bash_completion.d
-
+# Set SOLO to 0 to build RethinkDB Cache (otherwise, RethinkDB Solo is built)
+SOLO?=1
+ifeq ($(SOLO),1)
+RETHINKDB_CACHE_PRODUCT:=0
+RETHINKDB_SOLO_PRODUCT:=1
+PRODUCT_NAME:=RethinkDB Solo
+VANILLA_PACKAGE_NAME?=rethinkdb-solo
+SERVER_EXEC_NAME?=rethinkdb
+else
+RETHINKDB_CACHE_PRODUCT:=1
+RETHINKDB_SOLO_PRODUCT:=0
 PRODUCT_NAME:=RethinkDB Cache
-SERVER_EXEC_NAME:=rethinkdb
-SERVER_UNIT_TEST_NAME:=rethinkdb-unittest
+VANILLA_PACKAGE_NAME?=rethinkdb-cache
+SERVER_EXEC_NAME?=rethinkdb-cache
+endif
 
-DEBIAN_PKG_DIR:=debian
+TRIAL_PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)-trial
+PACKAGE_NAME:=$(VANILLA_PACKAGE_NAME)
+SERVER_UNIT_TEST_NAME:=$(SERVER_EXEC_NAME)-unittest
 
 SCRIPTS_DIR:=../scripts
 START_DB_NAME:=start_rethinkdb
@@ -38,10 +45,14 @@ SYMBOLS?=0
 
 DEBUG?=1
 VALGRIND?=0
+NO_TCMALLOC?=0
 SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
+
+# Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
+TRIAL?=0
 TIMEBOMB?=0
 
 # Choose our directories
@@ -69,6 +80,12 @@ CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitc
 
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
+ifeq ($(SOLO),1)
+CXXFLAGS+=-DRETHINKDB_SOLO_PRODUCT
+else
+CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
+endif
+
 ifeq ($(UNIT_TESTS),0)
 CXXFLAGS+=-Wswitch-default
 endif
@@ -90,8 +107,21 @@ else
 CXXFLAGS+=-O3 -DNDEBUG -fno-strict-aliasing # -match=native
 endif
 
+ifneq ($(TRIAL),0)
+ifeq ($(TIMEBOMB),0)
+TIMEBOMB:=21
+endif
+endif
+
 ifneq ($(TIMEBOMB),0)
+TRIAL:=1
 CXXFLAGS+=-DTIMEBOMB_DAYS=$(TIMEBOMB)
+endif
+
+ifneq ($(TRIAL),0)
+SERVER_EXEC_NAME:=$(SERVER_EXEC_NAME)-trial
+BUILD_DIR:=$(BUILD_DIR)-trial
+PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)
 endif
 
 ifeq (${STATIC_LIBGCC},1)
@@ -143,7 +173,6 @@ ifeq ($(LEGACY_LINUX),1)
 #CXX=g++44
 CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL -Wno-format
 BUILD_DIR:=$(BUILD_DIR)-legacy
-DEBIAN_PKG_DIR:=$(DEBIAN_PKG_DIR)-legacy
 endif
 
 ifeq ($(NO_EVENTFD),1)
@@ -159,9 +188,19 @@ endif
 ifeq ($(VALGRIND),1)
 CXXFLAGS+=-DVALGRIND
 BUILD_DIR:=$(BUILD_DIR)-valgrind
-else
+NO_TCMALLOC:=1
+endif
+
+ifeq ($(NO_TCMALLOC),0)
 STATIC_LIBRARIES+=tcmalloc_minimal
 endif
+
+prefix?=/usr
+bindir:=$(prefix)/bin
+docdir:=$(prefix)/share/doc/$(PACKAGE_NAME)
+mandir:=$(prefix)/share/man
+man1dir:=$(mandir)/man1
+bashcompletiondir:=/etc/bash_completion.d
 
 # look for the static library in the same directory as the .so file
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
@@ -222,6 +261,7 @@ unit:
 	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
 
 ifeq ($(PACKAGING),1)
+DEBIAN_PKG_DIR:=debian
 SUPPRESSED_LINTIAN_TAGS:=new-package-should-close-itp-bug
 RPM_BUILD_ROOT=$(RPM_PACKAGE_DIR)/BUILD
 DEB_CONTROL_ROOT=$(DEB_PACKAGE_DIR)/DEBIAN
@@ -294,9 +334,15 @@ build-deb: all prepare_deb_package_dirs
 
 # Replace version/size fields in the deb control file
 	$(QUIET) disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1);		\
-		sed																														\
-				-e "s/VERSION/$(RETHINKDB_VERSION_DEB)/"									\
-				-e "s/DISK_SIZE/$${disk_size}/"														\
+		m4																														\
+				-D "SOLO=$(SOLO)"																					\
+				-D "PACKAGE_NAME=$(PACKAGE_NAME)"													\
+				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"					\
+				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"							\
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"							\
+				-D "LEGACY_LINUX=$(LEGACY_LINUX)"													\
+				-D "TRIAL=$(TRIAL)"																				\
+				-D "DISK_SIZE=$${disk_size}"															\
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
 # Finally, produce a debian package
@@ -322,10 +368,17 @@ build-rpm: all prepare_rpm_package_dirs
 	@echo
 
 # Replace version/topdir fields in the spec file
-	$(QUIET) sed 																				\
-			-e "s/VERSION/$(RETHINKDB_VERSION_RPM)/"				\
-			-e "s:TOPDIR:$(realpath $(RPM_PACKAGE_DIR)):"		\
-		../packaging/rpm.spec >$(RPM_SPEC_FILE)
+	$(QUIET) m4																											\
+				-D "SOLO=$(SOLO)"																					\
+				-D "RPM_PACKAGE_DIR=$(realpath $(RPM_PACKAGE_DIR))"				\
+				-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)"									\
+				-D "PACKAGE_NAME=$(PACKAGE_NAME)"													\
+				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"					\
+				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"							\
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"							\
+				-D "LEGACY_LINUX=$(LEGACY_LINUX)"													\
+				-D "TRIAL=$(TRIAL)"																				\
+			../packaging/rpm.spec >$(RPM_SPEC_FILE)
 
 # Copy files to their correct places
 	$(QUIET) $(MAKE) DESTDIR=$(RPM_BUILD_ROOT) install-rpm
@@ -360,6 +413,11 @@ ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+ifeq ($(NO_TCMALLOC),0)
+	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q "tcmalloc::" || \
+		(echo "    Failed to link in TCMalloc. Either install it, or make with NO_TCMALLOC=1." && \
+		false)
+endif
 	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
 $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)

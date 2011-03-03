@@ -53,3 +53,4 @@ _complete_rethinkdb() {
 }
 
 complete -o default -F _complete_rethinkdb rethinkdb
+complete -o default -F _complete_rethinkdb rethinkdb-trial

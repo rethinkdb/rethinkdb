@@ -3,6 +3,7 @@
 
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/drain_semaphore.hpp"
 #include "containers/segmented_vector.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
@@ -55,7 +56,7 @@ public:
     void move_data(const void* dest, const void* src, const size_t n);
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
-    void mark_deleted();
+    void mark_deleted(bool write_null = true);
     void release();
     bool is_dirty();
 
@@ -83,7 +84,7 @@ class mock_transaction_t
 public:
     bool commit(transaction_commit_callback_t *callback);
 
-    buf_t *acquire(block_id_t block_id, access_t mode, block_available_callback_t *callback);
+    buf_t *acquire(block_id_t block_id, access_t mode, block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
     repli_timestamp get_subtree_recency(block_id_t block_id);
 
@@ -101,9 +102,7 @@ private:
 /* Cache */
 
 class mock_cache_t :
-    public home_thread_mixin_t,
-    public serializer_t::read_callback_t,
-    public serializer_t::write_txn_callback_t
+    public home_thread_mixin_t
 {
 public:
     typedef mock_buf_t buf_t;
@@ -112,28 +111,16 @@ public:
     typedef mock_transaction_commit_callback_t transaction_commit_callback_t;
     typedef mock_block_available_callback_t block_available_callback_t;
     
-    mock_cache_t(
-        // mock_cache gets a serializer so its constructor is consistent with
-        // the mirrored cache's serializer, but it doesn't use it.
+    static void create(
         translator_serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config,
         mirrored_cache_static_config_t *static_config);
+    mock_cache_t(
+        translator_serializer_t *serializer,
+        mirrored_cache_config_t *dynamic_config);
     ~mock_cache_t();
-    
-    struct ready_callback_t {
-        virtual void on_cache_ready() = 0;
-        virtual ~ready_callback_t() {}
-    };
-    bool start(ready_callback_t *cb);
-    
+
     block_size_t get_block_size();
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
-    
-    struct shutdown_callback_t {
-        virtual void on_cache_shutdown() = 0;
-        virtual ~shutdown_callback_t() {}
-    };
-    bool shutdown(shutdown_callback_t *cb);
 
 private:
     friend class mock_transaction_t;
@@ -141,26 +128,9 @@ private:
     friend class internal_buf_t;
     
     translator_serializer_t *serializer;
-    bool running;
-    int n_transactions;
+    drain_semaphore_t transaction_counter;
     block_size_t block_size;
     segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> bufs;
-    
-    ready_callback_t *ready_callback;
-    bool load_blocks_from_serializer(ready_callback_t *cb);
-    void do_load_blocks_from_serializer(ready_callback_t *cb);
-    int blocks_to_load;
-    void on_serializer_read();
-    void have_loaded_blocks();
-    
-    shutdown_callback_t *shutdown_callback;
-    bool shutdown_write_bufs();
-    bool shutdown_do_send_bufs_to_serializer();
-    void do_shutdown_do_send_bufs_to_serializer();
-    void on_serializer_write_txn();
-    bool shutdown_destroy_bufs();
-    void do_shutdown_destroy_bufs();
-    void shutdown_finish();
 };
 
 #endif /* __BUFFER_CACHE_MOCK_HPP__ */

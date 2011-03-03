@@ -6,6 +6,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
+#include "concurrency/cond_var.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
@@ -36,14 +37,6 @@ typedef array_map_t page_map_t;
 
 #define MC_CONFIGBLOCK_ID (SUPERBLOCK_ID + 1)
 
-struct mc_config_block_t {
-    block_magic_t magic;
-
-    mirrored_cache_static_config_t cache;
-
-    static const block_magic_t expected_magic;
-};
-
 class mc_inner_buf_t : public home_thread_mixin_t {
     friend class load_buf_fsm_t;
     friend class mc_cache_t;
@@ -72,6 +65,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     
     /* true if we are being deleted */
     bool do_delete;
+    bool write_empty_deleted_block;
     
     /* true if there is a mc_buf_t that holds a pointer to the data in read-only outdated-OK
     mode. */
@@ -85,7 +79,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     bool safe_to_unload();
     
     // Load an existing buf from disk
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load);
     
     // Create an entirely new buf
     explicit mc_inner_buf_t(cache_t *cache);
@@ -149,10 +143,11 @@ public:
         return inner_buf->block_id;
     }
     
-    void mark_deleted() {
+    void mark_deleted(bool write_null = true) {
         rassert(mode == rwi_write);
         rassert(!inner_buf->safe_to_unload());
         inner_buf->do_delete = true;
+        inner_buf->write_empty_deleted_block = write_null;
         inner_buf->writeback_buf.set_dirty();
         ensure_flush(); // Disable patch log system for the buffer
     }
@@ -193,7 +188,7 @@ public:
     bool commit(transaction_commit_callback_t *callback);
 
     buf_t *acquire(block_id_t block_id, access_t mode,
-                   block_available_callback_t *callback);
+                   block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
     repli_timestamp get_subtree_recency(block_id_t block_id);
 
@@ -215,9 +210,6 @@ private:
 };
 
 struct mc_cache_t :
-    private free_list_t::ready_callback_t,
-    private writeback_t::sync_callback_t,
-    private thread_message_t,
     public home_thread_mixin_t
 {
     friend class load_buf_fsm_t;
@@ -244,7 +236,6 @@ public:
 private:
 
     mirrored_cache_config_t *dynamic_config;
-    mirrored_cache_static_config_t *static_config;
     
     // TODO: how do we design communication between cache policies?
     // Should they all have access to the cache, or should they only
@@ -262,87 +253,33 @@ private:
     free_list_t free_list;
 
 public:
-    mc_cache_t(
-            translator_serializer_t *serializer,
-            mirrored_cache_config_t *dynamic_config,
-            mirrored_cache_static_config_t *static_config);
+    static void create(translator_serializer_t *serializer, mirrored_cache_static_config_t *config);
+    mc_cache_t(translator_serializer_t *serializer, mirrored_cache_config_t *dynamic_config);
     ~mc_cache_t();
-    
-    /* You must call start() before using the cache. If it starts up immediately, it will return
-    'true'; otherwise, it will return 'false' and call 'cb' when it is done starting up.
-    */
 
 public:
-    struct ready_callback_t {
-        virtual void on_cache_ready() = 0;
-        virtual ~ready_callback_t() {}
-    };
-    bool start(ready_callback_t *cb);
-private:
-    bool next_starting_up_step();
-    ready_callback_t *ready_callback;
-    void on_free_list_ready();
-    void init_patch_storage();
-    void on_thread_switch();
-    
-public:
-    
+
     block_size_t get_block_size();
-    
+
     // Transaction API
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
-    
-    /* You should call shutdown() before destroying the cache. It is safe to call shutdown() before
-    the cache has finished starting up. If it shuts down immediately, it will return 'true';
-    otherwise, it will return 'false' and call 'cb' when it is done starting up.
-    
-    It is not safe to call the cache's destructor from within on_cache_shutdown(). */
-    
-public:
-    struct shutdown_callback_t {
-        virtual void on_cache_shutdown() = 0;
-        virtual ~shutdown_callback_t() {}
-    };
-    bool shutdown(shutdown_callback_t *cb);
-private:
-    bool next_shutting_down_step();
-    shutdown_callback_t *shutdown_callback;
-    void on_sync();
-    
-    /* It is illegal to start new transactions during shutdown, but the writeback needs to start a
-    transaction so that it can request bufs. The way this is done is that the writeback sets
-    shutdown_transaction_backdoor to true before it starts the transaction and to false immediately
-    afterwards. */
-    bool shutdown_transaction_backdoor;
 
 private:
     void on_transaction_commit(transaction_t *txn);
-    
-    enum state_t {
-        state_unstarted,
-        
-        state_starting_up_create_free_list,
-        state_starting_up_waiting_for_free_list,
-        state_starting_up_init_fixed_blocks,
-        state_starting_up_finish,
-        
-        state_ready,
-        
-        state_shutting_down_waiting_for_transactions,
-        state_shutting_down_start_flush,
-        state_shutting_down_waiting_for_flush,
-        state_shutting_down_finish,
-        
-        state_shut_down
-    } state;
-    
+
+    bool shutting_down;
+
     // Used to keep track of how many transactions there are so that we can wait for transactions to
     // complete before shutting down.
     int num_live_transactions;
+    cond_t *to_pulse_when_last_transaction_commits;
 
 private:
     patch_memory_storage_t patch_memory_storage;
-    patch_disk_storage_t patch_disk_storage;
+
+    // Pointer, not member, because we need to call its destructor explicitly in our destructor
+    boost::scoped_ptr<patch_disk_storage_t> patch_disk_storage;
+
     unsigned int max_patches_size_ratio;
 };
 

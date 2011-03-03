@@ -109,7 +109,7 @@ public:
         EXPECT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
     }
 
-    void WriteBtreeValue(btree_value *out) const {
+    void WriteBtreeValue(btree_value *out, block_size_t block_size) const {
         out->size = 0;
         out->metadata_flags.flags = 0;
 
@@ -120,7 +120,7 @@ public:
             metadata_write(&out->metadata_flags, out->contents, mcflags_, exptime_);
         }
 
-        out->value_size(data_.size());
+        out->value_size(data_.size(), block_size);
         memcpy(out->value(), data_.c_str(), data_.size());
     }
 
@@ -197,8 +197,8 @@ public:
     StackValue() {
         memset(val_padding, 0, sizeof(val_padding));
     }
-    explicit StackValue(const Value& value) {
-        value.WriteBtreeValue(&val);
+    StackValue(const Value& value, block_size_t block_size) {
+        value.WriteBtreeValue(&val, block_size);
     }
     const btree_value *look() const {
         return &val;
@@ -256,7 +256,7 @@ public:
     void do_insert(const std::string& k, const Value& v) {
         ASSERT_TRUE(initialized);
         StackKey skey(k);
-        StackValue sval(v);
+        StackValue sval(v, bs);
 
         if (expected_space() < int((1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets))) {
             ASSERT_FALSE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), repli_timestamp::invalid));

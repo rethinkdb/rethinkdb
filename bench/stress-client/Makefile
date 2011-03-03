@@ -1,5 +1,5 @@
 
-LIBS = -lpthread -ldl
+LIBS = -lpthread -ldl -lgsl -lgslcblas
 SRC = main.cc utils.cc random.cc sqlite3.c
 
 MYSQL ?= 1
@@ -19,7 +19,7 @@ endif
 
 EXEC_NAME = stress
 CXX = g++
-CXXFLAGS = -g $(INCLUDE) -O3 $(DEFINES)
+CXXFLAGS = -g $(INCLUDE) $(DEFINES) # -O3
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 

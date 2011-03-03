@@ -60,25 +60,26 @@ struct serializer_t :
         bool buf_specified;
         repli_timestamp recency;
         const void *buf;   /* If NULL, a deletion */
+        bool write_empty_deleted_block;
         write_block_callback_t *callback;
         bool assign_transaction_id;
 
-        friend class data_block_manager_t;
+        friend class log_serializer_t;
 
-        static write_t make(ser_block_id_t block_id_, repli_timestamp recency_, const void *buf_, write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, true, buf_, callback_, true);
+        static write_t make(ser_block_id_t block_id_, repli_timestamp recency_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_) {
+            return write_t(block_id_, true, recency_, true, buf_, write_empty_deleted_block_, callback_, true);
         }
 
         friend class translator_serializer_t;
 
     private:
         static write_t make_internal(ser_block_id_t block_id_, const void *buf_, write_block_callback_t *callback_) {
-            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, callback_, false);
+            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, true, callback_, false);
         }
 
         write_t(ser_block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
-                bool buf_specified_, const void *buf_, write_block_callback_t *callback_, bool assign_transaction_id)
-            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
+                bool buf_specified_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_, bool assign_transaction_id)
+            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), write_empty_deleted_block(write_empty_deleted_block_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
     };
     virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) = 0;
     

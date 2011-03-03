@@ -65,10 +65,7 @@ inline bool continue_on_thread(int thread, thread_message_t *msg) {
 
 // call_later_on_this_thread() will cause msg->on_thread_switch() to be called from the main event loop
 // of the thread we are currently on. It's a bit of a hack.
-inline void call_later_on_this_thread(thread_message_t *msg) {
-    return io_config_t::call_later_on_this_thread(msg);
-}
-
+//
 /* TODO: It is common in the codebase right now to have code like this:
 
 if (continue_on_thread(thread, msg)) call_later_on_this_thread(msg);
@@ -81,6 +78,16 @@ continue processing immediately if we are already on the correct thread, but
 at the time it didn't seem worth rewriting it, so call_later_on_this_thread()
 was added to make it easy to simulate the old semantics. */
 
+inline void call_later_on_this_thread(thread_message_t *msg) {
+    return io_config_t::call_later_on_this_thread(msg);
+}
+
+
+/* Timer functions create (non-)periodic timers, callbacks for which are
+ * executed on the same thread that they were created on. Thus, non-thread-safe
+ * (but coroutine-safe) concurrency primitives can be used where appropriate
+ * (e.g. cond_t instead of threadsafe_cond_t).
+ */
 inline timer_token_t *add_timer(long ms, void (*callback)(void *), void *ctx) {
     return io_config_t::add_timer(ms, callback, ctx);
 }

@@ -79,7 +79,8 @@ void mock_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     apply_patch(new memmove_patch_t(internal_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
 }
 
-void mock_buf_t::mark_deleted() {
+void mock_buf_t::mark_deleted(bool write_null) {
+    // write_null is ignored for the mock cache.
     rassert(access == rwi_write);
     deleted = true;
 }
@@ -125,7 +126,8 @@ void mock_transaction_t::finish_committing(mock_transaction_commit_callback_t *c
     delete this;
 }
 
-mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock_block_available_callback_t *callback) {
+mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock_block_available_callback_t *callback, bool should_load) {
+    // should_load is ignored for the mock cache.
     if (mode == rwi_write) rassert(this->access == rwi_write);
     
     rassert(block_id < cache->bufs.get_size());
@@ -168,101 +170,78 @@ repli_timestamp mock_transaction_t::get_subtree_recency(block_id_t block_id) {
 
 mock_transaction_t::mock_transaction_t(mock_cache_t *cache, access_t access)
     : cache(cache), access(access) {
-    
-    rassert(cache->running);
-    cache->n_transactions++;
+    cache->transaction_counter.acquire();
 }
 
 mock_transaction_t::~mock_transaction_t() {
-    cache->n_transactions--;
-    if (cache->n_transactions == 0 && !cache->running) {
-        cache->shutdown_write_bufs();
-    }
+    cache->transaction_counter.release();
 }
 
 /* Cache */
 
+void mock_cache_t::create(
+    translator_serializer_t *serializer,
+    mirrored_cache_static_config_t *static_config)
+{
+    on_thread_t switcher(serializer->home_thread);
+
+    void *superblock = serializer->malloc();
+    bzero(superblock, serializer->get_block_size().value());
+    translator_serializer_t::write_t write = translator_serializer_t::write_t::make(
+        SUPERBLOCK_ID, repli_timestamp::invalid, superblock, false, NULL);
+
+    struct : public serializer_t::write_txn_callback_t, public cond_t {
+        void on_serializer_write_txn() { pulse(); }
+    } cb;
+    if (!serializer->do_write(&write, 1, &cb)) cb.wait();
+
+    serializer->free(superblock);
+}
+
 mock_cache_t::mock_cache_t(
     translator_serializer_t *serializer,
-    mirrored_cache_config_t *dynamic_config,
-    mirrored_cache_static_config_t *static_config)
-    : serializer(serializer), running(false), n_transactions(0), block_size(serializer->get_block_size()) { }
+    mirrored_cache_config_t *dynamic_config)
+    : serializer(serializer), block_size(serializer->get_block_size())
+{
+    on_thread_t switcher(serializer->home_thread);
 
-mock_cache_t::~mock_cache_t() {
-    rassert(!running);
-    rassert(n_transactions == 0);
-}
-
-bool mock_cache_t::start(ready_callback_t *cb) {
-    ready_callback = NULL;
-    if (home_thread == serializer->home_thread) {
-        return load_blocks_from_serializer(cb);
-    } else {
-        do_on_thread(serializer->home_thread, boost::bind(&mock_cache_t::do_load_blocks_from_serializer, this, cb));
-        return false;
-    }
-}
-
-void mock_cache_t::do_load_blocks_from_serializer(ready_callback_t *cb) {
-    load_blocks_from_serializer(cb);
-}
-
-bool mock_cache_t::load_blocks_from_serializer(ready_callback_t *cb) {
-    rassert(get_thread_id() == serializer->home_thread);
+    struct : public serializer_t::read_callback_t, public drain_semaphore_t {
+        void on_serializer_read() { release(); }
+    } read_cb;
 
     block_id_t end_block_id = serializer->max_block_id();
-    if (end_block_id == 0) {
-        // Create the superblock
-        bufs.set_size(1);
-        rassert(SUPERBLOCK_ID == 0);
-        bufs[SUPERBLOCK_ID] = new internal_buf_t(this, SUPERBLOCK_ID);
-
-        if (home_thread == serializer->home_thread) {
-            have_loaded_blocks();
-            return true;
-        } else {
-            do_on_thread(home_thread, boost::bind(&mock_cache_t::have_loaded_blocks, this));
-            ready_callback = cb;
-            return false;
-        }
-    } else {
-        // Load the blocks from the serializer
-        bufs.set_size(end_block_id, NULL);
-        blocks_to_load = 0;
-        for (block_id_t i = 0; i < end_block_id; i++) {
-            if (serializer->block_in_use(i)) {
-                internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i);
-                serializer->do_read(i, internal_buf->data, this);
-                blocks_to_load++;
-            }
-        }
-        if (blocks_to_load == 0) {
-            if (home_thread == serializer->home_thread) {
-                have_loaded_blocks();
-                return true;
-            } else {
-                do_on_thread(home_thread, boost::bind(&mock_cache_t::have_loaded_blocks, this));
-                ready_callback = cb;
-                return false;
-            }
-        } else {
-            ready_callback = cb;
-            return false;
+    bufs.set_size(end_block_id, NULL);
+    for (block_id_t i = 0; i < end_block_id; i++) {
+        if (serializer->block_in_use(i)) {
+            internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i);
+            if (!serializer->do_read(i, internal_buf->data, &read_cb)) read_cb.acquire();
         }
     }
+
+    /* Block until all readers are done */
+    read_cb.drain();
 }
 
-void mock_cache_t::on_serializer_read() {
-    blocks_to_load--;
-    if (blocks_to_load == 0) {
-        do_on_thread(home_thread, boost::bind(&mock_cache_t::have_loaded_blocks, this));
+mock_cache_t::~mock_cache_t() {
+
+    /* Wait for all transactions to complete */
+    transaction_counter.drain();
+
+    std::vector<translator_serializer_t::write_t> writes;
+    for (block_id_t i = 0; i < bufs.get_size(); i++) {
+        writes.push_back(translator_serializer_t::write_t::make(
+            i, bufs[i] ? bufs[i]->subtree_recency : repli_timestamp::invalid,
+            bufs[i] ? bufs[i]->data : NULL,
+            true, NULL));
     }
-}
 
-void mock_cache_t::have_loaded_blocks() {
-    running = true;
-    if (ready_callback) {
-        ready_callback->on_cache_ready();
+    struct : public serializer_t::write_txn_callback_t, public cond_t {
+        void on_serializer_write_txn() { pulse(); }
+    } cb;
+    if (!serializer->do_write(writes.data(), writes.size(), &cb)) cb.wait();
+
+    for (block_id_t i = 0; i < bufs.get_size(); i++) {
+        if (bufs[i]) delete bufs[i];
     }
 }
 
@@ -271,7 +250,6 @@ block_size_t mock_cache_t::get_block_size() {
 }
 
 mock_transaction_t *mock_cache_t::begin_transaction(access_t access, mock_transaction_begin_callback_t *callback) {
-    rassert(running);
     
     mock_transaction_t *txn = new mock_transaction_t(this, access);
     
@@ -290,78 +268,4 @@ mock_transaction_t *mock_cache_t::begin_transaction(access_t access, mock_transa
         default:
             unreachable("Bad access.");
     }
-}
-
-bool mock_cache_t::shutdown(shutdown_callback_t *cb) {
-    running = false;
-    
-    shutdown_callback = NULL;
-    if (n_transactions == 0) {
-        if (shutdown_write_bufs()) {
-            return true;
-        } else {
-            shutdown_callback = cb;
-            return false;
-        }
-    } else {
-        shutdown_callback = cb;
-        return false;
-    }
-}
-
-bool mock_cache_t::shutdown_write_bufs() {
-    if (home_thread == serializer->home_thread) {
-        return shutdown_do_send_bufs_to_serializer();
-    } else {
-        do_on_thread(serializer->home_thread, boost::bind(&mock_cache_t::do_shutdown_do_send_bufs_to_serializer, this));
-        return false;
-    }
-}
-
-void mock_cache_t::do_shutdown_do_send_bufs_to_serializer() {
-    shutdown_do_send_bufs_to_serializer();
-}
-
-bool mock_cache_t::shutdown_do_send_bufs_to_serializer() {
-    std::vector<translator_serializer_t::write_t> writes;
-    for (block_id_t i = 0; i < bufs.get_size(); i++) {
-        writes.push_back(translator_serializer_t::write_t::make(i, bufs[i] ? bufs[i]->subtree_recency : repli_timestamp::invalid,
-                                                                bufs[i] ? bufs[i]->data : NULL, NULL));
-    }
-
-    if (serializer->do_write(writes.data(), writes.size(), this)) {
-        if (home_thread == serializer->home_thread) {
-            return shutdown_destroy_bufs();
-        } else {
-            do_on_thread(home_thread, boost::bind(&mock_cache_t::do_shutdown_destroy_bufs, this));
-            return false;
-        }
-    } else {
-        return false;
-    }
-}
-
-void mock_cache_t::on_serializer_write_txn() {
-    do_on_thread(home_thread, boost::bind(&mock_cache_t::do_shutdown_destroy_bufs, this));
-}
-
-void mock_cache_t::do_shutdown_destroy_bufs() {
-    shutdown_destroy_bufs();
-}
-
-bool mock_cache_t::shutdown_destroy_bufs() {
-    for (block_id_t i = 0; i < bufs.get_size(); i++) {
-        if (bufs[i]) delete bufs[i];
-    }
-    
-    if (maybe_random_delay(this, &mock_cache_t::shutdown_finish)) {
-        shutdown_finish();
-        return true;
-    } else {
-        return false;
-    }
-}
-
-void mock_cache_t::shutdown_finish() {
-    if (shutdown_callback) shutdown_callback->on_cache_shutdown();
 }

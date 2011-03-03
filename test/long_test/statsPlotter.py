@@ -5,16 +5,16 @@ from datetime import datetime
 from subprocess import Popen, PIPE
 
 def simple_plotter(name, multiplier = 1):
-    return lambda (old, new): new[name]*multiplier if new[name] else None
+    return lambda (old, new): new[name]*multiplier if name in new and new[name] else None
 
 def differential_plotter(name):
-    return lambda (old, new): (new[name]-old[name])/(new['uptime']-old['uptime']) if new[name] and old[name] else None
+    return lambda (old, new): (new[name]-old[name])/(new['uptime']-old['uptime']) if name in new and name in old and new[name] and old[name] else None
 
 def two_stats_diff_plotter(stat1, stat2):
-    return lambda (old, new): new[stat1]-new[stat2] if new[stat1] and new[stat2] else None
+    return lambda (old, new): new[stat1]-new[stat2] if stat1 in new and stat2 in new and new[stat1] and new[stat2] else None
 
 def two_stats_ratio_plotter(dividend, divisor):
-    return lambda (old, new): new[dividend]/new[divisor] if new[dividend] and new[divisor] and new[divisor] != 0 else None
+    return lambda (old, new): new[dividend]/new[divisor] if dividend in new and divisor in new and new[dividend] and new[divisor] and new[divisor] != 0 else None
 
 class Plot(object):
     single_plot_height = 128

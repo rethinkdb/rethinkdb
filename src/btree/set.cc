@@ -54,7 +54,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 return true;
             }
 
-            value.value_size(0);
+            value.value_size(0, slice->cache().get_block_size());
             if (old_value && old_value->has_cas()) {
                 // Turns the flag on and makes
                 // room. run_btree_modify_oper() will set an actual CAS
@@ -65,7 +65,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 metadata_write(&value.metadata_flags, value.contents, mcflags, exptime);
             }
 
-            value.value_size(data->get_size());
+            value.value_size(data->get_size(), slice->cache().get_block_size());
 
             large_buf_lock_t large_buflock;
             buffer_group_t buffer_group;
@@ -76,7 +76,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 data->get_data_into_buffers(&buffer_group);
             } else {
                 large_buflock.set(new large_buf_t(txor->transaction()));
-                large_buflock.lv()->allocate(data->get_size(), value.large_buf_ref_ptr());
+                large_buflock.lv()->allocate(data->get_size(), value.large_buf_ref_ptr(), btree_value::lbref_limit);
                 for (int64_t i = 0; i < large_buflock.lv()->get_num_segments(); i++) {
                     uint16_t size;
                     void *data = large_buflock.lv()->get_segment_write(i, &size);
@@ -101,6 +101,10 @@ struct btree_set_oper_t : public btree_modify_oper_t {
             result = sr_data_provider_failed;
             return false;
         }
+    }
+
+    virtual void actually_acquire_large_value(large_buf_t *lb, large_buf_ref *lbref) {
+        co_acquire_large_value_for_delete(lb, lbref, btree_value::lbref_limit, rwi_write);
     }
 
     ticks_t start_time;

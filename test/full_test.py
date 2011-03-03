@@ -326,7 +326,16 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices},
-                  repeat=1, timeout=180)
+                  repeat=1, timeout=90*ec2)
+
+    do_test_cloud("integration/rget_no_blocking.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices},
+                  repeat=1, timeout=90*ec2)
 
     do_test_cloud("integration/command_line_sanitizing.py",
                   { "auto"        : False,
