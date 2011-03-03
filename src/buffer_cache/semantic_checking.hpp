@@ -118,20 +118,16 @@ public:
     typedef scc_transaction_begin_callback_t<inner_cache_t> transaction_begin_callback_t;
     typedef scc_transaction_commit_callback_t<inner_cache_t> transaction_commit_callback_t;
     typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
-    
+
+    static void create(
+        translator_serializer_t *serializer,
+        mirrored_cache_static_config_t *static_config);
     scc_cache_t(
         translator_serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config,
-        mirrored_cache_static_config_t *static_config);
-    
-    typedef typename inner_cache_t::ready_callback_t ready_callback_t;
-    bool start(ready_callback_t *cb);
-    
+        mirrored_cache_config_t *dynamic_config);
+
     block_size_t get_block_size();
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
-    
-    typedef typename inner_cache_t::shutdown_callback_t shutdown_callback_t;
-    bool shutdown(shutdown_callback_t *cb);
 
 private:
     inner_cache_t inner_cache;

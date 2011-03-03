@@ -42,7 +42,7 @@ public:
 
         // Do the toss
         int total = deletes + updates + inserts + reads + appends + prepends + verifies;
-        int rand_op = random(0, total - 1);
+        int rand_op = xrandom(0, total - 1);
         int acc = 0;
 
         if(rand_op >= acc && rand_op < (acc += deletes))

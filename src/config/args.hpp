@@ -142,7 +142,8 @@
 // In addition to the value itself we could potentially store
 // memcached flags, exptime, and a CAS value in the value contents, so
 // we reserve space for that.
-#define MAX_BTREE_VALUE_SIZE                      (sizeof(btree_value) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint64_t) + MAX_IN_NODE_VALUE_SIZE)
+#define MAX_BTREE_VALUE_AUXILIARY_SIZE            (sizeof(btree_value) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint64_t))
+#define MAX_BTREE_VALUE_SIZE                      (MAX_BTREE_VALUE_AUXILIARY_SIZE + MAX_IN_NODE_VALUE_SIZE)
 
 // memcached specifies the maximum value size to be 1MB
 #define MAX_VALUE_SIZE                            MEGABYTE

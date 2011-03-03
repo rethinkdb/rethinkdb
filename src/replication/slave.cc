@@ -17,8 +17,8 @@ slave_t::slave_t(btree_key_value_store_t *internal_store_, replication_config_t 
     : failover_script(failover_config_.failover_script_path),
       timeout(INITIAL_TIMEOUT),
       timer_token(NULL),
-      failover_reset_control(std::string("failover reset"), this),
-      new_master_control(std::string("new master"), this),
+      failover_reset_control(std::string("failover_reset"), this),
+      new_master_control(std::string("new_master"), this),
       internal_store(internal_store_),
       replication_config(replication_config_),
       failover_config(failover_config_),
@@ -230,26 +230,27 @@ void run(slave_t *slave) {
     }
 }
 
-std::string slave_t::new_master(std::string args) {
-    std::string host = args.substr(0, args.find(' '));
+std::string slave_t::new_master(int argc, char **argv) {
+    guarantee(argc == 3); // TODO: Handle argc = 0.
+    string host = string(argv[1]);
     if (host.length() >  MAX_HOSTNAME_LEN - 1)
-        return std::string("That hostname is soo long, use a shorter one\n");
+        return std::string("That hostname is too long; use a shorter one.\n");
 
     /* redo the replication_config info */
     strcpy(replication_config.hostname, host.c_str());
-    replication_config.port = atoi(strip_spaces(args.substr(args.find(' ') + 1)).c_str()); //TODO this is ugly
+    replication_config.port = atoi(argv[2]); //TODO this is ugly
 
     failover_reset();
     
     return std::string("New master set\n");
 }
 
-std::string slave_t::failover_reset_control_t::call(std::string) {
+std::string slave_t::failover_reset_control_t::call(int argc, char **argv) {
     return slave->failover_reset();
 }
 
-std::string slave_t::new_master_control_t::call(std::string args) {
-    return slave->new_master(args);
+std::string slave_t::new_master_control_t::call(int argc, char **argv) {
+    return slave->new_master(argc, argv);
 }
 
 }  // namespace replication

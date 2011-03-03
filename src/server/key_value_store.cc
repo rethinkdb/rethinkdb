@@ -30,12 +30,11 @@ void create_existing_serializer(
 
 void prep_for_btree(
         translator_serializer_t **pseudoserializers,
-        mirrored_cache_config_t *dynamic_config,
         mirrored_cache_static_config_t *static_config,
         int i) {
 
     on_thread_t thread_switcher(i % get_num_db_threads());
-    btree_slice_t::create(pseudoserializers[i], dynamic_config, static_config);
+    btree_slice_t::create(pseudoserializers[i], static_config);
 }
 
 void destroy_serializer(standard_serializer_t **serializers, int i) {
@@ -70,7 +69,7 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
 
         /* Initialize the btrees. Don't bother splitting the memory between the slices since we're just
         creating, which takes almost no memory. */
-        pmap(multiplexer.proxies.size(), boost::bind(&prep_for_btree, multiplexer.proxies.data(), &dynamic_config->cache, &static_config->cache, _1));
+        pmap(multiplexer.proxies.size(), boost::bind(&prep_for_btree, multiplexer.proxies.data(), &static_config->cache, _1));
     }
 
     /* Shut down serializers */
@@ -91,7 +90,7 @@ void create_existing_btree(
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    btrees[i] = new btree_slice_t(pseudoserializers[i], dynamic_config, static_config);
+    btrees[i] = new btree_slice_t(pseudoserializers[i], dynamic_config);
     dispatchers[i] = new btree_slice_dispatching_to_master_t(btrees[i], master);
     timestampers[i] = new timestamping_set_store_interface_t(dispatchers[i]);
 }

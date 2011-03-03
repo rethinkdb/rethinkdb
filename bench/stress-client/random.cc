@@ -47,12 +47,19 @@ size_t seeded_random(size_t min, size_t max, unsigned long seed) {
 }
 
 /* Returns random number between [min, max] using various distributions */
-rnd_gen_t xrandom_create(rnd_distr_t rnd_distr) {
+rnd_gen_t xrandom_create(rnd_distr_t rnd_distr, int mu) {
     rnd_gen_t rnd;
     rnd.rnd_distr = rnd_distr;
     rnd.gsl_rnd = gsl_rng_alloc(gsl_rng_mt19937);
     gsl_rng_set((gsl_rng *)rnd.gsl_rnd, get_ticks());
+    rnd.mu = mu;
     return rnd;
+}
+
+size_t xrandom(size_t min, size_t max) {
+    rnd_gen_t rnd;
+    rnd.rnd_distr = rnd_uniform_t;
+    xrandom(rnd, min, max);
 }
 
 size_t xrandom(rnd_gen_t rnd, size_t min, size_t max) {
@@ -64,7 +71,8 @@ size_t xrandom(rnd_gen_t rnd, size_t min, size_t max) {
         tmp = random(min, max);
         break;
     case rnd_normal_t:
-        tmp = gsl_ran_gaussian((gsl_rng*)rnd.gsl_rnd,  (double)len / 4) + (len / 2);
+        // Here one percent of the database is within the standard deviation
+        tmp = gsl_ran_gaussian((gsl_rng*)rnd.gsl_rnd,  (double)len / rnd.mu) + (len / 2);
         break;
     };
     
@@ -72,7 +80,14 @@ size_t xrandom(rnd_gen_t rnd, size_t min, size_t max) {
         tmp = min;
     if(tmp > max)
         tmp = max;
+    //printf("%lu\n", (size_t)tmp);
     return tmp;
+}
+
+size_t seeded_xrandom(size_t min, size_t max, unsigned long seed) {
+    rnd_gen_t rnd;
+    rnd.rnd_distr = rnd_uniform_t;
+    seeded_xrandom(rnd, min, max, seed);
 }
 
 size_t seeded_xrandom(rnd_gen_t rnd, size_t min, size_t max, unsigned long seed) {
