@@ -6,10 +6,6 @@
 #include <pthread.h>
 #include <algorithm>
 
-/* Returns random number between [min, max] */
-size_t random(size_t min, size_t max);
-size_t seeded_random(size_t min, size_t max, unsigned long seed);
-
 /* Returns random number between [min, max] using various distributions */
 enum rnd_distr_t {
     rnd_uniform_t,
@@ -20,9 +16,12 @@ struct rnd_gen_t
 {
     void *gsl_rnd;
     rnd_distr_t rnd_distr;
+    int mu;
 };
-rnd_gen_t xrandom_create();
+rnd_gen_t xrandom_create(rnd_distr_t rnd_distr, int mu);
+size_t xrandom(size_t min, size_t max);
 size_t xrandom(rnd_gen_t rnd, size_t min, size_t max);
+size_t seeded_xrandom(size_t min, size_t max, unsigned long seed);
 size_t seeded_xrandom(rnd_gen_t rnd, size_t min, size_t max, unsigned long seed);
 
 /* Timing related functions */
@@ -69,7 +68,7 @@ struct reservoir_sample_t {
 
         /* We don't have room; we may have to kick something out */
         } else {
-            int slot = random(0, n);
+            int slot = xrandom(0, n);
             if (slot < goal) samples[slot] = s;
         }
 
@@ -98,7 +97,7 @@ struct reservoir_sample_t {
         } else {
             assert(n >= goal && s.n >= goal);
             for (int i = 0; i < goal; i++) {
-                if (random(0, n + s.n - 1) < s.n) {
+                if (xrandom(0, n + s.n - 1) < s.n) {
                     samples[i] = s.samples[i];
                 }
             }

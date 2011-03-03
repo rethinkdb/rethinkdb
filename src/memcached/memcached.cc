@@ -798,10 +798,11 @@ bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
     if (args.size() < 1)
         return false;
 
-    if (!strcmp(args[0], ".h") && args.size() >= 2) {       // .h is an alias for "rdb hash:"
-        std::string cmd = std::string("hash: ");            // It's ugly, but typing that command out in full is just stupid
-        cmd += join_strings(" ", args.begin() + 1, args.end());
-        rh->write(control_exec(cmd));
+    // TODO: A nicer way to do short aliases like this.
+    if (!strcmp(args[0], ".h") && args.size() >= 2) {       // .h is an alias for "rdb hash"
+        std::vector<char *> ctrl_args = args;               // It's ugly, but typing that command out in full is just stupid
+        ctrl_args[0] = (char *) "hash"; // This should be const but it's just for debugging and it won't be modified anyway.
+        rh->write(control_t::exec(ctrl_args.size(), ctrl_args.data()));  
         return true;
     } else if (!strcmp(args[0], ".s")) { // There should be a better way of doing this, but it doesn't really matter.
         do_quickset(rh, args);
@@ -894,12 +895,7 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
             do_stats(&rh, args.size(), args.data());
         } else if (!strcmp(args[0], "qset")) {
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
-            if (args.size() > 1) {
-                std::string cl = join_strings(" ", args.begin() + 1, args.end());
-                rh.write(control_exec(cl));
-            } else {
-                rh.write(control_help());
-            }
+            rh.write(control_t::exec(args.size() - 1, args.data() + 1));
         } else if (!strcmp(args[0], "version")) {
             if (args.size() == 2) {
                 rh.writef("VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
