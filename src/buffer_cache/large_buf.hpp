@@ -74,8 +74,8 @@ public:
     explicit large_buf_t(transaction_t *txn);
     ~large_buf_t();
 
-    // This is a COMPLETE HACK and i stand by my capitalization of this method name.
-    void HACK_ROOT_REF(large_buf_ref *alternate_root_ref) {
+    // This is a COMPLETE HACK
+    void HACK_root_ref(large_buf_ref *alternate_root_ref) {
         rassert(0 == memcmp(alternate_root_ref->block_ids, root_ref->block_ids, root_ref->refsize(block_size, root_ref_limit) - sizeof(large_buf_ref)));
         root_ref = alternate_root_ref;
     }
