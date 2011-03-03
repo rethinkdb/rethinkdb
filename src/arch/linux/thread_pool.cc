@@ -297,7 +297,6 @@ linux_thread_t::linux_thread_t(linux_thread_pool_t *parent_pool, int thread_id)
     : queue(this),
       message_hub(&queue, parent_pool, thread_id),
       timer_handler(&queue),
-      iosys(&queue),
       do_shutdown(false)
 {
     // Initialize the mutex which synchronizes access to the do_shutdown variable

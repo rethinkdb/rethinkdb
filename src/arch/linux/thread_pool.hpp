@@ -76,7 +76,6 @@ public:
     linux_event_queue_t queue;
     linux_message_hub_t message_hub;
     timer_handler_t timer_handler;
-    linux_io_calls_t iosys;
     
     /* Never accessed; its constructor and destructor set up and tear down thread-local variables
     for coroutines. */

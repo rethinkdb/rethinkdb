@@ -7,8 +7,8 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <signal.h>
-#include "linux_io_calls_no_eventfd.hpp"
 #include "arch/linux/arch.hpp"
+#include "arch/linux/disk/aio/getevents_noeventfd.hpp"
 #include "config/args.hpp"
 #include "utils2.hpp"
 #include "logger.hpp"
@@ -20,7 +20,7 @@ void shutdown_signal_handler(int signum, siginfo_t *siginfo, void *uctx) {
     // Don't do shit...
 }
 
-void* io_event_loop(void *arg) {
+void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
     // Unblock a signal that will tell us to shutdown
     sigset_t sigmask;
     int res = sigemptyset(&sigmask);
@@ -30,12 +30,12 @@ void* io_event_loop(void *arg) {
     res = pthread_sigmask(SIG_UNBLOCK, &sigmask, NULL);
     guarantee_err(res == 0, "Could not block signal");
 
-    linux_io_calls_no_eventfd_t *parent = (linux_io_calls_no_eventfd_t*)arg;
+    linux_aio_getevents_noeventfd_t *parent = (linux_aio_getevents_noeventfd_t*)arg;
 
     io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
 
     do {
-        int nevents = io_getevents(parent->aio_context, 1, MAX_IO_EVENT_PROCESSING_BATCH_SIZE,
+        int nevents = io_getevents(parent->parent->aio_context, 1, MAX_IO_EVENT_PROCESSING_BATCH_SIZE,
                                    events, NULL);
         if(nevents == -EINTR) {
             if(parent->shutting_down)
@@ -63,24 +63,24 @@ void* io_event_loop(void *arg) {
 }
 
 /* Async IO scheduler - the poll/epoll part */
-linux_io_calls_no_eventfd_t::linux_io_calls_no_eventfd_t(linux_event_queue_t *queue)
-    : linux_io_calls_base_t(queue), shutting_down(false)
+linux_aio_getevents_noeventfd_t::linux_aio_getevents_noeventfd_t(linux_diskmgr_aio_t *parent)
+    : parent(parent), shutting_down(false)
 {
     int res;
-    
+
     // Watch aio notify event
-    queue->watch_resource(aio_notify_event.get_notify_fd(), poll_event_in, this);
+    parent->queue->watch_resource(aio_notify_event.get_notify_fd(), poll_event_in, this);
 
     // Create the mutex to sync IO and poll threads
     res = pthread_mutex_init(&io_mutex, NULL);
     guarantee(res == 0, "Could not create io mutex");
 
     // Start the second thread to watch IO
-    res = pthread_create(&io_thread, NULL, io_event_loop, this);
+    res = pthread_create(&io_thread, NULL, &linux_aio_getevents_noeventfd_t::io_event_loop, this);
     guarantee(res == 0, "Could not create io thread");
 }
 
-linux_io_calls_no_eventfd_t::~linux_io_calls_no_eventfd_t()
+linux_aio_getevents_noeventfd_t::~linux_aio_getevents_noeventfd_t()
 {
     int res;
     
@@ -104,9 +104,15 @@ linux_io_calls_no_eventfd_t::~linux_io_calls_no_eventfd_t()
     // Destroy the mutex to sync IO and poll threads
     res = pthread_mutex_destroy(&io_mutex);
     guarantee(res == 0, "Could not destroy io mutex");
+
+    parent->queue->forget_resource(aio_notify_event.get_notify_fd(), this);
 }
 
-void linux_io_calls_no_eventfd_t::on_event(int event_mask) {
+void linux_aio_getevents_noeventfd_t::prep(iocb *req) {
+    /* Do nothing. aio_prep() exists for the benefit of linux_aio_getevents_eventfd_t. */
+}
+
+void linux_aio_getevents_noeventfd_t::on_event(int event_mask) {
 
     if (event_mask != poll_event_in) {
         logERR("Unexpected event mask: %d\n", event_mask);
@@ -119,9 +125,8 @@ void linux_io_calls_no_eventfd_t::on_event(int event_mask) {
     int res = pthread_mutex_lock(&io_mutex);
     guarantee(res == 0, "Could not lock io mutex");
 
-        
     for(unsigned int i = 0; i < io_events.size(); i++) {
-        aio_notify((iocb*)io_events[i].obj, io_events[i].res);
+        parent->aio_notify((iocb*)io_events[i].obj, io_events[i].res);
     }
     io_events.clear();
 
