@@ -231,7 +231,7 @@ void writeback_t::flush_timer_callback(void *ctx) {
     
     /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on
     the cache, and besides we're about to sync anyway. */
-    if (self->cache->state != cache_t::state_shutting_down_waiting_for_transactions) {
+    if (!self->cache->shutting_down) {
         self->sync(NULL);
     }
 }
@@ -256,21 +256,18 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     pm_flushes_diff_flush.begin(&start_time2);
     unsigned int blocks_to_flush = (unsigned long long)parent->dirty_bufs.size() * 100ll / parent->cache->get_block_size().value() + 1;
     if (parent->force_patch_storage_flush) {
-        blocks_to_flush = std::max(parent->cache->patch_disk_storage.get_number_of_log_blocks() / 20 + 1, blocks_to_flush);
+        blocks_to_flush = std::max(parent->cache->patch_disk_storage->get_number_of_log_blocks() / 20 + 1, blocks_to_flush);
         parent->force_patch_storage_flush = false;
     }
-    parent->cache->patch_disk_storage.clear_n_oldest_blocks(blocks_to_flush);
+    parent->cache->patch_disk_storage->clear_n_oldest_blocks(blocks_to_flush);
     pm_flushes_diff_flush.end(&start_time2);
 
     /* Start a read transaction so we can request bufs. */
     rassert(transaction == NULL);
-    if (parent->cache->state == cache_t::state_shutting_down_start_flush ||
-        parent->cache->state == cache_t::state_shutting_down_waiting_for_flush) {
-        // Backdoor around "no new transactions" assert.
-        parent->cache->shutdown_transaction_backdoor = true;
-    }
+    bool saved_shutting_down = parent->cache->shutting_down;
+    parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
     transaction = parent->cache->begin_transaction(rwi_read, NULL);
-    parent->cache->shutdown_transaction_backdoor = false;
+    parent->cache->shutting_down = saved_shutting_down;
     rassert(transaction != NULL); // Read txns always start immediately.
 
     /* Request exclusive flush_lock, forcing all write txns to complete. */
@@ -375,7 +372,7 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                     rassert(transaction_id > NULL_SER_TRANSACTION_ID);
                     rassert(previous_patch_counter == 0 || (*patches)[patch_index-1]->get_patch_counter() == previous_patch_counter - 1);
                     if (lbuf->last_patch_materialized < (*patches)[patch_index-1]->get_patch_counter()) {
-                        if (!parent->cache->patch_disk_storage.store_patch(*(*patches)[patch_index-1], transaction_id)) {
+                        if (!parent->cache->patch_disk_storage->store_patch(*(*patches)[patch_index-1], transaction_id)) {
                             patch_storage_failure = true;
                             //fprintf(stderr, "Patch storage failure\n");
                             lbuf->needs_flush = true;
