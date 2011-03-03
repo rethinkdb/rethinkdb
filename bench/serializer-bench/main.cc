@@ -137,7 +137,7 @@ struct tester_t :
     /* When on_thread_switch() is called, it could either be the start message telling us to run the
     test or the shutdown message from call_later_on_this_thread(). We differentiate by checking 'ser'. */
     void on_thread_switch() {
-        if (!ser) start();
+        if (!ser) coro_t::spawn(boost::bind(&tester_t::start, this));
         else coro_t::spawn(boost::bind(&tester_t::shutdown, this));
     }
     
@@ -148,6 +148,9 @@ struct tester_t :
         } else {
             log = NULL;
         }
+
+        fprintf(stderr, "Creating a database...\n");
+        log_serializer_t::create(&config->ser_dynamic_config, &config->ser_private_dynamic_config, &config->ser_static_config);
         
         fprintf(stderr, "Starting serializer...\n");
         ser = new log_serializer_t(&config->ser_dynamic_config, &config->ser_private_dynamic_config);
@@ -211,7 +214,8 @@ struct tester_t :
         fprintf(stderr, "Started %d transactions and completed %d of them\n",
             total_txns, total_txns - active_txns);
 
-        fclose(tps_log_fd);
+        if (tps_log_fd)
+            fclose(tps_log_fd);
         
         if (config->log_file) {
             FILE *log_file = fopen(config->log_file, "w");
