@@ -3,7 +3,7 @@
 #include "errors.hpp"
 #include "concurrency/multi_wait.hpp"
 
-using namespace std;
+using std::string;
 
 control_map_t &get_control_map() {
     /* Getter function so that we can be sure that control_list is initialized before it is needed,
@@ -21,72 +21,43 @@ spinlock_t &get_control_lock() {
     return lock;
 }
 
-string control_exec(string command_and_args) {
-    string res;
+string control_t::exec(int argc, char **argv) {
+    if (argc == 0) return help();
+    string command = string(argv[0]);
 
-    /* seperate command and arguments */
-    int command_end = command_and_args.find(':');
-    string command, args;
-    command = command_and_args.substr(0, command_end);
-    if (command_end==-1) {
-        args = string("");
+    control_map_t::iterator it = get_control_map().find(command);
+    if (it == get_control_map().end()) {
+        return help();
     } else {
-        args = command_and_args.substr(command_end + 1);
+        return (*it).second->call(argc, argv);
     }
-
-    /* strip off the leading and trailing spaces */
-    while (command[command.length() - 1] == ' ')
-        command.erase(command.length() - 1, 1);
-
-    while (args[0] == ' ')
-        args.erase(0, 1);
-
-    bool func_found = false;
-    for (control_map_t::iterator it = get_control_map().find(command); it != get_control_map().end() && (*it).first == command; it++) {
-        func_found = true;
-        res += (*it).second->call(args);
-    }
-
-    if (!func_found)
-        res = control_help();
-
-    return res;
 }
 
-string control_help() {
-    string res, last_key, last_help;
+string control_t::help() {
+    string res;
     for (control_map_t::iterator it = get_control_map().begin(); it != get_control_map().end(); it++) {
-        if (((*it).first != last_key || (*it).second->help != last_help) && (*it).second->help.length() > 0)
-            res += ((*it).first + string(": ") + (*it).second->help + string("\r\n"));
-
-        last_key = (*it).first;
-        last_help = (*it).second->help;
+        if ((*it).second->help_string.size() == 0) continue;
+        res += ((*it).first + string(": ") + (*it).second->help_string + string("\r\n"));
     }
     return res;
 }
 
-control_t::control_t(string key, string help) 
-    : key(key), help(help)
+control_t::control_t(string key, string help_string) 
+    : key(key), help_string(help_string)
 {
-    //guarantee(key != ""); //this could potentiall cause some errors with control_help
-    //TODO @jdoliner make sure that the command doesn't contain any ':'s
-    //guarantee(key.find(':') == (unsigned int) -1);
+    rassert(key.size() > 0);
     get_control_lock().lock();
-    get_control_map().insert(pair<string, control_t*>(key, this));
+    rassert(get_control_map().find(key) == get_control_map().end());
+    get_control_map()[key] = this;
     get_control_lock().unlock();
 }
 
 control_t::~control_t() {
     get_control_lock().lock();
-    control_map_t& map = get_control_map();
+    control_map_t &map = get_control_map();
     control_map_t::iterator it = map.find(key);
-    while (it != map.end()) {
-        if ((*it).second == this) {
-            map.erase(it++);
-        } else {
-            ++it;
-        }
-    }
+    rassert(it != map.end());
+    map.erase(it);
     get_control_lock().unlock();
 }
 
@@ -99,14 +70,14 @@ public:
     hi_t(string key)
         : control_t(key, string("")), counter(0)
     {}
-    string call(string) {
+    string call(int argc, char **argv) {
         counter++;
         if (counter < 3)
-            return string("Salutations, user.\n");
+            return string("Salutations, user.\r\n");
         else if (counter < 4)
-            return string("Say hi again, I dare you.\n");
+            return string("Say hi again, I dare you.\r\n");
         else
-            return string("Base QPS decreased by 100,000.\n");
+            return string("Base QPS decreased by 100,000.\r\n");
     }
 };
 
