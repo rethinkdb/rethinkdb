@@ -12,13 +12,6 @@ of memory. */
 class array_free_list_t : public home_thread_mixin_t {
 public:
     explicit array_free_list_t(translator_serializer_t *);
-
-    struct ready_callback_t {
-        virtual void on_free_list_ready() = 0;
-        virtual ~ready_callback_t() {}
-    };
-    bool start(ready_callback_t *cb);   // Must be called after serializer has started up
-    
     ~array_free_list_t();
     
     int num_blocks_in_use;
@@ -26,10 +19,6 @@ public:
     void release_block_id(block_id_t);
 
 private:
-    ready_callback_t *ready_callback;
-    void do_make_list();   // Called on serializer thread
-    void have_made_list();   // Called on cache thread
-    
     translator_serializer_t *serializer;
     
     /* A block ID is free if it is >= next_new_block_id or if it is in free_ids. All the IDs in

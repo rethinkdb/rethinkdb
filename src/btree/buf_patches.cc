@@ -37,7 +37,7 @@ leaf_insert_pair_patch_t::leaf_insert_pair_patch_t(const block_id_t block_id, co
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_INSERT_PAIR) {
     metadata_flags_t metadata_flags;
     metadata_flags.flags = value_metadata_flags;
-    value_buf = new byte[sizeof(btree_value) + value_size + metadata_size(metadata_flags)];
+    value_buf = new byte[MAX_BTREE_VALUE_AUXILIARY_SIZE + value_size];
     btree_value *value = ptr_cast<btree_value>(value_buf);
     value->size = value_size;
     value->metadata_flags = metadata_flags;
@@ -54,7 +54,7 @@ leaf_insert_pair_patch_t::leaf_insert_pair_patch_t(const block_id_t block_id, co
     guarantee(data_length >= sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t));
     uint8_t value_size = *((uint8_t*)(data));
     data += sizeof(value_size);
-    value_buf = new byte[sizeof(btree_value) + value_size];
+    value_buf = new byte[MAX_BTREE_VALUE_AUXILIARY_SIZE + value_size];
     btree_value *value = ptr_cast<btree_value>(value_buf);
     value->size = value_size;
     value->metadata_flags.flags = *((uint8_t*)(data));
@@ -118,7 +118,7 @@ leaf_insert_patch_t::leaf_insert_patch_t(const block_id_t block_id, const patch_
             insertion_time(insertion_time) {
     metadata_flags_t metadata_flags;
     metadata_flags.flags = value_metadata_flags;
-    value_buf = new byte[sizeof(btree_value) + value_size + metadata_size(metadata_flags)];
+    value_buf = new byte[MAX_BTREE_VALUE_AUXILIARY_SIZE + value_size];
     btree_value *value = ptr_cast<btree_value>(value_buf);
     value->size = value_size;
     value->metadata_flags.flags = value_metadata_flags;
@@ -141,7 +141,7 @@ leaf_insert_patch_t::leaf_insert_patch_t(const block_id_t block_id, const patch_
 
     uint8_t value_size = *((uint8_t*)(data));
     data += sizeof(value_size);
-    value_buf = new byte[sizeof(btree_value) + value_size];
+    value_buf = new byte[MAX_BTREE_VALUE_AUXILIARY_SIZE + value_size];
     btree_value *value = ptr_cast<btree_value>(value_buf);
     value->size = value_size;
     value->metadata_flags.flags = *((uint8_t*)(data));

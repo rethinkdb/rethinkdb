@@ -74,6 +74,12 @@ public:
     explicit large_buf_t(transaction_t *txn);
     ~large_buf_t();
 
+    // This is a COMPLETE HACK
+    void HACK_root_ref(large_buf_ref *alternate_root_ref) {
+        rassert(0 == memcmp(alternate_root_ref->block_ids, root_ref->block_ids, root_ref->refsize(block_size, root_ref_limit) - sizeof(large_buf_ref)));
+        root_ref = alternate_root_ref;
+    }
+
     void allocate(int64_t _size, large_buf_ref *refout, lbref_limit_t ref_limit);
     void acquire(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
     void acquire_rhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);

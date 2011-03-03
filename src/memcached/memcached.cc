@@ -767,6 +767,33 @@ std::string join_strings(std::string separator, std::vector<char*>::iterator beg
 }
 
 #ifndef NDEBUG
+void do_quickset(txt_memcached_handler_t *rh, std::vector<char*> args) {
+    if (args.size() < 2 || args.size() % 2 == 0) {
+        // The connection will be closed if more than a megabyte or so is sent
+        // over without a newline, so we don't really need to worry about large
+        // values.
+        rh->write("CLIENT_ERROR Usage: .s k1 v1 [k2 v2...] (no whitespace in values)\r\n");
+        return;
+    }
+
+    for (size_t i = 1; i < args.size(); i += 2) {
+        store_key_t key;
+        if (!str_to_key(args[i], &key)) {
+            rh->writef("CLIENT_ERROR Invalid key %s\r\n", args[i]);
+            return;
+        }
+        buffered_data_provider_t value(args[i + 1], strlen(args[i + 1]));
+
+        set_result_t res = rh->set_store->sarc(key, &value, 0, 0, add_policy_yes, replace_policy_yes, 0);
+
+        if (res == sr_stored) {
+            rh->writef("STORED key %s\r\n", args[i]);
+        } else {
+            rh->writef("MYSTERIOUS_ERROR key %s\r\n", args[i]);
+        }
+    }
+}
+
 bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
     if (args.size() < 1)
         return false;
@@ -776,6 +803,9 @@ bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
         std::vector<char *> ctrl_args = args;               // It's ugly, but typing that command out in full is just stupid
         ctrl_args[0] = (char *) "hash"; // This should be const but it's just for debugging and it won't be modified anyway.
         rh->write(control_t::exec(ctrl_args.size(), ctrl_args.data()));  
+        return true;
+    } else if (!strcmp(args[0], ".s")) { // There should be a better way of doing this, but it doesn't really matter.
+        do_quickset(rh, args);
         return true;
     } else {
         return false;
@@ -863,6 +893,7 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
             }
         } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
             do_stats(&rh, args.size(), args.data());
+        } else if (!strcmp(args[0], "qset")) {
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
             rh.write(control_t::exec(args.size() - 1, args.data() + 1));
         } else if (!strcmp(args[0], "version")) {

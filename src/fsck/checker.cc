@@ -420,7 +420,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge *knog, metablock_err
 }
 
 bool is_valid_offset(file_knowledge *knog, off64_t offset, off64_t alignment) {
-    return (offset >= 0 && offset % alignment == 0 && (uint64_t)offset < *knog->filesize);
+    return offset >= 0 && offset % alignment == 0 && (uint64_t)offset < *knog->filesize;
 }
 
 bool is_valid_extent(file_knowledge *knog, off64_t offset) {
