@@ -1077,7 +1077,9 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
             read_locker locker(cx.knog);
             info = locker.block_info()[id];
         }
-        if (!flagged_off64_t::has_value(info.offset)) {
+        if (flagged_off64_t::is_delete_id(info.offset)) {
+            // Do nothing.
+        } else if (!flagged_off64_t::has_value(info.offset)) {
             if (first_valueless_block == ser_block_id_t::null()) {
                 first_valueless_block = ser_block_id_t::make(id);
             }
