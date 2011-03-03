@@ -55,7 +55,8 @@ private:
     transaction_t *txn;
     block_size_t block_size() const { return txn->cache->get_block_size(); }
 
-public: // XXX Should this be private?
+#ifndef NDEBUG
+public:
     enum state_t {
         not_loaded,
         loading,
@@ -65,7 +66,6 @@ public: // XXX Should this be private?
     };
     state_t state;
 
-#ifndef NDEBUG
     int64_t num_bufs;
 #endif
 
