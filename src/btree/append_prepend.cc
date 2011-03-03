@@ -56,7 +56,9 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                     else        large_buflock.lv()->fill_at(data->get_size(), old_value->value(), old_value->value_size());
                     is_old_large_value = false;
                 } else { // large -> large; expand existing large value
+                    memcpy(&value, old_value, MAX_BTREE_VALUE_SIZE);
                     large_buflock.swap(old_large_buflock);
+                    large_buflock.lv()->HACK_root_ref(value.large_buf_ref_ptr());
                     int refsize_adjustment;
 
                     if (append) {
@@ -67,7 +69,6 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                         large_buflock.lv()->prepend(data->get_size(), &refsize_adjustment);
                     }
 
-                    //debugf("refsize_adjustment: %d (sz = %d)\n", refsize_adjustment, value.large_buf_ref_ptr()->refsize(slice->cache()->get_block_size()));
                     value.size += refsize_adjustment;
                     is_old_large_value = true;
                 }

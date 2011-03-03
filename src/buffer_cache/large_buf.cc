@@ -151,7 +151,6 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
 }
 
 void large_buf_t::allocate(int64_t _size, large_buf_ref *ref, lbref_limit_t ref_limit) {
-    //debugf("large_buf_t::allocate(%ld)\n", _size);
     access = rwi_write;
 
     rassert(state == not_loaded);
@@ -285,12 +284,6 @@ void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limi
     rassert(0 <= slice_offset);
     rassert(0 <= slice_size);
     rassert(slice_offset + slice_size <= root_ref_->size);
-#ifndef NDEBUG
-        //debugf("large_buf_t::acquire before copy: rootref .offset=%ld, .size=%ld, .refsize(...)=%d\n", root_ref_->offset, root_ref_->size, root_ref_->refsize(block_size));
-    for (int i = 0, n = (root_ref_->refsize(block_size, ref_limit_) - sizeof(large_buf_ref)) / sizeof(block_id_t); i < n; ++i) {
-        //debugf("large_buf_t::acquire before copy: rootref .block_ids[%d] = %d\n", i, root_ref_->block_ids[i]);
-    }
-#endif
 
     rassert(root_ref == NULL);
     root_ref = root_ref_;
@@ -336,19 +329,16 @@ void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limi
 }
 
 void large_buf_t::acquire(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_) {
-    //debugf("large_buf_t::acquire(size=%ld, offset=%ld)\n", root_ref_->size, root_ref_->offset);
     acquire_slice(root_ref_, ref_limit_, access_, 0, root_ref_->size, callback_);
 }
 
 void large_buf_t::acquire_rhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_) {
-    //debugf("large_buf_t::acquire_rhs(size=%ld, offset=%ld)\n", root_ref_->size, root_ref_->offset);
     int64_t beg = std::max(int64_t(0), root_ref_->size - 1);
     int64_t end = root_ref_->size;
     acquire_slice(root_ref_, ref_limit_, access_, beg, end - beg, callback_);
 }
 
 void large_buf_t::acquire_lhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_) {
-    //debugf("large_buf_t::acquire_lhs(size=%ld, offset=%ld)\n", root_ref_->size, root_ref_->offset);
     int64_t beg = 0;
     int64_t end = std::min(int64_t(1), root_ref_->size);
     acquire_slice(root_ref_, ref_limit_, access_, beg, end - beg, callback_);
@@ -372,7 +362,6 @@ void large_buf_t::buftree_acquired(buftree_t *tr, int index) {
     num_to_acquire --;
     if (num_to_acquire == 0) {
         state = loaded;
-        //debugf("large_buf_t::buftree_acquired, calling on_large_buf_available\n");
         callback->on_large_buf_available(this);
     }
 }
@@ -487,8 +476,6 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
             goto tryagain;
         }
 
-        //debugf("k is %ld\n", k);
-
         int64_t roots_back_k = roots.size();
         rassert(roots_back_k <= back_k);
         roots.resize(roots_back_k + k);
@@ -508,19 +495,7 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         root_ref->offset = newoffset + k * shiftsize;
         root_ref->size += extra_size;
 
-#ifndef NDEBUG
-        //debugf("large_buf_t::prepend before allocation: rootref .offset=%ld, .size=%ld, .refsize(...)=%d\n", root_ref->offset, root_ref->size, root_ref->refsize(block_size));
-        for (int i = 0; i < k + back_k; ++i) {
-            //debugf("large_buf_t::prepend: rootref .block_ids[%d] = %d\n", i, root_ref->block_ids[i]);
-        }
-#endif
         allocates_part_of_tree(&roots, root_ref->block_ids, root_ref->offset, extra_size, num_sublevels(root_ref->offset + root_ref->size));
-#ifndef NDEBUG
-        //debugf("large_buf_t::prepend after allocation: rootref .offset=%ld, .size=%ld, .refsize(...)=%d\n", root_ref->offset, root_ref->size, root_ref->refsize(block_size));
-        for (int i = 0; i < k + back_k; ++i) {
-            //debugf("large_buf_t::prepend: rootref .block_ids[%d] = %d\n", i, root_ref->block_ids[i]);
-        }
-#endif
     }
 
     *refsize_adjustment_out = root_ref->refsize(block_size, root_ref_limit) - original_refsize;
@@ -813,10 +788,8 @@ uint16_t large_buf_t::segment_size(int64_t ix) {
 
     int64_t num_segs = (end_seg_offset - min_seg_offset) / nlb;
 
-    debugf("root_ref ->offset=%ld, ->size=%ld\n, ix=%ld\n", root_ref->offset, root_ref->size, ix);
     if (num_segs == 1) {
         rassert(ix == 0);
-        debugf("num_segs == 1.  root_ref->size is %ld\n", root_ref->size);
         return root_ref->size;
     }
     if (ix == 0) {
@@ -864,7 +837,7 @@ const byte *large_buf_t::get_segment(int64_t ix, uint16_t *seg_size) {
 
 byte *large_buf_t::get_segment_write(int64_t ix, uint16_t *seg_size) {
     rassert(state == loaded);
-    rassert(ix >= 0 && ix < get_num_segments());
+    rassert(ix >= 0 && ix < get_num_segments(), "ix=%ld, get_num_segments()=%ld", ix, get_num_segments());
 
     uint16_t seg_offset;
     buf_t *buf = get_segment_buf(ix, seg_size, &seg_offset);
