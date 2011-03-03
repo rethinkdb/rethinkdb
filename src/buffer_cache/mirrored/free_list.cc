@@ -1,26 +1,10 @@
 #include "free_list.hpp"
 #include "buffer_cache/stats.hpp"
 
-#define BLOCK_IN_USE (block_id_t(-2))
-
 array_free_list_t::array_free_list_t(translator_serializer_t *serializer)
-    : serializer(serializer) { }
-
-bool array_free_list_t::start(ready_callback_t *cb) {
-    ready_callback = NULL;
-    if (serializer->home_thread == home_thread) {
-        // do_make_list won't block, thanks to the above condition.
-        do_make_list();
-        return true;
-    } else {
-        do_on_thread(serializer->home_thread, boost::bind(&array_free_list_t::do_make_list, this));
-        ready_callback = cb;
-        return false;
-    }
-}
-
-
-void array_free_list_t::do_make_list() {
+    : serializer(serializer)
+{
+    on_thread_t switcher(serializer->home_thread);
     num_blocks_in_use = 0;
     next_new_block_id = serializer->max_block_id();
     for (block_id_t i = 0; i < next_new_block_id; i++) {
@@ -30,21 +14,6 @@ void array_free_list_t::do_make_list() {
             pm_n_blocks_total++;
             num_blocks_in_use++;
         }
-    }
-
-    if (serializer->home_thread != home_thread) {
-        do_on_thread(home_thread, boost::bind(&array_free_list_t::have_made_list, this));
-    } else {
-        have_made_list();
-    }
-}
-
-void array_free_list_t::have_made_list() {
-    assert_thread();
-
-    if (ready_callback) {
-        ready_callback->on_free_list_ready();
-        ready_callback = NULL;
     }
 }
 
