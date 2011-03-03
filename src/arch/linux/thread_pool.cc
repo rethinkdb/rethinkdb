@@ -337,7 +337,7 @@ void linux_thread_t::on_event(int events) {
 bool linux_thread_t::should_shut_down() {
     pthread_mutex_lock(&do_shutdown_mutex);
     bool result = do_shutdown;
-    rassert(pthread_mutex_unlock(&do_shutdown_mutex) == 0);
+    pthread_mutex_unlock(&do_shutdown_mutex)
     return result;
 }
 
