@@ -37,7 +37,7 @@ struct large_value_acquired_t : public large_buf_available_callback_t {
 void co_acquire_large_value(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
     large_value_acquired_t acquired;
 
-    large_value->get_transaction()->assert_thread();
+    large_value->assert_thread();
     large_value->acquire(root_ref_, ref_limit_, access_, &acquired);
     coro_t::wait();
 }

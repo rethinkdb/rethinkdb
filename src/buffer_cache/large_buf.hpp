@@ -97,7 +97,7 @@ public:
     void mark_deleted();
     void release();
 
-    transaction_t *get_transaction() const { return transaction; }
+    void assert_thread() const { transaction->assert_thread(); }
 
     // TODO get rid of this function, why do we need it if the user of
     // the large buf owns the root ref?
