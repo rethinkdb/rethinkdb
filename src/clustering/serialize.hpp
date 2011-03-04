@@ -223,7 +223,8 @@ unique_ptr_t<data_provider_t>, and one that works with raw data_provider_t*. */
 void serialize(cluster_outpipe_t *conn, const unique_ptr_t<data_provider_t> &data) {
     if (data) {
         ::serialize(conn, true);
-        ::serialize(conn, data->get_size());
+        int size = data->get_size();
+        ::serialize(conn, size);
         const const_buffer_group_t *buffers = data->get_data_as_buffers();
         for (int i = 0; i < (int)buffers->num_buffers(); i++) {
             conn->write(buffers->get_buffer(i).data, buffers->get_buffer(i).size);
