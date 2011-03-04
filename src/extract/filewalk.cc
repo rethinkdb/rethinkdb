@@ -228,6 +228,10 @@ private:
 };
 
 bool get_large_buf_segments(const btree_key *key, direct_file_t& file, const large_buf_ref& ref, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
+    if (!(ref.size > MAX_IN_NODE_VALUE_SIZE && ref.size <= MAX_VALUE_SIZE && ref.offset >= 0)) {
+        return false;
+    }
+
     int levels = large_buf_t::compute_num_levels(cfg.block_size(), ref.offset + ref.size);
 
     ser_block_id_t trans = translator_serializer_t::translate_block_id(ref.block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
