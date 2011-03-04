@@ -50,7 +50,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     friend class array_map_t;
     friend class array_map_t::local_buf_t;
     friend class patch_disk_storage_t;
-    
+
     typedef mc_cache_t cache_t;
     
     cache_t *cache;
@@ -59,31 +59,31 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     void *data;
     rwi_lock_t lock;
     patch_counter_t next_patch_counter;
-    
+
     /* The number of mc_buf_ts that exist for this mc_inner_buf_t */
     int refcount;
-    
+
     /* true if we are being deleted */
     bool do_delete;
     bool write_empty_deleted_block;
-    
+
     /* true if there is a mc_buf_t that holds a pointer to the data in read-only outdated-OK
     mode. */
     bool cow_will_be_needed;
-    
+
     // Each of these local buf types holds a redundant pointer to the inner_buf that they are a part of
     writeback_t::local_buf_t writeback_buf;
     page_repl_t::local_buf_t page_repl_buf;
     page_map_t::local_buf_t page_map_buf;
-    
+
     bool safe_to_unload();
-    
+
     // Load an existing buf from disk
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load);
-    
+
     // Create an entirely new buf
     explicit mc_inner_buf_t(cache_t *cache);
-    
+
     ~mc_inner_buf_t();
 
     ser_transaction_id_t transaction_id;
@@ -95,19 +95,19 @@ class mc_buf_t :
 {
     typedef mc_cache_t cache_t;
     typedef mc_block_available_callback_t block_available_callback_t;
-    
+
     friend class mc_cache_t;
     friend class mc_transaction_t;
     friend class patch_disk_storage_t;
-    
+
 private:
     mc_buf_t(mc_inner_buf_t *, access_t mode);
     void on_lock_available();
     bool ready;
     block_available_callback_t *callback;
-    
+
     ticks_t start_time;
-    
+
     access_t mode;
     bool non_locking_access;
     mc_inner_buf_t *inner_buf;
@@ -142,7 +142,7 @@ public:
     block_id_t get_block_id() const {
         return inner_buf->block_id;
     }
-    
+
     void mark_deleted(bool write_null = true) {
         rassert(mode == rwi_write);
         rassert(!inner_buf->safe_to_unload());
@@ -176,7 +176,7 @@ class mc_transaction_t :
     typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
     typedef mc_block_available_callback_t block_available_callback_t;
-    
+
     friend class mc_cache_t;
     friend class writeback_t;
     friend struct acquire_lock_callback_t;
@@ -197,12 +197,12 @@ public:
 private:
     explicit mc_transaction_t(cache_t *cache, access_t access);
     ~mc_transaction_t();
-    
+
     ticks_t start_time;
-    
+
     void green_light();   // Called by the writeback when it's OK for us to start
     virtual void on_sync();
-    
+
     access_t access;
     transaction_begin_callback_t *begin_callback;
     transaction_commit_callback_t *commit_callback;
@@ -224,7 +224,7 @@ struct mc_cache_t :
     friend class array_map_t;
     friend class array_map_t::local_buf_t;
     friend class patch_disk_storage_t;
-    
+
 public:
     typedef mc_inner_buf_t inner_buf_t;
     typedef mc_buf_t buf_t;
@@ -232,7 +232,7 @@ public:
     typedef mc_block_available_callback_t block_available_callback_t;
     typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
-    
+
 private:
 
     mirrored_cache_config_t *dynamic_config;
@@ -244,9 +244,9 @@ private:
     // many dependencies. The second is more strict, but might not be
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
-    
+
     translator_serializer_t *serializer;
-    
+
     page_map_t page_map;
     page_repl_t page_repl;
     writeback_t writeback;
@@ -258,7 +258,6 @@ public:
     ~mc_cache_t();
 
 public:
-
     block_size_t get_block_size();
 
     // Transaction API

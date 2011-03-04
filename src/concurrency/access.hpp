@@ -1,4 +1,3 @@
-
 #ifndef __ACCESS_HPP__
 #define __ACCESS_HPP__
 
@@ -13,10 +12,10 @@ enum access_t {
     // rwi_read_outdated_ok can be copied to a different location and
     // written to by another task.
     rwi_read_outdated_ok,
-    
+
     // Intent to write
     rwi_write,
-    
+
     // Intent to read, with an additional hint that an upgrade to a
     // write mode might follow
     rwi_intent,
