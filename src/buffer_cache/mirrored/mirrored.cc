@@ -84,6 +84,9 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
         new load_buf_fsm_t(this);
     }
 
+    // pm_n_blocks_in_memory gets incremented in cases where
+    // should_load == false, because currently we're still mallocing
+    // the buffer.
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
