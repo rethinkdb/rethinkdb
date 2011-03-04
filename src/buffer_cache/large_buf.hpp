@@ -160,6 +160,8 @@ private:
     buf_t *get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset);
     void removes_level(block_id_t *ids, int copyees);
     int try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t stepsize);
+
+    DISABLE_COPYING(large_buf_t);
 };
 
 #endif // __LARGE_BUF_HPP__
