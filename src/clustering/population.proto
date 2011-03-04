@@ -1,0 +1,56 @@
+package population;
+
+message addrinfo {
+    required fixed32 ip = 1;
+    required uint32 port = 2;
+    required int32 id = 3 [default = -1];
+}
+
+message Join_initial {
+    required addrinfo addr = 1;
+}
+
+message Join_propose {
+    required addrinfo addr = 1;
+}
+
+message Join_respond {
+    required addrinfo addr = 1;
+    required bool agree = 2;
+}
+
+message Join_mk_official {
+    required addrinfo addr = 1;
+}
+
+message Join_ack_official {
+    required addrinfo addr = 1;
+}
+
+enum peer_state {
+    LIVE = 1;
+    KILLED = 2;
+}
+
+message peer {
+    required addrinfo addr = 1;
+    required peer_state state = 2;
+}
+
+message Join_welcome {
+    required addrinfo addr = 1;
+    repeated peer peers = 2;
+}
+
+message Kill_propose {
+    required addrinfo addr = 1;
+}
+
+message Kill_respond {
+    required addrinfo addr = 1;
+    required bool agree = 2;
+}
+
+message Kill_mk_official {
+    required addrinfo addr = 1;
+}

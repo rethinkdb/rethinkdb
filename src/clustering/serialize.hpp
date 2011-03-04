@@ -26,8 +26,9 @@ like to automatically know how to (un)serialize as many types as possible, and m
 possible to allow the programmer to manually describe the procedure to serialize other types.
 
 From the point of view of the clustering code, a value of type "foo_t" can be serialized as follows:
-    void write_a_foo(cluster_outpipe_t *pipe, foo_t foo) {
-        format_t<foo_t>::serialize(pipe, foo);
+    void write_a_foo(int *size, cluster_outpipe_t *pipe, foo_t foo) {
+        *size = format_t<foo_t>::get_size(foo);
+        format_t<foo_t>::write(pipe, foo);
     }
 A value of type "foo_t" can be deserialized as follows (assuming that foo_t is not a raw pointer):
     foo_t read_a_foo(cluster_inpipe_t *pipe) {
@@ -49,15 +50,16 @@ format_t<btree_key_t *>::parser_t contains a buffer for a btree_key_t, and the p
 returns points to that buffer. */
 
 /* This is excessively verbose for most cases, so a simpler API is also provided. If you define
-global functions "serialize()" and "unserialize()" for a type "foo_t" as follows, then it will
-automatically be (un)serializable:
+global functions "serialize()", "ser_size()", and "unserialize()" for a type "foo_t" as follows,
+then it will automatically be (un)serializable:
     void serialize(cluster_outpipe_t *pipe, const foo_t &foo);
+    int ser_size(const foo_t &foo);
     void unserialize(cluster_inpipe_t *pipe, foo_t *foo_out);
-If possible, defining serialize() and unserialize() is preferable to defining a template
-specialization for format_t. */
+If possible, defining serialize(), ser_size(), and unserialize() is preferable to defining a
+template specialization for format_t. */
 
 // The default implementation of format_t handles serializing and deserializing any type for which
-// ::serialize() and ::unserialize() are defined in the appropriate way
+// ::serialize(), ::ser_size(), ::unserialize() are defined in the appropriate way
 template<class T>
 struct format_t {
     struct parser_t {
@@ -67,6 +69,9 @@ struct format_t {
             unserialize(pipe, &buffer);
         }
     };
+    static int get_size(const T &value) {
+        return ser_size(value);
+    }
     static void write(cluster_outpipe_t *pipe, const T &value) {
         serialize(pipe, value);
     }
@@ -79,6 +84,12 @@ void serialize(cluster_outpipe_t *pipe, const T &value,
         /* Use horrible boost hackery to make sure this is only used for classes */
         typename boost::enable_if< boost::is_class<T> >::type * = 0) {
     T::serialize(pipe, value);
+}
+
+template<class T>
+int ser_size(const T &value,
+        typename boost::enable_if< boost::is_class<T> >::type * = 0) {
+    return T::ser_size(value);
 }
 
 template<class T>
@@ -96,6 +107,12 @@ void serialize(cluster_outpipe_t *pipe, const T &value,
 }
 
 template<class T>
+int ser_size(const T &value,
+        typename boost::enable_if< boost::is_arithmetic<T> >::type * = 0) {
+    return sizeof(value);
+}
+
+template<class T>
 void unserialize(cluster_inpipe_t *pipe, T *value,
         typename boost::enable_if< boost::is_arithmetic<T> >::type * = 0) {
     pipe->read(value, sizeof(*value));
@@ -110,6 +127,12 @@ void serialize(cluster_outpipe_t *pipe, const T &value,
 }
 
 template<class T>
+int ser_size(const T &value,
+        typename boost::enable_if< boost::is_enum<T> >::type * = 0) {
+    return sizeof(value);
+}
+
+template<class T>
 void unserialize(cluster_inpipe_t *pipe, T *value,
         typename boost::enable_if< boost::is_enum<T> >::type * = 0) {
     pipe->read(value, sizeof(*value));
@@ -119,6 +142,10 @@ void unserialize(cluster_inpipe_t *pipe, T *value,
 
 void serialize(cluster_outpipe_t *conn, const cluster_address_t &addr) {
     conn->write_address(&addr);
+}
+
+int ser_size(const cluster_address_t &addr) {
+    return cluster_outpipe_t::address_ser_size(&addr);
 }
 
 void unserialize(cluster_inpipe_t *conn, cluster_address_t *addr) {
@@ -133,6 +160,16 @@ void serialize(cluster_outpipe_t *conn, const std::vector<element_t> &e) {
     for (int i = 0; i < e->size(); i++) {
         serialize(conn, (*e)[i]);
     }
+}
+
+template<class element_t>
+int ser_size(const std::vector<element_t> *e) {
+    int size = 0;
+    size += ser_size(e->size());
+    for (int i = 0; i < e->size(); i++) {
+        size += ser_size((*e)[i]);
+    }
+    return size;
 }
 
 template<class element_t>
@@ -152,6 +189,10 @@ void serialize(cluster_outpipe_t *conn, const ip_address_t &addr) {
     conn->write(&addr, sizeof(ip_address_t));
 }
 
+int ser_size(const ip_address_t *addr) {
+    return sizeof(*addr);
+}
+
 void unserialize(cluster_inpipe_t *conn, ip_address_t *addr) {
     rassert(sizeof(ip_address_t) == 4);
     conn->read(addr, sizeof(ip_address_t));
@@ -162,6 +203,13 @@ void unserialize(cluster_inpipe_t *conn, ip_address_t *addr) {
 void serialize(cluster_outpipe_t *conn, const store_key_t &key) {
     conn->write(&key.size, sizeof(key.size));
     conn->write(key.contents, key.size);
+}
+
+int ser_size(const store_key_t &key) {
+    int size = 0;
+    size += sizeof(key.size);
+    size += key.size;
+    return size;
 }
 
 void unserialize(cluster_inpipe_t *conn, store_key_t *key) {
@@ -182,6 +230,14 @@ void serialize(cluster_outpipe_t *conn, const unique_ptr_t<data_provider_t> &dat
         }
     } else {
         ::serialize(conn, false);
+    }
+}
+
+int ser_size(const unique_ptr_t<data_provider_t> &data) {
+    if (data) {
+        return ser_size(true) + ser_size(data->get_size()) + data->get_size();
+    } else {
+        return ser_size(false);
     }
 }
 
@@ -214,6 +270,9 @@ struct format_t<data_provider_t *> {
             return dp.get();
         }
     };
+    static int get_size(data_provider_t *data) {
+        return sizeof(int) + data->get_size();
+    }
     static void write(cluster_outpipe_t *conn, data_provider_t *data) {
         int size = data->get_size();
         conn->write(&size, sizeof(size));

@@ -27,6 +27,9 @@ def generate_async_message_template(nargs):
     print "        static void serialize(cluster_outpipe_t *p, const address_t &addr) {"
     print "            ::serialize(p, addr.addr);"
     print "        }"
+    print "        static int ser_size(const address_t &addr) {"
+    print "            return ::ser_size(addr.addr);"
+    print "        }"
     print "        static void unserialize(cluster_inpipe_t *p, address_t *addr) {"
     print "            ::unserialize(p, &addr->addr);"
     print "        }"
@@ -47,6 +50,12 @@ def generate_async_message_template(nargs):
     print "        void serialize(cluster_outpipe_t *p) {"
     for i in xrange(nargs):
         print "            format_t<arg%d_t>::write(p, arg%d);" % (i,i)
+    print "        }"
+    print "        int ser_size() {"
+    print "             int size = 0;"
+    for i in xrange(nargs):
+        print "            size += format_t<arg%d_t>::get_size(arg%d);" % (i, i)
+    print "             return size;"
     print "        }"
     print "    };"
     print "    void unserialize(cluster_inpipe_t *p) {"
@@ -121,6 +130,9 @@ def generate_sync_message_template(nargs, void):
     print "        static void serialize(cluster_outpipe_t *p, const address_t &addr) {"
     print "            ::serialize(p, addr.addr);"
     print "        }"
+    print "        static int ser_size(const address_t &addr) {"
+    print "            return ::ser_size(addr.addr);"
+    print "        }"
     print "        static void unserialize(cluster_inpipe_t *p, address_t *addr) {"
     print "            ::unserialize(p, &addr->addr);"
     print "        }"
@@ -144,6 +156,13 @@ def generate_sync_message_template(nargs, void):
         print "            format_t<arg%d_t>::write(p, arg%d);" % (i, i)
     print "            format_t<cluster_address_t>::write(p, reply_to);"
     print "        }"
+    print "        int ser_size() {"
+    print "             int size = 0;"
+    for i in xrange(nargs):
+        print "             size += format_t<arg%d_t>::get_size(arg%d);" % (i, i)
+    print "             size += format_t<cluster_address_t>::get_size(reply_to);"
+    print "             return size;"
+    print "        }"
     print "    };"
     print
     print "    struct ret_message_t : public cluster_message_t {"
@@ -152,6 +171,12 @@ def generate_sync_message_template(nargs, void):
     print "        void serialize(cluster_outpipe_t *p) {"
     if not void:
         print "            format_t<ret_t>::write(p, ret);"
+    print "        }"
+    print "        int ser_size() {"
+    if not void:
+        print "             return format_t<ret_t>::get_size(ret);"
+    else:
+        print "             return 0;"
     print "        }"
     print "    };"
     print

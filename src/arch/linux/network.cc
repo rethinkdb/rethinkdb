@@ -202,6 +202,11 @@ const_charslice linux_tcp_conn_t::peek() const {
     return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
 }
 
+const_charslice linux_tcp_conn_t::peek(size_t size) {
+    while (read_buffer.size() < size) read_more_buffered();
+    return const_charslice(read_buffer.data(), read_buffer.data() + size);
+}
+
 void linux_tcp_conn_t::pop(size_t len) {
     rassert(!read_cond);
     rassert(len <= read_buffer.size());

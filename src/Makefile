@@ -73,7 +73,7 @@ DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 # Define configuration variables
 CXX:=g++
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -lprotoc
 STATIC_LIBRARIES:=
 
 CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror

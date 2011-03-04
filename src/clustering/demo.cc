@@ -21,6 +21,10 @@ void serialize(cluster_outpipe_t *conn, repli_timestamp ts) {
     ::serialize(conn, ts.time);
 }
 
+int ser_size(repli_timestamp ts) {
+    return ::ser_size(ts.time);
+}
+
 void unserialize(cluster_inpipe_t *conn, repli_timestamp *ts) {
     ::unserialize(conn, &ts->time);
 }
@@ -28,6 +32,10 @@ void unserialize(cluster_inpipe_t *conn, repli_timestamp *ts) {
 void serialize(cluster_outpipe_t *conn, castime_t cs) {
     ::serialize(conn, cs.proposed_cas);
     ::serialize(conn, cs.timestamp);
+}
+
+int ser_size(castime_t cs) {
+    return ::ser_size(cs.proposed_cas) + ::ser_size(cs.timestamp);
 }
 
 void unserialize(cluster_inpipe_t *conn, castime_t *cs) {
@@ -42,6 +50,10 @@ void serialize(cluster_outpipe_t *conn, const get_result_t &res) {
     if (res.to_signal_when_done) res.to_signal_when_done->pulse();
 }
 
+int ser_size(const get_result_t &res) {
+    return ::ser_size(res.value) + ::ser_size(res.flags) + ::ser_size(res.cas);
+}
+
 void unserialize(cluster_inpipe_t *conn, get_result_t *res) {
     ::unserialize(conn, &res->value);
     ::unserialize(conn, &res->flags);
@@ -52,6 +64,12 @@ void unserialize(cluster_inpipe_t *conn, get_result_t *res) {
 void serialize(cluster_outpipe_t *conn, const incr_decr_result_t &res) {
     ::serialize(conn, res.res);
     if (res.res == incr_decr_result_t::idr_success) ::serialize(conn, res.new_value);
+}
+
+int ser_size(const incr_decr_result_t &res) {
+    int size = ::ser_size(res.res);
+    if (res.res == incr_decr_result_t::idr_success) size += ::ser_size(res.new_value);
+    return size;
 }
 
 void unserialize(cluster_inpipe_t *conn, incr_decr_result_t *res) {
@@ -163,20 +181,20 @@ void cluster_main(cluster_config_t config, thread_pool_t *thread_pool) {
         /* Start a new cluster */
 
         logINF("Starting new cluster...\n");
-        cluster_t cluster(31000 + config.id, new demo_delegate_t(&master_mailbox, &registration_mailbox));
+        get_cluster().start(31000 + config.id, new demo_delegate_t(&master_mailbox, &registration_mailbox));
         logINF("Cluster started.\n");
 
-        serve(config.id, static_cast<demo_delegate_t *>(cluster.get_delegate()));
+        serve(config.id, static_cast<demo_delegate_t *>(get_cluster().get_delegate()));
 
     } else {
 
         /* Join an existing cluster */
 
         logINF("Joining an existing cluster.\n");
-        cluster_t cluster(31000 + config.id, "localhost", 31000 + config.contact_id, &demo_delegate_t::construct);
+        get_cluster().start(31000 + config.id, "localhost", 31000 + config.contact_id, &demo_delegate_t::construct);
         logINF("Cluster started.\n");
 
-        serve(config.id, static_cast<demo_delegate_t *>(cluster.get_delegate()));
+        serve(config.id, static_cast<demo_delegate_t *>(get_cluster().get_delegate()));
     }
 
     unreachable("Shutdown not implemented");
@@ -200,7 +218,7 @@ int run_cluster(int argc, char *argv[]) {
         starter.config.contact_id = -1;
     }
     
-    thread_pool_t thread_pool(8);
+    thread_pool_t thread_pool(2);
     starter.thread_pool = &thread_pool;
     thread_pool.run(&starter);
 

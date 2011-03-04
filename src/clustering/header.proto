@@ -1,0 +1,7 @@
+package header;
+
+message hdr {
+    required fixed64 size = 1 [default = 0]; //total size (including this field)
+    required string type = 2;
+    required bytes msg = 3;
+}

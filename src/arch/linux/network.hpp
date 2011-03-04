@@ -57,6 +57,11 @@ public:
     // read_more_buffered(), because there might be leftover data in
     // the peek buffer that might be enough for you.
     const_charslice peek() const;
+
+    //you can also peek with a specific size (this is really just convenient
+    //for some things and can in some cases avoid an unneeded copy
+    const_charslice peek(size_t size);
+
     void pop(size_t len);
 
     void read_more_buffered();

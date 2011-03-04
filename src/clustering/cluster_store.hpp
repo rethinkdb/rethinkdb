@@ -62,6 +62,15 @@ public:
             ::serialize(p, addr.append_prepend_address);
             ::serialize(p, addr.incr_decr_address);
         }
+        static int ser_size(const address_t &addr) {
+            int i = 0;
+            i += ::ser_size(addr.get_cas_address);
+            i += ::ser_size(addr.sarc_address);
+            i += ::ser_size(addr.delete_address);
+            i += ::ser_size(addr.append_prepend_address);
+            i += ::ser_size(addr.incr_decr_address);
+            return i;
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->get_cas_address);
             ::unserialize(p, &addr->sarc_address);
@@ -136,6 +145,15 @@ public:
             ::serialize(p, addr.delete_address);
             ::serialize(p, addr.append_prepend_address);
             ::serialize(p, addr.incr_decr_address);
+        }
+        static int ser_size(const address_t &addr) {
+            int i = 0;
+            i += ::ser_size(addr.get_cas_address);
+            i += ::ser_size(addr.sarc_address);
+            i += ::ser_size(addr.delete_address);
+            i += ::ser_size(addr.append_prepend_address);
+            i += ::ser_size(addr.incr_decr_address);
+            return i;
         }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->get_cas_address);

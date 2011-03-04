@@ -30,6 +30,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -42,6 +45,10 @@ private:
         message_t()
             { }
         void serialize(cluster_outpipe_t *p) {
+        }
+        int ser_size() {
+             int size = 0;
+             return size;
         }
     };
     void unserialize(cluster_inpipe_t *p) {
@@ -84,6 +91,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -100,10 +110,18 @@ private:
         void serialize(cluster_outpipe_t *p) {
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
+        }
+        int ser_size() {
+             return 0;
         }
     };
 
@@ -156,6 +174,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -172,12 +193,20 @@ private:
         void serialize(cluster_outpipe_t *p) {
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
             format_t<ret_t>::write(p, ret);
+        }
+        int ser_size() {
+             return format_t<ret_t>::get_size(ret);
         }
     };
 
@@ -217,6 +246,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -231,6 +263,11 @@ private:
         const arg0_t &arg0;
         void serialize(cluster_outpipe_t *p) {
             format_t<arg0_t>::write(p, arg0);
+        }
+        int ser_size() {
+             int size = 0;
+            size += format_t<arg0_t>::get_size(arg0);
+             return size;
         }
     };
     void unserialize(cluster_inpipe_t *p) {
@@ -276,6 +313,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -294,10 +334,19 @@ private:
             format_t<arg0_t>::write(p, arg0);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
+        }
+        int ser_size() {
+             return 0;
         }
     };
 
@@ -351,6 +400,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -369,12 +421,21 @@ private:
             format_t<arg0_t>::write(p, arg0);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
             format_t<ret_t>::write(p, ret);
+        }
+        int ser_size() {
+             return format_t<ret_t>::get_size(ret);
         }
     };
 
@@ -415,6 +476,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -431,6 +495,12 @@ private:
         void serialize(cluster_outpipe_t *p) {
             format_t<arg0_t>::write(p, arg0);
             format_t<arg1_t>::write(p, arg1);
+        }
+        int ser_size() {
+             int size = 0;
+            size += format_t<arg0_t>::get_size(arg0);
+            size += format_t<arg1_t>::get_size(arg1);
+             return size;
         }
     };
     void unserialize(cluster_inpipe_t *p) {
@@ -478,6 +548,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -498,10 +571,20 @@ private:
             format_t<arg1_t>::write(p, arg1);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
+        }
+        int ser_size() {
+             return 0;
         }
     };
 
@@ -556,6 +639,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -576,12 +662,22 @@ private:
             format_t<arg1_t>::write(p, arg1);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
             format_t<ret_t>::write(p, ret);
+        }
+        int ser_size() {
+             return format_t<ret_t>::get_size(ret);
         }
     };
 
@@ -623,6 +719,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -641,6 +740,13 @@ private:
             format_t<arg0_t>::write(p, arg0);
             format_t<arg1_t>::write(p, arg1);
             format_t<arg2_t>::write(p, arg2);
+        }
+        int ser_size() {
+             int size = 0;
+            size += format_t<arg0_t>::get_size(arg0);
+            size += format_t<arg1_t>::get_size(arg1);
+            size += format_t<arg2_t>::get_size(arg2);
+             return size;
         }
     };
     void unserialize(cluster_inpipe_t *p) {
@@ -690,6 +796,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -712,10 +821,21 @@ private:
             format_t<arg2_t>::write(p, arg2);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
+        }
+        int ser_size() {
+             return 0;
         }
     };
 
@@ -771,6 +891,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -793,12 +916,23 @@ private:
             format_t<arg2_t>::write(p, arg2);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
             format_t<ret_t>::write(p, ret);
+        }
+        int ser_size() {
+             return format_t<ret_t>::get_size(ret);
         }
     };
 
@@ -841,6 +975,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -861,6 +998,14 @@ private:
             format_t<arg1_t>::write(p, arg1);
             format_t<arg2_t>::write(p, arg2);
             format_t<arg3_t>::write(p, arg3);
+        }
+        int ser_size() {
+             int size = 0;
+            size += format_t<arg0_t>::get_size(arg0);
+            size += format_t<arg1_t>::get_size(arg1);
+            size += format_t<arg2_t>::get_size(arg2);
+            size += format_t<arg3_t>::get_size(arg3);
+             return size;
         }
     };
     void unserialize(cluster_inpipe_t *p) {
@@ -912,6 +1057,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -936,10 +1084,22 @@ private:
             format_t<arg3_t>::write(p, arg3);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
+        }
+        int ser_size() {
+             return 0;
         }
     };
 
@@ -996,6 +1156,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1020,12 +1183,24 @@ private:
             format_t<arg3_t>::write(p, arg3);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
             format_t<ret_t>::write(p, ret);
+        }
+        int ser_size() {
+             return format_t<ret_t>::get_size(ret);
         }
     };
 
@@ -1069,6 +1244,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1091,6 +1269,15 @@ private:
             format_t<arg2_t>::write(p, arg2);
             format_t<arg3_t>::write(p, arg3);
             format_t<arg4_t>::write(p, arg4);
+        }
+        int ser_size() {
+             int size = 0;
+            size += format_t<arg0_t>::get_size(arg0);
+            size += format_t<arg1_t>::get_size(arg1);
+            size += format_t<arg2_t>::get_size(arg2);
+            size += format_t<arg3_t>::get_size(arg3);
+            size += format_t<arg4_t>::get_size(arg4);
+             return size;
         }
     };
     void unserialize(cluster_inpipe_t *p) {
@@ -1144,6 +1331,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1170,10 +1360,23 @@ private:
             format_t<arg4_t>::write(p, arg4);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<arg4_t>::get_size(arg4);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
+        }
+        int ser_size() {
+             return 0;
         }
     };
 
@@ -1231,6 +1434,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1257,12 +1463,25 @@ private:
             format_t<arg4_t>::write(p, arg4);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<arg4_t>::get_size(arg4);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
             format_t<ret_t>::write(p, ret);
+        }
+        int ser_size() {
+             return format_t<ret_t>::get_size(ret);
         }
     };
 
@@ -1307,6 +1526,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1331,6 +1553,16 @@ private:
             format_t<arg3_t>::write(p, arg3);
             format_t<arg4_t>::write(p, arg4);
             format_t<arg5_t>::write(p, arg5);
+        }
+        int ser_size() {
+             int size = 0;
+            size += format_t<arg0_t>::get_size(arg0);
+            size += format_t<arg1_t>::get_size(arg1);
+            size += format_t<arg2_t>::get_size(arg2);
+            size += format_t<arg3_t>::get_size(arg3);
+            size += format_t<arg4_t>::get_size(arg4);
+            size += format_t<arg5_t>::get_size(arg5);
+             return size;
         }
     };
     void unserialize(cluster_inpipe_t *p) {
@@ -1386,6 +1618,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1414,10 +1649,24 @@ private:
             format_t<arg5_t>::write(p, arg5);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<arg4_t>::get_size(arg4);
+             size += format_t<arg5_t>::get_size(arg5);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
+        }
+        int ser_size() {
+             return 0;
         }
     };
 
@@ -1476,6 +1725,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1504,12 +1756,26 @@ private:
             format_t<arg5_t>::write(p, arg5);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<arg4_t>::get_size(arg4);
+             size += format_t<arg5_t>::get_size(arg5);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
             format_t<ret_t>::write(p, ret);
+        }
+        int ser_size() {
+             return format_t<ret_t>::get_size(ret);
         }
     };
 
@@ -1555,6 +1821,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1581,6 +1850,17 @@ private:
             format_t<arg4_t>::write(p, arg4);
             format_t<arg5_t>::write(p, arg5);
             format_t<arg6_t>::write(p, arg6);
+        }
+        int ser_size() {
+             int size = 0;
+            size += format_t<arg0_t>::get_size(arg0);
+            size += format_t<arg1_t>::get_size(arg1);
+            size += format_t<arg2_t>::get_size(arg2);
+            size += format_t<arg3_t>::get_size(arg3);
+            size += format_t<arg4_t>::get_size(arg4);
+            size += format_t<arg5_t>::get_size(arg5);
+            size += format_t<arg6_t>::get_size(arg6);
+             return size;
         }
     };
     void unserialize(cluster_inpipe_t *p) {
@@ -1638,6 +1918,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1668,10 +1951,25 @@ private:
             format_t<arg6_t>::write(p, arg6);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<arg4_t>::get_size(arg4);
+             size += format_t<arg5_t>::get_size(arg5);
+             size += format_t<arg6_t>::get_size(arg6);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
+        }
+        int ser_size() {
+             return 0;
         }
     };
 
@@ -1731,6 +2029,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1761,12 +2062,27 @@ private:
             format_t<arg6_t>::write(p, arg6);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<arg4_t>::get_size(arg4);
+             size += format_t<arg5_t>::get_size(arg5);
+             size += format_t<arg6_t>::get_size(arg6);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
             format_t<ret_t>::write(p, ret);
+        }
+        int ser_size() {
+             return format_t<ret_t>::get_size(ret);
         }
     };
 
@@ -1813,6 +2129,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1841,6 +2160,18 @@ private:
             format_t<arg5_t>::write(p, arg5);
             format_t<arg6_t>::write(p, arg6);
             format_t<arg7_t>::write(p, arg7);
+        }
+        int ser_size() {
+             int size = 0;
+            size += format_t<arg0_t>::get_size(arg0);
+            size += format_t<arg1_t>::get_size(arg1);
+            size += format_t<arg2_t>::get_size(arg2);
+            size += format_t<arg3_t>::get_size(arg3);
+            size += format_t<arg4_t>::get_size(arg4);
+            size += format_t<arg5_t>::get_size(arg5);
+            size += format_t<arg6_t>::get_size(arg6);
+            size += format_t<arg7_t>::get_size(arg7);
+             return size;
         }
     };
     void unserialize(cluster_inpipe_t *p) {
@@ -1900,6 +2231,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -1932,10 +2266,26 @@ private:
             format_t<arg7_t>::write(p, arg7);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<arg4_t>::get_size(arg4);
+             size += format_t<arg5_t>::get_size(arg5);
+             size += format_t<arg6_t>::get_size(arg6);
+             size += format_t<arg7_t>::get_size(arg7);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
+        }
+        int ser_size() {
+             return 0;
         }
     };
 
@@ -1996,6 +2346,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -2028,12 +2381,28 @@ private:
             format_t<arg7_t>::write(p, arg7);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<arg4_t>::get_size(arg4);
+             size += format_t<arg5_t>::get_size(arg5);
+             size += format_t<arg6_t>::get_size(arg6);
+             size += format_t<arg7_t>::get_size(arg7);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
             format_t<ret_t>::write(p, ret);
+        }
+        int ser_size() {
+             return format_t<ret_t>::get_size(ret);
         }
     };
 
@@ -2081,6 +2450,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -2111,6 +2483,19 @@ private:
             format_t<arg6_t>::write(p, arg6);
             format_t<arg7_t>::write(p, arg7);
             format_t<arg8_t>::write(p, arg8);
+        }
+        int ser_size() {
+             int size = 0;
+            size += format_t<arg0_t>::get_size(arg0);
+            size += format_t<arg1_t>::get_size(arg1);
+            size += format_t<arg2_t>::get_size(arg2);
+            size += format_t<arg3_t>::get_size(arg3);
+            size += format_t<arg4_t>::get_size(arg4);
+            size += format_t<arg5_t>::get_size(arg5);
+            size += format_t<arg6_t>::get_size(arg6);
+            size += format_t<arg7_t>::get_size(arg7);
+            size += format_t<arg8_t>::get_size(arg8);
+             return size;
         }
     };
     void unserialize(cluster_inpipe_t *p) {
@@ -2172,6 +2557,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -2206,10 +2594,27 @@ private:
             format_t<arg8_t>::write(p, arg8);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<arg4_t>::get_size(arg4);
+             size += format_t<arg5_t>::get_size(arg5);
+             size += format_t<arg6_t>::get_size(arg6);
+             size += format_t<arg7_t>::get_size(arg7);
+             size += format_t<arg8_t>::get_size(arg8);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
+        }
+        int ser_size() {
+             return 0;
         }
     };
 
@@ -2271,6 +2676,9 @@ public:
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
         }
+        static int ser_size(const address_t &addr) {
+            return ::ser_size(addr.addr);
+        }
         static void unserialize(cluster_inpipe_t *p, address_t *addr) {
             ::unserialize(p, &addr->addr);
         }
@@ -2305,12 +2713,29 @@ private:
             format_t<arg8_t>::write(p, arg8);
             format_t<cluster_address_t>::write(p, reply_to);
         }
+        int ser_size() {
+             int size = 0;
+             size += format_t<arg0_t>::get_size(arg0);
+             size += format_t<arg1_t>::get_size(arg1);
+             size += format_t<arg2_t>::get_size(arg2);
+             size += format_t<arg3_t>::get_size(arg3);
+             size += format_t<arg4_t>::get_size(arg4);
+             size += format_t<arg5_t>::get_size(arg5);
+             size += format_t<arg6_t>::get_size(arg6);
+             size += format_t<arg7_t>::get_size(arg7);
+             size += format_t<arg8_t>::get_size(arg8);
+             size += format_t<cluster_address_t>::get_size(reply_to);
+             return size;
+        }
     };
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
             format_t<ret_t>::write(p, ret);
+        }
+        int ser_size() {
+             return format_t<ret_t>::get_size(ret);
         }
     };
 

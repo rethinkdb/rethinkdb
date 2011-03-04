@@ -77,6 +77,42 @@ private:
     DISABLE_COPYING(cond_t);
 };
 
+/* A multi_cond is a condition variable that can be waited on by multiple
+ * things. Pulse will unlock everything that was waiting on it.
+ * It is NOT threadsafe. */
+struct multi_cond_t {
+    multi_cond_t() : ready(false) {}
+    void pulse() {
+        rassert(!ready);
+        ready = true;
+        for (waiter_list_t::iterator it = waiters.begin(); it != waiters.end(); it++)
+            (*it)->coro->notify();
+        waiters.clear();
+    }
+
+    void wait() {
+        if (!ready) {
+            waiter_t waiter(coro_t::self());
+            waiters.push_back(&waiter);
+            coro_t::wait();
+        }
+        /* It's not safe to assert ready here because the multi_cond_t may have been
+        destroyed by now. */
+    }
+
+private:
+    bool ready;
+    struct waiter_t
+         : public intrusive_list_node_t<waiter_t> 
+    {
+        waiter_t(coro_t *coro) : coro(coro) {}
+        coro_t *coro;
+    };
+
+    typedef intrusive_list_t<waiter_t> waiter_list_t;
+     waiter_list_t waiters;
+};
+
 /* A threadsafe_cond_t is a thread-safe condition variable. It's like cond_t except it can be
 used with multiple coroutines on different threads. */
 

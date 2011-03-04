@@ -1,0 +1,7 @@
+package mailbox;
+
+message mailbox_msg {
+    required uint32 id = 1;
+    required uint32 length = 2;
+    optional string type = 3;
+}
