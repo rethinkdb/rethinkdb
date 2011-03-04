@@ -189,3 +189,15 @@ buffer_borrowing_data_provider_t::side_data_provider_t *buffer_borrowing_data_pr
     return side_;
 }
 
+data_provider_splitter_t::data_provider_splitter_t(data_provider_t *dp) {
+    reusable_provider.size = dp->get_size();
+    try {
+        reusable_provider.bg = dp->get_data_as_buffers();
+    } catch (data_provider_failed_exc_t) {
+        reusable_provider.bg = NULL;
+    }
+}
+
+data_provider_t *data_provider_splitter_t::branch() {
+    return &reusable_provider;
+}

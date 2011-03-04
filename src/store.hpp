@@ -88,6 +88,7 @@ struct castime_t {
 
     castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
         : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
+    castime_t() { }
 };
 
 enum set_result_t {

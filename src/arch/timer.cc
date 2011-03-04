@@ -48,7 +48,7 @@ void timer_handler_t::on_timer(int nexpirations) {
 
     intrusive_list_t<timer_token_t>::iterator t;
     for (t = timers.begin(); t != timers.end(); ) {
-        timer_token_t *timer = &*t;
+        timer_token_t *timer = *t;
         
         // Increment now instead of in the header of the 'for' loop because we may
         // delete the timer we are on

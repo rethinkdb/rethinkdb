@@ -52,6 +52,7 @@ def generate_async_message_template(nargs):
     print "    void unserialize(cluster_inpipe_t *p) {"
     for i in xrange(nargs):
         print "        typename format_t<arg%d_t>::parser_t parser%d(p);" % (i,i)
+    print "        p->done();"
     print "        callback(%s);" % ", ".join("parser%d.value()" % i for i in xrange(nargs))
     print "    }"
     print
@@ -100,6 +101,7 @@ def generate_sync_message_template(nargs, void):
         print "                    pulse(parser.value());"
     else:
         print "                    pulse();"
+    print "                    p->done();"
     print "                }"
     print "                void run(cluster_message_t *msg) {"
     if not void:
@@ -159,6 +161,7 @@ def generate_sync_message_template(nargs, void):
     for i in xrange(nargs):
         print "        typename format_t<arg%d_t>::parser_t parser%d(p);" % (i, i)
     print "        format_t<cluster_address_t>::parser_t reply_parser(p);"
+    print "        p->done();"
     print "        ret_message_t rm;"
     if not void:
         print "        rm.ret = callback(%s);" % ", ".join("parser%d.value()" % i for i in xrange(nargs))
@@ -171,7 +174,7 @@ def generate_sync_message_template(nargs, void):
     print "        call_message_t *m = static_cast<call_message_t *>(cm);"
     print "        ret_message_t rm;"
     if not void:
-        print "        rm->ret = callback(%s);" % ", ".join("m->arg%d" % i for i in xrange(nargs))
+        print "        rm.ret = callback(%s);" % ", ".join("m->arg%d" % i for i in xrange(nargs))
     else:
         print "        callback(%s);" % ", ".join("m->arg%d" % i for i in xrange(nargs))
     print "        m->reply_to.send(&rm);"

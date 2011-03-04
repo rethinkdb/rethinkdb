@@ -7,6 +7,7 @@
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 #include "containers/unique_ptr.hpp"
+#include "concurrency/cond_var.hpp"
 
 struct cluster_t;
 struct cluster_peer_t;   // Internal use only
@@ -119,7 +120,7 @@ private:
 
     tcp_listener_t listener;
     void on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &conn);
-
+    void listen_for_messages(int peer);
     void send_message(int peer, cluster_mailbox_t *mailbox, cluster_message_t *msg);
 
     DISABLE_COPYING(cluster_t);
@@ -151,11 +152,13 @@ private:
 struct cluster_inpipe_t {
     void read(void *, size_t);
     void read_address(cluster_address_t *addr);
+    void done();
 private:
     friend class cluster_t;
     cluster_inpipe_t() { }
     tcp_conn_t *conn;
     cluster_t *cluster;
+    cond_t cond;
 };
 
 #endif /* __CLUSTERING_CLUSTER_HPP__ */

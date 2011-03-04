@@ -69,6 +69,8 @@ cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
         char helo[4];
         peers[i]->conn->read(helo, 4);
         assert(!memcmp(helo, "HELO", 4));
+
+        coro_t::spawn(boost::bind(&cluster_t::listen_for_messages, this, i));
     }
 
     /* Make an entry for ourself; all the cluster nodes will do the same thing now that we have
@@ -82,6 +84,7 @@ cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
     intro_msg_pipe.cluster = this;
     intro_msg_pipe.conn = &contact_conn;
     delegate.reset(startup_function(&intro_msg_pipe));
+    intro_msg_pipe.cond.wait();
 }
 
 void cluster_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &conn) {
@@ -110,29 +113,39 @@ void cluster_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &conn) {
         int other_port;
         conn->read(&other_port, sizeof(other_port));
         boost::shared_ptr<cluster_peer_t> peer = boost::make_shared<cluster_peer_t>(other_addr, other_port, conn.get());
+
+        int peer_id = peers.size();
         peers.push_back(peer);
 
         conn->write("HELO", 4);   // Be polite, say HELO back
 
-        while (true) {
-
-            char hdr[4];
-            conn->read(hdr, 4);
-            assert(!memcmp(hdr, "MESG", 4));
-
-            cluster_mailbox_t *mailbox;
-            conn->read(&mailbox, sizeof(mailbox));
-
-            cluster_inpipe_t inpipe;
-            inpipe.cluster = this;
-            inpipe.conn = conn.get();
-            mailbox->unserialize(&inpipe);
-        }
+        listen_for_messages(peer_id);
     }
 }
 
 cluster_t::~cluster_t() {
     not_implemented();
+}
+
+void cluster_t::listen_for_messages(int peer_id) {
+
+    tcp_conn_t *conn = peers[peer_id]->conn;
+
+    while (true) {
+
+        char hdr[4];
+        conn->read(hdr, 4);
+        assert(!memcmp(hdr, "MESG", 4));
+
+        cluster_mailbox_t *mailbox;
+        conn->read(&mailbox, sizeof(mailbox));
+
+        cluster_inpipe_t inpipe;
+        inpipe.cluster = this;
+        inpipe.conn = conn;
+        coro_t::spawn_now(boost::bind(&cluster_mailbox_t::unserialize, mailbox, &inpipe));
+        inpipe.cond.wait();
+    }
 }
 
 void cluster_t::send_message(int peer, cluster_mailbox_t *mailbox, cluster_message_t *msg) {
@@ -205,4 +218,9 @@ void cluster_inpipe_t::read_address(cluster_address_t *addr) {
     }
 
     conn->read(&addr->mailbox, sizeof(addr->mailbox));
+}
+
+void cluster_inpipe_t::done() {
+
+    cond.pulse();
 }

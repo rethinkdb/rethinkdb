@@ -45,6 +45,7 @@ private:
         }
     };
     void unserialize(cluster_inpipe_t *p) {
+        p->done();
         callback();
     }
 
@@ -70,6 +71,7 @@ public:
             struct : public cluster_mailbox_t, public cond_t {
                 void unserialize(cluster_inpipe_t *p) {
                     pulse();
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     pulse();
@@ -109,6 +111,7 @@ private:
 
     void unserialize(cluster_inpipe_t *p) {
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         callback();
         reply_parser.value().send(&rm);
@@ -139,6 +142,7 @@ public:
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
                     pulse(parser.value());
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
@@ -181,6 +185,7 @@ private:
 
     void unserialize(cluster_inpipe_t *p) {
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         rm.ret = callback();
         reply_parser.value().send(&rm);
@@ -189,7 +194,7 @@ private:
     void run(cluster_message_t *cm) {
         call_message_t *m = static_cast<call_message_t *>(cm);
         ret_message_t rm;
-        rm->ret = callback();
+        rm.ret = callback();
         m->reply_to.send(&rm);
     }
 };
@@ -230,6 +235,7 @@ private:
     };
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
+        p->done();
         callback(parser0.value());
     }
 
@@ -257,6 +263,7 @@ public:
             struct : public cluster_mailbox_t, public cond_t {
                 void unserialize(cluster_inpipe_t *p) {
                     pulse();
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     pulse();
@@ -299,6 +306,7 @@ private:
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         callback(parser0.value());
         reply_parser.value().send(&rm);
@@ -329,6 +337,7 @@ public:
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
                     pulse(parser.value());
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
@@ -374,6 +383,7 @@ private:
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         rm.ret = callback(parser0.value());
         reply_parser.value().send(&rm);
@@ -382,7 +392,7 @@ private:
     void run(cluster_message_t *cm) {
         call_message_t *m = static_cast<call_message_t *>(cm);
         ret_message_t rm;
-        rm->ret = callback(m->arg0);
+        rm.ret = callback(m->arg0);
         m->reply_to.send(&rm);
     }
 };
@@ -426,6 +436,7 @@ private:
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
+        p->done();
         callback(parser0.value(), parser1.value());
     }
 
@@ -454,6 +465,7 @@ public:
             struct : public cluster_mailbox_t, public cond_t {
                 void unserialize(cluster_inpipe_t *p) {
                     pulse();
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     pulse();
@@ -499,6 +511,7 @@ private:
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         callback(parser0.value(), parser1.value());
         reply_parser.value().send(&rm);
@@ -529,6 +542,7 @@ public:
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
                     pulse(parser.value());
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
@@ -577,6 +591,7 @@ private:
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         rm.ret = callback(parser0.value(), parser1.value());
         reply_parser.value().send(&rm);
@@ -585,7 +600,7 @@ private:
     void run(cluster_message_t *cm) {
         call_message_t *m = static_cast<call_message_t *>(cm);
         ret_message_t rm;
-        rm->ret = callback(m->arg0, m->arg1);
+        rm.ret = callback(m->arg0, m->arg1);
         m->reply_to.send(&rm);
     }
 };
@@ -632,6 +647,7 @@ private:
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
         typename format_t<arg2_t>::parser_t parser2(p);
+        p->done();
         callback(parser0.value(), parser1.value(), parser2.value());
     }
 
@@ -661,6 +677,7 @@ public:
             struct : public cluster_mailbox_t, public cond_t {
                 void unserialize(cluster_inpipe_t *p) {
                     pulse();
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     pulse();
@@ -709,6 +726,7 @@ private:
         typename format_t<arg1_t>::parser_t parser1(p);
         typename format_t<arg2_t>::parser_t parser2(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         callback(parser0.value(), parser1.value(), parser2.value());
         reply_parser.value().send(&rm);
@@ -739,6 +757,7 @@ public:
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
                     pulse(parser.value());
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
@@ -790,6 +809,7 @@ private:
         typename format_t<arg1_t>::parser_t parser1(p);
         typename format_t<arg2_t>::parser_t parser2(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         rm.ret = callback(parser0.value(), parser1.value(), parser2.value());
         reply_parser.value().send(&rm);
@@ -798,7 +818,7 @@ private:
     void run(cluster_message_t *cm) {
         call_message_t *m = static_cast<call_message_t *>(cm);
         ret_message_t rm;
-        rm->ret = callback(m->arg0, m->arg1, m->arg2);
+        rm.ret = callback(m->arg0, m->arg1, m->arg2);
         m->reply_to.send(&rm);
     }
 };
@@ -848,6 +868,7 @@ private:
         typename format_t<arg1_t>::parser_t parser1(p);
         typename format_t<arg2_t>::parser_t parser2(p);
         typename format_t<arg3_t>::parser_t parser3(p);
+        p->done();
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value());
     }
 
@@ -878,6 +899,7 @@ public:
             struct : public cluster_mailbox_t, public cond_t {
                 void unserialize(cluster_inpipe_t *p) {
                     pulse();
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     pulse();
@@ -929,6 +951,7 @@ private:
         typename format_t<arg2_t>::parser_t parser2(p);
         typename format_t<arg3_t>::parser_t parser3(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value());
         reply_parser.value().send(&rm);
@@ -959,6 +982,7 @@ public:
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
                     pulse(parser.value());
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
@@ -1013,6 +1037,7 @@ private:
         typename format_t<arg2_t>::parser_t parser2(p);
         typename format_t<arg3_t>::parser_t parser3(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value());
         reply_parser.value().send(&rm);
@@ -1021,7 +1046,7 @@ private:
     void run(cluster_message_t *cm) {
         call_message_t *m = static_cast<call_message_t *>(cm);
         ret_message_t rm;
-        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3);
+        rm.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3);
         m->reply_to.send(&rm);
     }
 };
@@ -1074,6 +1099,7 @@ private:
         typename format_t<arg2_t>::parser_t parser2(p);
         typename format_t<arg3_t>::parser_t parser3(p);
         typename format_t<arg4_t>::parser_t parser4(p);
+        p->done();
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value());
     }
 
@@ -1105,6 +1131,7 @@ public:
             struct : public cluster_mailbox_t, public cond_t {
                 void unserialize(cluster_inpipe_t *p) {
                     pulse();
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     pulse();
@@ -1159,6 +1186,7 @@ private:
         typename format_t<arg3_t>::parser_t parser3(p);
         typename format_t<arg4_t>::parser_t parser4(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value());
         reply_parser.value().send(&rm);
@@ -1189,6 +1217,7 @@ public:
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
                     pulse(parser.value());
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
@@ -1246,6 +1275,7 @@ private:
         typename format_t<arg3_t>::parser_t parser3(p);
         typename format_t<arg4_t>::parser_t parser4(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value());
         reply_parser.value().send(&rm);
@@ -1254,7 +1284,7 @@ private:
     void run(cluster_message_t *cm) {
         call_message_t *m = static_cast<call_message_t *>(cm);
         ret_message_t rm;
-        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4);
+        rm.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4);
         m->reply_to.send(&rm);
     }
 };
@@ -1310,6 +1340,7 @@ private:
         typename format_t<arg3_t>::parser_t parser3(p);
         typename format_t<arg4_t>::parser_t parser4(p);
         typename format_t<arg5_t>::parser_t parser5(p);
+        p->done();
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value());
     }
 
@@ -1342,6 +1373,7 @@ public:
             struct : public cluster_mailbox_t, public cond_t {
                 void unserialize(cluster_inpipe_t *p) {
                     pulse();
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     pulse();
@@ -1399,6 +1431,7 @@ private:
         typename format_t<arg4_t>::parser_t parser4(p);
         typename format_t<arg5_t>::parser_t parser5(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value());
         reply_parser.value().send(&rm);
@@ -1429,6 +1462,7 @@ public:
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
                     pulse(parser.value());
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
@@ -1489,6 +1523,7 @@ private:
         typename format_t<arg4_t>::parser_t parser4(p);
         typename format_t<arg5_t>::parser_t parser5(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value());
         reply_parser.value().send(&rm);
@@ -1497,7 +1532,7 @@ private:
     void run(cluster_message_t *cm) {
         call_message_t *m = static_cast<call_message_t *>(cm);
         ret_message_t rm;
-        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5);
+        rm.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5);
         m->reply_to.send(&rm);
     }
 };
@@ -1556,6 +1591,7 @@ private:
         typename format_t<arg4_t>::parser_t parser4(p);
         typename format_t<arg5_t>::parser_t parser5(p);
         typename format_t<arg6_t>::parser_t parser6(p);
+        p->done();
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value());
     }
 
@@ -1589,6 +1625,7 @@ public:
             struct : public cluster_mailbox_t, public cond_t {
                 void unserialize(cluster_inpipe_t *p) {
                     pulse();
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     pulse();
@@ -1649,6 +1686,7 @@ private:
         typename format_t<arg5_t>::parser_t parser5(p);
         typename format_t<arg6_t>::parser_t parser6(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value());
         reply_parser.value().send(&rm);
@@ -1679,6 +1717,7 @@ public:
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
                     pulse(parser.value());
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
@@ -1742,6 +1781,7 @@ private:
         typename format_t<arg5_t>::parser_t parser5(p);
         typename format_t<arg6_t>::parser_t parser6(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value());
         reply_parser.value().send(&rm);
@@ -1750,7 +1790,7 @@ private:
     void run(cluster_message_t *cm) {
         call_message_t *m = static_cast<call_message_t *>(cm);
         ret_message_t rm;
-        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6);
+        rm.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6);
         m->reply_to.send(&rm);
     }
 };
@@ -1812,6 +1852,7 @@ private:
         typename format_t<arg5_t>::parser_t parser5(p);
         typename format_t<arg6_t>::parser_t parser6(p);
         typename format_t<arg7_t>::parser_t parser7(p);
+        p->done();
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value());
     }
 
@@ -1846,6 +1887,7 @@ public:
             struct : public cluster_mailbox_t, public cond_t {
                 void unserialize(cluster_inpipe_t *p) {
                     pulse();
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     pulse();
@@ -1909,6 +1951,7 @@ private:
         typename format_t<arg6_t>::parser_t parser6(p);
         typename format_t<arg7_t>::parser_t parser7(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value());
         reply_parser.value().send(&rm);
@@ -1939,6 +1982,7 @@ public:
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
                     pulse(parser.value());
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
@@ -2005,6 +2049,7 @@ private:
         typename format_t<arg6_t>::parser_t parser6(p);
         typename format_t<arg7_t>::parser_t parser7(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value());
         reply_parser.value().send(&rm);
@@ -2013,7 +2058,7 @@ private:
     void run(cluster_message_t *cm) {
         call_message_t *m = static_cast<call_message_t *>(cm);
         ret_message_t rm;
-        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7);
+        rm.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7);
         m->reply_to.send(&rm);
     }
 };
@@ -2078,6 +2123,7 @@ private:
         typename format_t<arg6_t>::parser_t parser6(p);
         typename format_t<arg7_t>::parser_t parser7(p);
         typename format_t<arg8_t>::parser_t parser8(p);
+        p->done();
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value(), parser8.value());
     }
 
@@ -2113,6 +2159,7 @@ public:
             struct : public cluster_mailbox_t, public cond_t {
                 void unserialize(cluster_inpipe_t *p) {
                     pulse();
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     pulse();
@@ -2179,6 +2226,7 @@ private:
         typename format_t<arg7_t>::parser_t parser7(p);
         typename format_t<arg8_t>::parser_t parser8(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value(), parser8.value());
         reply_parser.value().send(&rm);
@@ -2209,6 +2257,7 @@ public:
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
                     pulse(parser.value());
+                    p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
@@ -2278,6 +2327,7 @@ private:
         typename format_t<arg7_t>::parser_t parser7(p);
         typename format_t<arg8_t>::parser_t parser8(p);
         format_t<cluster_address_t>::parser_t reply_parser(p);
+        p->done();
         ret_message_t rm;
         rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value(), parser8.value());
         reply_parser.value().send(&rm);
@@ -2286,7 +2336,7 @@ private:
     void run(cluster_message_t *cm) {
         call_message_t *m = static_cast<call_message_t *>(cm);
         ret_message_t rm;
-        rm->ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7, m->arg8);
+        rm.ret = callback(m->arg0, m->arg1, m->arg2, m->arg3, m->arg4, m->arg5, m->arg6, m->arg7, m->arg8);
         m->reply_to.send(&rm);
     }
 };

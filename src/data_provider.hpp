@@ -204,4 +204,28 @@ private:
     bool side_owned_;
 };
 
+/* Make a data_provider_splitter_t to send a single data provider to multiple locations. Call
+branch() every time you want a separate data provider. All the data providers returned by branch()
+will become invalid once the data_provider_splitter_t is destroyed. */
+
+class data_provider_splitter_t {
+
+public:
+    data_provider_splitter_t(data_provider_t *dp);
+    data_provider_t *branch();
+
+private:
+    struct reusable_provider_t : public auto_copying_data_provider_t {
+        size_t size;
+        const const_buffer_group_t *bg;   // NULL if exception should be thrown
+        size_t get_size() const {
+            return size;
+        }
+        const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t) {
+            if (bg) return bg;
+            else throw data_provider_failed_exc_t();
+        }
+    } reusable_provider;
+};
+
 #endif /* __DATA_PROVIDER_HPP__ */

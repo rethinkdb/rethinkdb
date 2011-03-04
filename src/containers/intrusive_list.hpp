@@ -203,9 +203,9 @@ public:
     public:
         iterator() : _node(NULL) { }
         
-        node_t &operator*() const {
+        node_t *operator*() const {
             rassert(_node);
-            return *_node;
+            return _node;
         }
         
         iterator operator++() {   // Prefix version
