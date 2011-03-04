@@ -52,7 +52,7 @@ pwrite()/pread(). */
 class linux_diskmgr_aio_t : public linux_diskmgr_t {
 
 public:
-    explicit linux_diskmgr_aio_t(linux_event_queue_t *queue);
+    explicit linux_diskmgr_aio_t(linux_event_queue_t *queue, const linux_io_backend_t io_backend);
     virtual ~linux_diskmgr_aio_t();
     void pread(fd_t fd, void *buf, size_t count, off_t offset, linux_disk_op_t *cb);
     void pwrite(fd_t fd, const void *buf, size_t count, off_t offset, linux_disk_op_t *cb);
