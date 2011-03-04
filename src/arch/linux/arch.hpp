@@ -10,6 +10,7 @@
 struct linux_io_config_t {
     typedef linux_thread_pool_t thread_pool_t;
 
+    typedef linux_io_backend_t io_backend_t;
     typedef linux_file_t file_t;
     typedef linux_direct_file_t direct_file_t;
     typedef linux_nondirect_file_t nondirect_file_t;

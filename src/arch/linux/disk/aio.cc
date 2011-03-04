@@ -18,19 +18,18 @@
 #include "logger.hpp"
 
 /* Async IO scheduler - the common base */
-linux_diskmgr_aio_t::linux_diskmgr_aio_t(linux_event_queue_t *queue)
+linux_diskmgr_aio_t::linux_diskmgr_aio_t(linux_event_queue_t *queue, const linux_io_backend_t io_backend)
     : queue(queue)
 {
-    // TODO!
-    //if(get_parsed_config().aio_backend == aio_native) {
+    if(io_backend == aio_native) {
 #ifdef IO_SUBMIT_THREADED
         submitter.reset(new linux_aio_submit_threaded_t(this));
 #else
         submitter.reset(new linux_aio_submit_sync_t(this));
 #endif
-    //} else {
-    //    submitter.reset(new linux_aio_submit_pooled_t(this));
-    //}
+    } else {
+        submitter.reset(new linux_aio_submit_pooled_t(this));
+    }
 
 #ifdef NO_EVENTFD
     getter.reset(new linux_aio_getevents_noeventfd_t(this));

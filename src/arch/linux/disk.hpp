@@ -8,6 +8,11 @@
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
 
+/* Types of IO backends */
+enum linux_io_backend_t {
+    aio_native, aio_pool
+};
+
 /* The "direct" in linux_direct_file_t refers to the fact that the
 file is opened in O_DIRECT mode, and there are restrictions on the
 alignment of the chunks being written and read to and from the file.
@@ -43,7 +48,7 @@ public:
     };
 
 protected:
-    linux_file_t(const char *path, int mode, bool is_really_direct);
+    linux_file_t(const char *path, int mode, bool is_really_direct, const linux_io_backend_t io_backend);
 
     bool exists();
     bool is_block_device();
@@ -84,7 +89,7 @@ public:
     using linux_file_t::read_blocking;
     using linux_file_t::write_blocking;
 
-    linux_direct_file_t(const char *path, int mode) : linux_file_t(path, mode, true) { }
+    linux_direct_file_t(const char *path, int mode, const linux_io_backend_t io_backend = aio_native) : linux_file_t(path, mode, true, io_backend) { }
 
 private:
     DISABLE_COPYING(linux_direct_file_t);
@@ -102,7 +107,7 @@ public:
     using linux_file_t::read_blocking;
     using linux_file_t::write_blocking;
 
-    linux_nondirect_file_t(const char *path, int mode) : linux_file_t(path, mode, false) { }
+    linux_nondirect_file_t(const char *path, int mode, const linux_io_backend_t io_backend = aio_native) : linux_file_t(path, mode, false, io_backend) { }
 
 private:
     DISABLE_COPYING(linux_nondirect_file_t);
