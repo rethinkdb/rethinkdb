@@ -89,7 +89,6 @@ void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli
         }
 
         // TODO: Remove old items from the front of t_o_largebuf.
-        t_o_largebuf->release();
     }
 
     // 2. Update the keys list.
@@ -103,8 +102,6 @@ void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli
         int refsize_adjustment_dontcare;
         keys_largebuf->append(1 + key->size, &refsize_adjustment_dontcare);
         keys_largebuf->fill_at(keys_ref->size - (1 + key->size), key, 1 + key->size);
-
-        keys_largebuf->release();
     }
 }
 
@@ -147,8 +144,6 @@ void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, r
             i += sizeof(tao);
         }
 
-        t_o_largebuf->release();
-
         if (!begin_found) {
             return;
             // Nothing to do!
@@ -182,8 +177,6 @@ void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, r
         int64_t half_n = n / 2;
         recipient->receive_keys(buf.get(), half_n);
         recipient->receive_keys(buf.get() + half_n, n - half_n);
-
-        keys_largebuf->release();
     }
 }
 

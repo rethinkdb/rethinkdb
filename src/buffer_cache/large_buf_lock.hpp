@@ -34,7 +34,7 @@ public:
     // TODO remove this
     void release() {
         if (lv_) {
-            lv_->release();
+            lv_->lv_release();
             delete lv_;
             lv_ = NULL;
         }

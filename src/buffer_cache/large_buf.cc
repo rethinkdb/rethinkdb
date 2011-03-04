@@ -816,7 +816,7 @@ void large_buf_t::mark_deleted() {
     state = deleted;
 }
 
-void large_buf_t::release() {
+void large_buf_t::lv_release() {
     rassert(state == loaded || state == deleted);
 
     transaction->ensure_thread();

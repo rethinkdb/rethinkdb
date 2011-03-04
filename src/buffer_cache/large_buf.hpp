@@ -95,7 +95,7 @@ public:
     uint16_t pos_to_seg_pos(int64_t pos);
 
     void mark_deleted();
-    void release();
+    void lv_release();
 
     void assert_thread() const { transaction->assert_thread(); }
 
