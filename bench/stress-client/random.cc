@@ -72,7 +72,7 @@ size_t xrandom(rnd_gen_t rnd, size_t min, size_t max) {
         break;
     case rnd_normal_t:
         // Here one percent of the database is within the standard deviation
-        tmp = gsl_ran_gaussian((gsl_rng*)rnd.gsl_rnd,  (double)len / rnd.mu) + (len / 2);
+        tmp = gsl_ran_gaussian((gsl_rng*)rnd.gsl_rnd,  (double)len * (double)rnd.mu / 100.0) + (len / 2);
         break;
     };
     
