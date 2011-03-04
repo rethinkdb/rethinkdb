@@ -1,5 +1,9 @@
 package mailbox;
 
+message intro_msg {
+    required uint32 length = 1;
+}
+
 message mailbox_msg {
     required uint32 id = 1;
     required uint32 length = 2;

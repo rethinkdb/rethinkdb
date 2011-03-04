@@ -85,7 +85,10 @@ void cluster_t::start(int port, const char *contact_host, int contact_port,
         }
         print_peers();
     }
-    cluster_inpipe_t intro_msg_pipe(&contact_conn);
+
+    mailbox::intro_msg introduction_header;
+    read_protob(&contact_conn, &introduction_header);
+    cluster_inpipe_t intro_msg_pipe(&contact_conn, introduction_header.length());
     delegate.reset(startup_function(&intro_msg_pipe));
     intro_msg_pipe.to_signal_when_done.wait();
 }
@@ -187,7 +190,12 @@ void cluster_t::handle_unknown_peer(boost::scoped_ptr<tcp_conn_t> &conn, populat
     }
 
     write_protob(conn.get(), &welcome);
-    cluster_outpipe_t out_pipe(conn.get());
+
+    int intro_size = delegate->introduction_ser_size();
+    mailbox::intro_msg intro_msg;
+    intro_msg.set_length(intro_size);
+    write_protob(conn.get(), &intro_msg);
+    cluster_outpipe_t out_pipe(conn.get(), intro_size);
     delegate->introduce_new_node(&out_pipe);
 }
 
@@ -301,11 +309,13 @@ void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
 
         cluster_peer_t *p = peers[peer].get();
         mutex_acquisition_t locker(&p->write_lock);
+
+        int msg_size = msg->ser_size();
         mbox_msg.set_id(mailbox);
-        mbox_msg.set_length(msg->ser_size()); //unimplemented
+        mbox_msg.set_length(msg_size);   // Inform the receiver how long the message is supposed to be
         p->write(&mbox_msg);
 
-        cluster_outpipe_t pipe(p->conn.get());
+        cluster_outpipe_t pipe(p->conn.get(), msg_size);
         msg->serialize(&pipe);
     }
 }
@@ -370,23 +380,36 @@ void cluster_address_t::send(cluster_message_t *msg) const {
 }
 
 void cluster_outpipe_t::write(const void *buf, size_t size) {
+    written += size;
+    if (written > expected) {
+        crash("ser_size() said there would be %d bytes, but serialize() is trying to write more.",
+            expected);
+    }
     conn->write(buf, size);
 }
 
 void cluster_outpipe_t::write_address(const cluster_address_t *addr) {
-    debugf("Sending an address: peer=%d, mailbox=%d\n", addr->peer, addr->mailbox);
-    conn->write(&addr->peer, sizeof(addr->peer));
-    conn->write(&addr->mailbox, sizeof(addr->mailbox));
+    write(&addr->peer, sizeof(addr->peer));
+    write(&addr->mailbox, sizeof(addr->mailbox));
 }
 
 int cluster_outpipe_t::address_ser_size(const cluster_address_t *addr) {
     return sizeof(addr->peer) + sizeof(addr->mailbox);
 }
 
+cluster_outpipe_t::~cluster_outpipe_t() {
+    if (written != expected) {
+        crash("ser_size() said there would be %d bytes, but serialize() only wrote %d.",
+            expected, written);
+    }
+}
+
 void cluster_inpipe_t::read(void *buf, size_t size) {
-    //guarantee(size < on_hand_data, "Trying to read too much data off of an inpipe"); this doesn't work because we use inpipes in hax ways
+    readed += size;
+    if (readed > expected) {
+        crash("The message was %d bytes long, but unserialize() is trying to read more.", expected);
+    }
     conn->read(buf, size);
-    on_hand_data -= size;
 }
 
 void cluster_inpipe_t::read_address(cluster_address_t *addr) {
@@ -396,5 +419,8 @@ void cluster_inpipe_t::read_address(cluster_address_t *addr) {
 }
 
 void cluster_inpipe_t::done() {
+    if (expected != readed) {
+        crash("The message was %d bytes long, but unserialize() only read %d.", expected, readed);
+    }
     to_signal_when_done.pulse();
 }

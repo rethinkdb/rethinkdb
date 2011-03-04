@@ -96,8 +96,7 @@ void kill_mk_official_srvc_t::handle(cluster_peer_t *sndr) {
 
 void mailbox_srvc_t::handle(cluster_peer_t *sndr) {
     if (cluster_mailbox_t *mbox = get_cluster().get_mailbox(msg.id())) {
-        cluster_inpipe_t inpipe(sndr->conn.get());
-        inpipe.give_data(msg.length());
+        cluster_inpipe_t inpipe(sndr->conn.get(), msg.length());
         coro_t::spawn_now(boost::bind(&cluster_mailbox_t::unserialize, mbox, &inpipe));
         inpipe.to_signal_when_done.wait();
     } else {

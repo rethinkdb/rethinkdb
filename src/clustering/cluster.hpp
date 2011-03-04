@@ -229,6 +229,7 @@ certain application-specific operations. */
 
 struct cluster_delegate_t {
 
+    virtual int introduction_ser_size() = 0;
     virtual void introduce_new_node(cluster_outpipe_t *) = 0;
 
     virtual ~cluster_delegate_t() { }
@@ -243,9 +244,12 @@ struct cluster_outpipe_t {
     static int address_ser_size(const cluster_address_t *addr);
 private:
     friend class cluster_t;
-    cluster_outpipe_t(tcp_conn_t *conn) : conn(conn)
+    cluster_outpipe_t(tcp_conn_t *conn, int bytes) : conn(conn), expected(bytes), written(0)
         {}
+    ~cluster_outpipe_t();
     tcp_conn_t *conn;
+    int expected;   // How many total bytes are supposed to be written
+    int written;   // How many bytes have been written
 };
 
 struct cluster_inpipe_t {
@@ -255,11 +259,11 @@ struct cluster_inpipe_t {
 private:
     friend class cluster_t;
     friend class mailbox_srvc_t;
-    cluster_inpipe_t(tcp_conn_t *conn) :
-        on_hand_data(0), conn(conn) {}
-    void give_data(size_t size) { on_hand_data += size; }
-    size_t on_hand_data;
+    cluster_inpipe_t(tcp_conn_t *conn, int bytes) :
+        conn(conn), expected(bytes), readed(0) {}
     tcp_conn_t *conn;
+    int expected;   // How many total bytes are supposed to be read
+    int readed;   // How many bytes have been read
     cond_t to_signal_when_done;
 };
 
