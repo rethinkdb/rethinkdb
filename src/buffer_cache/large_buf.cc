@@ -166,23 +166,26 @@ void large_buf_t::allocate(int64_t _size, large_buf_ref *ref, lbref_limit_t ref_
 
     DEBUG_ONLY(state = loading);
 
+    // TODO: this is messed up, we shouldn't have to break this up
+    // into a special case for num_inlined == 1.
+
     int num_inlined = num_ref_inlined();
     roots.resize(num_inlined);
     if (num_inlined == 1) {
-        roots[0] = allocate_buftree(0, _size, num_levels(_size), root_ref->block_ids);
+        roots[0] = allocate_buftree(0, _size, num_sublevels(_size), root_ref->block_ids);
     } else {
         for (int i = 0; i < num_inlined; ++i) {
-            int num_sublevels = num_levels(_size) - 1;
-            rassert(num_sublevels >= 1);
-            int sz = max_offset(num_sublevels);
-            roots[i] = allocate_buftree(0, (i == num_inlined - 1 ? _size - i * sz : sz), num_sublevels,
+            int sublevels = num_sublevels(_size);
+            rassert(sublevels >= 1);
+            int sz = max_offset(sublevels);
+            roots[i] = allocate_buftree(0, (i == num_inlined - 1 ? _size - i * sz : sz), sublevels,
                                         &root_ref->block_ids[i]);
         }
     }
 
     DEBUG_ONLY(state = loaded);
 
-    rassert(roots[0]->level == num_levels(root_ref->offset + root_ref->size) - (num_inlined != 1));
+    rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
 }
 
 struct tree_available_callback_t {
@@ -298,21 +301,22 @@ void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limi
 
     DEBUG_ONLY(state = loading);
 
-    int levels = num_levels(root_ref->offset + root_ref->size);
+    int sublevels = num_sublevels(root_ref->offset + root_ref->size);
     int num_inlined = num_ref_inlined();
+
+    // TODO: We shouldn't have to split this up into a special case for which num_inlined == 1.
 
     roots.resize(num_inlined);
     if (num_inlined == 1) {
         num_to_acquire = 1;
         tree_available_callback_t *cb = new lb_tree_available_callback_t(this);
         // TODO LARGEBUF acquire for delete properly.
-        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[0], root_ref->offset + slice_offset, slice_size, levels, cb, 0, should_load_leaves_);
+        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[0], root_ref->offset + slice_offset, slice_size, sublevels, cb, 0, should_load_leaves_);
         f->go();
     } else {
         // Yet another case of slicing logic.
 
-        int num_sublevels = levels - 1;
-        int64_t subsize = max_offset(num_sublevels);
+        int64_t subsize = max_offset(sublevels);
         int64_t beg = root_ref->offset + slice_offset;
         int64_t end = beg + slice_size;
 
@@ -325,7 +329,7 @@ void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limi
             tree_available_callback_t *cb = new lb_tree_available_callback_t(this);
             int64_t thisbeg = std::max(beg, i * subsize);
             int64_t thisend = std::min(end, (i + 1) * subsize);
-            acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[i], thisbeg, thisend - thisbeg, num_sublevels, cb, i, should_load_leaves_);
+            acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[i], thisbeg, thisend - thisbeg, sublevels, cb, i, should_load_leaves_);
             f->go();
         }
     }
