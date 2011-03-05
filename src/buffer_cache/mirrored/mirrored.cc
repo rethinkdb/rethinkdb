@@ -7,10 +7,7 @@
 
 /* This mini-FSM loads a buf from disk. */
 
-struct load_buf_fsm_t :
-    public thread_message_t,
-    serializer_t::read_callback_t
-{
+struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
     explicit load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
@@ -47,7 +44,7 @@ struct load_buf_fsm_t :
 
             // Apply outstanding patches
             inner_buf->cache->patch_memory_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data);
-            
+
             // Set next_patch_counter such that the next patches get values consistent with the existing patches
             if (patches) {
                 inner_buf->next_patch_counter = patches->back()->get_patch_counter() + 1;
@@ -84,6 +81,9 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
         new load_buf_fsm_t(this);
     }
 
+    // pm_n_blocks_in_memory gets incremented in cases where
+    // should_load == false, because currently we're still mallocing
+    // the buffer.
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
@@ -112,7 +112,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     // between problems with uninitialized memory and problems with uninitialized blocks
     memset(data, 0xCD, cache->serializer->get_block_size().value());
 #endif
-    
+
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
@@ -121,17 +121,17 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
 
 mc_inner_buf_t::~mc_inner_buf_t() {
     cache->assert_thread();
-    
+
 #ifndef NDEBUG
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
     // be flushed out of the cache.
     memset(data, 0xDD, cache->serializer->get_block_size().value());
 #endif
-    
+
     rassert(safe_to_unload());
     cache->serializer->free(data);
-    
+
     pm_n_blocks_in_memory--;
 }
 
@@ -159,10 +159,10 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
 
 void mc_buf_t::on_lock_available() {
     pm_bufs_acquiring.end(&start_time);
-    
+
     inner_buf->cache->assert_thread();
     rassert(!inner_buf->do_delete);
-    
+
     switch (mode) {
         case rwi_read: {
             data = inner_buf->data;
@@ -200,9 +200,9 @@ void mc_buf_t::on_lock_available() {
         default:
             unreachable();
     }
-    
+
     pm_bufs_held.begin(&start_time);
-    
+
     ready = true;
     if (callback) callback->on_block_available(this);
 }
@@ -239,7 +239,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
         }
     }
 
-    
+
     if (inner_buf->writeback_buf.needs_flush) {
         delete patch;
     }
@@ -331,9 +331,9 @@ void mc_buf_t::release() {
             pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
     }
 #endif
-    
+
     inner_buf->cache->assert_thread();
-    
+
     inner_buf->refcount--;
 
     if (!non_locking_access) {
@@ -357,17 +357,17 @@ void mc_buf_t::release() {
                 unreachable("Unexpected mode.");
         }
     }
-    
-    // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
+
+#if AGGRESSIVE_BUF_UNLOADING == 1
+    // If this code is enabled, then it will cause bufs to be unloaded very aggressively.
     // This is useful for catching bugs in which something expects a buf to remain valid even though
     // it is eligible to be unloaded.
-    
-    /*
+
     if (inner_buf->safe_to_unload()) {
         delete inner_buf;
     }
-    */
-    
+#endif
+
     delete this;
 }
 
@@ -410,7 +410,7 @@ bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
     pm_transactions_committing.begin(&start_time);
 
     assert_thread();
-    
+
     /* We have to call sync_patiently() before on_transaction_commit() so that if
     on_transaction_commit() starts a sync, we will get included in it */
     if (access == rwi_write && cache->writeback.wait_for_flush) {
@@ -422,9 +422,9 @@ bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
     } else {
         state = state_committed;
     }
-    
+
     cache->on_transaction_commit(this);
-    
+
     if (state == state_in_commit_call) {
         state = state_committing;
         commit_callback = callback;
@@ -442,7 +442,7 @@ void mc_transaction_t::on_sync() {
     don't delete ourselves yet and just set state to state_committed instead, thereby signalling
     commit() to delete us. I think there must be a better way to do this, but I can't think of it
     right now. */
-    
+
     if (state == state_in_commit_call) {
         state = state_committed;
     } else if (state == state_committing) {
@@ -459,10 +459,10 @@ mc_buf_t *mc_transaction_t::allocate() {
     /* Make a completely new block, complete with a shiny new block_id. */
     rassert(access == rwi_write);
     assert_thread();
-    
+
     // This form of the inner_buf_t constructor generates a new block with a new block ID.
     inner_buf_t *inner_buf = new inner_buf_t(cache);
-    
+
     // This must pass since no one else holds references to this block.
     buf_t *buf = new buf_t(inner_buf, rwi_write);
     rassert(buf->ready);
@@ -474,7 +474,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     block_available_callback_t *callback, bool should_load) {
     rassert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
     assert_thread();
-       
+
     inner_buf_t *inner_buf = cache->page_map.find(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
@@ -522,13 +522,33 @@ repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
  * Cache implementation.
  */
 
+void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_static_config_t *config) {
+    /* Initialize config block and differential log */
+
+    patch_disk_storage_t::create(serializer, MC_CONFIGBLOCK_ID, config);
+
+    /* Write an empty superblock */
+
+    on_thread_t switcher(serializer->home_thread);
+
+    void *superblock = serializer->malloc();
+    bzero(superblock, serializer->get_block_size().value());
+    translator_serializer_t::write_t write = translator_serializer_t::write_t::make(
+        SUPERBLOCK_ID, repli_timestamp::invalid, superblock, false, NULL);
+
+    struct : public serializer_t::write_txn_callback_t, public cond_t {
+        void on_serializer_write_txn() { pulse(); }
+    } cb;
+    if (!serializer->do_write(&write, 1, &cb)) cb.wait();
+
+    serializer->free(superblock);
+}
+
 mc_cache_t::mc_cache_t(
             translator_serializer_t *serializer,
-            mirrored_cache_config_t *dynamic_config,
-            mirrored_cache_static_config_t *static_config) :
+            mirrored_cache_config_t *dynamic_config) :
 
     dynamic_config(dynamic_config),
-    static_config(static_config),
     serializer(serializer),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
@@ -542,138 +562,54 @@ mc_cache_t::mc_cache_t(
         dynamic_config->max_dirty_size / serializer->get_block_size().ser_value(),
         dynamic_config->flush_waiting_threshold,
         dynamic_config->max_concurrent_flushes),
+    /* Build list of free blocks (the free_list constructor blocks) */
     free_list(serializer),
-    shutdown_transaction_backdoor(false),
-    state(state_unstarted),
+    shutting_down(false),
     num_live_transactions(0),
-    patch_disk_storage(*this),
+    to_pulse_when_last_transaction_commits(NULL),
     max_patches_size_ratio(dynamic_config->wait_for_flush ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN)
-    {
+{
+    /* Load differential log from disk */
+    patch_disk_storage.reset(new patch_disk_storage_t(*this, MC_CONFIGBLOCK_ID));
+    patch_disk_storage->load_patches(patch_memory_storage);
 }
 
 mc_cache_t::~mc_cache_t() {
-    rassert(state == state_unstarted || state == state_shut_down);
+    shutting_down = true;
 
+    /* Wait for all transactions to commit before shutting down */
+    if (num_live_transactions > 0) {
+        cond_t cond;
+        to_pulse_when_last_transaction_commits = &cond;
+        cond.wait();
+        to_pulse_when_last_transaction_commits = NULL; // writeback is going to start another transaction, we don't want to get notified again (which would fail)
+    }
+    rassert(num_live_transactions == 0);
+
+    /* Perform a final sync */
+    struct : public writeback_t::sync_callback_t, public cond_t {
+        void on_sync() { pulse(); }
+    } sync_cb;
+    if (!writeback.sync(&sync_cb)) sync_cb.wait();
+
+    /* Must destroy patch_disk_storage before we delete bufs because it uses the buf mechanism
+    to hold the differential log. */
+    patch_disk_storage.reset();
+
+    /* Delete all the buffers */
     while (inner_buf_t *buf = page_repl.get_first_buf()) {
        delete buf;
     }
-    rassert(num_live_transactions == 0);
-}
-
-bool mc_cache_t::start(ready_callback_t *cb) {
-    rassert(state == state_unstarted);
-
-    state = state_starting_up_create_free_list;
-    ready_callback = NULL;
-    if (next_starting_up_step()) {
-        return true;
-    } else {
-        ready_callback = cb;
-        return false;
-    }
-}
-
-bool mc_cache_t::next_starting_up_step() {
-    if (state == state_starting_up_create_free_list) {
-        if (free_list.start(this)) {
-            state = state_starting_up_init_fixed_blocks;
-        } else {
-            state = state_starting_up_waiting_for_free_list;
-            return false;
-        }
-    }
-    
-    if (state == state_starting_up_init_fixed_blocks) {
-        /* Create an initial superblock and config block */
-        if (free_list.num_blocks_in_use == 0) {
-            inner_buf_t *b = new mc_inner_buf_t(this);
-            rassert(b->block_id == SUPERBLOCK_ID);
-            bzero(b->data, get_block_size().value());
-
-            inner_buf_t *c_buf = new mc_inner_buf_t(this);
-            rassert(c_buf->block_id == MC_CONFIGBLOCK_ID);
-            bzero(c_buf->data, get_block_size().value());
-            mc_config_block_t *c = reinterpret_cast<mc_config_block_t *>(c_buf->data);
-            c->magic = c->expected_magic;
-            c->cache = *static_config;
-            c_buf->writeback_buf.set_dirty();
-            c_buf->writeback_buf.needs_flush = true;
-        }
-
-        /* Initialize the diff storage (needs coro context) */
-        coro_t::spawn(boost::bind(&mc_cache_t::init_patch_storage, this));
-
-        return false;
-    }
-
-    if (state == state_starting_up_finish) {
-        state = state_ready;
-        
-        if (ready_callback) ready_callback->on_cache_ready();
-        ready_callback = NULL;
-        
-        return true;
-    }
-    
-    unreachable("Invalid state.");
-}
-
-const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };
-
-void mc_cache_t::init_patch_storage() {
-    rassert(state == state_starting_up_init_fixed_blocks);
-
-    // Read the existing config block
-    inner_buf_t *c_buf = page_map.find(MC_CONFIGBLOCK_ID);
-    if (!c_buf) {
-        /* The buf isn't in the cache and must be loaded from disk */
-        c_buf = new mc_inner_buf_t(this, MC_CONFIGBLOCK_ID, true);
-    }
-    c_buf->lock.co_lock(rwi_read);
-    mc_config_block_t *c = reinterpret_cast<mc_config_block_t *>(c_buf->data);
-    guarantee(check_magic<mc_config_block_t>(c->magic), "Invalid mirrored cache config block magic");
-    *static_config = c->cache;
-    c_buf->lock.unlock();
-    
-    if ((unsigned long long)static_config->n_patch_log_blocks > (unsigned long long)dynamic_config->max_dirty_size / get_block_size().ser_value()) {
-        fail_due_to_user_error("The cache of size %d blocks is too small to hold this database's diff log of %d blocks.",
-            (int)(dynamic_config->max_dirty_size / get_block_size().ser_value()),
-            (int)(static_config->n_patch_log_blocks));
-    }
-
-    patch_disk_storage.init(MC_CONFIGBLOCK_ID + 1, static_config->n_patch_log_blocks);
-    patch_disk_storage.load_patches(patch_memory_storage);
-
-    state = state_starting_up_finish;
-    call_later_on_this_thread(this);
-}
-
-void mc_cache_t::on_thread_switch() {
-    rassert(state == state_starting_up_finish);
-    next_starting_up_step();
-}
-
-void mc_cache_t::on_free_list_ready() {
-    rassert(state == state_starting_up_waiting_for_free_list);
-    state = state_starting_up_init_fixed_blocks;
-    next_starting_up_step();
 }
 
 block_size_t mc_cache_t::get_block_size() {
     return serializer->get_block_size();
 }
 
-mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
-        transaction_begin_callback_t *callback) {
-    
+mc_transaction_t *mc_cache_t::begin_transaction(access_t access, transaction_begin_callback_t *callback) {
     assert_thread();
-    // shutdown_transaction_backdoor allows the writeback to request a transaction for the shutdown
-    // sync.
-    rassert(state == state_ready ||
-        (shutdown_transaction_backdoor &&
-            (state == state_shutting_down_start_flush ||
-                state == state_shutting_down_waiting_for_flush)));
-    
+    rassert(!shutting_down);
+
     transaction_t *txn = new transaction_t(this, access);
     num_live_transactions++;
     if (writeback.begin_transaction(txn, callback)) {
@@ -686,73 +622,12 @@ mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {
-    rassert(state == state_ready ||
-        state == state_shutting_down_waiting_for_transactions ||
-        state == state_shutting_down_start_flush ||
-        state == state_shutting_down_waiting_for_flush);
-    
     writeback.on_transaction_commit(txn);
-    
+
     num_live_transactions--;
-    if (state == state_shutting_down_waiting_for_transactions && num_live_transactions == 0) {
+    if (to_pulse_when_last_transaction_commits && num_live_transactions == 0) {
         // We started a shutdown earlier, but we had to wait for the transactions to all finish.
         // Now that all transactions are done, continue shutting down.
-        state = state_shutting_down_start_flush;
-        next_shutting_down_step();
+        to_pulse_when_last_transaction_commits->pulse();
     }
 }
-
-bool mc_cache_t::shutdown(shutdown_callback_t *cb) {
-    rassert(state == state_ready);
-
-    if (num_live_transactions == 0) {
-        state = state_shutting_down_start_flush;
-        shutdown_callback = NULL;
-        if (next_shutting_down_step()) {
-            return true;
-        } else {
-            shutdown_callback = cb;
-            return false;
-        }
-    } else {
-        // The shutdown will be resumed by on_transaction_commit() when the last transaction
-        // completes.
-        state = state_shutting_down_waiting_for_transactions;
-        shutdown_callback = cb;
-        return false;
-    }
-}
-
-bool mc_cache_t::next_shutting_down_step() {
-    if (state == state_shutting_down_start_flush) {
-        if (writeback.sync(this)) {
-            state = state_shutting_down_finish;
-        } else {
-            state = state_shutting_down_waiting_for_flush;
-            return false;
-        }
-    }
-    
-    if (state == state_shutting_down_finish) {
-        patch_disk_storage.shutdown();
-
-        /* Use do_later() rather than calling it immediately because it might call
-        our destructor, and it might not be safe to call our destructor right here. */
-        if (shutdown_callback) {
-            do_later(boost::bind(&shutdown_callback_t::on_cache_shutdown, shutdown_callback));
-        }
-        shutdown_callback = NULL;
-        state = state_shut_down;
-        
-        return true;
-    }
-    
-    unreachable("Invalid state.");
-}
-
-void mc_cache_t::on_sync() {
-    rassert(state == state_shutting_down_waiting_for_flush);
-    state = state_shutting_down_finish;
-    next_shutting_down_step();
-}
-

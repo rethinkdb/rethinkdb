@@ -4,30 +4,24 @@
 #include <string>
 #include <map>
 
-using namespace std;
+using std::string;
 
-string control_exec(string);
-
-string control_help();
-
-class control_t
-{
+class control_t {
 public:
     control_t(string, string);
     ~control_t();
 
+    virtual string call(int argc, char **argv) = 0;
+
+    static string exec(int argc, char **argv);
+    static string help();
+
+
 private:
     string key;
-
-public:
-    virtual string call(string) = 0;
-
-private:
-    string help;
-
-friend string control_help();
+    string help_string;
 };
 
-typedef  map<string, control_t*> control_map_t;
+typedef std::map<string, control_t*> control_map_t;
 
 #endif /*__CONTROL_HPP__*/

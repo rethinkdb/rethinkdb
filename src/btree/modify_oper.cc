@@ -242,17 +242,36 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         bool update_needed = oper->operate(txor, key_found ? &old_value : NULL, old_large_buflock, &new_value, new_large_buflock);
 
         // Make sure that the new_value and new_large_buf returned by operate() are consistent.
+#ifndef NDEBUG
         if (update_needed) {
             if (new_value && new_value->is_large()) {
                 rassert(new_large_buflock.has_lv());
-                rassert(0 == memcmp(new_value->lb_ref()->block_ids, new_large_buflock->get_root_ref()->block_ids, new_large_buflock->get_root_ref()->refsize(slice->cache().get_block_size(), btree_value::lbref_limit) - sizeof(large_buf_ref)));
+
+                if (0 != memcmp(new_value->lb_ref()->block_ids, new_large_buflock->get_root_ref()->block_ids, new_large_buflock->get_root_ref()->refsize(slice->cache().get_block_size(), btree_value::lbref_limit) - sizeof(large_buf_ref))) {
+                    debugf("val size=%ld offset=%ld\n", new_value->lb_ref()->size, new_value->lb_ref()->offset);
+                    int vallim = new_value->lb_ref()->refsize(slice->cache().get_block_size(), btree_value::lbref_limit);
+                    debugf("val reflim=%d\n", vallim);
+                    int valnum = (vallim - sizeof(large_buf_ref)) / sizeof(block_id_t);
+                    for (int i = 0; i < valnum; ++i) {
+                        debugf("%d: %u\n", i, new_value->lb_ref()->block_ids[i]);
+                    }
+
+                    const large_buf_ref *lvref = new_large_buflock->get_root_ref();
+                    int lvreflim = lvref->refsize(slice->cache().get_block_size(), btree_value::lbref_limit);
+                    debugf("larval size=%ld offset=%ld\n", lvref->size, lvref->offset);
+                    debugf("larval reflim=%d\n", lvreflim);
+
+                    int lvrefnum = (lvreflim - sizeof(large_buf_ref)) / sizeof(block_id_t);
+                    for (int i = 0; i < lvrefnum; ++i) {
+                        debugf("%d: %u\n", i, lvref->block_ids[i]);
+                    }
+
+                    rassert(false, "new_value and new_large_buflock refs do not match!");
+                }
             } else {
                 rassert(!new_large_buflock.has_lv());
             }
-        }
-
-#ifndef NDEBUG
-        if (!update_needed) {
+        } else {
             rassert(!new_large_buflock.has_lv());
         }
 #endif

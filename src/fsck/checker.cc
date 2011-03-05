@@ -427,8 +427,9 @@ bool is_valid_extent(file_knowledge *knog, off64_t offset) {
     return is_valid_offset(knog, offset, knog->static_config->extent_size());
 }
 
-bool is_valid_btree_block(file_knowledge *knog, off64_t offset) {
-    return is_valid_offset(knog, offset, knog->static_config->block_size().ser_value());
+bool is_valid_btree_offset(file_knowledge *knog, flagged_off64_t offset) {
+    return is_valid_offset(knog, offset.parts.value, knog->static_config->block_size().ser_value())
+        || flagged_off64_t::is_delete_id(offset);
 }
 
 bool is_valid_device_block(file_knowledge *knog, off64_t offset) {
@@ -478,7 +479,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge *knog, unsigned int
             errs->bad_block_id_count++;
         } else if (entry.block_id.value % LBA_SHARD_FACTOR != shard_number) {
             errs->wrong_shard_count++;
-        } else if (!is_valid_btree_block(knog, entry.offset.parts.value)) {
+        } else if (!is_valid_btree_offset(knog, entry.offset)) {
             errs->bad_offset_count++;
         } else {
             write_locker locker(knog);
@@ -730,10 +731,11 @@ struct value_error {
     std::vector<segment_error> lv_segment_errors;
 
     explicit value_error(block_id_t block_id) : block_id(block_id), bad_metadata_flags(false),
-                                                too_big(false), lv_too_small(false), index_block_id(NULL_BLOCK_ID) { }
+                                                too_big(false), lv_too_small(false), lv_not_left_shifted(false),
+                                                lv_bogus_ref(false), index_block_id(NULL_BLOCK_ID) { }
 
     bool is_bad() const {
-        return bad_metadata_flags || too_big || lv_too_small;
+        return bad_metadata_flags || too_big || lv_too_small || lv_not_left_shifted || lv_bogus_ref;
     }
 };
 
@@ -1076,7 +1078,9 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
             read_locker locker(cx.knog);
             info = locker.block_info()[id];
         }
-        if (!flagged_off64_t::has_value(info.offset)) {
+        if (flagged_off64_t::is_delete_id(info.offset)) {
+            // Do nothing.
+        } else if (!flagged_off64_t::has_value(info.offset)) {
             if (first_valueless_block == ser_block_id_t::null()) {
                 first_valueless_block = ser_block_id_t::make(id);
             }
@@ -1392,10 +1396,12 @@ bool report_subtree_errors(const subtree_errors *errs) {
         for (int i = 0, n = errs->value_errors.size(); i < n; ++i) {
             const value_error& e = errs->value_errors[i];
             printf("          %u/'%s' :", e.block_id, e.key.c_str());
-            printf("%s%s%s",
+            printf("%s%s%s%s%s",
                    e.bad_metadata_flags ? " bad_metadata_flags" : "",
                    e.too_big ? " too_big" : "",
-                   e.lv_too_small ? " lv_too_small" : "");
+                   e.lv_too_small ? " lv_too_small" : "",
+                   e.lv_not_left_shifted ? " lv_not_left_shifted" : "",
+                   e.lv_bogus_ref ? " lv_bogus_ref" : "");
             if (e.index_block_id != NULL_BLOCK_ID) {
                 printf(" (index_block_id = %u)", e.index_block_id);
 

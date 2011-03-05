@@ -91,7 +91,8 @@ public:
     config_t()
         : clients(64), load(load_t()),
           keys(distr_t(8, 16)), values(distr_t(8, 128)),
-          duration(10000000L, duration_t::queries_t), batch_factor(distr_t(1, 16))
+          duration(10000000L, duration_t::queries_t), batch_factor(distr_t(1, 16)),
+          distr(rnd_uniform_t), mu(1)
         {
             mock_parse = true;
             latency_file[0] = 0;
@@ -122,6 +123,13 @@ public:
         values.print();
         printf("\nBatch factor......");
         batch_factor.print();
+        printf("\nDistribution......");
+        if(distr == rnd_uniform_t)
+            printf("uniform\n");
+        if(distr == rnd_normal_t) {
+            printf("normal\n");
+            printf("MU................%d\n", mu);
+        }
         printf("\n");
     }
 
@@ -140,6 +148,8 @@ public:
     char out_file[MAX_FILE];
     char in_file[MAX_FILE];
     char db_file[MAX_FILE];
+    rnd_distr_t distr;
+    int mu;
 };
 
 #endif // __CONFIG_HPP__

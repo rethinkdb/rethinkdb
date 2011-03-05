@@ -9,7 +9,7 @@ const block_magic_t log_serializer_t::zerobuf_magic = { { 'z', 'e', 'r', 'o' } }
 
 void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, static_config_t *static_config) {
 
-    direct_file_t df(private_dynamic_config->db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create);
+    direct_file_t df(private_dynamic_config->db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, dynamic_config->io_backend);
 
     co_static_header_write(&df, static_config, sizeof(*static_config));
 
@@ -51,7 +51,7 @@ struct ls_start_existing_fsm_t :
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
         
-        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write);
+        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->dynamic_config->io_backend);
         
         state = state_read_static_header;
         to_signal_when_done = NULL;
@@ -327,17 +327,9 @@ struct ls_block_writer_t :
                     ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
                 } else {
                     done = true;
-                    // TODO this should not be flagged_off64_t::padding(), use a different constant.
-                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::padding());
+                    // TODO this should not be equal to flagged_off64_t::padding(), use a different constant.
+                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::delete_id());
                 }
-                // We write a zero buffer with the given block_id at the front.
-                zerobuf = ser->malloc();
-                bzero(zerobuf, ser->get_block_size().value());
-                memcpy(zerobuf, &log_serializer_t::zerobuf_magic, sizeof(block_magic_t));
-
-                off64_t new_offset;
-                done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
-                ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
             }
             if (done) {
                 return do_finish();

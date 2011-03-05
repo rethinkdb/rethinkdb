@@ -49,9 +49,10 @@ void timerfd_provider_t::on_event(int events) {
     eventfd_t nexpirations;
     
     res = eventfd_read(timer_fd, &nexpirations);
-    guarantee(res == 0, "Could not read timer_fd value");
-
-    callback->on_timer(nexpirations);
+    guarantee_err(res == 0 || errno == EAGAIN, "Could not read timer_fd value");
+    if (res == 0) {
+        callback->on_timer(nexpirations);
+    }
 }
 
 #endif

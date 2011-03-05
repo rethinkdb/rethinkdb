@@ -72,6 +72,8 @@ void usage(const char *name) {
     printf("\t-i, --in-file\n\t\tIf present, populate initial keys from this file\n"\
            "\t\tand don't drop the database (for relevant protocols).\n");
     printf("\t-f, --db-file\n\t\tIf present drop kv pairs into sqlite and verify correctness on read.\n");
+    printf("\t-r, --distr\n\t\tA key access distrubution. Possible values: 'uniform' (default), and 'normal'.\n");
+    printf("\t-m, --mu\n\t\tControl normal distribution. Percent of the database size within one standard\n\t\tdistribution (defaults to 1%%).\n");
 
     printf("\nAdditional information:\n");
     printf("\t\tDISTR format describes a range and can be specified in as NUM or MIN-MAX.\n\n");
@@ -116,13 +118,15 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"out-file",           required_argument, 0, 'o'},
                 {"in-file",            required_argument, 0, 'i'},
                 {"db-file",            required_argument, 0, 'f'},
+                {"distr",              required_argument, 0, 'r'},
+                {"mu",                 required_argument, 0, 'm'},
                 {"client-suffix",      no_argument, 0, 'a'},
                 {"help",               no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:l:L:q:o:i:h:f:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:l:L:q:o:i:h:f:m:", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -186,6 +190,16 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'a':
             config->keys.append_client_suffix = true;
+            break;
+        case 'r':
+            if(strcmp(optarg, "uniform") == 0) {
+                config->distr = rnd_uniform_t;
+            } else if(strcmp(optarg, "normal") == 0) {
+                config->distr = rnd_normal_t;
+            }
+            break;
+        case 'm':
+            config->mu = atoi(optarg);
             break;
         case 'h':
             usage(argv[0]);

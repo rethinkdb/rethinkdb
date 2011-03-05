@@ -52,11 +52,12 @@ private:
     int num_to_acquire;
     large_buf_available_callback_t *callback;
 
-    transaction_t *transaction;
-    block_size_t block_size;
+    transaction_t *txn;
+    block_size_t block_size() const { return txn->cache->get_block_size(); }
 
 public:
 #ifndef NDEBUG
+
     enum state_t {
         not_loaded,
         loading,
@@ -73,6 +74,12 @@ public:
 
     explicit large_buf_t(transaction_t *txn);
     ~large_buf_t();
+
+    // This is a COMPLETE HACK
+    void HACK_root_ref(large_buf_ref *alternate_root_ref) {
+        rassert(0 == memcmp(alternate_root_ref->block_ids, root_ref->block_ids, root_ref->refsize(block_size(), root_ref_limit) - sizeof(large_buf_ref)));
+        root_ref = alternate_root_ref;
+    }
 
     void allocate(int64_t _size, large_buf_ref *refout, lbref_limit_t ref_limit);
     void acquire(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
@@ -96,7 +103,7 @@ public:
 
     void mark_deleted();
 
-    void assert_thread() const { transaction->assert_thread(); }
+    void assert_thread() const { txn->assert_thread(); }
 
     // TODO get rid of this function, why do we need it if the user of
     // the large buf owns the root ref?

@@ -11,6 +11,7 @@ template<class inner_io_config_t>
 struct mock_io_config_t {
     typedef typename inner_io_config_t::thread_pool_t thread_pool_t;
 
+    typedef typename inner_io_config_t::io_backend_t io_backend_t;
     typedef mock_file_t<inner_io_config_t> file_t;
     typedef mock_direct_file_t<inner_io_config_t> direct_file_t;
     typedef mock_nondirect_file_t<inner_io_config_t> nondirect_file_t;

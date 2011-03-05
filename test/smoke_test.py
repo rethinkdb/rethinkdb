@@ -82,7 +82,7 @@ try:
                   "protocol"    : protocol,
                   "duration"    : 10,
                   "fsck"        : True},
-                repeat=1, timeout=60)
+                repeat=1, timeout=90)
         
         do_test_cloud("integration/rget.py",
                 { "auto"        : True,
@@ -109,7 +109,7 @@ try:
                       "cores"       : cores,
                       "slices"      : slices,
                       "duration"    : 10 },
-                    repeat=2, timeout=35)
+                    repeat=2, timeout=65)
         
             do_test_cloud("integration/serial_mix.py",
                     { "auto"        : True,
@@ -120,7 +120,7 @@ try:
                       "slices"      : slices,
                       "duration"    : 10,
                       "restart-server-prob" : "0.0005" },
-                    repeat=2, timeout=35)
+                    repeat=2, timeout=65)
         
             do_test_cloud("integration/multi_serial_mix.py",
                     { "auto"        : True,
@@ -130,7 +130,7 @@ try:
                       "cores"       : cores,
                       "slices"      : slices,
                       "duration"    : 10 },
-                    repeat=2, timeout=35)
+                    repeat=2, timeout=65)
             
             do_test_cloud("integration/multi_serial_mix.py",
                     { "auto"        : True,
@@ -142,7 +142,7 @@ try:
                       "memory"      : 7,
                       "diff-log-size" : 2,
                       "duration"    : 10 },
-                    repeat=2, timeout=35)
+                    repeat=2, timeout=65)
         
     # Report the results
     report_cloud()

@@ -23,7 +23,7 @@ for mode in ["debug", "release"]:
                             cmd_format="make")
 
 # Make sure auxillary tools compile
-do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0",
+do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0 LIBGSL=0",
         {},
         cmd_format="make")
 do_test("cd ../bench/serializer-bench/; make clean; make -j",
@@ -326,7 +326,16 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices},
-                  repeat=1, timeout=180)
+                  repeat=1, timeout=90*ec2)
+
+    do_test_cloud("integration/rget_no_blocking.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices},
+                  repeat=1, timeout=90*ec2)
 
     do_test_cloud("integration/command_line_sanitizing.py",
                   { "auto"        : False,

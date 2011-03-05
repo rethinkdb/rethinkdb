@@ -1,14 +1,24 @@
 #ifndef __PATCH_DISK_STORAGE_HPP__
-#define	__PATCH_DISK_STORAGE_HPP__
+#define __PATCH_DISK_STORAGE_HPP__
 
 #include "buffer_cache/buf_patch.hpp"
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
+#include "serializer/translator.hpp"
+#include "server/cmd_args.hpp"
 
 class mc_cache_t;
 class mc_buf_t;
 
 // Whenever the on-disk format of the patches changes, please increase the version number (currently 00)
 static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'};
+
+struct mc_config_block_t {
+    block_magic_t magic;
+
+    mirrored_cache_static_config_t cache;
+
+    static const block_magic_t expected_magic;
+};
 
 /*
  * patch_disk_storage_t provides an on-disk storage data structure for buffer patches.
@@ -28,11 +38,11 @@ static char LOG_BLOCK_MAGIC[] __attribute__((unused)) = {'L','O','G','B','0','0'
  *  elsewhere (specifically in mc_cache_t and writeback_t) */
 class patch_disk_storage_t {
 public:
-    patch_disk_storage_t(mc_cache_t &cache);
+    static void create(translator_serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config);
+    patch_disk_storage_t(mc_cache_t &cache, block_id_t start_id);
     ~patch_disk_storage_t();
 
-    void init(const block_id_t first_block, const block_id_t number_of_blocks);
-    void shutdown();
+        void shutdown();
 
     // Loads on-disk data into memory
     void load_patches(patch_memory_storage_t &in_memory_storage);
@@ -49,6 +59,7 @@ public:
     unsigned int get_number_of_log_blocks() const;
     
 private:
+
     void reclaim_space(const size_t space_required); // Calls compress_block for select_log_block_for_compression()
     block_id_t select_log_block_for_compression(); // For now: just always select the oldest (=next) block
     void compress_block(const block_id_t log_block_id);

@@ -22,8 +22,8 @@ struct query_stats_t {
     query_stats_t() :
         queries(0), inserts_minus_deletes(0), worst_latency(0) { }
 
-    void push(ticks_t latency, int imd, bool enable_latency_samples = true) {
-        queries++;
+    void push(ticks_t latency, int imd, bool enable_latency_samples, int batch_count) {
+        queries += batch_count;
         inserts_minus_deletes += imd;
         worst_latency = std::max(worst_latency, latency);
         if (enable_latency_samples) latency_samples.push(latency);
@@ -78,6 +78,7 @@ void* run_client(void* data) {
     memset((void *) buffer_of_As, 'A', config->values.max);
 
     client_data->spinlock.lock();
+    rnd_gen_t _rnd = xrandom_create(config->distr, config->mu);
     while(client_data->keep_running) {
         client_data->spinlock.unlock();
 
@@ -124,7 +125,7 @@ void* run_client(void* data) {
 
                 client_data->spinlock.lock();
                 have_lock = true;
-                client_data->stats.push(end_time - start_time, -1, enable_latency_samples);
+                client_data->stats.push(end_time - start_time, -1, enable_latency_samples, 1);
                 break;
             }
 
@@ -133,10 +134,10 @@ void* run_client(void* data) {
                 if (client_data->min_seed == client_data->max_seed)
                     break;
 
-                int keyn = random(client_data->min_seed, client_data->max_seed);
+                int keyn = xrandom(_rnd, client_data->min_seed, client_data->max_seed);
 
                 config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt ^ update_salt);
+                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt ^ update_salt);
 
                 // Send it to server
                 ticks_t start_time = get_ticks();
@@ -148,14 +149,14 @@ void* run_client(void* data) {
 
                 client_data->spinlock.lock();
                 have_lock = true;
-                client_data->stats.push(end_time - start_time, 0, enable_latency_samples);
+                client_data->stats.push(end_time - start_time, 0, enable_latency_samples, 1);
                 break;
             }
 
             case load_t::insert_op: {
                 // Generate the payload
                 config->keys.toss(op_keys, client_data->max_seed ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
                 // Send it to server
                 ticks_t start_time = get_ticks();
@@ -169,7 +170,7 @@ void* run_client(void* data) {
 
                 client_data->spinlock.lock();
                 have_lock = true;
-                client_data->stats.push(end_time - start_time, 1, enable_latency_samples);
+                client_data->stats.push(end_time - start_time, 1, enable_latency_samples, 1);
                 break;
             }
 
@@ -177,9 +178,9 @@ void* run_client(void* data) {
                 // Find the key
                 if(client_data->min_seed == client_data->max_seed)
                     break;
-                int j = random(config->batch_factor.min, config->batch_factor.max);
+                int j = xrandom(config->batch_factor.min, config->batch_factor.max);
                 j = std::min(j, client_data->max_seed - client_data->min_seed);
-                int l = random(client_data->min_seed, client_data->max_seed - 1);
+                int l = xrandom(_rnd, client_data->min_seed, client_data->max_seed - 1);
                 for (int k = 0; k < j; k++) {
                     config->keys.toss(&op_keys[k], l ^ id_salt, client_data->id, config->clients - 1);
                     l++;
@@ -194,7 +195,7 @@ void* run_client(void* data) {
 
                 client_data->spinlock.lock();
                 have_lock = true;
-                client_data->stats.push(end_time - start_time, 0, enable_latency_samples);
+                client_data->stats.push(end_time - start_time, 0, enable_latency_samples, j);
                 break;
             }
 
@@ -204,10 +205,10 @@ void* run_client(void* data) {
                 if (client_data->min_seed == client_data->max_seed)
                     break;
 
-                int keyn = random(client_data->min_seed, client_data->max_seed);
+                int keyn = xrandom(_rnd, client_data->min_seed, client_data->max_seed);
 
                 config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
                 ticks_t start_time = get_ticks();
                 proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
@@ -218,7 +219,7 @@ void* run_client(void* data) {
 
                 client_data->spinlock.lock();
                 have_lock = true;
-                client_data->stats.push(end_time - start_time, 0, enable_latency_samples);
+                client_data->stats.push(end_time - start_time, 0, enable_latency_samples, 1);
                 break;
             }
 
@@ -227,10 +228,10 @@ void* run_client(void* data) {
                 if (client_data->min_seed == client_data->max_seed)
                     break;
 
-                int keyn = random(client_data->min_seed, client_data->max_seed);
+                int keyn = xrandom(_rnd, client_data->min_seed, client_data->max_seed);
 
                 config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_random(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
 
                 ticks_t start_time = get_ticks();
                 proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
@@ -241,7 +242,7 @@ void* run_client(void* data) {
 
                 client_data->spinlock.lock();
                 have_lock = true;
-                client_data->stats.push(end_time - start_time, 0, enable_latency_samples);
+                client_data->stats.push(end_time - start_time, 0, enable_latency_samples, 1);
                 break;
             }
 
@@ -273,7 +274,7 @@ void* run_client(void* data) {
 
                 client_data->spinlock.lock();
                 have_lock = true;
-                client_data->stats.push(end_time - start_time, 0, enable_latency_samples);
+                client_data->stats.push(end_time - start_time, 0, enable_latency_samples, 1);
                 break;
             }
 
