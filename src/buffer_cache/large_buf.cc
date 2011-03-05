@@ -50,7 +50,7 @@ int large_buf_t::compute_large_buf_ref_num_inlined(block_size_t block_size, int6
 }
 
 int large_buf_t::num_ref_inlined() const {
-    rassert(state == loading || state == loaded);
+    rassert(state == loading || state == loaded || state == deleted);
     return compute_large_buf_ref_num_inlined(block_size(), root_ref->size + root_ref->offset, root_ref_limit);
 }
 
