@@ -29,8 +29,15 @@ int large_buf_t::compute_num_levels(block_size_t block_size, int64_t end_offset)
 }
 
 int large_buf_t::compute_num_sublevels(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit) {
-    int levels = compute_num_levels(block_size, end_offset);
-    return compute_large_buf_ref_num_inlined(block_size, end_offset, ref_limit) == 1 ? levels : levels - 1;
+    rassert(end_offset >= 0);
+    rassert(ref_limit.value > int(sizeof(large_buf_ref)) && ref_limit.value % sizeof(block_id_t) == 0);
+
+    int levels = 1;
+    int max_inlined = (ref_limit.value - sizeof(large_buf_ref)) / sizeof(block_id_t);
+    while (compute_max_offset(block_size, levels) * max_inlined < end_offset) {
+        levels++;
+    }
+    return levels;
 }
 
 int large_buf_t::num_sublevels(int64_t end_offset) const {
@@ -38,15 +45,7 @@ int large_buf_t::num_sublevels(int64_t end_offset) const {
 }
 
 int large_buf_t::compute_large_buf_ref_num_inlined(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit) {
-    rassert(end_offset >= 0);
-    int levels = compute_num_levels(block_size, end_offset);
-    if (levels == 1) {
-        return 1;
-    } else {
-        int64_t sub_width = compute_max_offset(block_size, levels - 1);
-        int n = ceil_divide(end_offset, sub_width);
-        return int(sizeof(large_buf_ref) + n * sizeof(block_id_t)) > ref_limit.value ? 1 : n;
-    }
+    return ceil_divide(end_offset, compute_max_offset(block_size, compute_num_sublevels(block_size, end_offset, ref_limit)));
 }
 
 int large_buf_t::num_ref_inlined() const {
