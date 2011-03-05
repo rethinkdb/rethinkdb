@@ -51,9 +51,9 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 // Prepare the large value if necessary.
                 if (!old_value->is_large()) { // small -> large; allocate a new large value and copy existing value into it.
                     large_buflock.set(new large_buf_t(txor->transaction()));
-                    large_buflock.lv()->allocate(new_size, value.large_buf_ref_ptr(), btree_value::lbref_limit);
-                    if (append) large_buflock.lv()->fill_at(0, old_value->value(), old_value->value_size());
-                    else        large_buflock.lv()->fill_at(data->get_size(), old_value->value(), old_value->value_size());
+                    large_buflock->allocate(new_size, value.large_buf_ref_ptr(), btree_value::lbref_limit);
+                    if (append) large_buflock->fill_at(0, old_value->value(), old_value->value_size());
+                    else        large_buflock->fill_at(data->get_size(), old_value->value(), old_value->value_size());
                     is_old_large_value = false;
                 } else { // large -> large; expand existing large value
                     large_buflock.swap(old_large_buflock);
@@ -61,10 +61,10 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
                     if (append) {
                         // TIED large_buflock TO value.
-                        large_buflock.lv()->append(data->get_size(), &refsize_adjustment);
+                        large_buflock->append(data->get_size(), &refsize_adjustment);
                     }
                     else {
-                        large_buflock.lv()->prepend(data->get_size(), &refsize_adjustment);
+                        large_buflock->prepend(data->get_size(), &refsize_adjustment);
                     }
 
                     //debugf("refsize_adjustment: %d (sz = %d)\n", refsize_adjustment, value.large_buf_ref_ptr()->refsize(slice->cache()->get_block_size()));
@@ -77,12 +77,12 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 uint32_t fill_size = data->get_size();
                 uint32_t start_pos = append ? old_value->value_size() : 0;
 
-                int64_t ix = large_buflock.lv()->pos_to_ix(start_pos);
-                uint16_t seg_pos = large_buflock.lv()->pos_to_seg_pos(start_pos);
+                int64_t ix = large_buflock->pos_to_ix(start_pos);
+                uint16_t seg_pos = large_buflock->pos_to_seg_pos(start_pos);
 
                 while (fill_size > 0) {
                     uint16_t seg_len;
-                    byte *seg = large_buflock.lv()->get_segment_write(ix, &seg_len);
+                    byte *seg = large_buflock->get_segment_write(ix, &seg_len);
 
                     rassert(seg_len >= seg_pos);
                     uint16_t seg_bytes_to_fill = std::min((uint32_t)(seg_len - seg_pos), fill_size);
@@ -109,17 +109,17 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                         int refsize_adjustment;
                         if (append) {
                             // TIED large_buflock TO value
-                            large_buflock.lv()->unappend(data->get_size(), &refsize_adjustment);
+                            large_buflock->unappend(data->get_size(), &refsize_adjustment);
                         }
                         else {
                             // TIED large_buflock TO value
-                            large_buflock.lv()->unprepend(data->get_size(), &refsize_adjustment);
+                            large_buflock->unprepend(data->get_size(), &refsize_adjustment);
                         }
                         value.size += refsize_adjustment;
                     } else {
                         // The old value was small, so we just keep it and delete the large value
                         large_buf_lock_t empty;
-                        large_buflock.lv()->mark_deleted();
+                        large_buflock->mark_deleted();
                         large_buflock.swap(empty);
                     }
                 }

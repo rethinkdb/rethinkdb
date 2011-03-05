@@ -935,6 +935,7 @@ uint16_t large_buf_t::pos_to_seg_pos(int64_t pos) {
 
 
 large_buf_t::~large_buf_t() {
+    lv_release();
     rassert(state == released);
     rassert(num_bufs == 0, "num_bufs == 0 failed.. num_bufs is %d", num_bufs);
 }
