@@ -19,15 +19,6 @@ int64_t large_buf_t::compute_max_offset(block_size_t block_size, int levels) {
     return x;
 }
 
-int large_buf_t::compute_num_levels(block_size_t block_size, int64_t end_offset) {
-    rassert(end_offset >= 0);
-    int levels = 1;
-    while (compute_max_offset(block_size, levels) < end_offset) {
-        levels++;
-    }
-    return levels;
-}
-
 int large_buf_t::compute_num_sublevels(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit) {
     rassert(end_offset >= 0);
     rassert(ref_limit.value > int(sizeof(large_buf_ref)) && ref_limit.value % sizeof(block_id_t) == 0);
@@ -73,10 +64,6 @@ int64_t large_buf_t::num_internal_kids() const {
 
 int64_t large_buf_t::max_offset(int levels) const {
     return compute_max_offset(block_size(), levels);
-}
-
-int large_buf_t::num_levels(int64_t end_offset) const {
-    return compute_num_levels(block_size(), end_offset);
 }
 
 buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int levels, block_id_t *block_id) {
@@ -852,20 +839,25 @@ buf_t *large_buf_t::get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *se
     int64_t nlb = num_leaf_bytes();
     int64_t pos = floor_aligned(root_ref->offset, nlb) + ix * nlb;
 
-    int levels = num_levels(root_ref->offset + root_ref->size);
-    buftree_t *tr = num_ref_inlined() == 1 ? roots[0] : NULL;
-    while (levels > 1) {
-        int64_t step = max_offset(levels - 1);
-        tr = (tr ? tr->children : roots)[pos / step];
-        pos = pos % step;
-        --levels;
-        rassert(tr->level == levels);
-    }
+    int sublevels = num_sublevels(root_ref->offset + root_ref->size);
+    std::vector<buftree_t *> *trs = &roots;
 
-    *seg_size = segment_size(ix);
-    *seg_offset = (ix == 0 ? root_ref->offset % nlb : 0);
-    rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-    return tr->buf;
+    for (;;) {
+        int64_t step = max_offset(sublevels);
+        rassert(pos / step < (int64_t)trs->size());
+        buftree_t *tr = (*trs)[pos / step];
+        rassert(tr != NULL);
+
+        if (sublevels == 1) {
+            *seg_size = segment_size(ix);
+            *seg_offset = (ix == 0 ? root_ref->offset % nlb : 0);
+            return tr->buf;
+        }
+
+        trs = &tr->children;
+        pos = pos % step;
+        --sublevels;
+    }
 }
 
 const byte *large_buf_t::get_segment(int64_t ix, uint16_t *seg_size) {
