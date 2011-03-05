@@ -106,13 +106,6 @@ public:
     // TODO:  Stop being a bad programmer and start knowing what thread you're on.
     void ensure_thread() const { txn->ensure_thread(); }
 
-    // TODO get rid of this function, why do we need it if the user of
-    // the large buf owns the root ref?
-    const large_buf_ref *get_root_ref() const {
-        rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-        return root_ref;
-    }
-
     int64_t get_num_segments();
 
     uint16_t segment_size(int64_t ix);
@@ -135,6 +128,15 @@ public:
     static int compute_num_sublevels(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit);
 
     static int compute_large_buf_ref_num_inlined(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit);
+
+    int num_ref_inlined() const;
+
+#ifndef NDEBUG
+    bool root_ref_is(const large_buf_ref *ref) const {
+        rassert(state == loading || state == loaded);
+        return root_ref == ref;
+    }
+#endif
 
 private:
     int64_t num_leaf_bytes() const;
