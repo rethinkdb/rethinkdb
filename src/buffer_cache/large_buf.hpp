@@ -103,7 +103,8 @@ public:
 
     void mark_deleted();
 
-    void assert_thread() const { txn->assert_thread(); }
+    // TODO:  Stop being a bad programmer and start knowing what thread you're on.
+    void ensure_thread() const { txn->ensure_thread(); }
 
     // TODO get rid of this function, why do we need it if the user of
     // the large buf owns the root ref?
