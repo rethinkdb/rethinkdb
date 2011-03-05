@@ -19,6 +19,11 @@ public:
         lv_ = other;
     }
 
+    void reset(large_buf_t *other = NULL) {
+        release();
+        lv_ = other;
+    }
+
     void swap(large_buf_lock_t& other) {
         large_buf_t *tmp = other.lv_;
         other.lv_ = lv_;
@@ -32,6 +37,7 @@ public:
     bool has_lv() const { return lv_ != NULL; }
 
     // TODO remove this
+private:
     void release() {
         if (lv_) {
             lv_->lv_release();

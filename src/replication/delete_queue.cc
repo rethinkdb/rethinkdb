@@ -120,7 +120,7 @@ void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, r
 
     // TODO: DON'T hold the queue_root lock for the entire operation.  Sheesh.
 
-    int64_t begin_offset, end_offset;
+    int64_t begin_offset = 0, end_offset = 0;
 
     {
         large_buf_lock_t t_o_largebuf(new large_buf_t(txn));

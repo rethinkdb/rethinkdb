@@ -52,8 +52,8 @@ int large_buf_t::compute_large_buf_ref_num_inlined(block_size_t block_size, int6
 large_buf_t::large_buf_t(transaction_t *txn) : root_ref(NULL)
                                              , transaction(txn)
                                              , block_size(txn->cache->get_block_size())
-                                             , state(not_loaded)
 #ifndef NDEBUG
+                                             , state(not_loaded)
                                              , num_bufs(0)
 #endif
 {
@@ -156,7 +156,7 @@ void large_buf_t::allocate(int64_t _size, large_buf_ref *ref, lbref_limit_t ref_
 
     rassert(state == not_loaded);
 
-    state = loading;
+    DEBUG_ONLY(state = loading);
 
     rassert(root_ref == NULL);
     root_ref = ref;
@@ -178,7 +178,7 @@ void large_buf_t::allocate(int64_t _size, large_buf_ref *ref, lbref_limit_t ref_
         }
     }
 
-    state = loaded;
+    DEBUG_ONLY(state = loaded);
 
     rassert(roots[0]->level == num_levels(root_ref->offset + root_ref->size) - (num_inlined != 1));
 }
@@ -300,7 +300,7 @@ void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limi
 
     rassert(state == not_loaded);
 
-    state = loading;
+    DEBUG_ONLY(state = loading);
 
     int levels = num_levels(root_ref->offset + root_ref->size);
     int num_inlined = compute_large_buf_ref_num_inlined(block_size, root_ref->offset + root_ref->size, root_ref_limit);
@@ -370,7 +370,7 @@ void large_buf_t::buftree_acquired(buftree_t *tr, int index) {
 
     num_to_acquire --;
     if (num_to_acquire == 0) {
-        state = loaded;
+        DEBUG_ONLY(state = loaded);
         //debugf("large_buf_t::buftree_acquired, calling on_large_buf_available\n");
         callback->on_large_buf_available(this);
     }
@@ -813,7 +813,7 @@ void large_buf_t::mark_deleted() {
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
     only_mark_deleted_tree_structures(&roots, 0, max_offset(sublevels) * compute_large_buf_ref_num_inlined(block_size, root_ref->offset + root_ref->size, root_ref_limit), sublevels);
 
-    state = deleted;
+    DEBUG_ONLY(state = deleted);
 }
 
 void large_buf_t::lv_release() {
@@ -830,7 +830,7 @@ void large_buf_t::lv_release() {
 #endif
 
     root_ref = NULL;
-    state = released;
+    DEBUG_ONLY(state = released);
 }
 
 int64_t large_buf_t::get_num_segments() {

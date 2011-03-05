@@ -55,7 +55,8 @@ private:
     transaction_t *transaction;
     block_size_t block_size;
 
-public: // XXX Should this be private?
+public:
+#ifndef NDEBUG
     enum state_t {
         not_loaded,
         loading,
@@ -65,12 +66,11 @@ public: // XXX Should this be private?
     };
     state_t state;
 
-#ifndef NDEBUG
     int64_t num_bufs;
 #endif
 
-// TODO: Take care of private methods and friend classes and all that.
-public:
+    // TODO: Make appropriate private methods and friend classes and all that.
+
     explicit large_buf_t(transaction_t *txn);
     ~large_buf_t();
 

@@ -89,7 +89,6 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                     data->get_data_into_buffers(&buffer_group);
                 } catch (...) {
                     large_buflock.lv()->mark_deleted();
-                    large_buflock.release();
                     throw;
                 }
             }
