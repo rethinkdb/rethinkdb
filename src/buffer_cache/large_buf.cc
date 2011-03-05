@@ -21,7 +21,7 @@ int64_t large_buf_t::compute_max_offset(block_size_t block_size, int levels) {
 
 int large_buf_t::compute_num_sublevels(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit) {
     rassert(end_offset >= 0);
-    rassert(ref_limit.value > int(sizeof(large_buf_ref)) && ref_limit.value % sizeof(block_id_t) == 0);
+    rassert(ref_limit.value > int(sizeof(large_buf_ref) + sizeof(block_id_t)));
 
     int levels = 1;
     int max_inlined = (ref_limit.value - sizeof(large_buf_ref)) / sizeof(block_id_t);
