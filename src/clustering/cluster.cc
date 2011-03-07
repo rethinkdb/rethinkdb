@@ -8,7 +8,9 @@
 #include <string>
 #include "logger.hpp"
 #include "clustering/pop_srvc.hpp"
+#include "clustering/mbox_srvc.hpp"
 #include "clustering/mailbox.pb.h"
+#include <cxxabi.h>
 
 cluster_mailbox_t::cluster_mailbox_t() {
     get_cluster().add_mailbox(this);
@@ -313,6 +315,14 @@ void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
         int msg_size = msg->ser_size();
         mbox_msg.set_id(mailbox);
         mbox_msg.set_length(msg_size);   // Inform the receiver how long the message is supposed to be
+#ifndef NDEBUG
+        int status; 
+        char *realname = abi::__cxa_demangle(typeid(*msg).name(), 0, 0, &status);
+        rassert(status == 0);
+
+        mbox_msg.set_type(realname, strlen(realname));
+        delete realname;
+#endif
         p->write(&mbox_msg);
 
         cluster_outpipe_t pipe(p->conn.get(), msg_size);

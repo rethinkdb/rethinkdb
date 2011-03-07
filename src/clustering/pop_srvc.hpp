@@ -2,7 +2,6 @@
 #ifndef _CLUSTERING_POP_SRVC_HPP_
 #define _CLUSTERING_POP_SRVC_HPP_
 
-#include "clustering/mailbox.pb.h"
 #include "clustering/population.pb.h"
 #include "clustering/srvc.hpp"
 #include "concurrency/cond_var.hpp"
@@ -156,20 +155,4 @@ public:
 
     void handle(cluster_peer_t *);
 };
-
-/* mailbox_srvc_t is to be used as an always on srvc, it is responsible for
- * sending mailbox_msg data into the correct mailboxes and sending back errors
- * when something goes wrong */
-class mailbox_srvc_t
-    : public msg_srvc_t<mailbox::mailbox_msg>
-{
-public:
-    mailbox_srvc_t()
-        : msg_srvc_t<mailbox::mailbox_msg>() {}
-
-    bool want_message(cluster_peer_t *) { return true; }
-
-    void handle(cluster_peer_t *);
-};
-
 #endif
