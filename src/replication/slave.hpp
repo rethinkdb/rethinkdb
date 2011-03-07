@@ -114,20 +114,20 @@ private:
         failover_reset_control_t(std::string key, slave_t *slave)
             : control_t(key, "Reset the failover module to the state at startup (will force a reconnection to the master)."), slave(slave)
         {}
-        std::string call(std::string);
+        std::string call(int argc, char **argv);
     private:
         slave_t *slave;
     };
 
     /* Control to allow the master to be changed during run time */
-    std::string new_master(std::string args);
+    std::string new_master(int argc, char **argv);
 
     class new_master_control_t : public control_t {
     public:
         new_master_control_t(std::string key, slave_t *slave)
-            : control_t(key, "Set a new master for replication (the slave will disconnect and immediately reconnect to the new server). Syntax: \"rdb new master: host port\""), slave(slave)
+            : control_t(key, "Set a new master for replication (the slave will disconnect and immediately reconnect to the new server). Syntax: \"rdb new_master host port\""), slave(slave)
     {}
-        std::string call(std::string);
+        std::string call(int argc, char **argv);
     private:
         slave_t *slave;
     };

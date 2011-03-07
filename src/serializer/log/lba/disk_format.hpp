@@ -3,15 +3,16 @@
 #define __SERIALIZER_LOG_LBA_DISK_FORMAT__
 
 
+#include <limits.h>
 
 #include "serializer/serializer.hpp"
 
 
 
 // An off64_t with the highest bit saying that a block is deleted.
-// Deleted blocks still have an offset, since there's a zero block
-// sitting in place for them.  The remaining 63 bits give the offset
-// to the block (whether it is deleted or not).
+// Some deleted blocks still have an offset, since there's a zero
+// block sitting in place for them.  The remaining 63 bits give the
+// offset to the block, if it has one (whether it is deleted or not).
 union flagged_off64_t {
     off64_t whole_value;
     struct {
@@ -35,6 +36,14 @@ union flagged_off64_t {
         return ret;
     }
 
+    // TODO: Rename this from delete_id.
+    static inline flagged_off64_t delete_id() {
+        flagged_off64_t ret;
+        ret.parts.value = -2;
+        ret.parts.is_delete = 1;
+        return ret;
+    }
+
     static inline bool is_padding(flagged_off64_t offset) {
         return offset.whole_value == -1;
     }
@@ -54,12 +63,15 @@ union flagged_off64_t {
     }
 
     static inline bool has_value(flagged_off64_t offset) {
-        offset.parts.is_delete = 1;
-        return offset.whole_value != off64_t(-1);
+        return offset.parts.value >= 0;
     }
 
     static inline bool can_be_gced(flagged_off64_t offset) {
         return has_value(offset);
+    }
+
+    static inline bool is_delete_id(flagged_off64_t offset) {
+        return offset.whole_value == delete_id().whole_value;
     }
 };
 
@@ -113,7 +125,7 @@ struct lba_entry_t {
     static inline lba_entry_t make_padding_entry() {
         return make(PADDING_BLOCK_ID, repli_timestamp::invalid, flagged_off64_t::padding());
     }
-} __attribute((__packed__));
+} __attribute__((__packed__));
 
 
 
@@ -153,7 +165,22 @@ struct lba_superblock_t {
     lba_superblock_entry_t entries[0];
 
     static int entry_count_to_file_size(int nentries) {
-        return sizeof(lba_superblock_entry_t) * nentries + offsetof(lba_superblock_t, entries[0]);
+        int ret;
+        guarantee(safe_entry_count_to_file_size(nentries, &ret));
+        return ret;
+    }
+
+    // Returns false if this operation would overflow or if nentries
+    // is not positive.  nentries could still be an obviously invalid
+    // value (like if file_size_out was greater than an extent size).
+    static bool safe_entry_count_to_file_size(int nentries, int *file_size_out) {
+        if (nentries <= 0 || nentries > int((INT_MAX - offsetof(lba_superblock_t, entries[0])) / sizeof(lba_superblock_entry_t))) {
+            *file_size_out = 0;
+            return false;
+        } else {
+            *file_size_out = sizeof(lba_superblock_entry_t) * nentries + offsetof(lba_superblock_t, entries[0]);
+            return true;
+        }
     }
 };
 

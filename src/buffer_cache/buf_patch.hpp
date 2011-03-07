@@ -12,7 +12,7 @@ class buf_patch_t;
 #include "serializer/types.hpp"
 
 typedef uint32_t patch_counter_t;
-typedef byte_t patch_operation_code_t;
+typedef byte patch_operation_code_t;
 
 /*
  * A buf_patch_t is an in-memory representation for a patch. A patch describes

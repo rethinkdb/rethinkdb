@@ -56,7 +56,7 @@ public:
     void move_data(const void* dest, const void* src, const size_t n);
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
-    void mark_deleted();
+    void mark_deleted(bool write_null = true);
     void release();
 
 private:
@@ -91,7 +91,7 @@ public:
     bool commit(transaction_commit_callback_t *callback);
 
     buf_t *acquire(block_id_t block_id, access_t mode,
-                   block_available_callback_t *callback);
+                   block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
     repli_timestamp get_subtree_recency(block_id_t block_id);
 
@@ -118,20 +118,16 @@ public:
     typedef scc_transaction_begin_callback_t<inner_cache_t> transaction_begin_callback_t;
     typedef scc_transaction_commit_callback_t<inner_cache_t> transaction_commit_callback_t;
     typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
-    
+
+    static void create(
+        translator_serializer_t *serializer,
+        mirrored_cache_static_config_t *static_config);
     scc_cache_t(
         translator_serializer_t *serializer,
-        mirrored_cache_config_t *dynamic_config,
-        mirrored_cache_static_config_t *static_config);
-    
-    typedef typename inner_cache_t::ready_callback_t ready_callback_t;
-    bool start(ready_callback_t *cb);
-    
+        mirrored_cache_config_t *dynamic_config);
+
     block_size_t get_block_size();
     transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
-    
-    typedef typename inner_cache_t::shutdown_callback_t shutdown_callback_t;
-    bool shutdown(shutdown_callback_t *cb);
 
 private:
     inner_cache_t inner_cache;

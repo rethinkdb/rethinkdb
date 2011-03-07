@@ -46,6 +46,7 @@ struct ls_start_existing_fsm_t;
 
 struct log_serializer_t :
     public serializer_t,
+    private data_block_manager_t::gc_writer_t,
     private data_block_manager_t::shutdown_callback_t,
     private lba_index_t::shutdown_callback_t
 {
@@ -100,6 +101,9 @@ public:
     repli_timestamp get_recency(ser_block_id_t id);
 
 private:
+    /* Called by the data block manager when it wants us to rewrite some blocks */
+    bool write_gcs(data_block_manager_t::gc_write_t *writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb);
+
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);
     bool next_shutdown_step();

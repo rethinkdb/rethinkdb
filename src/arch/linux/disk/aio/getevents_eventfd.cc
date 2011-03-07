@@ -7,19 +7,17 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include "arch/linux/system_event/eventfd.hpp"
-#include "linux_io_calls_eventfd.hpp"
+#include "arch/linux/disk/aio/getevents_eventfd.hpp"
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
 #include "utils2.hpp"
 #include "logger.hpp"
 
-/* Async IO scheduler */
-
-linux_io_calls_eventfd_t::linux_io_calls_eventfd_t(linux_event_queue_t *queue)
-    : linux_io_calls_base_t(queue)
+linux_aio_getevents_eventfd_t::linux_aio_getevents_eventfd_t(linux_diskmgr_aio_t *parent)
+    : parent(parent)
 {
     int res;
-    
+
     // Create aio notify fd
     aio_notify_fd = eventfd(0, 0);
     guarantee_err(aio_notify_fd != -1, "Could not create aio notification fd");
@@ -27,27 +25,33 @@ linux_io_calls_eventfd_t::linux_io_calls_eventfd_t(linux_event_queue_t *queue)
     res = fcntl(aio_notify_fd, F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make aio notify fd non-blocking");
 
-    queue->watch_resource(aio_notify_fd, poll_event_in, this);
+    parent->queue->watch_resource(aio_notify_fd, poll_event_in, this);
 }
 
-linux_io_calls_eventfd_t::~linux_io_calls_eventfd_t()
+linux_aio_getevents_eventfd_t::~linux_aio_getevents_eventfd_t()
 {
     int res;
-    
+
+    parent->queue->forget_resource(aio_notify_fd, this);
+
     res = close(aio_notify_fd);
     guarantee_err(res == 0, "Could not close aio_notify_fd");
 }
 
-void linux_io_calls_eventfd_t::on_event(int event_mask) {
+void linux_aio_getevents_eventfd_t::prep(iocb *req) {
 
-    int res, nevents;
-    eventfd_t nevents_total;
+    /* This ensures that we get called back when the IO operation completes */
+    io_set_eventfd(req, aio_notify_fd);
+}
+
+void linux_aio_getevents_eventfd_t::on_event(int event_mask) {
 
     if (event_mask != poll_event_in) {
         logERR("Unexpected event mask: %d\n", event_mask);
     }
 
-    res = eventfd_read(aio_notify_fd, &nevents_total);
+    eventfd_t nevents_total;
+    int res = eventfd_read(aio_notify_fd, &nevents_total);
     guarantee_err(res == 0, "Could not read aio_notify_fd value");
 
     // Note: O(1) array allocators are hard. To avoid all the
@@ -62,14 +66,14 @@ void linux_io_calls_eventfd_t::on_event(int event_mask) {
         // event and getting an eventfd for this read event later due
         // to the way the kernel is structured. Better avoid this
         // complexity (hence std::min below).
-        nevents = io_getevents(aio_context, 0,
+        int nevents = io_getevents(parent->aio_context, 0,
                                std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
                                events, NULL);
         guarantee_xerr(nevents >= 1, -nevents, "Waiting for AIO event failed");
 
         // Process the events
         for(int i = 0; i < nevents; i++) {
-            aio_notify((iocb*)events[i].obj, events[i].res);
+            parent->aio_notify((iocb*)events[i].obj, events[i].res);
         }
         nevents_total -= nevents;
 

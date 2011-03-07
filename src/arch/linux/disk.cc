@@ -11,17 +11,34 @@
 #include "config/args.hpp"
 #include "utils2.hpp"
 #include "arch/linux/coroutines.hpp"
+#include "arch/linux/disk/diskmgr.hpp"
+#include "arch/linux/disk/aio/submit_pool.hpp"
+#include "arch/linux/disk/aio/submit_sync.hpp"
+#include "arch/linux/disk/aio/submit_threaded.hpp"
 #include "logger.hpp"
 
 // #define DEBUG_DUMP_WRITES 1
 
 /* Disk file object */
 
-perfmon_counter_t
-    pm_io_reads_started("io_reads_started[ioreads]"),
-    pm_io_writes_started("io_writes_started[iowrites]");
+perfmon_duration_sampler_t
+    pm_io_reads_started("io_disk_reads", secs_to_ticks(1)),
+    pm_io_writes_started("io_disk_writes", secs_to_ticks(1));
 
-linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct)
+linux_disk_op_t::linux_disk_op_t(bool is_write, linux_iocallback_t *cb)
+    : is_write(is_write), callback(cb) {
+    if (is_write) pm_io_writes_started.begin(&start_time);
+    else pm_io_reads_started.begin(&start_time);
+}
+
+void linux_disk_op_t::done() {
+    if (is_write) pm_io_writes_started.end(&start_time);
+    else pm_io_reads_started.end(&start_time);
+    callback->on_io_complete();
+    delete this;
+}
+
+linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, const linux_io_backend_t io_backend)
     : fd(INVALID_FD)
 {
     // Determine if it is a block device
@@ -40,32 +57,32 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct)
     } else {
         is_block = S_ISBLK(file_stat.st_mode);
     }
-    
+
     // Construct file flags
-    
+
     int flags = O_CREAT | (is_really_direct ? O_DIRECT : 0) | O_LARGEFILE;
-    
+
     if ((mode & mode_write) && (mode & mode_read)) flags |= O_RDWR;
     else if (mode & mode_write) flags |= O_WRONLY;
     else if (mode & mode_read) flags |= O_RDONLY;
     else crash("Bad file access mode.");
 
-    
+
     // O_NOATIME requires owner or root privileges. This is a bit of a hack; we assume that
     // if we are opening a regular file, we are the owner, but if we are opening a block device,
     // we are not.
     if (!is_block) flags |= O_NOATIME;
-    
+
     // Open the file
-    
+
     fd = open(path, flags, 0644);
     if (fd == INVALID_FD)
         fail_due_to_user_error("Inaccessible database file: \"%s\": %s", path, strerror(errno));
 
     file_exists = true;
-    
+
     // Determine the file size
-    
+
     if (is_block) {
         res = ioctl(fd, BLKGETSIZE64, &file_size);
         guarantee_err(res != -1, "Could not determine block device size");
@@ -74,8 +91,14 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct)
         guarantee_err(size != -1, "Could not determine file size");
         res = lseek64(fd, 0, SEEK_SET);
         guarantee_err(res != -1, "Could not reset file position");
-        
+
         file_size = size;
+    }
+
+    // Construct a disk manager.
+    // TODO: If two files are on the same disk, they should use the same disk manager maybe.
+    if (linux_thread_pool_t::thread) {
+        diskmgr.reset(new linux_diskmgr_aio_t(&linux_thread_pool_t::thread->queue, io_backend));
     }
 }
 
@@ -112,30 +135,15 @@ void linux_file_t::set_size_at_least(size_t size) {
 }
 
 bool linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
+
     verify(offset, length, buf);
-    
-    linux_io_calls_t *iosys = &linux_thread_pool_t::thread->iosys;
-    
-    // Prepare the request
-    iocb *request = new iocb;
-    io_prep_pread(request, fd, buf, length, offset);
-#ifndef NO_EVENTFD
-    io_set_eventfd(request, iosys->aio_notify_fd);
-#endif
-    request->data = callback;
+    diskmgr->pread(fd, buf, length, offset, new linux_disk_op_t(false, callback));
 
-    // Add it to a list of outstanding read requests
-    iosys->io_requests.queue.push_back(request);
-    
-    pm_io_reads_started++;
-
-    // Process whatever is left
-    iosys->process_requests();
-    
     return false;
 }
 
 bool linux_file_t::write_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
+
 #ifdef DEBUG_DUMP_WRITES
     printf("--- WRITE BEGIN ---\n");
     print_backtrace(stdout);
@@ -143,27 +151,10 @@ bool linux_file_t::write_async(size_t offset, size_t length, void *buf, linux_io
     print_hd(buf, offset, length);
     printf("---- WRITE END ----\n\n");
 #endif
-    
-    verify(offset, length, buf);
-    
-    linux_io_calls_t *iosys = &linux_thread_pool_t::thread->iosys;
-    
-    // Prepare the request
-    iocb *request = new iocb;
-    io_prep_pwrite(request, fd, buf, length, offset);
-#ifndef NO_EVENTFD
-    io_set_eventfd(request, iosys->aio_notify_fd);
-#endif
-    request->data = callback;
 
-    // Add it to a list of outstanding write requests
-    iosys->io_requests.queue.push_back(request);
-    
-    pm_io_writes_started++;
-    
-    // Process whatever is left
-    iosys->process_requests();
-    
+    verify(offset, length, buf);
+    diskmgr->pwrite(fd, buf, length, offset, new linux_disk_op_t(true, callback));
+
     return false;
 }
 
@@ -200,4 +191,3 @@ void linux_file_t::verify(size_t offset, size_t length, void *buf) {
     rassert(offset % DEVICE_BLOCK_SIZE == 0);
     rassert(length % DEVICE_BLOCK_SIZE == 0);
 }
-

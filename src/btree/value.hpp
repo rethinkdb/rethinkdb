@@ -54,6 +54,8 @@ struct btree_value {
     byte contents[];
 
 public:
+    static const lbref_limit_t lbref_limit;
+
     uint16_t full_size() const {
         return sizeof(btree_value) + metadata_size(metadata_flags) + size;
     }
@@ -61,7 +63,7 @@ public:
     // The size of the actual value, which might be the size of the large buf.
     int64_t value_size() const {
         if (is_large()) {
-            int64_t ret = lb_ref().size;
+            int64_t ret = lb_ref()->size;
             rassert(ret > MAX_IN_NODE_VALUE_SIZE);
             return ret;
         } else {
@@ -71,17 +73,15 @@ public:
 
     // Sets the size of the actual value, but it doesn't really create
     // a large buf.
-    void value_size(int64_t new_size) {
+
+    void value_size(int64_t new_size, block_size_t block_size) {
         if (new_size <= MAX_IN_NODE_VALUE_SIZE) {
             metadata_set_large_value_bit(&metadata_flags, false);
             size = new_size;
         } else {
             metadata_set_large_value_bit(&metadata_flags, true);
-            size = sizeof(large_buf_ref);
 
-            // This is kind of fake, kind of paranoid, doing this
-            // here.  The fact that we have this is a sign of scary
-            // bad code.
+            size = large_buf_ref::refsize(block_size, new_size, 0, lbref_limit);
             large_buf_ref_ptr()->size = new_size;
         }
     }
@@ -93,15 +93,11 @@ public:
 
     large_buf_ref *large_buf_ref_ptr() { return reinterpret_cast<large_buf_ref *>(value()); }
 
-    const large_buf_ref& lb_ref() const {
+    const large_buf_ref *lb_ref() const {
         rassert(is_large());
-        rassert(size == sizeof(large_buf_ref));
-        return *reinterpret_cast<const large_buf_ref *>(value());
-    }
-    void set_lb_ref(const large_buf_ref& ref) {
-        rassert(is_large());
-        rassert(size == sizeof(large_buf_ref));
-        *reinterpret_cast<large_buf_ref *>(value()) = ref;
+        rassert(size >= sizeof(large_buf_ref));
+        rassert((size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0);
+        return reinterpret_cast<const large_buf_ref *>(value());
     }
 
     mcflags_t mcflags() const { return metadata_memcached_flags(metadata_flags, contents); }

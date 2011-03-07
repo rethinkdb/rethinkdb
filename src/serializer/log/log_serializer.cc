@@ -9,7 +9,7 @@ const block_magic_t log_serializer_t::zerobuf_magic = { { 'z', 'e', 'r', 'o' } }
 
 void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, static_config_t *static_config) {
 
-    direct_file_t df(private_dynamic_config->db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create);
+    direct_file_t df(private_dynamic_config->db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, dynamic_config->io_backend);
 
     co_static_header_write(&df, static_config, sizeof(*static_config));
 
@@ -51,7 +51,7 @@ struct ls_start_existing_fsm_t :
         rassert(ser->state == log_serializer_t::state_unstarted);
         ser->state = log_serializer_t::state_starting_up;
         
-        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write);
+        ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->dynamic_config->io_backend);
         
         state = state_read_static_header;
         to_signal_when_done = NULL;
@@ -316,14 +316,20 @@ struct ls_block_writer_t :
                 /* We tell the data_block_manager to write a zero block to
                    make recovery from a corrupted file more likely. */
 
-                // We write a zero buffer with the given block_id at the front.
-                zerobuf = ser->malloc();
-                bzero(zerobuf, ser->get_block_size().value());
-                memcpy(zerobuf, &log_serializer_t::zerobuf_magic, sizeof(block_magic_t));
+                // We write a zero buffer with the given block_id at the front, if necessary.
+                if (write.write_empty_deleted_block) {
+                    zerobuf = ser->malloc();
+                    bzero(zerobuf, ser->get_block_size().value());
+                    memcpy(zerobuf, &log_serializer_t::zerobuf_magic, sizeof(block_magic_t));
 
-                off64_t new_offset;
-                done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
-                ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
+                    off64_t new_offset;
+                    done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
+                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
+                } else {
+                    done = true;
+                    // TODO this should not be equal to flagged_off64_t::padding(), use a different constant.
+                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::delete_id());
+                }
             }
             if (done) {
                 return do_finish();
@@ -576,6 +582,38 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
 #endif
 
     return res;
+}
+
+bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb) {
+
+    std::vector<write_t> writes;
+    for (int i = 0; i < num_writes; i++) {
+        /* If the block is not currently in use, we must write a deletion. Otherwise we
+        would write the zero-buf that was written when we first deleted it. */
+        if (block_in_use(gc_writes[i].block_id)) {
+            /* make_internal() makes a write_t that will not change the timestamp. */
+            writes.push_back(write_t::make_internal(gc_writes[i].block_id, gc_writes[i].buf, NULL));
+        } else {
+            rassert(memcmp(gc_writes[i].buf, "zero", 4) == 0);   // Check for zerobuf magic
+            writes.push_back(write_t::make_internal(gc_writes[i].block_id, NULL, NULL));
+        }
+    }
+
+    struct gc_callback_wrapper_t : public write_txn_callback_t {
+        virtual void on_serializer_write_txn() {
+            target->on_gc_write_done();
+            delete this;
+        }
+        data_block_manager_t::gc_write_callback_t *target;
+    } *cb_wrapper = new gc_callback_wrapper_t;
+    cb_wrapper->target = cb;
+
+    if (do_write(writes.data(), writes.size(), cb_wrapper)) {
+        delete cb_wrapper;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1));

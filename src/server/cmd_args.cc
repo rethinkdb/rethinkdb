@@ -7,6 +7,7 @@
 #include "utils.hpp"
 #include "help.hpp"
 #include "arch/arch.hpp"
+#include "cmd_args.hpp"
 
 /* Note that this file only parses arguments for the 'serve' and 'create' subcommands. */
 
@@ -64,6 +65,9 @@ void usage_serve() {
                 "                        collection.\n"
                 "      --active-data-extents\n"
                 "                        How many places in the file to write to at once.\n"
+                "      --io-backend      Possible options are 'native' (the default) and 'pool'.\n"
+                "                        The native backend is most efficient, but may have\n"
+                "                        performance problems in some environments.\n"
                 "\n"
                 "Output options:\n"
                 "  -v, --verbose         Print extra information to standard output.\n");
@@ -150,6 +154,7 @@ enum {
     unsaved_data_limit,
     gc_range,
     active_data_extents,
+    io_backend,
     block_size,
     extent_size,
     diff_log_size,
@@ -199,6 +204,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"extent-size",          required_argument, 0, extent_size},
                 {"diff-log-size",        required_argument, 0, diff_log_size},
                 {"active-data-extents",  required_argument, 0, active_data_extents},
+                {"io-backend",           required_argument, 0, io_backend},
                 {"coroutine-stack-size", required_argument, 0, coroutine_stack_size},
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
@@ -269,6 +275,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_gc_range(optarg); break;
             case active_data_extents: 
                 config.set_active_data_extents(optarg); break;
+            case io_backend:
+                config.set_io_backend(optarg); break;
             case block_size:
                 config.set_block_size(optarg); break;
             case extent_size:
@@ -645,6 +653,18 @@ void parsing_cmd_config_t::set_elb_port(const char *value) {
         fail_due_to_user_error("Invalid TCP port (must be a number from %d to %d).", minimum_value, maximum_value);
 }
 
+void parsing_cmd_config_t::set_io_backend(const char* value) {
+    /* #if WE_ARE_ON_LINUX */
+    if(strcmp(value, "native") == 0) {
+        store_dynamic_config.serializer.io_backend = aio_native;
+    } else if(strcmp(value, "pool") == 0) {
+        store_dynamic_config.serializer.io_backend = aio_pool;
+    } else {
+        fail_due_to_user_error("Possible options for IO backend are 'native' and 'pool'.");
+    }
+    /* #endif */
+}
+
 long long int parsing_cmd_config_t::parse_longlong(const char* value) {
     char* endptr;
     const long long int result = strtoll(value, &endptr, 10);
@@ -763,6 +783,9 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.serializer.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
     store_dynamic_config.serializer.file_size = 0;   // Unlimited file size
     store_dynamic_config.serializer.file_zone_size = GIGABYTE;
+    /* #if WE_ARE_ON_LINUX */
+    store_dynamic_config.serializer.io_backend = aio_native;
+    /* #endif */
     
     store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
     store_dynamic_config.cache.wait_for_flush = false;

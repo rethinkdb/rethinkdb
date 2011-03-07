@@ -1,9 +1,10 @@
 
-LIBS = -lpthread -ldl
+LIBS = -lpthread -ldl 
 SRC = main.cc utils.cc random.cc sqlite3.c
 
 MYSQL ?= 1
 LIBMEMCACHED ?= 1
+LIBGSL ?= 1
 
 ifeq ($(MYSQL),1)
     INCLUDE += -I /usr/local/mysql/include
@@ -17,9 +18,14 @@ ifeq ($(LIBMEMCACHED),1)
     DEFINES += -DUSE_LIBMEMCACHED
 endif
 
+ifeq ($(LIBGSL),1)
+    LIBS += -lgsl -lgslcblas
+    DEFINES += -DUSE_LIBGSL
+endif
+
 EXEC_NAME = stress
 CXX = g++
-CXXFLAGS = -g $(INCLUDE) -O3 $(DEFINES)
+CXXFLAGS = -g $(INCLUDE) $(DEFINES) # -O3
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 

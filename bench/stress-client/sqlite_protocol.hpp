@@ -48,10 +48,10 @@ struct sqlite_protocol_t : public protocol_t {
         for (int i = 0; i < count; i++) {
             sprintf(buffer, "SELECT %s FROM %s WHERE %s == \"%.*s\";\n", VAL_COL_NAME, TABLE_NAME, KEY_COL_NAME, (int) keys[i].second, keys[i].first);
             prepare();
-            assert(step() == SQLITE_ROW);
+            sqlite_assert(step() == SQLITE_ROW);
             const char *val = column_text(0);
             if (values)
-                assert(strncmp(val, values[i].first, values[i].second) == 0);
+                sqlite_assert(strncmp(val, values[i].first, values[i].second) == 0);
             clean_up();
         }
     }
@@ -84,7 +84,7 @@ struct sqlite_protocol_t : public protocol_t {
                         const char *value, size_t value_size) {
         sprintf(buffer, "SELECT %s FROM %s WHERE %s == \"%.*s\";\n", VAL_COL_NAME, TABLE_NAME, KEY_COL_NAME, (int) key_size, key);
         prepare();
-        assert(step() == SQLITE_ROW);
+        sqlite_assert(step() == SQLITE_ROW);
         /* notice this was constant but I'm casting it so that I can use the same pointer*/
         char *orig_val = (char *) column_text(0);
         orig_val = strdup(orig_val);
@@ -99,7 +99,7 @@ struct sqlite_protocol_t : public protocol_t {
                           const char *value, size_t value_size) {
         sprintf(buffer, "SELECT %s FROM %s WHERE %s == \"%.*s\";\n", VAL_COL_NAME, TABLE_NAME, KEY_COL_NAME, (int) key_size, key);
         prepare();
-        assert(step() == SQLITE_ROW);
+        sqlite_assert(step() == SQLITE_ROW);
         /* notice this was constant but I'm casting it so that I can use the same pointer*/
         char *orig_val = (char *) column_text(0);
         orig_val = strdup(orig_val);
@@ -131,7 +131,7 @@ private:
         //printf("+%d\n", _id);
         const char *unused; /* api calls need this but we won't use it */
         int res = sqlite3_prepare(_dbhandle, buffer, -1, &compiled_stmt, &unused);
-        assert(res == SQLITE_OK);
+        sqlite_assert(res == SQLITE_OK);
         return res;
     }
 
@@ -159,11 +159,11 @@ private:
         while ((res = step()) == SQLITE_BUSY) /* this is probably a bad really bad idea. but let's see if it breaks */
             ;
 
-        assert(res == SQLITE_DONE || res == SQLITE_OK);
-        assert(clean_up() == SQLITE_OK);
+        sqlite_assert(res == SQLITE_DONE || res == SQLITE_OK);
+        sqlite_assert(clean_up() == SQLITE_OK);
     }
 
-    void assert(bool predicate) {
+    void sqlite_assert(bool predicate) {
         if (!predicate) {
             fprintf(stderr, "SQLITE error: %s\n", sqlite3_errmsg(_dbhandle));
             exit(-1);

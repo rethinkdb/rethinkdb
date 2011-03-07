@@ -202,6 +202,10 @@ void data_block_manager_t::start_gc() {
     if (gc_state.step() == gc_ready) run_gc();
 }
 
+void data_block_manager_t::on_gc_write_done() {
+    run_gc();
+}
+
 void data_block_manager_t::run_gc() {
     bool run_again = true;
     while (run_again) {
@@ -257,7 +261,7 @@ void data_block_manager_t::run_gc() {
 #ifndef NDEBUG
                 int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
 #endif
-                std::vector<log_serializer_t::write_t> writes;
+                std::vector<gc_write_t> writes;
 
                 for (unsigned int i = 0; i < static_config->blocks_per_extent(); i++) {
 
@@ -266,31 +270,20 @@ void data_block_manager_t::run_gc() {
                     out-of-date data. */
                     if (gc_state.current_entry->g_array[i]) continue;
 
-                    byte_t *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
+                    byte *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
                     ser_block_id_t id = *reinterpret_cast<ser_block_id_t *>(block);
                     void *data = block + sizeof(buf_data_t);
 
-                    /* If the block is not currently in use, we must write a deletion. Otherwise we
-                    would write the zero-buf that was written when we first deleted it. I wonder if
-                    there's a way to make the data block manager not have to know about this... */
-                    if (serializer->block_in_use(id)) {
-                        /* make_internal() makes a write_t that will not change the timestamp. */
-                        writes.push_back(log_serializer_t::write_t::make_internal(id, data, NULL));
-                    } else {
-                        rassert(memcmp(data, "zero", 4) == 0);   // Check for zerobuf magic
-                        writes.push_back(log_serializer_t::write_t::make_internal(id, NULL, NULL));
-                    }
+                    writes.push_back(gc_write_t(id, data));
                 }
 
                 rassert(writes.size() == (size_t)num_writes);
 
                 /* make sure the callback knows who we are */
-                gc_state.gc_write_callback.parent = this;
-                
                 gc_state.set_step(gc_write);
 
                 /* schedule the write */
-                bool done = serializer->do_write(writes.data(), writes.size(), &gc_state.gc_write_callback);
+                bool done = gc_writer->write_gcs(writes.data(), writes.size(), this);
                 if (!done) break;
             }
                 

@@ -60,7 +60,6 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
     : registration_thread(-1),
       read_cond(NULL), write_cond(NULL),
       read_was_shut_down(false), write_was_shut_down(false) {
-
     sock = socket(AF_INET, SOCK_STREAM, 0);
 
     struct sockaddr_in addr;
@@ -74,6 +73,8 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
         logINF("Failed to make a connection with error: %s\n", strerror(errno));
         throw connect_failed_exc_t();
     }
+
+    guarantee_err(fcntl(sock, F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t sock) :
@@ -108,7 +109,6 @@ void linux_tcp_conn_t::register_with_event_loop() {
 }
 
 size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
-
     rassert(!read_was_shut_down);
 
     while (true) {
@@ -164,7 +164,6 @@ size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::read(void *buf, size_t size) {
-
     register_with_event_loop();
     rassert(!read_cond);   // Is there a read already in progress?
     if (read_was_shut_down) throw read_closed_exc_t();
@@ -186,7 +185,6 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::read_more_buffered() {
-
     /* Put ourselves into the epoll object so that we will receive notifications when we need them.
     See the note in register_with_event_loop() if this doesn't make sense. */
     register_with_event_loop();
@@ -211,7 +209,6 @@ void linux_tcp_conn_t::pop(size_t len) {
 }
 
 void linux_tcp_conn_t::shutdown_read() {
-
     int res = ::shutdown(sock, SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
         logERR("Could not shutdown socket for reading: %s\n", strerror(errno));
@@ -221,7 +218,6 @@ void linux_tcp_conn_t::shutdown_read() {
 }
 
 void linux_tcp_conn_t::on_shutdown_read() {
-
     rassert(!read_was_shut_down);
     read_was_shut_down = true;
 
@@ -248,7 +244,6 @@ bool linux_tcp_conn_t::is_read_open() {
 }
 
 void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
-
     rassert(!write_was_shut_down);
 
     while (size > 0) {
@@ -304,7 +299,6 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::write(const void *buf, size_t size) {
-
     register_with_event_loop();
     rassert(!write_cond);
     if (write_was_shut_down) throw write_closed_exc_t();
@@ -317,7 +311,6 @@ void linux_tcp_conn_t::write(const void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
-
     register_with_event_loop();
     rassert(!write_cond);
     if (write_was_shut_down) throw write_closed_exc_t();
@@ -329,7 +322,6 @@ void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::flush_buffer() {
-
     register_with_event_loop();
     rassert(!write_cond);
     if (write_was_shut_down) throw write_closed_exc_t();
@@ -339,7 +331,6 @@ void linux_tcp_conn_t::flush_buffer() {
 }
 
 void linux_tcp_conn_t::shutdown_write() {
-
     int res = ::shutdown(sock, SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
         logERR("Could not shutdown socket for writing: %s\n", strerror(errno));
@@ -349,7 +340,6 @@ void linux_tcp_conn_t::shutdown_write() {
 }
 
 void linux_tcp_conn_t::on_shutdown_write() {
-
     rassert(!write_was_shut_down);
     write_was_shut_down = true;
 
@@ -386,7 +376,6 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
 }
 
 void linux_tcp_conn_t::on_event(int events) {
-
     if ((events & poll_event_err) && (events & poll_event_hup)) {
         /* We get this when the socket is closed but there is still data we are trying to send.
         For example, it can sometimes be reproduced by sending "nonsense\r\n" and then sending
@@ -464,7 +453,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(int port)
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     res = bind(sock, (sockaddr*)&serv_addr, sizeof(serv_addr));
     if (res != 0) {
-        fprintf(stderr, "Couldn't bind socket: %s\n", strerror(errno));
+        logERR("Couldn't bind socket: %s\n", strerror(errno));
         // We cannot simply terminate here, since this may lead to corrupted database files.
         // defunct myself and rely on server to handle this condition and shutdown gracefully...
         defunct = true;
@@ -518,7 +507,7 @@ void linux_tcp_listener_t::on_event(int events) {
                     case ENONET:
                     case ENETUNREACH:
                     case EINTR:
-                        break;
+                    case EMFILE:
                     default:
                         // We can't do anything about failing accept, but we still
                         // must continue processing current connections' request.

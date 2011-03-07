@@ -305,14 +305,32 @@ private:
     DISABLE_COPYING(blocks);
 };
 
-bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, const large_buf_ref& ref, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
-    int levels = large_buf_t::compute_num_levels(cfg.block_size(), ref.offset + ref.size);
 
-    ser_block_id_t trans = translator_serializer_t::translate_block_id(ref.block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
+bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks);
+
+bool get_large_buf_segments_from_children(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
+
+    int64_t step = large_buf_t::compute_max_offset(cfg.block_size(), sublevels);
+
+    for (int64_t i = floor_aligned(offset, step), e = ceil_aligned(offset + size, step); i < e; i += step) {
+        int64_t beg = std::max(offset, i) - i;
+        int64_t end = std::min(offset + size, i + step) - i;
+
+        if (!get_large_buf_segments_from_subtree(cfg, key, file, sublevels, beg, end - beg, block_ids[i / step], mod_id, offsets, segblocks)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
+
+    ser_block_id_t trans = translator_serializer_t::translate_block_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
     ser_block_id_t::number_t trans_id = trans.value;
 
     if (!(trans_id < offsets.get_size())) {
-        logERR("With key '%.*s': large value has invalid block id: %u (buffer_cache block id = %u, mod_id = %d, mod_count = %d)\n", key->size, key->contents, trans_id, ref.block_id, mod_id, cfg.mod_count);
+        logERR("With key '%.*s': large value has invalid block id: %u (buffer_cache block id = %u, mod_id = %d, mod_count = %d)\n", key->size, key->contents, trans_id, block_id, mod_id, cfg.mod_count);
         return false;
     }
     if (offsets[trans_id] == block_registry::null) {
@@ -329,10 +347,12 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
         const large_buf_leaf *leafbuf = reinterpret_cast<const large_buf_leaf *>(b->buf);
 
         if (!check_magic<large_buf_leaf>(leafbuf->magic)) {
-            logERR("With key '%.*s': large_buf_leaf (offset %ld) has invalid magic: '%.*s'\n",
-                   key->size, key->contents, offsets[trans.value], int(sizeof(leafbuf->magic)), leafbuf->magic.bytes);
+            logERR("With key '%.*s': large_buf_leaf (offset %lu) has invalid magic: '%.*s'\n",
+                   key->size, key->contents, offsets[trans.value], (int)sizeof(leafbuf->magic), leafbuf->magic.bytes);
             return false;
         }
+
+        return true;
     } else {
         block internal;
         internal.init(cfg.block_size(), &file, offsets[trans.value], trans);
@@ -340,27 +360,50 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
         const large_buf_internal *buf = reinterpret_cast<const large_buf_internal *>(internal.buf);
 
         if (!check_magic<large_buf_internal>(buf->magic)) {
-            logERR("With key '%.*s': large_buf_internal (offset %ld) has invalid magic: '%.*s'\n",
-                   key->size, key->contents, offsets[trans.value], int(sizeof(buf->magic)), buf->magic.bytes);
+            logERR("With key '%.*s': large_buf_internal (offset %lu) has invalid magic: '%.*s'\n",
+                   key->size, key->contents, offsets[trans.value], (int)sizeof(buf->magic), buf->magic.bytes);
             return false;
         }
 
-        int64_t step = large_buf_t::compute_max_offset(cfg.block_size(), levels - 1);
+        return get_large_buf_segments_from_children(cfg, key, file, levels - 1, offset, size, buf->kids, mod_id, offsets, segblocks);
+    }
+}
 
-        for (int64_t i = floor_aligned(ref.offset, step), e = ceil_aligned(ref.offset + ref.size, step); i < e; i += step) {
-            int64_t beg = std::max(ref.offset, i) - i;
-            int64_t end = std::min(ref.offset + ref.size, i + step) - i;
-            large_buf_ref r;
-            r.offset = beg;
-            r.size = end - beg;
-            r.block_id = buf->kids[i / step];
-            if (!get_large_buf_segments(key, file, r, cfg, mod_id, offsets, segblocks)) {
-                return false;
+bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, const large_buf_ref *ref, int ref_size_bytes, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
+
+    // This is copied and pasted from fsck's check_large_buf in checker.cc.
+
+    if (ref_size_bytes >= (int)sizeof(large_buf_ref)) {
+
+        // We check that ref->size > MAX_IN_NODE_VALUE_SIZE in check_value.
+        if (ref->size >= 0) {
+            if (ref->offset >= 0) {
+                // ensure no overflow for ref->offset + ref->size or
+                // for ceil_aligned(ref->offset + ref->size,
+                // max_offset(sublevels))
+                if (std::numeric_limits<int64_t>::max() / 4 - ref->offset > ref->size) {
+
+                    int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cfg.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
+
+                    // The part before '&&' ensures no overflow in the part after.
+                    if (inlined < int((INT_MAX - sizeof(large_buf_ref)) / sizeof(block_id_t))
+                        && int(sizeof(large_buf_ref) + inlined * sizeof(block_id_t)) == ref_size_bytes) {
+
+                        int sublevels = large_buf_t::compute_num_sublevels(cfg.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
+
+                        // We aren't interested in making sure that
+                        // the buffer is properly left-shifted because
+                        // this is extract and we can be forgiving.
+
+                        return get_large_buf_segments_from_children(cfg, key, file, sublevels, ref->offset, ref->size, ref->block_ids, mod_id, offsets, segblocks);
+                    }
+                }
             }
         }
     }
 
-    return true;
+    logERR("With key '%.*s': invalid large_buf_ref\n", key->size, key->contents);
+    return false;
 }
 
 
@@ -391,19 +434,18 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
     if (value->is_large()) {
         int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
 
-        int64_t seg_size = large_buf_t::cache_size_to_leaf_bytes(cfg.block_size());
+        int64_t seg_size = large_buf_t::bytes_per_leaf(cfg.block_size());
 
-        large_buf_ref ref = value->lb_ref();
-
-        if (!get_large_buf_segments(key, file, ref, cfg, mod_id, offsets, &segblocks)) {
+        const large_buf_ref *ref = value->lb_ref();
+        if (!get_large_buf_segments(key, file, ref, value->size, cfg, mod_id, offsets, &segblocks)) {
             return;
         }
 
         pieces.resize(segblocks.bs.size());
 
-        int64_t bytes_left = ref.size;
+        int64_t bytes_left = ref->size;
         for (int64_t i = 0, n = segblocks.bs.size(); i < n; ++i) {
-            int64_t beg = (i == 0 ? ref.offset % seg_size : 0);
+            int64_t beg = (i == 0 ? ref->offset % seg_size : 0);
             pieces[i].buf = reinterpret_cast<const large_buf_leaf *>(segblocks.bs[i]->buf)->buf;
             pieces[i].len = (i == n - 1 ? bytes_left : seg_size) - beg;
             bytes_left -= pieces[i].len;

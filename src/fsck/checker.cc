@@ -184,6 +184,9 @@ struct slicecx {
     ser_block_id_t to_ser_block_id(block_id_t id) const {
         return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID);
     }
+    block_size_t block_size() const {
+        return knog->static_config->block_size();
+    }
 private:
     DISABLE_COPYING(slicecx);
 };
@@ -302,11 +305,14 @@ bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_co
         *err = bad_software_name;
         return false;
     }
-    if (0 !=  strcmp(buf->version, VERSION_STRING)) {
+    if (0 != strcmp(buf->version, VERSION_STRING)) {
         *err = bad_version;
         return false;
     }
-    if (!(block_size.ser_value() % DEVICE_BLOCK_SIZE == 0 && extent_size % block_size.ser_value() == 0)) {
+    if (!(block_size.ser_value() > 0
+          && block_size.ser_value() % DEVICE_BLOCK_SIZE == 0
+          && extent_size > 0
+          && extent_size % block_size.ser_value() == 0)) {
         *err = bad_sizes;
         return false;
     }
@@ -424,8 +430,9 @@ bool is_valid_extent(file_knowledge *knog, off64_t offset) {
     return is_valid_offset(knog, offset, knog->static_config->extent_size());
 }
 
-bool is_valid_btree_block(file_knowledge *knog, off64_t offset) {
-    return is_valid_offset(knog, offset, knog->static_config->block_size().ser_value());
+bool is_valid_btree_offset(file_knowledge *knog, flagged_off64_t offset) {
+    return is_valid_offset(knog, offset.parts.value, knog->static_config->block_size().ser_value())
+        || flagged_off64_t::is_delete_id(offset);
 }
 
 bool is_valid_device_block(file_knowledge *knog, off64_t offset) {
@@ -475,7 +482,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge *knog, unsigned int
             errs->bad_block_id_count++;
         } else if (entry.block_id.value % LBA_SHARD_FACTOR != shard_number) {
             errs->wrong_shard_count++;
-        } else if (!is_valid_btree_block(knog, entry.offset.parts.value)) {
+        } else if (!is_valid_btree_offset(knog, entry.offset)) {
             errs->bad_offset_count++;
         } else {
             write_locker locker(knog);
@@ -490,7 +497,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge *knog, unsigned int
 }
 
 struct lba_shard_errors {
-    enum errcode { none = 0, bad_lba_superblock_offset, bad_lba_superblock_magic, bad_lba_extent };
+    enum errcode { none = 0, bad_lba_superblock_offset, bad_lba_superblock_magic, bad_lba_extent, bad_lba_superblock_entries_count, lba_superblock_not_contained_in_single_extent };
     errcode code;
 
     // -1 if no extents deemed bad.
@@ -508,14 +515,26 @@ bool check_lba_shard(nondirect_file_t *file, file_knowledge *knog, lba_shard_met
 
     lba_shard_metablock_t *shard = shards + shard_number;
 
-    // Read the superblock.
-    int superblock_size = lba_superblock_t::entry_count_to_file_size(shard->lba_superblock_entries_count);
+    // Read the superblock.block_size
+    int superblock_size;
+    if (!lba_superblock_t::safe_entry_count_to_file_size(shard->lba_superblock_entries_count, &superblock_size)
+        || superblock_size > floor_aligned(INT_MAX, DEVICE_BLOCK_SIZE)
+        || uint64_t(superblock_size) > knog->static_config->extent_size()) {
+        errs->code = lba_shard_errors::bad_lba_superblock_entries_count;
+        return false;
+    }
+
     int superblock_aligned_size = ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE);
 
     // 1. Read the entries from the superblock (if there is one).
-    if (shards[shard_number].lba_superblock_offset != NULL_OFFSET) {
+    if (shard->lba_superblock_offset != NULL_OFFSET) {
         if (!is_valid_device_block(knog, shard->lba_superblock_offset)) {
             errs->code = lba_shard_errors::bad_lba_superblock_offset;
+            return false;
+        }
+
+        if ((shard->lba_superblock_offset % knog->static_config->extent_size()) > knog->static_config->extent_size() - superblock_aligned_size) {
+            errs->code = lba_shard_errors::lba_superblock_not_contained_in_single_extent;
             return false;
         }
 
@@ -658,7 +677,7 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
 
         if (!info.offset.parts.is_delete) {
             block b;
-            b.init(cx.knog->static_config->block_size(), cx.file, info.offset.parts.value, ser_block_id);
+            b.init(cx.block_size(), cx.file, info.offset.parts.value, ser_block_id);
             {
                 write_locker locker(cx.knog);
                 locker.block_info()[ser_block_id.value].transaction_id = b.realbuf->transaction_id;
@@ -668,7 +687,7 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
 
             if (strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
                 uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
-                while (current_offset + buf_patch_t::get_min_serialized_size() < cx.knog->static_config->block_size().value()) {
+                while (current_offset + buf_patch_t::get_min_serialized_size() < cx.block_size().value()) {
                     // TODO: Catch guarantees in load_patch instead of failing instantly
                     buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
                     if (!patch) {
@@ -714,6 +733,8 @@ struct value_error {
     bool bad_metadata_flags;
     bool too_big;
     bool lv_too_small;
+    bool lv_not_left_shifted;
+    bool lv_bogus_ref;
     block_id_t index_block_id;
 
     struct segment_error {
@@ -725,10 +746,11 @@ struct value_error {
     std::vector<segment_error> lv_segment_errors;
 
     explicit value_error(block_id_t block_id) : block_id(block_id), bad_metadata_flags(false),
-                                                too_big(false), lv_too_small(false), index_block_id(NULL_BLOCK_ID) { }
+                                                too_big(false), lv_too_small(false), lv_not_left_shifted(false),
+                                                lv_bogus_ref(false), index_block_id(NULL_BLOCK_ID) { }
 
     bool is_bad() const {
-        return bad_metadata_flags || too_big || lv_too_small;
+        return bad_metadata_flags || too_big || lv_too_small || lv_not_left_shifted || lv_bogus_ref;
     }
 };
 
@@ -789,44 +811,81 @@ bool is_valid_hash(const slicecx& cx, const btree_key_t *key) {
     return btree_key_value_store_t::hash(store_key) % cx.knog->config_block->n_proxies == (unsigned)cx.global_slice_id;
 }
 
-void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
-    int levels = large_buf_t::compute_num_levels(cx.knog->static_config->block_size(), ref.offset + ref.size);
+void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, value_error *errs);
 
+void check_large_buf_children(slicecx& cx, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, value_error *errs) {
+    int64_t step = large_buf_t::compute_max_offset(cx.block_size(), sublevels);
+
+    for (int64_t i = floor_aligned(offset, step), e = ceil_aligned(offset + size, step); i < e; i += step) {
+        int64_t beg = std::max(offset, i) - i;
+        int64_t end = std::min(offset + size, i + step) - i;
+
+        check_large_buf_subtree(cx, sublevels, beg, end - beg, block_ids[i / step], errs);
+    }
+}
+
+void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, value_error *errs) {
     btree_block b;
-    if (!b.init(cx, ref.block_id)) {
+    if (!b.init(cx, block_id)) {
         value_error::segment_error err;
-        err.block_id = ref.block_id;
+        err.block_id = block_id;
         err.block_code = b.err;
         err.bad_magic = false;
         errs->lv_segment_errors.push_back(err);
-        return;
     } else {
         if ((levels == 1 && !check_magic<large_buf_leaf>(ptr_cast<large_buf_leaf>(b.buf)->magic))
             || (levels > 1 && !check_magic<large_buf_internal>(ptr_cast<large_buf_internal>(b.buf)->magic))) {
             value_error::segment_error err;
-            err.block_id = ref.block_id;
+            err.block_id = block_id;
             err.block_code = btree_block::none;
             err.bad_magic = true;
+            errs->lv_segment_errors.push_back(err);
             return;
         }
 
         if (levels > 1) {
+            check_large_buf_children(cx, levels - 1, offset, size, ptr_cast<large_buf_internal>(b.buf)->kids, errs);
+        }
+    }
+}
 
-            int64_t step = large_buf_t::compute_max_offset(cx.knog->static_config->block_size(), levels - 1);
+void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, value_error *errs) {
+    if (ref_size_bytes >= (int)sizeof(large_buf_ref)) {
 
-            for (int64_t i = floor_aligned(ref.offset, step), e = ceil_aligned(ref.offset + ref.size, step); i < e; i += step) {
-                int64_t beg = std::max(ref.offset, i) - i;
-                int64_t end = std::min(ref.offset + ref.size, i + step) - i;
+        // We check that ref->size > MAX_IN_NODE_VALUE_SIZE in check_value.
+        if (ref->size >= 0) {
+            if (ref->offset >= 0) {
+                // ensure no overflow for ceil_aligned(ref->offset +
+                // ref->size, max_offset(sublevels)).  Dividing
+                // INT64_MAX by four ensures that ceil_aligned won't
+                // overflow, and four is overkill.
+                if (std::numeric_limits<int64_t>::max() / 4 - ref->offset > ref->size) {
 
-                large_buf_ref r;
-                r.offset = beg;
-                r.size = end - beg;
-                r.block_id = ptr_cast<large_buf_internal>(b.buf)->kids[i / step];
+                    int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
 
-                check_large_buf(cx, r, errs);
+                    // The part before '&&' ensures no overflow in the part after.
+                    if (inlined < int((INT_MAX - sizeof(large_buf_ref)) / sizeof(block_id_t))
+                        && int(sizeof(large_buf_ref) + inlined * sizeof(block_id_t)) == ref_size_bytes) {
+
+                        int sublevels = large_buf_t::compute_num_sublevels(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
+
+                        if (ref->offset >= large_buf_t::compute_max_offset(cx.block_size(), sublevels)
+                            || (inlined == 1 && sublevels > 1 && ref->offset >= large_buf_t::compute_max_offset(cx.block_size(), sublevels - 1))
+                            || (inlined == 1 && sublevels == 1 && ref->offset > 0)) {
+
+                            errs->lv_not_left_shifted = true;
+                        }
+
+                        check_large_buf_children(cx, sublevels, ref->offset, ref->size, ref->block_ids, errs);
+
+                        return;
+                    }
+                }
             }
         }
     }
+
+    errs->lv_bogus_ref = true;
 }
 
 void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_errs, value_error *errs) {
@@ -838,24 +897,22 @@ void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_err
     } else {
         errs->lv_too_small = (size <= MAX_IN_NODE_VALUE_SIZE);
 
-        large_buf_ref root_ref = value->lb_ref();
-
-        check_large_buf(cx, root_ref, errs);
+        check_large_buf(cx, value->lb_ref(), value->size, errs);
     }
 }
 
 bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t offset) {
     // There are some completely bad HACKs here.  We subtract 3 for
     // pair->key.size, pair->value()->size, pair->value()->metadata_flags.
-    if (cx.knog->static_config->block_size().value() - 3 >= offset
+    if (cx.block_size().value() - 3 >= offset
         && offset >= buf->frontmost_offset) {
         const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
         const btree_value *value = pair->value();
         uint32_t value_offset = (ptr_cast<byte>(value) - ptr_cast<byte>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
-        if (value_offset <= cx.knog->static_config->block_size().value() - 2) {
+        if (value_offset <= cx.block_size().value() - 2) {
             uint32_t tot_offset = value_offset + value->full_size();
-            return (cx.knog->static_config->block_size().value() >= tot_offset);
+            return (cx.block_size().value() >= tot_offset);
         }
     }
     return false;
@@ -863,11 +920,6 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
 
 void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        if (offsetof(leaf_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
-            || buf->frontmost_offset > cx.knog->static_config->block_size().value()) {
-            errs->value_out_of_buf = true;
-            return;
-        }
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -880,7 +932,7 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
             }
             expected_offset += leaf::pair_size(leaf::get_pair(buf, sorted_offsets[i]));
         }
-        errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size().value());
+        errs->noncontiguous_offsets |= (expected_offset != cx.block_size().value());
 
     }
 
@@ -908,19 +960,13 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
 }
 
 bool internal_node_begin_offset_in_range(const slicecx& cx, const internal_node_t *buf, uint16_t offset) {
-    return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<byte>(buf) + offset)->key.size <= cx.knog->static_config->block_size().value();
+    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<byte>(buf) + offset)->key.size <= cx.block_size().value();
 }
 
 void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs);
 
 void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        if (offsetof(internal_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
-            || buf->frontmost_offset > cx.knog->static_config->block_size().value()) {
-            errs->value_out_of_buf = true;
-            return;
-        }
-
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -933,7 +979,7 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const 
             }
             expected_offset += internal_node::pair_size(internal_node::get_pair(buf, sorted_offsets[i]));
         }
-        errs->noncontiguous_offsets |= (expected_offset != cx.knog->static_config->block_size().value());
+        errs->noncontiguous_offsets |= (expected_offset != cx.block_size().value());
     }
 
     // Now check other things.
@@ -984,21 +1030,24 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btre
 
     node_error node_err(id);
 
-    if (lo != NULL && hi != NULL) {
-        // (We're happy with an underfull root block.)
-        if (node::is_underfull(cx.knog->static_config->block_size(), ptr_cast<node_t>(node.buf))) {
-            node_err.block_underfull = true;
+    if (!node::has_sensible_offsets(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+        node_err.value_out_of_buf = true;
+    } else {
+        if (lo != NULL && hi != NULL) {
+            // (We're happy with an underfull root block.)
+            if (node::is_underfull(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+                node_err.block_underfull = true;
+            }
+        }
+
+        if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
+            check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
+        } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
+            check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
+        } else {
+            node_err.bad_magic = true;
         }
     }
-
-    if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
-        check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
-    } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
-        check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
-    } else {
-        node_err.bad_magic = true;
-    }
-
     if (node_err.is_bad()) {
         errs->add_error(node_err);
     }
@@ -1040,7 +1089,9 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
             read_locker locker(cx.knog);
             info = locker.block_info()[id];
         }
-        if (!flagged_off64_t::has_value(info.offset)) {
+        if (flagged_off64_t::is_delete_id(info.offset)) {
+            // Do nothing.
+        } else if (!flagged_off64_t::has_value(info.offset)) {
             if (first_valueless_block == ser_block_id_t::null()) {
                 first_valueless_block = ser_block_id_t::make(id);
             }
@@ -1187,7 +1238,7 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
         }
     }
 
-    errs->bad_num_slices = (zeroth.n_proxies < 0);
+    errs->bad_num_slices = (zeroth.n_proxies <= 0);
 
     errs->reused_serializer_numbers = false;
     for (int i = 0; i < num_files; ++i) {
@@ -1201,7 +1252,7 @@ struct all_slices_errors {
     int n_slices;
     slice_errors *slice;
 
-    explicit all_slices_errors(int n_slices) : n_slices(n_slices), slice(new slice_errors[n_slices]) { }
+    explicit all_slices_errors(int n_slices_) : n_slices(n_slices_), slice(new slice_errors[n_slices_]) { }
 
     ~all_slices_errors() { delete[] slice; }
 };
@@ -1265,7 +1316,11 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
     if (errs.lba_errs.is_known(&lba) && lba->error_happened) {
         for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
             const lba_shard_errors *sherr = &lba->shard_errors[i];
-            if (sherr->code == lba_shard_errors::bad_lba_superblock_offset) {
+            if (sherr->code == lba_shard_errors::bad_lba_superblock_entries_count) {
+                printf("ERROR %s lba shard %d has invalid lba_superblock_entries_count\n", state, i);
+            } else if (sherr->code == lba_shard_errors::lba_superblock_not_contained_in_single_extent) {
+                printf("ERROR %s lba shard %d has lba superblock offset with lba_superblock_entries_count crossing extent boundary\n", state, i);
+            } else if (sherr->code == lba_shard_errors::bad_lba_superblock_offset) {
                 printf("ERROR %s lba shard %d has invalid lba superblock offset\n", state, i);
             } else if (sherr->code == lba_shard_errors::bad_lba_superblock_magic) {
                 printf("ERROR %s lba shard %d has invalid superblock magic\n", state, i);
@@ -1356,10 +1411,12 @@ bool report_subtree_errors(const subtree_errors *errs) {
         for (int i = 0, n = errs->value_errors.size(); i < n; ++i) {
             const value_error& e = errs->value_errors[i];
             printf("          %u/'%s' :", e.block_id, e.key.c_str());
-            printf("%s%s%s",
+            printf("%s%s%s%s%s",
                    e.bad_metadata_flags ? " bad_metadata_flags" : "",
                    e.too_big ? " too_big" : "",
-                   e.lv_too_small ? " lv_too_small" : "");
+                   e.lv_too_small ? " lv_too_small" : "",
+                   e.lv_not_left_shifted ? " lv_not_left_shifted" : "",
+                   e.lv_bogus_ref ? " lv_bogus_ref" : "");
             if (e.index_block_id != NULL_BLOCK_ID) {
                 printf(" (index_block_id = %u)", e.index_block_id);
 
@@ -1468,12 +1525,15 @@ bool check_files(const config_t& cfg) {
 
     unrecoverable_fact(num_files > 0, "a positive number of files");
 
-    bool any = false;
     for (int i = 0; i < num_files; ++i) {
-        check_to_config_block_errors errs;
         if (!knog.files[i]->exists()) {
             fail_due_to_user_error("No such file \"%s\"", knog.file_knog[i]->filename.c_str());
         }
+    }
+
+    bool any = false;
+    for (int i = 0; i < num_files; ++i) {
+        check_to_config_block_errors errs;
         if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs)) {
             any = true;
             std::string s = std::string("(in file '") + knog.file_knog[i]->filename + "')";

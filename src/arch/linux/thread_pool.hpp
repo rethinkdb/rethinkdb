@@ -76,17 +76,20 @@ public:
     linux_event_queue_t queue;
     linux_message_hub_t message_hub;
     timer_handler_t timer_handler;
-    linux_io_calls_t iosys;
     
     /* Never accessed; its constructor and destructor set up and tear down thread-local variables
     for coroutines. */
     coro_globals_t coro_globals;
     
-    volatile bool do_shutdown;
-    system_event_t shutdown_notify_event;
     void pump();   // Called by the event queue
     bool should_shut_down();   // Called by the event queue
+    void initiate_shut_down(); // Can be called from any thread
     void on_event(int events);
+
+private:
+    volatile bool do_shutdown;
+    pthread_mutex_t do_shutdown_mutex;
+    system_event_t shutdown_notify_event;
 };
 
 #endif /* __LINUX_THREAD_POOL_HPP__ */

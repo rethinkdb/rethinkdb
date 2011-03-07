@@ -16,8 +16,8 @@ int get_cpu_count();
 long get_available_ram();
 long get_total_ram();
 
+// This may be surprising to some people.
 typedef char byte;
-typedef char byte_t;
 
 // for safety  TODO: move this to a different file
 struct repli_timestamp {

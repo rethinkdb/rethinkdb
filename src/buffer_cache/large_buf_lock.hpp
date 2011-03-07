@@ -11,7 +11,8 @@ public:
     // lv _must_ end up being acquired quickly.  TODO don't require this.
     large_buf_lock_t(large_buf_t *lv) : lv_(lv) { }
     ~large_buf_lock_t() {
-        release();
+        delete lv_;
+        lv_ = NULL;
     }
 
     void set(large_buf_t *other) {
@@ -19,24 +20,25 @@ public:
         lv_ = other;
     }
 
+    void reset(large_buf_t *other = NULL) {
+        delete lv_;
+        lv_ = NULL;
+        lv_ = other;
+    }
+
+
     void swap(large_buf_lock_t& other) {
         large_buf_t *tmp = other.lv_;
         other.lv_ = lv_;
         lv_ = tmp;
     }
 
+    // We'd like to rename this to get(), but that's not important.
     large_buf_t *lv() { return lv_; }
 
-    bool has_lv() const { return lv_ != NULL; }
+    large_buf_t *operator->() { return lv_; }
 
-    // TODO remove this
-    void release() {
-        if (lv_) {
-            lv_->release();
-            delete lv_;
-            lv_ = NULL;
-        }
-    }
+    bool has_lv() const { return lv_ != NULL; }
 
 private:
     large_buf_t *lv_;

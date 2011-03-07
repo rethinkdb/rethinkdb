@@ -269,10 +269,11 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 struct shutdown_control_t : public control_t
 {
     shutdown_control_t(std::string key)
-        : control_t(key, "Shutdown the server. Make sure you mean it.")
+        : control_t(key, "Shut down the server.")
     {}
-    std::string call(std::string) {
+    std::string call(int argc, char **argv) {
         server_shutdown();
+        // TODO: Only print this if there actually *is* a lot of unsaved data.
         return std::string("Shutting down... this may take time if there is a lot of unsaved data.\r\n");
     }
 };

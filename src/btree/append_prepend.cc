@@ -24,7 +24,17 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
             // Copy flags, exptime, etc.
 
             valuecpy(&value, old_value);
-            value.value_size(new_size);
+            if (!old_value->is_large()) {
+                // HACK: we set the value.size in advance preparation when
+                // the old value was not large.  If the old value _IS_
+                // large, we leave it with the old size, and then we
+                // adjust value.size by refsize_adjustment below.
+
+                // The vaule_size setter only behaves correctly when we're
+                // setting a new large value.
+                value.value_size(new_size, slice->cache().get_block_size());
+            }
+
 
             // Figure out where the data is going to need to go and prepare a place for it
 
@@ -41,14 +51,25 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 // Prepare the large value if necessary.
                 if (!old_value->is_large()) { // small -> large; allocate a new large value and copy existing value into it.
                     large_buflock.set(new large_buf_t(txor->transaction()));
-                    large_buflock.lv()->allocate(new_size, value.large_buf_ref_ptr());
-                    if (append) large_buflock.lv()->fill_at(0, old_value->value(), old_value->value_size());
-                    else        large_buflock.lv()->fill_at(data->get_size(), old_value->value(), old_value->value_size());
+                    large_buflock->allocate(new_size, value.large_buf_ref_ptr(), btree_value::lbref_limit);
+                    if (append) large_buflock->fill_at(0, old_value->value(), old_value->value_size());
+                    else        large_buflock->fill_at(data->get_size(), old_value->value(), old_value->value_size());
                     is_old_large_value = false;
                 } else { // large -> large; expand existing large value
+                    memcpy(&value, old_value, MAX_BTREE_VALUE_SIZE);
                     large_buflock.swap(old_large_buflock);
-                    if (append) large_buflock.lv()->append(data->get_size(), value.large_buf_ref_ptr());
-                    else        large_buflock.lv()->prepend(data->get_size(), value.large_buf_ref_ptr());
+                    large_buflock.lv()->HACK_root_ref(value.large_buf_ref_ptr());
+                    int refsize_adjustment;
+
+                    if (append) {
+                        // TIED large_buflock TO value.
+                        large_buflock->append(data->get_size(), &refsize_adjustment);
+                    }
+                    else {
+                        large_buflock->prepend(data->get_size(), &refsize_adjustment);
+                    }
+
+                    value.size += refsize_adjustment;
                     is_old_large_value = true;
                 }
 
@@ -57,12 +78,12 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 uint32_t fill_size = data->get_size();
                 uint32_t start_pos = append ? old_value->value_size() : 0;
 
-                int64_t ix = large_buflock.lv()->pos_to_ix(start_pos);
-                uint16_t seg_pos = large_buflock.lv()->pos_to_seg_pos(start_pos);
+                int64_t ix = large_buflock->pos_to_ix(start_pos);
+                uint16_t seg_pos = large_buflock->pos_to_seg_pos(start_pos);
 
                 while (fill_size > 0) {
                     uint16_t seg_len;
-                    byte_t *seg = large_buflock.lv()->get_segment_write(ix, &seg_len);
+                    byte *seg = large_buflock->get_segment_write(ix, &seg_len);
 
                     rassert(seg_len >= seg_pos);
                     uint16_t seg_bytes_to_fill = std::min((uint32_t)(seg_len - seg_pos), fill_size);
@@ -86,12 +107,20 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                         // that's not really a problem because it only happens on
                         // erroneous input.
 
-                        if (append) large_buflock.lv()->unappend(data->get_size(), value.large_buf_ref_ptr());
-                        else large_buflock.lv()->unprepend(data->get_size(), value.large_buf_ref_ptr());
+                        int refsize_adjustment;
+                        if (append) {
+                            // TIED large_buflock TO value
+                            large_buflock->unappend(data->get_size(), &refsize_adjustment);
+                        }
+                        else {
+                            // TIED large_buflock TO value
+                            large_buflock->unprepend(data->get_size(), &refsize_adjustment);
+                        }
+                        value.size += refsize_adjustment;
                     } else {
                         // The old value was small, so we just keep it and delete the large value
                         large_buf_lock_t empty;
-                        large_buflock.lv()->mark_deleted();
+                        large_buflock->mark_deleted();
                         large_buflock.swap(empty);
                     }
                 }
@@ -108,11 +137,11 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         }
     }
 
-    void actually_acquire_large_value(large_buf_t *lb, const large_buf_ref& lbref) {
+    void actually_acquire_large_value(large_buf_t *lb, large_buf_ref *lbref) {
         if (append) {
-            co_acquire_large_value_rhs(lb, lbref, rwi_write);
+            co_acquire_large_value_rhs(lb, lbref, btree_value::lbref_limit, rwi_write);
         } else {
-            co_acquire_large_value_lhs(lb, lbref, rwi_write);
+            co_acquire_large_value_lhs(lb, lbref, btree_value::lbref_limit, rwi_write);
         }
     }
 

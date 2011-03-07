@@ -37,7 +37,7 @@ void prep_serializer(
     c->this_serializer = i;
     c->n_proxies = n_proxies;
 
-    serializer_t::write_t w = serializer_t::write_t::make(CONFIG_BLOCK_ID.ser_id, repli_timestamp::invalid, c, NULL);
+    serializer_t::write_t w = serializer_t::write_t::make(CONFIG_BLOCK_ID.ser_id, repli_timestamp::invalid, c, true, NULL);
     struct : public serializer_t::write_txn_callback_t, public cond_t {
         void on_serializer_write_txn() { pulse(); }
     } write_cb;
@@ -217,7 +217,7 @@ bool translator_serializer_t::do_write(write_t *writes, int num_writes, serializ
     std::vector<serializer_t::write_t> writes2;
     for (int i = 0; i < num_writes; i++) {
         writes2.push_back(serializer_t::write_t(xlate(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
-                                                writes[i].buf_specified, writes[i].buf, writes[i].callback, writes[i].assign_transaction_id));
+                                                writes[i].buf_specified, writes[i].buf, writes[i].write_empty_deleted_block, writes[i].callback, writes[i].assign_transaction_id));
     }
     return inner->do_write(writes2.data(), num_writes, callback);
 }
