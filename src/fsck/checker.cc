@@ -1,6 +1,7 @@
 #include "fsck/checker.hpp"
 
 #include <algorithm>
+#include <limits>
 
 #include "config/cmd_args.hpp"
 #include "containers/segmented_vector.hpp"
@@ -589,6 +590,7 @@ struct value_error {
     bool bad_metadata_flags;
     bool too_big;
     bool lv_too_small;
+    bool lv_bad_offset_or_size;
     block_id_t index_block_id;
 
     struct segment_error {
@@ -599,11 +601,13 @@ struct value_error {
 
     std::vector<segment_error> lv_segment_errors;
 
-    explicit value_error(block_id_t block_id) : block_id(block_id), bad_metadata_flags(false),
-                                                too_big(false), lv_too_small(false), index_block_id(NULL_BLOCK_ID) { }
+    explicit value_error(block_id_t block_id)
+        : block_id(block_id), bad_metadata_flags(false),
+          too_big(false), lv_too_small(false), lv_bad_offset_or_size(false),
+          index_block_id(NULL_BLOCK_ID) { }
 
     bool is_bad() const {
-        return bad_metadata_flags || too_big || lv_too_small;
+        return bad_metadata_flags || too_big || lv_too_small || lv_bad_offset_or_size;
     }
 };
 
@@ -661,9 +665,8 @@ bool is_valid_hash(const slicecx& cx, const btree_key *key) {
     return btree_key_value_store_t::hash(key) % cx.knog->config_block->btree_config.n_slices == (unsigned)cx.global_slice_id;
 }
 
-void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
-    int levels = large_buf_t::compute_num_levels(cx.knog->static_config->block_size(), ref.offset + ref.size);
-
+// E
+void check_large_buf(slicecx& cx, int levels, const large_buf_ref& ref, value_error *errs) {
     btree_block b;
     if (!b.init(cx, ref.block_id)) {
         value_error::segment_error err;
@@ -679,6 +682,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
             err.block_id = ref.block_id;
             err.block_code = btree_block::none;
             err.bad_magic = true;
+            errs->lv_segment_errors.push_back(err);
             return;
         }
 
@@ -695,7 +699,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref& ref, value_error *errs) {
                 r.size = end - beg;
                 r.block_id = ptr_cast<large_buf_internal>(b.buf)->kids[i / step];
 
-                check_large_buf(cx, r, errs);
+                check_large_buf(cx, levels - 1, r, errs);
             }
         }
     }
@@ -712,7 +716,14 @@ void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_err
 
         large_buf_ref root_ref = value->lb_ref();
 
-        check_large_buf(cx, root_ref, errs);
+        if (root_ref.offset < 0 || root_ref.size < 0 || std::numeric_limits<int64_t>::max() / 4 - root_ref.offset < root_ref.size) {
+            errs->lv_bad_offset_or_size = true;
+            return;
+        }
+
+        int levels = large_buf_t::compute_num_levels(cx.knog->static_config->block_size(), root_ref.offset + root_ref.size);
+
+        check_large_buf(cx, levels, root_ref, errs);
     }
 }
 
@@ -775,7 +786,7 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
 }
 
 bool internal_node_begin_offset_in_range(const slicecx& cx, const internal_node_t *buf, uint16_t offset) {
-    return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<byte>(buf) + offset)->key.size <= cx.knog->static_config->block_size().value();
+    return (cx.knog->static_config->block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) <= cx.knog->static_config->block_size().value() - ptr_cast<btree_internal_pair>(ptr_cast<byte>(buf) + offset)->key.size;
 }
 
 void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_key *hi, subtree_errors *errs);
@@ -869,6 +880,7 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_
         errs->add_error(node_err);
     }
 }
+// B
 
 static const block_magic_t Zilch = { { 0, 0, 0, 0 } };
 
