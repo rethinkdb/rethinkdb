@@ -466,7 +466,7 @@ bool check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
 }
 
 struct lba_shard_errors {
-    enum errcode { none = 0, bad_lba_superblock_entries_count, bad_lba_superblock_offset, bad_lba_superblock_magic, bad_lba_extent };
+    enum errcode { none = 0, bad_lba_superblock_entries_count, bad_lba_superblock_offset, bad_lba_superblock_magic, bad_lba_extent, lba_superblock_not_contained_in_single_extent };
     errcode code;
 
     // -1 if no extents deemed bad.
@@ -487,7 +487,9 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
 
     // Read the superblock.
     int superblock_size;
-    if (!lba_superblock_t::safe_entry_count_to_file_size(shard->lba_superblock_entries_count, &superblock_size)) {
+    if (!lba_superblock_t::safe_entry_count_to_file_size(shard->lba_superblock_entries_count, &superblock_size)
+        || superblock_size > floor_aligned(INT_MAX, DEVICE_BLOCK_SIZE)
+        || uint64_t(superblock_size) > knog->static_config->extent_size()) {
         errs->code = lba_shard_errors::bad_lba_superblock_entries_count;
         return false;
     }
@@ -498,6 +500,11 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
     if (shard->lba_superblock_offset != NULL_OFFSET) {
         if (!is_valid_device_block(knog, shard->lba_superblock_offset)) {
             errs->code = lba_shard_errors::bad_lba_superblock_offset;
+            return false;
+        }
+
+        if ((shard->lba_superblock_offset % knog->static_config->extent_size()) > knog->static_config->extent_size() - superblock_aligned_size) {
+            errs->code = lba_shard_errors::lba_superblock_not_contained_in_single_extent;
             return false;
         }
 
@@ -1133,6 +1140,8 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
                 printf("ERROR %s lba shard %d has invalid lba_superblock_entries_count\n", state, i);
             } else if (sherr->code == lba_shard_errors::bad_lba_superblock_offset) {
                 printf("ERROR %s lba shard %d has invalid lba superblock offset\n", state, i);
+            } else if (sherr->code == lba_shard_errors::lba_superblock_not_contained_in_single_extent) {
+                printf("ERROR %s lba shard %d has lba superblock offset with lb_superblock_entries_count crossing extent boundary\n", state, i);
             } else if (sherr->code == lba_shard_errors::bad_lba_superblock_magic) {
                 printf("ERROR %s lba shard %d has invalid superblock magic\n", state, i);
             } else if (sherr->code == lba_shard_errors::bad_lba_extent) {
