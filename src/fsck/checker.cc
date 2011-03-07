@@ -14,6 +14,8 @@
 
 namespace fsck {
 
+// B
+
 static const char *state = NULL;
 
 // Knowledge that we contain for every block id.
@@ -65,9 +67,11 @@ struct file_knowledge {
     // The file size, known after we've looked at the file.
     learned<uint64_t> filesize;
 
-    // The block_size and extent_size.
+    // The block_size and extent_size.  We're guaranteed that
+    // DEVICE_BLOCK_SIZE divides block_size and block_size divides
+    // extent_size, evenly.
     learned<log_serializer_static_config_t> static_config;
-    
+
     // The metablock with the most recent version.
     learned<log_serializer_metablock_t> metablock;
 
@@ -246,6 +250,7 @@ void check_filesize(direct_file_t *file, file_knowledge *knog) {
 const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes" };
 enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes };
 
+// E
 bool check_static_config(direct_file_t *file, file_knowledge *knog, static_config_error *err) {
     block header;
     header.init(DEVICE_BLOCK_SIZE, file, 0);
@@ -269,11 +274,14 @@ bool check_static_config(direct_file_t *file, file_knowledge *knog, static_confi
         *err = bad_software_name;
         return false;
     }
-    if (0 !=  strcmp(buf->version, VERSION_STRING)) {
+    if (0 != strcmp(buf->version, VERSION_STRING)) {
         *err = bad_version;
         return false;
     }
-    if (!(block_size.ser_value() % DEVICE_BLOCK_SIZE == 0 && extent_size % block_size.ser_value() == 0)) {
+    if (!(block_size.ser_value() > 0
+          && block_size.ser_value() % DEVICE_BLOCK_SIZE == 0
+          && extent_size > 0
+          && extent_size % block_size.ser_value() == 0)) {
         *err = bad_sizes;
         return false;
     }
@@ -286,6 +294,7 @@ bool check_static_config(direct_file_t *file, file_knowledge *knog, static_confi
     *err = static_config_none;
     return true;
 }
+// B
 
 struct metablock_errors {
     int bad_crc_count;  // should be zero
@@ -346,7 +355,7 @@ bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors
                     high_version = version;
                     high_version_index = i;
                 }
-                
+
                 if (high_transaction < tx) {
                     high_transaction = tx;
                     high_transaction_index = i;
@@ -1276,6 +1285,7 @@ void print_interfile_summary(const serializer_config_block_t& c) {
     printf("config_block n_files: %d\n", c.n_files);
     printf("config_block n_slices: %d\n", c.btree_config.n_slices);
 }
+// E
 
 bool check_files(const config_t& cfg) {
     // 1. Open.
@@ -1285,12 +1295,15 @@ bool check_files(const config_t& cfg) {
 
     unrecoverable_fact(num_files > 0, "a positive number of files");
 
-    bool any = false;
     for (int i = 0; i < num_files; ++i) {
-        check_to_config_block_errors errs;
         if (!knog.files[i]->exists()) {
             fail_due_to_user_error("No such file \"%s\"", knog.file_knog[i]->filename.c_str());
         }
+    }
+
+    bool any = false;
+    for (int i = 0; i < num_files; ++i) {
+        check_to_config_block_errors errs;
         if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs)) {
             any = true;
             std::string s = std::string("(in file '") + knog.file_knog[i]->filename + "')";
@@ -1327,6 +1340,7 @@ bool check_files(const config_t& cfg) {
     bool ok = report_post_config_block_errors(slices_errs);
     return ok;
 }
+
 
 
 }  // namespace fsck
