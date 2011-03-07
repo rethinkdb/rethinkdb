@@ -67,7 +67,7 @@ struct file_knowledge {
     // The file size, known after we've looked at the file.
     learned<uint64_t> filesize;
 
-    // The block_size and extent_size.  We're guaranteed that
+    // The block_size and extent_size.  We're only guaranteed that
     // DEVICE_BLOCK_SIZE divides block_size and block_size divides
     // extent_size, evenly.
     learned<log_serializer_static_config_t> static_config;
@@ -294,7 +294,6 @@ bool check_static_config(direct_file_t *file, file_knowledge *knog, static_confi
     *err = static_config_none;
     return true;
 }
-// B
 
 struct metablock_errors {
     int bad_crc_count;  // should be zero
@@ -391,6 +390,7 @@ bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors
     knog->metablock = high_metablock->metablock;
     return true;
 }
+// B
 
 bool is_valid_offset(file_knowledge *knog, off64_t offset, off64_t alignment) {
     return offset >= 0 && offset % alignment == 0 && (uint64_t)offset < *knog->filesize;
@@ -466,7 +466,7 @@ bool check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
 }
 
 struct lba_shard_errors {
-    enum errcode { none = 0, bad_lba_superblock_offset, bad_lba_superblock_magic, bad_lba_extent };
+    enum errcode { none = 0, bad_lba_superblock_entries_count, bad_lba_superblock_offset, bad_lba_superblock_magic, bad_lba_extent };
     errcode code;
 
     // -1 if no extents deemed bad.
@@ -476,6 +476,7 @@ struct lba_shard_errors {
     lba_extent_errors extent_errors;
 };
 
+// E
 // Returns true if the LBA shard was successfully read, false otherwise.
 bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metablock_t *shards, int shard_number, lba_shard_errors *errs) {
     errs->code = lba_shard_errors::none;
@@ -485,11 +486,16 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
     lba_shard_metablock_t *shard = shards + shard_number;
 
     // Read the superblock.
-    int superblock_size = lba_superblock_t::entry_count_to_file_size(shard->lba_superblock_entries_count);
+    int superblock_size;
+    if (!lba_superblock_t::safe_entry_count_to_file_size(shard->lba_superblock_entries_count, &superblock_size)) {
+        errs->code = lba_shard_errors::bad_lba_superblock_entries_count;
+        return false;
+    }
+
     int superblock_aligned_size = ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE);
 
     // 1. Read the entries from the superblock (if there is one).
-    if (shards[shard_number].lba_superblock_offset != NULL_OFFSET) {
+    if (shard->lba_superblock_offset != NULL_OFFSET) {
         if (!is_valid_device_block(knog, shard->lba_superblock_offset)) {
             errs->code = lba_shard_errors::bad_lba_superblock_offset;
             return false;
@@ -529,7 +535,9 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
             && errs->extent_errors.bad_offset_count == 0);
 
 }
+// B
 
+// E
 struct lba_errors {
     bool error_happened;  // must be false
     lba_shard_errors shard_errors[LBA_SHARD_FACTOR];
@@ -546,6 +554,7 @@ bool check_lba(direct_file_t *file, file_knowledge *knog, lba_errors *errs) {
     errs->error_happened = !no_errors;
     return no_errors;
 }
+// B
 
 struct config_block_errors {
     btree_block::error block_open_code;  // must be none
@@ -1120,7 +1129,9 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
     if (errs.lba_errs.is_known(&lba) && lba->error_happened) {
         for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
             const lba_shard_errors *sherr = &lba->shard_errors[i];
-            if (sherr->code == lba_shard_errors::bad_lba_superblock_offset) {
+            if (sherr->code == lba_shard_errors::bad_lba_superblock_entries_count) {
+                printf("ERROR %s lba shard %d has invalid lba_superblock_entries_count\n", state, i);
+            } else if (sherr->code == lba_shard_errors::bad_lba_superblock_offset) {
                 printf("ERROR %s lba shard %d has invalid lba superblock offset\n", state, i);
             } else if (sherr->code == lba_shard_errors::bad_lba_superblock_magic) {
                 printf("ERROR %s lba shard %d has invalid superblock magic\n", state, i);
