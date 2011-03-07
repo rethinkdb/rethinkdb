@@ -735,11 +735,6 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
 
 void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        if (offsetof(leaf_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
-            || buf->frontmost_offset > cx.knog->static_config->block_size().value()) {
-            errs->value_out_of_buf = true;
-            return;
-        }
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -787,12 +782,6 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_
 
 void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key *lo, const btree_key *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        if (offsetof(internal_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
-            || buf->frontmost_offset > cx.knog->static_config->block_size().value()) {
-            errs->value_out_of_buf = true;
-            return;
-        }
-
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -856,19 +845,24 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_
 
     node_error node_err(id);
 
-    if (lo != NULL && hi != NULL) {
-        // (We're happy with an underfull root block.)
-        if (node_handler::is_underfull(cx.knog->static_config->block_size(), ptr_cast<node_t>(node.buf))) {
-            node_err.block_underfull = true;
-        }
-    }
-
-    if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
-        check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
-    } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
-        check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
+    if (!node_handler::has_sensible_offsets(cx.knog->static_config->block_size(), ptr_cast<node_t>(node.buf))) {
+        node_err.value_out_of_buf = true;
     } else {
-        node_err.bad_magic = true;
+
+        if (lo != NULL && hi != NULL) {
+            // (We're happy with an underfull root block.)
+            if (node_handler::is_underfull(cx.knog->static_config->block_size(), ptr_cast<node_t>(node.buf))) {
+                node_err.block_underfull = true;
+            }
+        }
+
+        if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
+            check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
+        } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
+            check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
+        } else {
+            node_err.bad_magic = true;
+        }
     }
 
     if (node_err.is_bad()) {
@@ -972,6 +966,7 @@ struct slice_errors {
         return superblock_code != btree_block::none || superblock_bad_magic || tree_errs.is_bad();
     }
 };
+// E
 
 void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_number, slice_errors *errs) {
     slicecx cx(file, knog, global_slice_number);
@@ -997,7 +992,6 @@ void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_num
     check_slice_other_blocks(cx, &errs->other_block_errs);
 }
 
-// E
 struct check_to_config_block_errors {
     learned<static_config_error> static_config_err;
     learned<metablock_errors> metablock_errs;
@@ -1062,13 +1056,12 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
 
     return (errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_db_creation_timestamp && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->reused_serializer_numbers);
 }
-// B
 
 struct all_slices_errors {
     int n_slices;
     slice_errors *slice;
 
-    explicit all_slices_errors(int n_slices) : n_slices(n_slices), slice(new slice_errors[n_slices]) { }
+    explicit all_slices_errors(int n_slices_) : n_slices(n_slices_), slice(new slice_errors[n_slices_]) { }
 
     ~all_slices_errors() { delete[] slice; }
 };
@@ -1102,7 +1095,6 @@ void launch_check_after_config_block(direct_file_t *file, std::vector<pthread_t>
     }
 }
 
-// E
 void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
     const static_config_error *sc;
     if (errs.static_config_err.is_known(&sc) && *sc != static_config_none) {
@@ -1297,13 +1289,13 @@ bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
 
     return ok;
 }
+// E
 
 void print_interfile_summary(const serializer_config_block_t& c) {
     printf("config_block database_creation_timestamp: %u\n", c.database_creation_timestamp);
     printf("config_block n_files: %d\n", c.n_files);
     printf("config_block n_slices: %d\n", c.btree_config.n_slices);
 }
-// E
 
 bool check_files(const config_t& cfg) {
     // 1. Open.

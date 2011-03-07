@@ -7,7 +7,10 @@ const block_magic_t internal_node_t::expected_magic = { {'i','n','t','e'} };
 const block_magic_t leaf_node_t::expected_magic = { {'l','e','a','f'} };
 
 
-
+bool node_handler::has_sensible_offsets(block_size_t block_size, const node_t *node) {
+    return (node_handler::is_leaf(node) && leaf_node_handler::has_sensible_offsets(block_size, ptr_cast<leaf_node_t>(node)))
+        || (node_handler::is_internal(node) && internal_node_handler::has_sensible_offsets(block_size, ptr_cast<internal_node_t>(node)));
+}
 
 bool node_handler::is_underfull(block_size_t block_size, const node_t *node) {
     return (node_handler::is_leaf(node) && leaf_node_handler::is_underfull(block_size, ptr_cast<leaf_node_t>(node)))

@@ -54,6 +54,7 @@ public:
 
     static bool is_empty(const leaf_node_t *node);
     static bool is_full(const leaf_node_t *node, const btree_key *key, const btree_value *value);
+    static bool has_sensible_offsets(block_size_t block_size, const leaf_node_t *node);
     static bool is_underfull(block_size_t block_size, const leaf_node_t *node);
     static bool is_mergable(block_size_t block_size, const leaf_node_t *node, const leaf_node_t *sibling);
     static void validate(block_size_t block_size, const leaf_node_t *node);

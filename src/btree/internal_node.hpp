@@ -34,6 +34,7 @@ public:
     static void update_key(internal_node_t *node, const btree_key *key_to_replace, const btree_key *replacement_key);
     static int nodecmp(const internal_node_t *node1, const internal_node_t *node2);
     static bool is_full(const internal_node_t *node);
+    static bool has_sensible_offsets(block_size_t block_size, const internal_node_t *node);
     static bool is_underfull(block_size_t block_size, const internal_node_t *node);
     static bool change_unsafe(const internal_node_t *node);
     static bool is_mergable(block_size_t block_size, const internal_node_t *node, const internal_node_t *sibling, const internal_node_t *parent);

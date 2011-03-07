@@ -262,6 +262,7 @@ class node_handler {
             }
         }
 
+        static bool has_sensible_offsets(block_size_t block_size, const node_t *node);
         static bool is_underfull(block_size_t block_size, const node_t *node);
         static bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const node_t *parent);
         static int nodecmp(const node_t *node1, const node_t *node2);

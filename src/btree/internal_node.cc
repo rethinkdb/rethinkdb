@@ -308,6 +308,12 @@ void internal_node_handler::validate(block_size_t block_size, const internal_nod
 #endif
 }
 
+// is_underfull is safe to run when this returns true.
+bool internal_node_handler::has_sensible_offsets(block_size_t block_size, const internal_node_t *node) {
+    return offsetof(internal_node_t, pair_offsets) + node->npairs * sizeof(*node->pair_offsets) <= node->frontmost_offset && node->frontmost_offset <= block_size.value();
+}
+
+// This must be safe to run when has_sensible_offsets would return true.
 bool internal_node_handler::is_underfull(block_size_t block_size, const internal_node_t *node) {
 #ifdef DEBUG_MAX_INTERNAL
     return node->npairs < (DEBUG_MAX_INTERNAL + 1) / 2;
