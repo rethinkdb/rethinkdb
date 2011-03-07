@@ -1246,7 +1246,7 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
         }
     }
 
-    errs->bad_num_slices = (zeroth.n_proxies < 0);
+    errs->bad_num_slices = (zeroth.n_proxies <= 0);
 
     errs->reused_serializer_numbers = false;
     for (int i = 0; i < num_files; ++i) {
