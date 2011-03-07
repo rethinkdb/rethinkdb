@@ -1,19 +1,19 @@
 #include "large_buf.hpp"
 #include <algorithm>
 
-int64_t large_buf_t::cache_size_to_leaf_bytes(block_size_t block_size) {
+int64_t large_buf_t::bytes_per_leaf(block_size_t block_size) {
     return block_size.value() - sizeof(large_buf_leaf);
 }
 
-int64_t large_buf_t::cache_size_to_internal_kids(block_size_t block_size) {
+int64_t large_buf_t::kids_per_internal(block_size_t block_size) {
     return (block_size.value() - sizeof(large_buf_internal)) / sizeof(block_id_t);
 }
 
 int64_t large_buf_t::compute_max_offset(block_size_t block_size, int levels) {
     rassert(levels >= 1);
-    int64_t x = cache_size_to_leaf_bytes(block_size);
+    int64_t x = bytes_per_leaf(block_size);
     while (levels > 1) {
-        x *= cache_size_to_internal_kids(block_size);
+        x *= kids_per_internal(block_size);
         --levels;
     }
     return x;
@@ -55,11 +55,11 @@ large_buf_t::large_buf_t(transaction_t *txn_) : root_ref(NULL)
 }
 
 int64_t large_buf_t::num_leaf_bytes() const {
-    return cache_size_to_leaf_bytes(block_size());
+    return bytes_per_leaf(block_size());
 }
 
 int64_t large_buf_t::num_internal_kids() const {
-    return cache_size_to_internal_kids(block_size());
+    return kids_per_internal(block_size());
 }
 
 int64_t large_buf_t::max_offset(int levels) const {
@@ -297,7 +297,6 @@ void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limi
     if (num_inlined == 1) {
         num_to_acquire = 1;
         tree_available_callback_t *cb = new lb_tree_available_callback_t(this);
-        // TODO LARGEBUF acquire for delete properly.
         acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[0], root_ref->offset + slice_offset, slice_size, sublevels, cb, 0, should_load_leaves_);
         f->go();
     } else {
@@ -404,7 +403,6 @@ void large_buf_t::adds_level(block_id_t *ids
     roots.push_back(ret);
 }
 
-// TODO check for and support partial acquisition
 void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {
     rassert(state == loaded);
     rassert(root_ref != NULL);
