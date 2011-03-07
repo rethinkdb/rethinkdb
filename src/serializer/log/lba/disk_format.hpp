@@ -3,6 +3,7 @@
 #define __SERIALIZER_LOG_LBA_DISK_FORMAT__
 
 
+#include <limits.h>
 
 #include "serializer/serializer.hpp"
 
@@ -164,7 +165,22 @@ struct lba_superblock_t {
     lba_superblock_entry_t entries[0];
 
     static int entry_count_to_file_size(int nentries) {
-        return sizeof(lba_superblock_entry_t) * nentries + offsetof(lba_superblock_t, entries[0]);
+        int ret;
+        guarantee(safe_entry_count_to_file_size(nentries, &ret));
+        return ret;
+    }
+
+    // Returns false if this operation would overflow or if nentries
+    // is not positive.  nentries could still be an obviously invalid
+    // value (like if file_size_out was greater than an extent size).
+    static bool safe_entry_count_to_file_size(int nentries, int *file_size_out) {
+        if (nentries <= 0 || nentries > int((INT_MAX - offsetof(lba_superblock_t, entries[0])) / sizeof(lba_superblock_entry_t))) {
+            *file_size_out = 0;
+            return false;
+        } else {
+            *file_size_out = sizeof(lba_superblock_entry_t) * nentries + offsetof(lba_superblock_t, entries[0]);
+            return true;
+        }
     }
 };
 
