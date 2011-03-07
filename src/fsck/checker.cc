@@ -920,11 +920,6 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
 
 void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        if (offsetof(leaf_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
-            || buf->frontmost_offset > cx.block_size().value()) {
-            errs->value_out_of_buf = true;
-            return;
-        }
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -972,12 +967,6 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btre
 
 void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        if (offsetof(internal_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
-            || buf->frontmost_offset > cx.block_size().value()) {
-            errs->value_out_of_buf = true;
-            return;
-        }
-
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -1041,21 +1030,24 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btre
 
     node_error node_err(id);
 
-    if (lo != NULL && hi != NULL) {
-        // (We're happy with an underfull root block.)
-        if (node::is_underfull(cx.block_size(), ptr_cast<node_t>(node.buf))) {
-            node_err.block_underfull = true;
+    if (!node::has_sensible_offsets(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+        node_err.value_out_of_buf = true;
+    } else {
+        if (lo != NULL && hi != NULL) {
+            // (We're happy with an underfull root block.)
+            if (node::is_underfull(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+                node_err.block_underfull = true;
+            }
+        }
+
+        if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
+            check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
+        } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
+            check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
+        } else {
+            node_err.bad_magic = true;
         }
     }
-
-    if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
-        check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
-    } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
-        check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
-    } else {
-        node_err.bad_magic = true;
-    }
-
     if (node_err.is_bad()) {
         errs->add_error(node_err);
     }
@@ -1260,7 +1252,7 @@ struct all_slices_errors {
     int n_slices;
     slice_errors *slice;
 
-    explicit all_slices_errors(int n_slices) : n_slices(n_slices), slice(new slice_errors[n_slices]) { }
+    explicit all_slices_errors(int n_slices_) : n_slices(n_slices_), slice(new slice_errors[n_slices_]) { }
 
     ~all_slices_errors() { delete[] slice; }
 };

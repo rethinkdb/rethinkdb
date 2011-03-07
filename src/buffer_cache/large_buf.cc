@@ -307,7 +307,7 @@ void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limi
     if (num_inlined == 1) {
         num_to_acquire = 1;
         tree_available_callback_t *cb = new lb_tree_available_callback_t(this);
-        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[0], root_ref->offset + slice_offset, slice_size, sublevels, cb, 0, should_load_leaves_);
+        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[0], root_ref->offset + slice_offset, slice_size, levels, cb, 0, should_load_leaves_);
         f->go();
     } else {
         // Yet another case of slicing logic.
