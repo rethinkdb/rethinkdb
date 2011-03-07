@@ -824,6 +824,7 @@ void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t si
             err.block_id = block_id;
             err.block_code = btree_block::none;
             err.bad_magic = true;
+            errs->lv_segment_errors.push_back(err);
             return;
         }
 
@@ -839,8 +840,11 @@ void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, 
         // We check that ref->size > MAX_IN_NODE_VALUE_SIZE in check_value.
         if (ref->size >= 0) {
             if (ref->offset >= 0) {
-                // ensure no overflow for ref->offset + ref->size:
-                if (0x7fffFfffFfffFfffLL - ref->offset > ref->size) {
+                // ensure no overflow for ceil_aligned(ref->offset +
+                // ref->size, max_offset(sublevels)).  Dividing
+                // INT64_MAX by four ensures that ceil_aligned won't
+                // overflow, and four is overkill.
+                if (std::numeric_limits<int64_t>::max() / 4 - ref->offset > ref->size) {
 
                     int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
 

@@ -126,8 +126,8 @@ public:
 
     friend struct acquire_buftree_fsm_t;
 
-    static int64_t cache_size_to_leaf_bytes(block_size_t block_size);
-    static int64_t cache_size_to_internal_kids(block_size_t block_size);
+    static int64_t bytes_per_leaf(block_size_t block_size);
+    static int64_t kids_per_internal(block_size_t block_size);
     static int64_t compute_max_offset(block_size_t block_size, int levels);
     static int compute_num_levels(block_size_t block_size, int64_t end_offset);
     static int compute_num_sublevels(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit);
