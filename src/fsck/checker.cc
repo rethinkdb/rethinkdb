@@ -390,7 +390,6 @@ bool check_metablock(direct_file_t *file, file_knowledge *knog, metablock_errors
     knog->metablock = high_metablock->metablock;
     return true;
 }
-// B
 
 bool is_valid_offset(file_knowledge *knog, off64_t offset, off64_t alignment) {
     return offset >= 0 && offset % alignment == 0 && (uint64_t)offset < *knog->filesize;
@@ -407,7 +406,6 @@ bool is_valid_btree_block(file_knowledge *knog, off64_t offset) {
 bool is_valid_device_block(file_knowledge *knog, off64_t offset) {
     return is_valid_offset(knog, offset, DEVICE_BLOCK_SIZE);
 }
-
 
 struct lba_extent_errors {
     enum errcode { none, bad_extent_offset, bad_entries_count };
@@ -444,7 +442,7 @@ bool check_lba_extent(direct_file_t *file, file_knowledge *knog, unsigned int sh
 
     for (int i = 0; i < entries_count; ++i) {
         lba_entry_t entry = buf->entries[i];
-        
+
         if (entry.block_id == ser_block_id_t::null()) {
             // do nothing, this is ok.
         } else if (entry.block_id.value > MAX_BLOCK_ID) {
@@ -476,7 +474,6 @@ struct lba_shard_errors {
     lba_extent_errors extent_errors;
 };
 
-// E
 // Returns true if the LBA shard was successfully read, false otherwise.
 bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metablock_t *shards, int shard_number, lba_shard_errors *errs) {
     errs->code = lba_shard_errors::none;
@@ -542,9 +539,7 @@ bool check_lba_shard(direct_file_t *file, file_knowledge *knog, lba_shard_metabl
             && errs->extent_errors.bad_offset_count == 0);
 
 }
-// B
 
-// E
 struct lba_errors {
     bool error_happened;  // must be false
     lba_shard_errors shard_errors[LBA_SHARD_FACTOR];
@@ -561,7 +556,6 @@ bool check_lba(direct_file_t *file, file_knowledge *knog, lba_errors *errs) {
     errs->error_happened = !no_errors;
     return no_errors;
 }
-// B
 
 struct config_block_errors {
     btree_block::error block_open_code;  // must be none
@@ -588,6 +582,7 @@ bool check_config_block(direct_file_t *file, file_knowledge *knog, config_block_
     return true;
 }
 
+// B
 struct value_error {
     block_id_t block_id;
     std::string key;
@@ -1002,13 +997,13 @@ void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_num
     check_slice_other_blocks(cx, &errs->other_block_errs);
 }
 
+// E
 struct check_to_config_block_errors {
     learned<static_config_error> static_config_err;
     learned<metablock_errors> metablock_errs;
     learned<lba_errors> lba_errs;
     learned<config_block_errors> config_block_errs;
 };
-
 
 bool check_to_config_block(direct_file_t *file, file_knowledge *knog, check_to_config_block_errors *errs) {
     check_filesize(file, knog);
@@ -1058,7 +1053,7 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
         }
     }
 
-    errs->bad_num_slices = (zeroth.btree_config.n_slices < 0);
+    errs->bad_num_slices = (zeroth.btree_config.n_slices <= 0);
 
     errs->reused_serializer_numbers = false;
     for (int i = 0; i < num_files; ++i) {
@@ -1067,6 +1062,7 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
 
     return (errs->all_have_same_num_files && errs->all_have_same_num_slices && errs->all_have_same_db_creation_timestamp && !errs->bad_this_serializer_values && !errs->bad_num_slices && !errs->reused_serializer_numbers);
 }
+// B
 
 struct all_slices_errors {
     int n_slices;
@@ -1106,6 +1102,7 @@ void launch_check_after_config_block(direct_file_t *file, std::vector<pthread_t>
     }
 }
 
+// E
 void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
     const static_config_error *sc;
     if (errs.static_config_err.is_known(&sc) && *sc != static_config_none) {
@@ -1194,6 +1191,7 @@ void report_interfile_errors(const interfile_errors &errs) {
     }
 }
 
+// B
 bool report_subtree_errors(const subtree_errors *errs) {
     if (!errs->node_errors.empty()) {
         printf("ERROR %s subtree node errors found...\n", state);
