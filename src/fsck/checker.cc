@@ -497,7 +497,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge *knog, unsigned int
 }
 
 struct lba_shard_errors {
-    enum errcode { none = 0, bad_lba_superblock_offset, bad_lba_superblock_magic, bad_lba_extent };
+    enum errcode { none = 0, bad_lba_superblock_offset, bad_lba_superblock_magic, bad_lba_extent, bad_lba_superblock_entries_count, lba_superblock_not_contained_in_single_extent };
     errcode code;
 
     // -1 if no extents deemed bad.
@@ -515,14 +515,26 @@ bool check_lba_shard(nondirect_file_t *file, file_knowledge *knog, lba_shard_met
 
     lba_shard_metablock_t *shard = shards + shard_number;
 
-    // Read the superblock.
-    int superblock_size = lba_superblock_t::entry_count_to_file_size(shard->lba_superblock_entries_count);
+    // Read the superblock.block_size
+    int superblock_size;
+    if (!lba_superblock_t::safe_entry_count_to_file_size(shard->lba_superblock_entries_count, &superblock_size)
+        || superblock_size > floor_aligned(INT_MAX, DEVICE_BLOCK_SIZE)
+        || uint64_t(superblock_size) > knog->static_config->extent_size()) {
+        errs->code = lba_shard_errors::bad_lba_superblock_entries_count;
+        return false;
+    }
+
     int superblock_aligned_size = ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE);
 
     // 1. Read the entries from the superblock (if there is one).
-    if (shards[shard_number].lba_superblock_offset != NULL_OFFSET) {
+    if (shard->lba_superblock_offset != NULL_OFFSET) {
         if (!is_valid_device_block(knog, shard->lba_superblock_offset)) {
             errs->code = lba_shard_errors::bad_lba_superblock_offset;
+            return false;
+        }
+
+        if ((shard->lba_superblock_offset % knog->static_config->extent_size()) > knog->static_config->extent_size() - superblock_aligned_size) {
+            errs->code = lba_shard_errors::lba_superblock_not_contained_in_single_extent;
             return false;
         }
 
@@ -908,11 +920,6 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
 
 void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        if (offsetof(leaf_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
-            || buf->frontmost_offset > cx.block_size().value()) {
-            errs->value_out_of_buf = true;
-            return;
-        }
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -960,12 +967,6 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btre
 
 void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        if (offsetof(internal_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
-            || buf->frontmost_offset > cx.block_size().value()) {
-            errs->value_out_of_buf = true;
-            return;
-        }
-
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -1029,21 +1030,24 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btre
 
     node_error node_err(id);
 
-    if (lo != NULL && hi != NULL) {
-        // (We're happy with an underfull root block.)
-        if (node::is_underfull(cx.block_size(), ptr_cast<node_t>(node.buf))) {
-            node_err.block_underfull = true;
+    if (!node::has_sensible_offsets(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+        node_err.value_out_of_buf = true;
+    } else {
+        if (lo != NULL && hi != NULL) {
+            // (We're happy with an underfull root block.)
+            if (node::is_underfull(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+                node_err.block_underfull = true;
+            }
+        }
+
+        if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
+            check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
+        } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
+            check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
+        } else {
+            node_err.bad_magic = true;
         }
     }
-
-    if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
-        check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
-    } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
-        check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
-    } else {
-        node_err.bad_magic = true;
-    }
-
     if (node_err.is_bad()) {
         errs->add_error(node_err);
     }
@@ -1234,7 +1238,7 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
         }
     }
 
-    errs->bad_num_slices = (zeroth.n_proxies < 0);
+    errs->bad_num_slices = (zeroth.n_proxies <= 0);
 
     errs->reused_serializer_numbers = false;
     for (int i = 0; i < num_files; ++i) {
@@ -1248,7 +1252,7 @@ struct all_slices_errors {
     int n_slices;
     slice_errors *slice;
 
-    explicit all_slices_errors(int n_slices) : n_slices(n_slices), slice(new slice_errors[n_slices]) { }
+    explicit all_slices_errors(int n_slices_) : n_slices(n_slices_), slice(new slice_errors[n_slices_]) { }
 
     ~all_slices_errors() { delete[] slice; }
 };
@@ -1312,7 +1316,11 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
     if (errs.lba_errs.is_known(&lba) && lba->error_happened) {
         for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
             const lba_shard_errors *sherr = &lba->shard_errors[i];
-            if (sherr->code == lba_shard_errors::bad_lba_superblock_offset) {
+            if (sherr->code == lba_shard_errors::bad_lba_superblock_entries_count) {
+                printf("ERROR %s lba shard %d has invalid lba_superblock_entries_count\n", state, i);
+            } else if (sherr->code == lba_shard_errors::lba_superblock_not_contained_in_single_extent) {
+                printf("ERROR %s lba shard %d has lba superblock offset with lba_superblock_entries_count crossing extent boundary\n", state, i);
+            } else if (sherr->code == lba_shard_errors::bad_lba_superblock_offset) {
                 printf("ERROR %s lba shard %d has invalid lba superblock offset\n", state, i);
             } else if (sherr->code == lba_shard_errors::bad_lba_superblock_magic) {
                 printf("ERROR %s lba shard %d has invalid superblock magic\n", state, i);

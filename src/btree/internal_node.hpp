@@ -34,6 +34,7 @@ int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib
 void update_key(buf_t &node_buf, const btree_key_t *key_to_replace, const btree_key_t *replacement_key);
 int nodecmp(const internal_node_t *node1, const internal_node_t *node2);
 bool is_full(const internal_node_t *node);
+bool has_sensible_offsets(block_size_t block_size, const internal_node_t *node);
 bool is_underfull(block_size_t block_size, const internal_node_t *node);
 bool change_unsafe(const internal_node_t *node);
 bool is_mergable(block_size_t block_size, const internal_node_t *node, const internal_node_t *sibling, const internal_node_t *parent);

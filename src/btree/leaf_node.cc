@@ -430,6 +430,10 @@ bool is_mergable(block_size_t block_size, const leaf_node_t *node, const leaf_no
         LEAF_EPSILON < block_size.value();
 }
 
+bool has_sensible_offsets(block_size_t block_size, const leaf_node_t *node) {
+    return offsetof(leaf_node_t, pair_offsets) + node->npairs * sizeof(*node->pair_offsets) <= node->frontmost_offset && node->frontmost_offset <= block_size.value();
+}
+
 bool is_underfull(block_size_t block_size, const leaf_node_t *node) {
 #ifdef DEBUG_MAX_LEAF
     return node->npairs < (DEBUG_MAX_LEAF + 1) / 2;
