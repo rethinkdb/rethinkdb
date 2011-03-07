@@ -291,33 +291,24 @@ void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limi
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
     int num_inlined = num_ref_inlined();
 
-    // TODO: We shouldn't have to split this up into a special case for which num_inlined == 1.
-
     roots.resize(num_inlined);
-    if (num_inlined == 1) {
-        num_to_acquire = 1;
+
+    // Yet another case of slicing logic.
+    int64_t step = max_offset(sublevels);
+    int64_t beg = root_ref->offset + slice_offset;
+    int64_t end = beg + slice_size;
+
+    int i = beg / step;
+    int e = ceil_divide(end, step);
+
+    num_to_acquire = e - i;
+
+    for (int i = beg / step, e = ceil_divide(end, step); i < e; ++i) {
         tree_available_callback_t *cb = new lb_tree_available_callback_t(this);
-        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[0], root_ref->offset + slice_offset, slice_size, sublevels, cb, 0, should_load_leaves_);
+        int64_t thisbeg = std::max(beg, i * step);
+        int64_t thisend = std::min(end, (i + 1) * step);
+        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[i], thisbeg, thisend - thisbeg, sublevels, cb, i, should_load_leaves_);
         f->go();
-    } else {
-        // Yet another case of slicing logic.
-
-        int64_t subsize = max_offset(sublevels);
-        int64_t beg = root_ref->offset + slice_offset;
-        int64_t end = beg + slice_size;
-
-        int i = beg / subsize;
-        int e = ceil_divide(end, subsize);
-
-        num_to_acquire = e - i;
-
-        for (int i = beg / subsize, e = ceil_divide(end, subsize); i < e; ++i) {
-            tree_available_callback_t *cb = new lb_tree_available_callback_t(this);
-            int64_t thisbeg = std::max(beg, i * subsize);
-            int64_t thisend = std::min(end, (i + 1) * subsize);
-            acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[i], thisbeg, thisend - thisbeg, sublevels, cb, i, should_load_leaves_);
-            f->go();
-        }
     }
 }
 
