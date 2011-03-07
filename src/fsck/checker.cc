@@ -1216,10 +1216,11 @@ bool report_subtree_errors(const subtree_errors *errs) {
         for (int i = 0, n = errs->value_errors.size(); i < n; ++i) {
             const value_error& e = errs->value_errors[i];
             printf("          %u/'%s' :", e.block_id, e.key.c_str());
-            printf("%s%s%s",
+            printf("%s%s%s%s",
                    e.bad_metadata_flags ? " bad_metadata_flags" : "",
                    e.too_big ? " too_big" : "",
-                   e.lv_too_small ? " lv_too_small" : "");
+                   e.lv_too_small ? " lv_too_small" : "",
+                   e.lv_bad_offset_or_size ? " lv_bad_offset_or_size" : "");
             if (e.index_block_id != NULL_BLOCK_ID) {
                 printf(" (index_block_id = %u)", e.index_block_id);
 
