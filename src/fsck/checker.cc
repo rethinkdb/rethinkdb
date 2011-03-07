@@ -15,8 +15,6 @@
 
 namespace fsck {
 
-// B
-
 static const char *state = NULL;
 
 // Knowledge that we contain for every block id.
@@ -243,7 +241,6 @@ public:
     }
 };
 
-
 void check_filesize(direct_file_t *file, file_knowledge *knog) {
     knog->filesize = file->get_size();
 }
@@ -251,7 +248,6 @@ void check_filesize(direct_file_t *file, file_knowledge *knog) {
 const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes" };
 enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes };
 
-// E
 bool check_static_config(direct_file_t *file, file_knowledge *knog, static_config_error *err) {
     block header;
     header.init(DEVICE_BLOCK_SIZE, file, 0);
@@ -583,7 +579,6 @@ bool check_config_block(direct_file_t *file, file_knowledge *knog, config_block_
     return true;
 }
 
-// B
 struct value_error {
     block_id_t block_id;
     std::string key;
@@ -623,7 +618,7 @@ struct node_error {
     bool out_of_order : 1;  // should be false
     bool value_errors_exist : 1;  // should be false
     bool last_internal_node_key_nonempty : 1;  // should be false
-    
+
     explicit node_error(block_id_t block_id) : block_id(block_id), block_not_found_error(btree_block::none),
                                                block_underfull(false), bad_magic(false),
                                                noncontiguous_offsets(false), value_out_of_buf(false),
@@ -665,7 +660,6 @@ bool is_valid_hash(const slicecx& cx, const btree_key *key) {
     return btree_key_value_store_t::hash(key) % cx.knog->config_block->btree_config.n_slices == (unsigned)cx.global_slice_id;
 }
 
-// E
 void check_large_buf(slicecx& cx, int levels, const large_buf_ref& ref, value_error *errs) {
     btree_block b;
     if (!b.init(cx, ref.block_id)) {
@@ -716,6 +710,10 @@ void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_err
 
         large_buf_ref root_ref = value->lb_ref();
 
+        // HACK: We check that root_ref.offset + root_ref.size <
+        // INT64_MAX / 4 (instead of against INT64_MAX) because of a future
+        // ceil_aligned(root_ref.offset + root_ref.size,
+        // max_offset(levels - 1)) call.
         if (root_ref.offset < 0 || root_ref.size < 0 || std::numeric_limits<int64_t>::max() / 4 - root_ref.offset < root_ref.size) {
             errs->lv_bad_offset_or_size = true;
             return;
@@ -880,7 +878,6 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key *lo, const btree_
         errs->add_error(node_err);
     }
 }
-// B
 
 static const block_magic_t Zilch = { { 0, 0, 0, 0 } };
 
@@ -973,12 +970,7 @@ struct slice_errors {
     slice_errors()
         : global_slice_number(-1),
           superblock_code(btree_block::none), superblock_bad_magic(false), tree_errs(), other_block_errs() { }
-
-    bool is_bad() const {
-        return superblock_code != btree_block::none || superblock_bad_magic || tree_errs.is_bad();
-    }
 };
-// E
 
 void check_slice(direct_file_t *file, file_knowledge *knog, int global_slice_number, slice_errors *errs) {
     slicecx cx(file, knog, global_slice_number);
@@ -1195,7 +1187,6 @@ void report_interfile_errors(const interfile_errors &errs) {
     }
 }
 
-// B
 bool report_subtree_errors(const subtree_errors *errs) {
     if (!errs->node_errors.empty()) {
         printf("ERROR %s subtree node errors found...\n", state);
@@ -1301,7 +1292,6 @@ bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
 
     return ok;
 }
-// E
 
 void print_interfile_summary(const serializer_config_block_t& c) {
     printf("config_block database_creation_timestamp: %u\n", c.database_creation_timestamp);
