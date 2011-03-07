@@ -58,6 +58,11 @@ def generate_async_message_template(nargs):
     print "             return size;"
     print "        }"
     print "    };"
+    print "#ifndef NDEBUG"
+    print "     const std::type_info& expected_type() {"
+    print "         return typeid(message_t);"
+    print "     }"
+    print "#endif"
     print "    void unserialize(cluster_inpipe_t *p) {"
     for i in xrange(nargs):
         print "        typename format_t<arg%d_t>::parser_t parser%d(p);" % (i,i)
@@ -119,6 +124,11 @@ def generate_sync_message_template(nargs, void):
     else:
         print "                    pulse();"
     print "                }"
+    print "#ifndef NDEBUG"
+    print "                const std::type_info& expected_type() {"
+    print "                    return typeid(ret_message_t);"
+    print "                }"
+    print "#endif"
     print "            } reply_listener;"
     print "            m.reply_to = cluster_address_t(&reply_listener);"
     print "            addr.send(&m);"
@@ -164,6 +174,11 @@ def generate_sync_message_template(nargs, void):
     print "             return size;"
     print "        }"
     print "    };"
+    print "#ifndef NDEBUG"
+    print "     const std::type_info& expected_type() {"
+    print "         return typeid(call_message_t);"
+    print "     }"
+    print "#endif"
     print
     print "    struct ret_message_t : public cluster_message_t {"
     if not void:

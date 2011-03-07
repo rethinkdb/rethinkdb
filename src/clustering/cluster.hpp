@@ -54,6 +54,10 @@ private:
     it. Beware: may be called on any thread. */
     virtual void run(cluster_message_t *msg) = 0;
 
+#ifndef NDEBUG
+    virtual const std::type_info& expected_type() = 0;
+#endif
+
     DISABLE_COPYING(cluster_mailbox_t);
 private:
     int id;

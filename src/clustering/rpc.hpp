@@ -51,6 +51,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         p->done();
         callback();
@@ -83,6 +88,11 @@ public:
                 void run(cluster_message_t *msg) {
                     pulse();
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -116,6 +126,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -166,6 +181,11 @@ public:
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -199,6 +219,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -270,6 +295,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         p->done();
@@ -305,6 +335,11 @@ public:
                 void run(cluster_message_t *msg) {
                     pulse();
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -341,6 +376,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -392,6 +432,11 @@ public:
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -428,6 +473,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -503,6 +553,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -540,6 +595,11 @@ public:
                 void run(cluster_message_t *msg) {
                     pulse();
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -579,6 +639,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -631,6 +696,11 @@ public:
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -670,6 +740,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -749,6 +824,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -788,6 +868,11 @@ public:
                 void run(cluster_message_t *msg) {
                     pulse();
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -830,6 +915,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -883,6 +973,11 @@ public:
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -925,6 +1020,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -1008,6 +1108,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -1049,6 +1154,11 @@ public:
                 void run(cluster_message_t *msg) {
                     pulse();
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -1094,6 +1204,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -1148,6 +1263,11 @@ public:
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -1193,6 +1313,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -1280,6 +1405,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -1323,6 +1453,11 @@ public:
                 void run(cluster_message_t *msg) {
                     pulse();
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -1371,6 +1506,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -1426,6 +1566,11 @@ public:
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -1474,6 +1619,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -1565,6 +1715,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -1610,6 +1765,11 @@ public:
                 void run(cluster_message_t *msg) {
                     pulse();
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -1661,6 +1821,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -1717,6 +1882,11 @@ public:
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -1768,6 +1938,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -1863,6 +2038,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -1910,6 +2090,11 @@ public:
                 void run(cluster_message_t *msg) {
                     pulse();
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -1964,6 +2149,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -2021,6 +2211,11 @@ public:
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -2075,6 +2270,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -2174,6 +2374,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -2223,6 +2428,11 @@ public:
                 void run(cluster_message_t *msg) {
                     pulse();
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -2280,6 +2490,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -2338,6 +2553,11 @@ public:
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -2395,6 +2615,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -2498,6 +2723,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -2549,6 +2779,11 @@ public:
                 void run(cluster_message_t *msg) {
                     pulse();
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -2609,6 +2844,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -2668,6 +2908,11 @@ public:
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
                     pulse(m->ret);
                 }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             addr.send(&m);
@@ -2728,6 +2973,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
