@@ -153,21 +153,14 @@ void large_buf_t::allocate(int64_t _size, large_buf_ref *ref, lbref_limit_t ref_
 
     DEBUG_ONLY(state = loading);
 
-    // TODO: this is messed up, we shouldn't have to break this up
-    // into a special case for num_inlined == 1.
-
     int num_inlined = num_ref_inlined();
     roots.resize(num_inlined);
-    if (num_inlined == 1) {
-        roots[0] = allocate_buftree(0, _size, num_sublevels(_size), root_ref->block_ids);
-    } else {
-        for (int i = 0; i < num_inlined; ++i) {
-            int sublevels = num_sublevels(_size);
-            rassert(sublevels >= 1);
-            int sz = max_offset(sublevels);
-            roots[i] = allocate_buftree(0, (i == num_inlined - 1 ? _size - i * sz : sz), sublevels,
-                                        &root_ref->block_ids[i]);
-        }
+    for (int i = 0; i < num_inlined; ++i) {
+        int sublevels = num_sublevels(_size);
+        rassert(sublevels >= 1);
+        int sz = max_offset(sublevels);
+        roots[i] = allocate_buftree(0, (i == num_inlined - 1 ? _size - i * sz : sz), sublevels,
+                                    &root_ref->block_ids[i]);
     }
 
     DEBUG_ONLY(state = loaded);
