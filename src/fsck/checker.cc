@@ -305,11 +305,14 @@ bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_co
         *err = bad_software_name;
         return false;
     }
-    if (0 !=  strcmp(buf->version, VERSION_STRING)) {
+    if (0 != strcmp(buf->version, VERSION_STRING)) {
         *err = bad_version;
         return false;
     }
-    if (!(block_size.ser_value() % DEVICE_BLOCK_SIZE == 0 && extent_size % block_size.ser_value() == 0)) {
+    if (!(block_size.ser_value() > 0
+          && block_size.ser_value() % DEVICE_BLOCK_SIZE == 0
+          && extent_size > 0
+          && extent_size % block_size.ser_value() == 0)) {
         *err = bad_sizes;
         return false;
     }
@@ -1514,12 +1517,15 @@ bool check_files(const config_t& cfg) {
 
     unrecoverable_fact(num_files > 0, "a positive number of files");
 
-    bool any = false;
     for (int i = 0; i < num_files; ++i) {
-        check_to_config_block_errors errs;
         if (!knog.files[i]->exists()) {
             fail_due_to_user_error("No such file \"%s\"", knog.file_knog[i]->filename.c_str());
         }
+    }
+
+    bool any = false;
+    for (int i = 0; i < num_files; ++i) {
+        check_to_config_block_errors errs;
         if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs)) {
             any = true;
             std::string s = std::string("(in file '") + knog.file_knog[i]->filename + "')";
