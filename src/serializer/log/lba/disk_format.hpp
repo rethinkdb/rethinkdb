@@ -164,7 +164,7 @@ struct lba_superblock_t {
     // value (like if file_size_out was greater than a possible
     // superblock size).
     static bool safe_entry_count_to_file_size(int nentries, int *file_size_out) {
-        if (nentries <= 0 || nentries > int((INT_MAX - offsetof(lba_superblock_t, entries[0])) / sizeof(lba_superblock_entry_t))) {
+        if (nentries < 0 || nentries > int((INT_MAX - offsetof(lba_superblock_t, entries[0])) / sizeof(lba_superblock_entry_t))) {
             *file_size_out = 0;
             return false;
         } else {
