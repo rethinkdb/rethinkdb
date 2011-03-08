@@ -480,79 +480,75 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
 }
 
 
-// TODO: read_at is literally identical to fill_at except for the
-// direction of a memcpy statement.
-
-// Copies bytes from the large buffer to the given vector.
-void large_buf_t::read_at(int64_t pos, void *data_out_, int64_t read_size) {
-    byte *data_out = reinterpret_cast<byte *>(data_out_);
+void large_buf_t::bufs_at(int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out) {
     rassert(state == loaded);
     rassert(0 <= pos && pos <= root_ref->size);
     rassert(read_size <= root_ref->size - pos);
 
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
-    read_trees_at(roots, root_ref->offset + pos, data_out, read_size, sublevels);
+    trees_bufs_at(roots, sublevels, pos, read_size, use_read_mode, bufs_out);
 }
 
-void large_buf_t::read_trees_at(const std::vector<buftree_t *>& trees, int64_t pos, byte *data_out, int64_t read_size, int sublevels) {
-    rassert(trees[0]->level == sublevels);
-
+void large_buf_t::trees_bufs_at(const std::vector<buftree_t *>& trees, int sublevels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out) {
     int64_t step = max_offset(sublevels);
 
     for (int k = pos / step, ke = ceil_divide(pos + read_size, step); k < ke; ++k) {
         int64_t i = int64_t(k) * step;
         int64_t beg = std::max(i, pos);
         int64_t end = std::min(pos + read_size, i + step);
-        fill_tree_at(trees[k], beg - i, data_out + (beg - pos), end - beg, sublevels);
+        tree_bufs_at(trees[k], sublevels, beg - i, end - beg, use_read_mode, bufs_out);
     }
 }
 
-void large_buf_t::read_tree_at(buftree_t *tr, int64_t pos, byte *data_out, int64_t read_size, int levels) {
+void large_buf_t::tree_bufs_at(buftree_t *tr, int levels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out) {
+    rassert(tr);
     rassert(tr->level == levels);
 
     if (levels == 1) {
-        large_buf_leaf *node = reinterpret_cast<large_buf_leaf *>(tr->buf->get_data_major_write());
-        memcpy(data_out, node->buf + pos, read_size);
+        large_buf_leaf *node;
+        if (use_read_mode) {
+            node = reinterpret_cast<large_buf_leaf *>(const_cast<void *>(tr->buf->get_data_read()));
+        } else {
+            node = reinterpret_cast<large_buf_leaf *>(tr->buf->get_data_major_write());
+        }
+        rassert(0 <= pos);
+        rassert(pos < num_leaf_bytes());
+        rassert(0 < read_size);
+        rassert(pos + read_size <= num_leaf_bytes());
+        bufs_out->add_buffer(read_size, node->buf + pos);
     } else {
-        fill_trees_at(tr->children, pos, data_out, read_size, levels - 1);
+        trees_bufs_at(tr->children, levels - 1, pos, read_size, use_read_mode, bufs_out);
     }
 }
 
+void large_buf_t::read_at(int64_t pos, void *data_out, int64_t read_size) {
+    buffer_group_t group;
+    bufs_at(pos, read_size, true, &group);
 
+    char *data = reinterpret_cast<char *>(data_out);
+    int64_t off = 0;
+    for (int i = 0, n = group.num_buffers(); i < n; ++i) {
+        buffer_group_t::buffer_t buf = group.get_buffer(i);
+        memcpy(data + off, buf.data, buf.size);
+        off += buf.size;
+    }
 
-// Reads size bytes from data.
-void large_buf_t::fill_at(int64_t pos, const void *data_, int64_t fill_size) {
-    const byte *data = reinterpret_cast<const byte *>(data_);
-    rassert(state == loaded);
-    rassert(0 <= pos && pos <= root_ref->size);
-    rassert(fill_size <= root_ref->size - pos);
-
-    int sublevels = num_sublevels(root_ref->offset + root_ref->size);
-    fill_trees_at(roots, root_ref->offset + pos, data, fill_size, sublevels);
+    rassert(off == read_size);
 }
 
-void large_buf_t::fill_trees_at(const std::vector<buftree_t *>& trees, int64_t pos, const byte *data, int64_t fill_size, int sublevels) {
-    rassert(trees[0]->level == sublevels);
+void large_buf_t::fill_at(int64_t pos, const void *data, int64_t fill_size) {
+    buffer_group_t group;
+    bufs_at(pos, fill_size, false, &group);
 
-    int64_t step = max_offset(sublevels);
-
-    for (int k = pos / step, ke = ceil_divide(pos + fill_size, step); k < ke; ++k) {
-        int64_t i = int64_t(k) * step;
-        int64_t beg = std::max(i, pos);
-        int64_t end = std::min(pos + fill_size, i + step);
-        fill_tree_at(trees[k], beg - i, data + (beg - pos), end - beg, sublevels);
+    const byte *dat = reinterpret_cast<const byte *>(data);
+    int64_t off = 0;
+    for (int i = 0, n = group.num_buffers(); i < n; ++i) {
+        buffer_group_t::buffer_t buf = group.get_buffer(i);
+        memcpy(buf.data, dat + off, buf.size);
+        off += buf.size;
     }
-}
 
-void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels) {
-    rassert(tr->level == levels);
-
-    if (levels == 1) {
-        large_buf_leaf *node = reinterpret_cast<large_buf_leaf *>(tr->buf->get_data_major_write());
-        memcpy(node->buf + pos, data, fill_size);
-    } else {
-        fill_trees_at(tr->children, pos, data, fill_size, levels - 1);
-    }
+    rassert(off == fill_size);
 }
 
 void large_buf_t::removes_level(block_id_t *ids, int copyees) {
