@@ -106,12 +106,6 @@ public:
     // TODO:  Stop being a bad programmer and start knowing what thread you're on.
     void ensure_thread() const { txn->ensure_thread(); }
 
-    int64_t get_num_segments();
-
-    uint16_t segment_size(int64_t ix);
-
-    const byte *get_segment(int64_t num, uint16_t *seg_size);
-
     void on_block_available(buf_t *buf);
 
     void index_acquired(buf_t *buf);
@@ -162,7 +156,6 @@ private:
     void delete_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels);
     void only_mark_deleted_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels);
     void release_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels);
-    buf_t *get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset);
     void removes_level(block_id_t *ids, int copyees);
     int try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t stepsize);
 
