@@ -277,6 +277,7 @@ void cluster_t::kill_peer(int id) {
     if (respond_srvc->wait()) {
         logINF("Got responses. make it official\n");
         peers[id]->state = cluster_peer_t::killed;
+        peers[id]->call_kill_cbs();
         mk_official.mutable_addr()->CopyFrom(addr);
         for (std::map<int, boost::shared_ptr<cluster_peer_t> >::iterator it = peers.begin(); it != peers.end(); it++) {
             if (it->second->state == cluster_peer_t::connected) {
@@ -284,7 +285,7 @@ void cluster_t::kill_peer(int id) {
             }
         }
     } else {
-        not_implemented();
+        not_implemented("We expected everyone to agree to kill a peer at this point");
     }
     print_peers();
 }
