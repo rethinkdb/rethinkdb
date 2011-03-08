@@ -4,8 +4,8 @@
 
 struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
-    explicit btree_append_prepend_oper_t(data_provider_t *data, bool append)
-        : data(data), append(append)
+    btree_append_prepend_oper_t(data_provider_t *data_, bool append_)
+        : data(data_), append(append_)
     { }
 
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
@@ -35,6 +35,8 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 value.value_size(new_size, slice->cache().get_block_size());
             }
 
+            buffer_group_t buffer_group;
+            bool is_old_large_value = false;
 
             // Figure out where the data is going to need to go and prepare a place for it
 
@@ -141,9 +143,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         byte value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
-    bool is_old_large_value;
     large_buf_lock_t large_buflock;
-    buffer_group_t buffer_group;
 };
 
 append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, data_provider_t *data, bool append, castime_t castime) {
