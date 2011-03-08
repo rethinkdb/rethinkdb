@@ -267,6 +267,8 @@ struct lb_tree_available_callback_t : public tree_available_callback_t {
 };
 
 void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_) {
+    debugf("Acquiring lorge buf slice, root_ref.offset=%ld, root_ref.size=%ld, slice_offset=%ld, slice_size=%ld\n", root_ref_->offset, root_ref_->size, slice_offset, slice_size);
+
     rassert(0 <= slice_offset);
     rassert(0 <= slice_size);
     rassert(slice_offset + slice_size <= root_ref_->size);
@@ -486,7 +488,7 @@ void large_buf_t::bufs_at(int64_t pos, int64_t read_size, bool use_read_mode, bu
     rassert(read_size <= root_ref->size - pos);
 
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
-    trees_bufs_at(roots, sublevels, pos, read_size, use_read_mode, bufs_out);
+    trees_bufs_at(roots, sublevels, root_ref->offset + pos, read_size, use_read_mode, bufs_out);
 }
 
 void large_buf_t::trees_bufs_at(const std::vector<buftree_t *>& trees, int sublevels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out) {
@@ -515,6 +517,7 @@ void large_buf_t::tree_bufs_at(buftree_t *tr, int levels, int64_t pos, int64_t r
         rassert(pos < num_leaf_bytes());
         rassert(0 < read_size);
         rassert(pos + read_size <= num_leaf_bytes());
+        debugf("Adding buf of size %ld\n", read_size);
         bufs_out->add_buffer(read_size, node->buf + pos);
     } else {
         trees_bufs_at(tr->children, levels - 1, pos, read_size, use_read_mode, bufs_out);
