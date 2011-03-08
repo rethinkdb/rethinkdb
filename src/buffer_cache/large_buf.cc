@@ -852,18 +852,6 @@ const byte *large_buf_t::get_segment(int64_t ix, uint16_t *seg_size) {
     return leaf->buf + seg_offset;
 }
 
-byte *large_buf_t::get_segment_write(int64_t ix, uint16_t *seg_size) {
-    rassert(state == loaded);
-    rassert(ix >= 0 && ix < get_num_segments(), "ix=%ld, get_num_segments()=%ld", ix, get_num_segments());
-
-    uint16_t seg_offset;
-    buf_t *buf = get_segment_buf(ix, seg_size, &seg_offset);
-
-    large_buf_leaf *leaf = reinterpret_cast<large_buf_leaf *>(buf->get_data_major_write());
-    rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-    return leaf->buf + seg_offset;
-}
-
 
 
 large_buf_t::~large_buf_t() {

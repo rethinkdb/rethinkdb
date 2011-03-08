@@ -111,7 +111,6 @@ public:
     uint16_t segment_size(int64_t ix);
 
     const byte *get_segment(int64_t num, uint16_t *seg_size);
-    byte *get_segment_write(int64_t num, uint16_t *seg_size);
 
     void on_block_available(buf_t *buf);
 

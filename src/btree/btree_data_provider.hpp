@@ -43,7 +43,7 @@ public:
 
 private:
     boost::shared_ptr<transactor_t> transactor;
-    boost::scoped_ptr<const_buffer_group_t> buffers;
+    buffer_group_t buffers;
     large_buf_lock_t large_value;
     union {
         large_buf_ref lb_ref;

@@ -77,12 +77,8 @@ struct btree_set_oper_t : public btree_modify_oper_t {
             } else {
                 large_buflock.set(new large_buf_t(txor->transaction()));
                 large_buflock->allocate(data->get_size(), value.large_buf_ref_ptr(), btree_value::lbref_limit);
-                for (int64_t i = 0, n = large_buflock->get_num_segments(); i < n; i++) {
-                    // TODO: Why are we using uint16_t's for size?  That's stupid.
-                    uint16_t size;
-                    void *data = large_buflock->get_segment_write(i, &size);
-                    buffer_group.add_buffer(size, data);
-                }
+
+                large_buflock->bufs_at(0, data->get_size(), false, &buffer_group);
 
                 try {
                     data->get_data_into_buffers(&buffer_group);
