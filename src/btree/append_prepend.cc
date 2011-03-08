@@ -78,20 +78,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 uint32_t fill_size = data->get_size();
                 uint32_t start_pos = append ? old_value->value_size() : 0;
 
-                int64_t ix = large_buflock->pos_to_ix(start_pos);
-                uint16_t seg_pos = large_buflock->pos_to_seg_pos(start_pos);
-
-                while (fill_size > 0) {
-                    uint16_t seg_len;
-                    byte *seg = large_buflock->get_segment_write(ix, &seg_len);
-
-                    rassert(seg_len >= seg_pos);
-                    uint16_t seg_bytes_to_fill = std::min((uint32_t)(seg_len - seg_pos), fill_size);
-                    buffer_group.add_buffer(seg_bytes_to_fill, seg + seg_pos);
-                    fill_size -= seg_bytes_to_fill;
-                    seg_pos = 0;
-                    ix++;
-                }
+                large_buflock->bufs_at(start_pos, fill_size, false, &buffer_group);
             }
 
             // Dispatch the data request

@@ -101,7 +101,6 @@ public:
     void unappend(int64_t extra_size, int *refsize_adjustment_out);
     void unprepend(int64_t extra_size, int *refsize_adjustment_out);
 
-    int64_t pos_to_ix(int64_t pos);
     uint16_t pos_to_seg_pos(int64_t pos);
 
     void mark_deleted();
