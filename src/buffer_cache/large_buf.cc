@@ -864,15 +864,6 @@ byte *large_buf_t::get_segment_write(int64_t ix, uint16_t *seg_size) {
     return leaf->buf + seg_offset;
 }
 
-uint16_t large_buf_t::pos_to_seg_pos(int64_t pos) {
-    int64_t nlb = num_leaf_bytes();
-    int64_t first = ceil_aligned(root_ref->offset, nlb) - root_ref->offset;
-    uint16_t seg_pos = (pos < first ? pos : (pos + root_ref->offset) % nlb);
-    rassert(seg_pos < nlb);
-    rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-    return seg_pos;
-}
-
 
 
 large_buf_t::~large_buf_t() {

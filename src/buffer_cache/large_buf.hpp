@@ -101,8 +101,6 @@ public:
     void unappend(int64_t extra_size, int *refsize_adjustment_out);
     void unprepend(int64_t extra_size, int *refsize_adjustment_out);
 
-    uint16_t pos_to_seg_pos(int64_t pos);
-
     void mark_deleted();
 
     // TODO:  Stop being a bad programmer and start knowing what thread you're on.
