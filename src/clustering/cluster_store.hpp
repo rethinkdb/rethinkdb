@@ -3,6 +3,7 @@
 
 #include "store.hpp"
 #include "clustering/rpc.hpp"
+#include "clustering/serialize_macros.hpp"
 
 struct set_store_interface_mailbox_t {
 
@@ -56,29 +57,7 @@ public:
         append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data) {
             return append_prepend_address.call(kind, key, data);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.get_cas_address);
-            ::serialize(p, addr.sarc_address);
-            ::serialize(p, addr.delete_address);
-            ::serialize(p, addr.append_prepend_address);
-            ::serialize(p, addr.incr_decr_address);
-        }
-        static int ser_size(const address_t &addr) {
-            int i = 0;
-            i += ::ser_size(addr.get_cas_address);
-            i += ::ser_size(addr.sarc_address);
-            i += ::ser_size(addr.delete_address);
-            i += ::ser_size(addr.append_prepend_address);
-            i += ::ser_size(addr.incr_decr_address);
-            return i;
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->get_cas_address);
-            ::unserialize(p, &addr->sarc_address);
-            ::unserialize(p, &addr->delete_address);
-            ::unserialize(p, &addr->append_prepend_address);
-            ::unserialize(p, &addr->incr_decr_address);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_5(address_t, get_cas_address, sarc_address, delete_address, append_prepend_address, incr_decr_address)
     private:
         get_cas_mailbox_t::address_t get_cas_address;
         sarc_mailbox_t::address_t sarc_address;
@@ -140,29 +119,7 @@ public:
         append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
             return append_prepend_address.call(kind, key, data, castime);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.get_cas_address);
-            ::serialize(p, addr.sarc_address);
-            ::serialize(p, addr.delete_address);
-            ::serialize(p, addr.append_prepend_address);
-            ::serialize(p, addr.incr_decr_address);
-        }
-        static int ser_size(const address_t &addr) {
-            int i = 0;
-            i += ::ser_size(addr.get_cas_address);
-            i += ::ser_size(addr.sarc_address);
-            i += ::ser_size(addr.delete_address);
-            i += ::ser_size(addr.append_prepend_address);
-            i += ::ser_size(addr.incr_decr_address);
-            return i;
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->get_cas_address);
-            ::unserialize(p, &addr->sarc_address);
-            ::unserialize(p, &addr->delete_address);
-            ::unserialize(p, &addr->append_prepend_address);
-            ::unserialize(p, &addr->incr_decr_address);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_5(address_t, get_cas_address, sarc_address, delete_address, append_prepend_address, incr_decr_address)
     private:
         get_cas_mailbox_t::address_t get_cas_address;
         sarc_mailbox_t::address_t sarc_address;

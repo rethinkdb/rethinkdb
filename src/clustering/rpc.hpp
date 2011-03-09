@@ -5,6 +5,7 @@
 Please modify '../scripts/generate_rpc_templates.py' instead of modifying this file.*/
 
 #include "clustering/serialize.hpp"
+#include "clustering/serialize_macros.hpp"
 #include "concurrency/cond_var.hpp"
 #include "clustering/cluster.hpp"
 #include "clustering/peer.hpp"
@@ -35,15 +36,7 @@ public:
             message_t m;
             addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -114,15 +107,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -217,15 +202,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -298,15 +275,7 @@ public:
             message_t m(arg0);
             addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -383,15 +352,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -490,15 +451,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -575,15 +528,7 @@ public:
             message_t m(arg0, arg1);
             addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -665,15 +610,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -776,15 +713,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -865,15 +794,7 @@ public:
             message_t m(arg0, arg1, arg2);
             addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -960,15 +881,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -1075,15 +988,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -1168,15 +1073,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3);
             addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -1268,15 +1165,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -1387,15 +1276,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -1484,15 +1365,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4);
             addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -1589,15 +1462,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -1712,15 +1577,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -1813,15 +1670,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
             addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -1923,15 +1772,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -2050,15 +1891,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -2155,15 +1988,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
             addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -2270,15 +2095,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -2401,15 +2218,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -2510,15 +2319,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
             addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -2630,15 +2431,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -2765,15 +2558,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -2878,15 +2663,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
             addr.send(&m);
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -3003,15 +2780,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
@@ -3142,15 +2911,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        static void serialize(cluster_outpipe_t *p, const address_t &addr) {
-            ::serialize(p, addr.addr);
-        }
-        static int ser_size(const address_t &addr) {
-            return ::ser_size(addr.addr);
-        }
-        static void unserialize(cluster_inpipe_t *p, address_t *addr) {
-            ::unserialize(p, &addr->addr);
-        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
     public:
