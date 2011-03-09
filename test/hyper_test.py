@@ -4,7 +4,7 @@ from cloud_retester import do_test, do_test_cloud, report_cloud, setup_testing_n
 # Hyper tests: they're faster than smoke tests.
 
 # Just build valgrind mode.
-do_test("cd ../src/; make -j" { "DEBUG" : 1, "VALGRIND" : 1, "UNIT_TESTS" : 1 }, cmd_format="make")
+do_test("cd ../src/; make -j", { "DEBUG" : 1, "VALGRIND" : 1, "UNIT_TESTS" : 1 }, cmd_format="make")
 
 # serializer-bench tends to break and only takes 1.6 seconds to build.
 do_test("cd ../bench/serializer-bench/; make clean; make", {}, cmd_format="make")
@@ -12,6 +12,9 @@ do_test("cd ../bench/serializer-bench/; make clean; make", {}, cmd_format="make"
 # For safety: ensure that nodes are terminated in case of exceptions.
 # Of course we shouldn't be using USE_CLOUD anyway.
 try:
+    mode = "debug"
+    checker = "valgrind"
+    protocol = "text"
     # serial_mix tends to fail when you screw things up, tests fsck, and, takes 30 seconds.
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
