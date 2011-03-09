@@ -22,16 +22,13 @@ void cluster_peer_t::start_servicing() {
     while (keep_servicing) {
         bool handled_a_message = false;
         for (srvc_list_t::iterator it = srvcs.begin(); it != srvcs.end(); it++) {
-            logINF("Looking for: %s\n", (*it)->_msg->GetTypeName().c_str());
             if (peek((*it)->_msg) && (*it)->want_message(this)) {
-                logINF("Got one\n");
                 pop_protob(conn.get());
                 (*it)->on_receipt(this);
                 if ((*it)->one_off) it = srvcs.erase(it);
                 handled_a_message = true;
                 break;
             } else {
-                logINF("Didn't find it\n");
             }
         }
         if (!handled_a_message) {

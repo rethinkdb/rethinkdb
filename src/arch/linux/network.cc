@@ -209,7 +209,7 @@ const_charslice linux_tcp_conn_t::peek(size_t size) {
 
 void linux_tcp_conn_t::pop(size_t len) {
     rassert(!read_cond);
-    rassert(len <= read_buffer.size());
+    peek(len);
     read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
 }
 
@@ -218,7 +218,6 @@ void linux_tcp_conn_t::shutdown_read() {
     if (res != 0 && errno != ENOTCONN) {
         logERR("Could not shutdown socket for reading: %s\n", strerror(errno));
     }
-
     on_shutdown_read();
 }
 

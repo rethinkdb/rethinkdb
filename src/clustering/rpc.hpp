@@ -6,12 +6,20 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 
 #include "clustering/serialize.hpp"
 #include "concurrency/cond_var.hpp"
+#include "clustering/cluster.hpp"
+#include "clustering/peer.hpp"
 
 template<class proto_t> class async_mailbox_t {
     // BOOST_STATIC_ASSERT(false);
 };
+
 template<class proto_t> class sync_mailbox_t;
 
+struct rpc_peer_killed_exc_t : public std::exception {
+    const char *what() throw () {
+        return "Peer killed during rpc\n";
+    }
+};
 template<>
 class async_mailbox_t< void() > : private cluster_mailbox_t {
 
@@ -51,6 +59,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         p->done();
         callback();
@@ -75,18 +88,27 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call() {
             call_message_t m;
-            struct : public cluster_mailbox_t, public cond_t {
+            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse();
+                    pulse(true);
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
-                    pulse();
+                    pulse(true);
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            reply_listener.wait();
+            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -116,6 +138,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -156,20 +183,31 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call() {
             call_message_t m;
-            struct : public cluster_mailbox_t, public promise_t<ret_t> {
+            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
-                    pulse(parser.value());
+                    pulse(std::make_pair(true, parser.value()));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(m->ret);
+                    pulse(std::make_pair(true, m->ret));
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            return reply_listener.wait();
+            std::pair<bool, ret_t> res = reply_listener.wait();
+            if (res.first) return res.second;
+            else throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -199,6 +237,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -270,6 +313,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         p->done();
@@ -297,18 +345,27 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0) {
             call_message_t m(arg0);
-            struct : public cluster_mailbox_t, public cond_t {
+            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse();
+                    pulse(true);
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
-                    pulse();
+                    pulse(true);
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            reply_listener.wait();
+            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -341,6 +398,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -382,20 +444,31 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0) {
             call_message_t m(arg0);
-            struct : public cluster_mailbox_t, public promise_t<ret_t> {
+            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
-                    pulse(parser.value());
+                    pulse(std::make_pair(true, parser.value()));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(m->ret);
+                    pulse(std::make_pair(true, m->ret));
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            return reply_listener.wait();
+            std::pair<bool, ret_t> res = reply_listener.wait();
+            if (res.first) return res.second;
+            else throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -428,6 +501,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -503,6 +581,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -532,18 +615,27 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1) {
             call_message_t m(arg0, arg1);
-            struct : public cluster_mailbox_t, public cond_t {
+            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse();
+                    pulse(true);
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
-                    pulse();
+                    pulse(true);
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            reply_listener.wait();
+            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -579,6 +671,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -621,20 +718,31 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1) {
             call_message_t m(arg0, arg1);
-            struct : public cluster_mailbox_t, public promise_t<ret_t> {
+            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
-                    pulse(parser.value());
+                    pulse(std::make_pair(true, parser.value()));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(m->ret);
+                    pulse(std::make_pair(true, m->ret));
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            return reply_listener.wait();
+            std::pair<bool, ret_t> res = reply_listener.wait();
+            if (res.first) return res.second;
+            else throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -670,6 +778,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -749,6 +862,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -780,18 +898,27 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
             call_message_t m(arg0, arg1, arg2);
-            struct : public cluster_mailbox_t, public cond_t {
+            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse();
+                    pulse(true);
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
-                    pulse();
+                    pulse(true);
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            reply_listener.wait();
+            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -830,6 +957,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -873,20 +1005,31 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
             call_message_t m(arg0, arg1, arg2);
-            struct : public cluster_mailbox_t, public promise_t<ret_t> {
+            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
-                    pulse(parser.value());
+                    pulse(std::make_pair(true, parser.value()));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(m->ret);
+                    pulse(std::make_pair(true, m->ret));
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            return reply_listener.wait();
+            std::pair<bool, ret_t> res = reply_listener.wait();
+            if (res.first) return res.second;
+            else throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -925,6 +1068,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -1008,6 +1156,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -1041,18 +1194,27 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
             call_message_t m(arg0, arg1, arg2, arg3);
-            struct : public cluster_mailbox_t, public cond_t {
+            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse();
+                    pulse(true);
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
-                    pulse();
+                    pulse(true);
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            reply_listener.wait();
+            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -1094,6 +1256,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -1138,20 +1305,31 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
             call_message_t m(arg0, arg1, arg2, arg3);
-            struct : public cluster_mailbox_t, public promise_t<ret_t> {
+            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
-                    pulse(parser.value());
+                    pulse(std::make_pair(true, parser.value()));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(m->ret);
+                    pulse(std::make_pair(true, m->ret));
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            return reply_listener.wait();
+            std::pair<bool, ret_t> res = reply_listener.wait();
+            if (res.first) return res.second;
+            else throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -1193,6 +1371,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -1280,6 +1463,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -1315,18 +1503,27 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4);
-            struct : public cluster_mailbox_t, public cond_t {
+            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse();
+                    pulse(true);
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
-                    pulse();
+                    pulse(true);
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            reply_listener.wait();
+            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -1371,6 +1568,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -1416,20 +1618,31 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4);
-            struct : public cluster_mailbox_t, public promise_t<ret_t> {
+            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
-                    pulse(parser.value());
+                    pulse(std::make_pair(true, parser.value()));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(m->ret);
+                    pulse(std::make_pair(true, m->ret));
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            return reply_listener.wait();
+            std::pair<bool, ret_t> res = reply_listener.wait();
+            if (res.first) return res.second;
+            else throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -1474,6 +1687,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -1565,6 +1783,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -1602,18 +1825,27 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
-            struct : public cluster_mailbox_t, public cond_t {
+            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse();
+                    pulse(true);
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
-                    pulse();
+                    pulse(true);
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            reply_listener.wait();
+            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -1661,6 +1893,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -1707,20 +1944,31 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
-            struct : public cluster_mailbox_t, public promise_t<ret_t> {
+            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
-                    pulse(parser.value());
+                    pulse(std::make_pair(true, parser.value()));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(m->ret);
+                    pulse(std::make_pair(true, m->ret));
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            return reply_listener.wait();
+            std::pair<bool, ret_t> res = reply_listener.wait();
+            if (res.first) return res.second;
+            else throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -1768,6 +2016,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -1863,6 +2116,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -1902,18 +2160,27 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-            struct : public cluster_mailbox_t, public cond_t {
+            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse();
+                    pulse(true);
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
-                    pulse();
+                    pulse(true);
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            reply_listener.wait();
+            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -1964,6 +2231,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -2011,20 +2283,31 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-            struct : public cluster_mailbox_t, public promise_t<ret_t> {
+            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
-                    pulse(parser.value());
+                    pulse(std::make_pair(true, parser.value()));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(m->ret);
+                    pulse(std::make_pair(true, m->ret));
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            return reply_listener.wait();
+            std::pair<bool, ret_t> res = reply_listener.wait();
+            if (res.first) return res.second;
+            else throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -2075,6 +2358,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -2174,6 +2462,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -2215,18 +2508,27 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-            struct : public cluster_mailbox_t, public cond_t {
+            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse();
+                    pulse(true);
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
-                    pulse();
+                    pulse(true);
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            reply_listener.wait();
+            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -2280,6 +2582,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -2328,20 +2635,31 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-            struct : public cluster_mailbox_t, public promise_t<ret_t> {
+            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
-                    pulse(parser.value());
+                    pulse(std::make_pair(true, parser.value()));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(m->ret);
+                    pulse(std::make_pair(true, m->ret));
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            return reply_listener.wait();
+            std::pair<bool, ret_t> res = reply_listener.wait();
+            if (res.first) return res.second;
+            else throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -2395,6 +2713,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
@@ -2498,6 +2821,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(message_t);
+     }
+#endif
     void unserialize(cluster_inpipe_t *p) {
         typename format_t<arg0_t>::parser_t parser0(p);
         typename format_t<arg1_t>::parser_t parser1(p);
@@ -2541,18 +2869,27 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-            struct : public cluster_mailbox_t, public cond_t {
+            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse();
+                    pulse(true);
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
-                    pulse();
+                    pulse(true);
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            reply_listener.wait();
+            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -2609,6 +2946,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         void serialize(cluster_outpipe_t *p) {
@@ -2658,20 +3000,31 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-            struct : public cluster_mailbox_t, public promise_t<ret_t> {
+            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
                     typename format_t<ret_t>::parser_t parser(p);
-                    pulse(parser.value());
+                    pulse(std::make_pair(true, parser.value()));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(m->ret);
+                    pulse(std::make_pair(true, m->ret));
+                }
+#ifndef NDEBUG
+                const std::type_info& expected_type() {
+                    return typeid(ret_message_t);
+                }
+#endif
+                void on_kill() {
+                    pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
+            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             addr.send(&m);
-            return reply_listener.wait();
+            std::pair<bool, ret_t> res = reply_listener.wait();
+            if (res.first) return res.second;
+            else throw rpc_peer_killed_exc_t();
         }
         static void serialize(cluster_outpipe_t *p, const address_t &addr) {
             ::serialize(p, addr.addr);
@@ -2728,6 +3081,11 @@ private:
              return size;
         }
     };
+#ifndef NDEBUG
+     const std::type_info& expected_type() {
+         return typeid(call_message_t);
+     }
+#endif
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;

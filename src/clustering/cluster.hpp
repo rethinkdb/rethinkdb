@@ -54,6 +54,10 @@ private:
     it. Beware: may be called on any thread. */
     virtual void run(cluster_message_t *msg) = 0;
 
+#ifndef NDEBUG
+    virtual const std::type_info& expected_type() = 0;
+#endif
+
     DISABLE_COPYING(cluster_mailbox_t);
 private:
     int id;
@@ -79,6 +83,8 @@ private:
 
     int peer;    // Index into the cluster's 'peers' map
     int mailbox;   // Might be in the address space of another machine
+public:
+    int get_peer() { return peer; } //added for rpcs to do error handling
 };
 
 /* cluster_t represents membership in a cluster. Its constructors establish or join a cluster and
@@ -220,6 +226,25 @@ private:
     /* kill peer communicates with the rest of the cluster that we want to
      * remove a peer from the cluster */
     void kill_peer(int peer);
+
+public:
+    class peer_kill_monitor_t {
+    private:
+        int peer;
+        cluster_peer_t::kill_cb_t *cb;
+    public:
+        peer_kill_monitor_t(int peer, cluster_peer_t::kill_cb_t *cb) 
+            : peer(peer), cb(cb)
+        {
+            guarantee(get_cluster().peers.find(peer) != get_cluster().peers.end(), "Unknown peer");
+            get_cluster().peers[peer]->monitor_kill(cb);
+        }
+        ~peer_kill_monitor_t() {
+            guarantee(get_cluster().peers.find(peer) != get_cluster().peers.end(), "Unknown peer");
+            get_cluster().peers[peer]->unmonitor_kill(cb);
+        }
+        DISABLE_COPYING(peer_kill_monitor_t);
+    };
 
     DISABLE_COPYING(cluster_t);
 };

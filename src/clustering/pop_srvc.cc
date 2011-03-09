@@ -93,14 +93,3 @@ void kill_mk_official_srvc_t::handle(cluster_peer_t *sndr) {
 
     get_cluster().print_peers();
 }
-
-void mailbox_srvc_t::handle(cluster_peer_t *sndr) {
-    if (cluster_mailbox_t *mbox = get_cluster().get_mailbox(msg.id())) {
-        cluster_inpipe_t inpipe(sndr->conn.get(), msg.length());
-        coro_t::spawn_now(boost::bind(&cluster_mailbox_t::unserialize, mbox, &inpipe));
-        inpipe.to_signal_when_done.wait();
-    } else {
-        logERR("Mailbox msg from peer: %d, sent to nonexistant mailbox:%d\n", sndr->id, msg.id());
-        not_implemented("In order to handle errors here we need to fill in the length field in the mailbox_msgs\n"); //TODO: this
-    }
-}

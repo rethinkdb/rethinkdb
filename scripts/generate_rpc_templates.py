@@ -58,6 +58,11 @@ def generate_async_message_template(nargs):
     print "             return size;"
     print "        }"
     print "    };"
+    print "#ifndef NDEBUG"
+    print "     const std::type_info& expected_type() {"
+    print "         return typeid(message_t);"
+    print "     }"
+    print "#endif"
     print "    void unserialize(cluster_inpipe_t *p) {"
     for i in xrange(nargs):
         print "        typename format_t<arg%d_t>::parser_t parser%d(p);" % (i,i)
@@ -103,29 +108,43 @@ def generate_sync_message_template(nargs, void):
         print "            call_message_t m(%s);" % ", ".join("arg%d" % i for i in xrange(nargs));
     else:
         print "            call_message_t m;"
-    print "            struct : public cluster_mailbox_t, public %s {" % ("promise_t<ret_t>" if not void else "cond_t")
+    print "            struct : public cluster_mailbox_t, public %s, public cluster_peer_t::kill_cb_t {" % ("promise_t<std::pair<bool, ret_t> >" if not void else "promise_t<bool>")
     print "                void unserialize(cluster_inpipe_t *p) {"
     if not void:
         print "                    typename format_t<ret_t>::parser_t parser(p);"
-        print "                    pulse(parser.value());"
+        print "                    pulse(std::make_pair(true, parser.value()));"
     else:
-        print "                    pulse();"
+        print "                    pulse(true);"
     print "                    p->done();"
     print "                }"
     print "                void run(cluster_message_t *msg) {"
     if not void:
         print "                    ret_message_t *m = static_cast<ret_message_t *>(msg);"
-        print "                    pulse(m->ret);"
+        print "                    pulse(std::make_pair(true, m->ret));"
     else:
-        print "                    pulse();"
+        print "                    pulse(true);"
+    print "                }"
+    print "#ifndef NDEBUG"
+    print "                const std::type_info& expected_type() {"
+    print "                    return typeid(ret_message_t);"
+    print "                }"
+    print "#endif"
+    print "                void on_kill() {"
+    if not void:
+        print "                    pulse(std::make_pair(false, ret_t()));"
+    else:
+        print "                    pulse(false);"
     print "                }"
     print "            } reply_listener;"
     print "            m.reply_to = cluster_address_t(&reply_listener);"
+    print "            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);"
     print "            addr.send(&m);"
     if not void:
-        print "            return reply_listener.wait();"
+        print "            std::pair<bool, ret_t> res = reply_listener.wait();"
+        print "            if (res.first) return res.second;"
+        print "            else throw rpc_peer_killed_exc_t();"
     else:
-        print "            reply_listener.wait();"
+        print "            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();"
     print "        }"
     print "        static void serialize(cluster_outpipe_t *p, const address_t &addr) {"
     print "            ::serialize(p, addr.addr);"
@@ -164,6 +183,11 @@ def generate_sync_message_template(nargs, void):
     print "             return size;"
     print "        }"
     print "    };"
+    print "#ifndef NDEBUG"
+    print "     const std::type_info& expected_type() {"
+    print "         return typeid(call_message_t);"
+    print "     }"
+    print "#endif"
     print
     print "    struct ret_message_t : public cluster_message_t {"
     if not void:
@@ -219,13 +243,21 @@ if __name__ == "__main__":
 
     print "#include \"clustering/serialize.hpp\""
     print "#include \"concurrency/cond_var.hpp\""
+    print "#include \"clustering/cluster.hpp\""
+    print "#include \"clustering/peer.hpp\""
     print
 
     print "template<class proto_t> class async_mailbox_t {"
     print "    // BOOST_STATIC_ASSERT(false);"
     print "};"
+    print
     print "template<class proto_t> class sync_mailbox_t;"
     print
+    print "struct rpc_peer_killed_exc_t : public std::exception {"
+    print "    const char *what() throw () {"
+    print "        return \"Peer killed during rpc\\n\";"
+    print "    }"
+    print "};"
 
     for nargs in xrange(10):
         generate_async_message_template(nargs)

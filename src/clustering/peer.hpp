@@ -10,6 +10,7 @@
 #include "clustering/population.pb.h"
 #include "concurrency/cond_var.hpp"
 #include "clustering/srvc.hpp"
+#include "containers/intrusive_list.hpp"
 
 class cluster_peer_t 
     : public home_thread_mixin_t
@@ -101,6 +102,38 @@ private:
 
 public:
     void stop_servicing();
+
+public:
+    class kill_cb_t : 
+        public intrusive_list_node_t<kill_cb_t>
+    {
+        friend class cluster_peer_t;
+        virtual void on_kill() = 0;
+    };
+
+private:
+    typedef intrusive_list_t<kill_cb_t> kill_cb_list_t;
+    kill_cb_list_t kill_cb_list;
+
+private:
+    void monitor_kill(kill_cb_t *cb) {
+        logINF("add monitor\n");
+        on_thread_t syncer(home_thread);
+        kill_cb_list.push_back(cb);
+    }
+    void unmonitor_kill(kill_cb_t *cb) {
+        logINF("remove monitor\n");
+        on_thread_t syncer(home_thread);
+        kill_cb_list.remove(cb);
+    }
+
+    void call_kill_cbs() {
+        logINF("call_kill_cbs\n");
+        on_thread_t syncer(home_thread);
+        for (kill_cb_list_t::iterator it = kill_cb_list.begin(); it != kill_cb_list.end(); it++) {
+            (*it)->on_kill();
+        }
+    }
 };
 
 #endif
