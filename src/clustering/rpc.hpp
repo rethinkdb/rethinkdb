@@ -45,6 +45,10 @@ public:
             ::unserialize(p, &addr->addr);
         }
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -121,6 +125,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -220,6 +228,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -296,6 +308,10 @@ public:
             ::unserialize(p, &addr->addr);
         }
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -378,6 +394,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -481,6 +501,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -561,6 +585,10 @@ public:
             ::unserialize(p, &addr->addr);
         }
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -648,6 +676,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -755,6 +787,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -839,6 +875,10 @@ public:
             ::unserialize(p, &addr->addr);
         }
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -931,6 +971,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1042,6 +1086,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1130,6 +1178,10 @@ public:
             ::unserialize(p, &addr->addr);
         }
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -1227,6 +1279,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1342,6 +1398,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1434,6 +1494,10 @@ public:
             ::unserialize(p, &addr->addr);
         }
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -1536,6 +1600,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1655,6 +1723,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1751,6 +1823,10 @@ public:
             ::unserialize(p, &addr->addr);
         }
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -1858,6 +1934,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1981,6 +2061,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -2081,6 +2165,10 @@ public:
             ::unserialize(p, &addr->addr);
         }
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -2193,6 +2281,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -2320,6 +2412,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -2424,6 +2520,10 @@ public:
             ::unserialize(p, &addr->addr);
         }
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -2541,6 +2641,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -2672,6 +2776,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -2780,6 +2888,10 @@ public:
             ::unserialize(p, &addr->addr);
         }
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -2902,6 +3014,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -3037,6 +3153,10 @@ public:
         }
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 

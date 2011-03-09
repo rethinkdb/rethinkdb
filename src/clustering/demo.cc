@@ -14,6 +14,7 @@
 #include "serializer/log/log_serializer.hpp"
 #include "btree/slice.hpp"
 #include "serializer/translator.hpp"
+#include "clustering/master_map.hpp"
 
 /* Various things we need to be able to serialize and unserialize */
 

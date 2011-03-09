@@ -35,6 +35,10 @@ def generate_async_message_template(nargs):
     print "        }"
     # print "    private:"    # Make public temporarily
     print "        cluster_address_t addr;"
+    print "      public:"
+    print "        bool same_as(const address_t &other_addr) {"
+    print "            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);"
+    print "        }"
     print "    };"
     print "    friend class address_t;"
     print
@@ -157,6 +161,10 @@ def generate_sync_message_template(nargs, void):
     print "        }"
     print "    private:"
     print "        cluster_address_t addr;"
+    print "    public:"
+    print "      bool same_as(const address_t &other_addr) {"
+    print "          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);"
+    print "      }"
     print "    };"
     print "    friend class address_t;"
     print

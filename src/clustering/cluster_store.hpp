@@ -6,7 +6,8 @@
 
 struct set_store_interface_mailbox_t {
 
-private:
+public:
+friend class master_map_t;
     typedef sync_mailbox_t<get_result_t(store_key_t)> get_cas_mailbox_t;
     typedef sync_mailbox_t<set_result_t(store_key_t, data_provider_t*, mcflags_t, exptime_t,
         add_policy_t, replace_policy_t, cas_t)> sarc_mailbox_t;
