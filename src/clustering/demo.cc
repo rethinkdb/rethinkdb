@@ -2,6 +2,7 @@
 #include "clustering/cluster.hpp"
 #include "clustering/serialize.hpp"
 #include "clustering/rpc.hpp"
+#include "clustering/serialize_macros.hpp"
 #include "clustering/cluster_store.hpp"
 #include "clustering/dispatching_store.hpp"
 #include "server/cmd_args.hpp"
@@ -17,31 +18,14 @@
 
 /* Various things we need to be able to serialize and unserialize */
 
-void serialize(cluster_outpipe_t *conn, repli_timestamp ts) {
-    ::serialize(conn, ts.time);
-}
+RDB_MAKE_SERIALIZABLE_1(repli_timestamp, time)
+RDB_MAKE_SERIALIZABLE_2(castime_t, proposed_cas, timestamp)
 
-int ser_size(repli_timestamp ts) {
-    return ::ser_size(ts.time);
-}
-
-void unserialize(cluster_inpipe_t *conn, repli_timestamp *ts) {
-    ::unserialize(conn, &ts->time);
-}
-
-void serialize(cluster_outpipe_t *conn, castime_t cs) {
-    ::serialize(conn, cs.proposed_cas);
-    ::serialize(conn, cs.timestamp);
-}
-
-int ser_size(castime_t cs) {
-    return ::ser_size(cs.proposed_cas) + ::ser_size(cs.timestamp);
-}
-
-void unserialize(cluster_inpipe_t *conn, castime_t *cs) {
-    ::unserialize(conn, &cs->proposed_cas);
-    ::unserialize(conn, &cs->timestamp);
-}
+/* If the incr/decr fails, then new_value is meaningless; garbage will be
+written to the socket and faithfully reconstructed on the other side. This
+isn't a big enough problem to justify not using the RDB_MAKE_SERIALIZABLE
+macro. */
+RDB_MAKE_SERIALIZABLE_2(incr_decr_result_t, res, new_value)
 
 void serialize(cluster_outpipe_t *conn, const get_result_t &res) {
     ::serialize(conn, res.value);
@@ -59,22 +43,6 @@ void unserialize(cluster_inpipe_t *conn, get_result_t *res) {
     ::unserialize(conn, &res->flags);
     ::unserialize(conn, &res->cas);
     res->to_signal_when_done = NULL;
-}
-
-void serialize(cluster_outpipe_t *conn, const incr_decr_result_t &res) {
-    ::serialize(conn, res.res);
-    if (res.res == incr_decr_result_t::idr_success) ::serialize(conn, res.new_value);
-}
-
-int ser_size(const incr_decr_result_t &res) {
-    int size = ::ser_size(res.res);
-    if (res.res == incr_decr_result_t::idr_success) size += ::ser_size(res.new_value);
-    return size;
-}
-
-void unserialize(cluster_inpipe_t *conn, incr_decr_result_t *res) {
-    ::unserialize(conn, &res->res);
-    if (res->res == incr_decr_result_t::idr_success) ::unserialize(conn, &res->new_value);
 }
 
 /* demo_delegate_t */
