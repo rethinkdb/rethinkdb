@@ -358,12 +358,27 @@ void mc_buf_t::release() {
         }
     }
 
+    // If the buf is marked deleted, then we can delete it from memory already
+    // and just keep track of the deleted block_id (and whether to write an
+    // empty block).
+    if (inner_buf->do_delete) {
+        if (mode == rwi_write) {
+            inner_buf->writeback_buf.mark_block_id_deleted();
+            inner_buf->writeback_buf.set_dirty(false);
+            inner_buf->writeback_buf.set_recency_dirty(false); // TODO: Do we need to handle recency in master in some other way?
+        }
+        if (inner_buf->safe_to_unload()) {
+            delete inner_buf;
+            inner_buf = NULL;
+        }
+    }
+
 #if AGGRESSIVE_BUF_UNLOADING == 1
     // If this code is enabled, then it will cause bufs to be unloaded very aggressively.
     // This is useful for catching bugs in which something expects a buf to remain valid even though
     // it is eligible to be unloaded.
 
-    if (inner_buf->safe_to_unload()) {
+    if (inner_buf && inner_buf->safe_to_unload()) {
         delete inner_buf;
     }
 #endif

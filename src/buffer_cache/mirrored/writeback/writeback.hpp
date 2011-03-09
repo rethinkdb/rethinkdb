@@ -80,6 +80,7 @@ public:
         
         void set_dirty(bool _dirty = true);
         void set_recency_dirty(bool _recency_dirty = true);
+        void mark_block_id_deleted();
         
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
 
@@ -162,6 +163,15 @@ private:
     
     // List of bufs that are currenty dirty
     intrusive_list_t<local_buf_t> dirty_bufs;
+
+    // List of block_ids that have been deleted
+    struct deleted_block_t {
+        block_id_t block_id;
+        bool write_empty_block;
+    };
+    std::vector<deleted_block_t> deleted_blocks;
+
+    /* Internal variables used only during a flush operation. */
 
     ticks_t start_time;
 
