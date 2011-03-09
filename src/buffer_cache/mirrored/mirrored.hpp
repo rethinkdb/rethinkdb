@@ -148,7 +148,6 @@ public:
         rassert(!inner_buf->safe_to_unload());
         inner_buf->do_delete = true;
         inner_buf->write_empty_deleted_block = write_null;
-        inner_buf->writeback_buf.set_dirty();
         ensure_flush(); // Disable patch log system for the buffer
     }
 
