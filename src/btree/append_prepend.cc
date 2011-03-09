@@ -4,8 +4,8 @@
 
 struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
-    explicit btree_append_prepend_oper_t(data_provider_t *data, bool append)
-        : data(data), append(append)
+    btree_append_prepend_oper_t(data_provider_t *data_, bool append_)
+        : data(data_), append(append_)
     { }
 
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
@@ -35,6 +35,8 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 value.value_size(new_size, slice->cache().get_block_size());
             }
 
+            buffer_group_t buffer_group;
+            bool is_old_large_value = false;
 
             // Figure out where the data is going to need to go and prepare a place for it
 
@@ -78,20 +80,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 uint32_t fill_size = data->get_size();
                 uint32_t start_pos = append ? old_value->value_size() : 0;
 
-                int64_t ix = large_buflock->pos_to_ix(start_pos);
-                uint16_t seg_pos = large_buflock->pos_to_seg_pos(start_pos);
-
-                while (fill_size > 0) {
-                    uint16_t seg_len;
-                    byte *seg = large_buflock->get_segment_write(ix, &seg_len);
-
-                    rassert(seg_len >= seg_pos);
-                    uint16_t seg_bytes_to_fill = std::min((uint32_t)(seg_len - seg_pos), fill_size);
-                    buffer_group.add_buffer(seg_bytes_to_fill, seg + seg_pos);
-                    fill_size -= seg_bytes_to_fill;
-                    seg_pos = 0;
-                    ix++;
-                }
+                large_buflock->bufs_at(start_pos, fill_size, false, &buffer_group);
             }
 
             // Dispatch the data request
@@ -154,9 +143,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         byte value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
-    bool is_old_large_value;
     large_buf_lock_t large_buflock;
-    buffer_group_t buffer_group;
 };
 
 append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, data_provider_t *data, bool append, castime_t castime) {

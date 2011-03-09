@@ -29,7 +29,7 @@ size_t large_value_data_provider_t::get_size() const {
 }
 
 const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
-    rassert(!buffers);
+    rassert(buffers.num_buffers() == 0);
     rassert(!large_value.has_lv());
 
     large_value.set(new large_buf_t(transactor->transaction()));
@@ -37,13 +37,8 @@ const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() t
 
     rassert(large_value->state == large_buf_t::loaded);
 
-    buffers.reset(new const_buffer_group_t());
-    for (int i = 0; i < large_value->get_num_segments(); i++) {
-        uint16_t size;
-        const void *data = large_value->get_segment(i, &size);
-        buffers->add_buffer(size, data);
-    }
-    return buffers.get();
+    large_value->bufs_at(0, lb_ref.size, true, &buffers);
+    return const_view(&buffers);
 }
 
 value_data_provider_t *value_data_provider_t::create(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor) {

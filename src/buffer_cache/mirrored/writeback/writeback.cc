@@ -211,6 +211,14 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
     }
 }
 
+// Add block_id to deleted_blocks list.
+void writeback_t::local_buf_t::mark_block_id_deleted() {
+    writeback_t::deleted_block_t deleted_block;
+    deleted_block.block_id = gbuf->block_id;
+    deleted_block.write_empty_block = gbuf->write_empty_deleted_block;
+    gbuf->cache->writeback.deleted_blocks.push_back(deleted_block);
+}
+
 void writeback_t::flush_timer_callback(void *ctx) {
     writeback_t *self = static_cast<writeback_t *>(ctx);
     self->flush_timer = NULL;
@@ -423,18 +431,32 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
     /* Request read locks on all of the blocks we need to flush. */
     pm_flushes_writing.begin(&start_time);
 
-    serializer_writes.reserve(parent->dirty_bufs.size());
-    serializer_inner_bufs.reserve(parent->dirty_bufs.size());
-
     // Log the size of this flush
     pm_flushes_blocks.record(parent->dirty_bufs.size());
 
+    // Request read locks on all of the blocks we need to flush.
+    serializer_writes.reserve(parent->deleted_blocks.size() + parent->dirty_bufs.size());
+    serializer_inner_bufs.reserve(parent->dirty_bufs.size());
+
+    // Write deleted block_ids.
+    for (size_t i = 0; i < parent->deleted_blocks.size(); i++) {
+        // NULL indicates a deletion
+        serializer_writes.push_back(translator_serializer_t::write_t::make(
+            parent->deleted_blocks[i].block_id,
+            repli_timestamp::invalid,
+            NULL,
+            parent->deleted_blocks[i].write_empty_block,
+            NULL
+            ));
+
+        parent->cache->free_list.release_block_id(parent->deleted_blocks[i].block_id);
+    }
+    parent->deleted_blocks.clear();
+
     unsigned int really_dirty = 0;
 
-    int i = 0;
     while (local_buf_t *lbuf = parent->dirty_bufs.head()) {
         inner_buf_t *inner_buf = lbuf->gbuf;
-        serializer_inner_bufs.push_back(inner_buf);
 
         bool buf_needs_flush = lbuf->needs_flush;
         //bool buf_dirty = lbuf->dirty;
@@ -448,47 +470,26 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
         if (buf_needs_flush) {
             ++really_dirty;
 
-            bool do_delete = inner_buf->do_delete;
+            rassert(!inner_buf->do_delete);
 
             // Acquire the blocks
-            inner_buf->do_delete = false; /* Backdoor around acquire()'s assertion */
-            access_t buf_access_mode = do_delete ? rwi_read : rwi_read_outdated_ok;
-            buf_t *buf = transaction->acquire(inner_buf->block_id, buf_access_mode, NULL);
-            rassert(buf);         // Acquire must succeed since we hold the flush_lock.
+            buf_t *buf = transaction->acquire(inner_buf->block_id, rwi_read_outdated_ok, NULL);
+            rassert(buf); // Acquire must succeed since we hold the flush_lock.
+            serializer_inner_bufs.push_back(inner_buf);
 
             // Fill the serializer structure
-            if (!do_delete) {
-                serializer_writes.push_back(translator_serializer_t::write_t::make(
-                    inner_buf->block_id,
-                    inner_buf->subtree_recency,
-                    buf->get_data_read(),
-                    inner_buf->write_empty_deleted_block,
-                    new buf_writer_t(parent, buf)
-                    ));
-
-            } else {
-                // NULL indicates a deletion
-                serializer_writes.push_back(translator_serializer_t::write_t::make(
-                    inner_buf->block_id,
-                    inner_buf->subtree_recency,
-                    NULL,
-                    inner_buf->write_empty_deleted_block,
-                    NULL
-                    ));
-
-                rassert(buf_access_mode != rwi_read_outdated_ok);
-                buf->release();
-
-                parent->cache->free_list.release_block_id(inner_buf->block_id);
-
-                delete inner_buf;
-            }
+            serializer_writes.push_back(translator_serializer_t::write_t::make(
+                inner_buf->block_id,
+                inner_buf->subtree_recency,
+                buf->get_data_read(),
+                inner_buf->write_empty_deleted_block,
+                new buf_writer_t(parent, buf)
+                ));
         } else if (recency_dirty) {
             // No need to acquire the block.
             serializer_writes.push_back(translator_serializer_t::write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency, NULL));
         }
 
-        i++;
     }
 
     pm_flushes_blocks_dirty.record(really_dirty);
@@ -520,10 +521,10 @@ bool writeback_t::concurrent_flush_t::do_write(const bool write_issued) {
         parent->cache->assert_thread();
 
         // Retrieve changed transaction ids in case COW was used
-        rassert(serializer_inner_bufs.size() == serializer_writes.size());
-        for (size_t i = 0; i < serializer_inner_bufs.size(); ++i) {
+        size_t inner_buf_ix = 0;
+        for (size_t i = 0; i < serializer_writes.size(); ++i) {
             if (serializer_writes[i].buf_specified && serializer_writes[i].buf) {
-                serializer_inner_bufs[i]->transaction_id = parent->cache->serializer->get_current_transaction_id(serializer_writes[i].block_id, serializer_writes[i].buf);
+                serializer_inner_bufs[inner_buf_ix++]->transaction_id = parent->cache->serializer->get_current_transaction_id(serializer_writes[i].block_id, serializer_writes[i].buf);
             }
         }
 
