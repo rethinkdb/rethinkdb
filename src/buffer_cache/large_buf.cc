@@ -3,7 +3,7 @@
 
 // TODO: In general, we've got a bunch of duplicated logic, in which
 // we compute some subslice of a std::vector<buftree_t *>.  We do this
-// over and over again.
+// over and over again.  Maybe some helper functions would help.
 
 struct buftree_t {
 #ifndef NDEBUG
