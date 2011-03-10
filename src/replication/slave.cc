@@ -58,44 +58,37 @@ void slave_t::kill_conn() {
     }
 }
 
-get_result_t slave_t::get_cas(const store_key_t &key) {
-    if (respond_to_queries) {
-        return internal_store->get_cas(key);
-    } else {
-        /* TODO: This is a hack. We can't give a valid result because the CAS we return will not be
-        usable with the master. But currently there's no way to signal an error on gets. So we
-        pretend the value was not found. Technically this is a lie, but screw it. */
+struct not_allowed_visitor_t : public boost::static_visitor<mutation_result_t> {
+    mutation_result_t operator()(const get_cas_mutation_t &m) const {
+        /* TODO: This is a hack. We can't give a valid result because the CAS we return will
+        not be usable with the master. But currently there's no way to signal an error on
+        gets. So we pretend the value was not found. Technically this is a lie, but screw
+        it. */
         return get_result_t();
     }
-}
-
-set_result_t slave_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    if (respond_to_queries) {
-        return internal_store->sarc(key, data, flags, exptime, add_policy, replace_policy, old_cas);
-    } else {
+    mutation_result_t operator()(const set_mutation_t &m) const {
         return sr_not_allowed;
     }
-}
-
-incr_decr_result_t slave_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount) {
-    if (respond_to_queries)
-        return internal_store->incr_decr(kind, key, amount);
-    else
-        return incr_decr_result_t::idr_not_allowed;
-}
-
-append_prepend_result_t slave_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data) {
-    if (respond_to_queries)
-        return internal_store->append_prepend(kind, key, data);
-    else
+    mutation_result_t operator()(const incr_decr_mutation_t &m) const {
+        return incr_decr_result_t(incr_decr_result_t::idr_not_allowed);
+    }
+    mutation_result_t operator()(const append_prepend_mutation_t &m) const {
         return apr_not_allowed;
-}
-
-delete_result_t slave_t::delete_key(const store_key_t &key) {
-    if (respond_to_queries)
-        return internal_store->delete_key(key);
-    else
+    }
+    mutation_result_t operator()(const delete_mutation_t &m) const {
         return dr_not_allowed;
+    }
+};
+
+mutation_result_t slave_t::change(const mutation_t &m) {
+
+    if (respond_to_queries) {
+        return internal_store->change(m);
+
+    } else {
+        /* Construct a "failure" response of the right sort */
+        return boost::apply_visitor(not_allowed_visitor_t(), m.mutation);
+    }
 }
 
 std::string slave_t::failover_reset() {
