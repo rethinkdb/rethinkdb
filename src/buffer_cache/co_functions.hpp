@@ -7,9 +7,9 @@
 // Avoid using this!  Use buf_lock_t instead.
 buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode);
 
-void co_acquire_large_value(large_buf_t *large_value, access_t access);
-void co_acquire_large_value_lhs(large_buf_t *large_value, access_t access);
-void co_acquire_large_value_rhs(large_buf_t *large_value, access_t access);
+void co_acquire_large_value(large_buf_t *large_value);
+void co_acquire_large_value_lhs(large_buf_t *large_value);
+void co_acquire_large_value_rhs(large_buf_t *large_value);
 void co_acquire_large_value_for_delete(large_buf_t *large_value);
 
 // Avoid using this, use transactor_t instead.

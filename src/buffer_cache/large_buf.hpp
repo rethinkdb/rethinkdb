@@ -62,6 +62,13 @@ private:
     // that doesn't have to be a multiple of sizeof(block_id_t))
     lbref_limit_t const root_ref_limit;
 
+    // Tells what rights we have to the bufs we're loading or have
+    // loaded.
+    access_t const access;
+
+    // The transaction in which this large_buf_t's lifetime exists.
+    transaction_t *const txn;
+
     // When we allocate or acquire a large buffer, we create a tree of
     // butrees, parallel to the on-disk tree, where each node holds
     // the corresponding buf_t object.  Completely unloaded subtrees
@@ -69,10 +76,6 @@ private:
     // same goes for the vector in buftree_t::children, which works
     // the same way.)
     std::vector<buftree_t *> roots;
-
-    // Tells what rights we have to the bufs we're loading or have
-    // loaded.
-    access_t access;
 
     // Sometimes we are busy loading subtrees.  In this "loading"
     // state (see state below), this tells how many subtrees we have
@@ -82,25 +85,20 @@ private:
     // Called (and reset to NULL) once the large buf is available.
     large_buf_available_callback_t *callback;
 
-    // The transaction in which this large_buf_t's lifetime exists.
-    transaction_t *const txn;
-
 public:
 #ifndef NDEBUG
-
     enum state_t {
         not_loaded,
         loading,
         loaded,
         deleted,
-        released
     };
     state_t state;
 
     int64_t num_bufs;
 #endif
 
-    explicit large_buf_t(transaction_t *txn, large_buf_ref *root_ref, lbref_limit_t ref_limit);
+    explicit large_buf_t(transaction_t *txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, access_t access);
     ~large_buf_t();
 
     // This is a COMPLETE HACK
@@ -110,11 +108,11 @@ public:
     }
 
     void allocate(int64_t _size);
-    // TODO: move access_t to the constructor.
-    void acquire_slice(access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_);
-    void acquire(access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_rhs(access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_lhs(access_t access_, large_buf_available_callback_t *callback_);
+
+    void acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_);
+    void acquire(large_buf_available_callback_t *callback_);
+    void acquire_rhs(large_buf_available_callback_t *callback_);
+    void acquire_lhs(large_buf_available_callback_t *callback_);
     void acquire_for_delete(large_buf_available_callback_t *callback_);
 
     // refsize_adjustment_out parameter forces callers to recognize

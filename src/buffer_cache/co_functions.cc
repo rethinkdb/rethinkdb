@@ -34,23 +34,23 @@ struct large_value_acquired_t : public large_buf_available_callback_t {
     void on_large_buf_available(large_buf_t *large_value) { self->notify(); }
 };
 
-void co_acquire_large_value(large_buf_t *large_value, access_t access) {
+void co_acquire_large_value(large_buf_t *large_value) {
     large_value_acquired_t acquired;
 
     large_value->ensure_thread();
-    large_value->acquire(access, &acquired);
+    large_value->acquire(&acquired);
     coro_t::wait();
 }
 
-void co_acquire_large_value_lhs(large_buf_t *large_value, access_t access) {
+void co_acquire_large_value_lhs(large_buf_t *large_value) {
     large_value_acquired_t acquired;
-    large_value->acquire_lhs(access, &acquired);
+    large_value->acquire_lhs(&acquired);
     coro_t::wait();
 }
 
-void co_acquire_large_value_rhs(large_buf_t *large_value, access_t access) {
+void co_acquire_large_value_rhs(large_buf_t *large_value) {
     large_value_acquired_t acquired;
-    large_value->acquire_rhs(access, &acquired);
+    large_value->acquire_rhs(&acquired);
     coro_t::wait();
 }
 

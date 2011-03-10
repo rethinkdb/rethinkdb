@@ -75,7 +75,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 buffer_group.add_buffer(data->get_size(), value.value());
                 data->get_data_into_buffers(&buffer_group);
             } else {
-                large_buflock.set(new large_buf_t(txor->transaction(), value.lb_ref(), btree_value::lbref_limit));
+                large_buflock.set(new large_buf_t(txor->transaction(), value.lb_ref(), btree_value::lbref_limit, rwi_write));
                 large_buflock->allocate(data->get_size());
 
                 large_buflock->bufs_at(0, data->get_size(), false, &buffer_group);
