@@ -14,6 +14,41 @@ struct buftree_t {
     std::vector<buftree_t *> children;
 };
 
+struct lb_interval { int64_t offset, size; };
+
+class lb_indexer {
+public:
+    int index() const { return index_; }
+    int end_index() const { return end_index_; }
+    bool done() const { return index_ >= end_index_; }
+    lb_interval subinterval() const {
+        int64_t lo = index_ * step_;
+        int64_t beg = std::max(lo, offset_);
+        int64_t end = std::min(lo + step_, offset_ + size_);
+        lb_interval ret;
+        ret.offset = beg - lo;
+        ret.size = end - beg;
+        return ret;
+    }
+    void step() {
+        rassert(!done());
+        ++index_;
+    }
+
+    lb_indexer(int64_t offset, int64_t size, int64_t step)
+        : step_(step), offset_(offset), size_(size), index_(offset / step), end_index_(ceil_divide(offset + size, step))  {
+        rassert(0 <= offset);
+        rassert(0 <= size);
+        rassert(std::numeric_limits<int64_t>::max() - size >= offset);
+    }
+
+private:
+    int64_t step_;
+    int64_t offset_, size_;
+    int index_, end_index_;
+    DISABLE_COPYING(lb_indexer);
+};
+
 
 int64_t large_buf_t::bytes_per_leaf(block_size_t block_size) {
     return block_size.value() - sizeof(large_buf_leaf);
@@ -114,29 +149,25 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
 }
 
 void large_buf_t::allocates_part_of_tree(std::vector<buftree_t *> *ptrs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t sublevels) {
-    int64_t step = max_offset(sublevels);
-    for (int k = 0; int64_t(k) * step < offset + size; ++k) {
-        int64_t i = int64_t(k) * step;
+    if (size == 0) {
+        return;
+    }
 
-        rassert((int)ptrs->size() >= k);
+    lb_indexer ixer(offset, size, max_offset(sublevels));
 
-        if ((int64_t)ptrs->size() == k) {
-            ptrs->push_back(NULL);
-            block_ids[k] = NULL_BLOCK_ID;
-        }
+    ptrs->resize(std::max(size_t(ixer.end_index()), ptrs->size()), NULL);
+    std::fill(block_ids, block_ids + ixer.index(), NULL_BLOCK_ID);
 
-        if (i + step > offset) {
-            int64_t child_offset = std::max(offset - i, 0L);
-            int64_t child_end_offset = std::min(offset + size - i, step);
+    for (; !ixer.done(); ixer.step()) {
+        int k = ixer.index();
+        lb_interval in = ixer.subinterval();
 
-            if ((*ptrs)[k] == NULL) {
-                block_id_t id;
-                buftree_t *child = allocate_buftree(child_offset, child_end_offset - child_offset, sublevels, &id);
-                (*ptrs)[k] = child;
-                block_ids[k] = id;
-            } else {
-                allocate_part_of_tree((*ptrs)[k], child_offset, child_end_offset - child_offset, sublevels);
-            }
+        if ((*ptrs)[k] == NULL) {
+            block_id_t id;
+            (*ptrs)[k] = allocate_buftree(in.offset, in.size, sublevels, &id);
+            block_ids[k] = id;
+        } else {
+            allocate_part_of_tree((*ptrs)[k], in.offset, in.size, sublevels);
         }
     }
 }
