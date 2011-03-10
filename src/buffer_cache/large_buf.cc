@@ -285,20 +285,17 @@ void large_buf_t::acquire_slice(int64_t slice_offset, int64_t slice_size, large_
 
     roots.resize(num_inlined);
 
-    // Yet another case of slicing logic.
-    int64_t step = max_offset(sublevels);
-    int64_t beg = root_ref->offset + slice_offset;
-    int64_t end = beg + slice_size;
+    lb_indexer ixer(root_ref->offset + slice_offset, slice_size, max_offset(sublevels));
 
-    int i = beg / step;
-    int e = ceil_divide(end, step);
+    num_to_acquire = ixer.end_index() - ixer.index();
 
-    num_to_acquire = e - i;
+    // TODO: This duplicates logic inside acquire_buftree_fsm_t, and
+    // we could fix that, but it's not that important.
 
-    for (int i = beg / step, e = ceil_divide(end, step); i < e; ++i) {
-        int64_t thisbeg = std::max(beg, i * step);
-        int64_t thisend = std::min(end, (i + 1) * step);
-        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[i], thisbeg, thisend - thisbeg, sublevels, this, i, should_load_leaves_);
+    for (; !ixer.done(); ixer.step()) {
+        int k = ixer.index();
+        lb_interval in = ixer.subinterval();
+        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[k], in.offset, in.size, sublevels, this, k, should_load_leaves_);
         f->go();
     }
 }
