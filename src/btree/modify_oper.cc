@@ -221,11 +221,11 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         large_buf_lock_t old_large_buflock;
 
         if (key_found && old_value.is_large()) {
-            old_large_buflock.set(new large_buf_t(txor->transaction()));
+            old_large_buflock.set(new large_buf_t(txor->transaction(), old_value.lb_ref(), btree_value::lbref_limit));
             // We don't know whether we want to acquire all of the large value or
             // just part of it, so we let the oper acquire it for us.
             // TIED old_large_buflock TO old_value
-            oper->actually_acquire_large_value(old_large_buflock.lv(), old_value.large_buf_ref_ptr());
+            oper->actually_acquire_large_value(old_large_buflock.lv());
             rassert(old_large_buflock->state == large_buf_t::loaded);
         }
 

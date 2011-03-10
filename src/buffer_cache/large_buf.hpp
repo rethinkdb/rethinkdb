@@ -3,8 +3,8 @@
 
 #include "buffer_cache/buffer_cache.hpp"
 #include "config/args.hpp"
-// TODO: separate buffer_group_t from data_provider.hpp
-#include "data_provider.hpp"
+
+#include "containers/buffer_group.hpp"
 
 class large_buf_t;
 
@@ -49,14 +49,16 @@ struct tree_available_callback_t {
 
 class large_buf_t : public tree_available_callback_t {
 private:
-    large_buf_ref *root_ref;
-    lbref_limit_t root_ref_limit;
+    // There are two hack places where when const_cast root_ref: in
+    // the destructor and in HACK_root_ref.
+    large_buf_ref *const root_ref;
+    lbref_limit_t const root_ref_limit;
     std::vector<buftree_t *> roots;
     access_t access;
     int num_to_acquire;
     large_buf_available_callback_t *callback;
 
-    transaction_t *txn;
+    transaction_t *const txn;
     block_size_t block_size() const { return txn->cache->get_block_size(); }
 
 public:
@@ -74,20 +76,22 @@ public:
     int64_t num_bufs;
 #endif
 
-    explicit large_buf_t(transaction_t *txn);
+    explicit large_buf_t(transaction_t *txn, large_buf_ref *root_ref, lbref_limit_t ref_limit);
     ~large_buf_t();
 
     // This is a COMPLETE HACK
     void HACK_root_ref(large_buf_ref *alternate_root_ref) {
         rassert(0 == memcmp(alternate_root_ref->block_ids, root_ref->block_ids, root_ref->refsize(block_size(), root_ref_limit) - sizeof(large_buf_ref)));
-        root_ref = alternate_root_ref;
+        const_cast<large_buf_ref *&>(root_ref) = alternate_root_ref;
     }
 
-    void allocate(int64_t _size, large_buf_ref *refout, lbref_limit_t ref_limit);
-    void acquire(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_rhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_lhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_);
-    void acquire_for_delete(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, large_buf_available_callback_t *callback_);
+    void allocate(int64_t _size);
+    // TODO: move access_t to the constructor.
+    void acquire_slice(access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_);
+    void acquire(access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_rhs(access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_lhs(access_t access_, large_buf_available_callback_t *callback_);
+    void acquire_for_delete(large_buf_available_callback_t *callback_);
 
     // refsize_adjustment_out parameter forces callers to recognize
     // that the size may change, so hopefully they'll update their
@@ -139,7 +143,6 @@ private:
 
     buftree_t *allocate_buftree(int64_t size, int64_t offset, int levels, block_id_t *block_id);
     buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
-    void acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_ = true);
 
     void trees_bufs_at(const std::vector<buftree_t *>& trees, int sublevels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);
     void tree_bufs_at(buftree_t *tr, int levels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);

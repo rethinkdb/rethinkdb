@@ -82,7 +82,7 @@ public:
             metadata_set_large_value_bit(&metadata_flags, true);
 
             size = large_buf_ref::refsize(block_size, new_size, 0, lbref_limit);
-            large_buf_ref_ptr()->size = new_size;
+            lb_ref()->size = new_size;
         }
     }
 
@@ -91,12 +91,21 @@ public:
     byte *value() { return contents + metadata_size(metadata_flags); }
     const byte *value() const { return contents + metadata_size(metadata_flags); }
 
-    large_buf_ref *large_buf_ref_ptr() { return reinterpret_cast<large_buf_ref *>(value()); }
-
-    const large_buf_ref *lb_ref() const {
+#ifndef NDEBUG
+    void large_buf_assertions() const {
         rassert(is_large());
         rassert(size >= sizeof(large_buf_ref));
         rassert((size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0);
+    }
+#endif
+
+    large_buf_ref *lb_ref() {
+        DEBUG_ONLY(large_buf_assertions());
+        return reinterpret_cast<large_buf_ref *>(value());
+    }
+
+    const large_buf_ref *lb_ref() const {
+        DEBUG_ONLY(large_buf_assertions());
         return reinterpret_cast<const large_buf_ref *>(value());
     }
 

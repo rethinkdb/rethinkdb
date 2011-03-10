@@ -45,8 +45,8 @@ public:
     // btree_modify_opers need to acquire it in a particular way.
 
     // TIED lb TO lbref  TODO CHECK CALLERS
-    virtual void actually_acquire_large_value(large_buf_t *lb, large_buf_ref *lbref) {
-        co_acquire_large_value(lb, lbref, btree_value::lbref_limit, rwi_write);
+    virtual void actually_acquire_large_value(large_buf_t *lb) {
+        co_acquire_large_value(lb, rwi_write);
     }
 };
 

@@ -34,29 +34,29 @@ struct large_value_acquired_t : public large_buf_available_callback_t {
     void on_large_buf_available(large_buf_t *large_value) { self->notify(); }
 };
 
-void co_acquire_large_value(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
+void co_acquire_large_value(large_buf_t *large_value, access_t access) {
     large_value_acquired_t acquired;
 
     large_value->ensure_thread();
-    large_value->acquire(root_ref_, ref_limit_, access_, &acquired);
+    large_value->acquire(access, &acquired);
     coro_t::wait();
 }
 
-void co_acquire_large_value_lhs(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
+void co_acquire_large_value_lhs(large_buf_t *large_value, access_t access) {
     large_value_acquired_t acquired;
-    large_value->acquire_lhs(root_ref_, ref_limit_, access_, &acquired);
+    large_value->acquire_lhs(access, &acquired);
     coro_t::wait();
 }
 
-void co_acquire_large_value_rhs(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
+void co_acquire_large_value_rhs(large_buf_t *large_value, access_t access) {
     large_value_acquired_t acquired;
-    large_value->acquire_rhs(root_ref_, ref_limit_, access_, &acquired);
+    large_value->acquire_rhs(access, &acquired);
     coro_t::wait();
 }
 
-void co_acquire_large_value_for_delete(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_) {
+void co_acquire_large_value_for_delete(large_buf_t *large_value) {
     large_value_acquired_t acquired;
-    large_value->acquire_for_delete(root_ref_, ref_limit_, &acquired);
+    large_value->acquire_for_delete(&acquired);
     coro_t::wait();
 }
 
