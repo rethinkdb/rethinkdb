@@ -492,13 +492,9 @@ void large_buf_t::bufs_at(int64_t pos, int64_t read_size, bool use_read_mode, bu
 }
 
 void large_buf_t::trees_bufs_at(const std::vector<buftree_t *>& trees, int sublevels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out) {
-    int64_t step = max_offset(sublevels);
-
-    for (int k = pos / step, ke = ceil_divide(pos + read_size, step); k < ke; ++k) {
-        int64_t i = int64_t(k) * step;
-        int64_t beg = std::max(i, pos);
-        int64_t end = std::min(pos + read_size, i + step);
-        tree_bufs_at(trees[k], sublevels, beg - i, end - beg, use_read_mode, bufs_out);
+    for (lb_indexer ixer(pos, read_size, max_offset(sublevels)); !ixer.done(); ixer.step()) {
+        lb_interval in = ixer.subinterval();
+        tree_bufs_at(trees[ixer.index()], sublevels, in.offset, in.size, use_read_mode, bufs_out);
     }
 }
 
