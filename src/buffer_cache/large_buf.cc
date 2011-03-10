@@ -269,7 +269,11 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     }
 };
 
-void large_buf_t::acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_) {
+void large_buf_t::acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_) {
+    do_acquire_slice(slice_offset, slice_size, callback_, true);
+}
+
+void large_buf_t::do_acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_) {
     rassert(0 <= slice_offset);
     rassert(0 <= slice_size);
     rassert(slice_offset + slice_size <= root_ref->size);
@@ -300,24 +304,8 @@ void large_buf_t::acquire_slice(int64_t slice_offset, int64_t slice_size, large_
     }
 }
 
-void large_buf_t::acquire(large_buf_available_callback_t *callback_) {
-    acquire_slice(0, root_ref->size, callback_, true);
-}
-
-void large_buf_t::acquire_rhs(large_buf_available_callback_t *callback_) {
-    int64_t beg = std::max(int64_t(0), root_ref->size - 1);
-    int64_t end = root_ref->size;
-    acquire_slice(beg, end - beg, callback_, true);
-}
-
-void large_buf_t::acquire_lhs(large_buf_available_callback_t *callback_) {
-    int64_t beg = 0;
-    int64_t end = std::min(int64_t(1), root_ref->size);
-    acquire_slice(beg, end - beg, callback_, true);
-}
-
 void large_buf_t::acquire_for_delete(large_buf_available_callback_t *callback_) {
-    acquire_slice(0, root_ref->size, callback_, false);
+    do_acquire_slice(0, root_ref->size, callback_, false);
 }
 
 void large_buf_t::on_available(buftree_t *tr, int index) {

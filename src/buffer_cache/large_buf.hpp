@@ -48,12 +48,13 @@ struct tree_available_callback_t {
 
 
 class large_buf_t : public tree_available_callback_t {
-private:
+public:
     // The large_buf_ref (which resides in a btree_modify_oper_t,
     // typically) that this large_buf_t is attached to.  This is not
     // _truly_ const, see HACK_root_ref.
     large_buf_ref *const root_ref;
 
+private:
     // An upper bound of the size of the root_ref.  For example, btree
     // leaf nodes probably still give a ref_limit of
     // MAX_IN_NODE_VALUE_SIZE, which is probably still 250 bytes (and
@@ -112,10 +113,7 @@ public:
 
     void allocate(int64_t _size);
 
-    void acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_);
-    void acquire(large_buf_available_callback_t *callback_);
-    void acquire_rhs(large_buf_available_callback_t *callback_);
-    void acquire_lhs(large_buf_available_callback_t *callback_);
+    void acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_);
     void acquire_for_delete(large_buf_available_callback_t *callback_);
 
     // refsize_adjustment_out parameter forces callers to recognize
@@ -168,6 +166,8 @@ private:
 
     buftree_t *allocate_buftree(int64_t size, int64_t offset, int levels, block_id_t *block_id);
     buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
+
+    void do_acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_);
 
     void trees_bufs_at(const std::vector<buftree_t *>& trees, int sublevels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);
     void tree_bufs_at(buftree_t *tr, int levels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);
