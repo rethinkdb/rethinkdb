@@ -598,15 +598,13 @@ void large_buf_t::walk_tree_structures(std::vector<buftree_t *> *trs, int64_t of
     rassert(0 <= offset);
     rassert(0 < size);
 
-    int64_t step = max_offset(sublevels);
-    for (int k = offset / step, ke = ceil_divide(offset + size, step); k < ke; ++k) {
-        int64_t i = int64_t(k) * step;
-        int64_t beg = std::max(offset, i);
-        int64_t end = std::min(offset + size, i + step);
+    for (lb_indexer ixer(offset, size, max_offset(sublevels)); !ixer.done(); ixer.step()) {
+        int64_t k = ixer.index();
+        lb_interval in = ixer.subinterval();
 
         buftree_t *child = k < int(trs->size()) ? (*trs)[k] : NULL;
-        buftree_t *replacement = walk_tree_structure(child, beg - i, end - beg, sublevels, bufdoer, buftree_cleaner);
-        if (k < (int64_t)trs->size()) {
+        buftree_t *replacement = walk_tree_structure(child, in.offset, in.size, sublevels, bufdoer, buftree_cleaner);
+        if (k < int(trs->size())) {
             (*trs)[k] = replacement;
         }
     }
