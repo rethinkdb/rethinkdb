@@ -285,12 +285,9 @@ void large_buf_t::do_acquire_slice(int64_t slice_offset, int64_t slice_size, lar
     DEBUG_ONLY(state = loading);
 
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
-    int num_inlined = num_ref_inlined();
-
-    roots.resize(num_inlined);
 
     lb_indexer ixer(root_ref->offset + slice_offset, slice_size, max_offset(sublevels));
-
+    roots.resize(ixer.end_index(), NULL);
     num_to_acquire = ixer.end_index() - ixer.index();
 
     // TODO: This duplicates logic inside acquire_buftree_fsm_t, and
