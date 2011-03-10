@@ -163,9 +163,7 @@ void large_buf_t::allocates_part_of_tree(std::vector<buftree_t *> *ptrs, block_i
         lb_interval in = ixer.subinterval();
 
         if ((*ptrs)[k] == NULL) {
-            block_id_t id;
-            (*ptrs)[k] = allocate_buftree(in.offset, in.size, sublevels, &id);
-            block_ids[k] = id;
+            (*ptrs)[k] = allocate_buftree(in.offset, in.size, sublevels, &block_ids[k]);
         } else {
             allocate_part_of_tree((*ptrs)[k], in.offset, in.size, sublevels);
         }
@@ -194,15 +192,7 @@ void large_buf_t::allocate(int64_t _size) {
 
     DEBUG_ONLY(state = loading);
 
-    int num_inlined = num_ref_inlined();
-    roots.resize(num_inlined);
-    for (int i = 0; i < num_inlined; ++i) {
-        int sublevels = num_sublevels(_size);
-        rassert(sublevels >= 1);
-        int sz = max_offset(sublevels);
-        roots[i] = allocate_buftree(0, (i == num_inlined - 1 ? _size - i * sz : sz), sublevels,
-                                    &root_ref->block_ids[i]);
-    }
+    allocates_part_of_tree(&roots, root_ref->block_ids, 0, _size, num_sublevels(_size));
 
     DEBUG_ONLY(state = loaded);
 
