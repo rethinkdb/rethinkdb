@@ -51,15 +51,39 @@ class large_buf_t : public tree_available_callback_t {
 private:
     // There are two hack places where when const_cast root_ref: in
     // the destructor and in HACK_root_ref.
+
+    // The large_buf_ref (which resides in a btree_modify_oper_t,
+    // typically) that this large_buf_t is attached to.
     large_buf_ref *const root_ref;
+
+    // An upper bound of the size of the root_ref.  For example, btree
+    // leaf nodes probably still give a ref_limit of
+    // MAX_IN_NODE_VALUE_SIZE, which is probably still 250 bytes (and
+    // that doesn't have to be a multiple of sizeof(block_id_t))
     lbref_limit_t const root_ref_limit;
+
+    // When we allocate or acquire a large buffer, we create a tree of
+    // butrees, parallel to the on-disk tree, where each node holds
+    // the corresponding buf_t object.  Completely unloaded subtrees
+    // will either have a NULL entry or no corresponding entry.  (The
+    // same goes for the vector in buftree_t::children, which works
+    // the same way.)
     std::vector<buftree_t *> roots;
+
+    // Tells what rights we have to the bufs we're loading or have
+    // loaded.
     access_t access;
+
+    // Sometimes we are busy loading subtrees.  In this "loading"
+    // state (see state below), this tells how many subtrees we have
+    // left to load, and when it hits 0, the large buf is available.
     int num_to_acquire;
+
+    // Called (and reset to NULL) once the large buf is available.
     large_buf_available_callback_t *callback;
 
+    // The transaction in which this large_buf_t's lifetime exists.
     transaction_t *const txn;
-    block_size_t block_size() const { return txn->cache->get_block_size(); }
 
 public:
 #ifndef NDEBUG
@@ -161,6 +185,8 @@ private:
     void release_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels);
     void removes_level(block_id_t *ids, int copyees);
     int try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t stepsize);
+
+    block_size_t block_size() const { return txn->cache->get_block_size(); }
 
     void lv_release();
 
