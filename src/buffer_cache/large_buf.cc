@@ -156,7 +156,6 @@ void large_buf_t::allocates_part_of_tree(std::vector<buftree_t *> *ptrs, block_i
     lb_indexer ixer(offset, size, max_offset(sublevels));
 
     ptrs->resize(std::max(size_t(ixer.end_index()), ptrs->size()), NULL);
-    std::fill(block_ids, block_ids + ixer.index(), NULL_BLOCK_ID);
 
     for (; !ixer.done(); ixer.step()) {
         int k = ixer.index();
