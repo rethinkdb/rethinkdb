@@ -239,28 +239,18 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
         if (levels == 1) {
             finish();
         } else {
-            int64_t step = lb->max_offset(levels - 1);
-
             const large_buf_internal *node = reinterpret_cast<const large_buf_internal *>(buf->get_data_read());
 
-            // We start life_counter to 1 and decrement after the for
-            // loop, so that it can't reach 0 until we're done the for
-            // loop.
-            life_counter = 1;
-            for (int k = 0; int64_t(k) * step < offset + size; ++k) {
-                int64_t i = int64_t(k) * step;
-                tr->children.push_back(NULL);
-                if (offset < i + step) {
-                    life_counter++;
-                    int64_t child_offset = std::max(offset - i, 0L);
-                    int64_t child_end_offset = std::min(offset + size - i, step);
+            lb_indexer ixer(offset, size, lb->max_offset(levels - 1));
+            tr->children.resize(ixer.end_index(), NULL);
 
-                    acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[k], child_offset, child_end_offset - child_offset, levels - 1, this, k, should_load_leaves);
-                    fsm->go();
-                }
+            life_counter = ixer.end_index() - ixer.index();
+            for (; !ixer.done(); ixer.step()) {
+                int k = ixer.index();
+                lb_interval in = ixer.subinterval();
+                acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[k], in.offset, in.size, levels - 1, this, k, should_load_leaves);
+                fsm->go();
             }
-            if (--life_counter == 0)
-                finish();
         }
     }
 
