@@ -1,6 +1,10 @@
 #include "large_buf.hpp"
 #include <algorithm>
 
+// TODO: In general, we've got a bunch of duplicated logic, in which
+// we compute some subslice of a std::vector<buftree_t *>.  We do this
+// over and over again.
+
 struct buftree_t {
 #ifndef NDEBUG
     int level;  // a positive number
