@@ -60,7 +60,7 @@ void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli
         large_buf_lock_t t_o_largebuf(new large_buf_t(txn, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
 
         // TODO: Allow upgrade of large buf intent.
-        co_acquire_large_value(t_o_largebuf.lv());
+        co_acquire_large_buf(t_o_largebuf.lv());
 
         if (t_o_ref->size == 0) {
             delete_queue::t_and_o tao;
@@ -99,7 +99,7 @@ void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli
         large_buf_lock_t keys_largebuf(new large_buf_t(txn, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size(txn->cache->get_block_size())), rwi_write));
 
         // TODO: acquire rhs, or lhs+rhs, something appropriate.
-        co_acquire_large_value(keys_largebuf.lv());
+        co_acquire_large_buf(keys_largebuf.lv());
 
         int refsize_adjustment_dontcare;
         keys_largebuf->append(1 + key->size, &refsize_adjustment_dontcare);
@@ -126,7 +126,7 @@ void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, r
 
     {
         large_buf_lock_t t_o_largebuf(new large_buf_t(txn, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_read));
-        co_acquire_large_value(t_o_largebuf.lv());
+        co_acquire_large_buf(t_o_largebuf.lv());
 
         delete_queue::t_and_o tao;
         int64_t i = 0, ie = t_o_ref->size;
@@ -164,7 +164,7 @@ void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, r
         large_buf_lock_t keys_largebuf(new large_buf_t(txn, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size(txn->cache->get_block_size())), rwi_read));
 
         // TODO: acquire subinterval.
-        co_acquire_large_value(keys_largebuf.lv());
+        co_acquire_large_buf(keys_largebuf.lv());
 
         int64_t n = end_offset - begin_offset;
 

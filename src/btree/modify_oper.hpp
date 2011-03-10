@@ -46,7 +46,7 @@ public:
 
     // TIED lb TO lbref  TODO CHECK CALLERS
     virtual void actually_acquire_large_value(large_buf_t *lb) {
-        co_acquire_large_value(lb);
+        co_acquire_large_buf(lb);
     }
 };
 

@@ -41,20 +41,20 @@ void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size) {
     coro_t::wait();
 }
 
-void co_acquire_large_value(large_buf_t *lb) {
+void co_acquire_large_buf(large_buf_t *lb) {
     co_acquire_large_buf_slice(lb, 0, lb->root_ref->size);
 }
 
-void co_acquire_large_value_lhs(large_buf_t *lb) {
+void co_acquire_large_buf_lhs(large_buf_t *lb) {
     co_acquire_large_buf_slice(lb, 0, std::min(1L, lb->root_ref->size));
 }
 
-void co_acquire_large_value_rhs(large_buf_t *lb) {
+void co_acquire_large_buf_rhs(large_buf_t *lb) {
     int64_t beg = std::max(int64_t(0), lb->root_ref->size - 1);
     co_acquire_large_buf_slice(lb, beg, lb->root_ref->size - beg);
 }
 
-void co_acquire_large_value_for_delete(large_buf_t *large_value) {
+void co_acquire_large_buf_for_delete(large_buf_t *large_value) {
     large_value_acquired_t acquired;
     large_value->acquire_for_delete(&acquired);
     coro_t::wait();

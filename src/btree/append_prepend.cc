@@ -128,9 +128,9 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
     void actually_acquire_large_value(large_buf_t *lb) {
         if (append) {
-            co_acquire_large_value_rhs(lb);
+            co_acquire_large_buf_rhs(lb);
         } else {
-            co_acquire_large_value_lhs(lb);
+            co_acquire_large_buf_lhs(lb);
         }
     }
 
