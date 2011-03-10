@@ -49,11 +49,9 @@ struct tree_available_callback_t {
 
 class large_buf_t : public tree_available_callback_t {
 private:
-    // There are two hack places where when const_cast root_ref: in
-    // the destructor and in HACK_root_ref.
-
     // The large_buf_ref (which resides in a btree_modify_oper_t,
-    // typically) that this large_buf_t is attached to.
+    // typically) that this large_buf_t is attached to.  This is not
+    // _truly_ const, see HACK_root_ref.
     large_buf_ref *const root_ref;
 
     // An upper bound of the size of the root_ref.  For example, btree
@@ -84,6 +82,11 @@ private:
 
     // Called (and reset to NULL) once the large buf is available.
     large_buf_available_callback_t *callback;
+
+    // A large_buf_t does not have a precise idea of what subset of it
+    // is acquired.  You need to navigate roots and its descendants
+    // _completely_ to see which nodes are acquired.  This may change
+    // shortly.
 
 public:
 #ifndef NDEBUG

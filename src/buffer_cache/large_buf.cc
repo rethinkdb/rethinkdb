@@ -7,7 +7,8 @@
 
 struct buftree_t {
 #ifndef NDEBUG
-    int level;  // a positive number
+    // A positive number.
+    int level;
 #endif
     buf_t *buf;
     std::vector<buftree_t *> children;
