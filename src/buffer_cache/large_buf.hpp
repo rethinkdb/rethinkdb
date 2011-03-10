@@ -21,6 +21,7 @@ struct large_value_completed_callback {
 
 // struct large_buf_ref is defined in buffer_cache/types.hpp.
 
+// Disk format struct.
 struct large_buf_internal {
     block_magic_t magic;
     block_id_t kids[];
@@ -28,6 +29,7 @@ struct large_buf_internal {
     static const block_magic_t expected_magic;
 };
 
+// Disk format struct.
 struct large_buf_leaf {
     block_magic_t magic;
     byte buf[];
@@ -35,17 +37,17 @@ struct large_buf_leaf {
     static const block_magic_t expected_magic;
 };
 
-struct buftree_t {
-#ifndef NDEBUG
-    int level;  // a positive number
-#endif
-    buf_t *buf;
-    std::vector<buftree_t *> children;
+struct buftree_t;
+
+struct tree_available_callback_t {
+    // responsible for calling delete this
+    virtual void on_available(buftree_t *tr, int index) = 0;
+    virtual ~tree_available_callback_t() {}
 };
 
-struct tree_available_callback_t;
 
-class large_buf_t {
+
+class large_buf_t : public tree_available_callback_t {
 private:
     large_buf_ref *root_ref;
     lbref_limit_t root_ref_limit;
@@ -71,8 +73,6 @@ public:
 
     int64_t num_bufs;
 #endif
-
-    // TODO: Make appropriate private methods and friend classes and all that.
 
     explicit large_buf_t(transaction_t *txn);
     ~large_buf_t();
@@ -110,7 +110,7 @@ public:
 
     void index_acquired(buf_t *buf);
     void segment_acquired(buf_t *buf, uint16_t ix);
-    void buftree_acquired(buftree_t *tr, int index);
+    void on_available(buftree_t *tr, int index);
 
     friend struct acquire_buftree_fsm_t;
 

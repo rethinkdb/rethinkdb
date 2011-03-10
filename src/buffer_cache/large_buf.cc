@@ -1,6 +1,15 @@
 #include "large_buf.hpp"
 #include <algorithm>
 
+struct buftree_t {
+#ifndef NDEBUG
+    int level;  // a positive number
+#endif
+    buf_t *buf;
+    std::vector<buftree_t *> children;
+};
+
+
 int64_t large_buf_t::bytes_per_leaf(block_size_t block_size) {
     return block_size.value() - sizeof(large_buf_leaf);
 }
@@ -168,12 +177,6 @@ void large_buf_t::allocate(int64_t _size, large_buf_ref *ref, lbref_limit_t ref_
     rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
 }
 
-struct tree_available_callback_t {
-    // responsible for calling delete this
-    virtual void on_available(buftree_t *tr, int index) = 0;
-    virtual ~tree_available_callback_t() {}
-};
-
 struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_available_callback_t {
     block_id_t block_id;
     int64_t offset, size;
@@ -254,18 +257,6 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     }
 };
 
-// TODO get rid of this, just have large_buf_t : public
-// tree_available_callback_t.
-struct lb_tree_available_callback_t : public tree_available_callback_t {
-    large_buf_t *lb;
-    explicit lb_tree_available_callback_t(large_buf_t *lb_) : lb(lb_) { }
-    void on_available(buftree_t *tr, int index) {
-        large_buf_t *l = lb;
-        delete this;
-        l->buftree_acquired(tr, index);
-    }
-};
-
 void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_) {
     rassert(0 <= slice_offset);
     rassert(0 <= slice_size);
@@ -297,10 +288,9 @@ void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limi
     num_to_acquire = e - i;
 
     for (int i = beg / step, e = ceil_divide(end, step); i < e; ++i) {
-        tree_available_callback_t *cb = new lb_tree_available_callback_t(this);
         int64_t thisbeg = std::max(beg, i * step);
         int64_t thisend = std::min(end, (i + 1) * step);
-        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[i], thisbeg, thisend - thisbeg, sublevels, cb, i, should_load_leaves_);
+        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[i], thisbeg, thisend - thisbeg, sublevels, this, i, should_load_leaves_);
         f->go();
     }
 }
@@ -325,7 +315,7 @@ void large_buf_t::acquire_for_delete(large_buf_ref *root_ref_, lbref_limit_t ref
     acquire_slice(root_ref_, ref_limit_, rwi_write, 0, root_ref_->size, callback_, false);
 }
 
-void large_buf_t::buftree_acquired(buftree_t *tr, int index) {
+void large_buf_t::on_available(buftree_t *tr, int index) {
     rassert(state == loading);
     rassert(tr);
     rassert(0 <= index && size_t(index) < roots.size());
