@@ -84,8 +84,8 @@ struct not_allowed_visitor_t : public boost::static_visitor<mutation_result_t> {
 
 mutation_result_t slave_t::change(const mutation_t &m) {
 
-    if (respond_to_queries) {
-        return internal_store->change(m);
+    if (respond_to_queries_) {
+        return internal_store_->change(m);
     } else {
         /* Construct a "failure" response of the right sort */
         return boost::apply_visitor(not_allowed_visitor_t(), m.mutation);
@@ -120,47 +120,63 @@ void slave_t::send(buffed_data_t<net_announce_t>& message) {
     debugf("announce message received.\n");
 }
 void slave_t::send(buffed_data_t<net_get_cas_t>& msg) {
-    store_key_t key(msg->key_size, msg->key);
-
     // TODO this returns a get_result_t (with cross-thread messaging),
     // and we don't really care for that.
-    internal_store_->get_cas(key, castime_t(msg->proposed_cas, msg->timestamp));
+    get_cas_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->key);
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("get_cas message received and applied.\n");
 }
 void slave_t::send(stream_pair<net_sarc_t>& msg) {
-    store_key_t key(msg->key_size, msg->keyvalue);
+    set_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->keyvalue);
+    mut.data = msg.stream;
+    mut.flags = msg->flags;
+    mut.exptime = msg->exptime;
+    mut.add_policy = add_policy_t(msg->add_policy);
+    mut.replace_policy = replace_policy_t(msg->replace_policy);
+    mut.old_cas = msg->old_cas;
 
-    internal_store_->sarc(key, msg.stream, msg->flags, msg->exptime, castime_t(msg->proposed_cas, msg->timestamp), add_policy_t(msg->add_policy), replace_policy_t(msg->replace_policy), msg->old_cas);
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("sarc message received and applied.\n");
 }
 void slave_t::send(buffed_data_t<net_incr_t>& msg) {
-    store_key_t key(msg->key_size, msg->key);
-
-    internal_store_->incr_decr(incr_decr_INCR, key, msg->amount, castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("incr message received.\n");
+    incr_decr_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->key);
+    mut.kind = incr_decr_INCR;
+    mut.amount = msg->amount;
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
+    debugf("incr message received and applied.\n");
 }
 void slave_t::send(buffed_data_t<net_decr_t>& msg) {
-    store_key_t key(msg->key_size, msg->key);
-
-    internal_store_->incr_decr(incr_decr_DECR, key, msg->amount, castime_t(msg->proposed_cas, msg->timestamp));
+    incr_decr_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->key);
+    mut.kind = incr_decr_DECR;
+    mut.amount = msg->amount;
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("decr message received and applied.\n");
 }
 void slave_t::send(stream_pair<net_append_t>& msg) {
-    store_key_t key(msg->key_size, msg->keyvalue);
-
-    internal_store_->append_prepend(append_prepend_APPEND, key, msg.stream, castime_t(msg->proposed_cas, msg->timestamp));
+    append_prepend_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->keyvalue);
+    mut.data = msg.stream;
+    mut.kind = append_prepend_APPEND;
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("append message received and applied.\n");
 }
 void slave_t::send(stream_pair<net_prepend_t>& msg) {
-    store_key_t key(msg->key_size, msg->keyvalue);
-
-    internal_store_->append_prepend(append_prepend_PREPEND, key, msg.stream, castime_t(msg->proposed_cas, msg->timestamp));
+    append_prepend_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->keyvalue);
+    mut.data = msg.stream;
+    mut.kind = append_prepend_PREPEND;
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("prepend message received and applied.\n");
 }
 void slave_t::send(buffed_data_t<net_delete_t>& msg) {
-    store_key_t key(msg->key_size, msg->key);
-
-    internal_store_->delete_key(key, msg->timestamp);
+    delete_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->key);
+    // TODO: where does msg->timestamp go???  IS THIS RIGHT?? WHO KNOWS.
+    internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED /* TODO: F THIS */, msg->timestamp));
     debugf("delete message received.\n");
 }
 void slave_t::send(buffed_data_t<net_nop_t>& message) {

@@ -19,8 +19,13 @@ struct store_key_t {
     char contents[MAX_KEY_SIZE];
 
     store_key_t() { }
-    store_key_t(uint8_t sz, char *buf) : size(sz) {
+    store_key_t(int sz, char *buf) {
+        assign(sz, buf);
+    }
+
+    void assign(int sz, const char *buf) {
         rassert(sz <= MAX_KEY_SIZE);
+        size = sz;
         memcpy(contents, buf, sz);
     }
 
@@ -119,6 +124,7 @@ enum replace_policy_t {
 
 #define NO_CAS_SUPPLIED 0
 
+// TODO: freaking rename this to sarc_mutation_t.
 struct set_mutation_t {
     store_key_t key;
     data_provider_t *data;
@@ -198,7 +204,9 @@ struct mutation_t {
 
     boost::variant<get_cas_mutation_t, set_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation;
 
-    template<class T> mutation_t(const T &m) : mutation(m) { }
+    // implicit
+    template<class T>
+    mutation_t(const T &m) : mutation(m) { }
 
     /* get_key() extracts the "key" field from whichever sub-mutation we actually are */
     store_key_t get_key() const;
@@ -208,7 +216,9 @@ struct mutation_result_t {
 
     boost::variant<get_result_t, set_result_t, delete_result_t, incr_decr_result_t, append_prepend_result_t> result;
 
-    template<class T> mutation_result_t(const T &r) : result(r) { }
+    // implicit
+    template<class T>
+    mutation_result_t(const T &r) : result(r) { }
 };
 
 class set_store_interface_t {
