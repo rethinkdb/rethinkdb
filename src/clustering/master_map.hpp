@@ -29,7 +29,15 @@ public:
         choke(1)
         //move_choke_mailbox(boost::bind(&hasher_t::move_choke, this))
     {}
-    hash_t hash(store_key_t) { return 1; }//standin
+    hash_t hash(store_key_t k) { 
+        unsigned int res = 0;
+        for (int i = 0; i < k.size; i++) {
+            res ^= res << 18;
+            res += res >> 7;
+            res += k.contents[i];
+        }
+        return res;
+    }
 private:
     int choke;
     //move_choke_mailbox_t move_choke_mailbox;
@@ -137,7 +145,7 @@ public:
     storage_map_t()
         //: add_storage_mailbox(boost::bind(&storage_map_t::add_storage, this, _1, _2)),
           //remove_storage_mailbox(boost::bind(&storage_map_t::remove_storage, this, _1, _2))
-        : rh(4)
+        : rh(1)
     {}
 };
 /* The master map keeps track of how many write transactions are currently
