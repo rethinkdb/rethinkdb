@@ -251,7 +251,7 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
 
 
         int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(block_id, cfg.mod_count, CONFIG_BLOCK_ID);
-        block_id_t cache_block_id = translator_serializer_t::untranslate_block_id_to_id(block_id, mod_id, cfg.mod_count, CONFIG_BLOCK_ID);
+        block_id_t cache_block_id = translator_serializer_t::untranslate_block_id_to_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
 
         if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
             if (!cfg.ignore_diff_log) {
