@@ -6,7 +6,6 @@
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/co_functions.hpp"
 #include "buffer_cache/large_buf.hpp"
-#include "buffer_cache/large_buf_lock.hpp"
 #include "buffer_cache/transactor.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
@@ -218,14 +217,14 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         bool key_found = leaf::lookup(ptr_cast<leaf_node_t>(buf.buf()->get_data_read()), key, &old_value);
 
         // If there's a large value, acquire that too.
-        large_buf_lock_t old_large_buflock;
+        boost::scoped_ptr<large_buf_t> old_large_buflock;
 
         if (key_found && old_value.is_large()) {
-            old_large_buflock.set(new large_buf_t(txor->transaction(), old_value.lb_ref(), btree_value::lbref_limit, rwi_write));
+            old_large_buflock.reset(new large_buf_t(txor->transaction(), old_value.lb_ref(), btree_value::lbref_limit, rwi_write));
             // We don't know whether we want to acquire all of the large value or
             // just part of it, so we let the oper acquire it for us.
             // TIED old_large_buflock TO old_value
-            oper->actually_acquire_large_value(old_large_buflock.lv());
+            oper->actually_acquire_large_value(old_large_buflock.get());
             rassert(old_large_buflock->state == large_buf_t::loaded);
         }
 
@@ -238,20 +237,20 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
         // Now we actually run the operation to compute the new value.
         btree_value *new_value;
-        large_buf_lock_t new_large_buflock;
+        boost::scoped_ptr<large_buf_t> new_large_buflock;
         bool update_needed = oper->operate(txor, key_found ? &old_value : NULL, old_large_buflock, &new_value, new_large_buflock);
 
         // Make sure that the new_value and new_large_buf returned by operate() are consistent.
 #ifndef NDEBUG
         if (update_needed) {
             if (new_value && new_value->is_large()) {
-                rassert(new_large_buflock.has_lv());
+                rassert(new_large_buflock);
                 rassert(new_large_buflock->root_ref_is(new_value->lb_ref()));
             } else {
-                rassert(!new_large_buflock.has_lv());
+                rassert(!new_large_buflock);
             }
         } else {
-            rassert(!new_large_buflock.has_lv());
+            rassert(!new_large_buflock);
         }
 #endif
 
@@ -307,12 +306,12 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
         // Release all the large bufs that we used.
         if (update_needed) {
-            if (old_large_buflock.has_lv() && new_large_buflock.lv() != old_large_buflock.lv()) {
+            if (old_large_buflock && new_large_buflock.get() != old_large_buflock.get()) {
                 // operate() switched to a new large buf, so we need to delete the old one.
                 rassert(old_value.is_large());
                 rassert(old_large_buflock->root_ref_is(old_value.lb_ref()));
 
-                old_large_buflock.lv()->mark_deleted();
+                old_large_buflock->mark_deleted();
             }
         }
 

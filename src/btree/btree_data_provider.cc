@@ -30,10 +30,10 @@ size_t large_value_data_provider_t::get_size() const {
 
 const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
     rassert(buffers.num_buffers() == 0);
-    rassert(!large_value.has_lv());
+    rassert(!large_value);
 
-    large_value.set(new large_buf_t(transactor->transaction(), &lb_ref, btree_value::lbref_limit, rwi_read));
-    co_acquire_large_buf(large_value.lv());
+    large_value.reset(new large_buf_t(transactor->transaction(), &lb_ref, btree_value::lbref_limit, rwi_read));
+    co_acquire_large_buf(large_value.get());
 
     rassert(large_value->state == large_buf_t::loaded);
 

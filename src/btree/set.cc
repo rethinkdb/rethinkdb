@@ -16,7 +16,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         pm_cmd_set.end(&start_time);
     }
 
-    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
+    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         try {
 
             /* We may be instructed to abort depending on the old value */
@@ -67,7 +67,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 
             value.value_size(data->get_size(), slice->cache().get_block_size());
 
-            large_buf_lock_t large_buflock;
+            boost::scoped_ptr<large_buf_t> large_buflock;
             buffer_group_t buffer_group;
 
             rassert(data->get_size() <= MAX_VALUE_SIZE);
@@ -75,7 +75,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 buffer_group.add_buffer(data->get_size(), value.value());
                 data->get_data_into_buffers(&buffer_group);
             } else {
-                large_buflock.set(new large_buf_t(txor->transaction(), value.lb_ref(), btree_value::lbref_limit, rwi_write));
+                large_buflock.reset(new large_buf_t(txor->transaction(), value.lb_ref(), btree_value::lbref_limit, rwi_write));
                 large_buflock->allocate(data->get_size());
 
                 large_buflock->bufs_at(0, data->get_size(), false, &buffer_group);
