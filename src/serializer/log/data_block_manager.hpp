@@ -320,6 +320,9 @@ private:
         gc_write, /* waiting for writes */
     };
 
+    /* Buffer used during GC. */
+    std::vector<gc_write_t> gc_writes;
+
     struct gc_state_t {
     private:
         gc_step step_;               /* !< which step we're on.  See set_step.  */

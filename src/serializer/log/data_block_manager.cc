@@ -261,8 +261,8 @@ void data_block_manager_t::run_gc() {
 #ifndef NDEBUG
                 int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
 #endif
-                std::vector<gc_write_t> writes;
 
+                gc_writes.clear();
                 for (unsigned int i = 0; i < static_config->blocks_per_extent(); i++) {
 
                     /* We re-check the bit array here in case a write came in for one of the
@@ -274,16 +274,16 @@ void data_block_manager_t::run_gc() {
                     ser_block_id_t id = *reinterpret_cast<ser_block_id_t *>(block);
                     void *data = block + sizeof(buf_data_t);
 
-                    writes.push_back(gc_write_t(id, data));
+                    gc_writes.push_back(gc_write_t(id, data));
                 }
 
-                rassert(writes.size() == (size_t)num_writes);
+                rassert(gc_writes.size() == (size_t)num_writes);
 
                 /* make sure the callback knows who we are */
                 gc_state.set_step(gc_write);
 
                 /* schedule the write */
-                bool done = gc_writer->write_gcs(writes.data(), writes.size(), this);
+                bool done = gc_writer->write_gcs(gc_writes.data(), gc_writes.size(), this);
                 if (!done) break;
             }
                 

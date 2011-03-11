@@ -12,6 +12,7 @@
 #include "server/cmd_args.hpp"
 #include "utils.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/mutex.hpp"
 
 #include "metablock/metablock_manager.hpp"
 #include "extents/extent_manager.hpp"
@@ -140,6 +141,11 @@ public:
     static const block_magic_t zerobuf_magic;
 
 private:
+    /* We want to be able to yield the CPU when preparing large writes, so to
+    avoid corruption we have this mutex. It is used to make sure that another
+    read or write doesn't come along during the time we are yielding the CPU. */
+    mutex_t main_mutex;
+
     typedef log_serializer_metablock_t metablock_t;
     void prepare_metablock(metablock_t *mb_buffer);
 

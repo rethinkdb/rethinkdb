@@ -57,29 +57,35 @@ get_result_t btree_slice_t::get(const store_key_t &key) {
     return btree_get(key, this);
 }
 
-get_result_t btree_slice_t::get_cas(const store_key_t &key, castime_t castime) {
-    return btree_get_cas(key, this, castime);
-}
-
 rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
     return btree_rget_slice(this, left_mode, left_key, right_mode, right_key);
 }
 
-set_result_t btree_slice_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime,
-                                          add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    return btree_set(key, this, data, flags, exptime, add_policy, replace_policy, old_cas, castime);
-}
+struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_result_t> {
+    mutation_result_t operator()(const get_cas_mutation_t &m) {
+        return btree_get_cas(m.key, parent, ct);
+    }
+    mutation_result_t operator()(const set_mutation_t &m) {
+        return btree_set(m.key, parent, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, ct);
+    }
+    mutation_result_t operator()(const incr_decr_mutation_t &m) {
+        return btree_incr_decr(m.key, parent, (m.kind == incr_decr_INCR), m.amount, ct);
+    }
+    mutation_result_t operator()(const append_prepend_mutation_t &m) {
+        return btree_append_prepend(m.key, parent, m.data, (m.kind == append_prepend_APPEND), ct);
+    }
+    mutation_result_t operator()(const delete_mutation_t &m) {
+        return btree_delete(m.key, parent, ct.timestamp);
+    }
+    btree_slice_t *parent;
+    castime_t ct;
+};
 
-incr_decr_result_t btree_slice_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
-    return btree_incr_decr(key, this, kind == incr_decr_INCR, amount, castime);
-}
-
-append_prepend_result_t btree_slice_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
-    return btree_append_prepend(key, this, data, kind == append_prepend_APPEND, castime);
-}
-
-delete_result_t btree_slice_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
-    return btree_delete(key, this, timestamp);
+mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) {
+    btree_slice_change_visitor_t functor;
+    functor.parent = this;
+    functor.ct = castime;
+    return boost::apply_visitor(functor, m.mutation);
 }
 
 // Stats
