@@ -88,6 +88,7 @@ class scc_transaction_t :
     typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
 
 public:
+    void snapshot() { inner_transaction->snapshot(); }
     bool commit(transaction_commit_callback_t *callback);
 
     buf_t *acquire(block_id_t block_id, access_t mode,
