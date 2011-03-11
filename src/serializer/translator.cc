@@ -212,14 +212,28 @@ ser_transaction_id_t translator_serializer_t::get_current_transaction_id(block_i
     return inner->get_current_transaction_id(xlate(block_id), buf);
 }
 
+struct write_fsm_t : public serializer_t::write_txn_callback_t {
+    std::vector<serializer_t::write_t> writes;
+    serializer_t::write_txn_callback_t *cb;
+    void on_serializer_write_txn() {
+        cb->on_serializer_write_txn();
+        delete this;
+    }
+};
 
 bool translator_serializer_t::do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback) {
-    std::vector<serializer_t::write_t> writes2;
+    write_fsm_t *fsm = new write_fsm_t();
+    fsm->cb = callback;
     for (int i = 0; i < num_writes; i++) {
-        writes2.push_back(serializer_t::write_t(xlate(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
+        fsm->writes.push_back(serializer_t::write_t(xlate(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
                                                 writes[i].buf_specified, writes[i].buf, writes[i].write_empty_deleted_block, writes[i].callback, writes[i].assign_transaction_id));
     }
-    return inner->do_write(writes2.data(), num_writes, callback);
+    if (inner->do_write(fsm->writes.data(), num_writes, fsm)) {
+        delete fsm;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 
