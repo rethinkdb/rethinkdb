@@ -118,7 +118,6 @@ struct format_t<mutation_result_t> {
 };
 
 struct set_store_interface_mailbox_t {
-
 private:
     typedef sync_mailbox_t<mutation_result_t(mutation_t)> change_mailbox_t;
     change_mailbox_t change_mailbox;
@@ -126,7 +125,7 @@ private:
 public:
     set_store_interface_mailbox_t(set_store_interface_t *inner) :
         change_mailbox(boost::bind(&set_store_interface_t::change, inner, _1))
-        { }
+    { }
 
     struct address_t : public set_store_interface_t {
         address_t(set_store_interface_mailbox_t *mb) :
@@ -139,6 +138,37 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, change_address)
     private:
         change_mailbox_t::address_t change_address;
+    };
+    friend class address_t;
+};
+
+struct get_store_mailbox_t {
+private: 
+    typedef sync_mailbox_t<get_result_t(store_key_t)> get_mailbox_t;
+    get_mailbox_t get_mailbox;
+
+public:
+    get_store_mailbox_t(get_store_t *inner) :
+        get_mailbox(boost::bind(&get_store_t::get, inner, _1))
+    { }
+
+    struct address_t : public get_store_t {
+        address_t(get_store_mailbox_t *mb) :
+            get_address(&mb->get_mailbox)
+        { }
+        address_t() { }
+        get_result_t get(const store_key_t &key) {
+            return get_address.call(key);
+        }
+        rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key,
+                rget_bound_mode_t right_mode, const store_key_t &right_key) {
+            not_implemented();
+            rget_result_t res;
+            return res;
+        }
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, get_address)
+    private:
+        get_mailbox_t::address_t get_address;
     };
     friend class address_t;
 };

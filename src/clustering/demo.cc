@@ -19,7 +19,7 @@
 
 /* demo_delegate_t */
 
-typedef async_mailbox_t<void(int, set_store_mailbox_t::address_t)> registration_mailbox_t;
+typedef async_mailbox_t<void(int, set_store_mailbox_t::address_t, get_store_mailbox_t::address_t)> registration_mailbox_t;
 
 struct demo_delegate_t : public cluster_delegate_t {
 
@@ -85,7 +85,8 @@ void serve(int id, demo_delegate_t *delegate) {
     btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache);
 
     set_store_mailbox_t change_mailbox(&slice);
-    delegate->registration_address.call(get_cluster().us, &change_mailbox);
+    get_store_mailbox_t get_mailbox(&slice);
+    delegate->registration_address.call(get_cluster().us, &change_mailbox, &get_mailbox);
 
     struct : public conn_acceptor_t::handler_t {
         get_store_t *get_store;
@@ -104,8 +105,8 @@ void serve(int id, demo_delegate_t *delegate) {
     wait_for_interrupt();
 }
 
-void add_listener(int peer, dispatching_store_t *dispatcher, set_store_mailbox_t::address_t addr) {
-    //dispatching_store_t::dispatchee_t dispatchee(peer, dispatcher, &addr);
+void add_listener(int peer, dispatching_store_t *dispatcher, set_store_mailbox_t::address_t set_addr, get_store_mailbox_t::address_t get_addr) {
+    dispatching_store_t::dispatchee_t dispatchee(peer, dispatcher, make_pair(&set_addr, &get_addr));
     coro_t::wait();   // Objects must stay alive until we shut down, but the demo app doesn't
     // understand what it means to shut down yet.
 }
@@ -117,7 +118,7 @@ void cluster_main(cluster_config_t config, thread_pool_t *thread_pool) {
         /* Start the master-components */
 
         dispatching_store_t dispatcher;
-        registration_mailbox_t registration_mailbox(boost::bind(&add_listener, _1, &dispatcher, _2));
+        registration_mailbox_t registration_mailbox(boost::bind(&add_listener, _1, &dispatcher, _2, _3)); //FIXME
 
         timestamping_set_store_interface_t timestamper(&dispatcher);
         set_store_interface_mailbox_t master_mailbox(&timestamper);
