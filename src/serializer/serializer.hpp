@@ -25,6 +25,19 @@ struct serializer_t :
     virtual void *malloc() = 0;
     virtual void *clone(void*) = 0; // clones a buf
     virtual void free(void*) = 0;
+
+    /* Some serializer implementations support read-ahead to speed up cache warmup.
+    This is supported through a read_ahead_callback_t which gets called whenever the serializer has read-ahead some buf.
+    The callee can then decide whether it wants to use the offered buffer of discard it.
+    */
+    class read_ahead_callback_t {
+    public:
+        virtual ~read_ahead_callback_t() { }
+        /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
+        virtual bool offer_read_ahead_buf(ser_block_id_t block_id, void *buf) = 0;
+    };
+    virtual void register_read_ahead_cb(read_ahead_callback_t *cb) = 0;
+    virtual void unregister_read_ahead_cb(read_ahead_callback_t *cb) = 0;
     
     /* Reading a block from the serializer */
     

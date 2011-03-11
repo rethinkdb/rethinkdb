@@ -172,7 +172,7 @@ ser_block_id_t translator_serializer_t::translate_block_id(block_id_t id, int mo
     return ser_block_id_t::make(id * mod_count + mod_id + cfgid.subsequent_ser_id().value);
 }
 
-int translator_serializer_t::untranslate_block_id(ser_block_id_t inner_id, int mod_count, config_block_id_t cfgid) {
+int translator_serializer_t::untranslate_block_id_to_mod_id(ser_block_id_t inner_id, int mod_count, config_block_id_t cfgid) {
     // We know that inner_id == id * mod_count + mod_id + min.
     // Thus inner_id - min == id * mod_count + mod_id.
     // It follows that inner_id - min === mod_id (modulo mod_count).
@@ -181,12 +181,17 @@ int translator_serializer_t::untranslate_block_id(ser_block_id_t inner_id, int m
     return (inner_id.value - cfgid.subsequent_ser_id().value) % mod_count;
 }
 
+block_id_t translator_serializer_t::untranslate_block_id_to_id(ser_block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid) {
+    // (simply dividing by mod_count should be sufficient, but this is cleaner)
+    return (inner_id.value - cfgid.subsequent_ser_id().value - mod_id) / mod_count;
+}
+
 ser_block_id_t translator_serializer_t::xlate(block_id_t id) {
     return translate_block_id(id, mod_count, mod_id, cfgid);
 }
 
 translator_serializer_t::translator_serializer_t(serializer_t *inner_, int mod_count_, int mod_id_, config_block_id_t cfgid_)
-    : inner(inner_), mod_count(mod_count_), mod_id(mod_id_), cfgid(cfgid_) {
+    : inner(inner_), mod_count(mod_count_), mod_id(mod_id_), cfgid(cfgid_), read_ahead_callback(NULL) {
     rassert(mod_count > 0);
     rassert(mod_id >= 0);
     rassert(mod_id < mod_count);
@@ -268,4 +273,33 @@ bool translator_serializer_t::block_in_use(block_id_t id) {
 
 repli_timestamp translator_serializer_t::get_recency(block_id_t id) {
     return inner->get_recency(xlate(id));
+}
+
+bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void *buf) {
+    // Offer the buffer if we are the correct shard
+    const int buf_mod_id = untranslate_block_id_to_mod_id(block_id, mod_count, cfgid);
+    if (buf_mod_id != this->mod_id) {
+        // We are not responsible...
+        return false;
+    }
+
+    if (read_ahead_callback) {
+        const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
+        read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf);
+    } else {
+        // Discard the buffer
+        inner->free(buf);
+    }
+    return true;
+}
+
+void translator_serializer_t::register_read_ahead_cb(translator_serializer_t::read_ahead_callback_t *cb) {
+    rassert(!read_ahead_callback);
+    inner->register_read_ahead_cb(this);
+    read_ahead_callback = cb;
+}
+void translator_serializer_t::unregister_read_ahead_cb(translator_serializer_t::read_ahead_callback_t *cb) {
+    rassert(read_ahead_callback == NULL || cb == read_ahead_callback);
+    inner->unregister_read_ahead_cb(this);
+    read_ahead_callback = NULL;
 }

@@ -45,6 +45,9 @@
 // Size of each extent (in bytes)
 #define DEFAULT_EXTENT_SIZE                       (8 * MEGABYTE)
 
+// Max number of blocks which can be read ahead in one i/o transaction (if enabled)
+#define MAX_READ_AHEAD_BLOCKS 32
+
 // Max size of log file name
 #define MAX_LOG_FILE_NAME                         1024
 

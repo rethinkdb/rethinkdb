@@ -41,6 +41,9 @@ struct log_serializer_dynamic_config_t {
 
     /* Which i/o backend should the log serializer use for accessing files? */
     platform_io_config_t::io_backend_t io_backend;
+
+    /* Enable reading more data than requested to let the cache warmup more quickly esp. on rotational drives */
+    bool read_ahead;
 };
 
 /* Configuration for the serializer that is set when the database is created */
@@ -208,6 +211,7 @@ public:
     void set_active_data_extents(const char* value);
     void set_block_size(const char* value);
     void set_extent_size(const char* value);
+    void set_read_ahead(const char* value);
     void set_coroutine_stack_size(const char* value);
 #ifdef SEMANTIC_SERIALIZER_CHECK
     void set_last_semantic_file(const char* value);
