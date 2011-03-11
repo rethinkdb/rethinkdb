@@ -7,12 +7,15 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <map>
+#include <vector>
 
 #include "serializer/serializer.hpp"
 #include "server/cmd_args.hpp"
 #include "utils.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/mutex.hpp"
+
+class log_serializer_t;
 
 #include "metablock/metablock_manager.hpp"
 #include "extents/extent_manager.hpp"
@@ -56,6 +59,8 @@ struct log_serializer_t :
     friend class ls_read_fsm_t;
     friend class ls_start_new_fsm_t;
     friend class ls_start_existing_fsm_t;
+    friend class data_block_manager_t;
+    friend class dbm_read_ahead_fsm_t;
 
 public:
     /* Serializer configuration. dynamic_config_t is everything that can be changed from run
@@ -93,6 +98,8 @@ public:
     void *clone(void*); // clones a buf
     void free(void*);
 
+    void register_read_ahead_cb(read_ahead_callback_t *cb);
+    void unregister_read_ahead_cb(read_ahead_callback_t *cb);
     bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
     ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf);
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
@@ -102,6 +109,10 @@ public:
     repli_timestamp get_recency(ser_block_id_t id);
 
 private:
+    std::vector<read_ahead_callback_t*> read_ahead_callbacks;
+    bool offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf);
+    bool should_perform_read_ahead();
+
     /* Called by the data block manager when it wants us to rewrite some blocks */
     bool write_gcs(data_block_manager_t::gc_write_t *writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb);
 

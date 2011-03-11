@@ -45,6 +45,9 @@ public:
         unsigned int index;
     };
     friend class local_buf_t;
+
+    // If is_full(space_needed), the next call to make_space(space_needed) probably has to evict something
+    bool is_full(unsigned int space_needed);
     
     // make_space tries to make sure that the number of blocks currently in memory is at least
     // 'space_needed' less than the user-specified memory limit.
