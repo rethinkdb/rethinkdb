@@ -5,64 +5,140 @@
 #include "clustering/rpc.hpp"
 #include "clustering/serialize_macros.hpp"
 
+RDB_MAKE_SERIALIZABLE_1(get_cas_mutation_t, key)
+
+/* Explicitly define serialization instead of using the RDB_MAKE_SERIALIZABLE_*() macro for
+set_mutation_t because it contains a data_provider_t*, which means it needs a real format_t
+instead of an unserialize(), and the macro can't handle that. This is temporary. */
+template<>
+struct format_t<set_mutation_t> {
+    struct parser_t {
+        format_t<data_provider_t *>::parser_t dp_parser;
+        set_mutation_t mut;
+        parser_t(cluster_inpipe_t *inpipe) : dp_parser(inpipe) {
+            mut.data = dp_parser.value();
+            ::unserialize(inpipe, &mut.key);
+            ::unserialize(inpipe, &mut.flags);
+            ::unserialize(inpipe, &mut.exptime);
+            ::unserialize(inpipe, &mut.add_policy);
+            ::unserialize(inpipe, &mut.replace_policy);
+            ::unserialize(inpipe, &mut.old_cas);
+        }
+        const set_mutation_t &value() {
+            return mut;
+        }
+    };
+    static int get_size(const set_mutation_t &mut) {
+        return format_t<data_provider_t *>::get_size(mut.data) +
+            ::ser_size(mut.key) +
+            ::ser_size(mut.flags) +
+            ::ser_size(mut.exptime) +
+            ::ser_size(mut.add_policy) +
+            ::ser_size(mut.replace_policy) +
+            ::ser_size(mut.old_cas);
+    }
+    static void write(cluster_outpipe_t *outpipe, const set_mutation_t &mut) {
+        format_t<data_provider_t *>::write(outpipe, mut.data);
+        ::serialize(outpipe, mut.key);
+        ::serialize(outpipe, mut.flags);
+        ::serialize(outpipe, mut.exptime);
+        ::serialize(outpipe, mut.add_policy);
+        ::serialize(outpipe, mut.replace_policy);
+        ::serialize(outpipe, mut.old_cas);
+    }
+};
+
+RDB_MAKE_SERIALIZABLE_1(delete_mutation_t, key)
+RDB_MAKE_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount)
+
+template<>
+struct format_t<append_prepend_mutation_t> {
+    struct parser_t {
+        format_t<data_provider_t *>::parser_t dp_parser;
+        append_prepend_mutation_t mut;
+        parser_t(cluster_inpipe_t *inpipe) : dp_parser(inpipe) {
+            mut.data = dp_parser.value();
+            ::unserialize(inpipe, &mut.key);
+            ::unserialize(inpipe, &mut.kind);
+        }
+        const append_prepend_mutation_t &value() {
+            return mut;
+        }
+    };
+    static int get_size(const append_prepend_mutation_t &mut) {
+        return format_t<data_provider_t *>::get_size(mut.data) +
+            ::ser_size(mut.kind) +
+            ::ser_size(mut.key);
+    }
+    static void write(cluster_outpipe_t *outpipe, const append_prepend_mutation_t &mut) {
+        format_t<data_provider_t *>::write(outpipe, mut.data);
+        ::serialize(outpipe, mut.kind);
+        ::serialize(outpipe, mut.key);
+    }
+};
+
+template<>
+struct format_t<mutation_t> {
+    struct parser_t {
+        format_t<mutation_t::mutation_variant_t>::parser_t mut_parser;
+        mutation_t mut;
+        parser_t(cluster_inpipe_t *inpipe) : mut_parser(inpipe) {
+            mut.mutation = mut_parser.value();
+        }
+        const mutation_t &value() {
+            return mut;
+        }
+    };
+    static int get_size(const mutation_t &mut) {
+        return format_t<mutation_t::mutation_variant_t>::get_size(mut.mutation);
+    }
+    static void write(cluster_outpipe_t *outpipe, const mutation_t &mut) {
+        format_t<mutation_t::mutation_variant_t>::write(outpipe, mut.mutation);
+    }
+};
+
+template<>
+struct format_t<mutation_result_t> {
+    struct parser_t {
+        format_t<mutation_result_t::result_variant_t>::parser_t res_parser;
+        mutation_result_t res;
+        parser_t(cluster_inpipe_t *inpipe) : res_parser(inpipe) {
+            res.result = res_parser.value();
+        }
+        const mutation_result_t &value() {
+            return res;
+        }
+    };
+    static int get_size(const mutation_result_t &res) {
+        return format_t<mutation_result_t::result_variant_t>::get_size(res.result);
+    }
+    static void write(cluster_outpipe_t *outpipe, const mutation_result_t &res) {
+        format_t<mutation_result_t::result_variant_t>::write(outpipe, res.result);
+    }
+};
+
 struct set_store_interface_mailbox_t {
 
 private:
-    typedef sync_mailbox_t<get_result_t(store_key_t)> get_cas_mailbox_t;
-    typedef sync_mailbox_t<set_result_t(store_key_t, data_provider_t*, mcflags_t, exptime_t,
-        add_policy_t, replace_policy_t, cas_t)> sarc_mailbox_t;
-    typedef sync_mailbox_t<delete_result_t(store_key_t)> delete_mailbox_t;
-    typedef sync_mailbox_t<append_prepend_result_t(append_prepend_kind_t, store_key_t,
-        data_provider_t*)> append_prepend_mailbox_t;
-    typedef sync_mailbox_t<incr_decr_result_t(incr_decr_kind_t, store_key_t,
-        uint64_t)> incr_decr_mailbox_t;
-
-    get_cas_mailbox_t get_cas_mailbox;
-    sarc_mailbox_t sarc_mailbox;
-    delete_mailbox_t delete_mailbox;
-    append_prepend_mailbox_t append_prepend_mailbox;
-    incr_decr_mailbox_t incr_decr_mailbox;
+    typedef sync_mailbox_t<mutation_result_t(mutation_t)> change_mailbox_t;
+    change_mailbox_t change_mailbox;
 
 public:
     set_store_interface_mailbox_t(set_store_interface_t *inner) :
-        get_cas_mailbox(boost::bind(&set_store_interface_t::get_cas, inner, _1)),
-        sarc_mailbox(boost::bind(&set_store_interface_t::sarc, inner, _1, _2, _3, _4, _5, _6, _7)),
-        delete_mailbox(boost::bind(&set_store_interface_t::delete_key, inner, _1)),
-        append_prepend_mailbox(boost::bind(&set_store_interface_t::append_prepend, inner, _1, _2, _3)),
-        incr_decr_mailbox(boost::bind(&set_store_interface_t::incr_decr, inner, _1, _2, _3))
+        change_mailbox(boost::bind(&set_store_interface_t::change, inner, _1))
         { }
 
     struct address_t : public set_store_interface_t {
         address_t(set_store_interface_mailbox_t *mb) :
-            get_cas_address(&mb->get_cas_mailbox),
-            sarc_address(&mb->sarc_mailbox),
-            delete_address(&mb->delete_mailbox),
-            append_prepend_address(&mb->append_prepend_mailbox),
-            incr_decr_address(&mb->incr_decr_mailbox)
+            change_address(&mb->change_mailbox)
             { }
         address_t() { }
-        get_result_t get_cas(const store_key_t &key) {
-            return get_cas_address.call(key);
+        mutation_result_t change(const mutation_t &mut) {
+            return change_address.call(mut);
         }
-        set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-            return sarc_address.call(key, data, flags, exptime, add_policy, replace_policy, old_cas);
-        }
-        delete_result_t delete_key(const store_key_t &key) {
-            return delete_address.call(key);
-        }
-        incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount) {
-            return incr_decr_address.call(kind, key, amount);
-        }
-        append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data) {
-            return append_prepend_address.call(kind, key, data);
-        }
-        RDB_MAKE_ME_SERIALIZABLE_5(address_t, get_cas_address, sarc_address, delete_address, append_prepend_address, incr_decr_address)
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, change_address)
     private:
-        get_cas_mailbox_t::address_t get_cas_address;
-        sarc_mailbox_t::address_t sarc_address;
-        delete_mailbox_t::address_t delete_address;
-        append_prepend_mailbox_t::address_t append_prepend_address;
-        incr_decr_mailbox_t::address_t incr_decr_address;
+        change_mailbox_t::address_t change_address;
     };
     friend class address_t;
 };
@@ -70,61 +146,25 @@ public:
 struct set_store_mailbox_t {
 
 private:
-    typedef sync_mailbox_t<get_result_t(store_key_t, castime_t)> get_cas_mailbox_t;
-    typedef sync_mailbox_t<set_result_t(store_key_t, data_provider_t*, mcflags_t, exptime_t,
-        castime_t, add_policy_t, replace_policy_t, cas_t)> sarc_mailbox_t;
-    typedef sync_mailbox_t<delete_result_t(store_key_t, repli_timestamp)> delete_mailbox_t;
-    typedef sync_mailbox_t<append_prepend_result_t(append_prepend_kind_t, store_key_t,
-        data_provider_t*, castime_t)> append_prepend_mailbox_t;
-    typedef sync_mailbox_t<incr_decr_result_t(incr_decr_kind_t, store_key_t,
-        uint64_t, castime_t)> incr_decr_mailbox_t;
-
-    get_cas_mailbox_t get_cas_mailbox;
-    sarc_mailbox_t sarc_mailbox;
-    delete_mailbox_t delete_mailbox;
-    append_prepend_mailbox_t append_prepend_mailbox;
-    incr_decr_mailbox_t incr_decr_mailbox;
+    typedef sync_mailbox_t<mutation_result_t(mutation_t, castime_t)> change_mailbox_t;
+    change_mailbox_t change_mailbox;
 
 public:
     set_store_mailbox_t(set_store_t *inner) :
-        get_cas_mailbox(boost::bind(&set_store_t::get_cas, inner, _1, _2)),
-        sarc_mailbox(boost::bind(&set_store_t::sarc, inner, _1, _2, _3, _4, _5, _6, _7, _8)),
-        delete_mailbox(boost::bind(&set_store_t::delete_key, inner, _1, _2)),
-        append_prepend_mailbox(boost::bind(&set_store_t::append_prepend, inner, _1, _2, _3, _4)),
-        incr_decr_mailbox(boost::bind(&set_store_t::incr_decr, inner, _1, _2, _3, _4))
+        change_mailbox(boost::bind(&set_store_t::change, inner, _1, _2))
         { }
 
     struct address_t : public set_store_t {
         address_t(set_store_mailbox_t *mb) :
-            get_cas_address(&mb->get_cas_mailbox),
-            sarc_address(&mb->sarc_mailbox),
-            delete_address(&mb->delete_mailbox),
-            append_prepend_address(&mb->append_prepend_mailbox),
-            incr_decr_address(&mb->incr_decr_mailbox)
+            change_address(&mb->change_mailbox)
             { }
         address_t() { }
-        get_result_t get_cas(const store_key_t &key, castime_t castime) {
-            return get_cas_address.call(key, castime);
+        mutation_result_t change(const mutation_t &mut, castime_t cs) {
+            return change_address.call(mut, cs);
         }
-        set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-            return sarc_address.call(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
-        }
-        delete_result_t delete_key(const store_key_t &key, repli_timestamp ts) {
-            return delete_address.call(key, ts);
-        }
-        incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
-            return incr_decr_address.call(kind, key, amount, castime);
-        }
-        append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
-            return append_prepend_address.call(kind, key, data, castime);
-        }
-        RDB_MAKE_ME_SERIALIZABLE_5(address_t, get_cas_address, sarc_address, delete_address, append_prepend_address, incr_decr_address)
+        RDB_MAKE_ME_SERIALIZABLE_1(address_t, change_address)
     private:
-        get_cas_mailbox_t::address_t get_cas_address;
-        sarc_mailbox_t::address_t sarc_address;
-        delete_mailbox_t::address_t delete_address;
-        append_prepend_mailbox_t::address_t append_prepend_address;
-        incr_decr_mailbox_t::address_t incr_decr_address;
+        change_mailbox_t::address_t change_address;
     };
     friend class address_t;
 };

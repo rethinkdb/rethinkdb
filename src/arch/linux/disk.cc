@@ -38,7 +38,7 @@ void linux_disk_op_t::done() {
     delete this;
 }
 
-linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct)
+linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, const linux_io_backend_t io_backend)
     : fd(INVALID_FD)
 {
     // Determine if it is a block device
@@ -98,7 +98,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct)
     // Construct a disk manager.
     // TODO: If two files are on the same disk, they should use the same disk manager maybe.
     if (linux_thread_pool_t::thread) {
-        diskmgr.reset(new linux_diskmgr_aio_t(&linux_thread_pool_t::thread->queue));
+        diskmgr.reset(new linux_diskmgr_aio_t(&linux_thread_pool_t::thread->queue, io_backend));
     }
 }
 

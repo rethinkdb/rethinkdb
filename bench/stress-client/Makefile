@@ -1,9 +1,10 @@
 
-LIBS = -lpthread -ldl -lgsl -lgslcblas
+LIBS = -lpthread -ldl 
 SRC = main.cc utils.cc random.cc sqlite3.c
 
 MYSQL ?= 1
 LIBMEMCACHED ?= 1
+LIBGSL ?= 1
 
 ifeq ($(MYSQL),1)
     INCLUDE += -I /usr/local/mysql/include
@@ -15,6 +16,11 @@ ifeq ($(LIBMEMCACHED),1)
     INCLUDE += -I../../../lib/libmemcached
     LIBS += -lmemcached
     DEFINES += -DUSE_LIBMEMCACHED
+endif
+
+ifeq ($(LIBGSL),1)
+    LIBS += -lgsl -lgslcblas
+    DEFINES += -DUSE_LIBGSL
 endif
 
 EXEC_NAME = stress

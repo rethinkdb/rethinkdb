@@ -76,8 +76,9 @@ CXX:=g++
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -lprotoc
 STATIC_LIBRARIES:=
 
-CXXFLAGS:=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
+CXXFLAGS?=
 
+CXXFLAGS+=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wno-unused-parameter -Wswitch-enum -Werror
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -88,6 +89,10 @@ endif
 
 ifeq ($(UNIT_TESTS),0)
 CXXFLAGS+=-Wswitch-default
+endif
+
+ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
+CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
 endif
 
 # Configure libcoroutine

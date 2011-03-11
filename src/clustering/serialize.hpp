@@ -7,6 +7,12 @@
 #include "store.hpp"
 #include <boost/utility.hpp>
 #include <boost/type_traits.hpp>
+#include <boost/variant.hpp>
+#include <boost/mpl/front.hpp>
+#include <boost/mpl/pop_front.hpp>
+#include <boost/mpl/eval_if.hpp>
+#include <boost/mpl/identity.hpp>
+#include <boost/mpl/empty.hpp>
 
 /* BEWARE: This file contains evil Boost witchery that depends on SFINAE and boost::type_traits
 and all sorts of other bullshit. Here are some crosses to prevent the demonic witchery from
@@ -181,6 +187,122 @@ void unserialize(cluster_inpipe_t *conn, std::vector<element_t> *e) {
         unserialize(conn, &e[i]);
     }
 }
+
+/* Serializing and unserializing boost::variant of serializable types */
+
+/* BOOST_VARIANT_ENUM_PARAMS allows for templatization on all different possible boost::variants. */
+
+template<BOOST_VARIANT_ENUM_PARAMS(class T)>
+struct format_t<boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> > {
+
+    struct parser_t {
+
+        /* When we determine which member of the variant is being parsed, we need to construct
+        a sub-parser_t of the right type. That needs to remain alive until the outer parser_t
+        dies. To do this we add a virtual destructor (via parser_with_virtual_destructor_t)
+        and store it as a destructible_t. */
+        struct destructible_t {
+            virtual ~destructible_t() { }
+        };
+        template<class variant_member_t>
+        struct parser_with_virtual_destructor_t :
+            public format_t<variant_member_t>::parser_t,
+            public destructible_t
+        {
+            parser_with_virtual_destructor_t(cluster_inpipe_t *ip) :
+                format_t<variant_member_t>::parser_t(ip) { }
+        };
+
+        boost::scoped_ptr<destructible_t> subparser;
+        boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> variant;
+
+        /* We need to be sure to pick the right class for unserialization. To do this we use
+        boost::mpl to iterate along a "list" of types until we get to the right one. This code
+        is adapted from boost::serialization's handing of variants. */
+        template<class typelist_t>
+        struct unserialize_nth_from_typelist_t {
+
+            struct load_null {
+                static void invoke(cluster_inpipe_t *inpipe, int which, parser_t *out) {
+                    crash("The number which is supposed to identify which type the variant was is too "
+                        "high.");
+                }
+            };
+
+            struct load_impl {
+                static void invoke(cluster_inpipe_t *inpipe, int which, parser_t *out) {
+                    /* We decrement "which" as we walk along the type list. That way, the initial value
+                    of "which" determines which type on the type-list we stop at. */
+                    if (which == 0) {
+                        /* We have determined that the value to be deserialized is of type
+                        head_type_t. */
+                        typedef typename boost::mpl::front<typelist_t>::type head_type_t;
+
+                        typedef parser_with_virtual_destructor_t<head_type_t> subparser_t;
+                        subparser_t *subparser = new subparser_t(inpipe);
+                        out->variant = subparser->value();
+
+                        /* Store the subparser, as a destructible_t, so that it lasts until the
+                        outer parser_t dies */
+                        out->subparser.reset(subparser);
+                    } else {
+                        /* Recurse, popping the head off the type list and decrementing "which" */
+                        typedef typename boost::mpl::pop_front<typelist_t>::type typelist_tail_t;
+                        unserialize_nth_from_typelist_t<typelist_tail_t>::load(inpipe, which - 1, out);
+                    }
+                }
+            };
+
+            static void load(cluster_inpipe_t *inpipe, int which, parser_t *out) {
+                /* We should never reach the load_null case */
+                typedef typename boost::mpl::eval_if<boost::mpl::empty<typelist_t>,
+                    boost::mpl::identity<load_null>,
+                    boost::mpl::identity<load_impl>
+                >::type typex;
+                typex::invoke(inpipe, which, out);
+            }
+        };
+
+        parser_t(cluster_inpipe_t *inpipe) {
+            int which;
+            ::unserialize(inpipe, &which);
+            typedef typename boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)>::types typelist_t;
+            unserialize_nth_from_typelist_t<typelist_t>::load(inpipe, which, this);
+        }
+        const boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> &value() {
+            return variant;
+        }
+    };
+
+    /* Functor to write the appropriate member of a variant */
+    struct write_variant_visitor_t : public boost::static_visitor<> {
+        cluster_outpipe_t *conn;
+        template<class T>
+        void operator()(const T &v) {
+            format_t<T>::write(conn, v);
+        }
+    };
+
+    static void write(cluster_outpipe_t *conn, const boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> &v) {
+        int which = v.which();
+        serialize(conn, which);
+        write_variant_visitor_t functor;
+        functor.conn = conn;
+        boost::apply_visitor(functor, v);
+    }
+
+    /* Functor to get the size of the right member of the variant */
+    struct get_size_variant_visitor_t : public boost::static_visitor<int> {
+        template<class T>
+        int operator()(const T &v) const {
+            return format_t<T>::get_size(v);
+        }
+    };
+
+    static int get_size(const boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> &v) {
+        return boost::apply_visitor(get_size_variant_visitor_t(), v);
+    }
+};
 
 /* Serializing and unserializing ip_address_t */
 

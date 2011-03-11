@@ -7,10 +7,7 @@
 
 /* This mini-FSM loads a buf from disk. */
 
-struct load_buf_fsm_t :
-    public thread_message_t,
-    serializer_t::read_callback_t
-{
+struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
     explicit load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
@@ -47,7 +44,7 @@ struct load_buf_fsm_t :
 
             // Apply outstanding patches
             inner_buf->cache->patch_memory_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data);
-            
+
             // Set next_patch_counter such that the next patches get values consistent with the existing patches
             if (patches) {
                 inner_buf->next_patch_counter = patches->back()->get_patch_counter() + 1;
@@ -84,6 +81,9 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
         new load_buf_fsm_t(this);
     }
 
+    // pm_n_blocks_in_memory gets incremented in cases where
+    // should_load == false, because currently we're still mallocing
+    // the buffer.
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
@@ -112,7 +112,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     // between problems with uninitialized memory and problems with uninitialized blocks
     memset(data, 0xCD, cache->serializer->get_block_size().value());
 #endif
-    
+
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
@@ -121,17 +121,17 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
 
 mc_inner_buf_t::~mc_inner_buf_t() {
     cache->assert_thread();
-    
+
 #ifndef NDEBUG
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
     // be flushed out of the cache.
     memset(data, 0xDD, cache->serializer->get_block_size().value());
 #endif
-    
+
     rassert(safe_to_unload());
     cache->serializer->free(data);
-    
+
     pm_n_blocks_in_memory--;
 }
 
@@ -159,10 +159,10 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
 
 void mc_buf_t::on_lock_available() {
     pm_bufs_acquiring.end(&start_time);
-    
+
     inner_buf->cache->assert_thread();
     rassert(!inner_buf->do_delete);
-    
+
     switch (mode) {
         case rwi_read: {
             data = inner_buf->data;
@@ -200,9 +200,9 @@ void mc_buf_t::on_lock_available() {
         default:
             unreachable();
     }
-    
+
     pm_bufs_held.begin(&start_time);
-    
+
     ready = true;
     if (callback) callback->on_block_available(this);
 }
@@ -239,7 +239,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
         }
     }
 
-    
+
     if (inner_buf->writeback_buf.needs_flush) {
         delete patch;
     }
@@ -331,9 +331,9 @@ void mc_buf_t::release() {
             pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
     }
 #endif
-    
+
     inner_buf->cache->assert_thread();
-    
+
     inner_buf->refcount--;
 
     if (!non_locking_access) {
@@ -357,17 +357,32 @@ void mc_buf_t::release() {
                 unreachable("Unexpected mode.");
         }
     }
-    
-    // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
+
+    // If the buf is marked deleted, then we can delete it from memory already
+    // and just keep track of the deleted block_id (and whether to write an
+    // empty block).
+    if (inner_buf->do_delete) {
+        if (mode == rwi_write) {
+            inner_buf->writeback_buf.mark_block_id_deleted();
+            inner_buf->writeback_buf.set_dirty(false);
+            inner_buf->writeback_buf.set_recency_dirty(false); // TODO: Do we need to handle recency in master in some other way?
+        }
+        if (inner_buf->safe_to_unload()) {
+            delete inner_buf;
+            inner_buf = NULL;
+        }
+    }
+
+#if AGGRESSIVE_BUF_UNLOADING == 1
+    // If this code is enabled, then it will cause bufs to be unloaded very aggressively.
     // This is useful for catching bugs in which something expects a buf to remain valid even though
     // it is eligible to be unloaded.
-    
-    /*
-    if (inner_buf->safe_to_unload()) {
+
+    if (inner_buf && inner_buf->safe_to_unload()) {
         delete inner_buf;
     }
-    */
-    
+#endif
+
     delete this;
 }
 
@@ -410,7 +425,7 @@ bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
     pm_transactions_committing.begin(&start_time);
 
     assert_thread();
-    
+
     /* We have to call sync_patiently() before on_transaction_commit() so that if
     on_transaction_commit() starts a sync, we will get included in it */
     if (access == rwi_write && cache->writeback.wait_for_flush) {
@@ -422,9 +437,9 @@ bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
     } else {
         state = state_committed;
     }
-    
+
     cache->on_transaction_commit(this);
-    
+
     if (state == state_in_commit_call) {
         state = state_committing;
         commit_callback = callback;
@@ -442,7 +457,7 @@ void mc_transaction_t::on_sync() {
     don't delete ourselves yet and just set state to state_committed instead, thereby signalling
     commit() to delete us. I think there must be a better way to do this, but I can't think of it
     right now. */
-    
+
     if (state == state_in_commit_call) {
         state = state_committed;
     } else if (state == state_committing) {
@@ -459,10 +474,10 @@ mc_buf_t *mc_transaction_t::allocate() {
     /* Make a completely new block, complete with a shiny new block_id. */
     rassert(access == rwi_write);
     assert_thread();
-    
+
     // This form of the inner_buf_t constructor generates a new block with a new block ID.
     inner_buf_t *inner_buf = new inner_buf_t(cache);
-    
+
     // This must pass since no one else holds references to this block.
     buf_t *buf = new buf_t(inner_buf, rwi_write);
     rassert(buf->ready);
@@ -474,7 +489,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     block_available_callback_t *callback, bool should_load) {
     rassert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
     assert_thread();
-       
+
     inner_buf_t *inner_buf = cache->page_map.find(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
@@ -523,7 +538,6 @@ repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
  */
 
 void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_static_config_t *config) {
-
     /* Initialize config block and differential log */
 
     patch_disk_storage_t::create(serializer, MC_CONFIGBLOCK_ID, config);
@@ -576,7 +590,6 @@ mc_cache_t::mc_cache_t(
 }
 
 mc_cache_t::~mc_cache_t() {
-
     shutting_down = true;
 
     /* Wait for all transactions to commit before shutting down */
@@ -584,6 +597,7 @@ mc_cache_t::~mc_cache_t() {
         cond_t cond;
         to_pulse_when_last_transaction_commits = &cond;
         cond.wait();
+        to_pulse_when_last_transaction_commits = NULL; // writeback is going to start another transaction, we don't want to get notified again (which would fail)
     }
     rassert(num_live_transactions == 0);
 
@@ -607,12 +621,10 @@ block_size_t mc_cache_t::get_block_size() {
     return serializer->get_block_size();
 }
 
-mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
-        transaction_begin_callback_t *callback) {
-    
+mc_transaction_t *mc_cache_t::begin_transaction(access_t access, transaction_begin_callback_t *callback) {
     assert_thread();
     rassert(!shutting_down);
-    
+
     transaction_t *txn = new transaction_t(this, access);
     num_live_transactions++;
     if (writeback.begin_transaction(txn, callback)) {
@@ -625,9 +637,8 @@ mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {
-    
     writeback.on_transaction_commit(txn);
-    
+
     num_live_transactions--;
     if (to_pulse_when_last_transaction_commits && num_live_transactions == 0) {
         // We started a shutdown earlier, but we had to wait for the transactions to all finish.

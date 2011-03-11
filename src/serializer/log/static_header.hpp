@@ -7,7 +7,7 @@
 struct static_header_t {
     char software_name[16];
     char version[16];
-    byte_t data[0];
+    byte data[0];
 };
 
 bool static_header_check(direct_file_t *file);

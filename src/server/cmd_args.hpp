@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "serializer/types.hpp"
+#include "arch/arch.hpp"
 
 #define NEVER_FLUSH -1
 
@@ -37,6 +38,9 @@ struct log_serializer_dynamic_config_t {
     
     /* How big to make each zone if the database is on a block device or if file_size is given */
     size_t file_zone_size;
+
+    /* Which i/o backend should the log serializer use for accessing files? */
+    platform_io_config_t::io_backend_t io_backend;
 };
 
 /* Configuration for the serializer that is set when the database is created */
@@ -212,6 +216,7 @@ public:
     void set_failover_file(const char* value);
     void set_heartbeat_timeout(const char* value);
     void set_elb_port(const char* value);
+    void set_io_backend(const char* value);
     void push_private_config(const char* value);
 
     long long parse_diff_log_size(const char* value);

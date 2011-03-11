@@ -226,7 +226,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             // just part of it, so we let the oper acquire it for us.
             // TIED old_large_buflock TO old_value
             oper->actually_acquire_large_value(old_large_buflock.lv(), old_value.large_buf_ref_ptr());
-            rassert(old_large_buflock.lv()->state == large_buf_t::loaded);
+            rassert(old_large_buflock->state == large_buf_t::loaded);
         }
 
         // Check whether the value is expired. If it is, we tell operate() that
@@ -246,27 +246,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         if (update_needed) {
             if (new_value && new_value->is_large()) {
                 rassert(new_large_buflock.has_lv());
-                if (0 != memcmp(new_value->lb_ref()->block_ids, new_large_buflock.lv()->get_root_ref()->block_ids, new_large_buflock.lv()->get_root_ref()->refsize(slice->cache().get_block_size(), btree_value::lbref_limit) - sizeof(large_buf_ref))) {
-                    debugf("val size=%ld offset=%ld\n", new_value->lb_ref()->size, new_value->lb_ref()->offset);
-                    int vallim = new_value->lb_ref()->refsize(slice->cache().get_block_size(), btree_value::lbref_limit);
-                    debugf("val reflim=%d\n", vallim);
-                    int valnum = (vallim - sizeof(large_buf_ref)) / sizeof(block_id_t);
-                    for (int i = 0; i < valnum; ++i) {
-                        debugf("%d: %u\n", i, new_value->lb_ref()->block_ids[i]);
-                    }
-
-                    const large_buf_ref *lvref = new_large_buflock.lv()->get_root_ref();
-                    int lvreflim = lvref->refsize(slice->cache().get_block_size(), btree_value::lbref_limit);
-                    debugf("larval size=%ld offset=%ld\n", lvref->size, lvref->offset);
-                    debugf("larval reflim=%d\n", lvreflim);
-
-                    int lvrefnum = (lvreflim - sizeof(large_buf_ref)) / sizeof(block_id_t);
-                    for (int i = 0; i < lvrefnum; ++i) {
-                        debugf("%d: %u\n", i, lvref->block_ids[i]);
-                    }
-
-                    rassert(false, "new_value and new_large_buflock refs do not match!");
-                }
+                rassert(new_large_buflock->root_ref_is(new_value->lb_ref()));
             } else {
                 rassert(!new_large_buflock.has_lv());
             }
@@ -330,7 +310,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             if (old_large_buflock.has_lv() && new_large_buflock.lv() != old_large_buflock.lv()) {
                 // operate() switched to a new large buf, so we need to delete the old one.
                 rassert(old_value.is_large());
-                rassert(0 == memcmp(old_value.lb_ref()->block_ids, old_large_buflock.lv()->get_root_ref()->block_ids, old_large_buflock.lv()->get_root_ref()->refsize(slice->cache().get_block_size(), btree_value::lbref_limit) - sizeof(large_buf_ref)));
+                rassert(old_large_buflock->root_ref_is(old_value.lb_ref()));
+
                 old_large_buflock.lv()->mark_deleted();
             }
         }

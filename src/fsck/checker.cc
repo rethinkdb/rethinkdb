@@ -305,11 +305,14 @@ bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_co
         *err = bad_software_name;
         return false;
     }
-    if (0 !=  strcmp(buf->version, VERSION_STRING)) {
+    if (0 != strcmp(buf->version, VERSION_STRING)) {
         *err = bad_version;
         return false;
     }
-    if (!(block_size.ser_value() % DEVICE_BLOCK_SIZE == 0 && extent_size % block_size.ser_value() == 0)) {
+    if (!(block_size.ser_value() > 0
+          && block_size.ser_value() % DEVICE_BLOCK_SIZE == 0
+          && extent_size > 0
+          && extent_size % block_size.ser_value() == 0)) {
         *err = bad_sizes;
         return false;
     }
@@ -494,7 +497,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge *knog, unsigned int
 }
 
 struct lba_shard_errors {
-    enum errcode { none = 0, bad_lba_superblock_offset, bad_lba_superblock_magic, bad_lba_extent };
+    enum errcode { none = 0, bad_lba_superblock_offset, bad_lba_superblock_magic, bad_lba_extent, bad_lba_superblock_entries_count, lba_superblock_not_contained_in_single_extent };
     errcode code;
 
     // -1 if no extents deemed bad.
@@ -512,14 +515,26 @@ bool check_lba_shard(nondirect_file_t *file, file_knowledge *knog, lba_shard_met
 
     lba_shard_metablock_t *shard = shards + shard_number;
 
-    // Read the superblock.
-    int superblock_size = lba_superblock_t::entry_count_to_file_size(shard->lba_superblock_entries_count);
+    // Read the superblock.block_size
+    int superblock_size;
+    if (!lba_superblock_t::safe_entry_count_to_file_size(shard->lba_superblock_entries_count, &superblock_size)
+        || superblock_size > floor_aligned(INT_MAX, DEVICE_BLOCK_SIZE)
+        || uint64_t(superblock_size) > knog->static_config->extent_size()) {
+        errs->code = lba_shard_errors::bad_lba_superblock_entries_count;
+        return false;
+    }
+
     int superblock_aligned_size = ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE);
 
     // 1. Read the entries from the superblock (if there is one).
-    if (shards[shard_number].lba_superblock_offset != NULL_OFFSET) {
+    if (shard->lba_superblock_offset != NULL_OFFSET) {
         if (!is_valid_device_block(knog, shard->lba_superblock_offset)) {
             errs->code = lba_shard_errors::bad_lba_superblock_offset;
+            return false;
+        }
+
+        if ((shard->lba_superblock_offset % knog->static_config->extent_size()) > knog->static_config->extent_size() - superblock_aligned_size) {
+            errs->code = lba_shard_errors::lba_superblock_not_contained_in_single_extent;
             return false;
         }
 
@@ -731,10 +746,11 @@ struct value_error {
     std::vector<segment_error> lv_segment_errors;
 
     explicit value_error(block_id_t block_id) : block_id(block_id), bad_metadata_flags(false),
-                                                too_big(false), lv_too_small(false), index_block_id(NULL_BLOCK_ID) { }
+                                                too_big(false), lv_too_small(false), lv_not_left_shifted(false),
+                                                lv_bogus_ref(false), index_block_id(NULL_BLOCK_ID) { }
 
     bool is_bad() const {
-        return bad_metadata_flags || too_big || lv_too_small;
+        return bad_metadata_flags || too_big || lv_too_small || lv_not_left_shifted || lv_bogus_ref;
     }
 };
 
@@ -823,6 +839,7 @@ void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t si
             err.block_id = block_id;
             err.block_code = btree_block::none;
             err.bad_magic = true;
+            errs->lv_segment_errors.push_back(err);
             return;
         }
 
@@ -838,8 +855,11 @@ void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, 
         // We check that ref->size > MAX_IN_NODE_VALUE_SIZE in check_value.
         if (ref->size >= 0) {
             if (ref->offset >= 0) {
-                // ensure no overflow for ref->offset + ref->size:
-                if (0x7fffFfffFfffFfffLL - ref->offset > ref->size) {
+                // ensure no overflow for ceil_aligned(ref->offset +
+                // ref->size, max_offset(sublevels)).  Dividing
+                // INT64_MAX by four ensures that ceil_aligned won't
+                // overflow, and four is overkill.
+                if (std::numeric_limits<int64_t>::max() / 4 - ref->offset > ref->size) {
 
                     int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
 
@@ -900,11 +920,6 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
 
 void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        if (offsetof(leaf_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
-            || buf->frontmost_offset > cx.block_size().value()) {
-            errs->value_out_of_buf = true;
-            return;
-        }
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -952,12 +967,6 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btre
 
 void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
     {
-        if (offsetof(internal_node_t, pair_offsets) + buf->npairs * sizeof(*buf->pair_offsets) > buf->frontmost_offset
-            || buf->frontmost_offset > cx.block_size().value()) {
-            errs->value_out_of_buf = true;
-            return;
-        }
-
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
         uint16_t expected_offset = buf->frontmost_offset;
@@ -1021,21 +1030,24 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btre
 
     node_error node_err(id);
 
-    if (lo != NULL && hi != NULL) {
-        // (We're happy with an underfull root block.)
-        if (node::is_underfull(cx.block_size(), ptr_cast<node_t>(node.buf))) {
-            node_err.block_underfull = true;
+    if (!node::has_sensible_offsets(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+        node_err.value_out_of_buf = true;
+    } else {
+        if (lo != NULL && hi != NULL) {
+            // (We're happy with an underfull root block.)
+            if (node::is_underfull(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+                node_err.block_underfull = true;
+            }
+        }
+
+        if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
+            check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
+        } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
+            check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
+        } else {
+            node_err.bad_magic = true;
         }
     }
-
-    if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
-        check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
-    } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
-        check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
-    } else {
-        node_err.bad_magic = true;
-    }
-
     if (node_err.is_bad()) {
         errs->add_error(node_err);
     }
@@ -1226,7 +1238,7 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
         }
     }
 
-    errs->bad_num_slices = (zeroth.n_proxies < 0);
+    errs->bad_num_slices = (zeroth.n_proxies <= 0);
 
     errs->reused_serializer_numbers = false;
     for (int i = 0; i < num_files; ++i) {
@@ -1240,7 +1252,7 @@ struct all_slices_errors {
     int n_slices;
     slice_errors *slice;
 
-    explicit all_slices_errors(int n_slices) : n_slices(n_slices), slice(new slice_errors[n_slices]) { }
+    explicit all_slices_errors(int n_slices_) : n_slices(n_slices_), slice(new slice_errors[n_slices_]) { }
 
     ~all_slices_errors() { delete[] slice; }
 };
@@ -1304,7 +1316,11 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
     if (errs.lba_errs.is_known(&lba) && lba->error_happened) {
         for (int i = 0; i < LBA_SHARD_FACTOR; ++i) {
             const lba_shard_errors *sherr = &lba->shard_errors[i];
-            if (sherr->code == lba_shard_errors::bad_lba_superblock_offset) {
+            if (sherr->code == lba_shard_errors::bad_lba_superblock_entries_count) {
+                printf("ERROR %s lba shard %d has invalid lba_superblock_entries_count\n", state, i);
+            } else if (sherr->code == lba_shard_errors::lba_superblock_not_contained_in_single_extent) {
+                printf("ERROR %s lba shard %d has lba superblock offset with lba_superblock_entries_count crossing extent boundary\n", state, i);
+            } else if (sherr->code == lba_shard_errors::bad_lba_superblock_offset) {
                 printf("ERROR %s lba shard %d has invalid lba superblock offset\n", state, i);
             } else if (sherr->code == lba_shard_errors::bad_lba_superblock_magic) {
                 printf("ERROR %s lba shard %d has invalid superblock magic\n", state, i);
@@ -1395,10 +1411,12 @@ bool report_subtree_errors(const subtree_errors *errs) {
         for (int i = 0, n = errs->value_errors.size(); i < n; ++i) {
             const value_error& e = errs->value_errors[i];
             printf("          %u/'%s' :", e.block_id, e.key.c_str());
-            printf("%s%s%s",
+            printf("%s%s%s%s%s",
                    e.bad_metadata_flags ? " bad_metadata_flags" : "",
                    e.too_big ? " too_big" : "",
-                   e.lv_too_small ? " lv_too_small" : "");
+                   e.lv_too_small ? " lv_too_small" : "",
+                   e.lv_not_left_shifted ? " lv_not_left_shifted" : "",
+                   e.lv_bogus_ref ? " lv_bogus_ref" : "");
             if (e.index_block_id != NULL_BLOCK_ID) {
                 printf(" (index_block_id = %u)", e.index_block_id);
 
@@ -1507,12 +1525,15 @@ bool check_files(const config_t& cfg) {
 
     unrecoverable_fact(num_files > 0, "a positive number of files");
 
-    bool any = false;
     for (int i = 0; i < num_files; ++i) {
-        check_to_config_block_errors errs;
         if (!knog.files[i]->exists()) {
             fail_due_to_user_error("No such file \"%s\"", knog.file_knog[i]->filename.c_str());
         }
+    }
+
+    bool any = false;
+    for (int i = 0; i < num_files; ++i) {
+        check_to_config_block_errors errs;
         if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs)) {
             any = true;
             std::string s = std::string("(in file '") + knog.file_knog[i]->filename + "')";

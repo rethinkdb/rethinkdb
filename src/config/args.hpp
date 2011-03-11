@@ -19,7 +19,7 @@
  * TODO: Many of these should be runtime switches.
  */
 // Max concurrent IO requests per event queue
-#define MAX_CONCURRENT_IO_REQUESTS                256
+#define MAX_CONCURRENT_IO_REQUESTS                128
 
 // Don't send more IO requests to the system until the per-thread
 // queue of IO requests is higher than this depth

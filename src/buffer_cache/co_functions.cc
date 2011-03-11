@@ -37,7 +37,7 @@ struct large_value_acquired_t : public large_buf_available_callback_t {
 void co_acquire_large_value(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
     large_value_acquired_t acquired;
 
-    large_value->get_transaction()->ensure_thread();
+    large_value->ensure_thread();
     large_value->acquire(root_ref_, ref_limit_, access_, &acquired);
     coro_t::wait();
 }
@@ -54,9 +54,9 @@ void co_acquire_large_value_rhs(large_buf_t *large_value, large_buf_ref *root_re
     coro_t::wait();
 }
 
-void co_acquire_large_value_for_delete(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
+void co_acquire_large_value_for_delete(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_) {
     large_value_acquired_t acquired;
-    large_value->acquire_for_delete(root_ref_, ref_limit_, access_, &acquired);
+    large_value->acquire_for_delete(root_ref_, ref_limit_, &acquired);
     coro_t::wait();
 }
 

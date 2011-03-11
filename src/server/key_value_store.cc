@@ -297,44 +297,12 @@ rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const s
 
 /* set_store_interface_t interface */
 
-get_result_t btree_key_value_store_t::get_cas(const store_key_t &key) {
-    return slice_for_key_set_interface(key)->get_cas(key);
-}
-
-set_result_t btree_key_value_store_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    return slice_for_key_set_interface(key)->sarc(key, data, flags, exptime, add_policy, replace_policy, old_cas);
-}
-
-incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount) {
-    return slice_for_key_set_interface(key)->incr_decr(kind, key, amount);
-}
-
-append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data) {
-    return slice_for_key_set_interface(key)->append_prepend(kind, key, data);
-}
-
-delete_result_t btree_key_value_store_t::delete_key(const store_key_t &key) {
-    return slice_for_key_set_interface(key)->delete_key(key);
+mutation_result_t btree_key_value_store_t::change(const mutation_t &m) {
+    return slice_for_key_set_interface(m.get_key())->change(m);
 }
 
 /* set_store_t interface */
 
-get_result_t btree_key_value_store_t::get_cas(const store_key_t &key, castime_t castime) {
-    return slice_for_key_set(key)->get_cas(key, castime);
-}
-
-set_result_t btree_key_value_store_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    return slice_for_key_set(key)->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
-}
-
-incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
-    return slice_for_key_set(key)->incr_decr(kind, key, amount, castime);
-}
-
-append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
-    return slice_for_key_set(key)->append_prepend(kind, key, data, castime);
-}
-
-delete_result_t btree_key_value_store_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
-    return slice_for_key_set(key)->delete_key(key, timestamp);
+mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t ct) {
+    return slice_for_key_set(m.get_key())->change(m, ct);
 }

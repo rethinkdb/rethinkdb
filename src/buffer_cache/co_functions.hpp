@@ -1,8 +1,6 @@
 #ifndef __BUFFER_CACHE_CO_FUNCTIONS_HPP__
 #define __BUFFER_CACHE_CO_FUNCTIONS_HPP__
 
-// TODO: Some of this stuff (all of it?) actually belongs in buffer_cache/.
-
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/large_buf.hpp"
 
@@ -12,7 +10,7 @@ buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_
 void co_acquire_large_value(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_);
 void co_acquire_large_value_lhs(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_);
 void co_acquire_large_value_rhs(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_);
-void co_acquire_large_value_for_delete(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_);
+void co_acquire_large_value_for_delete(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_);
 
 // Avoid using this, use transactor_t instead.
 transaction_t *co_begin_transaction(cache_t *cache, access_t access);

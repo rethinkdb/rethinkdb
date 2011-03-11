@@ -52,7 +52,7 @@ conn_acceptor_t::~conn_acceptor_t() {
 
     listener.reset();   // Stop accepting any more new connections
 
-    pmap(get_num_db_threads() - 1, boost::bind(&conn_acceptor_t::close_connections, this, _1));
+    pmap(get_num_db_threads(), boost::bind(&conn_acceptor_t::close_connections, this, _1));
 }
 
 void conn_acceptor_t::close_connections(int thread) {

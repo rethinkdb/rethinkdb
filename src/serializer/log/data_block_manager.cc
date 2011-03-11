@@ -270,7 +270,7 @@ void data_block_manager_t::run_gc() {
                     out-of-date data. */
                     if (gc_state.current_entry->g_array[i]) continue;
 
-                    byte_t *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
+                    byte *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
                     ser_block_id_t id = *reinterpret_cast<ser_block_id_t *>(block);
                     void *data = block + sizeof(buf_data_t);
 

@@ -56,6 +56,7 @@ namespace leaf {
 
     bool is_empty(const leaf_node_t *node);
     bool is_full(const leaf_node_t *node, const btree_key_t *key, const btree_value *value);
+    bool has_sensible_offsets(block_size_t block_size, const leaf_node_t *node);
     bool is_underfull(block_size_t block_size, const leaf_node_t *node);
     bool is_mergable(block_size_t block_size, const leaf_node_t *node, const leaf_node_t *sibling);
     void validate(block_size_t block_size, const leaf_node_t *node);
