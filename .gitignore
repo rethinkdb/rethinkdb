@@ -15,7 +15,7 @@ src/valgrind_rethinkdb
 src/.gdb_history
 src/.gdbinit
 src/standard_commands
-src/rethinkdb_data
+rethinkdb_data
 */output_from_test/
 core
 vgcore.*
