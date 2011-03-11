@@ -29,7 +29,15 @@ public:
         choke(1)
         //move_choke_mailbox(boost::bind(&hasher_t::move_choke, this))
     {}
-    hash_t hash(store_key_t) { return 1; }//standin
+    hash_t hash(store_key_t k) { 
+        unsigned int res = 0;
+        for (int i = 0; i < k.size; i++) {
+            res ^= res << 18;
+            res += res >> 7;
+            res += k.contents[i];
+        }
+        return res;
+    }
 private:
     int choke;
     //move_choke_mailbox_t move_choke_mailbox;
