@@ -105,7 +105,7 @@ void serve(int id, demo_delegate_t *delegate) {
 }
 
 void add_listener(int peer, dispatching_store_t *dispatcher, set_store_mailbox_t::address_t addr) {
-    dispatching_store_t::dispatchee_t dispatchee(peer, dispatcher, &addr);
+    //dispatching_store_t::dispatchee_t dispatchee(peer, dispatcher, &addr);
     coro_t::wait();   // Objects must stay alive until we shut down, but the demo app doesn't
     // understand what it means to shut down yet.
 }

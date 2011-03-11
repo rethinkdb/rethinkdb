@@ -70,9 +70,11 @@ public:
 
 /* the storage_map keeps track of who is storing certain keys */
 class set_store_t;
+class get_store_t;
+typedef std::map<int, std::pair<set_store_t*, get_store_t*> > internal_storage_map_t;
 class storage_map_t {
 private:
-    std::map<int, set_store_t*> inner_map;
+    internal_storage_map_t inner_map;
 
 private:
     class redundant_hasher_t {
@@ -111,8 +113,8 @@ public:
     typedef redundant_hasher_t::iterator rh_iterator; //for readability
 
     //add_storage_mailbox_t add_storage_mailbox;
-    void add_storage(int peer_id, set_store_t *address) {
-        inner_map[peer_id] = address;
+    void add_storage(int peer_id, std::pair<set_store_t *, get_store_t *> addr_pair) {
+        inner_map[peer_id] = addr_pair;
         while (peer_id >= (1 << rh.log_buckets))
             rh.double_buckets();
     }
@@ -125,13 +127,13 @@ public:
     class iterator {
     private:
         friend class storage_map_t;
-        std::map<int, set_store_t*> *inner_map;
+        internal_storage_map_t *inner_map;
         redundant_hasher_t *rh;
         redundant_hasher_t::iterator hasher_iterator;
-        iterator(std::map<int, set_store_t*> *inner_map, redundant_hasher_t *rh, redundant_hasher_t::iterator hasher_iterator);
+        iterator(internal_storage_map_t *inner_map, redundant_hasher_t *rh, redundant_hasher_t::iterator hasher_iterator);
     public:
         iterator() {}
-        set_store_t *operator*() const;
+        std::pair<set_store_t *, get_store_t *>operator*() const;
         iterator operator++();
         iterator operator++(int);
         bool operator==(iterator const &);
