@@ -5,6 +5,8 @@
 
 // TODO: Ensure that we _never_ call release without acquire or allocate.
 
+// TODO: Okay, why we should now just use scoped_ptr.
+
 class large_buf_lock_t {
 public:
     large_buf_lock_t() : lv_(NULL) { }

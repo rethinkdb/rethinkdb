@@ -8,15 +8,12 @@
 
 class large_buf_t;
 
+// TODO: why does this inherit from intrusive_list_node_t?
 struct large_buf_available_callback_t :
     public intrusive_list_node_t<large_buf_available_callback_t> {
-    virtual ~large_buf_available_callback_t() {}
     virtual void on_large_buf_available(large_buf_t *large_buf) = 0;
-};
-
-struct large_value_completed_callback {
-    virtual void on_large_value_completed(bool success) = 0;
-    virtual ~large_value_completed_callback() {}
+protected:
+    ~large_buf_available_callback_t() {}
 };
 
 // struct large_buf_ref is defined in buffer_cache/types.hpp.
@@ -113,8 +110,13 @@ public:
 
     void allocate(int64_t _size);
 
-    void acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_);
-    void acquire_for_delete(large_buf_available_callback_t *callback_);
+    void acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback);
+    void acquire_for_delete(large_buf_available_callback_t *callback);
+    void acquire_for_unprepend(int64_t extra_size, large_buf_available_callback_t *callback);
+
+    void co_enqueue(transaction_t *txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, void *buf, int64_t n);
+
+
 
     // refsize_adjustment_out parameter forces callers to recognize
     // that the size may change, so hopefully they'll update their
