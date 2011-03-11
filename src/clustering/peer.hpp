@@ -37,7 +37,7 @@ public:
     }
 
 public: //TODO, make this private so and manage the state internally
-    enum {
+    typedef enum {
         us,
         join_proposed,
         join_confirmed,
@@ -47,7 +47,40 @@ public: //TODO, make this private so and manage the state internally
         kill_proposed,
         kill_confirmed,
         killed
-    } state;
+    } state_t;
+private:
+    state_t state;
+public:
+    state_t get_state() { return state; }
+    void set_state(state_t state){
+        on_thread_t syncer(home_thread);
+        this->state = state;
+        switch (state) {
+        case us:
+            crash("No one should ever be setting our state to us\n");
+            break;
+        case join_proposed:
+            break;
+        case join_confirmed:
+            break;
+        case join_official:
+            break;
+        case connected:
+            break;
+        case disced:
+            break;
+        case kill_proposed:
+            break;
+        case kill_confirmed:
+            break;
+        case killed:
+            call_kill_cbs();
+            break;
+        default:
+            crash("Unknown state\n");
+            break;
+        }
+    }
 
 public:
     cluster_peer_t(int port, int id)
@@ -102,11 +135,6 @@ private:
 
 public:
     void stop_servicing();
-    void kill() {
-        on_thread_t syncer(home_thread);
-        state = killed;
-        call_kill_cbs();
-    }
 
 public:
     class kill_cb_t : 
