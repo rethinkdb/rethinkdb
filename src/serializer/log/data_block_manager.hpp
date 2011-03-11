@@ -321,7 +321,7 @@ private:
     };
 
     /* Buffer used during GC. */
-    std::vector<serializer_t::write_t> gc_writes;
+    std::vector<gc_write_t> gc_writes;
 
     struct gc_state_t {
     private:

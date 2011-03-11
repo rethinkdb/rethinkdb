@@ -400,22 +400,11 @@ struct ls_write_fsm_t :
     }
     
     ~ls_write_fsm_t() {
-        rassert(state == state_start || state == state_done);
         pm_serializer_writes.end(&start_time);
     }
     
-    bool run(log_serializer_t::write_txn_callback_t *cb) {
-        rassert(state == state_start);
-
+    void run() {
         ser->main_mutex.lock(this);
-        
-        callback = NULL;
-        if (do_start_writes_and_lba()) {
-            return true;
-        } else {
-            callback = cb;
-            return false;
-        }
     }
     
     void on_lock_available() {
@@ -655,16 +644,6 @@ struct ls_read_fsm_t :
     void run() {
         ser->main_mutex.lock(this);
     }
-    
-    void on_io_complete() {
-        done();
-    }
-    
-    bool done() {
-        if (read_callback) read_callback->on_serializer_read();
-        delete this;
-        return true;
-    }
 
     void on_lock_available() {
 
@@ -675,14 +654,13 @@ struct ls_read_fsm_t :
         rassert(!offset.parts.is_delete);   // Make sure the block actually exists
 
         if (ser->data_block_manager->read(offset.parts.value, buf, this)) {
-            return done();
-        } else {
-            return false;
+            on_io_complete();
         }
     }
-    
-    void on_io_complete(event_t *e) {
+
+    void on_io_complete() {
         done = true;
+
         if (callback) {
             callback->on_serializer_read();
             delete this;

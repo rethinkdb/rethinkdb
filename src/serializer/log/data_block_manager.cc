@@ -277,7 +277,7 @@ void data_block_manager_t::run_gc() {
                     gc_writes.push_back(gc_write_t(id, data));
                 }
 
-                rassert(writes.size() == (size_t)num_writes);
+                rassert(gc_writes.size() == (size_t)num_writes);
 
                 /* make sure the callback knows who we are */
                 gc_state.set_step(gc_write);
