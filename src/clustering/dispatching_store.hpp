@@ -2,6 +2,7 @@
 #define __CLUSTERING_DISPATCHING_STORE_HPP__
 
 #include "store.hpp"
+#include "clustering/master_map.hpp"
 
 struct dispatching_store_t : public set_store_t {
 
@@ -12,17 +13,18 @@ struct dispatching_store_t : public set_store_t {
 
     struct dispatchee_t : public intrusive_list_node_t<dispatchee_t> {
     public:
-        dispatchee_t(dispatching_store_t*, set_store_t*);
+        dispatchee_t(int bucket, dispatching_store_t*, set_store_t*);
         ~dispatchee_t();
         set_store_t *client;
     private:
         dispatching_store_t *parent;
+        int bucket;
         DISABLE_COPYING(dispatchee_t);
     };
 
 private:
     friend class dispatchee_t;
-    intrusive_list_t<dispatchee_t> dispatchees;
+    storage_map_t dispatchees;
     DISABLE_COPYING(dispatching_store_t);
 };
 

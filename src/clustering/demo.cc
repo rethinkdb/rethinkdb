@@ -15,39 +15,11 @@
 #include "serializer/log/log_serializer.hpp"
 #include "btree/slice.hpp"
 #include "serializer/translator.hpp"
-
-/* Various things we need to be able to serialize and unserialize */
-
-RDB_MAKE_SERIALIZABLE_1(repli_timestamp, time)
-RDB_MAKE_SERIALIZABLE_2(castime_t, proposed_cas, timestamp)
-
-/* If the incr/decr fails, then new_value is meaningless; garbage will be
-written to the socket and faithfully reconstructed on the other side. This
-isn't a big enough problem to justify not using the RDB_MAKE_SERIALIZABLE
-macro. */
-RDB_MAKE_SERIALIZABLE_2(incr_decr_result_t, res, new_value)
-
-void serialize(cluster_outpipe_t *conn, const get_result_t &res) {
-    ::serialize(conn, res.value);
-    ::serialize(conn, res.flags);
-    ::serialize(conn, res.cas);
-    if (res.to_signal_when_done) res.to_signal_when_done->pulse();
-}
-
-int ser_size(const get_result_t &res) {
-    return ::ser_size(res.value) + ::ser_size(res.flags) + ::ser_size(res.cas);
-}
-
-void unserialize(cluster_inpipe_t *conn, get_result_t *res) {
-    ::unserialize(conn, &res->value);
-    ::unserialize(conn, &res->flags);
-    ::unserialize(conn, &res->cas);
-    res->to_signal_when_done = NULL;
-}
+#include "clustering/master_map.hpp"
 
 /* demo_delegate_t */
 
-typedef async_mailbox_t<void(set_store_mailbox_t::address_t)> registration_mailbox_t;
+typedef async_mailbox_t<void(int, set_store_mailbox_t::address_t)> registration_mailbox_t;
 
 struct demo_delegate_t : public cluster_delegate_t {
 
@@ -113,7 +85,7 @@ void serve(int id, demo_delegate_t *delegate) {
     btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache);
 
     set_store_mailbox_t change_mailbox(&slice);
-    delegate->registration_address.call(&change_mailbox);
+    delegate->registration_address.call(get_cluster().us, &change_mailbox);
 
     struct : public conn_acceptor_t::handler_t {
         get_store_t *get_store;
@@ -132,8 +104,8 @@ void serve(int id, demo_delegate_t *delegate) {
     wait_for_interrupt();
 }
 
-void add_listener(dispatching_store_t *dispatcher, set_store_mailbox_t::address_t addr) {
-    dispatching_store_t::dispatchee_t dispatchee(dispatcher, &addr);
+void add_listener(int peer, dispatching_store_t *dispatcher, set_store_mailbox_t::address_t addr) {
+    dispatching_store_t::dispatchee_t dispatchee(peer, dispatcher, &addr);
     coro_t::wait();   // Objects must stay alive until we shut down, but the demo app doesn't
     // understand what it means to shut down yet.
 }
@@ -145,7 +117,7 @@ void cluster_main(cluster_config_t config, thread_pool_t *thread_pool) {
         /* Start the master-components */
 
         dispatching_store_t dispatcher;
-        registration_mailbox_t registration_mailbox(boost::bind(&add_listener, &dispatcher, _1));
+        registration_mailbox_t registration_mailbox(boost::bind(&add_listener, _1, &dispatcher, _2));
 
         timestamping_set_store_interface_t timestamper(&dispatcher);
         set_store_interface_mailbox_t master_mailbox(&timestamper);

@@ -102,6 +102,11 @@ private:
 
 public:
     void stop_servicing();
+    void kill() {
+        on_thread_t syncer(home_thread);
+        state = killed;
+        call_kill_cbs();
+    }
 
 public:
     class kill_cb_t : 
@@ -117,18 +122,17 @@ private:
 
 private:
     void monitor_kill(kill_cb_t *cb) {
-        logINF("add monitor\n");
         on_thread_t syncer(home_thread);
-        kill_cb_list.push_back(cb);
+        if (state == killed) cb->on_kill();
+
+        kill_cb_list.push_back(cb); // have to do this anyway so that it can be removed
     }
     void unmonitor_kill(kill_cb_t *cb) {
-        logINF("remove monitor\n");
         on_thread_t syncer(home_thread);
         kill_cb_list.remove(cb);
     }
 
     void call_kill_cbs() {
-        logINF("call_kill_cbs\n");
         on_thread_t syncer(home_thread);
         for (kill_cb_list_t::iterator it = kill_cb_list.begin(); it != kill_cb_list.end(); it++) {
             (*it)->on_kill();

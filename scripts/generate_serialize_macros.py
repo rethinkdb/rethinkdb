@@ -4,17 +4,17 @@ import sys
 def generate_make_serializable_macro(nfields):
     print "#define RDB_MAKE_SERIALIZABLE_%d(type_t%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
-    print "    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \\"
+    print "    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \\"
     for i in xrange(nfields):
         print "        ::serialize(pipe, m.field%d); \\" % (i+1)
     print "    } \\"
-    print "    int ser_size(const type_t &m) { \\"
+    print "    inline int ser_size(const type_t &m) { \\"
     print "        int total = 0; \\"
     for i in xrange(nfields):
         print "        total += ::ser_size(m.field%d); \\" % (i+1)
     print "        return total; \\"
     print "    } \\"
-    print "    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \\"
+    print "    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \\"
     for i in xrange(nfields):
         print "        ::unserialize(pipe, &m->field%d); \\" % (i+1)
     print "    } \\"

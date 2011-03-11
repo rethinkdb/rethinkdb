@@ -81,8 +81,9 @@ private:
     friend class cluster_inpipe_t;
     friend class cluster_outpipe_t;
 
+public: //added for rpcs
     int peer;    // Index into the cluster's 'peers' map
-    int mailbox;   // Might be in the address space of another machine
+    int mailbox;  // Should be the id of a mailbox on the peer machine
 public:
     int get_peer() { return peer; } //added for rpcs to do error handling
 };

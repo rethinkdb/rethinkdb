@@ -38,6 +38,10 @@ public:
         }
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -106,6 +110,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -197,6 +205,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -265,6 +277,10 @@ public:
         }
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -339,6 +355,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -434,6 +454,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -506,6 +530,10 @@ public:
         }
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -585,6 +613,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -684,6 +716,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -760,6 +796,10 @@ public:
         }
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -844,6 +884,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -947,6 +991,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1027,6 +1075,10 @@ public:
         }
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -1116,6 +1168,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1223,6 +1279,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1307,6 +1367,10 @@ public:
         }
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -1401,6 +1465,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1512,6 +1580,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1600,6 +1672,10 @@ public:
         }
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -1699,6 +1775,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1814,6 +1894,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -1906,6 +1990,10 @@ public:
         }
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -2010,6 +2098,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -2129,6 +2221,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -2225,6 +2321,10 @@ public:
         }
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -2334,6 +2434,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -2457,6 +2561,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -2557,6 +2665,10 @@ public:
         }
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
         cluster_address_t addr;
+      public:
+        bool same_as(const address_t &other_addr) {
+            return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+        }
     };
     friend class address_t;
 
@@ -2671,6 +2783,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 
@@ -2798,6 +2914,10 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
     private:
         cluster_address_t addr;
+    public:
+      bool same_as(const address_t &other_addr) {
+          return (addr.mailbox == other_addr.addr.mailbox && addr.peer == other_addr.addr.peer);
+      }
     };
     friend class address_t;
 

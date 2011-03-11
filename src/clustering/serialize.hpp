@@ -146,15 +146,15 @@ void unserialize(cluster_inpipe_t *pipe, T *value,
 
 /* Serializing and unserializing mailbox addresses */
 
-void serialize(cluster_outpipe_t *conn, const cluster_address_t &addr) {
+inline void serialize(cluster_outpipe_t *conn, const cluster_address_t &addr) {
     conn->write_address(&addr);
 }
 
-int ser_size(const cluster_address_t &addr) {
+inline int ser_size(const cluster_address_t &addr) {
     return cluster_outpipe_t::address_ser_size(&addr);
 }
 
-void unserialize(cluster_inpipe_t *conn, cluster_address_t *addr) {
+inline void unserialize(cluster_inpipe_t *conn, cluster_address_t *addr) {
     conn->read_address(addr);
 }
 
@@ -300,41 +300,41 @@ struct format_t<boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> > {
     };
 
     static int get_size(const boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> &v) {
-        return boost::apply_visitor(get_size_variant_visitor_t(), v);
+        return ::ser_size(v.which()) + boost::apply_visitor(get_size_variant_visitor_t(), v);
     }
 };
 
 /* Serializing and unserializing ip_address_t */
 
-void serialize(cluster_outpipe_t *conn, const ip_address_t &addr) {
+inline void serialize(cluster_outpipe_t *conn, const ip_address_t &addr) {
     rassert(sizeof(ip_address_t) == 4);
     conn->write(&addr, sizeof(ip_address_t));
 }
 
-int ser_size(const ip_address_t *addr) {
+inline int ser_size(const ip_address_t *addr) {
     return sizeof(*addr);
 }
 
-void unserialize(cluster_inpipe_t *conn, ip_address_t *addr) {
+inline void unserialize(cluster_inpipe_t *conn, ip_address_t *addr) {
     rassert(sizeof(ip_address_t) == 4);
     conn->read(addr, sizeof(ip_address_t));
 }
 
 /* Serializing and unserializing store_key_t */
 
-void serialize(cluster_outpipe_t *conn, const store_key_t &key) {
+inline void serialize(cluster_outpipe_t *conn, const store_key_t &key) {
     conn->write(&key.size, sizeof(key.size));
     conn->write(key.contents, key.size);
 }
 
-int ser_size(const store_key_t &key) {
+inline int ser_size(const store_key_t &key) {
     int size = 0;
     size += sizeof(key.size);
     size += key.size;
     return size;
 }
 
-void unserialize(cluster_inpipe_t *conn, store_key_t *key) {
+inline void unserialize(cluster_inpipe_t *conn, store_key_t *key) {
     conn->read(&key->size, sizeof(key->size));
     conn->read(key->contents, key->size);
 }
@@ -342,7 +342,7 @@ void unserialize(cluster_inpipe_t *conn, store_key_t *key) {
 /* Serializing and unserializing data_provider_ts. Two flavors are provided: one that works with
 unique_ptr_t<data_provider_t>, and one that works with raw data_provider_t*. */
 
-void serialize(cluster_outpipe_t *conn, const unique_ptr_t<data_provider_t> &data) {
+inline void serialize(cluster_outpipe_t *conn, const unique_ptr_t<data_provider_t> &data) {
     if (data) {
         ::serialize(conn, true);
         int size = data->get_size();
@@ -356,7 +356,7 @@ void serialize(cluster_outpipe_t *conn, const unique_ptr_t<data_provider_t> &dat
     }
 }
 
-int ser_size(const unique_ptr_t<data_provider_t> &data) {
+inline int ser_size(const unique_ptr_t<data_provider_t> &data) {
     if (data) {
         return ser_size(true) + ser_size(data->get_size()) + data->get_size();
     } else {
@@ -364,7 +364,7 @@ int ser_size(const unique_ptr_t<data_provider_t> &data) {
     }
 }
 
-void unserialize(cluster_inpipe_t *conn, unique_ptr_t<data_provider_t> *data) {
+inline void unserialize(cluster_inpipe_t *conn, unique_ptr_t<data_provider_t> *data) {
     bool non_null;
     ::unserialize(conn, &non_null);
     if (non_null) {
