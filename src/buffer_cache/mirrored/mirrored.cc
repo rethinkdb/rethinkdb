@@ -1,5 +1,6 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/stats.hpp"
+#include "mirrored.hpp"
 
 /**
  * Buffer implementation.
@@ -25,32 +26,7 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
             // Read the transaction id
             inner_buf->transaction_id = inner_buf->cache->serializer->get_current_transaction_id(inner_buf->block_id, inner_buf->data);
 
-            const std::vector<buf_patch_t*>* patches = inner_buf->cache->patch_memory_storage.get_patches(inner_buf->block_id);
-            // Remove obsolete patches from diff storage
-            if (patches) {
-                inner_buf->cache->patch_memory_storage.filter_applied_patches(inner_buf->block_id, inner_buf->transaction_id);
-                patches = inner_buf->cache->patch_memory_storage.get_patches(inner_buf->block_id);
-            }
-            // All patches that currently exist must have been materialized out of core...
-            if (patches) {
-                inner_buf->writeback_buf.last_patch_materialized = patches->back()->get_patch_counter();
-            } else {
-                inner_buf->writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
-            }
-
-            /*if (patches) {
-                fprintf(stderr, "Replaying %d patches on block %d\n", (int)patches->size(), inner_buf->block_id);
-            }*/
-
-            // Apply outstanding patches
-            inner_buf->cache->patch_memory_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data);
-
-            // Set next_patch_counter such that the next patches get values consistent with the existing patches
-            if (patches) {
-                inner_buf->next_patch_counter = patches->back()->get_patch_counter() + 1;
-            } else {
-                inner_buf->next_patch_counter = 1;
-            }
+            inner_buf->replay_patches();
 
             inner_buf->lock.unlock();
             delete this;
@@ -84,6 +60,31 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
     // pm_n_blocks_in_memory gets incremented in cases where
     // should_load == false, because currently we're still mallocing
     // the buffer.
+    pm_n_blocks_in_memory++;
+    refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
+    cache->page_repl.make_space(1);
+    refcount--;
+
+    // Read the transaction id
+    transaction_id = cache->serializer->get_current_transaction_id(block_id, data);
+
+    replay_patches();
+}
+
+// Thid form of the buf constructor is used when the block exists on disks but has been loaded into buf already
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf)
+    : cache(cache),
+      block_id(block_id),
+      data(buf),
+      refcount(0),
+      do_delete(false),
+      write_empty_deleted_block(false),
+      cow_will_be_needed(false),
+      writeback_buf(this),
+      page_repl_buf(this),
+      page_map_buf(this),
+      transaction_id(NULL_SER_TRANSACTION_ID) {
+
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
@@ -133,6 +134,35 @@ mc_inner_buf_t::~mc_inner_buf_t() {
     cache->serializer->free(data);
 
     pm_n_blocks_in_memory--;
+}
+
+void mc_inner_buf_t::replay_patches() {
+    const std::vector<buf_patch_t*>* patches = cache->patch_memory_storage.get_patches(block_id);
+    // Remove obsolete patches from diff storage
+    if (patches) {
+        cache->patch_memory_storage.filter_applied_patches(block_id, transaction_id);
+        patches = cache->patch_memory_storage.get_patches(block_id);
+    }
+    // All patches that currently exist must have been materialized out of core...
+    if (patches) {
+        writeback_buf.last_patch_materialized = patches->back()->get_patch_counter();
+    } else {
+        writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
+    }
+
+    /*if (patches) {
+        fprintf(stderr, "Replaying %d patches on block %d\n", (int)patches->size(), inner_buf->block_id);
+    }*/
+
+    // Apply outstanding patches
+    cache->patch_memory_storage.apply_patches(block_id, (char*)data);
+
+    // Set next_patch_counter such that the next patches get values consistent with the existing patches
+    if (patches) {
+        next_patch_counter = patches->back()->get_patch_counter() + 1;
+    } else {
+        next_patch_counter = 1;
+    }
 }
 
 bool mc_inner_buf_t::safe_to_unload() {
@@ -587,10 +617,14 @@ mc_cache_t::mc_cache_t(
     /* Load differential log from disk */
     patch_disk_storage.reset(new patch_disk_storage_t(*this, MC_CONFIGBLOCK_ID));
     patch_disk_storage->load_patches(patch_memory_storage);
+
+    // Register us for read ahead to warm up faster
+    serializer->register_read_ahead_cb(this);
 }
 
 mc_cache_t::~mc_cache_t() {
     shutting_down = true;
+    serializer->unregister_read_ahead_cb(this);
 
     /* Wait for all transactions to commit before shutting down */
     if (num_live_transactions > 0) {
@@ -645,4 +679,28 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
         // Now that all transactions are done, continue shutting down.
         to_pulse_when_last_transaction_commits->pulse();
     }
+}
+
+void mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf) {
+    // Note that the offered buf might get deleted between the point where the serializer offers it and below message gets delivered!
+    do_on_thread(home_thread, boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf));
+}
+
+bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf) {
+    assert_thread();
+
+    // We only load the buffer if we don't have it yet
+    // Also we have to recheck that the block has not been deleted in the meantime
+    if (!shutting_down && !page_map.find(block_id)) {
+        new mc_inner_buf_t(this, block_id, buf);
+    } else {
+        serializer->free(buf);
+    }
+
+    // Check if we want to unregister ourselves
+    if (page_repl.is_full(5)) {
+        serializer->unregister_read_ahead_cb(this);
+    }
+
+    return true;
 }

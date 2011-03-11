@@ -81,12 +81,19 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     // Load an existing buf from disk
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load);
 
+    // Load an existing buf but use the provided data buffer (for read ahead)
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf);
+
     // Create an entirely new buf
     explicit mc_inner_buf_t(cache_t *cache);
 
     ~mc_inner_buf_t();
 
     ser_transaction_id_t transaction_id;
+
+private:
+    // Helper function for inner_buf construction from an existing block
+    void replay_patches();
 };
 
 /* This class represents a hold on a mc_inner_buf_t. */
@@ -209,7 +216,8 @@ private:
 };
 
 struct mc_cache_t :
-    public home_thread_mixin_t
+    public home_thread_mixin_t,
+    public translator_serializer_t::read_ahead_callback_t
 {
     friend class load_buf_fsm_t;
     friend class mc_buf_t;
@@ -279,6 +287,11 @@ private:
     boost::scoped_ptr<patch_disk_storage_t> patch_disk_storage;
 
     unsigned int max_patches_size_ratio;
+
+public:
+    void offer_read_ahead_buf(block_id_t block_id, void *buf);
+private:
+    bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf);
 };
 
 #endif // __MIRRORED_CACHE_HPP__
