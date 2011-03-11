@@ -130,4 +130,33 @@ public:
     friend class address_t;
 };
 
+/* Various things we need to be able to serialize and unserialize */
+
+RDB_MAKE_SERIALIZABLE_1(repli_timestamp, time)
+RDB_MAKE_SERIALIZABLE_2(castime_t, proposed_cas, timestamp)
+
+/* If the incr/decr fails, then new_value is meaningless; garbage will be
+written to the socket and faithfully reconstructed on the other side. This
+isn't a big enough problem to justify not using the RDB_MAKE_SERIALIZABLE
+macro. */
+RDB_MAKE_SERIALIZABLE_2(incr_decr_result_t, res, new_value)
+
+inline void serialize(cluster_outpipe_t *conn, const get_result_t &res) {
+    ::serialize(conn, res.value);
+    ::serialize(conn, res.flags);
+    ::serialize(conn, res.cas);
+    if (res.to_signal_when_done) res.to_signal_when_done->pulse();
+}
+
+inline int ser_size(const get_result_t &res) {
+    return ::ser_size(res.value) + ::ser_size(res.flags) + ::ser_size(res.cas);
+}
+
+inline void unserialize(cluster_inpipe_t *conn, get_result_t *res) {
+    ::unserialize(conn, &res->value);
+    ::unserialize(conn, &res->flags);
+    ::unserialize(conn, &res->cas);
+    res->to_signal_when_done = NULL;
+}
+
 #endif /* __CLUSTERING_CLUSTER_STORE_HPP__ */

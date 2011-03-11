@@ -1,5 +1,5 @@
 #include "clustering/master_map.hpp"
-#include "errors.hpp"
+//#include "errors.hpp"
 
 typedef storage_map_t::rh_iterator rh_iterator;
 typedef storage_map_t::iterator storage_iterator;
@@ -36,23 +36,23 @@ rh_iterator rh_iterator::operator++(int) {
     return *this; 
 }
 
-storage_iterator::iterator(std::map<int, store_address_t> *inner_map, redundant_hasher_t *rh, redundant_hasher_t::iterator hasher_iterator) 
+storage_iterator::iterator(std::map<int, set_store_t*> *inner_map, redundant_hasher_t *rh, redundant_hasher_t::iterator hasher_iterator) 
     : inner_map(inner_map), 
       rh(rh),
       hasher_iterator(hasher_iterator)
 {
-    while (inner_map->find(*hasher_iterator) != inner_map->end() && hasher_iterator != rh->end())
+    while (hasher_iterator != rh->end() && inner_map->find(*hasher_iterator) != inner_map->end())
         hasher_iterator++;
 }
 
-store_address_t storage_iterator::operator*() const {
+set_store_t *storage_iterator::operator*() const {
     guarantee(inner_map->find(*hasher_iterator) != inner_map->end(), "Trying to dereference a map that doesn't exist. This means that jdoliner messed up this iterator");
     return (*inner_map)[*hasher_iterator];
 }
 storage_iterator storage_iterator::operator++() { 
     hasher_iterator++; 
 
-    while (inner_map->find(*hasher_iterator) != inner_map->end() && hasher_iterator != rh->end())
+    while (hasher_iterator != rh->end() && inner_map->find(*hasher_iterator) != inner_map->end())
         hasher_iterator++;
 
     return *this;

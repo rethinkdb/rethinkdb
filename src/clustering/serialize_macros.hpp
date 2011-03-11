@@ -18,20 +18,21 @@ serialize template types; this is less-than-ideal, but not worth fixing right
 now.
 
 A note about "dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body": It's wrong
-to invoke RDB_MAKE_SERIALIZABLE_*() within the body of a class. You should use
+to invoke RDB_MAKE_SERIALIZABLE_*() within the body of a class. You should
+invoke it at global scope after the class declaration, or use
 RDB_MAKE_ME_SERIALIZABLE_*() instead. In order to force the compiler to catch
 this error, we declare a dummy "extern int" in RDB_MAKE_ME_SERIALIZABLE_*().
 This is a noop at the global scope, but produces a (somewhat weird) error in
 the class scope. */
 
 #define RDB_MAKE_SERIALIZABLE_0(type_t) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_0(type_t) \
@@ -45,15 +46,15 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_1(type_t, field1) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
@@ -71,17 +72,17 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_2(type_t, field1, field2) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
     } \
@@ -103,19 +104,19 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_3(type_t, field1, field2, field3) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
         total += ::ser_size(m.field3); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -141,13 +142,13 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_4(type_t, field1, field2, field3, field4) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
         ::serialize(pipe, m.field4); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -155,7 +156,7 @@ the class scope. */
         total += ::ser_size(m.field4); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -185,14 +186,14 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_5(type_t, field1, field2, field3, field4, field5) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
         ::serialize(pipe, m.field4); \
         ::serialize(pipe, m.field5); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -201,7 +202,7 @@ the class scope. */
         total += ::ser_size(m.field5); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -235,7 +236,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_6(type_t, field1, field2, field3, field4, field5, field6) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -243,7 +244,7 @@ the class scope. */
         ::serialize(pipe, m.field5); \
         ::serialize(pipe, m.field6); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -253,7 +254,7 @@ the class scope. */
         total += ::ser_size(m.field6); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -291,7 +292,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -300,7 +301,7 @@ the class scope. */
         ::serialize(pipe, m.field6); \
         ::serialize(pipe, m.field7); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -311,7 +312,7 @@ the class scope. */
         total += ::ser_size(m.field7); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -353,7 +354,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -363,7 +364,7 @@ the class scope. */
         ::serialize(pipe, m.field7); \
         ::serialize(pipe, m.field8); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -375,7 +376,7 @@ the class scope. */
         total += ::ser_size(m.field8); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -421,7 +422,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -432,7 +433,7 @@ the class scope. */
         ::serialize(pipe, m.field8); \
         ::serialize(pipe, m.field9); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -445,7 +446,7 @@ the class scope. */
         total += ::ser_size(m.field9); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -495,7 +496,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -507,7 +508,7 @@ the class scope. */
         ::serialize(pipe, m.field9); \
         ::serialize(pipe, m.field10); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -521,7 +522,7 @@ the class scope. */
         total += ::ser_size(m.field10); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -575,7 +576,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -588,7 +589,7 @@ the class scope. */
         ::serialize(pipe, m.field10); \
         ::serialize(pipe, m.field11); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -603,7 +604,7 @@ the class scope. */
         total += ::ser_size(m.field11); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -661,7 +662,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -675,7 +676,7 @@ the class scope. */
         ::serialize(pipe, m.field11); \
         ::serialize(pipe, m.field12); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -691,7 +692,7 @@ the class scope. */
         total += ::ser_size(m.field12); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -753,7 +754,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -768,7 +769,7 @@ the class scope. */
         ::serialize(pipe, m.field12); \
         ::serialize(pipe, m.field13); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -785,7 +786,7 @@ the class scope. */
         total += ::ser_size(m.field13); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -851,7 +852,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -867,7 +868,7 @@ the class scope. */
         ::serialize(pipe, m.field13); \
         ::serialize(pipe, m.field14); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -885,7 +886,7 @@ the class scope. */
         total += ::ser_size(m.field14); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -955,7 +956,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -972,7 +973,7 @@ the class scope. */
         ::serialize(pipe, m.field14); \
         ::serialize(pipe, m.field15); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -991,7 +992,7 @@ the class scope. */
         total += ::ser_size(m.field15); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -1065,7 +1066,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -1083,7 +1084,7 @@ the class scope. */
         ::serialize(pipe, m.field15); \
         ::serialize(pipe, m.field16); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -1103,7 +1104,7 @@ the class scope. */
         total += ::ser_size(m.field16); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -1181,7 +1182,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -1200,7 +1201,7 @@ the class scope. */
         ::serialize(pipe, m.field16); \
         ::serialize(pipe, m.field17); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -1221,7 +1222,7 @@ the class scope. */
         total += ::ser_size(m.field17); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -1303,7 +1304,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -1323,7 +1324,7 @@ the class scope. */
         ::serialize(pipe, m.field17); \
         ::serialize(pipe, m.field18); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -1345,7 +1346,7 @@ the class scope. */
         total += ::ser_size(m.field18); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
@@ -1431,7 +1432,7 @@ the class scope. */
     }
 
 #define RDB_MAKE_SERIALIZABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
-    void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         ::serialize(pipe, m.field1); \
         ::serialize(pipe, m.field2); \
         ::serialize(pipe, m.field3); \
@@ -1452,7 +1453,7 @@ the class scope. */
         ::serialize(pipe, m.field18); \
         ::serialize(pipe, m.field19); \
     } \
-    int ser_size(const type_t &m) { \
+    inline int ser_size(const type_t &m) { \
         int total = 0; \
         total += ::ser_size(m.field1); \
         total += ::ser_size(m.field2); \
@@ -1475,7 +1476,7 @@ the class scope. */
         total += ::ser_size(m.field19); \
         return total; \
     } \
-    void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
         ::unserialize(pipe, &m->field1); \
         ::unserialize(pipe, &m->field2); \
         ::unserialize(pipe, &m->field3); \
