@@ -24,27 +24,32 @@ typedef async_mailbox_t<void(int, set_store_mailbox_t::address_t, get_store_mail
 struct demo_delegate_t : public cluster_delegate_t {
 
     set_store_interface_mailbox_t::address_t master_store;
+    get_store_mailbox_t::address_t master_get_store;
     registration_mailbox_t::address_t registration_address;
 
-    demo_delegate_t(const set_store_interface_mailbox_t::address_t &ms,
-        const registration_mailbox_t::address_t ra) :
-        master_store(ms), registration_address(ra) { }
+    demo_delegate_t(const set_store_interface_mailbox_t::address_t &ms, 
+                    const get_store_mailbox_t::address_t &mgs, 
+                    const registration_mailbox_t::address_t ra) :
+        master_store(ms), master_get_store(mgs), registration_address(ra) { }
 
     static demo_delegate_t *construct(cluster_inpipe_t *p) {
         set_store_interface_mailbox_t::address_t master_store;
         ::unserialize(p, &master_store);
+        get_store_mailbox_t::address_t master_get_store;
+        ::unserialize(p, &master_get_store);
         registration_mailbox_t::address_t registration_address;
         ::unserialize(p, &registration_address);
         p->done();
-        return new demo_delegate_t(master_store, registration_address);
+        return new demo_delegate_t(master_store, master_get_store, registration_address);
     }
 
     int introduction_ser_size() {
-        return ::ser_size(master_store) + ::ser_size(registration_address);
+        return ::ser_size(master_store) + ::ser_size(master_get_store) + ::ser_size(registration_address);
     }
 
     void introduce_new_node(cluster_outpipe_t *p) {
         ::serialize(p, master_store);
+        ::serialize(p, master_get_store);
         ::serialize(p, registration_address);
     }
 };
@@ -95,7 +100,7 @@ void serve(int id, demo_delegate_t *delegate) {
             serve_memcache(conn, get_store, set_store);
         }
     } handler;
-    handler.get_store = &slice;
+    handler.get_store = &delegate->master_get_store;
     handler.set_store = &delegate->master_store;
 
     int serve_port = 31400 + id;
@@ -118,15 +123,17 @@ void cluster_main(cluster_config_t config, thread_pool_t *thread_pool) {
         /* Start the master-components */
 
         dispatching_store_t dispatcher;
-        registration_mailbox_t registration_mailbox(boost::bind(&add_listener, _1, &dispatcher, _2, _3)); //FIXME
+        registration_mailbox_t registration_mailbox(boost::bind(&add_listener, _1, &dispatcher, _2, _3));
 
         timestamping_set_store_interface_t timestamper(&dispatcher);
         set_store_interface_mailbox_t master_mailbox(&timestamper);
 
+        get_store_mailbox_t master_get_mailbox(&dispatcher);
+
         /* Start a new cluster */
 
         logINF("Starting new cluster...\n");
-        get_cluster().start(31000 + config.id, new demo_delegate_t(&master_mailbox, &registration_mailbox));
+        get_cluster().start(31000 + config.id, new demo_delegate_t(&master_mailbox, &master_get_mailbox, &registration_mailbox));
         logINF("Cluster started.\n");
 
         serve(config.id, static_cast<demo_delegate_t *>(get_cluster().get_delegate()));
