@@ -208,6 +208,17 @@ struct mutation_result_t {
     template<class T> mutation_result_t(const T &r) : result(r) { }
 };
 
+/* It's not safe to copy a mutation_t and then use both copies, because the mutation_t may contain
+data_provider_t*s that can only be safely used once. In this situation, you must create a
+mutation_duplicator_t and call branch() on it repeatedly. */
+struct mutation_splitter_t {
+    mutation_splitter_t(const mutation_t &mut);
+    mutation_t branch();
+private:
+    mutation_t original;
+    boost::scoped_ptr<data_provider_splitter_t> dp_splitter;
+};
+
 class set_store_interface_t {
 
 public:

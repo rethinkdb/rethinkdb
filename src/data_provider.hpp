@@ -167,6 +167,13 @@ private:
     boost::scoped_ptr<buffered_data_provider_t> buffer;   // NULL if we decide not to buffer
 };
 
+/* buffer_borrowing_data_provider_t is useful for a situation where you want to send some data
+to two destinations, and you know that one of them will call get_data_into_buffers() on the
+data provider you give it. The buffer_borrowing_data_provider_t waits for the first destination
+to call get_data_into_buffers(), and then it uses that collection of buffers as the return value
+of get_data_as_buffers() for the second destination. This can be used to save a copy.
+
+data_provider_splitter_t is less specialized, but also a bit less efficient. */
 
 class buffer_borrowing_data_provider_t : public data_provider_t {
 public:
@@ -209,6 +216,10 @@ branch() every time you want a separate data provider. All the data providers re
 will become invalid once the data_provider_splitter_t is destroyed. */
 
 class data_provider_splitter_t {
+
+    /* TODO: Special-case the situation where we only intend to call branch() once, by just
+    returning the original data-provider again. This will require cooperation from the code
+    that uses data_provider_splitter_t. */
 
 public:
     data_provider_splitter_t(data_provider_t *dp);
