@@ -187,11 +187,11 @@
 
 // The ratio at which we should start GCing.
 #define DEFAULT_GC_HIGH_RATIO                     0.65
-#define MAX_GC_HIGH_RATIO                         0.99
+#define MAX_GC_HIGH_RATIO                         0.990001
 
 // The ratio at which we don't want to keep GC'ing.
 #define DEFAULT_GC_LOW_RATIO                      0.5
-#define MIN_GC_LOW_RATIO                          0.01
+#define MIN_GC_LOW_RATIO                          0.099999
 
 
 // What's the maximum number of "young" extents we can have?

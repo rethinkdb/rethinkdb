@@ -541,7 +541,7 @@ void parsing_cmd_config_t::set_gc_range(const char* value) {
         fail_due_to_user_error("gc-range expects \"low-high\"");
     }
     if (!(MIN_GC_LOW_RATIO <= low && low < high && high <= MAX_GC_HIGH_RATIO)) {
-        fail_due_to_user_error("gc-range expects \"low-high\", with %f <= low < high <= %f",
+        fail_due_to_user_error("gc-range expects \"low-high\", with %.2f <= low < high <= %.2f",
              MIN_GC_LOW_RATIO, MAX_GC_HIGH_RATIO);
     }
     store_dynamic_config.serializer.gc_low_ratio = low;
