@@ -6,37 +6,37 @@ def generate_make_serializable_macro(nfields):
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
     print "    inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \\"
     for i in xrange(nfields):
-        print "        ::serialize(pipe, m.field%d); \\" % (i+1)
+        print "        serialize(pipe, m.field%d); \\" % (i+1)
     print "    } \\"
     print "    inline int ser_size(const type_t &m) { \\"
     print "        int total = 0; \\"
     for i in xrange(nfields):
-        print "        total += ::ser_size(m.field%d); \\" % (i+1)
+        print "        total += ser_size(m.field%d); \\" % (i+1)
     print "        return total; \\"
     print "    } \\"
-    print "    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \\"
+    print "    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \\"
     for i in xrange(nfields):
-        print "        ::unserialize(pipe, &m->field%d); \\" % (i+1)
+        print "        unserialize(pipe, es, &m->field%d); \\" % (i+1)
     print "    } \\"
     # See the note in the comment below.
     print "    extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;"
 
 def generate_make_me_serializable_macro(nfields):
-    print "#define RDB_MAKE_ME_SERIALIZABLE_%d(type_t%s) \\" % \
-        (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))
-    print "    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \\"
+    print "#define RDB_MAKE_ME_SERIALIZABLE_%d(%s) \\" % \
+        (nfields, ", ".join("field%d" % (i+1) for i in xrange(nfields)))
+    print "    void serialize_self(cluster_outpipe_t *pipe) const { \\"
     for i in xrange(nfields):
-        print "        ::serialize(pipe, m.field%d); \\" % (i+1)
+        print "        global_serialize(pipe, field%d); \\" % (i+1)
     print "    } \\"
-    print "    static int ser_size(const type_t &m) { \\"
+    print "    int ser_size_self() const { \\"
     print "        int total = 0; \\"
     for i in xrange(nfields):
-        print "        total += ::ser_size(m.field%d); \\" % (i+1)
+        print "        total += global_ser_size(field%d); \\" % (i+1)
     print "        return total; \\"
     print "    } \\"
-    print "    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \\"
+    print "    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \\"
     for i in xrange(nfields):
-        print "        ::unserialize(pipe, &m->field%d); \\" % (i+1)
+        print "        global_unserialize(pipe, es, &field%d); \\" % (i+1)
     print "    }"
 
 if __name__ == "__main__":
@@ -58,7 +58,7 @@ unserialize data types that consist of a simple series of fields, each of which
 is serializable. Suppose we have a type "struct point_t { int x, y; }" that we
 want to be able to serialize. To make it serializable automatically, either
 write RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope or write
-RDB_MAKE_ME_SERIALIZABLE(point_t, x, y) within the body of the point_t type.
+RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type.
 The reason for the second form is to make it possible to serialize template
 types. There is at present no non-intrusive way to use these macros to
 serialize template types; this is less-than-ideal, but not worth fixing right
