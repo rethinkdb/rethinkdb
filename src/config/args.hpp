@@ -152,10 +152,10 @@
 #define MAX_VALUE_SIZE                            MEGABYTE
 
 // Values larger than this will be streamed in a set operation.
-#define MAX_BUFFERED_SET_SIZE                     1000
+#define MAX_BUFFERED_SET_SIZE                     32768
 
 // Values larger than this will be streamed in a get operation
-#define MAX_BUFFERED_GET_SIZE                     10000
+#define MAX_BUFFERED_GET_SIZE                     32768
 
 // If a single connection sends this many 'noreply' commands, the next command will
 // have to wait until the first one finishes
