@@ -64,7 +64,7 @@ public:
             rget_result_t res;
             return res;
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, get_address)
+        RDB_MAKE_ME_SERIALIZABLE_1(get_address)
     private:
         get_mailbox_t::address_t get_address;
     };

@@ -147,7 +147,7 @@ public:
     storage_map_t()
         //: add_storage_mailbox(boost::bind(&storage_map_t::add_storage, this, _1, _2)),
           //remove_storage_mailbox(boost::bind(&storage_map_t::remove_storage, this, _1, _2))
-        : rh(0)
+        : rh(1)
     {}
 };
 /* The master map keeps track of how many write transactions are currently
