@@ -8,6 +8,52 @@ struct mutation_get_key_functor_t : public boost::static_visitor<store_key_t> {
     store_key_t operator()(const append_prepend_mutation_t &m) { return m.key; }
 };
 
+struct mutation_get_data_provider_functor_t : public boost::static_visitor<data_provider_t*> {
+    data_provider_t *operator()(const get_cas_mutation_t &m) { return NULL; }
+    data_provider_t *operator()(const set_mutation_t &m) { return m.data; }
+    data_provider_t *operator()(const delete_mutation_t &m) { return NULL; }
+    data_provider_t *operator()(const incr_decr_mutation_t &m) { return NULL; }
+    data_provider_t *operator()(const append_prepend_mutation_t &m) { return m.data; }
+};
+
+struct mutation_replace_data_provider_functor_t : public boost::static_visitor<mutation_t> {
+    data_provider_splitter_t *data_splitter;
+    mutation_t operator()(const get_cas_mutation_t &m) {
+        return m;
+    }
+    mutation_t operator()(const set_mutation_t &m) {
+        set_mutation_t m2 = m;
+        m2.data = data_splitter->branch();
+        return m2;
+    }
+    mutation_t operator()(const delete_mutation_t &m) {
+        return m;
+    }
+    mutation_t operator()(const incr_decr_mutation_t &m) {
+        return m;
+    }
+    mutation_t operator()(const append_prepend_mutation_t &m) {
+        append_prepend_mutation_t m2 = m;
+        m2.data = data_splitter->branch();
+        return m2;
+    }
+};
+
+mutation_splitter_t::mutation_splitter_t(const mutation_t &mut)
+    : original(mut)
+{
+    mutation_get_data_provider_functor_t functor;
+    if (data_provider_t *dp = boost::apply_visitor(functor, original.mutation)) {
+        dp_splitter.reset(new data_provider_splitter_t(dp));
+    }
+}
+
+mutation_t mutation_splitter_t::branch() {
+    mutation_replace_data_provider_functor_t functor;
+    functor.data_splitter = dp_splitter.get();
+    return boost::apply_visitor(functor, original.mutation);
+}
+
 store_key_t mutation_t::get_key() const {
     mutation_get_key_functor_t functor;
     return boost::apply_visitor(functor, mutation);
