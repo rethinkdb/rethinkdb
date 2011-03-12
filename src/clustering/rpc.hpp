@@ -21,6 +21,7 @@ struct rpc_peer_killed_exc_t : public std::exception {
         return "Peer killed during rpc\n";
     }
 };
+
 template<>
 class async_mailbox_t< void() > : private cluster_mailbox_t {
 
@@ -36,7 +37,7 @@ public:
             message_t m;
             addr.send(&m);
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -62,8 +63,10 @@ private:
      }
 #endif
     void unserialize(cluster_inpipe_t *p) {
+        unserialize_extra_storage_t extra_storage;
         p->done();
         callback();
+        // Args become invalid here because extra_storage dies
     }
 
     boost::function< void() > callback;
@@ -107,7 +110,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -123,11 +126,11 @@ private:
             { }
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -148,11 +151,13 @@ private:
     boost::function< void() > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
         callback();
-        reply_parser.value().send(&rm);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -178,8 +183,10 @@ public:
             call_message_t m;
             struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    typename format_t<ret_t>::parser_t parser(p);
-                    pulse(std::make_pair(true, parser.value()));
+                    ret_t ret;
+                    // No extra storage because this is a return, not a call
+                    global_unserialize(p, NULL, &ret);
+                    pulse(std::make_pair(true, ret));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
@@ -202,7 +209,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -218,11 +225,11 @@ private:
             { }
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -235,21 +242,23 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            format_t<ret_t>::write(p, ret);
+            global_serialize(p, ret);
         }
         int ser_size() {
-             return format_t<ret_t>::get_size(ret);
+             return global_ser_size(ret);
         }
     };
 
     boost::function< ret_t() > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
         rm.ret = callback();
-        reply_parser.value().send(&rm);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -275,7 +284,7 @@ public:
             message_t m(arg0);
             addr.send(&m);
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -290,11 +299,11 @@ private:
             : arg0(arg0) { }
         const arg0_t &arg0;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
+            global_serialize(p, arg0);
         }
         int ser_size() {
              int size = 0;
-            size += format_t<arg0_t>::get_size(arg0);
+            size += global_ser_size(arg0);
              return size;
         }
     };
@@ -304,9 +313,12 @@ private:
      }
 #endif
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
         p->done();
-        callback(parser0.value());
+        callback(arg0);
+        // Args become invalid here because extra_storage dies
     }
 
     boost::function< void(const arg0_t &arg0) > callback;
@@ -352,7 +364,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -369,13 +381,13 @@ private:
         const arg0_t &arg0;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -396,12 +408,15 @@ private:
     boost::function< void(const arg0_t &arg0) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        callback(parser0.value());
-        reply_parser.value().send(&rm);
+        callback(arg0);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -427,8 +442,10 @@ public:
             call_message_t m(arg0);
             struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    typename format_t<ret_t>::parser_t parser(p);
-                    pulse(std::make_pair(true, parser.value()));
+                    ret_t ret;
+                    // No extra storage because this is a return, not a call
+                    global_unserialize(p, NULL, &ret);
+                    pulse(std::make_pair(true, ret));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
@@ -451,7 +468,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -468,13 +485,13 @@ private:
         const arg0_t &arg0;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -487,22 +504,25 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            format_t<ret_t>::write(p, ret);
+            global_serialize(p, ret);
         }
         int ser_size() {
-             return format_t<ret_t>::get_size(ret);
+             return global_ser_size(ret);
         }
     };
 
     boost::function< ret_t(const arg0_t &arg0) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        rm.ret = callback(parser0.value());
-        reply_parser.value().send(&rm);
+        rm.ret = callback(arg0);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -528,7 +548,7 @@ public:
             message_t m(arg0, arg1);
             addr.send(&m);
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -544,13 +564,13 @@ private:
         const arg0_t &arg0;
         const arg1_t &arg1;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
         }
         int ser_size() {
              int size = 0;
-            size += format_t<arg0_t>::get_size(arg0);
-            size += format_t<arg1_t>::get_size(arg1);
+            size += global_ser_size(arg0);
+            size += global_ser_size(arg1);
              return size;
         }
     };
@@ -560,10 +580,14 @@ private:
      }
 #endif
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
         p->done();
-        callback(parser0.value(), parser1.value());
+        callback(arg0, arg1);
+        // Args become invalid here because extra_storage dies
     }
 
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1) > callback;
@@ -610,7 +634,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -628,15 +652,15 @@ private:
         const arg1_t &arg1;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -657,13 +681,17 @@ private:
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        callback(parser0.value(), parser1.value());
-        reply_parser.value().send(&rm);
+        callback(arg0, arg1);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -689,8 +717,10 @@ public:
             call_message_t m(arg0, arg1);
             struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    typename format_t<ret_t>::parser_t parser(p);
-                    pulse(std::make_pair(true, parser.value()));
+                    ret_t ret;
+                    // No extra storage because this is a return, not a call
+                    global_unserialize(p, NULL, &ret);
+                    pulse(std::make_pair(true, ret));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
@@ -713,7 +743,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -731,15 +761,15 @@ private:
         const arg1_t &arg1;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -752,23 +782,27 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            format_t<ret_t>::write(p, ret);
+            global_serialize(p, ret);
         }
         int ser_size() {
-             return format_t<ret_t>::get_size(ret);
+             return global_ser_size(ret);
         }
     };
 
     boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        rm.ret = callback(parser0.value(), parser1.value());
-        reply_parser.value().send(&rm);
+        rm.ret = callback(arg0, arg1);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -794,7 +828,7 @@ public:
             message_t m(arg0, arg1, arg2);
             addr.send(&m);
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -811,15 +845,15 @@ private:
         const arg1_t &arg1;
         const arg2_t &arg2;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
         }
         int ser_size() {
              int size = 0;
-            size += format_t<arg0_t>::get_size(arg0);
-            size += format_t<arg1_t>::get_size(arg1);
-            size += format_t<arg2_t>::get_size(arg2);
+            size += global_ser_size(arg0);
+            size += global_ser_size(arg1);
+            size += global_ser_size(arg2);
              return size;
         }
     };
@@ -829,11 +863,16 @@ private:
      }
 #endif
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
         p->done();
-        callback(parser0.value(), parser1.value(), parser2.value());
+        callback(arg0, arg1, arg2);
+        // Args become invalid here because extra_storage dies
     }
 
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) > callback;
@@ -881,7 +920,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -900,17 +939,17 @@ private:
         const arg2_t &arg2;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -931,14 +970,19 @@ private:
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        callback(parser0.value(), parser1.value(), parser2.value());
-        reply_parser.value().send(&rm);
+        callback(arg0, arg1, arg2);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -964,8 +1008,10 @@ public:
             call_message_t m(arg0, arg1, arg2);
             struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    typename format_t<ret_t>::parser_t parser(p);
-                    pulse(std::make_pair(true, parser.value()));
+                    ret_t ret;
+                    // No extra storage because this is a return, not a call
+                    global_unserialize(p, NULL, &ret);
+                    pulse(std::make_pair(true, ret));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
@@ -988,7 +1034,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -1007,17 +1053,17 @@ private:
         const arg2_t &arg2;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -1030,24 +1076,29 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            format_t<ret_t>::write(p, ret);
+            global_serialize(p, ret);
         }
         int ser_size() {
-             return format_t<ret_t>::get_size(ret);
+             return global_ser_size(ret);
         }
     };
 
     boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        rm.ret = callback(parser0.value(), parser1.value(), parser2.value());
-        reply_parser.value().send(&rm);
+        rm.ret = callback(arg0, arg1, arg2);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -1073,7 +1124,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3);
             addr.send(&m);
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -1091,17 +1142,17 @@ private:
         const arg2_t &arg2;
         const arg3_t &arg3;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
         }
         int ser_size() {
              int size = 0;
-            size += format_t<arg0_t>::get_size(arg0);
-            size += format_t<arg1_t>::get_size(arg1);
-            size += format_t<arg2_t>::get_size(arg2);
-            size += format_t<arg3_t>::get_size(arg3);
+            size += global_ser_size(arg0);
+            size += global_ser_size(arg1);
+            size += global_ser_size(arg2);
+            size += global_ser_size(arg3);
              return size;
         }
     };
@@ -1111,12 +1162,18 @@ private:
      }
 #endif
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
         p->done();
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value());
+        callback(arg0, arg1, arg2, arg3);
+        // Args become invalid here because extra_storage dies
     }
 
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) > callback;
@@ -1165,7 +1222,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -1185,19 +1242,19 @@ private:
         const arg3_t &arg3;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -1218,15 +1275,21 @@ private:
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value());
-        reply_parser.value().send(&rm);
+        callback(arg0, arg1, arg2, arg3);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -1252,8 +1315,10 @@ public:
             call_message_t m(arg0, arg1, arg2, arg3);
             struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    typename format_t<ret_t>::parser_t parser(p);
-                    pulse(std::make_pair(true, parser.value()));
+                    ret_t ret;
+                    // No extra storage because this is a return, not a call
+                    global_unserialize(p, NULL, &ret);
+                    pulse(std::make_pair(true, ret));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
@@ -1276,7 +1341,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -1296,19 +1361,19 @@ private:
         const arg3_t &arg3;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -1321,25 +1386,31 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            format_t<ret_t>::write(p, ret);
+            global_serialize(p, ret);
         }
         int ser_size() {
-             return format_t<ret_t>::get_size(ret);
+             return global_ser_size(ret);
         }
     };
 
     boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value());
-        reply_parser.value().send(&rm);
+        rm.ret = callback(arg0, arg1, arg2, arg3);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -1365,7 +1436,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4);
             addr.send(&m);
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -1384,19 +1455,19 @@ private:
         const arg3_t &arg3;
         const arg4_t &arg4;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
         }
         int ser_size() {
              int size = 0;
-            size += format_t<arg0_t>::get_size(arg0);
-            size += format_t<arg1_t>::get_size(arg1);
-            size += format_t<arg2_t>::get_size(arg2);
-            size += format_t<arg3_t>::get_size(arg3);
-            size += format_t<arg4_t>::get_size(arg4);
+            size += global_ser_size(arg0);
+            size += global_ser_size(arg1);
+            size += global_ser_size(arg2);
+            size += global_ser_size(arg3);
+            size += global_ser_size(arg4);
              return size;
         }
     };
@@ -1406,13 +1477,20 @@ private:
      }
 #endif
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
         p->done();
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value());
+        callback(arg0, arg1, arg2, arg3, arg4);
+        // Args become invalid here because extra_storage dies
     }
 
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) > callback;
@@ -1462,7 +1540,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -1483,21 +1561,21 @@ private:
         const arg4_t &arg4;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<arg4_t>::get_size(arg4);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(arg4);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -1518,16 +1596,23 @@ private:
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value());
-        reply_parser.value().send(&rm);
+        callback(arg0, arg1, arg2, arg3, arg4);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -1553,8 +1638,10 @@ public:
             call_message_t m(arg0, arg1, arg2, arg3, arg4);
             struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    typename format_t<ret_t>::parser_t parser(p);
-                    pulse(std::make_pair(true, parser.value()));
+                    ret_t ret;
+                    // No extra storage because this is a return, not a call
+                    global_unserialize(p, NULL, &ret);
+                    pulse(std::make_pair(true, ret));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
@@ -1577,7 +1664,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -1598,21 +1685,21 @@ private:
         const arg4_t &arg4;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<arg4_t>::get_size(arg4);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(arg4);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -1625,26 +1712,33 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            format_t<ret_t>::write(p, ret);
+            global_serialize(p, ret);
         }
         int ser_size() {
-             return format_t<ret_t>::get_size(ret);
+             return global_ser_size(ret);
         }
     };
 
     boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value());
-        reply_parser.value().send(&rm);
+        rm.ret = callback(arg0, arg1, arg2, arg3, arg4);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -1670,7 +1764,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
             addr.send(&m);
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -1690,21 +1784,21 @@ private:
         const arg4_t &arg4;
         const arg5_t &arg5;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
         }
         int ser_size() {
              int size = 0;
-            size += format_t<arg0_t>::get_size(arg0);
-            size += format_t<arg1_t>::get_size(arg1);
-            size += format_t<arg2_t>::get_size(arg2);
-            size += format_t<arg3_t>::get_size(arg3);
-            size += format_t<arg4_t>::get_size(arg4);
-            size += format_t<arg5_t>::get_size(arg5);
+            size += global_ser_size(arg0);
+            size += global_ser_size(arg1);
+            size += global_ser_size(arg2);
+            size += global_ser_size(arg3);
+            size += global_ser_size(arg4);
+            size += global_ser_size(arg5);
              return size;
         }
     };
@@ -1714,14 +1808,22 @@ private:
      }
 #endif
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
         p->done();
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value());
+        callback(arg0, arg1, arg2, arg3, arg4, arg5);
+        // Args become invalid here because extra_storage dies
     }
 
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) > callback;
@@ -1772,7 +1874,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -1794,23 +1896,23 @@ private:
         const arg5_t &arg5;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<arg4_t>::get_size(arg4);
-             size += format_t<arg5_t>::get_size(arg5);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(arg4);
+             size += global_ser_size(arg5);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -1831,17 +1933,25 @@ private:
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value());
-        reply_parser.value().send(&rm);
+        callback(arg0, arg1, arg2, arg3, arg4, arg5);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -1867,8 +1977,10 @@ public:
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
             struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    typename format_t<ret_t>::parser_t parser(p);
-                    pulse(std::make_pair(true, parser.value()));
+                    ret_t ret;
+                    // No extra storage because this is a return, not a call
+                    global_unserialize(p, NULL, &ret);
+                    pulse(std::make_pair(true, ret));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
@@ -1891,7 +2003,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -1913,23 +2025,23 @@ private:
         const arg5_t &arg5;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<arg4_t>::get_size(arg4);
-             size += format_t<arg5_t>::get_size(arg5);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(arg4);
+             size += global_ser_size(arg5);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -1942,27 +2054,35 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            format_t<ret_t>::write(p, ret);
+            global_serialize(p, ret);
         }
         int ser_size() {
-             return format_t<ret_t>::get_size(ret);
+             return global_ser_size(ret);
         }
     };
 
     boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value());
-        reply_parser.value().send(&rm);
+        rm.ret = callback(arg0, arg1, arg2, arg3, arg4, arg5);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -1988,7 +2108,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
             addr.send(&m);
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -2009,23 +2129,23 @@ private:
         const arg5_t &arg5;
         const arg6_t &arg6;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
-            format_t<arg6_t>::write(p, arg6);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
+            global_serialize(p, arg6);
         }
         int ser_size() {
              int size = 0;
-            size += format_t<arg0_t>::get_size(arg0);
-            size += format_t<arg1_t>::get_size(arg1);
-            size += format_t<arg2_t>::get_size(arg2);
-            size += format_t<arg3_t>::get_size(arg3);
-            size += format_t<arg4_t>::get_size(arg4);
-            size += format_t<arg5_t>::get_size(arg5);
-            size += format_t<arg6_t>::get_size(arg6);
+            size += global_ser_size(arg0);
+            size += global_ser_size(arg1);
+            size += global_ser_size(arg2);
+            size += global_ser_size(arg3);
+            size += global_ser_size(arg4);
+            size += global_ser_size(arg5);
+            size += global_ser_size(arg6);
              return size;
         }
     };
@@ -2035,15 +2155,24 @@ private:
      }
 #endif
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
-        typename format_t<arg6_t>::parser_t parser6(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
+        arg6_t arg6;
+        global_unserialize(p, &extra_storage, &arg6);
         p->done();
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value());
+        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+        // Args become invalid here because extra_storage dies
     }
 
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) > callback;
@@ -2095,7 +2224,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -2118,25 +2247,25 @@ private:
         const arg6_t &arg6;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
-            format_t<arg6_t>::write(p, arg6);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
+            global_serialize(p, arg6);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<arg4_t>::get_size(arg4);
-             size += format_t<arg5_t>::get_size(arg5);
-             size += format_t<arg6_t>::get_size(arg6);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(arg4);
+             size += global_ser_size(arg5);
+             size += global_ser_size(arg6);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -2157,18 +2286,27 @@ private:
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
-        typename format_t<arg6_t>::parser_t parser6(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
+        arg6_t arg6;
+        global_unserialize(p, &extra_storage, &arg6);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value());
-        reply_parser.value().send(&rm);
+        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -2194,8 +2332,10 @@ public:
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
             struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    typename format_t<ret_t>::parser_t parser(p);
-                    pulse(std::make_pair(true, parser.value()));
+                    ret_t ret;
+                    // No extra storage because this is a return, not a call
+                    global_unserialize(p, NULL, &ret);
+                    pulse(std::make_pair(true, ret));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
@@ -2218,7 +2358,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -2241,25 +2381,25 @@ private:
         const arg6_t &arg6;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
-            format_t<arg6_t>::write(p, arg6);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
+            global_serialize(p, arg6);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<arg4_t>::get_size(arg4);
-             size += format_t<arg5_t>::get_size(arg5);
-             size += format_t<arg6_t>::get_size(arg6);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(arg4);
+             size += global_ser_size(arg5);
+             size += global_ser_size(arg6);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -2272,28 +2412,37 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            format_t<ret_t>::write(p, ret);
+            global_serialize(p, ret);
         }
         int ser_size() {
-             return format_t<ret_t>::get_size(ret);
+             return global_ser_size(ret);
         }
     };
 
     boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
-        typename format_t<arg6_t>::parser_t parser6(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
+        arg6_t arg6;
+        global_unserialize(p, &extra_storage, &arg6);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value());
-        reply_parser.value().send(&rm);
+        rm.ret = callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -2319,7 +2468,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
             addr.send(&m);
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -2341,25 +2490,25 @@ private:
         const arg6_t &arg6;
         const arg7_t &arg7;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
-            format_t<arg6_t>::write(p, arg6);
-            format_t<arg7_t>::write(p, arg7);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
+            global_serialize(p, arg6);
+            global_serialize(p, arg7);
         }
         int ser_size() {
              int size = 0;
-            size += format_t<arg0_t>::get_size(arg0);
-            size += format_t<arg1_t>::get_size(arg1);
-            size += format_t<arg2_t>::get_size(arg2);
-            size += format_t<arg3_t>::get_size(arg3);
-            size += format_t<arg4_t>::get_size(arg4);
-            size += format_t<arg5_t>::get_size(arg5);
-            size += format_t<arg6_t>::get_size(arg6);
-            size += format_t<arg7_t>::get_size(arg7);
+            size += global_ser_size(arg0);
+            size += global_ser_size(arg1);
+            size += global_ser_size(arg2);
+            size += global_ser_size(arg3);
+            size += global_ser_size(arg4);
+            size += global_ser_size(arg5);
+            size += global_ser_size(arg6);
+            size += global_ser_size(arg7);
              return size;
         }
     };
@@ -2369,16 +2518,26 @@ private:
      }
 #endif
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
-        typename format_t<arg6_t>::parser_t parser6(p);
-        typename format_t<arg7_t>::parser_t parser7(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
+        arg6_t arg6;
+        global_unserialize(p, &extra_storage, &arg6);
+        arg7_t arg7;
+        global_unserialize(p, &extra_storage, &arg7);
         p->done();
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value());
+        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+        // Args become invalid here because extra_storage dies
     }
 
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) > callback;
@@ -2431,7 +2590,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -2455,27 +2614,27 @@ private:
         const arg7_t &arg7;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
-            format_t<arg6_t>::write(p, arg6);
-            format_t<arg7_t>::write(p, arg7);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
+            global_serialize(p, arg6);
+            global_serialize(p, arg7);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<arg4_t>::get_size(arg4);
-             size += format_t<arg5_t>::get_size(arg5);
-             size += format_t<arg6_t>::get_size(arg6);
-             size += format_t<arg7_t>::get_size(arg7);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(arg4);
+             size += global_ser_size(arg5);
+             size += global_ser_size(arg6);
+             size += global_ser_size(arg7);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -2496,19 +2655,29 @@ private:
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
-        typename format_t<arg6_t>::parser_t parser6(p);
-        typename format_t<arg7_t>::parser_t parser7(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
+        arg6_t arg6;
+        global_unserialize(p, &extra_storage, &arg6);
+        arg7_t arg7;
+        global_unserialize(p, &extra_storage, &arg7);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value());
-        reply_parser.value().send(&rm);
+        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -2534,8 +2703,10 @@ public:
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
             struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    typename format_t<ret_t>::parser_t parser(p);
-                    pulse(std::make_pair(true, parser.value()));
+                    ret_t ret;
+                    // No extra storage because this is a return, not a call
+                    global_unserialize(p, NULL, &ret);
+                    pulse(std::make_pair(true, ret));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
@@ -2558,7 +2729,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -2582,27 +2753,27 @@ private:
         const arg7_t &arg7;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
-            format_t<arg6_t>::write(p, arg6);
-            format_t<arg7_t>::write(p, arg7);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
+            global_serialize(p, arg6);
+            global_serialize(p, arg7);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<arg4_t>::get_size(arg4);
-             size += format_t<arg5_t>::get_size(arg5);
-             size += format_t<arg6_t>::get_size(arg6);
-             size += format_t<arg7_t>::get_size(arg7);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(arg4);
+             size += global_ser_size(arg5);
+             size += global_ser_size(arg6);
+             size += global_ser_size(arg7);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -2615,29 +2786,39 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            format_t<ret_t>::write(p, ret);
+            global_serialize(p, ret);
         }
         int ser_size() {
-             return format_t<ret_t>::get_size(ret);
+             return global_ser_size(ret);
         }
     };
 
     boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
-        typename format_t<arg6_t>::parser_t parser6(p);
-        typename format_t<arg7_t>::parser_t parser7(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
+        arg6_t arg6;
+        global_unserialize(p, &extra_storage, &arg6);
+        arg7_t arg7;
+        global_unserialize(p, &extra_storage, &arg7);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value());
-        reply_parser.value().send(&rm);
+        rm.ret = callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -2663,7 +2844,7 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
             addr.send(&m);
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
       public:
         bool same_as(const address_t &other_addr) {
@@ -2686,27 +2867,27 @@ private:
         const arg7_t &arg7;
         const arg8_t &arg8;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
-            format_t<arg6_t>::write(p, arg6);
-            format_t<arg7_t>::write(p, arg7);
-            format_t<arg8_t>::write(p, arg8);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
+            global_serialize(p, arg6);
+            global_serialize(p, arg7);
+            global_serialize(p, arg8);
         }
         int ser_size() {
              int size = 0;
-            size += format_t<arg0_t>::get_size(arg0);
-            size += format_t<arg1_t>::get_size(arg1);
-            size += format_t<arg2_t>::get_size(arg2);
-            size += format_t<arg3_t>::get_size(arg3);
-            size += format_t<arg4_t>::get_size(arg4);
-            size += format_t<arg5_t>::get_size(arg5);
-            size += format_t<arg6_t>::get_size(arg6);
-            size += format_t<arg7_t>::get_size(arg7);
-            size += format_t<arg8_t>::get_size(arg8);
+            size += global_ser_size(arg0);
+            size += global_ser_size(arg1);
+            size += global_ser_size(arg2);
+            size += global_ser_size(arg3);
+            size += global_ser_size(arg4);
+            size += global_ser_size(arg5);
+            size += global_ser_size(arg6);
+            size += global_ser_size(arg7);
+            size += global_ser_size(arg8);
              return size;
         }
     };
@@ -2716,17 +2897,28 @@ private:
      }
 #endif
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
-        typename format_t<arg6_t>::parser_t parser6(p);
-        typename format_t<arg7_t>::parser_t parser7(p);
-        typename format_t<arg8_t>::parser_t parser8(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
+        arg6_t arg6;
+        global_unserialize(p, &extra_storage, &arg6);
+        arg7_t arg7;
+        global_unserialize(p, &extra_storage, &arg7);
+        arg8_t arg8;
+        global_unserialize(p, &extra_storage, &arg8);
         p->done();
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value(), parser8.value());
+        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+        // Args become invalid here because extra_storage dies
     }
 
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) > callback;
@@ -2780,7 +2972,7 @@ public:
             addr.send(&m);
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -2805,29 +2997,29 @@ private:
         const arg8_t &arg8;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
-            format_t<arg6_t>::write(p, arg6);
-            format_t<arg7_t>::write(p, arg7);
-            format_t<arg8_t>::write(p, arg8);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
+            global_serialize(p, arg6);
+            global_serialize(p, arg7);
+            global_serialize(p, arg8);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<arg4_t>::get_size(arg4);
-             size += format_t<arg5_t>::get_size(arg5);
-             size += format_t<arg6_t>::get_size(arg6);
-             size += format_t<arg7_t>::get_size(arg7);
-             size += format_t<arg8_t>::get_size(arg8);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(arg4);
+             size += global_ser_size(arg5);
+             size += global_ser_size(arg6);
+             size += global_ser_size(arg7);
+             size += global_ser_size(arg8);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -2848,20 +3040,31 @@ private:
     boost::function< void(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
-        typename format_t<arg6_t>::parser_t parser6(p);
-        typename format_t<arg7_t>::parser_t parser7(p);
-        typename format_t<arg8_t>::parser_t parser8(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
+        arg6_t arg6;
+        global_unserialize(p, &extra_storage, &arg6);
+        arg7_t arg7;
+        global_unserialize(p, &extra_storage, &arg7);
+        arg8_t arg8;
+        global_unserialize(p, &extra_storage, &arg8);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value(), parser8.value());
-        reply_parser.value().send(&rm);
+        callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {
@@ -2887,8 +3090,10 @@ public:
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
             struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
                 void unserialize(cluster_inpipe_t *p) {
-                    typename format_t<ret_t>::parser_t parser(p);
-                    pulse(std::make_pair(true, parser.value()));
+                    ret_t ret;
+                    // No extra storage because this is a return, not a call
+                    global_unserialize(p, NULL, &ret);
+                    pulse(std::make_pair(true, ret));
                     p->done();
                 }
                 void run(cluster_message_t *msg) {
@@ -2911,7 +3116,7 @@ public:
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
         }
-        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)
+        RDB_MAKE_ME_SERIALIZABLE_1(addr)
     private:
         cluster_address_t addr;
     public:
@@ -2936,29 +3141,29 @@ private:
         const arg8_t &arg8;
         cluster_address_t reply_to;
         void serialize(cluster_outpipe_t *p) {
-            format_t<arg0_t>::write(p, arg0);
-            format_t<arg1_t>::write(p, arg1);
-            format_t<arg2_t>::write(p, arg2);
-            format_t<arg3_t>::write(p, arg3);
-            format_t<arg4_t>::write(p, arg4);
-            format_t<arg5_t>::write(p, arg5);
-            format_t<arg6_t>::write(p, arg6);
-            format_t<arg7_t>::write(p, arg7);
-            format_t<arg8_t>::write(p, arg8);
-            format_t<cluster_address_t>::write(p, reply_to);
+            global_serialize(p, arg0);
+            global_serialize(p, arg1);
+            global_serialize(p, arg2);
+            global_serialize(p, arg3);
+            global_serialize(p, arg4);
+            global_serialize(p, arg5);
+            global_serialize(p, arg6);
+            global_serialize(p, arg7);
+            global_serialize(p, arg8);
+            global_serialize(p, reply_to);
         }
         int ser_size() {
              int size = 0;
-             size += format_t<arg0_t>::get_size(arg0);
-             size += format_t<arg1_t>::get_size(arg1);
-             size += format_t<arg2_t>::get_size(arg2);
-             size += format_t<arg3_t>::get_size(arg3);
-             size += format_t<arg4_t>::get_size(arg4);
-             size += format_t<arg5_t>::get_size(arg5);
-             size += format_t<arg6_t>::get_size(arg6);
-             size += format_t<arg7_t>::get_size(arg7);
-             size += format_t<arg8_t>::get_size(arg8);
-             size += format_t<cluster_address_t>::get_size(reply_to);
+             size += global_ser_size(arg0);
+             size += global_ser_size(arg1);
+             size += global_ser_size(arg2);
+             size += global_ser_size(arg3);
+             size += global_ser_size(arg4);
+             size += global_ser_size(arg5);
+             size += global_ser_size(arg6);
+             size += global_ser_size(arg7);
+             size += global_ser_size(arg8);
+             size += global_ser_size(reply_to);
              return size;
         }
     };
@@ -2971,30 +3176,41 @@ private:
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
         void serialize(cluster_outpipe_t *p) {
-            format_t<ret_t>::write(p, ret);
+            global_serialize(p, ret);
         }
         int ser_size() {
-             return format_t<ret_t>::get_size(ret);
+             return global_ser_size(ret);
         }
     };
 
     boost::function< ret_t(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) > callback;
 
     void unserialize(cluster_inpipe_t *p) {
-        typename format_t<arg0_t>::parser_t parser0(p);
-        typename format_t<arg1_t>::parser_t parser1(p);
-        typename format_t<arg2_t>::parser_t parser2(p);
-        typename format_t<arg3_t>::parser_t parser3(p);
-        typename format_t<arg4_t>::parser_t parser4(p);
-        typename format_t<arg5_t>::parser_t parser5(p);
-        typename format_t<arg6_t>::parser_t parser6(p);
-        typename format_t<arg7_t>::parser_t parser7(p);
-        typename format_t<arg8_t>::parser_t parser8(p);
-        format_t<cluster_address_t>::parser_t reply_parser(p);
+        unserialize_extra_storage_t extra_storage;
+        arg0_t arg0;
+        global_unserialize(p, &extra_storage, &arg0);
+        arg1_t arg1;
+        global_unserialize(p, &extra_storage, &arg1);
+        arg2_t arg2;
+        global_unserialize(p, &extra_storage, &arg2);
+        arg3_t arg3;
+        global_unserialize(p, &extra_storage, &arg3);
+        arg4_t arg4;
+        global_unserialize(p, &extra_storage, &arg4);
+        arg5_t arg5;
+        global_unserialize(p, &extra_storage, &arg5);
+        arg6_t arg6;
+        global_unserialize(p, &extra_storage, &arg6);
+        arg7_t arg7;
+        global_unserialize(p, &extra_storage, &arg7);
+        arg8_t arg8;
+        global_unserialize(p, &extra_storage, &arg8);
+        cluster_address_t reply_addr;
+        global_unserialize(p, &extra_storage, &reply_addr);
         p->done();
         ret_message_t rm;
-        rm.ret = callback(parser0.value(), parser1.value(), parser2.value(), parser3.value(), parser4.value(), parser5.value(), parser6.value(), parser7.value(), parser8.value());
-        reply_parser.value().send(&rm);
+        rm.ret = callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+        reply_addr.send(&rm);
     }
 
     void run(cluster_message_t *cm) {

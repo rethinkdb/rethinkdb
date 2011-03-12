@@ -24,7 +24,7 @@ def generate_async_message_template(nargs):
         print "            message_t m;"
     print "            addr.send(&m);"
     print "        }"
-    print "        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)"
+    print "        RDB_MAKE_ME_SERIALIZABLE_1(addr)"
     # print "    private:"    # Make public temporarily
     print "        cluster_address_t addr;"
     print "      public:"
@@ -45,12 +45,12 @@ def generate_async_message_template(nargs):
         print "        const arg%d_t &arg%d;" % (i, i)
     print "        void serialize(cluster_outpipe_t *p) {"
     for i in xrange(nargs):
-        print "            format_t<arg%d_t>::write(p, arg%d);" % (i,i)
+        print "            global_serialize(p, arg%d);" % i
     print "        }"
     print "        int ser_size() {"
     print "             int size = 0;"
     for i in xrange(nargs):
-        print "            size += format_t<arg%d_t>::get_size(arg%d);" % (i, i)
+        print "            size += global_ser_size(arg%d);" % i
     print "             return size;"
     print "        }"
     print "    };"
@@ -60,10 +60,13 @@ def generate_async_message_template(nargs):
     print "     }"
     print "#endif"
     print "    void unserialize(cluster_inpipe_t *p) {"
+    print "        unserialize_extra_storage_t extra_storage;"
     for i in xrange(nargs):
-        print "        typename format_t<arg%d_t>::parser_t parser%d(p);" % (i,i)
+        print "        arg%d_t arg%d;" % (i, i)
+        print "        global_unserialize(p, &extra_storage, &arg%d);" % i
     print "        p->done();"
-    print "        callback(%s);" % ", ".join("parser%d.value()" % i for i in xrange(nargs))
+    print "        callback(%s);" % ", ".join("arg%d" % i for i in xrange(nargs))
+    print "        // Args become invalid here because extra_storage dies"
     print "    }"
     print
     print "    boost::function< void(%s) > callback;" % args
@@ -107,8 +110,10 @@ def generate_sync_message_template(nargs, void):
     print "            struct : public cluster_mailbox_t, public %s, public cluster_peer_t::kill_cb_t {" % ("promise_t<std::pair<bool, ret_t> >" if not void else "promise_t<bool>")
     print "                void unserialize(cluster_inpipe_t *p) {"
     if not void:
-        print "                    typename format_t<ret_t>::parser_t parser(p);"
-        print "                    pulse(std::make_pair(true, parser.value()));"
+        print "                    ret_t ret;"
+        print "                    // No extra storage because this is a return, not a call"
+        print "                    global_unserialize(p, NULL, &ret);"
+        print "                    pulse(std::make_pair(true, ret));"
     else:
         print "                    pulse(true);"
     print "                    p->done();"
@@ -142,7 +147,7 @@ def generate_sync_message_template(nargs, void):
     else:
         print "            if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();"
     print "        }"
-    print "        RDB_MAKE_ME_SERIALIZABLE_1(address_t, addr)"
+    print "        RDB_MAKE_ME_SERIALIZABLE_1(addr)"
     print "    private:"
     print "        cluster_address_t addr;"
     print "    public:"
@@ -164,14 +169,14 @@ def generate_sync_message_template(nargs, void):
     print "        cluster_address_t reply_to;"
     print "        void serialize(cluster_outpipe_t *p) {"
     for i in xrange(nargs):
-        print "            format_t<arg%d_t>::write(p, arg%d);" % (i, i)
-    print "            format_t<cluster_address_t>::write(p, reply_to);"
+        print "            global_serialize(p, arg%d);" % i
+    print "            global_serialize(p, reply_to);"
     print "        }"
     print "        int ser_size() {"
     print "             int size = 0;"
     for i in xrange(nargs):
-        print "             size += format_t<arg%d_t>::get_size(arg%d);" % (i, i)
-    print "             size += format_t<cluster_address_t>::get_size(reply_to);"
+        print "             size += global_ser_size(arg%d);" % i
+    print "             size += global_ser_size(reply_to);"
     print "             return size;"
     print "        }"
     print "    };"
@@ -186,11 +191,11 @@ def generate_sync_message_template(nargs, void):
         print "        ret_t ret;"
     print "        void serialize(cluster_outpipe_t *p) {"
     if not void:
-        print "            format_t<ret_t>::write(p, ret);"
+        print "            global_serialize(p, ret);"
     print "        }"
     print "        int ser_size() {"
     if not void:
-        print "             return format_t<ret_t>::get_size(ret);"
+        print "             return global_ser_size(ret);"
     else:
         print "             return 0;"
     print "        }"
@@ -199,16 +204,19 @@ def generate_sync_message_template(nargs, void):
     print "    boost::function< %s(%s) > callback;" % (ret, args)
     print
     print "    void unserialize(cluster_inpipe_t *p) {"
+    print "        unserialize_extra_storage_t extra_storage;"
     for i in xrange(nargs):
-        print "        typename format_t<arg%d_t>::parser_t parser%d(p);" % (i, i)
-    print "        format_t<cluster_address_t>::parser_t reply_parser(p);"
+        print "        arg%d_t arg%d;" % (i, i)
+        print "        global_unserialize(p, &extra_storage, &arg%d);" % i
+    print "        cluster_address_t reply_addr;"
+    print "        global_unserialize(p, &extra_storage, &reply_addr);"
     print "        p->done();"
     print "        ret_message_t rm;"
     if not void:
-        print "        rm.ret = callback(%s);" % ", ".join("parser%d.value()" % i for i in xrange(nargs))
+        print "        rm.ret = callback(%s);" % ", ".join("arg%d" % i for i in xrange(nargs))
     else:
-        print "        callback(%s);" % ", ".join("parser%d.value()" % i for i in xrange(nargs))
-    print "        reply_parser.value().send(&rm);"
+        print "        callback(%s);" % ", ".join("arg%d" % i for i in xrange(nargs))
+    print "        reply_addr.send(&rm);"
     print "    }"
     print
     print "    void run(cluster_message_t *cm) {"
@@ -251,6 +259,7 @@ if __name__ == "__main__":
     print "        return \"Peer killed during rpc\\n\";"
     print "    }"
     print "};"
+    print
 
     for nargs in xrange(10):
         generate_async_message_template(nargs)

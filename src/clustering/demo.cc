@@ -32,9 +32,9 @@ struct demo_delegate_t : public cluster_delegate_t {
 
     static demo_delegate_t *construct(cluster_inpipe_t *p) {
         set_store_interface_mailbox_t::address_t master_store;
-        ::unserialize(p, &master_store);
+        ::unserialize(p, NULL, &master_store);
         registration_mailbox_t::address_t registration_address;
-        ::unserialize(p, &registration_address);
+        ::unserialize(p, NULL, &registration_address);
         p->done();
         return new demo_delegate_t(master_store, registration_address);
     }

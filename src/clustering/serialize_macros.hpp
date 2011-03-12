@@ -11,7 +11,7 @@ unserialize data types that consist of a simple series of fields, each of which
 is serializable. Suppose we have a type "struct point_t { int x, y; }" that we
 want to be able to serialize. To make it serializable automatically, either
 write RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope or write
-RDB_MAKE_ME_SERIALIZABLE(point_t, x, y) within the body of the point_t type.
+RDB_MAKE_ME_SERIALIZABLE(x, y) within the body of the point_t type.
 The reason for the second form is to make it possible to serialize template
 types. There is at present no non-intrusive way to use these macros to
 serialize template types; this is less-than-ideal, but not worth fixing right
@@ -32,1537 +32,1537 @@ the class scope. */
         int total = 0; \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_0(type_t) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
+#define RDB_MAKE_ME_SERIALIZABLE_0() \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
     }
 
 #define RDB_MAKE_SERIALIZABLE_1(type_t, field1) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
+        serialize(pipe, m.field1); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
+        total += ser_size(m.field1); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_1(type_t, field1) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
+#define RDB_MAKE_ME_SERIALIZABLE_1(field1) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
+        total += global_ser_size(field1); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_2(type_t, field1, field2) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_2(type_t, field1, field2) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
+#define RDB_MAKE_ME_SERIALIZABLE_2(field1, field2) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_3(type_t, field1, field2, field3) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_3(type_t, field1, field2, field3) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
+#define RDB_MAKE_ME_SERIALIZABLE_3(field1, field2, field3) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_4(type_t, field1, field2, field3, field4) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_4(type_t, field1, field2, field3, field4) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
+#define RDB_MAKE_ME_SERIALIZABLE_4(field1, field2, field3, field4) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_5(type_t, field1, field2, field3, field4, field5) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_5(type_t, field1, field2, field3, field4, field5) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
+#define RDB_MAKE_ME_SERIALIZABLE_5(field1, field2, field3, field4, field5) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_6(type_t, field1, field2, field3, field4, field5, field6) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_6(type_t, field1, field2, field3, field4, field5, field6) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
+#define RDB_MAKE_ME_SERIALIZABLE_6(field1, field2, field3, field4, field5, field6) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
+#define RDB_MAKE_ME_SERIALIZABLE_7(field1, field2, field3, field4, field5, field6, field7) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
+#define RDB_MAKE_ME_SERIALIZABLE_8(field1, field2, field3, field4, field5, field6, field7, field8) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
+        serialize(pipe, m.field9); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
+        total += ser_size(m.field9); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
+        unserialize(pipe, es, &m->field9); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
+#define RDB_MAKE_ME_SERIALIZABLE_9(field1, field2, field3, field4, field5, field6, field7, field8, field9) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
+        global_serialize(pipe, field9); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
+        total += global_ser_size(field9); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
+        global_unserialize(pipe, es, &field9); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
+        serialize(pipe, m.field9); \
+        serialize(pipe, m.field10); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
+        total += ser_size(m.field9); \
+        total += ser_size(m.field10); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
+        unserialize(pipe, es, &m->field9); \
+        unserialize(pipe, es, &m->field10); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
+#define RDB_MAKE_ME_SERIALIZABLE_10(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
+        global_serialize(pipe, field9); \
+        global_serialize(pipe, field10); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
+        total += global_ser_size(field9); \
+        total += global_ser_size(field10); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
+        global_unserialize(pipe, es, &field9); \
+        global_unserialize(pipe, es, &field10); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
+        serialize(pipe, m.field9); \
+        serialize(pipe, m.field10); \
+        serialize(pipe, m.field11); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
+        total += ser_size(m.field9); \
+        total += ser_size(m.field10); \
+        total += ser_size(m.field11); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
+        unserialize(pipe, es, &m->field9); \
+        unserialize(pipe, es, &m->field10); \
+        unserialize(pipe, es, &m->field11); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
+#define RDB_MAKE_ME_SERIALIZABLE_11(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
+        global_serialize(pipe, field9); \
+        global_serialize(pipe, field10); \
+        global_serialize(pipe, field11); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
+        total += global_ser_size(field9); \
+        total += global_ser_size(field10); \
+        total += global_ser_size(field11); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
+        global_unserialize(pipe, es, &field9); \
+        global_unserialize(pipe, es, &field10); \
+        global_unserialize(pipe, es, &field11); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
+        serialize(pipe, m.field9); \
+        serialize(pipe, m.field10); \
+        serialize(pipe, m.field11); \
+        serialize(pipe, m.field12); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
+        total += ser_size(m.field9); \
+        total += ser_size(m.field10); \
+        total += ser_size(m.field11); \
+        total += ser_size(m.field12); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
+        unserialize(pipe, es, &m->field9); \
+        unserialize(pipe, es, &m->field10); \
+        unserialize(pipe, es, &m->field11); \
+        unserialize(pipe, es, &m->field12); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
+#define RDB_MAKE_ME_SERIALIZABLE_12(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
+        global_serialize(pipe, field9); \
+        global_serialize(pipe, field10); \
+        global_serialize(pipe, field11); \
+        global_serialize(pipe, field12); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
+        total += global_ser_size(field9); \
+        total += global_ser_size(field10); \
+        total += global_ser_size(field11); \
+        total += global_ser_size(field12); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
+        global_unserialize(pipe, es, &field9); \
+        global_unserialize(pipe, es, &field10); \
+        global_unserialize(pipe, es, &field11); \
+        global_unserialize(pipe, es, &field12); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
+        serialize(pipe, m.field9); \
+        serialize(pipe, m.field10); \
+        serialize(pipe, m.field11); \
+        serialize(pipe, m.field12); \
+        serialize(pipe, m.field13); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
+        total += ser_size(m.field9); \
+        total += ser_size(m.field10); \
+        total += ser_size(m.field11); \
+        total += ser_size(m.field12); \
+        total += ser_size(m.field13); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
+        unserialize(pipe, es, &m->field9); \
+        unserialize(pipe, es, &m->field10); \
+        unserialize(pipe, es, &m->field11); \
+        unserialize(pipe, es, &m->field12); \
+        unserialize(pipe, es, &m->field13); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
+#define RDB_MAKE_ME_SERIALIZABLE_13(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
+        global_serialize(pipe, field9); \
+        global_serialize(pipe, field10); \
+        global_serialize(pipe, field11); \
+        global_serialize(pipe, field12); \
+        global_serialize(pipe, field13); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
+        total += global_ser_size(field9); \
+        total += global_ser_size(field10); \
+        total += global_ser_size(field11); \
+        total += global_ser_size(field12); \
+        total += global_ser_size(field13); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
+        global_unserialize(pipe, es, &field9); \
+        global_unserialize(pipe, es, &field10); \
+        global_unserialize(pipe, es, &field11); \
+        global_unserialize(pipe, es, &field12); \
+        global_unserialize(pipe, es, &field13); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
+        serialize(pipe, m.field9); \
+        serialize(pipe, m.field10); \
+        serialize(pipe, m.field11); \
+        serialize(pipe, m.field12); \
+        serialize(pipe, m.field13); \
+        serialize(pipe, m.field14); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
+        total += ser_size(m.field9); \
+        total += ser_size(m.field10); \
+        total += ser_size(m.field11); \
+        total += ser_size(m.field12); \
+        total += ser_size(m.field13); \
+        total += ser_size(m.field14); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
+        unserialize(pipe, es, &m->field9); \
+        unserialize(pipe, es, &m->field10); \
+        unserialize(pipe, es, &m->field11); \
+        unserialize(pipe, es, &m->field12); \
+        unserialize(pipe, es, &m->field13); \
+        unserialize(pipe, es, &m->field14); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
+#define RDB_MAKE_ME_SERIALIZABLE_14(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
+        global_serialize(pipe, field9); \
+        global_serialize(pipe, field10); \
+        global_serialize(pipe, field11); \
+        global_serialize(pipe, field12); \
+        global_serialize(pipe, field13); \
+        global_serialize(pipe, field14); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
+        total += global_ser_size(field9); \
+        total += global_ser_size(field10); \
+        total += global_ser_size(field11); \
+        total += global_ser_size(field12); \
+        total += global_ser_size(field13); \
+        total += global_ser_size(field14); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
+        global_unserialize(pipe, es, &field9); \
+        global_unserialize(pipe, es, &field10); \
+        global_unserialize(pipe, es, &field11); \
+        global_unserialize(pipe, es, &field12); \
+        global_unserialize(pipe, es, &field13); \
+        global_unserialize(pipe, es, &field14); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
-        ::serialize(pipe, m.field15); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
+        serialize(pipe, m.field9); \
+        serialize(pipe, m.field10); \
+        serialize(pipe, m.field11); \
+        serialize(pipe, m.field12); \
+        serialize(pipe, m.field13); \
+        serialize(pipe, m.field14); \
+        serialize(pipe, m.field15); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
-        total += ::ser_size(m.field15); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
+        total += ser_size(m.field9); \
+        total += ser_size(m.field10); \
+        total += ser_size(m.field11); \
+        total += ser_size(m.field12); \
+        total += ser_size(m.field13); \
+        total += ser_size(m.field14); \
+        total += ser_size(m.field15); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
-        ::unserialize(pipe, &m->field15); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
+        unserialize(pipe, es, &m->field9); \
+        unserialize(pipe, es, &m->field10); \
+        unserialize(pipe, es, &m->field11); \
+        unserialize(pipe, es, &m->field12); \
+        unserialize(pipe, es, &m->field13); \
+        unserialize(pipe, es, &m->field14); \
+        unserialize(pipe, es, &m->field15); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
-        ::serialize(pipe, m.field15); \
+#define RDB_MAKE_ME_SERIALIZABLE_15(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
+        global_serialize(pipe, field9); \
+        global_serialize(pipe, field10); \
+        global_serialize(pipe, field11); \
+        global_serialize(pipe, field12); \
+        global_serialize(pipe, field13); \
+        global_serialize(pipe, field14); \
+        global_serialize(pipe, field15); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
-        total += ::ser_size(m.field15); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
+        total += global_ser_size(field9); \
+        total += global_ser_size(field10); \
+        total += global_ser_size(field11); \
+        total += global_ser_size(field12); \
+        total += global_ser_size(field13); \
+        total += global_ser_size(field14); \
+        total += global_ser_size(field15); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
-        ::unserialize(pipe, &m->field15); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
+        global_unserialize(pipe, es, &field9); \
+        global_unserialize(pipe, es, &field10); \
+        global_unserialize(pipe, es, &field11); \
+        global_unserialize(pipe, es, &field12); \
+        global_unserialize(pipe, es, &field13); \
+        global_unserialize(pipe, es, &field14); \
+        global_unserialize(pipe, es, &field15); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
-        ::serialize(pipe, m.field15); \
-        ::serialize(pipe, m.field16); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
+        serialize(pipe, m.field9); \
+        serialize(pipe, m.field10); \
+        serialize(pipe, m.field11); \
+        serialize(pipe, m.field12); \
+        serialize(pipe, m.field13); \
+        serialize(pipe, m.field14); \
+        serialize(pipe, m.field15); \
+        serialize(pipe, m.field16); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
-        total += ::ser_size(m.field15); \
-        total += ::ser_size(m.field16); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
+        total += ser_size(m.field9); \
+        total += ser_size(m.field10); \
+        total += ser_size(m.field11); \
+        total += ser_size(m.field12); \
+        total += ser_size(m.field13); \
+        total += ser_size(m.field14); \
+        total += ser_size(m.field15); \
+        total += ser_size(m.field16); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
-        ::unserialize(pipe, &m->field15); \
-        ::unserialize(pipe, &m->field16); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
+        unserialize(pipe, es, &m->field9); \
+        unserialize(pipe, es, &m->field10); \
+        unserialize(pipe, es, &m->field11); \
+        unserialize(pipe, es, &m->field12); \
+        unserialize(pipe, es, &m->field13); \
+        unserialize(pipe, es, &m->field14); \
+        unserialize(pipe, es, &m->field15); \
+        unserialize(pipe, es, &m->field16); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
-        ::serialize(pipe, m.field15); \
-        ::serialize(pipe, m.field16); \
+#define RDB_MAKE_ME_SERIALIZABLE_16(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
+        global_serialize(pipe, field9); \
+        global_serialize(pipe, field10); \
+        global_serialize(pipe, field11); \
+        global_serialize(pipe, field12); \
+        global_serialize(pipe, field13); \
+        global_serialize(pipe, field14); \
+        global_serialize(pipe, field15); \
+        global_serialize(pipe, field16); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
-        total += ::ser_size(m.field15); \
-        total += ::ser_size(m.field16); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
+        total += global_ser_size(field9); \
+        total += global_ser_size(field10); \
+        total += global_ser_size(field11); \
+        total += global_ser_size(field12); \
+        total += global_ser_size(field13); \
+        total += global_ser_size(field14); \
+        total += global_ser_size(field15); \
+        total += global_ser_size(field16); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
-        ::unserialize(pipe, &m->field15); \
-        ::unserialize(pipe, &m->field16); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
+        global_unserialize(pipe, es, &field9); \
+        global_unserialize(pipe, es, &field10); \
+        global_unserialize(pipe, es, &field11); \
+        global_unserialize(pipe, es, &field12); \
+        global_unserialize(pipe, es, &field13); \
+        global_unserialize(pipe, es, &field14); \
+        global_unserialize(pipe, es, &field15); \
+        global_unserialize(pipe, es, &field16); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
-        ::serialize(pipe, m.field15); \
-        ::serialize(pipe, m.field16); \
-        ::serialize(pipe, m.field17); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
+        serialize(pipe, m.field9); \
+        serialize(pipe, m.field10); \
+        serialize(pipe, m.field11); \
+        serialize(pipe, m.field12); \
+        serialize(pipe, m.field13); \
+        serialize(pipe, m.field14); \
+        serialize(pipe, m.field15); \
+        serialize(pipe, m.field16); \
+        serialize(pipe, m.field17); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
-        total += ::ser_size(m.field15); \
-        total += ::ser_size(m.field16); \
-        total += ::ser_size(m.field17); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
+        total += ser_size(m.field9); \
+        total += ser_size(m.field10); \
+        total += ser_size(m.field11); \
+        total += ser_size(m.field12); \
+        total += ser_size(m.field13); \
+        total += ser_size(m.field14); \
+        total += ser_size(m.field15); \
+        total += ser_size(m.field16); \
+        total += ser_size(m.field17); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
-        ::unserialize(pipe, &m->field15); \
-        ::unserialize(pipe, &m->field16); \
-        ::unserialize(pipe, &m->field17); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
+        unserialize(pipe, es, &m->field9); \
+        unserialize(pipe, es, &m->field10); \
+        unserialize(pipe, es, &m->field11); \
+        unserialize(pipe, es, &m->field12); \
+        unserialize(pipe, es, &m->field13); \
+        unserialize(pipe, es, &m->field14); \
+        unserialize(pipe, es, &m->field15); \
+        unserialize(pipe, es, &m->field16); \
+        unserialize(pipe, es, &m->field17); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
-        ::serialize(pipe, m.field15); \
-        ::serialize(pipe, m.field16); \
-        ::serialize(pipe, m.field17); \
+#define RDB_MAKE_ME_SERIALIZABLE_17(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
+        global_serialize(pipe, field9); \
+        global_serialize(pipe, field10); \
+        global_serialize(pipe, field11); \
+        global_serialize(pipe, field12); \
+        global_serialize(pipe, field13); \
+        global_serialize(pipe, field14); \
+        global_serialize(pipe, field15); \
+        global_serialize(pipe, field16); \
+        global_serialize(pipe, field17); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
-        total += ::ser_size(m.field15); \
-        total += ::ser_size(m.field16); \
-        total += ::ser_size(m.field17); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
+        total += global_ser_size(field9); \
+        total += global_ser_size(field10); \
+        total += global_ser_size(field11); \
+        total += global_ser_size(field12); \
+        total += global_ser_size(field13); \
+        total += global_ser_size(field14); \
+        total += global_ser_size(field15); \
+        total += global_ser_size(field16); \
+        total += global_ser_size(field17); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
-        ::unserialize(pipe, &m->field15); \
-        ::unserialize(pipe, &m->field16); \
-        ::unserialize(pipe, &m->field17); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
+        global_unserialize(pipe, es, &field9); \
+        global_unserialize(pipe, es, &field10); \
+        global_unserialize(pipe, es, &field11); \
+        global_unserialize(pipe, es, &field12); \
+        global_unserialize(pipe, es, &field13); \
+        global_unserialize(pipe, es, &field14); \
+        global_unserialize(pipe, es, &field15); \
+        global_unserialize(pipe, es, &field16); \
+        global_unserialize(pipe, es, &field17); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
-        ::serialize(pipe, m.field15); \
-        ::serialize(pipe, m.field16); \
-        ::serialize(pipe, m.field17); \
-        ::serialize(pipe, m.field18); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
+        serialize(pipe, m.field9); \
+        serialize(pipe, m.field10); \
+        serialize(pipe, m.field11); \
+        serialize(pipe, m.field12); \
+        serialize(pipe, m.field13); \
+        serialize(pipe, m.field14); \
+        serialize(pipe, m.field15); \
+        serialize(pipe, m.field16); \
+        serialize(pipe, m.field17); \
+        serialize(pipe, m.field18); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
-        total += ::ser_size(m.field15); \
-        total += ::ser_size(m.field16); \
-        total += ::ser_size(m.field17); \
-        total += ::ser_size(m.field18); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
+        total += ser_size(m.field9); \
+        total += ser_size(m.field10); \
+        total += ser_size(m.field11); \
+        total += ser_size(m.field12); \
+        total += ser_size(m.field13); \
+        total += ser_size(m.field14); \
+        total += ser_size(m.field15); \
+        total += ser_size(m.field16); \
+        total += ser_size(m.field17); \
+        total += ser_size(m.field18); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
-        ::unserialize(pipe, &m->field15); \
-        ::unserialize(pipe, &m->field16); \
-        ::unserialize(pipe, &m->field17); \
-        ::unserialize(pipe, &m->field18); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
+        unserialize(pipe, es, &m->field9); \
+        unserialize(pipe, es, &m->field10); \
+        unserialize(pipe, es, &m->field11); \
+        unserialize(pipe, es, &m->field12); \
+        unserialize(pipe, es, &m->field13); \
+        unserialize(pipe, es, &m->field14); \
+        unserialize(pipe, es, &m->field15); \
+        unserialize(pipe, es, &m->field16); \
+        unserialize(pipe, es, &m->field17); \
+        unserialize(pipe, es, &m->field18); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
-        ::serialize(pipe, m.field15); \
-        ::serialize(pipe, m.field16); \
-        ::serialize(pipe, m.field17); \
-        ::serialize(pipe, m.field18); \
+#define RDB_MAKE_ME_SERIALIZABLE_18(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
+        global_serialize(pipe, field9); \
+        global_serialize(pipe, field10); \
+        global_serialize(pipe, field11); \
+        global_serialize(pipe, field12); \
+        global_serialize(pipe, field13); \
+        global_serialize(pipe, field14); \
+        global_serialize(pipe, field15); \
+        global_serialize(pipe, field16); \
+        global_serialize(pipe, field17); \
+        global_serialize(pipe, field18); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
-        total += ::ser_size(m.field15); \
-        total += ::ser_size(m.field16); \
-        total += ::ser_size(m.field17); \
-        total += ::ser_size(m.field18); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
+        total += global_ser_size(field9); \
+        total += global_ser_size(field10); \
+        total += global_ser_size(field11); \
+        total += global_ser_size(field12); \
+        total += global_ser_size(field13); \
+        total += global_ser_size(field14); \
+        total += global_ser_size(field15); \
+        total += global_ser_size(field16); \
+        total += global_ser_size(field17); \
+        total += global_ser_size(field18); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
-        ::unserialize(pipe, &m->field15); \
-        ::unserialize(pipe, &m->field16); \
-        ::unserialize(pipe, &m->field17); \
-        ::unserialize(pipe, &m->field18); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
+        global_unserialize(pipe, es, &field9); \
+        global_unserialize(pipe, es, &field10); \
+        global_unserialize(pipe, es, &field11); \
+        global_unserialize(pipe, es, &field12); \
+        global_unserialize(pipe, es, &field13); \
+        global_unserialize(pipe, es, &field14); \
+        global_unserialize(pipe, es, &field15); \
+        global_unserialize(pipe, es, &field16); \
+        global_unserialize(pipe, es, &field17); \
+        global_unserialize(pipe, es, &field18); \
     }
 
 #define RDB_MAKE_SERIALIZABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
-        ::serialize(pipe, m.field15); \
-        ::serialize(pipe, m.field16); \
-        ::serialize(pipe, m.field17); \
-        ::serialize(pipe, m.field18); \
-        ::serialize(pipe, m.field19); \
+        serialize(pipe, m.field1); \
+        serialize(pipe, m.field2); \
+        serialize(pipe, m.field3); \
+        serialize(pipe, m.field4); \
+        serialize(pipe, m.field5); \
+        serialize(pipe, m.field6); \
+        serialize(pipe, m.field7); \
+        serialize(pipe, m.field8); \
+        serialize(pipe, m.field9); \
+        serialize(pipe, m.field10); \
+        serialize(pipe, m.field11); \
+        serialize(pipe, m.field12); \
+        serialize(pipe, m.field13); \
+        serialize(pipe, m.field14); \
+        serialize(pipe, m.field15); \
+        serialize(pipe, m.field16); \
+        serialize(pipe, m.field17); \
+        serialize(pipe, m.field18); \
+        serialize(pipe, m.field19); \
     } \
     inline int ser_size(const type_t &m) { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
-        total += ::ser_size(m.field15); \
-        total += ::ser_size(m.field16); \
-        total += ::ser_size(m.field17); \
-        total += ::ser_size(m.field18); \
-        total += ::ser_size(m.field19); \
+        total += ser_size(m.field1); \
+        total += ser_size(m.field2); \
+        total += ser_size(m.field3); \
+        total += ser_size(m.field4); \
+        total += ser_size(m.field5); \
+        total += ser_size(m.field6); \
+        total += ser_size(m.field7); \
+        total += ser_size(m.field8); \
+        total += ser_size(m.field9); \
+        total += ser_size(m.field10); \
+        total += ser_size(m.field11); \
+        total += ser_size(m.field12); \
+        total += ser_size(m.field13); \
+        total += ser_size(m.field14); \
+        total += ser_size(m.field15); \
+        total += ser_size(m.field16); \
+        total += ser_size(m.field17); \
+        total += ser_size(m.field18); \
+        total += ser_size(m.field19); \
         return total; \
     } \
-    inline void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
-        ::unserialize(pipe, &m->field15); \
-        ::unserialize(pipe, &m->field16); \
-        ::unserialize(pipe, &m->field17); \
-        ::unserialize(pipe, &m->field18); \
-        ::unserialize(pipe, &m->field19); \
+    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
+        unserialize(pipe, es, &m->field1); \
+        unserialize(pipe, es, &m->field2); \
+        unserialize(pipe, es, &m->field3); \
+        unserialize(pipe, es, &m->field4); \
+        unserialize(pipe, es, &m->field5); \
+        unserialize(pipe, es, &m->field6); \
+        unserialize(pipe, es, &m->field7); \
+        unserialize(pipe, es, &m->field8); \
+        unserialize(pipe, es, &m->field9); \
+        unserialize(pipe, es, &m->field10); \
+        unserialize(pipe, es, &m->field11); \
+        unserialize(pipe, es, &m->field12); \
+        unserialize(pipe, es, &m->field13); \
+        unserialize(pipe, es, &m->field14); \
+        unserialize(pipe, es, &m->field15); \
+        unserialize(pipe, es, &m->field16); \
+        unserialize(pipe, es, &m->field17); \
+        unserialize(pipe, es, &m->field18); \
+        unserialize(pipe, es, &m->field19); \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
-#define RDB_MAKE_ME_SERIALIZABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
-    static void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
-        ::serialize(pipe, m.field1); \
-        ::serialize(pipe, m.field2); \
-        ::serialize(pipe, m.field3); \
-        ::serialize(pipe, m.field4); \
-        ::serialize(pipe, m.field5); \
-        ::serialize(pipe, m.field6); \
-        ::serialize(pipe, m.field7); \
-        ::serialize(pipe, m.field8); \
-        ::serialize(pipe, m.field9); \
-        ::serialize(pipe, m.field10); \
-        ::serialize(pipe, m.field11); \
-        ::serialize(pipe, m.field12); \
-        ::serialize(pipe, m.field13); \
-        ::serialize(pipe, m.field14); \
-        ::serialize(pipe, m.field15); \
-        ::serialize(pipe, m.field16); \
-        ::serialize(pipe, m.field17); \
-        ::serialize(pipe, m.field18); \
-        ::serialize(pipe, m.field19); \
+#define RDB_MAKE_ME_SERIALIZABLE_19(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
+    void serialize_self(cluster_outpipe_t *pipe) const { \
+        global_serialize(pipe, field1); \
+        global_serialize(pipe, field2); \
+        global_serialize(pipe, field3); \
+        global_serialize(pipe, field4); \
+        global_serialize(pipe, field5); \
+        global_serialize(pipe, field6); \
+        global_serialize(pipe, field7); \
+        global_serialize(pipe, field8); \
+        global_serialize(pipe, field9); \
+        global_serialize(pipe, field10); \
+        global_serialize(pipe, field11); \
+        global_serialize(pipe, field12); \
+        global_serialize(pipe, field13); \
+        global_serialize(pipe, field14); \
+        global_serialize(pipe, field15); \
+        global_serialize(pipe, field16); \
+        global_serialize(pipe, field17); \
+        global_serialize(pipe, field18); \
+        global_serialize(pipe, field19); \
     } \
-    static int ser_size(const type_t &m) { \
+    int ser_size_self() const { \
         int total = 0; \
-        total += ::ser_size(m.field1); \
-        total += ::ser_size(m.field2); \
-        total += ::ser_size(m.field3); \
-        total += ::ser_size(m.field4); \
-        total += ::ser_size(m.field5); \
-        total += ::ser_size(m.field6); \
-        total += ::ser_size(m.field7); \
-        total += ::ser_size(m.field8); \
-        total += ::ser_size(m.field9); \
-        total += ::ser_size(m.field10); \
-        total += ::ser_size(m.field11); \
-        total += ::ser_size(m.field12); \
-        total += ::ser_size(m.field13); \
-        total += ::ser_size(m.field14); \
-        total += ::ser_size(m.field15); \
-        total += ::ser_size(m.field16); \
-        total += ::ser_size(m.field17); \
-        total += ::ser_size(m.field18); \
-        total += ::ser_size(m.field19); \
+        total += global_ser_size(field1); \
+        total += global_ser_size(field2); \
+        total += global_ser_size(field3); \
+        total += global_ser_size(field4); \
+        total += global_ser_size(field5); \
+        total += global_ser_size(field6); \
+        total += global_ser_size(field7); \
+        total += global_ser_size(field8); \
+        total += global_ser_size(field9); \
+        total += global_ser_size(field10); \
+        total += global_ser_size(field11); \
+        total += global_ser_size(field12); \
+        total += global_ser_size(field13); \
+        total += global_ser_size(field14); \
+        total += global_ser_size(field15); \
+        total += global_ser_size(field16); \
+        total += global_ser_size(field17); \
+        total += global_ser_size(field18); \
+        total += global_ser_size(field19); \
         return total; \
     } \
-    static void unserialize(cluster_inpipe_t *pipe, type_t *m) { \
-        ::unserialize(pipe, &m->field1); \
-        ::unserialize(pipe, &m->field2); \
-        ::unserialize(pipe, &m->field3); \
-        ::unserialize(pipe, &m->field4); \
-        ::unserialize(pipe, &m->field5); \
-        ::unserialize(pipe, &m->field6); \
-        ::unserialize(pipe, &m->field7); \
-        ::unserialize(pipe, &m->field8); \
-        ::unserialize(pipe, &m->field9); \
-        ::unserialize(pipe, &m->field10); \
-        ::unserialize(pipe, &m->field11); \
-        ::unserialize(pipe, &m->field12); \
-        ::unserialize(pipe, &m->field13); \
-        ::unserialize(pipe, &m->field14); \
-        ::unserialize(pipe, &m->field15); \
-        ::unserialize(pipe, &m->field16); \
-        ::unserialize(pipe, &m->field17); \
-        ::unserialize(pipe, &m->field18); \
-        ::unserialize(pipe, &m->field19); \
+    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
+        global_unserialize(pipe, es, &field1); \
+        global_unserialize(pipe, es, &field2); \
+        global_unserialize(pipe, es, &field3); \
+        global_unserialize(pipe, es, &field4); \
+        global_unserialize(pipe, es, &field5); \
+        global_unserialize(pipe, es, &field6); \
+        global_unserialize(pipe, es, &field7); \
+        global_unserialize(pipe, es, &field8); \
+        global_unserialize(pipe, es, &field9); \
+        global_unserialize(pipe, es, &field10); \
+        global_unserialize(pipe, es, &field11); \
+        global_unserialize(pipe, es, &field12); \
+        global_unserialize(pipe, es, &field13); \
+        global_unserialize(pipe, es, &field14); \
+        global_unserialize(pipe, es, &field15); \
+        global_unserialize(pipe, es, &field16); \
+        global_unserialize(pipe, es, &field17); \
+        global_unserialize(pipe, es, &field18); \
+        global_unserialize(pipe, es, &field19); \
     }
 
 #endif /* __CLUSTERING_SERIALIZE_MACROS_HPP__ */
