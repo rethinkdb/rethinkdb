@@ -58,6 +58,8 @@
 rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
     boost::shared_ptr<transactor_t> transactor = boost::shared_ptr<transactor_t>(new transactor_t(&slice->cache(), rwi_read));
     transactor->transaction()->snapshot();
-    return unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> >(
+    unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > ret(
         new slice_keys_iterator_t(transactor, slice, left_mode, left_key, right_mode, right_key));
+    coro_t::nap(10000);
+    return ret;
 }
