@@ -529,11 +529,8 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
 
     buf_t *buf = new buf_t(inner_buf, mode);
 
-    // We set the recency _before_ we get the buf.  This is correct,
-    // because we are "underneath" any replicators that come later
-    // (trees grow downward from the root).
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
-        buf->touch_recency();
+        buf->touch_recency(recency_timestamp);
     }
 
     if (buf->ready) {
@@ -542,26 +539,6 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         buf->callback = callback;
         return NULL;
     }
-}
-
-repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
-    crash("Operation not implemented: mc_transaction_t::get_subtree_recency");
-    /*
-    inner_buf_t *inner_buf = cache->page_map.find(block_id);
-    if (inner_buf) {
-        // The buf is in the cache and we must use its recency.
-        return inner_buf->subtree_recency;
-    } else {
-        // The buf is not in the cache, so ask the serializer.
-        // This is dangerous and will make things crash.
-
-        return cache->serializer->get_recency(block_id);
-
-        // This is dangerous because we're not on the same core, being
-        // on the same core would be a hassle for a feature that never
-        // gets used so far.
-    }
-*/
 }
 
 /**

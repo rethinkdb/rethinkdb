@@ -158,11 +158,21 @@ public:
         ensure_flush(); // Disable patch log system for the buffer
     }
 
-    void touch_recency() {
+    void touch_recency(repli_timestamp timestamp) {
+        // TODO: Add rassert(inner_buf->subtree_recency <= timestamp)
+
         // TODO: use some slice-specific timestamp that gets updated
         // every epoll call.
-        inner_buf->subtree_recency = current_time();
+        inner_buf->subtree_recency = timestamp;
         inner_buf->writeback_buf.set_recency_dirty();
+    }
+
+    repli_timestamp get_recency() {
+        // TODO: Make it possible to get the recency _without_
+        // acquiring the buf.  The recency should be locked with a
+        // lock that sits "above" buffer acquisition.  Or the recency
+        // simply should be set _before_ trying to acquire the buf.
+        return inner_buf->subtree_recency;
     }
 
     bool is_dirty() {
