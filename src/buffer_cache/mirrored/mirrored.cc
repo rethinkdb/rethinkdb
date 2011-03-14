@@ -64,11 +64,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
     refcount--;
-
-    // Read the transaction id
-    transaction_id = cache->serializer->get_current_transaction_id(block_id, data);
-
-    replay_patches();
 }
 
 // Thid form of the buf constructor is used when the block exists on disks but has been loaded into buf already
@@ -89,6 +84,11 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf)
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
     refcount--;
+
+    // Read the transaction id
+    transaction_id = cache->serializer->get_current_transaction_id(block_id, data);
+    
+    replay_patches();
 }
 
 // This form of the buf constructor is used when a completely new block is being created
