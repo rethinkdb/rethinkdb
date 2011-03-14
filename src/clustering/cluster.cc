@@ -296,6 +296,7 @@ cluster_t::~cluster_t() {
 }
 
 void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
+    on_thread_t syncer(home_thread);
     rassert(peers.find(peer) != peers.end());
 
     if (peers[peer]->state == cluster_peer_t::us) {
@@ -347,18 +348,21 @@ void cluster_t::pulse_peer_join(int peer_id) {
 }
 
 void cluster_t::add_mailbox(cluster_mailbox_t *mbox) {
+    on_thread_t syncer(home_thread);
     mailbox_map.map[mailbox_map.head] = mbox;
     mbox->id = mailbox_map.head;
     mailbox_map.head++; //TODO make this recycle ids
 }
 
 cluster_mailbox_t *cluster_t::get_mailbox(int i) {
+    on_thread_t syncer(home_thread);
     if (mailbox_map.map.find(i) == mailbox_map.map.end())
         return NULL;
     return mailbox_map.map[i];
 }
 
 void cluster_t::remove_mailbox(cluster_mailbox_t *mbox) {
+    on_thread_t syncer(home_thread);
     mailbox_map.map.erase(mbox->id);
     mbox->id = -1;
 }
@@ -424,7 +428,7 @@ void cluster_inpipe_t::read(void *buf, size_t size) {
 void cluster_inpipe_t::read_address(cluster_address_t *addr) {
     read(&addr->peer, sizeof(addr->peer));
     read(&addr->mailbox, sizeof(addr->mailbox));
-    debugf("Got an address: peer=%d, mailbox=%d\n", addr->peer, addr->mailbox);
+    //debugf("Got an address: peer=%d, mailbox=%d\n", addr->peer, addr->mailbox);
 }
 
 void cluster_inpipe_t::done() {

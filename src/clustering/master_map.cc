@@ -66,7 +66,7 @@ storage_iterator::iterator(std::map<int, std::pair<set_store_t*, get_store_t *> 
 
 std::pair<set_store_t *, get_store_t *> storage_iterator::operator*() const {
     guarantee(inner_map->find(*hasher_iterator) != inner_map->end(), "Trying to dereference a map that doesn't exist. This means that jdoliner messed up this iterator");
-    logINF("Yielding peer %d in indirection operator.\n", *hasher_iterator);
+    //logINF("Yielding peer %d in indirection operator.\n", *hasher_iterator);
     return (*inner_map)[*hasher_iterator];
 }
 storage_iterator storage_iterator::operator++() { 
