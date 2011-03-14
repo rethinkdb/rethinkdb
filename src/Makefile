@@ -485,7 +485,7 @@ endif
 	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 tags:
-	$(QUIET) ctags -R -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
+	$(QUIET) ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
 
 cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)
