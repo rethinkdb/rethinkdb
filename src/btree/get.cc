@@ -24,7 +24,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
 
     block_pm_duration get_time_2(&pm_cmd_get_without_threads);
 
-    boost::shared_ptr<transactor_t> transactor(new transactor_t(&slice->cache(), rwi_read));
+    boost::shared_ptr<transactor_t> transactor(new transactor_t(&slice->cache(), rwi_read, repli_timestamp::invalid));
 
     // Acquire the superblock
 

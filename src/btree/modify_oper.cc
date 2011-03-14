@@ -179,7 +179,9 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         // temporary sanity-check
         rassert(get_thread_id() == slice->home_thread);
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
-        boost::shared_ptr<transactor_t> txor(new transactor_t(&slice->cache(), rwi_write));
+
+        // TODO: why is this a shared_ptr?
+        boost::shared_ptr<transactor_t> txor(new transactor_t(&slice->cache(), rwi_write, castime.timestamp));
 
         buf_lock_t sb_buf(*txor, SUPERBLOCK_ID, rwi_write);
         buf_lock_t last_buf;

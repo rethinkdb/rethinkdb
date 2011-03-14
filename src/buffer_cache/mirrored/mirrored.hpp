@@ -201,7 +201,7 @@ public:
     cache_t *cache;
 
 private:
-    explicit mc_transaction_t(cache_t *cache, access_t access);
+    explicit mc_transaction_t(cache_t *cache, access_t access, repli_timestamp recency_timestamp);
     ~mc_transaction_t();
 
     ticks_t start_time;
@@ -210,6 +210,7 @@ private:
     virtual void on_sync();
 
     access_t access;
+    repli_timestamp recency_timestamp;
     transaction_begin_callback_t *begin_callback;
     transaction_commit_callback_t *commit_callback;
     enum { state_open, state_in_commit_call, state_committing, state_committed } state;
@@ -268,7 +269,7 @@ public:
     block_size_t get_block_size();
 
     // Transaction API
-    transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
+    transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback, repli_timestamp recency_timestamp);
 
 private:
     void on_transaction_commit(transaction_t *txn);

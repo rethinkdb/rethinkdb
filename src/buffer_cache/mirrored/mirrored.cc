@@ -428,9 +428,10 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
+mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access, repli_timestamp _recency_timestamp)
     : cache(cache),
       access(access),
+      recency_timestamp(_recency_timestamp),
       begin_callback(NULL),
       commit_callback(NULL),
       state(state_open) {
@@ -655,11 +656,11 @@ block_size_t mc_cache_t::get_block_size() {
     return serializer->get_block_size();
 }
 
-mc_transaction_t *mc_cache_t::begin_transaction(access_t access, transaction_begin_callback_t *callback) {
+mc_transaction_t *mc_cache_t::begin_transaction(access_t access, transaction_begin_callback_t *callback, repli_timestamp recency_timestamp) {
     assert_thread();
     rassert(!shutting_down);
 
-    transaction_t *txn = new transaction_t(this, access);
+    transaction_t *txn = new transaction_t(this, access, recency_timestamp);
     num_live_transactions++;
     if (writeback.begin_transaction(txn, callback)) {
         pm_transactions_starting.end(&txn->start_time);

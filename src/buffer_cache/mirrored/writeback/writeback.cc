@@ -264,7 +264,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     rassert(transaction == NULL);
     bool saved_shutting_down = parent->cache->shutting_down;
     parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
-    transaction = parent->cache->begin_transaction(rwi_read, NULL);
+    transaction = parent->cache->begin_transaction(rwi_read, NULL, repli_timestamp::invalid);
     parent->cache->shutting_down = saved_shutting_down;
     rassert(transaction != NULL); // Read txns always start immediately.
 

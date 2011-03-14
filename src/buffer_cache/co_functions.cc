@@ -84,10 +84,10 @@ struct transaction_begun_callback_t : public transaction_begin_callback_t {
     }
 };
 
-transaction_t *co_begin_transaction(cache_t *cache, access_t access) {
+transaction_t *co_begin_transaction(cache_t *cache, access_t access, repli_timestamp recency_timestamp) {
     cache->ensure_thread();
     transaction_begun_callback_t cb;
-    transaction_t *value = cache->begin_transaction(access, &cb);
+    transaction_t *value = cache->begin_transaction(access, &cb, recency_timestamp);
     if (!value) {
         value = cb.join();
     }
