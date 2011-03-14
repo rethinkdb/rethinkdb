@@ -1,19 +1,19 @@
 #ifndef _CLUSTERING_MASTER_MAP_HPP_
 #define _CLUSTERING_MASTER_MAP_HPP_
 #include <map>
-#include "clustering/cluster.hpp"
-#include "clustering/cluster_store.hpp"
 #include "clustering/rpc.hpp"
 #include "concurrency/cond_var.hpp"
-#include "clustering/cluster_store.hpp"
 #include <boost/bind.hpp>
+#include "store.hpp"
+#include "clustering/serialize.hpp"
+#include "clustering/cluster_store.hpp"
 
 typedef unsigned int hash_t;
 
 //typedef set_store_interface_mailbox_t::address_t store_mailbox_t;
 //typedef store_mailbox_t::address_t set_store_t;
 //
-//typedef sync_mailbox_t<void(hash_t, set_store_t)> set_master_mailbox_t;
+typedef sync_mailbox_t<void(int, set_store_mailbox_t::address_t)> set_master_mailbox_t;
 //typedef sync_mailbox_t<void(hash_t, set_store_t)> take_master_mailbox_t;
 //
 //typedef sync_mailbox_t<void(hash_t, set_store_t)> add_storage_mailbox_t;
@@ -45,28 +45,37 @@ private:
 };
 
 /* the master_map keeps track of who is the master for a given key */
-/* class master_map_t {
+class master_map_t {
 private:
-    std::map<hash_t, set_store_t> inner_map; */
+    std::map<int, set_store_t*> inner_map;
+
+    class master_hasher_t {
+    public:
+        int log_buckets;
+        hasher_t hasher;
+    public:
+        int get_bucket(store_key_t);
+        master_hasher_t() : log_buckets(0) {}
+        void double_buckets() { log_buckets++; }
+    };
+    master_hasher_t master_hasher;
 
 /* The master map is responsible for managing and communicating with the other peers about responsibility changes */
-//private:
-    //set_master_mailbox_t set_master_mailbox;
-    /* void set(hash_t hash, set_store_t address) {
-        inner_map[hash] = address;
+private:
+    set_master_mailbox_t set_master_mailbox;
+    void set_master(int bucket, set_store_mailbox_t::address_t address) {
+        inner_map[bucket] = &address;
     }
 
+//TODO I'm not sure if this is actually worth the trouble, maybe something easier
 public:
-    set_store_t get(hash_t hash) {
-        guarantee(inner_map.find(hash) != inner_map.end(), "Trying to get nonexistant master");
-        return inner_map[hash];
-    }
+    set_store_t *get_master(store_key_t);
 
 public:
     master_map_t()
-        //: set_master_mailbox(boost::bind(&master_map_t::set, this, _1, _2))
+        : set_master_mailbox(boost::bind(&master_map_t::set_master, this, _1, _2))
     {}
-}; */
+};
 
 /* the storage_map keeps track of who is storing certain keys */
 class set_store_t;

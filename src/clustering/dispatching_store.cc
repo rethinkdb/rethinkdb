@@ -1,6 +1,10 @@
 #include "clustering/dispatching_store.hpp"
 #include "concurrency/pmap.hpp"
 
+/* The dispatching store takes sets over the wire and retrieves the data from
+ * the correct storage nodes, it also takes gets from this machine and forwards
+ * them directly to the correct storage node */
+
 dispatching_store_t::dispatching_store_t() {
 }
 
