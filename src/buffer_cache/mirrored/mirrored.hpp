@@ -94,6 +94,8 @@ class mc_inner_buf_t : public home_thread_mixin_t {
 private:
     // Helper function for inner_buf construction from an existing block
     void replay_patches();
+
+    DISABLE_COPYING(mc_inner_buf_t);
 };
 
 /* This class represents a hold on a mc_inner_buf_t. */
@@ -178,6 +180,9 @@ public:
     bool is_dirty() {
         return inner_buf->writeback_buf.dirty;
     }
+
+private:
+    DISABLE_COPYING(mc_buf_t);
 };
 
 /* Transaction class. */
@@ -224,6 +229,8 @@ private:
     transaction_begin_callback_t *begin_callback;
     transaction_commit_callback_t *commit_callback;
     enum { state_open, state_in_commit_call, state_committing, state_committed } state;
+
+    DISABLE_COPYING(mc_transaction_t);
 };
 
 struct mc_cache_t :
@@ -303,6 +310,8 @@ public:
     void offer_read_ahead_buf(block_id_t block_id, void *buf);
 private:
     bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf);
+
+    DISABLE_COPYING(mc_cache_t);
 };
 
 #endif // __MIRRORED_CACHE_HPP__
