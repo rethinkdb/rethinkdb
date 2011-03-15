@@ -45,6 +45,9 @@
 // Size of each extent (in bytes)
 #define DEFAULT_EXTENT_SIZE                       (8 * MEGABYTE)
 
+// Max number of blocks which can be read ahead in one i/o transaction (if enabled)
+#define MAX_READ_AHEAD_BLOCKS 32
+
 // Max size of log file name
 #define MAX_LOG_FILE_NAME                         1024
 
@@ -149,10 +152,10 @@
 #define MAX_VALUE_SIZE                            MEGABYTE
 
 // Values larger than this will be streamed in a set operation.
-#define MAX_BUFFERED_SET_SIZE                     1000
+#define MAX_BUFFERED_SET_SIZE                     32768
 
 // Values larger than this will be streamed in a get operation
-#define MAX_BUFFERED_GET_SIZE                     10000
+#define MAX_BUFFERED_GET_SIZE                     32768
 
 // If a single connection sends this many 'noreply' commands, the next command will
 // have to wait until the first one finishes
@@ -184,11 +187,11 @@
 
 // The ratio at which we should start GCing.
 #define DEFAULT_GC_HIGH_RATIO                     0.65
-#define MAX_GC_HIGH_RATIO                         0.99
+#define MAX_GC_HIGH_RATIO                         0.990001
 
 // The ratio at which we don't want to keep GC'ing.
 #define DEFAULT_GC_LOW_RATIO                      0.5
-#define MIN_GC_LOW_RATIO                          0.01
+#define MIN_GC_LOW_RATIO                          0.099999
 
 
 // What's the maximum number of "young" extents we can have?

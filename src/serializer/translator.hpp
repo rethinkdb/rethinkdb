@@ -79,11 +79,24 @@ of the block IDs available on the inner serializer, but presents the illusion of
 serializer. It is used for splitting one serializer among several buffer caches on different
 threads. */
 
-class translator_serializer_t : public home_thread_mixin_t {
+class translator_serializer_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
+public:
+    /* We need our own read_ahead interface which uses block_id_t instead of ser_block_id_t (in contrast to the one in serializer) */
+    class read_ahead_callback_t {
+    public:
+        virtual ~read_ahead_callback_t() { }
+        /* The callee must take care of freeing buf by calling free(buf) */
+        virtual void offer_read_ahead_buf(block_id_t block_id, void *buf) = 0;
+    };
+    void register_read_ahead_cb(read_ahead_callback_t *cb);
+    void unregister_read_ahead_cb(read_ahead_callback_t *cb);
+    
 private:
     serializer_t *inner;
     int mod_count, mod_id;
     config_block_id_t cfgid;
+
+    read_ahead_callback_t *read_ahead_callback;
 
 public:
     virtual ~translator_serializer_t() {}
@@ -94,7 +107,8 @@ public:
     static ser_block_id_t translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid);
 
     // "Inverts" translate_block_id, converting inner_id back to mod_id (not back to id).
-    static int untranslate_block_id(ser_block_id_t inner_id, int mod_count, config_block_id_t cfgid);
+    static int untranslate_block_id_to_mod_id(ser_block_id_t inner_id, int mod_count, config_block_id_t cfgid);
+    static block_id_t untranslate_block_id_to_id(ser_block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid);
 
 private:
     ser_block_id_t xlate(block_id_t id);
@@ -148,6 +162,9 @@ public:
     block_id_t max_block_id();
     bool block_in_use(block_id_t id);
     repli_timestamp get_recency(block_id_t id);
+
+public:
+    bool offer_read_ahead_buf(ser_block_id_t block_id, void *buf);
 };
 
 #endif /* __SERIALIZER_TRANSLATOR_HPP__ */

@@ -113,7 +113,9 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 
     while (true) {
         ssize_t res = ::read(sock, buffer, size);
-        if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        if (read_was_shut_down) {
+            throw read_closed_exc_t();
+        } else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             /* There's no data available right now, so we must wait for a notification from the
             epoll queue */
             bool_promise_t cond;

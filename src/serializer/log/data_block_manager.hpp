@@ -2,6 +2,8 @@
 #ifndef __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
+class log_serializer_t;
+
 #include "arch/arch.hpp"
 #include "server/cmd_args.hpp"
 #include "containers/priority_queue.hpp"
@@ -35,7 +37,7 @@ class data_block_manager_t :
     public data_block_manager_gc_write_callback_t
 {
 
-    friend class dbm_read_fsm_t;
+    friend class dbm_read_ahead_fsm_t;
 
 public:
 
@@ -53,9 +55,9 @@ public:
     };
 
 public:
-    data_block_manager_t(gc_writer_t *gc_writer, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, const log_serializer_static_config_t *static_config)
+    data_block_manager_t(gc_writer_t *gc_writer, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_static_config_t *static_config)
         : shutdown_callback(NULL), state(state_unstarted), gc_writer(gc_writer),
-          dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
+          dynamic_config(dynamic_config), static_config(static_config), extent_manager(em), serializer(serializer),
           next_active_extent(0),
           gc_state(extent_manager->extent_size)//,
 //          garbage_ratio_reporter(this)
@@ -64,6 +66,7 @@ public:
         rassert(static_config);
         rassert(gc_writer);
         rassert(extent_manager);
+        rassert(serializer);
     }
     ~data_block_manager_t() {
         rassert(state == state_unstarted || state == state_shut_down);
@@ -167,6 +170,7 @@ private:
     const log_serializer_static_config_t* const static_config;
 
     extent_manager_t* const extent_manager;
+    log_serializer_t *serializer;
 
     direct_file_t* dbfile;
 
@@ -319,6 +323,9 @@ private:
         gc_read,  /* waiting for reads, sending out writes */
         gc_write, /* waiting for writes */
     };
+
+    /* Buffer used during GC. */
+    std::vector<gc_write_t> gc_writes;
 
     struct gc_state_t {
     private:

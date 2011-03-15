@@ -34,29 +34,36 @@ struct large_value_acquired_t : public large_buf_available_callback_t {
     void on_large_buf_available(large_buf_t *large_value) { self->notify(); }
 };
 
-void co_acquire_large_value(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
+void co_acquire_large_buf_for_unprepend(large_buf_t *lb, int64_t length) {
     large_value_acquired_t acquired;
-
-    large_value->ensure_thread();
-    large_value->acquire(root_ref_, ref_limit_, access_, &acquired);
+    lb->ensure_thread();
+    lb->acquire_for_unprepend(length, &acquired);
     coro_t::wait();
 }
 
-void co_acquire_large_value_lhs(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
+void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size) {
     large_value_acquired_t acquired;
-    large_value->acquire_lhs(root_ref_, ref_limit_, access_, &acquired);
+    lb->ensure_thread();
+    lb->acquire_slice(offset, size, &acquired);
     coro_t::wait();
 }
 
-void co_acquire_large_value_rhs(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
-    large_value_acquired_t acquired;
-    large_value->acquire_rhs(root_ref_, ref_limit_, access_, &acquired);
-    coro_t::wait();
+void co_acquire_large_buf(large_buf_t *lb) {
+    co_acquire_large_buf_slice(lb, 0, lb->root_ref->size);
 }
 
-void co_acquire_large_value_for_delete(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_) {
+void co_acquire_large_buf_lhs(large_buf_t *lb) {
+    co_acquire_large_buf_slice(lb, 0, std::min(1L, lb->root_ref->size));
+}
+
+void co_acquire_large_buf_rhs(large_buf_t *lb) {
+    int64_t beg = std::max(int64_t(0), lb->root_ref->size - 1);
+    co_acquire_large_buf_slice(lb, beg, lb->root_ref->size - beg);
+}
+
+void co_acquire_large_buf_for_delete(large_buf_t *large_value) {
     large_value_acquired_t acquired;
-    large_value->acquire_for_delete(root_ref_, ref_limit_, &acquired);
+    large_value->acquire_for_delete(&acquired);
     coro_t::wait();
 }
 
