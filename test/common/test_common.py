@@ -1,8 +1,8 @@
 import shlex, sys, traceback, os, shutil, socket, subprocess, time, signal, threading, random
-from threading import Timer
 from vcoptparse import *
 from corrupter import *
 from rdbstat import *
+from procutil import *
 
 ec2 = 6
 
@@ -68,101 +68,6 @@ def find_unused_port():
             else: raise
         else: return current_port_to_check
         finally: s.close()
-
-def cmd_join(x):
-    """The opposite of shlex.split()."""
-    y = []
-    for e in x:
-        if " " not in e:
-            y.append(e)
-        else:
-            y.append("\"%s\"" % e)
-    return " ".join(y)
-
-def signal_with_number(number):
-    """Converts a numeric signal ID to a string like "SIGINT"."""
-    for name in dir(signal):
-        if name.startswith("SIG") and getattr(signal, name) == number:
-            return name
-    return str(number)
-
-def terminate_process(process, timeout=10, send_term=True, wait_to_finish=True):
-    def send_kill():
-        if process.poll() == None:
-            process.kill()
-
-    if send_term:
-        process.terminate()
-
-    if timeout:
-        timer = Timer(timeout, send_kill)
-        timer.start()
-
-    if wait_to_finish:
-        res = process.wait()
-        timer.cancel()
-        return res
-    else:
-        return None
-    
-def wait_with_timeout(process, timeout):
-    if timeout is None:
-        return process.wait()
-    else:
-        wait_interval = 0.05
-        n_intervals = int(timeout / wait_interval) + 1
-        while process.poll() is None:
-            n_intervals -= 1
-            if n_intervals == 0: break
-            time.sleep(wait_interval)
-        return process.poll()
-
-def run_executable(command_line, output_path, test_dir, timeout=60, valgrind_tool=None):
-    summary = os.path.basename(command_line[0])
-    if len(command_line) > 4: summary += " " + cmd_join(command_line[1:4]) + " [...]"
-    else: summary += " " + cmd_join(command_line[1:])
-    print "Running %r;" % summary,
-    sys.stdout.flush()
-    
-    output_path = test_dir.make_file(output_path)
-    
-    if not os.path.exists(command_line[0]):
-        raise RuntimeError("Bad executable: %r does not exist." % command_line[0])
-    
-    valgrind_error_code = 100
-    if valgrind_tool is not None:
-        cmd_line = ["valgrind",
-            "--tool=%s" % valgrind_tool,
-            "--error-exitcode=%d" % valgrind_error_code]
-        if valgrind_tool == "memcheck": cmd_line.append("--leak-check=full")
-        if valgrind_tool == "drd": cmd_line.append("--read-var-info=yes")
-        command_line = cmd_line + command_line
-    
-    with file(output_path, "w") as output_file:
-        sub = subprocess.Popen(command_line, stdout = output_file, stderr = subprocess.STDOUT)
-        start_time = time.time()
-        try:
-            res = wait_with_timeout(sub, timeout)
-            total_time = time.time() - start_time
-        finally:
-            try: sub.terminate()
-            except: pass
-    
-    if res is None:
-        assert timeout is not None
-        raise RuntimeError("%r took more than %d seconds. Output is at %r." % \
-            (" ".join(command_line), timeout, output_path))
-    elif valgrind_tool is not None and res == valgrind_error_code:
-        raise RuntimeError("Valgrind reported errors in %r. See %r." % \
-            (" ".join(command_line), output_path))
-    elif res > 0:
-        raise RuntimeError("%r exited with exit status %d." % \
-            (" ".join(command_line), res))
-    elif res < 0:
-        raise RuntimeError("%r exited with signal %s." % \
-            (" ".join(command_line), signal_with_number(-res)))
-    else:
-        print "done after %f seconds." % total_time
 
 def run_with_timeout(obj, test_dir, args = (), kwargs = {}, timeout = None, name = "the test"):
     print "Running %s..." % name
@@ -377,20 +282,17 @@ class Server(object):
                 self.data_files = DataFiles(self.opts, test_dir=test_dir)
         
         self.times_started = 0
+        self.server = None
     
     def start(self):
+
         self.times_started += 1
         if self.times_started == 1: self.name = self.base_name
         else: self.name = self.base_name + " %d" % self.times_started
         print "Starting %s." % self.name
-        
-        # Make a file to log what the server prints
-        output_path = self.test_dir.p("%s_output.txt" % self.name.replace(" ","_"))
-        print "Redirecting output to %r." % output_path
-        server_output = file(output_path, "w")
-        
+
         server_port = find_unused_port()
-        
+
         if self.opts["database"] == "rethinkdb":
             command_line = [self.executable_path,
                 "-p", str(server_port),
@@ -399,49 +301,28 @@ class Server(object):
                 ] + self.data_files.rethinkdb_flags() + \
                 shlex.split(self.opts["serve-flags"]) + \
                 self.extra_flags
-        
+
         elif self.opts["database"] == "memcached":
             command_line = ["memcached", "-p", str(server_port), "-M"]
-        
-        # Are we using valgrind?
-        if self.opts["valgrind"]:
-            cmd_line = ["valgrind"]
-            if self.opts["valgrind-tool"]:
-                self.valgrind_tool = self.opts["valgrind-tool"]
-            if self.opts["interactive"]:
-                cmd_line += ["--db-attach=yes"]
-            cmd_line += \
-                ["--tool=%s" % self.valgrind_tool,
-                 "--error-exitcode=%d" % self.valgrind_error_code]
-            if self.valgrind_tool == "memcheck":
-                cmd_line.append("--leak-check=full")
-                cmd_line.append("--track-origins=yes")
-            if self.valgrind_tool == "drd":
-                cmd_line.append("--read-var-info=yes")
-            command_line = cmd_line + command_line
-        
+
         # Start the server
-        try:
-            if self.opts["interactive"]:
-                self.server = subprocess.Popen(command_line)
-            else:
-                self.server = subprocess.Popen(command_line,
-                                               stdout = server_output, stderr = subprocess.STDOUT)
-        except Exception as e:
-            print command_line
-            raise e
-            
-        self.running = True
-        
+        assert self.server is None
+        self.server = SubProcess(
+            command_line,
+            "%s_output.txt" % self.name.replace(" ","_"),
+            self.test_dir,
+            valgrind_tool = (None if not self.opts["valgrind"] else self.opts["valgrind-tool"]),
+            interactive = self.opts["interactive"])
+
         # Start netrecord if necessary
-        
+
         if self.opts["netrecord"]:
             self.nrc = NetRecord(target_port=server_port, test_dir=self.test_dir, name=self.name)
             self.port = self.nrc.port
         else:
             self.port = server_port
         
-        # Wait for server to start up
+        # Wait for server to start accepting connections
         
         waited = 0
         while waited < self.server_start_time:
@@ -467,80 +348,18 @@ class Server(object):
         self.verify()
         
     def verify(self):
-        assert self.running
-        
-        if self.server.poll() != None:
-            self.running = False
-            if self.server.poll() == 0:
-                raise RuntimeError("%s shut down without being asked to." % self.name.capitalize())
-            elif self.opts["valgrind"] and self.server.poll() == self.valgrind_error_code:
-                raise RuntimeError("Valgrind reported errors in %s." % self.name)
-            elif self.server.poll() > 0:
-                raise RuntimeError("%s terminated unexpectedly with exit code %d" % \
-                    (self.name.capitalize(), self.server.poll()))
-            else:
-                raise RuntimeError("%s terminated unexpectedly with signal %s" % \
-                    (self.name.capitalize(), signal_with_number(-self.server.poll())))
+        self.server.verify()
     
     def shutdown(self):
-        # Make sure the server didn't shut down without being asked to
-        self.verify()
-        
-        assert self.running
-        self.running = False
-        
         if self.opts["interactive"]:
             # We're in interactive mode, probably in GDB. Don't kill it.
             return True
         
         # Shut down the server
-        self.server.send_signal(signal.SIGINT)
-        
-        if self.opts["netrecord"]:
-            self.nrc.stop()
-        
-        # Wait for the server to quit
-        
-        dead = wait_with_timeout(self.server, self.opts["sigint-timeout"]) is not None
-        
-        if not dead and self.opts["valgrind"]:
-            # Sometimes valgrind loses track of the first SIGINT, especially if it receives it
-            # right as it is starting up. Send a second SIGINT to make sure the server gets it.
-            # This is stupid and we shouldn't have to do this.
-            self.server.send_signal(signal.SIGINT)
-            
-            dead = wait_with_timeout(self.server, self.opts["sigint-timeout"]) is not None
-        
-        if not dead:
-            self.server.send_signal(signal.SIGQUIT)
-            
-            dead = wait_with_timeout(self.server, self.server_sigquit_time) is not None
-            
-            if not dead:
-                if self.opts["interactive"]:
-                    # We're in interactive mode, probably in GDB. Don't kill it.
-                    return
-                self.server.send_signal(signal.SIGKILL)
-                raise RuntimeError("%s did not shut down %d seconds after getting SIGINT, and " \
-                    "did not respond within %d seconds of SIGQUIT either." % \
-                    (self.name.capitalize(), self.opts["sigint-timeout"], self.server_sigquit_time))
-            else:
-                raise RuntimeError("%s did not shut down %d seconds after getting SIGINT, " \
-                    "but responded to SIGQUIT." % (self.name.capitalize(), self.opts["sigint-timeout"]))
-        
-        # Make sure the server didn't encounter any problems
-        if self.server.poll() != 0:
-            if self.opts["valgrind"] and self.server.poll() == self.valgrind_error_code:
-                raise RuntimeError("Valgrind reported errors in %s." % self.name)
-            elif self.server.poll() > 0:
-                raise RuntimeError("%s shut down with exit code %d." % \
-                    (self.name.capitalize(), self.server.poll()))
-            else:
-                raise RuntimeError("%s shut down with signal %s." % \
-                    (self.name.capitalize(), signal_with_number(-self.server.poll())))
-        
+        self.server.interrupt(timeout = self.opts["sigint-timeout"])
+        self.server = None
+        if self.opts["netrecord"]: self.nrc.stop()
         print "%s shut down successfully." % self.name.capitalize()
-        
         if self.opts["fsck"]: self.data_files.fsck()
         
     def kill(self):
@@ -548,26 +367,12 @@ class Server(object):
             # We're in interactive mode, probably in GDB. Don't kill it.
             return True
         
-        # Make sure the server didn't shut down without being asked to
-        self.verify()
-        
-        assert self.running
-        self.running = False
-        
         # Kill the server rudely
-        self.server.send_signal(signal.SIGKILL)
-        
-        if self.opts["netrecord"]:
-            self.nrc.stop()
-        
+        self.server.kill()
+        self.server = None
+        if self.opts["netrecord"]: self.nrc.stop()
         print "Killed %s." % self.name
-        
         if self.opts["fsck"]: self.data_files.fsck()
-    
-    def __del__(self):
-        # Avoid leaking processes in case there is an error in the test before we call end().
-        if hasattr(self, "server") and self.server.poll() == None:
-            self.server.send_signal(signal.SIGKILL)
 
 class MemcachedWrapperThatRestartsServer(object):
     def __init__(self, opts, server, internal_mc_maker, test_dir):

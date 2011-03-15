@@ -270,6 +270,13 @@ public:
         return inner_serializer.get_recency(id);
     }
 
+    bool register_read_ahead_cb(read_ahead_callback_t *cb) {
+        // Ignore this, it might make the checking ineffective...
+    }
+    bool unregister_read_ahead_cb(read_ahead_callback_t *cb) {
+        return false;
+    }
+
 public:
     struct shutdown_callback_t {
         virtual void on_serializer_shutdown(semantic_checking_serializer_t *) = 0;

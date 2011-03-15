@@ -250,8 +250,8 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
         ser_block_id_t block_id = b.buf_data().block_id;
 
 
-        int mod_id = translator_serializer_t::untranslate_block_id(block_id, cfg.mod_count, CONFIG_BLOCK_ID);
-        block_id_t cache_block_id = (block_id.value - CONFIG_BLOCK_ID.subsequent_ser_id().value - mod_id) / cfg.mod_count;
+        int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(block_id, cfg.mod_count, CONFIG_BLOCK_ID);
+        block_id_t cache_block_id = translator_serializer_t::untranslate_block_id_to_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
 
         if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
             if (!cfg.ignore_diff_log) {
@@ -432,7 +432,7 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
 
 
     if (value->is_large()) {
-        int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
+        int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
 
         int64_t seg_size = large_buf_t::bytes_per_leaf(cfg.block_size());
 
