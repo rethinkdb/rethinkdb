@@ -259,14 +259,6 @@ class Server(object):
     # Server should not take more than %(server_start_time)d seconds to start up
     server_start_time = 60 * ec2
     
-    # If server does not respond to SIGINT, give SIGquit and then, after %(server_sigquit_time)
-    # seconds, send SIGKILL 
-    server_sigquit_time = 15
-    
-    wait_interval = 0.25
-    
-    valgrind_error_code = 100
-    
     def __init__(self, opts, test_dir, name = "server", extra_flags = [], data_files = None):
         self.running = False
         self.opts = opts
