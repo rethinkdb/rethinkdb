@@ -1,11 +1,11 @@
 #ifndef _CLUSTERING_MASTER_MAP_HPP_
 #define _CLUSTERING_MASTER_MAP_HPP_
 #include <map>
-#include "clustering/rpc.hpp"
+#include "rpc/rpc.hpp"
 #include "concurrency/cond_var.hpp"
 #include <boost/bind.hpp>
 #include "store.hpp"
-#include "clustering/serialize.hpp"
+#include "rpc/serialize/serialize.hpp"
 #include "clustering/cluster_store.hpp"
 
 typedef unsigned int hash_t;

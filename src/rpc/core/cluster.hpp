@@ -1,6 +1,6 @@
 
-#ifndef __CLUSTERING_CLUSTER_HPP__
-#define __CLUSTERING_CLUSTER_HPP__
+#ifndef __RPC_CORE_CLUSTER_HPP__
+#define __RPC_CORE_CLUSTER_HPP__
 
 #include "arch/arch.hpp"
 #include "utils.hpp"
@@ -10,9 +10,9 @@
 #include <list>
 #include "concurrency/mutex.hpp"
 #include "protob.hpp"
-#include "clustering/population.pb.h"
+#include "rpc/core/population.pb.h"
 #include "concurrency/cond_var.hpp"
-#include "clustering/peer.hpp"
+#include "rpc/core/peer.hpp"
 
 class cluster_t;
 struct cluster_delegate_t;
@@ -293,4 +293,4 @@ private:
     cond_t to_signal_when_done;
 };
 
-#endif /* __CLUSTERING_CLUSTER_HPP__ */
+#endif /* __RPC_CORE_CLUSTER_HPP__ */

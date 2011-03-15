@@ -1,5 +1,5 @@
-#ifndef _CLUSTER_PEER_HPP_
-#define _CLUSTER_PEER_HPP_
+#ifndef _RPC_CORE_PEER_HPP_
+#define _RPC_CORE_PEER_HPP_
 
 #include "arch/arch.hpp"
 #include <boost/function.hpp>
@@ -7,9 +7,9 @@
 #include <list>
 #include "concurrency/mutex.hpp"
 #include "protob.hpp"
-#include "clustering/population.pb.h"
+#include "rpc/core/population.pb.h"
 #include "concurrency/cond_var.hpp"
-#include "clustering/srvc.hpp"
+#include "rpc/core/srvc.hpp"
 #include "containers/intrusive_list.hpp"
 
 class cluster_peer_t 

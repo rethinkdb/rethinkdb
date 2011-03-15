@@ -1,4 +1,4 @@
-#include "clustering/protob.hpp"
+#include "rpc/core/protob.hpp"
 
 void hd_packet(header::hdr hdr) {
     char buffer[1024];

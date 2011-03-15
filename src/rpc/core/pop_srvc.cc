@@ -1,8 +1,8 @@
-#include "clustering/pop_srvc.hpp"
+#include "rpc/core/pop_srvc.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <boost/make_shared.hpp>
-#include "clustering/cluster.hpp"
+#include "rpc/core/cluster.hpp"
 
 void join_propose_srvc_t::handle(cluster_peer_t *sndr) {
     population::Join_respond respond;

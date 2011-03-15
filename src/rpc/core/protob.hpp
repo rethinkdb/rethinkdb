@@ -1,9 +1,9 @@
-#ifndef _CLUSTERING_PROTOB_HPP_
-#define _CLUSTERING_PROTOB_HPP_
+#ifndef _RPC_CORE_PROTOB_HPP_
+#define _RPC_CORE_PROTOB_HPP_
 
 #include "arch/arch.hpp"
 #include <google/protobuf/message.h>
-#include "clustering/header.pb.h"
+#include "rpc/core/header.pb.h"
 #include "utils.hpp"
 #include "utils2.hpp"
 #include <string>

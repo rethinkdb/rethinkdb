@@ -1,5 +1,5 @@
-#include "clustering/mbox_srvc.hpp"
-#include "clustering/cluster.hpp"
+#include "rpc/core/mbox_srvc.hpp"
+#include "rpc/core/cluster.hpp"
 #include <cxxabi.h>
 
 void mailbox_srvc_t::handle(cluster_peer_t *sndr) {

@@ -1,4 +1,4 @@
-#include "clustering/cluster.hpp"
+#include "rpc/core/cluster.hpp"
 #include "arch/arch.hpp"
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>
@@ -7,9 +7,9 @@
 #include "protob.hpp"
 #include <string>
 #include "logger.hpp"
-#include "clustering/pop_srvc.hpp"
-#include "clustering/mbox_srvc.hpp"
-#include "clustering/mailbox.pb.h"
+#include "rpc/core/pop_srvc.hpp"
+#include "rpc/core/mbox_srvc.hpp"
+#include "rpc/core/mailbox.pb.h"
 #include <cxxabi.h>
 
 cluster_mailbox_t::cluster_mailbox_t() {

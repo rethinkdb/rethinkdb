@@ -2,10 +2,10 @@
 #define __CLUSTERING_CLUSTER_STORE_HPP__
 
 #include "store.hpp"
-#include "clustering/rpc.hpp"
-#include "clustering/serialize_macros.hpp"
-#include "clustering/serialize/others.hpp"
-#include "clustering/serialize/variant.hpp"
+#include "rpc/rpc.hpp"
+#include "rpc/serialize/serialize_macros.hpp"
+#include "rpc/serialize/others.hpp"
+#include "rpc/serialize/variant.hpp"
 
 RDB_MAKE_SERIALIZABLE_1(get_cas_mutation_t, key)
 RDB_MAKE_SERIALIZABLE_7(set_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas)

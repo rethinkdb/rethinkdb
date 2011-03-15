@@ -1,9 +1,9 @@
 
-#ifndef __CLUSTERING_SERIALIZE_HPP__
-#define __CLUSTERING_SERIALIZE_HPP__
+#ifndef __RPC_SERIALIZE_SERIALIZE_HPP__
+#define __RPC_SERIALIZE_SERIALIZE_HPP__
 
 #include "arch/arch.hpp"
-#include "clustering/cluster.hpp"
+#include "rpc/core/cluster.hpp"
 #include <boost/utility.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -167,4 +167,4 @@ inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es,
     conn->read_address(addr);
 }
 
-#endif /* __CLUSTERING_SERIALIZE_HPP__ */
+#endif /* __RPC_SERIALIZE_SERIALIZE_HPP__ */

@@ -1,8 +1,8 @@
-#ifndef _CLUSTERING_MBOX_SRVC_HPP_
-#define _CLUSTERING_MBOX_SRVC_HPP_
+#ifndef _RPC_CORE_MBOX_SRVC_HPP_
+#define _RPC_CORE_MBOX_SRVC_HPP_
 
-#include "clustering/mailbox.pb.h"
-#include "clustering/srvc.hpp"
+#include "rpc/core/mailbox.pb.h"
+#include "rpc/core/srvc.hpp"
 
 /* mailbox_srvc_t is to be used as an always on srvc, it is responsible for
  * sending mailbox_msg data into the correct mailboxes and sending back errors
@@ -19,4 +19,4 @@ public:
     void handle(cluster_peer_t *);
 };
 
-#endif
+#endif /* _RPC_CORE_MBOX_SRVC_HPP_ */

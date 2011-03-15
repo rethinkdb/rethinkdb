@@ -1,8 +1,8 @@
-#ifndef __CLUSTERING_SERIALIZE_OTHERS_HPP__
-#define __CLUSTERING_SERIALIZE_OTHERS_HPP__
+#ifndef __RPC_SERIALIZE_OTHERS_HPP__
+#define __RPC_SERIALIZE_OTHERS_HPP__
 
-#include "clustering/serialize.hpp"
-#include "clustering/serialize/basic.hpp"
+#include "rpc/serialize/serialize.hpp"
+#include "rpc/serialize/basic.hpp"
 #include "store.hpp"
 
 /* Serializing and unserializing std::vector of a serializable type */
@@ -137,4 +137,4 @@ inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es,
     }
 }
 
-#endif /* __CLUSTERING_SERIALIZE_OTHERS_HPP__ */
+#endif /* __RPC_SERIALIZE_OTHERS_HPP__ */

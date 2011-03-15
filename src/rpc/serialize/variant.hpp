@@ -1,8 +1,8 @@
-#ifndef __CLUSTERING_SERIALIZE_VARIANT_HPP__
-#define __CLUSTERING_SERIALIZE_VARIANT_HPP__
+#ifndef __RPC_SERIALIZE_VARIANT_HPP__
+#define __RPC_SERIALIZE_VARIANT_HPP__
 
-#include "clustering/serialize.hpp"
-#include "clustering/serialize/basic.hpp"
+#include "rpc/serialize/serialize.hpp"
+#include "rpc/serialize/basic.hpp"
 #include <boost/variant.hpp>
 #include <boost/mpl/front.hpp>
 #include <boost/mpl/pop_front.hpp>
@@ -99,4 +99,4 @@ void unserialize(cluster_inpipe_t *inpipe, unserialize_extra_storage_t *es, boos
     unserialize_nth_from_typelist_t<typelist_t, boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> >::load(inpipe, es, out, which);
 }
 
-#endif /* __CLUSTERING_SERIALIZE_VARIANT_HPP__ */
+#endif /* __RPC_SERIALIZE_VARIANT_HPP__ */

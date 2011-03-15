@@ -1,6 +1,6 @@
-#ifndef _CLUSTERING_SRVC_HPP_
-#define _CLUSTERING_SRVC_HPP_
-#include "clustering/protob.hpp"
+#ifndef _RPC_CORE_SRVC_HPP_
+#define _RPC_CORE_SRVC_HPP_
+#include "rpc/core/protob.hpp"
 
 class cluster_peer_t;
 

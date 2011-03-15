@@ -1,7 +1,7 @@
-#ifndef __CLUSTERING_SERIALIZE_BASIC_HPP__
-#define __CLUSTERING_SERIALIZE_BASIC_HPP__
+#ifndef __RPC_SERIALIZE_BASIC_HPP__
+#define __RPC_SERIALIZE_BASIC_HPP__
 
-#include "clustering/serialize.hpp"
+#include "rpc/serialize/serialize.hpp"
 
 /* BEWARE: This file contains evil Boost witchery that depends on SFINAE and boost::type_traits
 and all sorts of other bullshit. Here are some crosses to prevent the demonic witchery from
@@ -59,4 +59,4 @@ void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, T *val
     pipe->read(value, sizeof(*value));
 }
 
-#endif /* __CLUSTERING_SERIALIZE_BASIC_HPP__ */
+#endif /* __RPC_SERIALIZE_BASIC_HPP__ */

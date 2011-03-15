@@ -1,9 +1,9 @@
 
-#ifndef _CLUSTERING_POP_SRVC_HPP_
-#define _CLUSTERING_POP_SRVC_HPP_
+#ifndef _RPC_CORE_POP_SRVC_HPP_
+#define _RPC_CORE_POP_SRVC_HPP_
 
-#include "clustering/population.pb.h"
-#include "clustering/srvc.hpp"
+#include "rpc/core/population.pb.h"
+#include "rpc/core/srvc.hpp"
 #include "concurrency/cond_var.hpp"
 
 /* in general services should be named after the type of packet which they
