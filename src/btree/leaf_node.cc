@@ -496,8 +496,8 @@ void print(const leaf_node_t *node) {
     printf("\n\n\n");
 }
 
-repli_timestamp get_timestamp_value(block_size_t block_size, const leaf_node_t *node, uint16_t offset) {
-    int toff = impl::get_timestamp_offset(block_size, node, offset);
+repli_timestamp get_timestamp_value(const leaf_node_t *node, uint16_t offset) {
+    int toff = impl::get_timestamp_offset(node, offset);
 
     if (toff == -1) {
         return node->times.last_modified;
@@ -656,25 +656,24 @@ void remove_time(leaf_timestamps_t *times, int offset) {
 // Returns the offset of the timestamp (or -1 or
 // NUM_LEAF_NODE_EARLIER_TIMES) for the key-value pair at the
 // given offset.
-int get_timestamp_offset(block_size_t block_size, const leaf_node_t *node, uint16_t offset) {
+int get_timestamp_offset(const leaf_node_t *node, uint16_t offset) {
     const byte *target = ptr_cast<byte>(get_pair(node, offset));
 
     const byte *p = ptr_cast<byte>(get_pair(node, node->frontmost_offset));
-    const byte *e = ptr_cast<byte>(node) + block_size.value();
+    int npairs = node->npairs;
 
-    int i = -1;
+    int i = 0;
     for (;;) {
-        rassert(p <= e);
-        if (p >= e) {
+        if (i == npairs) {
             return NUM_LEAF_NODE_EARLIER_TIMES;
         }
         if (p == target) {
-            return i;
+            return i - 1;
         }
-        ++i;
         if (i == NUM_LEAF_NODE_EARLIER_TIMES) {
             return NUM_LEAF_NODE_EARLIER_TIMES;
         }
+        ++i;
         p += pair_size(ptr_cast<btree_leaf_pair>(p));
     }
 }

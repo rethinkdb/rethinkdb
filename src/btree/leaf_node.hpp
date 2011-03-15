@@ -73,7 +73,7 @@ namespace leaf {
     btree_leaf_pair *get_pair_by_index(leaf_node_t *node, int index);
 
     size_t pair_size(const btree_leaf_pair *pair);
-    repli_timestamp get_timestamp_value(block_size_t block_size, const leaf_node_t *node, uint16_t offset);
+    repli_timestamp get_timestamp_value(const leaf_node_t *node, uint16_t offset);
 
 // We can't use "internal" because that's for internal nodes... So we
 // have to use impl :( I'm sorry.
@@ -107,7 +107,7 @@ namespace impl {
     // Returns the offset of the timestamp (or -1 or
     // NUM_LEAF_NODE_EARLIER_TIMES) for the key-value pair at the
     // given offset.
-    int get_timestamp_offset(block_size_t block_size, const leaf_node_t *node, uint16_t offset);
+    int get_timestamp_offset(const leaf_node_t *node, uint16_t offset);
 }  // namespace leaf::impl
 
 }  // namespace leaf

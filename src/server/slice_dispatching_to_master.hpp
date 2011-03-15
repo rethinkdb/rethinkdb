@@ -6,22 +6,7 @@
 #include "replication/master.hpp"
 
 
-
-struct backfill_atom_t {
-    store_key_t key;
-    unique_ptr_t<data_provider_t> value;
-    mcflags_t flags;
-    repli_timestamp recency;
-    cas_t cas_or_zero;
-};
-
-class backfill_callback_t {
-public:
-    virtual void on_keyvalue(backfill_atom_t atom) = 0;
-    virtual void done() = 0;
-protected:
-    ~backfill_callback_t() { }
-};
+class backfill_callback_t;
 
 class btree_slice_dispatching_to_master_t : public set_store_t {
 public:

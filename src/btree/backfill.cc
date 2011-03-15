@@ -163,7 +163,38 @@ void process_internal_node(backfill_state_t& state, buf_lock_t& buf_lock, int le
 }
 
 void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
+    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(buf_lock->get_data_read());
 
+    // Remember, we only want to process recent keys.
 
+    int npairs = node->npairs;
 
+    // TODO: Replace large_buf_acquisition_conds with an object that counts down to zero.
+    scoped_array<cond_t> large_buf_acquisition_conds(new cond_t[npairs]);
+
+    for (int i = 0; i < npairs; ++i) {
+        uint16_t offset = node->pair_offsets[i];
+        repli_timestamp recency = get_timestamp_value(node, offset);
+
+        if (recency.time >= state.since_when.time) {
+            // The value is sufficiently recent.  But is it a small value or a large value?
+            const btree_leaf_pair *pair = leaf::get_pair(node, offset);
+            const btree_value *value = pair->value();
+            value_data_provider_t *data_provider = acquisition_pulsing_value_data_provider_t::create(value, state.transactor, &large_buf_acquisition_conds[i]);
+            backfill_atom_t atom;
+            keycpy(atom.key.as_btree_key(), pair->key);
+            atom.value = data_provider;
+            atom.flags = value->mcflags();
+            atom.exptime = value->exptime();
+            atom.recency = recency;
+            atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
+            state.callback->on_keyvalue(atom);
+        } else {
+            large_buf_acquisition_conds[i].pulse();
+        }
+    }
+
+    for (int i = 0; i < npairs; ++i) {
+        large_buf_acquisition_conds[i].wait();
+    }
 }

@@ -20,6 +20,9 @@ struct store_key_t {
     void print() const {
         printf("%*.*s", size, size, contents);
     }
+    btree_key_t *as_btree_key() {
+        return reinterpret_cast<btree_key_t *>(this);
+    }
 };
 
 inline bool str_to_key(const char *str, store_key_t *buf) {
