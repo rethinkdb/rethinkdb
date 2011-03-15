@@ -38,7 +38,7 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     /* Initialize the root block */
     transactor_t transactor(cache.get(), rwi_write);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
-    btree_superblock_t *sb = (btree_superblock_t*)(superblock.buf()->get_data_major_write());
+    btree_superblock_t *sb = (btree_superblock_t*)(superblock->get_data_major_write());
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
 

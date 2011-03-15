@@ -45,7 +45,7 @@ void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli
     buf_lock_t queue_root(txn, queue_root_id, rwi_write);
 
     // TODO this could be a non-major write?
-    void *queue_root_buf = queue_root.buf()->get_data_major_write();
+    void *queue_root_buf = queue_root->get_data_major_write();
 
     off64_t primal_offset = delete_queue::primal_offset(queue_root_buf);
     large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);
@@ -111,7 +111,7 @@ void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, r
     // fact that we hold the queue_root lock for the entire operation.
     buf_lock_t queue_root(txn, queue_root_id, rwi_read);
 
-    void *queue_root_buf = const_cast<void *>(queue_root.buf()->get_data_read());
+    void *queue_root_buf = const_cast<void *>(queue_root->get_data_read());
 
     off64_t primal_offset = delete_queue::primal_offset(queue_root_buf);
     large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);

@@ -34,6 +34,8 @@ public:
     // TODO: Remove buf_t::release, or make it private.
     buf_t *buf() { return buf_; }
 
+    buf_t *operator->() { return buf_; }
+
     // Swaps this buf_lock_t with another, thus obeying RAII since one
     // buf_lock_t owns a buf_t at a time.
     void swap(buf_lock_t& swapee) {
