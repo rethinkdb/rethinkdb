@@ -35,7 +35,10 @@ public:
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call() {
             message_t m;
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
@@ -88,12 +91,23 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call() {
             call_message_t m;
-            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse(true);
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(true);
                 }
                 void run(cluster_message_t *msg) {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(true);
                 }
 #ifndef NDEBUG
@@ -102,12 +116,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -157,7 +175,8 @@ private:
         p->done();
         ret_message_t rm;
         callback();
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -181,17 +200,29 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call() {
             call_message_t m;
-            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
                     ret_t ret;
                     // No extra storage because this is a return, not a call
                     global_unserialize(p, NULL, &ret);
-                    pulse(std::make_pair(true, ret));
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(std::make_pair(true, m->ret));
+                    ret_t ret = m->ret;
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
 #ifndef NDEBUG
                 const std::type_info& expected_type() {
@@ -199,12 +230,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -258,7 +293,8 @@ private:
         p->done();
         ret_message_t rm;
         rm.ret = callback();
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -282,7 +318,10 @@ public:
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0) {
             message_t m(arg0);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
@@ -342,12 +381,23 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0) {
             call_message_t m(arg0);
-            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse(true);
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(true);
                 }
                 void run(cluster_message_t *msg) {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(true);
                 }
 #ifndef NDEBUG
@@ -356,12 +406,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -416,7 +470,8 @@ private:
         p->done();
         ret_message_t rm;
         callback(arg0);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -440,17 +495,29 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0) {
             call_message_t m(arg0);
-            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
                     ret_t ret;
                     // No extra storage because this is a return, not a call
                     global_unserialize(p, NULL, &ret);
-                    pulse(std::make_pair(true, ret));
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(std::make_pair(true, m->ret));
+                    ret_t ret = m->ret;
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
 #ifndef NDEBUG
                 const std::type_info& expected_type() {
@@ -458,12 +525,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -522,7 +593,8 @@ private:
         p->done();
         ret_message_t rm;
         rm.ret = callback(arg0);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -546,7 +618,10 @@ public:
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1) {
             message_t m(arg0, arg1);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
@@ -612,12 +687,23 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1) {
             call_message_t m(arg0, arg1);
-            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse(true);
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(true);
                 }
                 void run(cluster_message_t *msg) {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(true);
                 }
 #ifndef NDEBUG
@@ -626,12 +712,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -691,7 +781,8 @@ private:
         p->done();
         ret_message_t rm;
         callback(arg0, arg1);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -715,17 +806,29 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1) {
             call_message_t m(arg0, arg1);
-            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
                     ret_t ret;
                     // No extra storage because this is a return, not a call
                     global_unserialize(p, NULL, &ret);
-                    pulse(std::make_pair(true, ret));
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(std::make_pair(true, m->ret));
+                    ret_t ret = m->ret;
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
 #ifndef NDEBUG
                 const std::type_info& expected_type() {
@@ -733,12 +836,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -802,7 +909,8 @@ private:
         p->done();
         ret_message_t rm;
         rm.ret = callback(arg0, arg1);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -826,7 +934,10 @@ public:
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
             message_t m(arg0, arg1, arg2);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
@@ -898,12 +1009,23 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
             call_message_t m(arg0, arg1, arg2);
-            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse(true);
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(true);
                 }
                 void run(cluster_message_t *msg) {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(true);
                 }
 #ifndef NDEBUG
@@ -912,12 +1034,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -982,7 +1108,8 @@ private:
         p->done();
         ret_message_t rm;
         callback(arg0, arg1, arg2);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -1006,17 +1133,29 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2) {
             call_message_t m(arg0, arg1, arg2);
-            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
                     ret_t ret;
                     // No extra storage because this is a return, not a call
                     global_unserialize(p, NULL, &ret);
-                    pulse(std::make_pair(true, ret));
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(std::make_pair(true, m->ret));
+                    ret_t ret = m->ret;
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
 #ifndef NDEBUG
                 const std::type_info& expected_type() {
@@ -1024,12 +1163,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -1098,7 +1241,8 @@ private:
         p->done();
         ret_message_t rm;
         rm.ret = callback(arg0, arg1, arg2);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -1122,7 +1266,10 @@ public:
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
             message_t m(arg0, arg1, arg2, arg3);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
@@ -1200,12 +1347,23 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
             call_message_t m(arg0, arg1, arg2, arg3);
-            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse(true);
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(true);
                 }
                 void run(cluster_message_t *msg) {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(true);
                 }
 #ifndef NDEBUG
@@ -1214,12 +1372,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -1289,7 +1451,8 @@ private:
         p->done();
         ret_message_t rm;
         callback(arg0, arg1, arg2, arg3);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -1313,17 +1476,29 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3) {
             call_message_t m(arg0, arg1, arg2, arg3);
-            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
                     ret_t ret;
                     // No extra storage because this is a return, not a call
                     global_unserialize(p, NULL, &ret);
-                    pulse(std::make_pair(true, ret));
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(std::make_pair(true, m->ret));
+                    ret_t ret = m->ret;
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
 #ifndef NDEBUG
                 const std::type_info& expected_type() {
@@ -1331,12 +1506,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -1410,7 +1589,8 @@ private:
         p->done();
         ret_message_t rm;
         rm.ret = callback(arg0, arg1, arg2, arg3);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -1434,7 +1614,10 @@ public:
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
             message_t m(arg0, arg1, arg2, arg3, arg4);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
@@ -1518,12 +1701,23 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4);
-            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse(true);
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(true);
                 }
                 void run(cluster_message_t *msg) {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(true);
                 }
 #ifndef NDEBUG
@@ -1532,12 +1726,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -1612,7 +1810,8 @@ private:
         p->done();
         ret_message_t rm;
         callback(arg0, arg1, arg2, arg3, arg4);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -1636,17 +1835,29 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4);
-            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
                     ret_t ret;
                     // No extra storage because this is a return, not a call
                     global_unserialize(p, NULL, &ret);
-                    pulse(std::make_pair(true, ret));
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(std::make_pair(true, m->ret));
+                    ret_t ret = m->ret;
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
 #ifndef NDEBUG
                 const std::type_info& expected_type() {
@@ -1654,12 +1865,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -1738,7 +1953,8 @@ private:
         p->done();
         ret_message_t rm;
         rm.ret = callback(arg0, arg1, arg2, arg3, arg4);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -1762,7 +1978,10 @@ public:
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
@@ -1852,12 +2071,23 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
-            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse(true);
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(true);
                 }
                 void run(cluster_message_t *msg) {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(true);
                 }
 #ifndef NDEBUG
@@ -1866,12 +2096,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -1951,7 +2185,8 @@ private:
         p->done();
         ret_message_t rm;
         callback(arg0, arg1, arg2, arg3, arg4, arg5);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -1975,17 +2210,29 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
-            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
                     ret_t ret;
                     // No extra storage because this is a return, not a call
                     global_unserialize(p, NULL, &ret);
-                    pulse(std::make_pair(true, ret));
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(std::make_pair(true, m->ret));
+                    ret_t ret = m->ret;
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
 #ifndef NDEBUG
                 const std::type_info& expected_type() {
@@ -1993,12 +2240,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -2082,7 +2333,8 @@ private:
         p->done();
         ret_message_t rm;
         rm.ret = callback(arg0, arg1, arg2, arg3, arg4, arg5);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -2106,7 +2358,10 @@ public:
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
@@ -2202,12 +2457,23 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse(true);
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(true);
                 }
                 void run(cluster_message_t *msg) {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(true);
                 }
 #ifndef NDEBUG
@@ -2216,12 +2482,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -2306,7 +2576,8 @@ private:
         p->done();
         ret_message_t rm;
         callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -2330,17 +2601,29 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
                     ret_t ret;
                     // No extra storage because this is a return, not a call
                     global_unserialize(p, NULL, &ret);
-                    pulse(std::make_pair(true, ret));
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(std::make_pair(true, m->ret));
+                    ret_t ret = m->ret;
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
 #ifndef NDEBUG
                 const std::type_info& expected_type() {
@@ -2348,12 +2631,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -2442,7 +2729,8 @@ private:
         p->done();
         ret_message_t rm;
         rm.ret = callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -2466,7 +2754,10 @@ public:
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
@@ -2568,12 +2859,23 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse(true);
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(true);
                 }
                 void run(cluster_message_t *msg) {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(true);
                 }
 #ifndef NDEBUG
@@ -2582,12 +2884,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -2677,7 +2983,8 @@ private:
         p->done();
         ret_message_t rm;
         callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -2701,17 +3008,29 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
                     ret_t ret;
                     // No extra storage because this is a return, not a call
                     global_unserialize(p, NULL, &ret);
-                    pulse(std::make_pair(true, ret));
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(std::make_pair(true, m->ret));
+                    ret_t ret = m->ret;
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
 #ifndef NDEBUG
                 const std::type_info& expected_type() {
@@ -2719,12 +3038,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -2818,7 +3141,8 @@ private:
         p->done();
         ret_message_t rm;
         rm.ret = callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -2842,7 +3166,10 @@ public:
         address_t(async_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
         cluster_address_t addr;
@@ -2950,12 +3277,23 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         void call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-            struct : public cluster_mailbox_t, public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<bool>, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
-                    pulse(true);
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(true);
                 }
                 void run(cluster_message_t *msg) {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(true);
                 }
 #ifndef NDEBUG
@@ -2964,12 +3302,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(false);
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -3064,7 +3406,8 @@ private:
         p->done();
         ret_message_t rm;
         callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {
@@ -3088,17 +3431,29 @@ public:
         address_t(sync_mailbox_t *mb) : addr(mb) { }
         ret_t call(const arg0_t &arg0, const arg1_t &arg1, const arg2_t &arg2, const arg3_t &arg3, const arg4_t &arg4, const arg5_t &arg5, const arg6_t &arg6, const arg7_t &arg7, const arg8_t &arg8) {
             call_message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-            struct : public cluster_mailbox_t, public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,
+                     public promise_t<std::pair<bool, ret_t> >, public cluster_peer_t::kill_cb_t {
+            private:
+                bool pulsed; //Truly annoying that we need to keep track of this
+            public:
+                reply_listener_t() : pulsed(false) {}
                 void unserialize(cluster_inpipe_t *p) {
                     ret_t ret;
                     // No extra storage because this is a return, not a call
                     global_unserialize(p, NULL, &ret);
-                    pulse(std::make_pair(true, ret));
                     p->done();
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
                 void run(cluster_message_t *msg) {
                     ret_message_t *m = static_cast<ret_message_t *>(msg);
-                    pulse(std::make_pair(true, m->ret));
+                    ret_t ret = m->ret;
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
+                    pulse(std::make_pair(true, ret));
                 }
 #ifndef NDEBUG
                 const std::type_info& expected_type() {
@@ -3106,12 +3461,16 @@ public:
                 }
 #endif
                 void on_kill() {
+                    on_thread_t syncer(home_thread);
+                    if (pulsed) return;
+                    else pulsed = true;
                     pulse(std::make_pair(false, ret_t()));
                 }
             } reply_listener;
             m.reply_to = cluster_address_t(&reply_listener);
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
-            addr.send(&m);
+            try { addr.send(&m); }
+            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -3210,7 +3569,8 @@ private:
         p->done();
         ret_message_t rm;
         rm.ret = callback(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
-        reply_addr.send(&rm);
+        try { reply_addr.send(&rm); }
+        catch (tcp_conn_t::write_closed_exc_t) {}
     }
 
     void run(cluster_message_t *cm) {

@@ -22,7 +22,10 @@ def generate_async_message_template(nargs):
         print "            message_t m(%s);" % ", ".join("arg%d" % i for i in xrange(nargs));
     else:
         print "            message_t m;"
-    print "            addr.send(&m);"
+    print "            try { addr.send(&m); }"
+    print "            catch (tcp_conn_t::write_closed_exc_t) {"
+    print "                throw rpc_peer_killed_exc_t();"
+    print "            }"
     print "        }"
     print "        RDB_MAKE_ME_SERIALIZABLE_1(addr)"
     # print "    private:"    # Make public temporarily
@@ -107,21 +110,39 @@ def generate_sync_message_template(nargs, void):
         print "            call_message_t m(%s);" % ", ".join("arg%d" % i for i in xrange(nargs));
     else:
         print "            call_message_t m;"
-    print "            struct : public cluster_mailbox_t, public %s, public cluster_peer_t::kill_cb_t {" % ("promise_t<std::pair<bool, ret_t> >" if not void else "promise_t<bool>")
+    #print "            struct : public cluster_mailbox_t, public %s, public cluster_peer_t::kill_cb_t {" % ("promise_t<std::pair<bool, ret_t> >" if not void else "promise_t<bool>")
+    print "            struct reply_listener_t : public cluster_mailbox_t, public home_thread_mixin_t,"
+    print "                     public %s, public cluster_peer_t::kill_cb_t {" % ("promise_t<std::pair<bool, ret_t> >" if not void else "promise_t<bool>")
+    print "            private:"
+    print "                bool pulsed; //Truly annoying that we need to keep track of this"
+    print "            public:"
+    print "                reply_listener_t() : pulsed(false) {}"
     print "                void unserialize(cluster_inpipe_t *p) {"
     if not void:
         print "                    ret_t ret;"
         print "                    // No extra storage because this is a return, not a call"
         print "                    global_unserialize(p, NULL, &ret);"
+        print "                    p->done();"
+        print "                    on_thread_t syncer(home_thread);"
+        print "                    if (pulsed) return;"
+        print "                    else pulsed = true;"
         print "                    pulse(std::make_pair(true, ret));"
     else:
+        print "                    p->done();"
+        print "                    on_thread_t syncer(home_thread);"
+        print "                    if (pulsed) return;"
+        print "                    else pulsed = true;"
         print "                    pulse(true);"
-    print "                    p->done();"
     print "                }"
     print "                void run(cluster_message_t *msg) {"
     if not void:
         print "                    ret_message_t *m = static_cast<ret_message_t *>(msg);"
-        print "                    pulse(std::make_pair(true, m->ret));"
+        print "                    ret_t ret = m->ret;"
+    print "                    on_thread_t syncer(home_thread);"
+    print "                    if (pulsed) return;"
+    print "                    else pulsed = true;"
+    if not void:
+        print "                    pulse(std::make_pair(true, ret));"
     else:
         print "                    pulse(true);"
     print "                }"
@@ -131,6 +152,9 @@ def generate_sync_message_template(nargs, void):
     print "                }"
     print "#endif"
     print "                void on_kill() {"
+    print "                    on_thread_t syncer(home_thread);"
+    print "                    if (pulsed) return;"
+    print "                    else pulsed = true;"
     if not void:
         print "                    pulse(std::make_pair(false, ret_t()));"
     else:
@@ -139,7 +163,8 @@ def generate_sync_message_template(nargs, void):
     print "            } reply_listener;"
     print "            m.reply_to = cluster_address_t(&reply_listener);"
     print "            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);"
-    print "            addr.send(&m);"
+    print "            try { addr.send(&m); }"
+    print "            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there."
     if not void:
         print "            std::pair<bool, ret_t> res = reply_listener.wait();"
         print "            if (res.first) return res.second;"
@@ -216,7 +241,8 @@ def generate_sync_message_template(nargs, void):
         print "        rm.ret = callback(%s);" % ", ".join("arg%d" % i for i in xrange(nargs))
     else:
         print "        callback(%s);" % ", ".join("arg%d" % i for i in xrange(nargs))
-    print "        reply_addr.send(&rm);"
+    print "        try { reply_addr.send(&rm); }"
+    print "        catch (tcp_conn_t::write_closed_exc_t) {}"
     print "    }"
     print
     print "    void run(cluster_message_t *cm) {"

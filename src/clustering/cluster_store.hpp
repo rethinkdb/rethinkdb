@@ -31,7 +31,11 @@ public:
             { }
         address_t() { }
         mutation_result_t change(const mutation_t &mut) {
-            return change_address.call(mut);
+            try {
+                return change_address.call(mut);
+            } catch (rpc_peer_killed_exc_t) {}
+            mutation_result_t res;
+            return res;
         }
         RDB_MAKE_ME_SERIALIZABLE_1(change_address)
     private:
@@ -56,7 +60,11 @@ public:
         { }
         address_t() { }
         get_result_t get(const store_key_t &key) {
-            return get_address.call(key);
+            try {
+                return get_address.call(key);
+            } catch (rpc_peer_killed_exc_t) {}
+            get_result_t res;
+            return res;
         }
         rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key,
                 rget_bound_mode_t right_mode, const store_key_t &right_key) {
@@ -88,7 +96,11 @@ public:
             { }
         address_t() { }
         mutation_result_t change(const mutation_t &mut, castime_t cs) {
-            return change_address.call(mut, cs);
+            try {
+                return change_address.call(mut, cs);
+            } catch (rpc_peer_killed_exc_t) {}
+            mutation_result_t res;
+            return res;
         }
         RDB_MAKE_ME_SERIALIZABLE_1(change_address)
     private:

@@ -112,8 +112,12 @@ void serve(int id, demo_delegate_t *delegate) {
 
 void add_listener(int peer, dispatching_store_t *dispatcher, set_store_mailbox_t::address_t set_addr, get_store_mailbox_t::address_t get_addr) {
     dispatching_store_t::dispatchee_t dispatchee(peer, dispatcher, make_pair(&set_addr, &get_addr));
-    coro_t::wait();   // Objects must stay alive until we shut down, but the demo app doesn't
-    // understand what it means to shut down yet.
+    struct 
+        : public cond_t, public cluster_peer_t::kill_cb_t 
+    {
+        void on_kill() { pulse(); }
+    } kill_waiter;
+    kill_waiter.wait();
 }
 
 void cluster_main(cluster_config_t config, thread_pool_t *thread_pool) {

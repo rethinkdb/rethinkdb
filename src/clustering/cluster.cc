@@ -398,7 +398,9 @@ void cluster_outpipe_t::write(const void *buf, size_t size) {
         crash("ser_size() said there would be %d bytes, but serialize() is trying to write more.",
             expected);
     }
-    conn->write(buf, size);
+    try {
+        conn->write(buf, size);
+    } catch (tcp_conn_t::write_closed_exc_t) {}
 }
 
 void cluster_outpipe_t::write_address(const cluster_address_t *addr) {
@@ -422,7 +424,9 @@ void cluster_inpipe_t::read(void *buf, size_t size) {
     if (readed > expected) {
         crash("The message was %d bytes long, but unserialize() is trying to read more.", expected);
     }
-    conn->read(buf, size);
+    try {
+        conn->read(buf, size);
+    } catch (tcp_conn_t::read_closed_exc_t) {}
 }
 
 void cluster_inpipe_t::read_address(cluster_address_t *addr) {
