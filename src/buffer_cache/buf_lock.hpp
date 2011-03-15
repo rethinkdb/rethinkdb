@@ -30,6 +30,13 @@ public:
     // Releases the buf, if it was acquired.
     void release_if_acquired();
 
+    // Gives up ownership of the buf_t.
+    buf_t *give_up_ownership() {
+        buf_t *tmp = buf_;
+        buf_ = NULL;
+        return tmp;
+    }
+
     // Gets the buf_t that has been locked.  Don't call release() on it!
     // TODO: Remove buf_t::release, or make it private.
     buf_t *buf() { return buf_; }

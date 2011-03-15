@@ -88,6 +88,11 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) 
     return boost::apply_visitor(functor, m.mutation);
 }
 
+void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+    btree_backfill(this, since_when, callback);
+}
+
+
 // Stats
 
 perfmon_duration_sampler_t
