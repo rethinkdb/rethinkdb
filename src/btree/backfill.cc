@@ -180,7 +180,7 @@ void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
             // The value is sufficiently recent.  But is it a small value or a large value?
             const btree_leaf_pair *pair = leaf::get_pair(node, offset);
             const btree_value *value = pair->value();
-            value_data_provider_t *data_provider = acquisition_pulsing_value_data_provider_t::create(value, state.transactor, &large_buf_acquisition_conds[i]);
+            value_data_provider_t *data_provider = value_data_provider_t::create(value, state.transactor, &large_buf_acquisition_conds[i]);
             backfill_atom_t atom;
             keycpy(atom.key.as_btree_key(), pair->key);
             atom.value = data_provider;

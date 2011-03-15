@@ -69,7 +69,7 @@ void insert(block_size_t block_size, leaf_node_t *node, const btree_key_t *key, 
         // key/value pair away _completely_ and put the new one at the
         // beginning.
 
-        int prev_timestamp_offset = impl::get_timestamp_offset(block_size, node, prev_offset);
+        int prev_timestamp_offset = impl::get_timestamp_offset(node, prev_offset);
 
         impl::rotate_time(&node->times, insertion_time, prev_timestamp_offset);
 

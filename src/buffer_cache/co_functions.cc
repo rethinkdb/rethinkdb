@@ -41,15 +41,16 @@ void co_acquire_large_buf_for_unprepend(large_buf_t *lb, int64_t length) {
     coro_t::wait();
 }
 
-void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size) {
+void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size, cond_t *acquisition_cond) {
     large_value_acquired_t acquired;
     lb->ensure_thread();
     lb->acquire_slice(offset, size, &acquired);
+    acquisition_cond->pulse();
     coro_t::wait();
 }
 
-void co_acquire_large_buf(large_buf_t *lb) {
-    co_acquire_large_buf_slice(lb, 0, lb->root_ref->size);
+void co_acquire_large_buf(large_buf_t *lb, cond_t *acquisition_cond) {
+    co_acquire_large_buf_slice(lb, 0, lb->root_ref->size, acquisition_cond);
 }
 
 void co_acquire_large_buf_lhs(large_buf_t *lb) {
