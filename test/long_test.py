@@ -4,6 +4,7 @@ from datetime import datetime
 from subprocess import Popen, PIPE
 from optparse import OptionParser
 from retester import send_email, do_test
+from threading import Timer
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'common')))
 from test_common import *
@@ -363,6 +364,24 @@ class StatsSender(object):
     def stop(self):
         self.rdbstat.stop()
 
+def terminate_process(process, timeout=10, send_term=True, wait_to_finish=True):
+    def send_kill():
+        if process.poll() == None:
+            process.kill()
+
+    if send_term:
+        process.terminate()
+
+    if timeout:
+        timer = Timer(timeout, send_kill)
+        timer.start()
+
+    if wait_to_finish:
+        res = process.wait()
+        timer.cancel()
+        return res
+    else:
+        return None
 
 class RDBStatLogger(object):
     def __init__(self, output, host='localhost', port='11211', interval='1', count=None):
