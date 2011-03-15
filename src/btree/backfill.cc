@@ -95,7 +95,9 @@ int num_live(const backfill_state_t& state) {
 }
 
 void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids);
-void spawn_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond);
+void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond);
+void process_leaf_node(backfill_state_t& state, buf_lock_t& lock);
+void process_internal_node(backfill_state_t& state, buf_lock_t& lock, int level);
 
 void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
     backfill_state_t state(slice, since_when, callback);
@@ -121,7 +123,7 @@ void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, b
     scoped_array<cond_t> acquisition_conds(new cond_t[num_block_ids]);
     for (int i = 0; i < num_block_ids; ++i) {
         if (recencies[i].time >= state.since_when.time) {
-            spawn_subtree_backfill(state, level, block_ids[i], &acquisition_conds[i]);
+            coro_t::spawn(boost::bind(do_subtree_backfill, state, level, block_ids[i], &acquisition_conds[i]));
         } else {
             acquisition_conds[i].pulse();
         }
@@ -135,11 +137,33 @@ void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, b
     parent.release();
 }
 
-void spawn_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond) {
+void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond) {
     buf_lock_t buf_lock;
     acquire_node(buf_lock, state, block_id, acquisition_cond);
 
-    
+    const node_t *node = reinterpret_cast<const node_t *>(buf_lock->get_data_read());
+
+    if (node::is_leaf(node)) {
+        process_leaf_node(state, buf_lock);
+    } else {
+        rassert(node::is_internal(node));
+
+        process_internal_node(state, buf_lock, level);
+    }
+}
+
+void process_internal_node(backfill_state_t& state, buf_lock_t& buf_lock, int level) {
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(buf_lock->get_data_read());
+
+    scoped_array<block_id_t> children;
+    size_t num_children;
+    internal_node::get_children_ids(node, children, &num_children);
+
+    subtrees_backfill(state, buf_lock, level + 1, children.get(), num_children);
+}
+
+void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
+
 
 
 }
