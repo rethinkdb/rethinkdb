@@ -124,8 +124,8 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate() {
 }
 
 template<class inner_cache_t>
-repli_timestamp scc_transaction_t<inner_cache_t>::get_subtree_recency(block_id_t block_id) {
-    return inner_transaction->get_subtree_recency(block_id);
+void scc_transaction_t<inner_cache_t>::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+    return inner_transaction->get_subtree_recencies(block_ids, num_block_ids, recencies_out);
 }
 
 template<class inner_cache_t>
@@ -168,9 +168,9 @@ block_size_t scc_cache_t<inner_cache_t>::get_block_size() {
 }
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(access_t access, transaction_begin_callback_t *callback) {
+scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(access_t access, transaction_begin_callback_t *callback, repli_timestamp recency_timestamp) {
     scc_transaction_t<inner_cache_t> *txn = new scc_transaction_t<inner_cache_t>(access, this);
-    if (typename inner_cache_t::transaction_t *inner_txn = inner_cache.begin_transaction(access, txn)) {
+    if (typename inner_cache_t::transaction_t *inner_txn = inner_cache.begin_transaction(access, txn, recency_timestamp)) {
         txn->inner_transaction = inner_txn;
         return txn;
     } else {
