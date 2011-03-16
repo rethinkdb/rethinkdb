@@ -107,10 +107,27 @@ class mc_inner_buf_t : public home_thread_mixin_t {
 
     void snapshot();
     void *get_snapshot_data(version_id_t version_to_access);
-    void release_snapshot(version_id_t version);
-    void release_snapshot(void *data);
+    template<typename Predicate> void release_snapshot(Predicate p);
 
     ser_transaction_id_t transaction_id;
+
+    // Helper predicates for use with release_snapshot (convenience specializations available)
+    struct version_predicate_t {
+        version_predicate_t(version_id_t version) : version(version) { }
+        bool operator()(const buf_snapshot_info_t& i) const {
+            return i.snapshotted_version == version;
+        }
+    private:
+        version_id_t version;
+    };
+    struct data_predicate_t {
+        data_predicate_t(void *data) : data(data) { }
+        bool operator()(const buf_snapshot_info_t& i) const {
+            return i.data == data;
+        }
+    private:
+        void *data;
+    };
 };
 
 /* This class represents a hold on a mc_inner_buf_t. */

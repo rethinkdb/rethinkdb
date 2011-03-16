@@ -178,15 +178,15 @@ void mc_inner_buf_t::snapshot() {
     rassert(snapshots.size() == 0 || snapshots.front().snapshotted_version < version_id);
 
     size_t num_snapshots_affected = cache->register_snapshotted_block(this, version_id);
-    rassert(num_snapshots_affected > 0);
+    rassert(cow_will_be_needed || num_snapshots_affected > 0);
 
     snapshots.push_front(buf_snapshot_info_t(data, version_id, num_snapshots_affected));
 }
 
-void mc_inner_buf_t::release_snapshot(version_id_t version) {
+template<typename Predicate> void mc_inner_buf_t::release_snapshot(Predicate p) {
     for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
         buf_snapshot_info_t& snap = *it;
-        if (snap.snapshotted_version == version) {
+        if (p(snap)) {
             if (--snap.refcount == 0) {
                 cache->serializer->free(snap.data);
                 snapshots.erase(it);
@@ -196,18 +196,13 @@ void mc_inner_buf_t::release_snapshot(version_id_t version) {
     }
     unreachable("Tried to release block snapshot that doesn't exist");
 }
-void mc_inner_buf_t::release_snapshot(void *data) {
-    for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
-        buf_snapshot_info_t& snap = *it;
-        if (snap.data == data) {
-            if (--snap.refcount == 0) {
-                cache->serializer->free(snap.data);
-                snapshots.erase(it);
-            }
-            return;
-        }
-    }
-    unreachable("Tried to release block snapshot that doesn't exist");
+
+template<> void mc_inner_buf_t::release_snapshot(version_id_t version) {
+    release_snapshot(version_predicate_t(version));
+}
+
+template<> void mc_inner_buf_t::release_snapshot(void *data) {
+    release_snapshot(data_predicate_t(data));
 }
 
 bool mc_inner_buf_t::safe_to_unload() {
