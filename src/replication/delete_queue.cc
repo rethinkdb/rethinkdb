@@ -2,7 +2,6 @@
 
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/co_functions.hpp"
-#include "buffer_cache/large_buf_lock.hpp"
 #include "logger.hpp"
 #include "scoped_malloc.hpp"
 #include "store.hpp"
@@ -46,7 +45,7 @@ void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli
     buf_lock_t queue_root(txn, queue_root_id, rwi_write);
 
     // TODO this could be a non-major write?
-    void *queue_root_buf = queue_root.buf()->get_data_major_write();
+    void *queue_root_buf = queue_root->get_data_major_write();
 
     off64_t primal_offset = delete_queue::primal_offset(queue_root_buf);
     large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);
@@ -57,10 +56,10 @@ void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli
     // 1. Possibly update the (timestamp, offset) queue.  (This happens at most once per second.)
     {
         // TODO: Why must we allocate large_buf_t's with new?
-        large_buf_lock_t t_o_largebuf(new large_buf_t(txn));
+        boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txn, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
 
         // TODO: Allow upgrade of large buf intent.
-        co_acquire_large_value(t_o_largebuf.lv(), t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write);
+        co_acquire_large_buf(t_o_largebuf.get());
 
         if (t_o_ref->size == 0) {
             delete_queue::t_and_o tao;
@@ -96,10 +95,10 @@ void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root_id, repli
     // 2. Update the keys list.
 
     {
-        large_buf_lock_t keys_largebuf(new large_buf_t(txn));
+        boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txn, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size(txn->cache->get_block_size())), rwi_write));
 
         // TODO: acquire rhs, or lhs+rhs, something appropriate.
-        co_acquire_large_value(keys_largebuf.lv(), keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size(txn->cache->get_block_size())), rwi_write);
+        co_acquire_large_buf(keys_largebuf.get());
 
         int refsize_adjustment_dontcare;
         keys_largebuf->append(1 + key->size, &refsize_adjustment_dontcare);
@@ -112,7 +111,7 @@ void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, r
     // fact that we hold the queue_root lock for the entire operation.
     buf_lock_t queue_root(txn, queue_root_id, rwi_read);
 
-    void *queue_root_buf = const_cast<void *>(queue_root.buf()->get_data_read());
+    void *queue_root_buf = const_cast<void *>(queue_root->get_data_read());
 
     off64_t primal_offset = delete_queue::primal_offset(queue_root_buf);
     large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);
@@ -125,8 +124,8 @@ void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, r
     int64_t begin_offset = 0, end_offset = 0;
 
     {
-        large_buf_lock_t t_o_largebuf(new large_buf_t(txn));
-        co_acquire_large_value(t_o_largebuf.lv(), t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_read);
+        boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txn, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_read));
+        co_acquire_large_buf(t_o_largebuf.get());
 
         delete_queue::t_and_o tao;
         int64_t i = 0, ie = t_o_ref->size;
@@ -161,10 +160,10 @@ void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, r
     rassert(begin_offset <= end_offset);
 
     if (begin_offset < end_offset) {
-        large_buf_lock_t keys_largebuf(new large_buf_t(txn));
+        boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txn, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size(txn->cache->get_block_size())), rwi_read));
 
         // TODO: acquire subinterval.
-        co_acquire_large_value(keys_largebuf.lv(), keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size(txn->cache->get_block_size())), rwi_read);
+        co_acquire_large_buf(keys_largebuf.get());
 
         int64_t n = end_offset - begin_offset;
 

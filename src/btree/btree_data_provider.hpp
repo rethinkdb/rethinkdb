@@ -5,7 +5,6 @@
 #include <boost/shared_ptr.hpp>
 #include "btree/value.hpp"
 #include "buffer_cache/transactor.hpp"
-#include "buffer_cache/large_buf_lock.hpp"
 #include "data_provider.hpp"
 
 class value_data_provider_t : public auto_copying_data_provider_t {
@@ -44,7 +43,7 @@ public:
 private:
     boost::shared_ptr<transactor_t> transactor;
     buffer_group_t buffers;
-    large_buf_lock_t large_value;
+    boost::scoped_ptr<large_buf_t> large_value;
     union {
         large_buf_ref lb_ref;
         char lb_ref_bytes[MAX_IN_NODE_VALUE_SIZE];

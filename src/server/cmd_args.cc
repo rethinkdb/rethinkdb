@@ -68,6 +68,10 @@ void usage_serve() {
                 "      --io-backend      Possible options are 'native' (the default) and 'pool'.\n"
                 "                        The native backend is most efficient, but may have\n"
                 "                        performance problems in some environments.\n"
+                "      --read-ahead      Enable or disable read ahead during cache warmup. Read\n"
+                "                        ahead can significantly speed up the cache warmup time\n"
+                "                        for disks which have high costs for random access.\n"
+                "                        Expects 'y' or 'n'.\n"
                 "\n"
                 "Output options:\n"
                 "  -v, --verbose         Print extra information to standard output.\n");
@@ -157,6 +161,7 @@ enum {
     io_backend,
     block_size,
     extent_size,
+    read_ahead,
     diff_log_size,
     force_create,
     coroutine_stack_size,
@@ -202,6 +207,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"gc-range",             required_argument, 0, gc_range},
                 {"block-size",           required_argument, 0, block_size},
                 {"extent-size",          required_argument, 0, extent_size},
+                {"read-ahead",           required_argument, 0, read_ahead},
                 {"diff-log-size",        required_argument, 0, diff_log_size},
                 {"active-data-extents",  required_argument, 0, active_data_extents},
                 {"io-backend",           required_argument, 0, io_backend},
@@ -281,6 +287,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_block_size(optarg); break;
             case extent_size:
                 config.set_extent_size(optarg); break;
+            case read_ahead:
+                config.set_read_ahead(optarg); break;
             case diff_log_size:
                 override_diff_log_size = config.parse_diff_log_size(optarg); break;
             case coroutine_stack_size:
@@ -480,6 +488,13 @@ void parsing_cmd_config_t::set_extent_size(const char* value) {
     store_static_config.serializer.unsafe_extent_size() = static_cast<long long unsigned int>(target);
 }
 
+void parsing_cmd_config_t::set_read_ahead(const char* value) {
+    if (strlen(optarg) != 1 || !(optarg[0] == 'y' || optarg[0] == 'n'))
+        fail_due_to_user_error("Read-ahead expects 'y' or 'n'.");
+
+    store_dynamic_config.serializer.read_ahead = optarg[0] == 'y';
+}
+
 long long parsing_cmd_config_t::parse_diff_log_size(const char* value) {
     long long int result;
     const long long int minimum_value = 0ll;
@@ -526,7 +541,7 @@ void parsing_cmd_config_t::set_gc_range(const char* value) {
         fail_due_to_user_error("gc-range expects \"low-high\"");
     }
     if (!(MIN_GC_LOW_RATIO <= low && low < high && high <= MAX_GC_HIGH_RATIO)) {
-        fail_due_to_user_error("gc-range expects \"low-high\", with %f <= low < high <= %f",
+        fail_due_to_user_error("gc-range expects \"low-high\", with %.2f <= low < high <= %.2f",
              MIN_GC_LOW_RATIO, MAX_GC_HIGH_RATIO);
     }
     store_dynamic_config.serializer.gc_low_ratio = low;
@@ -719,6 +734,11 @@ void cmd_config_t::print_runtime_flags() {
     printf("Flush concurrency..%d\n", store_dynamic_config.cache.max_concurrent_flushes);
     printf("Flush threshold....%d\n", store_dynamic_config.cache.flush_waiting_threshold);
 
+    printf("Read ahead.........");
+    if(store_dynamic_config.serializer.read_ahead)
+        printf("enabled\n");
+    else
+        printf("disabled\n");
     printf("Active writers.....%d\n", store_dynamic_config.serializer.num_active_data_extents);
     printf("GC range...........%g - %g\n",
            store_dynamic_config.serializer.gc_low_ratio,
@@ -783,6 +803,7 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.serializer.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
     store_dynamic_config.serializer.file_size = 0;   // Unlimited file size
     store_dynamic_config.serializer.file_zone_size = GIGABYTE;
+    store_dynamic_config.serializer.read_ahead = false;
     /* #if WE_ARE_ON_LINUX */
     store_dynamic_config.serializer.io_backend = aio_native;
     /* #endif */

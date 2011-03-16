@@ -79,7 +79,7 @@ struct ls_start_existing_fsm_t :
             
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_index_t(ser->extent_manager);
-            ser->data_block_manager = new data_block_manager_t(ser, ser->dynamic_config, ser->extent_manager, &ser->static_config);
+            ser->data_block_manager = new data_block_manager_t(ser, ser->dynamic_config, ser->extent_manager, ser, &ser->static_config);
             
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;
@@ -821,5 +821,42 @@ bool log_serializer_t::disable_gc(gc_disable_callback_t *cb) {
 
 void log_serializer_t::enable_gc() {
     data_block_manager->enable_gc();
+}
+
+void log_serializer_t::register_read_ahead_cb(read_ahead_callback_t *cb) {
+    if (get_thread_id() != home_thread) {
+        do_on_thread(home_thread, boost::bind(&log_serializer_t::register_read_ahead_cb, this, cb));
+        return;
+    }
+
+    read_ahead_callbacks.push_back(cb);
+}
+
+void log_serializer_t::unregister_read_ahead_cb(read_ahead_callback_t *cb) {
+    if (get_thread_id() != home_thread) {
+        do_on_thread(home_thread, boost::bind(&log_serializer_t::unregister_read_ahead_cb, this, cb));
+        return;
+    }
+
+    for (std::vector<read_ahead_callback_t*>::iterator cb_it = read_ahead_callbacks.begin(); cb_it != read_ahead_callbacks.end(); ++cb_it) {
+        if (*cb_it == cb) {
+            read_ahead_callbacks.erase(cb_it);
+            break;
+        }
+    }
+}
+
+bool log_serializer_t::offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf) {
+    for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
+        if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool log_serializer_t::should_perform_read_ahead() {
+    assert_thread();
+    return dynamic_config->read_ahead && !read_ahead_callbacks.empty();
 }
 

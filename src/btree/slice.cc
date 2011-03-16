@@ -23,8 +23,8 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     /* The values we pass here are almost totally irrelevant. The cache-size parameter must
     be big enough to hold the patch log so we don't trip an assert, though. */
     mirrored_cache_config_t startup_dynamic_config;
-    int size = static_config->n_patch_log_blocks * serializer->get_block_size().value() + MEGABYTE;
-    startup_dynamic_config.max_size = size;
+    int size = static_config->n_patch_log_blocks * serializer->get_block_size().ser_value() + MEGABYTE;
+    startup_dynamic_config.max_size = size * 2;
     startup_dynamic_config.wait_for_flush = false;
     startup_dynamic_config.flush_timer_ms = NEVER_FLUSH;
     startup_dynamic_config.max_dirty_size = size;
@@ -38,7 +38,7 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     /* Initialize the root block */
     transactor_t transactor(cache.get(), rwi_write);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
-    btree_superblock_t *sb = (btree_superblock_t*)(superblock.buf()->get_data_major_write());
+    btree_superblock_t *sb = (btree_superblock_t*)(superblock->get_data_major_write());
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
 

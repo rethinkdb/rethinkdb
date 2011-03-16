@@ -8,13 +8,15 @@ do_test("cd ../src/; make clean")
 for mode in ["debug", "release"]:
     # Build our targets
     do_test("cd ../src/; nice make -j",
-            { "DEBUG"            : 1 if mode    == "debug"    else 0 },
+            { "DEBUG"            : 1 if mode    == "debug"    else 0,
+              "UNIT_TESTS" : 1 },
             cmd_format="make")
 
 for special in ["NO_EPOLL", "MOCK_IO_LAYER", "MOCK_CACHE_CHECK", "VALGRIND"]:
     do_test("cd ../src/; nice make -j",
             { "DEBUG" : 1,
-              special : 1},
+              special : 1,
+              "UNIT_TESTS" : 1 },
             cmd_format="make")
 
 # Make sure auxillary tools compile
@@ -32,8 +34,17 @@ try:
 
     # Do quick smoke tests in some environments
     for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
+
+        do_test("../build/%s-%s/rethindkb-unittest", mode, checker)
+
         # VERY basic tests
         do_test_cloud("integration/append_prepend.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol })
+
+        do_test_cloud("integration/unappend_unprepend.py",
                 { "auto"        : True,
                   "mode"        : mode,
                   "no-valgrind" : not checker,
