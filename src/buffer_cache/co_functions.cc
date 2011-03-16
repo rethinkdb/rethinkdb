@@ -16,10 +16,10 @@ struct co_block_available_callback_t : public block_available_callback_t {
     }
 };
 
-buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode) {
+buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode, cond_t *acquisition_cond) {
     transaction->ensure_thread();
     co_block_available_callback_t cb;
-    buf_t *value = transaction->acquire(block_id, mode, &cb);
+    buf_t *value = transaction->acquire(block_id, mode, &cb, acquisition_cond);
     if (!value) {
         value = cb.join();
     }
