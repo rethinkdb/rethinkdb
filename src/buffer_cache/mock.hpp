@@ -120,7 +120,7 @@ public:
     ~mock_cache_t();
 
     block_size_t get_block_size();
-    transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
+    transaction_t *begin_transaction(access_t access, int expected_change_count, transaction_begin_callback_t *callback);
 
 private:
     friend class mock_transaction_t;

@@ -168,9 +168,9 @@ block_size_t scc_cache_t<inner_cache_t>::get_block_size() {
 }
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(access_t access, transaction_begin_callback_t *callback) {
+scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(access_t access, int expected_change_count, transaction_begin_callback_t *callback) {
     scc_transaction_t<inner_cache_t> *txn = new scc_transaction_t<inner_cache_t>(access, this);
-    if (typename inner_cache_t::transaction_t *inner_txn = inner_cache.begin_transaction(access, txn)) {
+    if (typename inner_cache_t::transaction_t *inner_txn = inner_cache.begin_transaction(access, expected_change_count, txn)) {
         txn->inner_transaction = inner_txn;
         return txn;
     } else {

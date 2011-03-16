@@ -16,7 +16,7 @@ writeback_t::begin_transaction_fsm_t::begin_transaction_fsm_t(writeback_t *wb, m
 
 void writeback_t::begin_transaction_fsm_t::green_light() {
 
-    writeback->active_write_transactions++;
+    writeback->expected_active_change_count += transaction->expected_change_count;
 
     // Lock the flush lock "for reading", but what we really mean is to lock it non-
     // exclusively because more than one write transaction can proceed at once.
@@ -64,7 +64,7 @@ writeback_t::writeback_t(
       flush_threshold(flush_threshold),
       flush_timer(NULL),
       outstanding_disk_writes(0),
-      active_write_transactions(0),
+      expected_active_change_count(0),
       writeback_in_progress(false),
       active_flushes(0),
       force_patch_storage_flush(false),
@@ -75,7 +75,7 @@ writeback_t::writeback_t(
 writeback_t::~writeback_t() {
     rassert(!flush_timer);
     rassert(outstanding_disk_writes == 0);
-    rassert(active_write_transactions == 0);
+    rassert(expected_active_change_count == 0);
 }
 
 perfmon_sampler_t pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), false);
@@ -128,7 +128,7 @@ bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callba
 void writeback_t::on_transaction_commit(transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
         
-        active_write_transactions--;
+        expected_active_change_count -= txn->expected_change_count;
         possibly_unthrottle_transactions();
         
         flush_lock.unlock();
@@ -155,7 +155,7 @@ unsigned int writeback_t::num_dirty_blocks() {
 
 bool writeback_t::too_many_dirty_blocks() {
     return
-        num_dirty_blocks() + outstanding_disk_writes + active_write_transactions * 3
+        num_dirty_blocks() + outstanding_disk_writes + expected_active_change_count
         >= max_dirty_blocks;
 }
 
@@ -264,7 +264,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     rassert(transaction == NULL);
     bool saved_shutting_down = parent->cache->shutting_down;
     parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
-    transaction = parent->cache->begin_transaction(rwi_read, NULL);
+    transaction = parent->cache->begin_transaction(rwi_read, 0, NULL);
     parent->cache->shutting_down = saved_shutting_down;
     rassert(transaction != NULL); // Read txns always start immediately.
 

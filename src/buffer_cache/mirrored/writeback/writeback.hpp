@@ -124,8 +124,8 @@ private:
     /* The number of writes that we dispatched to the disk that have not come back yet. */
     unsigned long long outstanding_disk_writes;
     
-    /* The number of currently active write transactions */
-    int active_write_transactions;
+    /* The sum of the expected_change_counts of the currently active write transactions. */
+    int expected_active_change_count;
     
     bool writeback_in_progress;
     unsigned int active_flushes;

@@ -428,8 +428,9 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
+mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access, int expected_change_count)
     : cache(cache),
+      expected_change_count(expected_change_count),
       access(access),
       begin_callback(NULL),
       commit_callback(NULL),
@@ -655,11 +656,12 @@ block_size_t mc_cache_t::get_block_size() {
     return serializer->get_block_size();
 }
 
-mc_transaction_t *mc_cache_t::begin_transaction(access_t access, transaction_begin_callback_t *callback) {
+mc_transaction_t *mc_cache_t::begin_transaction(access_t access, int expected_change_count, transaction_begin_callback_t *callback) {
     assert_thread();
     rassert(!shutting_down);
-
-    transaction_t *txn = new transaction_t(this, access);
+    rassert(access == rwi_write || expected_change_count == 0);
+    
+    transaction_t *txn = new transaction_t(this, access, expected_change_count);
     num_live_transactions++;
     if (writeback.begin_transaction(txn, callback)) {
         pm_transactions_starting.end(&txn->start_time);

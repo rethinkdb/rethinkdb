@@ -16,6 +16,10 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
             return false;
         }
     }
+
+    int compute_expected_change_count(const size_t block_size) {
+        return 1;
+    }
 };
 
 delete_result_t btree_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp timestamp) {

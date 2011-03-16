@@ -12,6 +12,7 @@
 
 #include "buffer_cache/co_functions.hpp"
 #include "buffer_cache/transactor.hpp"
+#include "slice.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 
@@ -179,7 +180,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         // temporary sanity-check
         rassert(get_thread_id() == slice->home_thread);
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
-        boost::shared_ptr<transactor_t> txor(new transactor_t(&slice->cache(), rwi_write));
+        boost::shared_ptr<transactor_t> txor(new transactor_t(&slice->cache(), rwi_write, oper->compute_expected_change_count(slice->cache().get_block_size().value())));
 
         buf_lock_t sb_buf(*txor, SUPERBLOCK_ID, rwi_write);
         buf_lock_t last_buf;

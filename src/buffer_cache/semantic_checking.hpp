@@ -127,7 +127,7 @@ public:
         mirrored_cache_config_t *dynamic_config);
 
     block_size_t get_block_size();
-    transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
+    transaction_t *begin_transaction(access_t access, int expected_change_count, transaction_begin_callback_t *callback);
 
 private:
     inner_cache_t inner_cache;
