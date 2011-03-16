@@ -132,7 +132,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:l:L:q:o:i:h:f:m:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:R:l:L:q:o:i:h:f:m:", long_options, &option_index);
 
         if(do_help)
             c = 'h';
