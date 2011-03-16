@@ -5,19 +5,20 @@ int master_map_t::master_hasher_t::get_bucket(store_key_t key) {
     return hasher.hash(key) % (1 << log_buckets);
 }
 
-set_store_t *master_map_t::get_master(store_key_t key) {
+master_map_t::set_store_txn_t master_map_t::get_master(store_key_t key) {
     int bucket = master_hasher.get_bucket(key) % (1 << master_hasher.log_buckets);
     int depth = 0;
     while (depth <= master_hasher.log_buckets) {
+        int step = 1 << (master_hasher.log_buckets - depth);
+        int modulos = 1 << master_hasher.log_buckets;
         for (int i = 0; i < (1 << depth); i++) {
-            if (inner_map.find((bucket + (i * (1 << (master_hasher.log_buckets - depth)))) % (1 << master_hasher.log_buckets)) != inner_map.end()) {
-                return inner_map[(bucket + (i * (1 << (master_hasher.log_buckets - depth)))) % (1 << master_hasher.log_buckets)];
-            }
+            if (inner_map.find((bucket + (i * step)) % modulos) != inner_map.end())
+                return set_store_txn_t(inner_map[(bucket + (i * step)) % modulos], this, bucket);
         }
     }
     crash("There are currently no masters, in the future this won't be a crash\n");
-    set_store_t *res;
-    return res;
+    set_store_txn_t compiler_happiness_enhancer;
+    return compiler_happiness_enhancer;
 }
 
 typedef storage_map_t::rh_iterator rh_iterator;
