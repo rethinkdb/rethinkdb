@@ -38,6 +38,8 @@ public:
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {
                 throw rpc_peer_killed_exc_t();
+            } catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
             }
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -126,6 +128,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -240,6 +245,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -320,6 +328,8 @@ public:
             message_t m(arg0);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            } catch (cluster_peer_t::write_peer_killed_exc_t) {
                 throw rpc_peer_killed_exc_t();
             }
         }
@@ -416,6 +426,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -535,6 +548,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -620,6 +636,8 @@ public:
             message_t m(arg0, arg1);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            } catch (cluster_peer_t::write_peer_killed_exc_t) {
                 throw rpc_peer_killed_exc_t();
             }
         }
@@ -722,6 +740,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -846,6 +867,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -936,6 +960,8 @@ public:
             message_t m(arg0, arg1, arg2);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            } catch (cluster_peer_t::write_peer_killed_exc_t) {
                 throw rpc_peer_killed_exc_t();
             }
         }
@@ -1044,6 +1070,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -1173,6 +1202,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -1268,6 +1300,8 @@ public:
             message_t m(arg0, arg1, arg2, arg3);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            } catch (cluster_peer_t::write_peer_killed_exc_t) {
                 throw rpc_peer_killed_exc_t();
             }
         }
@@ -1382,6 +1416,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -1516,6 +1553,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -1616,6 +1656,8 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            } catch (cluster_peer_t::write_peer_killed_exc_t) {
                 throw rpc_peer_killed_exc_t();
             }
         }
@@ -1736,6 +1778,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -1875,6 +1920,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -1980,6 +2028,8 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            } catch (cluster_peer_t::write_peer_killed_exc_t) {
                 throw rpc_peer_killed_exc_t();
             }
         }
@@ -2106,6 +2156,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -2250,6 +2303,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -2360,6 +2416,8 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            } catch (cluster_peer_t::write_peer_killed_exc_t) {
                 throw rpc_peer_killed_exc_t();
             }
         }
@@ -2492,6 +2550,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -2641,6 +2702,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -2756,6 +2820,8 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            } catch (cluster_peer_t::write_peer_killed_exc_t) {
                 throw rpc_peer_killed_exc_t();
             }
         }
@@ -2894,6 +2960,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -3048,6 +3117,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();
@@ -3168,6 +3240,8 @@ public:
             message_t m(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            } catch (cluster_peer_t::write_peer_killed_exc_t) {
                 throw rpc_peer_killed_exc_t();
             }
         }
@@ -3312,6 +3386,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             if (!reply_listener.wait()) throw rpc_peer_killed_exc_t();
         }
         RDB_MAKE_ME_SERIALIZABLE_1(addr)
@@ -3471,6 +3548,9 @@ public:
             cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);
             try { addr.send(&m); }
             catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there.
+            catch (cluster_peer_t::write_peer_killed_exc_t) {
+                throw rpc_peer_killed_exc_t();
+            }
             std::pair<bool, ret_t> res = reply_listener.wait();
             if (res.first) return res.second;
             else throw rpc_peer_killed_exc_t();

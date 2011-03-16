@@ -98,6 +98,11 @@ public:
     }
     /* write a message directly to the socket */
     void write(Message *msg) {
+        if (state == cluster_peer_t::kill_proposed ||
+            state == cluster_peer_t::kill_confirmed ||
+            state == cluster_peer_t::killed) {
+            throw write_peer_killed_exc_t();
+        }
         on_thread_t syncer(home_thread);
         write_protob(conn.get(), msg);
     }
@@ -166,6 +171,12 @@ private:
             (*it)->on_kill();
         }
     }
+public:
+    struct write_peer_killed_exc_t : public std::exception {
+        const char *what() throw () {
+            return "Trying to write to a killed peer\n";
+        }
+    };
 };
 
 #endif
