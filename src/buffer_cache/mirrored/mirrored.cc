@@ -223,13 +223,12 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
 
     // If the top version is less or equal to version_to_access, then we need to acquire
     // a read lock first (otherwise we may get the data of the unfinished write on top).
-    // TODO: In general, do *not* lock whenever we are a snapshot and *not* accessing the most recent version (for testing, just always lock)
-    if (false && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
+    if (version_to_access != mc_inner_buf_t::faux_version_id && snapshotted  && version_to_access < inner_buf->version_id) {
         rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
         inner_buf->refcount++;
         acquire_block(false);
     } else {
-        // the top version is the right one for us (TODO: outdated comment?)
+        // the top version is the right one for us
         pm_bufs_acquiring.begin(&start_time);
         inner_buf->refcount++;
         if (inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
