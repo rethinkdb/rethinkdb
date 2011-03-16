@@ -7,6 +7,7 @@ int master_map_t::master_hasher_t::get_bucket(store_key_t key) {
 
 master_map_t::set_store_txn_t master_map_t::get_master(store_key_t key) {
     int bucket = master_hasher.get_bucket(key) % (1 << master_hasher.log_buckets);
+    wait(bucket); //make sure that this bucket is available
     int depth = 0;
     while (depth <= master_hasher.log_buckets) {
         int step = 1 << (master_hasher.log_buckets - depth);

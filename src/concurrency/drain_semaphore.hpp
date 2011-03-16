@@ -7,6 +7,8 @@
 resource, and to wait for all the processes to complete before destroying the resource
 but not to allow new processes to start. drain_semaphore_t encapsulates that. */
 
+/* TODO, it might be nice if these were reusable */
+
 struct drain_semaphore_t {
 
     drain_semaphore_t() : draining(false), refcount(0) { }
