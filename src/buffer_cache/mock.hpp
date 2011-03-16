@@ -84,6 +84,8 @@ class mock_transaction_t
 public:
     bool commit(transaction_commit_callback_t *callback);
 
+    void snapshot() { }
+
     buf_t *acquire(block_id_t block_id, access_t mode, block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
     repli_timestamp get_subtree_recency(block_id_t block_id);

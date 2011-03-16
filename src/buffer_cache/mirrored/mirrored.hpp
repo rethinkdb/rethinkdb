@@ -89,8 +89,8 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load);
 
     // Create an entirely new buf
-    static mc_inner_buf_t *allocate(cache_t *cache);
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id);
+    static mc_inner_buf_t *allocate(cache_t *cache, version_id_t snapshot_version);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version);
     ~mc_inner_buf_t();
 
     struct buf_snapshot_info_t {
@@ -108,6 +108,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     void snapshot();
     void *get_snapshot_data(version_id_t version_to_access);
     void release_snapshot(version_id_t version);
+    void release_snapshot(void *data);
 
     ser_transaction_id_t transaction_id;
 };
@@ -122,7 +123,7 @@ class mc_buf_t : public lock_available_callback_t {
     friend class patch_disk_storage_t;
 
 private:
-    mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id = mc_inner_buf_t::faux_version_id);
+    mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted);
     void on_lock_available();
     void acquire_block(bool locked);
 
@@ -134,6 +135,7 @@ private:
     access_t mode;
     bool non_locking_access;
     mc_inner_buf_t::version_id_t version;
+    bool snapshotted;
     mc_inner_buf_t *inner_buf;
     void *data; /* Usually the same as inner_buf->data. If a COW happens or this mc_buf_t is part of a snapshotted transaction, it reference a different buffer however. */
 
@@ -181,6 +183,7 @@ public:
     }
 };
 
+class mc_transaction_t;
 /* Transaction class. */
 class mc_transaction_t :
     public intrusive_list_node_t<mc_transaction_t>,
@@ -230,6 +233,15 @@ private:
     transaction_commit_callback_t *commit_callback;
     enum { state_open, state_in_commit_call, state_committing, state_committed } state;
     mc_inner_buf_t::version_id_t snapshot_version;
+    bool snapshotted;
+
+    struct snapshot_wrapper_t : public block_available_callback_t {
+        mc_transaction_t *trx;
+        block_available_callback_t *cb;
+        snapshot_wrapper_t(mc_transaction_t *trx, block_available_callback_t *cb) : trx(trx), cb(cb) { }
+
+        virtual void on_block_available(mc_buf_t *block);
+    };
 
     typedef std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::version_id_t> > owned_snapshots_list_t;
     owned_snapshots_list_t owned_buf_snapshots;
@@ -297,7 +309,7 @@ public:
     mc_inner_buf_t::version_id_t get_max_snapshot_version(mc_inner_buf_t::version_id_t default_version) const {
         return no_active_snapshots() ? default_version : (*active_snapshots.rbegin()).first;
     }
-    bool no_active_snapshots() const { return active_snapshots.size() == 0; }
+    bool no_active_snapshots() const { return active_snapshots.empty(); }
     bool no_active_snapshots(mc_inner_buf_t::version_id_t from_version, mc_inner_buf_t::version_id_t to_version) const {
         return active_snapshots.lower_bound(from_version) == active_snapshots.upper_bound(to_version);
     }

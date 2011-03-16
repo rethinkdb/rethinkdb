@@ -1,5 +1,9 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/stats.hpp"
+#include "callbacks.hpp"
+
+
+#include "mirrored.hpp"
 
 /**
  * Buffer implementation.
@@ -91,11 +95,13 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
     refcount--;
 }
 
-mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache) {
+mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version) {
+    cache->assert_thread();
+
     block_id_t block_id = cache->free_list.gen_block_id();
     mc_inner_buf_t *inner_buf = cache->page_map.find(block_id);
     if (!inner_buf) {
-        return new mc_inner_buf_t(cache, block_id);
+        return new mc_inner_buf_t(cache, block_id, snapshot_version);
     } else {
         // Block with block_id was logically deleted, but its inner_buf survived.
         // That can happen when there are active snapshots that holding older versions
@@ -105,6 +111,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache) {
         // RSI: check that everything works here in debug
         inner_buf->subtree_recency = current_time();
         inner_buf->data = cache->serializer->malloc();
+        inner_buf->version_id = snapshot_version;
         inner_buf->do_delete = false;
         inner_buf->next_patch_counter = 1;
         inner_buf->write_empty_deleted_block = false;
@@ -119,12 +126,12 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache) {
 // Internal use from mc_inner_buf_t::allocate only!
 // If you update this constructor, please don't forget to update mc_inner_buf_tallocate
 // accordingly.
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version)
     : cache(cache),
       block_id(block_id),
       subtree_recency(current_time()),
       data(cache->serializer->malloc()),
-      version_id(cache->get_current_version_id()),
+      version_id(snapshot_version),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -167,6 +174,7 @@ mc_inner_buf_t::~mc_inner_buf_t() {
 }
 
 void mc_inner_buf_t::snapshot() {
+    cache->assert_thread();
     rassert(snapshots.size() == 0 || snapshots.front().snapshotted_version < version_id);
 
     size_t num_snapshots_affected = cache->register_snapshotted_block(this, version_id);
@@ -188,6 +196,19 @@ void mc_inner_buf_t::release_snapshot(version_id_t version) {
     }
     unreachable("Tried to release block snapshot that doesn't exist");
 }
+void mc_inner_buf_t::release_snapshot(void *data) {
+    for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
+        buf_snapshot_info_t& snap = *it;
+        if (snap.data == data) {
+            if (--snap.refcount == 0) {
+                cache->serializer->free(snap.data);
+                snapshots.erase(it);
+            }
+            return;
+        }
+    }
+    unreachable("Tried to release block snapshot that doesn't exist");
+}
 
 bool mc_inner_buf_t::safe_to_unload() {
     return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && !cow_will_be_needed && snapshots.size() == 0;
@@ -197,21 +218,23 @@ perfmon_duration_sampler_t
     pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
-mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access)
-    : ready(false), callback(NULL), mode(mode), non_locking_access(false), version(version_to_access), inner_buf(inner_buf), data(NULL)
+mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted)
+    : ready(false), callback(NULL), mode(mode), non_locking_access(false), version(version_to_access), snapshotted(snapshotted), inner_buf(inner_buf), data(NULL)
 {
+    inner_buf->cache->assert_thread();
 #ifndef FAST_PERFMON
     patches_affected_data_size_at_start = -1;
 #endif
 
     // If the top version is less or equal to version_to_access, then we need to acquire
     // a read lock first (otherwise we may get the data of the unfinished write on top).
-    if (version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
+    // TODO: In general, do *not* lock whenever we are a snapshot and *not* accessing the most recent version (for testing, just always lock)
+    if (false && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
         rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
         inner_buf->refcount++;
         acquire_block(false);
     } else {
-        // the top version is the right one for us
+        // the top version is the right one for us (TODO: outdated comment?)
         pm_bufs_acquiring.begin(&start_time);
         inner_buf->refcount++;
         if (inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
@@ -239,7 +262,8 @@ void mc_buf_t::acquire_block(bool locked) {
     inner_buf->cache->assert_thread();
 
     mc_inner_buf_t::version_id_t inner_version = inner_buf->version_id;
-    if (version != mc_inner_buf_t::faux_version_id) {
+    // In case we don't have received a version yet (i.e. this is the first block we are acquiring, just access the most recent version)
+    if (snapshotted && version != mc_inner_buf_t::faux_version_id) {
         data = inner_version <= version ? inner_buf->data : inner_buf->get_snapshot_data(version);
         guarantee(data != NULL);
 
@@ -266,13 +290,19 @@ void mc_buf_t::acquire_block(bool locked) {
                 break;
             }
             case rwi_write: {
-                bool need_to_create_snapshot = inner_version <= inner_buf->cache->get_max_snapshot_version(mc_inner_buf_t::faux_version_id);
-                if (need_to_create_snapshot)
+                bool need_to_create_snapshot = inner_buf->cow_will_be_needed || (inner_version != mc_inner_buf_t::faux_version_id && inner_version <= inner_buf->cache->get_max_snapshot_version(mc_inner_buf_t::faux_version_id));
+                if (need_to_create_snapshot) {
                     inner_buf->snapshot();
 
-                inner_buf->version_id = inner_buf->cache->get_current_version_id();
+                    if (inner_buf->cow_will_be_needed) {
+                        ++inner_buf->snapshots.front().refcount;
+                    }
+                }
 
-                if (need_to_create_snapshot || inner_buf->cow_will_be_needed) {
+                inner_buf->version_id = version == mc_inner_buf_t::faux_version_id ? inner_buf->cache->get_current_version_id() : version;
+                //inner_buf->version_id = inner_buf->cache->get_current_version_id();
+
+                if (need_to_create_snapshot) {
                     data = inner_buf->cache->serializer->malloc();
                     memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
                     inner_buf->data = data;
@@ -435,6 +465,7 @@ perfmon_sampler_t pm_patches_size_per_write("patches_size_per_write_buf", secs_t
 #endif
 
 void mc_buf_t::release() {
+    inner_buf->cache->assert_thread();
     pm_bufs_held.end(&start_time);
 
 #ifndef FAST_PERFMON
@@ -459,7 +490,8 @@ void mc_buf_t::release() {
                 if (data == inner_buf->data) {
                     inner_buf->cow_will_be_needed = false;
                 } else {
-                    inner_buf->cache->serializer->free(data);
+                    inner_buf->release_snapshot(data);
+                    //inner_buf->cache->serializer->free(data);
                 }
                 break;
             }
@@ -516,7 +548,8 @@ mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
       begin_callback(NULL),
       commit_callback(NULL),
       state(state_open),
-      snapshot_version(mc_inner_buf_t::faux_version_id)
+      snapshot_version(mc_inner_buf_t::faux_version_id),
+      snapshotted(false)
 {
     pm_transactions_starting.begin(&start_time);
     rassert(access == rwi_read || access == rwi_write);
@@ -540,7 +573,7 @@ bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
 
     assert_thread();
 
-    if (snapshot_version != mc_inner_buf_t::faux_version_id) {
+    if (snapshotted && snapshot_version != mc_inner_buf_t::faux_version_id) {
         cache->unregister_snapshot(this);
         for (owned_snapshots_list_t::iterator it = owned_buf_snapshots.begin(); it != owned_buf_snapshots.end(); it++) {
             (*it).first->release_snapshot((*it).second);
@@ -594,13 +627,14 @@ void mc_transaction_t::on_sync() {
 mc_buf_t *mc_transaction_t::allocate() {
     /* Make a completely new block, complete with a shiny new block_id. */
     rassert(access == rwi_write);
-    rassert(this->snapshot_version == mc_inner_buf_t::faux_version_id);
+    //rassert(this->snapshot_version != mc_inner_buf_t::faux_version_id);
+    rassert(!snapshotted);
     assert_thread();
 
-    mc_inner_buf_t *inner_buf = mc_inner_buf_t::allocate(cache);
+    mc_inner_buf_t *inner_buf = mc_inner_buf_t::allocate(cache, snapshot_version);
 
     // This must pass since no one else holds references to this block.
-    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write);
+    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write, snapshot_version, snapshotted);
     rassert(buf->ready);
 
     return buf;
@@ -620,7 +654,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     // If we are not in a snapshot transaction, then snapshot_version is faux_version_id,
     // so the latest block version will be acquired (possibly, after acquiring the lock).
     // If the snapshot version is specified, then no locking is used.
-    buf_t *buf = new buf_t(inner_buf, mode, snapshot_version);
+    buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted);
 
     // We set the recency _before_ we get the buf.  This is correct,
     // because we are "underneath" any replicators that come later
@@ -630,18 +664,43 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     }
 
     if (buf->ready) {
+        const bool have_to_snapshot = snapshot_version == mc_inner_buf_t::faux_version_id && snapshotted;
+        if (have_to_snapshot) {
+            // register_snapshot sets transaction snapshot_version
+            cache->register_snapshot(this);
+        }
+        if (snapshot_version == mc_inner_buf_t::faux_version_id) {
+            // For non-snapshotted transactions, we still assign a version number on the first acquire
+            snapshot_version = cache->next_snapshot_version;
+        }
         return buf;
     } else {
-        buf->callback = callback;
+        buf->callback = snapshotted ? new snapshot_wrapper_t(this, callback) : callback;
         return NULL;
     }
 }
 
+void mc_transaction_t::snapshot_wrapper_t::on_block_available(mc_buf_t *block) {
+    trx->cache->assert_thread();
+    // TODO: Code duplication! Refactor
+    const bool have_to_snapshot = trx->snapshot_version == mc_inner_buf_t::faux_version_id && trx->snapshotted;
+    if (have_to_snapshot) {
+        // register_snapshot sets transaction snapshot_version
+        trx->cache->register_snapshot(trx);
+    }
+    if (trx->snapshot_version == mc_inner_buf_t::faux_version_id) {
+        // For non-snapshotted transactions, we still assign a version number on the first acquire
+        trx->snapshot_version = trx->cache->next_snapshot_version;
+    }
+    cb->on_block_available(block);
+    delete this;
+}
+
 void mc_transaction_t::snapshot() {
     rassert(is_read_mode(get_access()), "Can only make a snapshot in non-writing transaction");
+    rassert(snapshot_version == mc_inner_buf_t::faux_version_id, "Tried to take a snapshot after having acquired a first block");
 
-    // register_snapshot sets transaction snapshot_version
-    cache->register_snapshot(this);
+    snapshotted = true;
 }
 
 repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
