@@ -211,7 +211,7 @@ public:
     buf_t *acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
-    repli_timestamp get_subtree_recency(block_id_t block_id);
+    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 
     cache_t *cache;
 

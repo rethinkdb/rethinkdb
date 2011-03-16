@@ -16,9 +16,9 @@ public:
     /* set_store_t interface. */
 
     mutation_result_t change(const mutation_t &m, castime_t castime);
-    void backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+    void spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
         on_thread_t th(slice_->home_thread);
-        slice_->backfill(since_when, callback);
+        slice_->spawn_backfill(since_when, callback);
     }
 
 private:

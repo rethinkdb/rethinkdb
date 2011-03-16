@@ -111,13 +111,14 @@ void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
     validate(block_size, node);
 }
 
+// TODO: We don't use the block_size parameter, so get rid of it.
 void remove(block_size_t block_size, leaf_node_t *node, const btree_key_t *key) {
     int index = impl::find_key(node, key);
     rassert(index != impl::key_not_found);
     rassert(index != node->npairs);
 
     uint16_t offset = node->pair_offsets[index];
-    impl::remove_time(&node->times, impl::get_timestamp_offset(block_size, node, offset));
+    impl::remove_time(&node->times, impl::get_timestamp_offset(node, offset));
 
     impl::delete_pair(node, offset);
     impl::delete_offset(node, index);

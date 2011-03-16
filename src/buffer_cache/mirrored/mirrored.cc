@@ -541,19 +541,26 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     }
 }
 
-repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
-    inner_buf_t *inner_buf = cache->page_map.find(block_id);
-    if (inner_buf) {
-        // The buf is in the cache and we must use its recency.
-        return inner_buf->subtree_recency;
-    } else {
-        // The buf is not in the cache, so ask the serializer.
-        // This is dangerous and will make things crash.
+void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+    bool need_second_loop = false;
+    for (size_t i = 0; i < num_block_ids; ++i) {
+        inner_buf_t *inner_buf = cache->page_map.find(block_ids[i]);
+        if (inner_buf) {
+            recencies_out[i] = inner_buf->subtree_recency;
+        } else {
+            need_second_loop = true;
+            recencies_out[i] = repli_timestamp::invalid;
+        }
+    }
 
-        // TODO: This is basically insane, switching to the other core
-        // and back each time we want a recency timestamp.
-        on_thread_t th(cache->serializer->home_thread)
-        return cache->serializer->get_recency(block_id);
+    if (need_second_loop) {
+        on_thread_t th(cache->serializer->home_thread);
+
+        for (size_t i = 0; i < num_block_ids; ++i) {
+            if (recencies_out[i].time == repli_timestamp::invalid.time) {
+                recencies_out[i] = cache->serializer->get_recency(block_ids[i]);
+            }
+        }
     }
 }
 

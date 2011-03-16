@@ -2,6 +2,7 @@
 #define __BTREE_BACKFILL_HPP__
 
 #include "utils2.hpp"
+#include "store.hpp"
 
 class btree_slice_t;
 

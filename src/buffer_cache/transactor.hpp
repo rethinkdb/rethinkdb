@@ -14,6 +14,7 @@ public:
     ~transactor_t();
 
     transaction_t *transaction() { return transaction_; }
+    transaction_t *operator->() { return transaction_; }
     void commit();
 private:
     transaction_t *transaction_;

@@ -1,3 +1,6 @@
+#include <boost/scoped_ptr.hpp>
+
+#include "btree/backfill.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/transactor.hpp"
@@ -11,7 +14,6 @@
 #include "btree/delete.hpp"
 #include "btree/get_cas.hpp"
 #include "replication/master.hpp"
-#include <boost/scoped_ptr.hpp>
 
 void btree_slice_t::create(translator_serializer_t *serializer,
                            mirrored_cache_static_config_t *static_config) {
@@ -88,8 +90,8 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) 
     return boost::apply_visitor(functor, m.mutation);
 }
 
-void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {
-    btree_backfill(this, since_when, callback);
+void btree_slice_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+    spawn_btree_backfill(this, since_when, callback);
 }
 
 
