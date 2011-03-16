@@ -114,8 +114,12 @@ private:
 is transmitted to the thing waiting on the condition variable. It's parameterized on an underlying
 cond_t type so that you can make it thread-safe if you need to. */
 
-template<class val_t, class underlying_cond_t = cond_t>
+template <class val_t, class underlying_cond_t = cond_t>
 struct promise_t {
+
+    // TODO: This is criminally insane, neh?  This type eventually
+    // calls delete on the address of a parameter that had been passed
+    // by reference.
 
     promise_t() : value(NULL) { }
     void pulse(const val_t &v) {
@@ -133,6 +137,31 @@ struct promise_t {
 private:
     underlying_cond_t cond;
     val_t *value;
+
+    DISABLE_COPYING(promise_t);
+};
+
+// A flat_promise_t is like a promise_t except that it doesn't use a
+// pointer, doesn't own the value.
+template <class T, class underlying_cond_t = cond_t>
+class flat_promise_t {
+public:
+    flat_promise_t() : cond_(), value_() { }
+    ~flat_promise_t() { }
+    void pulse(const T& v) {
+        value_ = v;
+        cond_.pulse();
+    }
+    T wait() {
+        cond_.wait();
+        return value_;
+    }
+
+private:
+    underlying_cond_t cond_;
+    T value_;
+
+    DISABLE_COPYING(flat_promise_t);
 };
 
 #endif /* __CONCURRENCY_COND_VAR_HPP__ */
