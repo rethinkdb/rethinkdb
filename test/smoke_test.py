@@ -43,6 +43,12 @@ try:
                   "mode"        : mode,
                   "no-valgrind" : not checker,
                   "protocol"    : protocol })
+
+        do_test_cloud("integration/unappend_unprepend.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol })
         
         do_test_cloud("integration/cas.py",
                 { "auto"        : True,
