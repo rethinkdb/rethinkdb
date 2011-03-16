@@ -659,15 +659,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     }
 
     if (buf->ready) {
-        const bool have_to_snapshot = snapshot_version == mc_inner_buf_t::faux_version_id && snapshotted;
-        if (have_to_snapshot) {
-            // register_snapshot sets transaction snapshot_version
-            cache->register_snapshot(this);
-        }
-        if (snapshot_version == mc_inner_buf_t::faux_version_id) {
-            // For non-snapshotted transactions, we still assign a version number on the first acquire
-            snapshot_version = cache->next_snapshot_version;
-        }
+        maybe_finalize_version();
         return buf;
     } else {
         buf->callback = snapshotted ? new snapshot_wrapper_t(this, callback) : callback;
@@ -676,19 +668,23 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
 }
 
 void mc_transaction_t::snapshot_wrapper_t::on_block_available(mc_buf_t *block) {
-    trx->cache->assert_thread();
-    // TODO: Code duplication! Refactor
-    const bool have_to_snapshot = trx->snapshot_version == mc_inner_buf_t::faux_version_id && trx->snapshotted;
-    if (have_to_snapshot) {
-        // register_snapshot sets transaction snapshot_version
-        trx->cache->register_snapshot(trx);
-    }
-    if (trx->snapshot_version == mc_inner_buf_t::faux_version_id) {
-        // For non-snapshotted transactions, we still assign a version number on the first acquire
-        trx->snapshot_version = trx->cache->next_snapshot_version;
-    }
+    trx->maybe_finalize_version();
     cb->on_block_available(block);
     delete this;
+}
+
+void mc_transaction_t::maybe_finalize_version() {
+    cache->assert_thread();
+
+    const bool have_to_snapshot = snapshot_version == mc_inner_buf_t::faux_version_id && snapshotted;
+    if (have_to_snapshot) {
+        // register_snapshot sets transaction snapshot_version
+        cache->register_snapshot(this);
+    }
+    if (snapshot_version == mc_inner_buf_t::faux_version_id) {
+        // For non-snapshotted transactions, we still assign a version number on the first acquire
+        snapshot_version = cache->next_snapshot_version;
+    }
 }
 
 void mc_transaction_t::snapshot() {

@@ -229,6 +229,7 @@ public:
     buf_t *allocate();
     repli_timestamp get_subtree_recency(block_id_t block_id);
 
+    // This just sets the snapshotted flag, we finalize the snapshot as soon as the first block has been acquired (see finalize_version() )
     void snapshot();
 
     cache_t *cache;
@@ -252,6 +253,8 @@ private:
     mc_inner_buf_t::version_id_t snapshot_version;
     bool snapshotted;
 
+    // If not done before, sets snapshot_version, if in snapshotted mode also registers the snapshot
+    void maybe_finalize_version();
     struct snapshot_wrapper_t : public block_available_callback_t {
         mc_transaction_t *trx;
         block_available_callback_t *cb;
