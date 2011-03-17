@@ -89,10 +89,14 @@ void usage_serve() {
                 "                        Defaults to %d\n", COROUTINE_STACK_SIZE); */ 
     help->pagef("\n"
                 "Replication & Failover options:\n"
-                "      --slave-of host:port Run this server as a slave of a master server. As a\n"
+                "      --master-port port\n"
+                "                        The port on which to listen for a slave.\n"
+                "                        Defaults to %d\n", DEFAULT_REPLICATION_PORT);
+    help->pagef("      --slave-of host:port\n"
+                "                        Run this server as a slave of a master server. As a\n"
                 "                        slave it will be replica of the master and will respond\n"
-                "                        only to gets. When the master goes down it will begin\n"
-                "                        responding to writes.\n"
+                "                        only to get and rget. When the master goes down it will\n"
+                "                        begin responding to writes.\n"
                 "      --failover-script Used in conjunction with --slave-of to specify a script\n"
                 "                        that will be run when the master fails and comes back up\n"
                 "                        see manual for an example script.\n" //TODO @jdoliner add this to the manual slava where is the manual?
@@ -165,6 +169,7 @@ enum {
     diff_log_size,
     force_create,
     coroutine_stack_size,
+    master_port,
     slave_of,
     failover_script,
     heartbeat_timeout,
@@ -224,6 +229,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
                 {"help",                 no_argument, &do_help, 1},
+                {"master-port",          required_argument, 0, master_port},
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO @sam push this through to where you want it
@@ -295,6 +301,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_coroutine_stack_size(optarg); break;
             case force_create:
                 config.force_create = true; break;
+            case master_port:
+                config.set_master_listen_port(optarg); break;
             case slave_of:
                 config.set_master_addr(optarg); break;
             case failover_script:
@@ -599,7 +607,7 @@ void parsing_cmd_config_t::set_log_file(const char* value) {
 
 void parsing_cmd_config_t::set_port(const char* value) {
     int& target = port;
-    const int minimum_value = 0;
+    const int minimum_value = 1;
     const int maximum_value = 65535;
     
     target = parse_int(optarg);
@@ -629,16 +637,27 @@ void parsing_cmd_config_t::set_coroutine_stack_size(const char* value) {
     coro_t::set_coroutine_stack_size(parse_int(optarg));
 }
 
+void parsing_cmd_config_t::set_master_listen_port(char *value) {
+    replication_master_listen_port = parse_int(optarg);
+    const int minimum_value = 1, maximum_value = 65535;
+    if (parsing_failed || !is_in_range(replication_master_listen_port, minimum_value, maximum_value)) {
+        fail_due_to_user_error("Master listen port must be between %d and %d.", minimum_value, maximum_value);
+    }
+}
+
 void parsing_cmd_config_t::set_master_addr(char *value) {
     char *token = strtok(value, ":");
-    if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN - 1)
+    if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN - 1) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
+    }
 
-    strcpy(replication_config.hostname, token);
+    strncpy(replication_config.hostname, token, MAX_HOSTNAME_LEN);
+    replication_config.hostname[MAX_HOSTNAME_LEN - 1] = '\0';
 
     token = strtok(NULL, ":");
-    if (token == NULL)
+    if (token == NULL) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
+    }
 
     replication_config.port = parse_int(token);
 
@@ -818,7 +837,12 @@ cmd_config_t::cmd_config_t() {
     create_store = false;
     force_create = false;
     shutdown_after_creation = false;
-    
+
+    replication_config.port = DEFAULT_REPLICATION_PORT;
+    memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
+    replication_config.active = false;
+    replication_master_listen_port = DEFAULT_REPLICATION_PORT;
+
     store_static_config.serializer.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
     store_static_config.serializer.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;
     

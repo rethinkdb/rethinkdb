@@ -13,9 +13,6 @@ class btree_slice_dispatching_to_master_t;
 
 namespace replication {
 
-// TODO: Consider a good value for this port.
-const int REPLICATION_PORT = 11319;
-
 class master_exc_t : public std::runtime_error {
 public:
     master_exc_t(const char *what_arg) : std::runtime_error(what_arg) { }
@@ -33,9 +30,10 @@ public:
 
 class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t, public message_callback_t, public snag_pointee_mixin_t {
 public:
-    master_t(thread_pool_t *thread_pool) : timer_handler_(&thread_pool->threads[get_thread_id()]->timer_handler),
-                                           stream_(NULL), listener_(REPLICATION_PORT),
-                                           next_timestamp_nop_timer_(NULL), latest_timestamp_(current_time()) {
+    master_t(thread_pool_t *thread_pool, int port)
+        : timer_handler_(&thread_pool->threads[get_thread_id()]->timer_handler),
+          stream_(NULL), listener_(port),
+          next_timestamp_nop_timer_(NULL), latest_timestamp_(current_time()) {
         listener_.set_callback(this);
     }
 
