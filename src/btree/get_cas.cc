@@ -54,6 +54,10 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         }
     }
 
+    int compute_expected_change_count(const size_t block_size) {
+        return 1;
+    }
+
     cas_t proposed_cas;
     get_result_t result;
     promise_t<get_result_t, threadsafe_cond_t> *res;

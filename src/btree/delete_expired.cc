@@ -11,6 +11,10 @@ public:
          * delete the expired key if necessary. */
         return false;
     }
+
+    int compute_expected_change_count(const size_t block_size) {
+        return 1;
+    }
 };
 
 // This function is called when doing a btree_get() and finding an expired key.

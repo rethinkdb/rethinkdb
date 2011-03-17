@@ -437,8 +437,10 @@ struct ls_write_fsm_t :
     }
     
     void on_thread_switch() {
-        
-        /* Launch up to this many block writers at a time, then yield the CPU */
+
+        /* TODO: This does not work well in master currently! (crashes). Disabled for now... */
+        /*
+        // Launch up to this many block writers at a time, then yield the CPU
         const int target_chunk_size = 100;
         int chunk_size = 0;
         while (num_writes > 0 && chunk_size < target_chunk_size) {
@@ -447,6 +449,13 @@ struct ls_write_fsm_t :
             num_writes--;
             writes++;
             chunk_size++;
+        }*/
+
+        while (num_writes > 0) {
+            ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes);
+            if (!writer->run(this)) num_writes_waited_for++;
+            num_writes--;
+            writes++;
         }
         
         if (num_writes == 0) done_preparing_writes();
@@ -593,6 +602,7 @@ bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, in
             /* make_internal() makes a write_t that will not change the timestamp. */
             writes.push_back(write_t::make_internal(gc_writes[i].block_id, gc_writes[i].buf, NULL));
         } else {
+            // TODO: Does this assert fail for large values now?
             rassert(memcmp(gc_writes[i].buf, "zero", 4) == 0);   // Check for zerobuf magic
             writes.push_back(write_t::make_internal(gc_writes[i].block_id, NULL, NULL));
         }

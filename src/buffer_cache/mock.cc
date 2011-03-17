@@ -249,7 +249,7 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-mock_transaction_t *mock_cache_t::begin_transaction(access_t access, mock_transaction_begin_callback_t *callback) {
+mock_transaction_t *mock_cache_t::begin_transaction(access_t access, int expected_change_count, mock_transaction_begin_callback_t *callback) {
     
     mock_transaction_t *txn = new mock_transaction_t(this, access);
     

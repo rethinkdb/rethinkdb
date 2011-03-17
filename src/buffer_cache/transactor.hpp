@@ -11,6 +11,7 @@
 class transactor_t {
 public:
     transactor_t(cache_t *cache, access_t access, repli_timestamp recency_timestamp);
+    transactor_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
     ~transactor_t();
 
     transaction_t *transaction() { return transaction_; }

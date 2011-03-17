@@ -216,10 +216,11 @@ public:
     cache_t *cache;
 
 private:
-    explicit mc_transaction_t(cache_t *cache, access_t access, repli_timestamp recency_timestamp);
+    explicit mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
     ~mc_transaction_t();
 
     ticks_t start_time;
+    int expected_change_count;
 
     void green_light();   // Called by the writeback when it's OK for us to start
     virtual void on_sync();
@@ -286,7 +287,7 @@ public:
     block_size_t get_block_size();
 
     // Transaction API
-    transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback, repli_timestamp recency_timestamp);
+    transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
 private:
     void on_transaction_commit(transaction_t *txn);
