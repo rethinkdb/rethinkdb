@@ -504,7 +504,7 @@ void data_block_manager_t::mark_unyoung_entries() {
         remove_last_unyoung_entry();
     }
 
-    gc_entry::timestamp_t current_time = gc_entry::current_timestamp();
+    uint64_t current_time = current_microtime();
 
     while (young_extent_queue.head()
            && current_time - young_extent_queue.head()->timestamp > GC_YOUNG_EXTENT_TIMELIMIT_MICROS) {

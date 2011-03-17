@@ -48,6 +48,10 @@ repli_timestamp repli_time(time_t t);
 // TODO: move this to a different file
 repli_timestamp current_time();
 
+typedef uint64_t microtime_t;
+
+microtime_t current_microtime();
+
 // This is not a transitive operation.  It compares times "locally."
 // Imagine a comparison function that compares angles, in the range
 // [0, 2*pi), that is invariant with respect to rotation.  How would
