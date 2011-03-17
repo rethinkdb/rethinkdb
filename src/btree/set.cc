@@ -99,6 +99,16 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
     }
 
+    virtual int compute_expected_change_count(const size_t block_size) {
+        if (data->get_size() < MAX_IN_NODE_VALUE_SIZE) {
+            return 1;
+        } else {
+            size_t size = ceil_aligned(data->get_size(), block_size);
+            // one for the leaf node plus the number of blocks required to hold the large value
+            return 1 + size / block_size;
+        }
+    }
+
     virtual void actually_acquire_large_value(large_buf_t *lb) {
         co_acquire_large_buf_for_delete(lb);
     }

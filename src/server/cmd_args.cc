@@ -808,8 +808,9 @@ void cmd_config_t::print() {
 }
 
 cmd_config_t::cmd_config_t() {
-    bzero(this, sizeof(*this));
-    
+    bzero(&replication_config, sizeof(replication_config));
+    bzero(&failover_config, sizeof(failover_config));
+
     verbose = false;
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
@@ -831,6 +832,7 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.cache.wait_for_flush = false;
     store_dynamic_config.cache.flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
     store_dynamic_config.cache.max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;
+    store_dynamic_config.cache.flush_dirty_size = 0;
     store_dynamic_config.cache.flush_waiting_threshold = DEFAULT_FLUSH_WAITING_THRESHOLD;
     store_dynamic_config.cache.max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
     
@@ -849,5 +851,7 @@ cmd_config_t::cmd_config_t() {
     store_static_config.btree.n_slices = DEFAULT_BTREE_SHARD_FACTOR;
 
     store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / store_static_config.serializer.block_size().ser_value() / store_static_config.btree.n_slices;
+
+    store_static_config.padding = 0;
 }
 

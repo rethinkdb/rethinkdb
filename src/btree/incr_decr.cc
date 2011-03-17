@@ -60,6 +60,10 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         return true;
     }
 
+    int compute_expected_change_count(const size_t block_size) {
+        return 1;
+    }
+
     bool increment;   // If false, then decrement
     uint64_t delta;   // Amount to increment or decrement by
 

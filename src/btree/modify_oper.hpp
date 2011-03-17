@@ -33,6 +33,8 @@ public:
     virtual bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value,
         boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) = 0;
 
+    virtual int compute_expected_change_count(const size_t block_size) = 0;
+
     // These two variables are only used by the get_cas_oper; there should be a
     // nicer way to handle this.
     btree_slice_t *slice;

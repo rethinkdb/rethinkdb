@@ -24,3 +24,4 @@ bench/stress-client/stress
 bench/serializer-bench/serializer-bench
 last_tested_versions
 .deps/
+src/spin_up_clusters.py

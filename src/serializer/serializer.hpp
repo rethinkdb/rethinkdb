@@ -64,6 +64,10 @@ struct serializer_t :
         virtual void on_serializer_write_txn() = 0;
         virtual ~write_txn_callback_t() {}
     };
+    struct write_tid_callback_t {
+        virtual void on_serializer_write_tid() = 0;
+        virtual ~write_tid_callback_t() {}
+    };
     struct write_block_callback_t {
         virtual void on_serializer_write_block() = 0;
         virtual ~write_block_callback_t() {}
@@ -95,7 +99,9 @@ struct serializer_t :
                 bool buf_specified_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_, bool assign_transaction_id)
             : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), write_empty_deleted_block(write_empty_deleted_block_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
     };
-    virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) = 0;
+    /* tid_callback is called as soon as new transaction ids have been assigned to each written block,
+    callback gets called when all data has been written to disk */
+    virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) = 0;
     
     /* The size, in bytes, of each serializer block */
     
