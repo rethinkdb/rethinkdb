@@ -377,7 +377,7 @@ void writeback_t::concurrent_flush_t::do_writeback() {
     // Write transactions can now proceed again.
     parent->flush_lock.unlock();
 
-    do_on_thread(parent->cache->serializer->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_write, this, false));
+    do_on_thread(parent->cache->serializer->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_write, this));
     // ... continue in on_serializer_write_txn
 }
 
@@ -540,51 +540,49 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
     pm_flushes_blocks_dirty.record(really_dirty);
 }
 
-bool writeback_t::concurrent_flush_t::do_write(const bool write_issued) {
-    if (!write_issued) {
-        /* Start writing all the dirty bufs down, as a transaction. */
+bool writeback_t::concurrent_flush_t::do_write() {
+    /* Start writing all the dirty bufs down, as a transaction. */
 
-        // TODO(NNW): Now that the serializer/aio-system breaks writes up into
-        // chunks, we may want to worry about submitting more heavily contended
-        // bufs earlier in the process so more write FSMs can proceed sooner.
+    rassert(parent->writeback_in_progress);
+    parent->cache->serializer->assert_thread();
 
-        rassert(parent->writeback_in_progress);
-        parent->cache->serializer->assert_thread();
+    bool continue_instantly = serializer_writes.empty() ||
+            parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this);
 
-        bool continue_instantly = serializer_writes.empty() ||
-                parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this);
-
-        do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_write, this, true));
-
-        if (continue_instantly)
-            on_serializer_write_txn();
-
-        return true;
+    if (continue_instantly) {
+        // The order matters! We rely on the message hub to call stuff in the same order in which we submit it.
+        do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
+        do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_cleanup, this));
     }
-    else {
-        rassert(parent->writeback_in_progress);
-        parent->cache->assert_thread();
 
-        // Retrieve changed transaction ids in case COW was used
-        size_t inner_buf_ix = 0;
-        for (size_t i = 0; i < serializer_writes.size(); ++i) {
-            if (serializer_writes[i].buf_specified && serializer_writes[i].buf) {
-                serializer_inner_bufs[inner_buf_ix++]->transaction_id = parent->cache->serializer->get_current_transaction_id(serializer_writes[i].block_id, serializer_writes[i].buf);
-            }
+    return true;
+}
+
+void writeback_t::concurrent_flush_t::update_transaction_ids() {
+    rassert(parent->writeback_in_progress);
+    parent->cache->assert_thread();
+
+    // Retrieve changed transaction ids
+    size_t inner_buf_ix = 0;
+    for (size_t i = 0; i < serializer_writes.size(); ++i) {
+        if (serializer_writes[i].buf_specified && serializer_writes[i].buf) {
+            serializer_inner_bufs[inner_buf_ix++]->transaction_id = parent->cache->serializer->get_current_transaction_id(serializer_writes[i].block_id, serializer_writes[i].buf);
         }
-
-        // Allow new concurrent flushes to start from now on
-        // (we had to wait until the transaction got passed to the serializer)
-        parent->writeback_in_progress = false;
-
-        // Also start the next sync now in case it was requested
-        if (parent->start_next_sync_immediately) {
-            parent->start_next_sync_immediately = false;
-            parent->sync(NULL);
-        }
-
-        return true;
     }
+
+    // Allow new concurrent flushes to start from now on
+    // (we had to wait until the transaction got passed to the serializer)
+    parent->writeback_in_progress = false;
+
+    // Also start the next sync now in case it was requested
+    if (parent->start_next_sync_immediately) {
+        parent->start_next_sync_immediately = false;
+        parent->sync(NULL);
+    }
+}
+
+void writeback_t::concurrent_flush_t::on_serializer_write_tid() {
+    do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
 }
 
 void writeback_t::concurrent_flush_t::on_serializer_write_txn() {

@@ -182,6 +182,7 @@ private:
 public:
     // A separate type to support concurrent flushes
     class concurrent_flush_t :
+            public serializer_t::write_tid_callback_t,
             public serializer_t::write_txn_callback_t,
             public lock_available_callback_t {
 
@@ -199,8 +200,10 @@ public:
         void do_writeback();  // Called on cache thread
         virtual void on_lock_available();   // Called on cache thread
         void acquire_bufs();   // Called on cache thread
-        bool do_write(const bool write_issued);   // Called on serializer thread
+        bool do_write();       // Called on serializer thread
+        virtual void on_serializer_write_tid();   // Called on serializer thread
         virtual void on_serializer_write_txn();   // Called on serializer thread
+        void update_transaction_ids();  // Called on cache thread
         bool do_cleanup();   // Called on cache thread
 
         writeback_t* parent; // We need this for flush concurrency control (i.e. flush_lock, active_flushes etc.)

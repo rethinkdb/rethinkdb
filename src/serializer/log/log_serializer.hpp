@@ -102,7 +102,7 @@ public:
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
     bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
     ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf);
-    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback);
+    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL);
     block_size_t get_block_size();
     ser_block_id_t max_block_id();
     bool block_in_use(ser_block_id_t id);
