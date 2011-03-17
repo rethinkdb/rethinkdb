@@ -3,6 +3,7 @@
 #include "rpc/serialize/serialize.hpp"
 #include "rpc/rpc.hpp"
 #include "rpc/serialize/serialize_macros.hpp"
+#include "rpc/council.hpp"
 #include "clustering/cluster_store.hpp"
 #include "clustering/dispatching_store.hpp"
 #include "server/cmd_args.hpp"
@@ -16,10 +17,16 @@
 #include "btree/slice.hpp"
 #include "serializer/translator.hpp"
 #include "clustering/master_map.hpp"
+#include "control.hpp"
 
 /* demo_delegate_t */
 
 typedef async_mailbox_t<void(int, set_store_mailbox_t::address_t, get_store_mailbox_t::address_t)> registration_mailbox_t;
+
+void test_council_update(int diff, int *value) {
+    *value = diff;
+}
+typedef council_t<int, int> test_council_t;
 
 struct demo_delegate_t : public cluster_delegate_t {
 
@@ -27,10 +34,42 @@ struct demo_delegate_t : public cluster_delegate_t {
     get_store_mailbox_t::address_t master_get_store;
     registration_mailbox_t::address_t registration_address;
 
+    test_council_t test_council;
+
+    struct test_council_control_t : public control_t {
+        test_council_t *tc;
+        test_council_control_t(test_council_t *tc) :
+            control_t("council-test", "Give it a number to test the council code."),
+            tc(tc) { }
+        std::string call(int argc, char **argv) {
+            char return_buffer[100];
+            if (argc == 1) {
+                snprintf(return_buffer, sizeof(return_buffer), "Value: %d\n", tc->get_value());
+            } else if (argc == 2) {
+                int new_value = atoi(argv[1]);
+                tc->apply(new_value);
+                snprintf(return_buffer, sizeof(return_buffer), "New value: %d\n", tc->get_value());
+            } else if (argc > 2) {
+                snprintf(return_buffer, sizeof(return_buffer), "Too many args.\n");
+            }
+            return std::string(return_buffer);
+        }
+    } test_council_control;
+
     demo_delegate_t(const set_store_interface_mailbox_t::address_t &ms, 
                     const get_store_mailbox_t::address_t &mgs, 
-                    const registration_mailbox_t::address_t ra) :
-        master_store(ms), master_get_store(mgs), registration_address(ra) { }
+                    const registration_mailbox_t::address_t &ra,
+                    const test_council_t::address_t &tca) :
+        master_store(ms), master_get_store(mgs), registration_address(ra),
+        test_council(&test_council_update, tca),
+        test_council_control(&test_council) { }
+    demo_delegate_t(const set_store_interface_mailbox_t::address_t &ms, 
+                    const get_store_mailbox_t::address_t &mgs, 
+                    const registration_mailbox_t::address_t &ra,
+                    int initial_test_council_value) :
+        master_store(ms), master_get_store(mgs), registration_address(ra),
+        test_council(&test_council_update, initial_test_council_value),
+        test_council_control(&test_council) { }
 
     static demo_delegate_t *construct(cluster_inpipe_t *p) {
         set_store_interface_mailbox_t::address_t master_store;
@@ -39,18 +78,24 @@ struct demo_delegate_t : public cluster_delegate_t {
         ::unserialize(p, NULL, &master_get_store);
         registration_mailbox_t::address_t registration_address;
         ::unserialize(p, NULL, &registration_address);
+        test_council_t::address_t test_council_address;
+        ::unserialize(p, NULL, &test_council_address);
         p->done();
-        return new demo_delegate_t(master_store, master_get_store, registration_address);
+        return new demo_delegate_t(master_store, master_get_store, registration_address, test_council_address);
     }
 
     int introduction_ser_size() {
-        return ::ser_size(master_store) + ::ser_size(master_get_store) + ::ser_size(registration_address);
+        return ::ser_size(master_store) +
+            ::ser_size(master_get_store) +
+            ::ser_size(registration_address) +
+            ::ser_size(test_council_t::address_t(&test_council));
     }
 
     void introduce_new_node(cluster_outpipe_t *p) {
         ::serialize(p, master_store);
         ::serialize(p, master_get_store);
         ::serialize(p, registration_address);
+        ::serialize(p, test_council_t::address_t(&test_council));
     }
 };
 
@@ -137,7 +182,10 @@ void cluster_main(cluster_config_t config, thread_pool_t *thread_pool) {
         /* Start a new cluster */
 
         logINF("Starting new cluster...\n");
-        get_cluster().start(31000 + config.id, new demo_delegate_t(&master_mailbox, &master_get_mailbox, &registration_mailbox));
+        get_cluster().start(31000 + config.id,
+            new demo_delegate_t(
+                &master_mailbox, &master_get_mailbox,
+                &registration_mailbox, 314));
         logINF("Cluster started.\n");
 
         serve(config.id, static_cast<demo_delegate_t *>(get_cluster().get_delegate()));
@@ -147,7 +195,8 @@ void cluster_main(cluster_config_t config, thread_pool_t *thread_pool) {
         /* Join an existing cluster */
 
         logINF("Joining an existing cluster.\n");
-        get_cluster().start(31000 + config.id, "localhost", 31000 + config.contact_id, &demo_delegate_t::construct);
+        get_cluster().start(31000 + config.id, "localhost", 31000 + config.contact_id,
+            &demo_delegate_t::construct);
         logINF("Cluster started.\n");
 
         serve(config.id, static_cast<demo_delegate_t *>(get_cluster().get_delegate()));

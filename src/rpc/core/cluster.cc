@@ -322,7 +322,7 @@ void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
         rassert(status == 0);
 
         mbox_msg.set_type(realname, strlen(realname));
-        delete realname;
+        free(realname);
 #endif
         p->write(&mbox_msg);
 

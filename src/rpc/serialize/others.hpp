@@ -9,8 +9,8 @@
 
 template<class element_t>
 void serialize(cluster_outpipe_t *conn, const std::vector<element_t> &e) {
-    serialize(conn, e.size());
-    for (int i = 0; i < e.size(); i++) {
+    serialize(conn, int(e.size()));
+    for (int i = 0; i < (int)e.size(); i++) {
         serialize(conn, e[i]);
     }
 }
@@ -18,8 +18,8 @@ void serialize(cluster_outpipe_t *conn, const std::vector<element_t> &e) {
 template<class element_t>
 int ser_size(const std::vector<element_t> &e) {
     int size = 0;
-    size += ser_size(e.size());
-    for (int i = 0; i < e.size(); i++) {
+    size += ser_size(int(e.size()));
+    for (int i = 0; i < (int)e.size(); i++) {
         size += ser_size(e[i]);
     }
     return size;
@@ -31,7 +31,42 @@ void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::v
     unserialize(conn, es, &count);
     e->resize(count);
     for (int i = 0; i < count; i++) {
-        unserialize(conn, es, &e[i]);
+        element_t *ei = &(*e)[i];
+        unserialize(conn, es, ei);
+    }
+}
+
+/* Serializing and unserializing boost::scoped_ptr */
+
+template<class object_t>
+void serialize(cluster_outpipe_t *conn, const boost::scoped_ptr<object_t> &p) {
+    if (p) {
+        serialize(conn, true);
+        serialize(conn, *p);
+    } else {
+        serialize(conn, false);
+    }
+}
+
+template<class object_t>
+int ser_size(const boost::scoped_ptr<object_t> &p) {
+    if (p) {
+        return ser_size(true) + ser_size(*p);
+    } else {
+        return ser_size(false);
+    }
+}
+
+template<class object_t>
+void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, boost::scoped_ptr<object_t> *p) {
+    bool is_non_null;
+    unserialize(conn, es, &is_non_null);
+    if (is_non_null) {
+        object_t *buffer = new object_t;
+        p->reset(buffer);
+        unserialize(conn, es, buffer);
+    } else {
+        p->reset(NULL);
     }
 }
 

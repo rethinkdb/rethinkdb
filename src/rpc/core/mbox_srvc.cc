@@ -11,14 +11,14 @@ void mailbox_srvc_t::handle(cluster_peer_t *sndr) {
             rassert(status == 0);
 
             if (strcmp(realname, msg.type().c_str()) != 0) {
-                logERR("Error mailbox type mismatch. Mailbox msg of type: %s "
+                logERR("Error, mailbox type mismatch. Mailbox msg of type: %s "
                         "from peer: %d sent to mailbox: %d which is of type: "
                         "%s\n", msg.type().c_str(), sndr->id,  msg.id(),
                         realname); 
-                delete realname;
+                free(realname);
                 goto ERROR_BREAKOUT;
             } else {
-                delete realname;
+                free(realname);
             }
         } else {
             logWRN("Peer: %d did not specify type information but I'm supposed"
