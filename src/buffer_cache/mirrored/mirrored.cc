@@ -274,8 +274,7 @@ void mc_buf_t::acquire_block(bool locked) {
             }
             case rwi_read_outdated_ok: {
                 if (inner_buf->cow_will_be_needed) {
-                    data = inner_buf->cache->serializer->malloc();
-                    memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
+                    data = inner_buf->cache->serializer->clone(inner_buf->data);
                 } else {
                     data = inner_buf->data;
                     inner_buf->cow_will_be_needed = true;
@@ -297,8 +296,7 @@ void mc_buf_t::acquire_block(bool locked) {
                 //inner_buf->version_id = inner_buf->cache->get_current_version_id();
 
                 if (need_to_create_snapshot) {
-                    data = inner_buf->cache->serializer->malloc();
-                    memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
+                    data = inner_buf->cache->serializer->clone(inner_buf->data);
                     inner_buf->data = data;
                     inner_buf->cow_will_be_needed = false;
                 }
