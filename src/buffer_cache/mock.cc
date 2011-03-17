@@ -12,11 +12,8 @@ struct internal_buf_t
     rwi_lock_t lock;
     
     internal_buf_t(mock_cache_t *cache, block_id_t block_id)
-        : cache(cache), block_id(block_id), subtree_recency(
-                                                            // cache->serializer->get_recency(block_id)
-                                                            // TODO: We can't call cache->serializer->get_recency because it's on a different core.  Rearchitect this when we start actually using timestamps.
-                                                            repli_timestamp::invalid
-), data(cache->serializer->malloc()) {
+        : cache(cache), block_id(block_id), subtree_recency(current_time() /* TODO take a timestamp parameter */),
+          data(cache->serializer->malloc()) {
         rassert(data);
         bzero(data, cache->block_size.value());
     }
@@ -91,6 +88,7 @@ void mock_buf_t::release() {
     delete this;
 }
 
+// TODO: Add notiont of recency_dirty
 bool mock_buf_t::is_dirty() {
     return dirty;
 }
@@ -133,7 +131,11 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock
     rassert(block_id < cache->bufs.get_size());
     internal_buf_t *internal_buf = cache->bufs[block_id];
     rassert(internal_buf);
-    
+
+    if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
+        internal_buf->subtree_recency = recency_timestamp;
+    }
+
     mock_buf_t *buf = new mock_buf_t(internal_buf, mode);
     if (internal_buf->lock.lock(mode, buf)) {
         if (maybe_random_delay(callback, &mock_block_available_callback_t::on_block_available, buf)) {
@@ -160,16 +162,17 @@ mock_buf_t *mock_transaction_t::allocate() {
     return buf;
 }
 
-repli_timestamp mock_transaction_t::get_subtree_recency(block_id_t block_id) {
-    rassert(block_id < cache->bufs.get_size());
-    internal_buf_t *internal_buf = cache->bufs[block_id];
-    rassert(internal_buf);
-
-    return internal_buf->subtree_recency;
+void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+    for (size_t i = 0; i < num_block_ids; ++i) {
+        rassert(block_ids[i] < cache->bufs.get_size());
+        internal_buf_t *internal_buf = cache->bufs[block_ids[i]];
+        rassert(internal_buf);
+        recencies_out[i] = internal_buf->subtree_recency;
+    }
 }
 
-mock_transaction_t::mock_transaction_t(mock_cache_t *cache, access_t access)
-    : cache(cache), access(access) {
+mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, repli_timestamp _recency_timestamp)
+    : cache(_cache), access(_access), recency_timestamp(_recency_timestamp) {
     cache->transaction_counter.acquire();
 }
 
@@ -249,9 +252,9 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-mock_transaction_t *mock_cache_t::begin_transaction(access_t access, int expected_change_count, mock_transaction_begin_callback_t *callback) {
+mock_transaction_t *mock_cache_t::begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, mock_transaction_begin_callback_t *callback) {
     
-    mock_transaction_t *txn = new mock_transaction_t(this, access);
+    mock_transaction_t *txn = new mock_transaction_t(this, access, recency_timestamp);
     
     switch (access) {
         case rwi_read:

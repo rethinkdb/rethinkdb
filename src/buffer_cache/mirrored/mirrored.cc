@@ -44,6 +44,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
     : cache(cache),
       block_id(block_id),
       data(cache->serializer->malloc()),
+      /* TODO initialize subtree_recency */
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -71,6 +72,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf)
     : cache(cache),
       block_id(block_id),
       data(buf),
+      /* TODO initialize subtree_recency */
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
@@ -95,7 +97,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf)
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     : cache(cache),
       block_id(cache->free_list.gen_block_id()),
-      subtree_recency(current_time()),
+      subtree_recency(current_time() /* TODO take a timestamp parameter */),
       data(cache->serializer->malloc()),
       next_patch_counter(1),
       refcount(0),
