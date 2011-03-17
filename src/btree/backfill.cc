@@ -15,7 +15,7 @@
 
 // TODO make this user-configurable.
 #define BACKFILLING_MAX_BREADTH_FIRST_BLOCKS 50000
-#define BACKFILLING_MAX_PENDING_BLOCKS 40000
+#define BACKFILLING_REMAINING_BLOCKS_LIMIT 40000
 
 // Backfilling
 
@@ -68,9 +68,11 @@
 // TODO: Actually use shutdown_mode.
 class backfill_state_t {
 public:
+    enum acquisition_credit { no_response = 0, breadth_first_credit = 1, depth_first_credit = 2 };
+
     backfill_state_t(btree_slice_t *_slice, repli_timestamp _since_when, backfill_callback_t *_callback)
         : slice(_slice), since_when(_since_when), transactor_ptr(boost::make_shared<transactor_t>(&_slice->cache(), rwi_read, _since_when)),
-          callback(_callback), shutdown_mode(false), num_pending_blocks(0), num_acquired_blocks(0) { }
+          callback(_callback), shutdown_mode(false), num_breadth_blocks(0) { }
 
     // The slice we're backfilling from.
     btree_slice_t *const slice;
@@ -95,8 +97,57 @@ public:
         return level_counts[level];
     }
 
-    void consider_pulsing() {
+    static int64_t level_max(int level) {
+        return 1000;
+    }
 
+    void consider_pulsing() {
+        // We try to do as many pulses as we can (thus getting
+        // behavior equivalent to calling consider_pulsing) but we
+        // only actually do one pulse because this function gets
+        // called immediately after every single block deallocation,
+        // which only decrements counters by 1.
+
+        // Right now we don't actually do more than one pulse at a time, since people call 
+
+        if (num_breadth_blocks < BACKFILLING_MAX_BREADTH_FIRST_BLOCKS) {
+            int max_breadth_pulses = BACKFILLING_MAX_BREADTH_FIRST_BLOCKS - num_breadth_blocks;
+
+            for (int i = 0, n = acquisition_waiter_stacks.size(); i < n; ++i) {
+                while (acquisition_waiter_stacks[i].size() > 0) {
+                    flat_promise_t<acquisition_credit> *promise = acquisition_waiter_stacks[i].back();
+                    acquisition_waiter_stacks[i].pop_back();
+
+                    promise->pulse(breadth_first_credit);
+                    max_breadth_pulses -= 1;
+                    if (max_breadth_pulses == 0) {
+                        goto done_breadth;
+                    }
+                }
+            }
+        }
+
+    done_breadth:
+        // We're out of breadth-first slots, so let's consider depth-first slots.
+
+        if (total_level_count() - num_breadth_blocks < BACKFILLING_REMAINING_BLOCKS_LIMIT) {
+            int max_depth_pulses = BACKFILLING_REMAINING_BLOCKS_LIMIT - (total_level_count() - num_breadth_blocks);
+
+            for (int i = level_counts.size() - 1; i >= 0; --i) {
+                if (level_counts[i] < level_max(i)) {
+                    int diff = level_max(i) - level_counts[i];
+
+                    while (diff > 0 && max_depth_pulses > 0 && !acquisition_waiter_stacks[i].empty()) {
+                        flat_promise_t<acquisition_credit> *promise = acquisition_waiter_stacks[i].back();
+                        acquisition_waiter_stacks[i].pop_back();
+
+                        promise->pulse(depth_first_credit);
+                        max_depth_pulses -= 1;
+                        diff -= 1;
+                    }
+                }
+            }
+        }
     }
 
     int64_t total_level_count() {
@@ -108,9 +159,9 @@ public:
     }
 
 
-    std::vector< std::vector<cond_t *> > acquisition_waiter_stacks;
+    std::vector< std::vector<flat_promise_t<acquisition_credit> *> > acquisition_waiter_stacks;
 
-    std::vector<cond_t *>& acquisition_waiter_stack(int level) {
+    std::vector<flat_promise_t<acquisition_credit> *>& acquisition_waiter_stack(int level) {
         rassert(level >= 0);
         if (level >= int(acquisition_waiter_stacks.size())) {
             rassert(level == int(acquisition_waiter_stacks.size()), "Somehow we skipped a level!");
@@ -119,12 +170,7 @@ public:
         return acquisition_waiter_stacks[level];
     }
 
-    // The number of blocks we are currently loading -- the buffer
-    // cache has not returned them yet.  Not sure why we have this.
-    int num_pending_blocks;
-    // The number of blocks we currently have acquired...
-    // Not sure why we have this.
-    int num_acquired_blocks;
+    int num_breadth_blocks;
 
 private:
     DISABLE_COPYING(backfill_state_t);
@@ -133,23 +179,24 @@ private:
 // Naive functions' declarations
 void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids);
 void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond);
-void process_leaf_node(backfill_state_t& state, buf_lock_t& lock);
-void process_internal_node(backfill_state_t& state, buf_lock_t& lock, int level);
+void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock);
+void process_internal_node(backfill_state_t& state, buf_lock_t& buf_lock, int level);
 
 // Less naive functions' declarations
 void get_recency_timestamps(backfill_state_t& state, block_id_t *block_ids, int num_block_ids, repli_timestamp *recencies_out);
-void acquire_node(buf_lock_t& lock_to_initialize, backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond);
 
 // The main purpose of this type is to incr/decr state.level_counts.
 class backfill_buf_lock_t {
+
 public:
     backfill_buf_lock_t(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond)
-        : state_(state), level_(level), inner_lock_() {
+        : state_(state), level_(level), inner_lock_(), pulse_response_(backfill_state_t::no_response) {
         acquire_node(block_id, acquisition_cond);
     }
 
     ~backfill_buf_lock_t() {
         state_.level_count(level_) -= 1;
+        state_.num_breadth_blocks -= (pulse_response_ == backfill_state_t::breadth_first_credit);
         state_.consider_pulsing();
     }
 
@@ -164,20 +211,24 @@ public:
 
         state_.level_count(level_) += 1;
 
-        cond_t waiter;
+        flat_promise_t<backfill_state_t::acquisition_credit> waiter;
         state_.acquisition_waiter_stack(level_).push_back(&waiter);
 
         state_.consider_pulsing();
-        waiter.wait();
+        pulse_response_ = waiter.wait();
 
         // Now actually acquire the node.
         co_acquire_block(state_.transactor_ptr->transaction(), block_id, rwi_read, acquisition_cond);
     }
 
+    buf_t *operator->() { return inner_lock_.buf(); }
+    buf_lock_t &inner_lock() { return inner_lock_; }
+
 private:
     backfill_state_t& state_;
     int level_;
     buf_lock_t inner_lock_;
+    backfill_state_t::acquisition_credit pulse_response_;
     DISABLE_COPYING(backfill_buf_lock_t);
 };
 
@@ -218,21 +269,21 @@ void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, b
     }
 
     // The children are all pending acquisition; we can release the parent.
+
     parent.release();
 }
 
 void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond) {
-    buf_lock_t buf_lock;
-    acquire_node(buf_lock, state, level, block_id, acquisition_cond);
+    backfill_buf_lock_t buf_lock(state, level, block_id, acquisition_cond);
 
     const node_t *node = reinterpret_cast<const node_t *>(buf_lock->get_data_read());
 
     if (node::is_leaf(node)) {
-        process_leaf_node(state, buf_lock);
+        process_leaf_node(state, buf_lock.inner_lock());
     } else {
         rassert(node::is_internal(node));
 
-        process_internal_node(state, buf_lock, level);
+        process_internal_node(state, buf_lock.inner_lock(), level);
     }
 }
 
@@ -290,19 +341,3 @@ void get_recency_timestamps(backfill_state_t& state, block_id_t *block_ids, int 
     (*state.transactor_ptr)->get_subtree_recencies(block_ids, num_block_ids, recencies_out);
 }
 
-// This looks at state and can block for a long time.
-void acquire_node(buf_lock_t& lock_to_initialize, backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond) {
-
-    // So we want to acquire a node.  Should we acquire it
-    // immediately?  Or should we acquire it later?
-
-    // What's the point of acquiring a node if we don't also acquire
-    // all its siblings?
-
-
-
-
-
-
-
-}
