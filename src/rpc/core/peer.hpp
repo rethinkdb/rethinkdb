@@ -99,6 +99,11 @@ public:
     /* write a message directly to the socket */
     void write(Message *msg) {
         on_thread_t syncer(home_thread);
+        if (state == cluster_peer_t::kill_proposed ||
+            state == cluster_peer_t::kill_confirmed ||
+            state == cluster_peer_t::killed) {
+            throw write_peer_killed_exc_t();
+        }
         write_protob(conn.get(), msg);
     }
 
@@ -107,16 +112,31 @@ public:
      * steps of connection (before the service loop is set up) */
     bool read(Message *msg) {
         on_thread_t syncer(home_thread);
+        if (state == cluster_peer_t::kill_proposed ||
+            state == cluster_peer_t::kill_confirmed ||
+            state == cluster_peer_t::killed) {
+            throw read_peer_killed_exc_t();
+        }
         return read_protob(conn.get(), msg);
     }
 
     bool peek(Message *msg) {
         on_thread_t syncer(home_thread);
+        if (state == cluster_peer_t::kill_proposed ||
+            state == cluster_peer_t::kill_confirmed ||
+            state == cluster_peer_t::killed) {
+            throw read_peer_killed_exc_t();
+        }
         return peek_protob(conn.get(), msg);
     }
 
     void pop() {
         on_thread_t syncer(home_thread);
+        if (state == cluster_peer_t::kill_proposed ||
+            state == cluster_peer_t::kill_confirmed ||
+            state == cluster_peer_t::killed) {
+            throw read_peer_killed_exc_t();
+        }
         pop_protob(conn.get());
     }
 
@@ -166,6 +186,17 @@ private:
             (*it)->on_kill();
         }
     }
+public:
+    struct write_peer_killed_exc_t : public std::exception {
+        const char *what() throw () {
+            return "Trying to write to a killed peer\n";
+        }
+    };
+    struct read_peer_killed_exc_t : public std::exception {
+        const char *what() throw () {
+            return "Trying to write to a killed peer\n";
+        }
+    };
 };
 
 #endif

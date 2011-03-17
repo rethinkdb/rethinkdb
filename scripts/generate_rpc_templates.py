@@ -25,6 +25,8 @@ def generate_async_message_template(nargs):
     print "            try { addr.send(&m); }"
     print "            catch (tcp_conn_t::write_closed_exc_t) {"
     print "                throw rpc_peer_killed_exc_t();"
+    print "            } catch (cluster_peer_t::write_peer_killed_exc_t) {"
+    print "                throw rpc_peer_killed_exc_t();"
     print "            }"
     print "        }"
     print "        RDB_MAKE_ME_SERIALIZABLE_1(addr)"
@@ -165,6 +167,9 @@ def generate_sync_message_template(nargs, void):
     print "            cluster_t::peer_kill_monitor_t monitor(addr.get_peer(), &reply_listener);"
     print "            try { addr.send(&m); }"
     print "            catch (tcp_conn_t::write_closed_exc_t) {} //This means that the peer was killed but to avoid problems we need to let the reply_listener get pulsed and return the error there."
+    print "            catch (cluster_peer_t::write_peer_killed_exc_t) {"
+    print "                throw rpc_peer_killed_exc_t();"
+    print "            }"
     if not void:
         print "            std::pair<bool, ret_t> res = reply_listener.wait();"
         print "            if (res.first) return res.second;"

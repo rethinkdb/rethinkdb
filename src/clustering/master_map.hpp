@@ -23,12 +23,47 @@ typedef sync_mailbox_t<void(int, set_store_mailbox_t::address_t)> set_master_mai
 //
 //typedef sync_mailbox_t<void()> downgrade_redundancy_mailbox_t;
 
+/* TODO, this could be implemented using drain_semaphores. The one thing is
+ * that they're not reusable (so we would need to destroy and realloc them) */
+template <class T>
+class refcount_map_t :
+    public home_thread_mixin_t
+{
+private:
+    class refcount_t {
+    public:
+        int val;
+        multi_cond_t *wait_for_0;
+        refcount_t() : val(0), wait_for_0(new multi_cond_t()) {} // wait for 0 needs to be heap allocated because it can't be copied
+        ~refcount_t() {
+            guarantee(val == 0, "refcount_t destroyed with a refcount not equal to 0, this probably means that there's an outstanding sarc going one\n");
+            wait_for_0->pulse();
+            delete wait_for_0;
+        }
+    };
+    std::map<T, refcount_t> refcounts;
+public:
+    void incr_refcount(T val) { 
+        on_thread_t syncer(home_thread);
+        refcounts[val].val++; 
+    }
+    void decr_refcount(T val) { 
+        on_thread_t syncer(home_thread);
+        refcounts[val].val--; 
+        if (refcounts[val].val == 0) refcounts.erase(val);
+    }
+    void wait(T val) { 
+        if (refcounts.find(val) == refcounts.end()) return;
+        else refcounts[val].wait_for_0->wait();
+    }
+};
+
+/* hasher_t represents a hash function, right now it's pretty useless but
+ * eventually we will need to use these to make sure that we get uncorrelated
+ * hash functions */
 class hasher_t {
 public:
-    hasher_t() : 
-        choke(1)
-        //move_choke_mailbox(boost::bind(&hasher_t::move_choke, this))
-    {}
+    hasher_t() {}
     hash_t hash(store_key_t k) { 
         unsigned int res = 0;
         for (int i = 0; i < k.size; i++) {
@@ -38,14 +73,45 @@ public:
         }
         return res;
     }
-private:
-    int choke;
-    //move_choke_mailbox_t move_choke_mailbox;
-    void move_choke() { choke++; }
 };
 
 /* the master_map keeps track of who is the master for a given key */
-class master_map_t {
+class master_map_t :
+    public home_thread_mixin_t
+{
+public:
+    /* set_store_txn_ts are created when a person ask for the master for a key
+     * (with get_master). This is a way of enforcing that we know how many
+     * outstanding transactions there are */
+    class set_store_txn_t :
+        public set_store_t
+    {
+    public:
+        mutation_result_t change(const mutation_t& mut, castime_t cas) { return store->change(mut, cas); }
+        set_store_txn_t() : store(NULL), parent(NULL), bucket(-1) {}
+        set_store_txn_t(const set_store_txn_t &other) 
+            : store(other.store), parent(other.parent), bucket(other.bucket) 
+        { if (bucket != -1) parent->open_txn(bucket); }
+    private:
+        friend class master_map_t;
+
+        set_store_txn_t(set_store_t *store, master_map_t *parent, int bucket)
+            : store(store), parent(parent), bucket(bucket) 
+        { parent->open_txn(bucket); }
+
+        ~set_store_txn_t() { if (bucket != -1) parent->close_txn(bucket); }
+
+    private:
+        set_store_t *store;
+        master_map_t *parent;
+        int bucket;
+    };
+
+public:
+    /* this is the only public facing part of the master map (along with the
+     * class this returns) */
+    set_store_txn_t get_master(store_key_t);
+
 private:
     std::map<int, set_store_t*> inner_map;
 
@@ -60,16 +126,58 @@ private:
     };
     master_hasher_t master_hasher;
 
-/* The master map is responsible for managing and communicating with the other peers about responsibility changes */
+/* The master map is responsible for managing and communicating with the other
+ * peers about responsibility changes */
 private:
     set_master_mailbox_t set_master_mailbox;
     void set_master(int bucket, set_store_mailbox_t::address_t address) {
+        drain(bucket); //make sure there are no outstanding writes the the store
         inner_map[bucket] = &address;
     }
 
-//TODO I'm not sure if this is actually worth the trouble, maybe something easier
-public:
-    set_store_t *get_master(store_key_t);
+private:
+    /* the refcounts map is used to keep track of how many outstanding
+     * transactions there are for a master, this is needed for when we hand
+     * them off */
+    friend class set_store_txn_t;
+    refcount_map_t<int> refcounts;
+    void open_txn(int bucket) { 
+        on_thread_t syncer(home_thread);
+        refcounts.incr_refcount(bucket); 
+    }
+    void close_txn(int bucket) { 
+        on_thread_t syncer(home_thread);
+        refcounts.decr_refcount(bucket); 
+    }
+
+private:
+    class bucket_block_t {
+    public:
+        multi_cond_t *cond;
+        bucket_block_t() : cond(new multi_cond_t()) {}
+        ~bucket_block_t() {
+            cond->pulse();
+            delete cond;
+        }
+    };
+    std::map<int, bucket_block_t> bucket_blocks;
+    /* drain a bucket of all current transactions, returns when the bucket is
+     * drained */
+    void drain(int bucket) {
+        on_thread_t syncer(home_thread);
+        bucket_blocks[bucket] = bucket_block_t();
+        refcounts.wait(bucket);
+    }
+    /* opens a bucket back up */
+    void un_block(int bucket) {
+        on_thread_t syncer(home_thread);
+        bucket_blocks.erase(bucket);
+    }
+
+    void wait(int bucket) {
+        if (bucket_blocks.find(bucket) == bucket_blocks.end()) return;
+        else bucket_blocks[bucket].cond->wait();
+    }
 
 public:
     master_map_t()
@@ -159,53 +267,4 @@ public:
         : rh(1)
     {}
 };
-/* The master map keeps track of how many write transactions are currently
- * pending on a given hash value, this is needed so that we can safely hand a
- * value off to another node */
-/* private:
-    class refcount_t {
-    public:
-        int val;
-        multi_cond_t wait_for_0;
-        refcount_t() : val(0) {}
-        ~refcount_t() {
-            guarantee(val == 0, "refcount_t destroyed with a refcount not equal to 0, this probably means that there's an outstanding sarc going one\n");
-            wait_for_0.pulse();
-        }
-    };
-    friend class outstanding_transaction_t;
-    std::map<hash_t, int> refcounts;
-    void incr_refcount(hash_t hash) {
-        on_thread_t syncer(home_thread);
-        guarantee(get_cluster().us == find(hash).second.peer, "Trying to relinquish a peer that isn't ours");
-        refcounts[hash].val++;
-    }
-    void decr_refcount(hash_t hash) {
-        on_thread_t syncer(home_thread);
-        guarantee(get_cluster().us == std::map<hash_t, set_store_t>::find(hash).peer, "Trying to relinquish a peer that isn't ours");
-        if (refcounts.find(hash) == refcounts.end() || refcounts[hash].val == 0)
-            crash("Refcount decred below 0\n");
-        refcounts[hash].val--;
-        if (refcounts[hash].val == 0) refcounts.erase(hash);
-    }
-public:
-    class outstanding_transaction_t {
-        master_map_t *parent;
-        outstanding_transaction_t(master_map_t *parent, hash_t hash) : parent(parent) {
-            parent->incr_refcount(hash);
-        }
-        ~outstanding_transaction_t() {
-            parent->decr_refcount(hash);
-        }
-    };
-
-    void relinquish(hash_t hash, set_store_interface_mailbox_t::set_store_t::address_t new_master) {
-        on_thread_t syncer(home_thread);
-        guarantee(get_cluster().us == std::map<hash_t, set_store_t::address_t>::find(hash).peer, "Trying to relinquish a peer that isn't ours");
-        if (refcounts.find(hash) != refcounts.end())
-            refcounts[hash].wait_for_0.wait();
-        std::map<hash_t, set_store_t::address_t>::find(hash) = new_master;
-    }
-
-}; */
 #endif
