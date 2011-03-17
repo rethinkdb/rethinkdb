@@ -352,7 +352,7 @@ void data_block_manager_t::run_gc() {
                     if (gc_state.current_entry->g_array[i]) continue;
 
                     byte *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
-                    ser_block_id_t id = *reinterpret_cast<ser_block_id_t *>(block);
+                    ser_block_id_t id = (reinterpret_cast<buf_data_t *>(block))->block_id;
                     void *data = block + sizeof(buf_data_t);
 
                     gc_writes.push_back(gc_write_t(id, data));

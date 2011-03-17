@@ -151,7 +151,7 @@ public:
                 bool buf_specified_, const void *buf_, bool write_empty_deleted_block_, serializer_t::write_block_callback_t *callback_, bool assign_transaction_id)
             : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), write_empty_deleted_block(write_empty_deleted_block_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
     };
-    bool do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback);
+    bool do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback, serializer_t::write_tid_callback_t *tid_callback = NULL);
     block_size_t get_block_size();
 
     // Returns the first never-used block id.  Every block with id
