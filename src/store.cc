@@ -67,7 +67,7 @@ castime_t timestamping_set_store_interface_t::make_castime() {
     /* The cas-value includes the current time and a counter. The time is so that we don't assign
     the same CAS twice across multiple runs of the database. The counter is so that we don't assign
     the same CAS twice to two requests received in the same second. */
-    cas_t cas = (uint64_t(timestamp.time) << 32) | (++cas_counter);
+    cas_t cas = (uint64_t(timestamp.time) << 32) ^ (++cas_counter);
 
     return castime_t(cas, timestamp);
 }
