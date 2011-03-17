@@ -44,6 +44,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
     : cache(cache),
       block_id(block_id),
       data(cache->serializer->malloc()),
+      /* TODO initialize subtree_recency */
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -71,6 +72,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf)
     : cache(cache),
       block_id(block_id),
       data(buf),
+      /* TODO initialize subtree_recency */
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
@@ -95,7 +97,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf)
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     : cache(cache),
       block_id(cache->free_list.gen_block_id()),
-      subtree_recency(current_time()),
+      subtree_recency(current_time() /* TODO take a timestamp parameter */),
       data(cache->serializer->malloc()),
       next_patch_counter(1),
       refcount(0),
@@ -200,8 +202,7 @@ void mc_buf_t::on_lock_available() {
         }
         case rwi_read_outdated_ok: {
             if (inner_buf->cow_will_be_needed) {
-                data = inner_buf->cache->serializer->malloc();
-                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
+                data = inner_buf->cache->serializer->clone(inner_buf->data);
             } else {
                 data = inner_buf->data;
                 inner_buf->cow_will_be_needed = true;
@@ -211,8 +212,7 @@ void mc_buf_t::on_lock_available() {
         }
         case rwi_write: {
             if (inner_buf->cow_will_be_needed) {
-                data = inner_buf->cache->serializer->malloc();
-                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
+                data = inner_buf->cache->serializer->clone(inner_buf->data);
                 inner_buf->data = data;
                 inner_buf->cow_will_be_needed = false;
             }
@@ -428,9 +428,11 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
+mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp _recency_timestamp)
     : cache(cache),
+      expected_change_count(expected_change_count),
       access(access),
+      recency_timestamp(_recency_timestamp),
       begin_callback(NULL),
       commit_callback(NULL),
       state(state_open) {
@@ -528,11 +530,8 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
 
     buf_t *buf = new buf_t(inner_buf, mode);
 
-    // We set the recency _before_ we get the buf.  This is correct,
-    // because we are "underneath" any replicators that come later
-    // (trees grow downward from the root).
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
-        buf->touch_recency();
+        buf->touch_recency(recency_timestamp);
     }
 
     if (buf->ready) {
@@ -543,24 +542,27 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     }
 }
 
-repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
-    crash("Operation not implemented: mc_transaction_t::get_subtree_recency");
-    /*
-    inner_buf_t *inner_buf = cache->page_map.find(block_id);
-    if (inner_buf) {
-        // The buf is in the cache and we must use its recency.
-        return inner_buf->subtree_recency;
-    } else {
-        // The buf is not in the cache, so ask the serializer.
-        // This is dangerous and will make things crash.
-
-        return cache->serializer->get_recency(block_id);
-
-        // This is dangerous because we're not on the same core, being
-        // on the same core would be a hassle for a feature that never
-        // gets used so far.
+void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+    bool need_second_loop = false;
+    for (size_t i = 0; i < num_block_ids; ++i) {
+        inner_buf_t *inner_buf = cache->page_map.find(block_ids[i]);
+        if (inner_buf) {
+            recencies_out[i] = inner_buf->subtree_recency;
+        } else {
+            need_second_loop = true;
+            recencies_out[i] = repli_timestamp::invalid;
+        }
     }
-*/
+
+    if (need_second_loop) {
+        on_thread_t th(cache->serializer->home_thread);
+
+        for (size_t i = 0; i < num_block_ids; ++i) {
+            if (recencies_out[i].time == repli_timestamp::invalid.time) {
+                recencies_out[i] = cache->serializer->get_recency(block_ids[i]);
+            }
+        }
+    }
 }
 
 /**
@@ -655,11 +657,13 @@ block_size_t mc_cache_t::get_block_size() {
     return serializer->get_block_size();
 }
 
-mc_transaction_t *mc_cache_t::begin_transaction(access_t access, transaction_begin_callback_t *callback) {
+mc_transaction_t *mc_cache_t::begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
     assert_thread();
     rassert(!shutting_down);
 
-    transaction_t *txn = new transaction_t(this, access);
+    rassert(access == rwi_write || expected_change_count == 0);
+
+    transaction_t *txn = new transaction_t(this, access, expected_change_count, recency_timestamp);
     num_live_transactions++;
     if (writeback.begin_transaction(txn, callback)) {
         pm_transactions_starting.end(&txn->start_time);

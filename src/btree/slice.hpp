@@ -7,6 +7,7 @@
 
 class initialize_superblock_fsm_t;
 struct btree_replicant_t;
+class backfill_callback_t;
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
@@ -37,6 +38,9 @@ public:
     /* set_store_t interface */
 
     mutation_result_t change(const mutation_t &m, castime_t castime);
+
+    /* backfilling interface */
+    void spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback);
 
     /* For internal use */
     cache_t& cache() { return cache_; }

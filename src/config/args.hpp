@@ -123,13 +123,18 @@
 // transactions will be throttled.
 // A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
 // times the max cache size
-#define DEFAULT_UNSAVED_DATA_LIMIT                0
+// (please note that we start throttling gradually at START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION times this value already)
+#define DEFAULT_UNSAVED_DATA_LIMIT                4096 * MEGABYTE
 
 // The unsaved data limit cannot exceed this fraction of the max cache size
-#define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.9
+#define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.5
+
+// We start delaying transactions when this fraction of the unsaved data limit is dirty.
+// The closer we get to unsaved data limit, the longer we delay new transactions.
+#define START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION 0.3
 
 // We start flushing dirty pages as soon as we hit this fraction of the unsaved data limit
-#define FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT   0.9
+#define FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT   0.2
 
 // How many times the page replacement algorithm tries to find an eligible page before giving up.
 // Note that (MAX_UNSAVED_DATA_LIMIT_FRACTION ** PAGE_REPL_NUM_TRIES) is the probability that the

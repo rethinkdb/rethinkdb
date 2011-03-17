@@ -16,10 +16,10 @@ struct co_block_available_callback_t : public block_available_callback_t {
     }
 };
 
-buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode) {
+buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode, cond_t *acquisition_cond) {
     transaction->ensure_thread();
     co_block_available_callback_t cb;
-    buf_t *value = transaction->acquire(block_id, mode, &cb);
+    buf_t *value = transaction->acquire(block_id, mode, &cb, acquisition_cond);
     if (!value) {
         value = cb.join();
     }
@@ -41,15 +41,16 @@ void co_acquire_large_buf_for_unprepend(large_buf_t *lb, int64_t length) {
     coro_t::wait();
 }
 
-void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size) {
+void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size, cond_t *acquisition_cond) {
     large_value_acquired_t acquired;
     lb->ensure_thread();
     lb->acquire_slice(offset, size, &acquired);
+    acquisition_cond->pulse();
     coro_t::wait();
 }
 
-void co_acquire_large_buf(large_buf_t *lb) {
-    co_acquire_large_buf_slice(lb, 0, lb->root_ref->size);
+void co_acquire_large_buf(large_buf_t *lb, cond_t *acquisition_cond) {
+    co_acquire_large_buf_slice(lb, 0, lb->root_ref->size, acquisition_cond);
 }
 
 void co_acquire_large_buf_lhs(large_buf_t *lb) {
@@ -84,10 +85,10 @@ struct transaction_begun_callback_t : public transaction_begin_callback_t {
     }
 };
 
-transaction_t *co_begin_transaction(cache_t *cache, access_t access) {
+transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp) {
     cache->ensure_thread();
     transaction_begun_callback_t cb;
-    transaction_t *value = cache->begin_transaction(access, &cb);
+    transaction_t *value = cache->begin_transaction(access, expected_change_count, recency_timestamp, &cb);
     if (!value) {
         value = cb.join();
     }

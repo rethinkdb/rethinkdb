@@ -203,7 +203,7 @@ public:
        }
     };
 
-    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
+    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) {
         for (int i = 0; i < num_writes; i++) {
 
             if (!writes[i].buf_specified) continue;
@@ -237,7 +237,7 @@ public:
 
         writer_t *writer = new writer_t(this, ++last_write_started);
         writer->callback = NULL;
-        if (inner_serializer.do_write(writes, num_writes, writer)) {
+        if (inner_serializer.do_write(writes, num_writes, writer, tid_callback)) {
             writer->on_serializer_write_txn();
             return true;
         } else {

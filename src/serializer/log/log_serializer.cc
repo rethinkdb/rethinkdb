@@ -390,12 +390,14 @@ struct ls_write_fsm_t :
     
     bool done;
     log_serializer_t::write_txn_callback_t *callback;
+    log_serializer_t::write_tid_callback_t *tid_callback;
     
     ls_write_fsm_t(log_serializer_t *ser, log_serializer_t::write_t *writes, int num_writes)
         : ser(ser), writes(writes), num_writes(num_writes), next_write(NULL)
     {
         pm_serializer_writes.begin(&start_time);
         callback = NULL;
+        tid_callback = NULL;
         done = false;
     }
     
@@ -437,9 +439,11 @@ struct ls_write_fsm_t :
     }
     
     void on_thread_switch() {
+
+        /* TODO: This does not work well in master currently! (crashes). Disabled for now... */
         
-        /* Launch up to this many block writers at a time, then yield the CPU */
-        const int target_chunk_size = 100;
+        // Launch up to this many block writers at a time, then yield the CPU
+        /*const int target_chunk_size = 100;
         int chunk_size = 0;
         while (num_writes > 0 && chunk_size < target_chunk_size) {
             ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes);
@@ -447,6 +451,13 @@ struct ls_write_fsm_t :
             num_writes--;
             writes++;
             chunk_size++;
+        }*/
+
+        while (num_writes > 0) {
+            ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes);
+            if (!writer->run(this)) num_writes_waited_for++;
+            num_writes--;
+            writes++;
         }
         
         if (num_writes == 0) done_preparing_writes();
@@ -454,6 +465,10 @@ struct ls_write_fsm_t :
     }
     
     void done_preparing_writes() {
+        /* All transaction IDs have been assigned, notify the interested party */
+        if (tid_callback) {
+            tid_callback->on_serializer_write_tid();
+        }
         
         /* Sync the LBA */
         
@@ -564,7 +579,7 @@ private:
 
 perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_ticks(2));
 
-bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback) {
+bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback) {
     // Even if state != state_ready we might get a do_write from the
     // datablock manager on gc (because it's writing the final gc as
     // we're shutting down). That is ok, which is why we don't assert
@@ -579,6 +594,7 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
         return true;
     } else {
         w->callback = callback;
+        w->tid_callback = tid_callback;
         return false;
     }
 }
@@ -593,6 +609,7 @@ bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, in
             /* make_internal() makes a write_t that will not change the timestamp. */
             writes.push_back(write_t::make_internal(gc_writes[i].block_id, gc_writes[i].buf, NULL));
         } else {
+            // TODO: Does this assert fail for large values now?
             rassert(memcmp(gc_writes[i].buf, "zero", 4) == 0);   // Check for zerobuf magic
             writes.push_back(write_t::make_internal(gc_writes[i].block_id, NULL, NULL));
         }

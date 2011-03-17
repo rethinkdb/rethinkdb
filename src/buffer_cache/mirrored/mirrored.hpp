@@ -160,11 +160,21 @@ public:
         ensure_flush(); // Disable patch log system for the buffer
     }
 
-    void touch_recency() {
+    void touch_recency(repli_timestamp timestamp) {
+        // TODO: Add rassert(inner_buf->subtree_recency <= timestamp)
+
         // TODO: use some slice-specific timestamp that gets updated
         // every epoll call.
-        inner_buf->subtree_recency = current_time();
+        inner_buf->subtree_recency = timestamp;
         inner_buf->writeback_buf.set_recency_dirty();
+    }
+
+    repli_timestamp get_recency() {
+        // TODO: Make it possible to get the recency _without_
+        // acquiring the buf.  The recency should be locked with a
+        // lock that sits "above" buffer acquisition.  Or the recency
+        // simply should be set _before_ trying to acquire the buf.
+        return inner_buf->subtree_recency;
     }
 
     bool is_dirty() {
@@ -201,20 +211,22 @@ public:
     buf_t *acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
-    repli_timestamp get_subtree_recency(block_id_t block_id);
+    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 
     cache_t *cache;
 
 private:
-    explicit mc_transaction_t(cache_t *cache, access_t access);
+    explicit mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
     ~mc_transaction_t();
 
     ticks_t start_time;
+    int expected_change_count;
 
     void green_light();   // Called by the writeback when it's OK for us to start
     virtual void on_sync();
 
     access_t access;
+    repli_timestamp recency_timestamp;
     transaction_begin_callback_t *begin_callback;
     transaction_commit_callback_t *commit_callback;
     enum { state_open, state_in_commit_call, state_committing, state_committed } state;
@@ -275,7 +287,7 @@ public:
     block_size_t get_block_size();
 
     // Transaction API
-    transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
+    transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
 private:
     void on_transaction_commit(transaction_t *txn);

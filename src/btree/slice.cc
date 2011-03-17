@@ -1,3 +1,6 @@
+#include <boost/scoped_ptr.hpp>
+
+#include "btree/backfill.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/transactor.hpp"
@@ -11,7 +14,6 @@
 #include "btree/delete.hpp"
 #include "btree/get_cas.hpp"
 #include "replication/master.hpp"
-#include <boost/scoped_ptr.hpp>
 
 void btree_slice_t::create(translator_serializer_t *serializer,
                            mirrored_cache_static_config_t *static_config) {
@@ -36,9 +38,9 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     boost::scoped_ptr<cache_t> cache(new cache_t(serializer, &startup_dynamic_config));
 
     /* Initialize the root block */
-    transactor_t transactor(cache.get(), rwi_write);
+    transactor_t transactor(cache.get(), rwi_write, 1, current_time());
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
-    btree_superblock_t *sb = (btree_superblock_t*)(superblock->get_data_major_write());
+    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
 
@@ -87,6 +89,11 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) 
     functor.ct = castime;
     return boost::apply_visitor(functor, m.mutation);
 }
+
+void btree_slice_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+    spawn_btree_backfill(this, since_when, callback);
+}
+
 
 // Stats
 

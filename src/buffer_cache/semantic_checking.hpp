@@ -7,6 +7,9 @@
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/buf_patch.hpp"
 
+// TODO: Have the semantic checking cache make sure that the
+// repli_timestamps are correct.
+
 /* The semantic-checking cache (scc_cache_t) is a wrapper around another cache that will
 make sure that the inner cache obeys the proper semantics. */
 
@@ -93,7 +96,7 @@ public:
     buf_t *acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
-    repli_timestamp get_subtree_recency(block_id_t block_id);
+    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 
     scc_cache_t<inner_cache_t> *cache;
 
@@ -127,7 +130,8 @@ public:
         mirrored_cache_config_t *dynamic_config);
 
     block_size_t get_block_size();
-    transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
+
+    transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
 private:
     inner_cache_t inner_cache;

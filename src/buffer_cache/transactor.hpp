@@ -10,10 +10,12 @@
 
 class transactor_t {
 public:
-    transactor_t(cache_t *cache, access_t access);
+    transactor_t(cache_t *cache, access_t access, repli_timestamp recency_timestamp);
+    transactor_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
     ~transactor_t();
 
     transaction_t *transaction() { return transaction_; }
+    transaction_t *operator->() { return transaction_; }
     void commit();
 private:
     transaction_t *transaction_;
