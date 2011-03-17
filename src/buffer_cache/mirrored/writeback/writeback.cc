@@ -1,21 +1,37 @@
 #include "writeback.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
+#include <cmath>
 
 writeback_t::begin_transaction_fsm_t::begin_transaction_fsm_t(writeback_t *wb, mc_transaction_t *txn, mc_transaction_begin_callback_t *cb)
     : writeback(wb), transaction(txn)
 {
     txn->begin_callback = cb;
-    if (writeback->too_many_dirty_blocks()) {
-        /* When a flush happens, we will get popped off the throttled transactions list
-        and given a green light. */
-        writeback->throttled_transactions_list.push_back(this);
+
+    writeback->expected_delayed_change_count += transaction->expected_change_count;
+    const unsigned int delay_ms = writeback->throttle_delay_ms();
+    if (delay_ms > 0) {
+        fire_timer_once(delay_ms, &timer_callback, (void*)this);
     } else {
-        green_light();
+        timer_callback((void*)this);
+    }
+    
+}
+
+void writeback_t::begin_transaction_fsm_t::timer_callback(void *btfsm) {
+    begin_transaction_fsm_t *fsm = reinterpret_cast<begin_transaction_fsm_t*>(btfsm);
+
+    if (fsm->writeback->too_many_dirty_blocks()) {
+        /* When a flush happens, we will get popped off the throttled transactions list
+and given a green light. */
+        fsm->writeback->throttled_transactions_list.push_back(fsm);
+    } else {
+        fsm->green_light();
     }
 }
 
 void writeback_t::begin_transaction_fsm_t::green_light() {
 
+    writeback->expected_delayed_change_count -= transaction->expected_change_count;
     writeback->expected_active_change_count += transaction->expected_change_count;
 
     // Lock the flush lock "for reading", but what we really mean is to lock it non-
@@ -65,6 +81,7 @@ writeback_t::writeback_t(
       flush_timer(NULL),
       outstanding_disk_writes(0),
       expected_active_change_count(0),
+      expected_delayed_change_count(0),
       writeback_in_progress(false),
       active_flushes(0),
       force_patch_storage_flush(false),
@@ -151,6 +168,34 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
 
 unsigned int writeback_t::num_dirty_blocks() {
     return dirty_bufs.size();
+}
+
+perfmon_sampler_t pm_delay("throttling_delay", secs_to_ticks(1.0));
+
+unsigned int writeback_t::throttle_delay_ms() {
+    const int max_delay_time = 500;
+    const size_t expected_dirty_blocks = num_dirty_blocks() + outstanding_disk_writes + expected_active_change_count + expected_delayed_change_count;
+    const size_t start_throttling_threshold = (double)max_dirty_blocks * START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION;
+
+    if (expected_dirty_blocks <= start_throttling_threshold) {
+        return 0;
+    }
+
+    const float overcommit_fraction = (float)(expected_dirty_blocks - start_throttling_threshold) / (max_dirty_blocks - start_throttling_threshold);
+
+    if (overcommit_fraction >= 1.0f) {
+        return max_delay_time;
+    }
+
+    float delay_ms = 1.0f / (1.0f - powf(overcommit_fraction, 0.05f)) - 1.0f; // The power (0.05) controls the steepness of throttling (the higher the value, the less steep it is)
+
+    if (std::isnan(delay_ms) || delay_ms < 0.0f) {
+        return max_delay_time;
+    }
+
+    delay_ms = std::min(delay_ms, (float)max_delay_time);
+    pm_delay.record(delay_ms);
+    return (int)delay_ms;
 }
 
 bool writeback_t::too_many_dirty_blocks() {
