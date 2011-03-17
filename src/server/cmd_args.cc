@@ -788,7 +788,10 @@ void cmd_config_t::print() {
     print_system_spec();
 }
 
-cmd_config_t::cmd_config_t() {    
+cmd_config_t::cmd_config_t() {
+    bzero(&replication_config, sizeof(replication_config));
+    bzero(&failover_config, sizeof(failover_config));
+
     verbose = false;
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
@@ -824,5 +827,7 @@ cmd_config_t::cmd_config_t() {
     store_static_config.btree.n_slices = DEFAULT_BTREE_SHARD_FACTOR;
 
     store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / store_static_config.serializer.block_size().ser_value() / store_static_config.btree.n_slices;
+
+    store_static_config.padding = 0;
 }
 
