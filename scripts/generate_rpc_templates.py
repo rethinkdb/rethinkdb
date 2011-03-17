@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 import sys
 
+"""This script is used to generate the mailbox templates in
+src/rpc/rpc.hpp. It is meant to be run as follows (assuming that the
+current directory is rethinkdb/src/):
+
+$ ../scripts/generate_rpc_templates.py > rpc/rpc.hpp
+
+"""
+
 def generate_async_message_template(nargs):
 
     args = ", ".join("const arg%d_t &arg%d" % (i, i) for i in xrange(nargs))

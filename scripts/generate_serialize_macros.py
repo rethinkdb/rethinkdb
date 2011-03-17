@@ -1,6 +1,19 @@
 #!/usr/bin/env python
 import sys
 
+"""This script is used to generate the RDB_MAKE_SERIALIZABLE_*() and
+RDB_MAKE_ME_SERIALIZABLE_*() macro definitions. Because there are so
+many variations, and because they are so similar, it's easier to just
+have a Python script to generate them.
+
+This script is meant to be run as follows (assuming you are in the
+"rethinkdb/src" directory):
+
+$ ../scripts/generate_serialize_macros.py > rpc/serialize/serialize_macros.hpp
+
+"""
+
+
 def generate_make_serializable_macro(nfields):
     print "#define RDB_MAKE_SERIALIZABLE_%d(type_t%s) \\" % \
         (nfields, "".join(", field%d" % (i+1) for i in xrange(nfields)))

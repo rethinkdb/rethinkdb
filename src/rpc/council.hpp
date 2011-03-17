@@ -33,6 +33,8 @@ private:
     /* This is the current state of the council: a list of members and a current
     value. This is the struct that we send to new things that join. */
     struct state_t {
+        /* TODO: std::vector<> of a forward-declared class might not work on some
+        compilers. */
         std::vector<inner_address_t> peers;
         value_t value;
         int change_counter;   // For sanity checking
