@@ -170,12 +170,23 @@ public:
     }
 
     void touch_recency(repli_timestamp timestamp) {
-        // TODO: Add rassert(inner_buf->subtree_recency <= timestamp)
+        // Some operations acquire in write mode but should not
+        // actually affect subtree recency.  For example, delete
+        // operations, and delete_expired operations -- the subtree
+        // recency is an upper bound of the maximum timestamp of all
+        // the subtree's keys, and this cannot get affected by a
+        // delete operation.  (It is a bit ghetto that we use
+        // repli_timestamp invalid as a magic constant that indicates
+        // this fact, instead of using something robust.  We are so
+        // prone to using that value as a placeholder.)
+        if (timestamp.time != repli_timestamp::invalid.time) {
+            // TODO: Add rassert(inner_buf->subtree_recency <= timestamp)
 
-        // TODO: use some slice-specific timestamp that gets updated
-        // every epoll call.
-        inner_buf->subtree_recency = timestamp;
-        inner_buf->writeback_buf.set_recency_dirty();
+            // TODO: use some slice-specific timestamp that gets updated
+            // every epoll call.
+            inner_buf->subtree_recency = timestamp;
+            inner_buf->writeback_buf.set_recency_dirty();
+        }
     }
 
     repli_timestamp get_recency() {
