@@ -9,11 +9,9 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         : btree_modify_oper_t(), data(data), mcflags(mcflags), exptime(exptime),
             add_policy(ap), replace_policy(rp), req_cas(req_cas)
     {
-        pm_cmd_set.begin(&start_time);
     }
 
     ~btree_set_oper_t() {
-        pm_cmd_set.end(&start_time);
     }
 
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
