@@ -26,7 +26,8 @@ def test(opts, mc, test_dir):
 
     print "Found %d of %d keys." % (existing_keys, num_keys)
     assert existing_keys <= num_keys / 2
+    assert existing_keys >= num_keys / 4
 
 if __name__ == "__main__":
-    simple_test_main(test, make_option_parser().parse(sys.argv), timeout = 10,
-        extra_flags=["--max-cache-size", str(cache_max_size/block_size)])
+    simple_test_main(test, make_option_parser().parse(sys.argv), timeout = 60,
+        extra_flags=["--cache-size-limit", str(cache_max_size/block_size)])
