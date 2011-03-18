@@ -230,18 +230,22 @@ mock_cache_t::~mock_cache_t() {
     /* Wait for all transactions to complete */
     transaction_counter.drain();
 
-    std::vector<translator_serializer_t::write_t> writes;
-    for (block_id_t i = 0; i < bufs.get_size(); i++) {
-        writes.push_back(translator_serializer_t::write_t::make(
-            i, bufs[i] ? bufs[i]->subtree_recency : repli_timestamp::invalid,
-            bufs[i] ? bufs[i]->data : NULL,
-            true, NULL));
-    }
+    {
+        on_thread_t thread_switcher(serializer->home_thread);
 
-    struct : public serializer_t::write_txn_callback_t, public cond_t {
-        void on_serializer_write_txn() { pulse(); }
-    } cb;
-    if (!serializer->do_write(writes.data(), writes.size(), &cb)) cb.wait();
+        std::vector<translator_serializer_t::write_t> writes;
+        for (block_id_t i = 0; i < bufs.get_size(); i++) {
+            writes.push_back(translator_serializer_t::write_t::make(
+                i, bufs[i] ? bufs[i]->subtree_recency : repli_timestamp::invalid,
+                bufs[i] ? bufs[i]->data : NULL,
+                true, NULL));
+        }
+
+        struct : public serializer_t::write_txn_callback_t, public cond_t {
+            void on_serializer_write_txn() { pulse(); }
+        } cb;
+        if (!serializer->do_write(writes.data(), writes.size(), &cb)) cb.wait();
+    }
 
     for (block_id_t i = 0; i < bufs.get_size(); i++) {
         if (bufs[i]) delete bufs[i];

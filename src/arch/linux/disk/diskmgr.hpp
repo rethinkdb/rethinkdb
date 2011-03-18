@@ -1,7 +1,7 @@
 #ifndef __ARCH_LINUX_DISK_DISKMGR_HPP__
 #define __ARCH_LINUX_DISK_DISKMGR_HPP__
 
-#include "arch/linux/disk.hpp"   /* For linux_iocallback_t */
+#include "arch/linux/disk.hpp"   /* For linux_disk_op_t */
 
 struct linux_diskmgr_t {
 
