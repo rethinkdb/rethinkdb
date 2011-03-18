@@ -56,7 +56,8 @@ block_id_t lookup(const internal_node_t *node, const btree_key_t *key) {
     return get_pair_by_index(node, index)->lnode;
 }
 
-bool insert(block_size_t block_size, buf_t& node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode) {
+// TODO: If it's unused, let's get rid of it.
+bool insert(UNUSED block_size_t block_size, buf_t& node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode) {
     const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
 
     //TODO: write a unit test for this

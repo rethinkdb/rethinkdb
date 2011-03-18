@@ -700,7 +700,10 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
     }
 }
 
-ser_transaction_id_t log_serializer_t::get_current_transaction_id(ser_block_id_t block_id, const void* buf) {
+// TODO: If block_id is unused, maybe we should get rid of it.  (Or we
+// could add an rassert that checks that the buf has the appropriate
+// block id.  Maybe that's what we want.)
+ser_transaction_id_t log_serializer_t::get_current_transaction_id(UNUSED ser_block_id_t block_id, const void* buf) {
     buf_data_t *ser_data = (buf_data_t*)buf;
     ser_data--;
     return ser_data->transaction_id;

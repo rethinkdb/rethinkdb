@@ -70,7 +70,7 @@ public:
     hi_t(string key)
         : control_t(key, string("")), counter(0)
     {}
-    string call(int argc, char **argv) {
+    string call(UNUSED int argc, UNUSED char **argv) {
         counter++;
         if (counter < 3)
             return string("Salutations, user.\r\n");

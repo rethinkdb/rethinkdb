@@ -48,7 +48,7 @@ template <> struct stream_type<net_cas_t> { typedef stream_pair<net_cas_t> type;
 template <> struct stream_type<net_prepend_t> { typedef stream_pair<net_prepend_t> type; };
 template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t> type; };
 
-template <class T> size_t objsize(const T *buf) { return sizeof(T); }
+template <class T> size_t objsize(UNUSED const T *buf) { return sizeof(T); }
 template <> size_t objsize<net_get_cas_t>(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
 template <> size_t objsize<net_set_t>(const net_set_t *buf) { return sizeof(net_set_t) + buf->key_size + buf->value_size; }
 template <> size_t objsize<net_add_t>(const net_add_t *buf) { return sizeof(net_set_t) + buf->key_size + buf->value_size; }

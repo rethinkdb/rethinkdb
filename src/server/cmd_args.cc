@@ -481,7 +481,7 @@ void parsing_cmd_config_t::set_extent_size(const char* value) {
     const long long int minimum_value = 1ll;
     const long long int maximum_value = TERABYTE;
     
-    target = parse_longlong(optarg);
+    target = parse_longlong(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Extent size must be a number from %d to %d.", minimum_value, maximum_value);
         
@@ -489,10 +489,10 @@ void parsing_cmd_config_t::set_extent_size(const char* value) {
 }
 
 void parsing_cmd_config_t::set_read_ahead(const char* value) {
-    if (strlen(optarg) != 1 || !(optarg[0] == 'y' || optarg[0] == 'n'))
+    if (strlen(value) != 1 || !(value[0] == 'y' || value[0] == 'n'))
         fail_due_to_user_error("Read-ahead expects 'y' or 'n'.");
 
-    store_dynamic_config.serializer.read_ahead = optarg[0] == 'y';
+    store_dynamic_config.serializer.read_ahead = (value[0] == 'y');
 }
 
 long long parsing_cmd_config_t::parse_diff_log_size(const char* value) {
@@ -500,7 +500,7 @@ long long parsing_cmd_config_t::parse_diff_log_size(const char* value) {
     const long long int minimum_value = 0ll;
     const long long int maximum_value = TERABYTE;
 
-    result = parse_longlong(optarg) * MEGABYTE;
+    result = parse_longlong(value) * MEGABYTE;
     if (parsing_failed || !is_in_range(result, minimum_value, maximum_value))
         fail_due_to_user_error("Diff log size must be a number from %d to %d.", minimum_value, maximum_value);
 
@@ -512,7 +512,7 @@ void parsing_cmd_config_t::set_block_size(const char* value) {
     const int minimum_value = 1;
     const int maximum_value = DEVICE_BLOCK_SIZE * 1000;
     
-    target = parse_int(optarg);
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Block size must be a number from %d to %d.", minimum_value, maximum_value);
     if (target % DEVICE_BLOCK_SIZE != 0)
@@ -525,8 +525,8 @@ void parsing_cmd_config_t::set_active_data_extents(const char* value) {
     int target;
     const int minimum_value = 1;
     const int maximum_value = MAX_ACTIVE_DATA_EXTENTS;
-    
-    target = parse_int(optarg);
+
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Active data extents must be a number from %d to %d.", minimum_value, maximum_value);
     
@@ -537,7 +537,7 @@ void parsing_cmd_config_t::set_gc_range(const char* value) {
     float low = 0.0;
     float high = 0.0;
     int consumed = 0;
-    if (2 != sscanf(value, "%f-%f%n", &low, &high, &consumed) || ((size_t)consumed) != strlen(optarg)) {
+    if (2 != sscanf(value, "%f-%f%n", &low, &high, &consumed) || ((size_t)consumed) != strlen(value)) {
         fail_due_to_user_error("gc-range expects \"low-high\"");
     }
     if (!(MIN_GC_LOW_RATIO <= low && low < high && high <= MAX_GC_HIGH_RATIO)) {
@@ -548,8 +548,12 @@ void parsing_cmd_config_t::set_gc_range(const char* value) {
     store_dynamic_config.serializer.gc_high_ratio = high;
 }
 
+// TODO: Take all these functions that take a value parameter, and put
+// them in some source file for which optarg is not in scope.  This is
+// necessary for safety.
+
 void parsing_cmd_config_t::set_unsaved_data_limit(const char* value) {
-    int int_value = parse_int(optarg);
+    int int_value = parse_int(value);
     if (parsing_failed || !is_positive(int_value))
         fail_due_to_user_error("Unsaved data limit must be a positive number.");
         
@@ -557,16 +561,20 @@ void parsing_cmd_config_t::set_unsaved_data_limit(const char* value) {
 }
 
 void parsing_cmd_config_t::set_wait_for_flush(const char* value) {
-    if (strlen(optarg) != 1 || !(optarg[0] == 'y' || optarg[0] == 'n'))
+    // TODO: duplicated 'y' 'n' code.
+    if (strlen(value) != 1 || !(value[0] == 'y' || value[0] == 'n'))
         fail_due_to_user_error("Wait-for-flush expects 'y' or 'n'.");
     
-    store_dynamic_config.cache.wait_for_flush = optarg[0] == 'y';
+    store_dynamic_config.cache.wait_for_flush = value[0] == 'y';
 }
 
 void parsing_cmd_config_t::set_max_cache_size(const char* value) {
-    int int_value = parse_int(optarg);
+    int int_value = parse_int(value);
     if (parsing_failed || !is_positive(int_value))
         fail_due_to_user_error("Cache size must be a positive number.");
+
+    // TODO: Explain why this code is commented out, for wtf is there commented out code without explanation?
+
     //if (is_at_most(int_value, static_cast<int>(get_total_ram() / 1024 / 1024)))
     //    fail_due_to_user_error("Cache size is larger than this machine's total memory (%s MB).", get_total_ram() / 1024 / 1024);
         
@@ -578,7 +586,7 @@ void parsing_cmd_config_t::set_slices(const char* value) {
     const int minimum_value = 1;
     const int maximum_value = MAX_SLICES;
     
-    target = parse_int(optarg);
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Number of slices must be a number from %d to %d.", minimum_value, maximum_value);
 }
@@ -594,7 +602,7 @@ void parsing_cmd_config_t::set_log_file(const char* value) {
     else
         fclose(logfile);
     
-    strncpy(log_file_name, optarg, MAX_LOG_FILE_NAME);
+    strncpy(log_file_name, value, MAX_LOG_FILE_NAME);
 }
 
 void parsing_cmd_config_t::set_port(const char* value) {
@@ -602,7 +610,7 @@ void parsing_cmd_config_t::set_port(const char* value) {
     const int minimum_value = 0;
     const int maximum_value = 65535;
     
-    target = parse_int(optarg);
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Invalid TCP port (must be a number from %d to %d).", minimum_value, maximum_value);
 }
@@ -613,7 +621,7 @@ void parsing_cmd_config_t::set_cores(const char* value) {
     // Subtract one because of utility cpu
     const int maximum_value = MAX_THREADS - 1;
     
-    target = parse_int(optarg);
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Number of CPUs must be a number from %d to %d.", minimum_value, maximum_value);
 }
@@ -622,11 +630,11 @@ void parsing_cmd_config_t::set_coroutine_stack_size(const char* value) {
     const int minimum_value = 8126;
     const int maximum_value = MAX_COROUTINE_STACK_SIZE;
     
-    int target = parse_int(optarg);
+    int target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Coroutine stack size must be a number from %d to %d.", minimum_value, maximum_value);
 
-    coro_t::set_coroutine_stack_size(parse_int(optarg));
+    coro_t::set_coroutine_stack_size(target);
 }
 
 void parsing_cmd_config_t::set_master_addr(char *value) {
@@ -663,7 +671,7 @@ void parsing_cmd_config_t::set_elb_port(const char *value) {
     const int minimum_value = 0;
     const int maximum_value = 65535;
     
-    target = parse_int(optarg);
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Invalid TCP port (must be a number from %d to %d).", minimum_value, maximum_value);
 }
