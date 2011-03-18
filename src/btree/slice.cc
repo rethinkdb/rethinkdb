@@ -93,12 +93,3 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) 
 void btree_slice_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
     spawn_btree_backfill(this, since_when, callback);
 }
-
-
-// Stats
-
-perfmon_duration_sampler_t
-    pm_cmd_set("cmd_set", secs_to_ticks(1)),
-    pm_cmd_get_without_threads("cmd_get_without_threads", secs_to_ticks(1)),
-    pm_cmd_get("cmd_get", secs_to_ticks(1)),
-    pm_cmd_rget("cmd_rget", secs_to_ticks(1));

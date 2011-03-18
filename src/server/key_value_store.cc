@@ -260,39 +260,14 @@ get_result_t btree_key_value_store_t::get(const store_key_t &key) {
 
 typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
 
-template<class T>
-struct pm_iterator_wrapper_t : one_way_iterator_t<T> {
-    pm_iterator_wrapper_t(one_way_iterator_t<T> * wrapped, perfmon_duration_sampler_t *pm) :
-        wrapped(wrapped), block_pm(pm) { }
-    ~pm_iterator_wrapper_t() {
-        delete wrapped;
-    }
-    typename boost::optional<T> next() {
-        return wrapped->next();
-    }
-    void prefetch() {
-        wrapped->prefetch();
-    }
-    one_way_iterator_t<T> *get_wrapped() {
-        return wrapped;
-    }
-private:
-    one_way_iterator_t<T> *wrapped;
-    block_pm_duration block_pm;
-};
-
 rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
     thread_saver_t thread_saver;
 
-    /* TODO: Wrapped iterators are weird and we shouldn't have them. Instead we should do all of the
-    perfmonning for different operations up at the memcached level. */
-    unique_ptr_t<pm_iterator_wrapper_t<key_with_data_provider_t> > wrapped_iterator(new pm_iterator_wrapper_t<key_with_data_provider_t>(new merged_results_iterator_t(), &pm_cmd_rget));
-
-    merged_results_iterator_t *merge_iterator = ptr_cast<merged_results_iterator_t>(wrapped_iterator->get_wrapped());
+    unique_ptr_t<merged_results_iterator_t> merge_iterator(new merged_results_iterator_t());
     for (int s = 0; s < btree_static_config.n_slices; s++) {
         merge_iterator->add_mergee(btrees[s]->rget(left_mode, left_key, right_mode, right_key).release());
     }
-    return wrapped_iterator;
+    return merge_iterator;
 }
 
 /* set_store_interface_t interface */

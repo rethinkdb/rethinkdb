@@ -51,12 +51,4 @@ private:
     DISABLE_COPYING(btree_slice_t);
 };
 
-// Stats
-
-extern perfmon_duration_sampler_t
-    pm_cmd_set,
-    pm_cmd_get,
-    pm_cmd_get_without_threads,
-    pm_cmd_rget;
-
 #endif /* __BTREE_SLICE_HPP__ */

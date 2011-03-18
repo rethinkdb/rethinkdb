@@ -14,15 +14,12 @@
 #include "btree/btree_data_provider.hpp"
 
 get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
-    block_pm_duration get_time(&pm_cmd_get);
 
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
 
     /* In theory moving back might not be necessary, but not doing it causes problems right now. */
     on_thread_t mover(slice->home_thread);
-
-    block_pm_duration get_time_2(&pm_cmd_get_without_threads);
 
     boost::shared_ptr<transactor_t> transactor(new transactor_t(&slice->cache(), rwi_read, repli_timestamp::invalid));
 
