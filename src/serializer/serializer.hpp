@@ -92,8 +92,12 @@ struct serializer_t :
 
     private:
         static write_t make_internal(ser_block_id_t block_id_, const void *buf_, write_block_callback_t *callback_) {
+            // The recency_specified field is false, hence the repli_timestamp::invalid value.
             return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, true, callback_, false);
         }
+
+        // TODO: Use boost::option or whatever it's called, instead of
+        // these boolean "foo_specified_" parameters.
 
         write_t(ser_block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
                 bool buf_specified_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_, bool assign_transaction_id)
