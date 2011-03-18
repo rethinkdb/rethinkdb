@@ -214,7 +214,7 @@ perfmon_duration_sampler_t
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted)
-    : ready(false), callback(NULL), mode(mode), non_locking_access(false), version(version_to_access), snapshotted(snapshotted), inner_buf(inner_buf), data(NULL)
+    : ready(false), callback(NULL), mode(mode), non_locking_access(false), version_to_access(version_to_access), snapshotted(snapshotted), inner_buf(inner_buf), data(NULL)
 {
     inner_buf->cache->assert_thread();
 #ifndef FAST_PERFMON
@@ -257,13 +257,9 @@ void mc_buf_t::acquire_block(bool locked) {
 
     mc_inner_buf_t::version_id_t inner_version = inner_buf->version_id;
     // In case we don't have received a version yet (i.e. this is the first block we are acquiring, just access the most recent version)
-    if (snapshotted && version != mc_inner_buf_t::faux_version_id) {
-        data = inner_version <= version ? inner_buf->data : inner_buf->get_snapshot_data(version);
+    if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id) {
+        data = inner_version <= version_to_access ? inner_buf->data : inner_buf->get_snapshot_data(version_to_access);
         guarantee(data != NULL);
-
-        if (locked)
-            inner_buf->lock.unlock();
-        non_locking_access = true;
     } else {
         rassert(!inner_buf->do_delete);
 
@@ -292,7 +288,7 @@ void mc_buf_t::acquire_block(bool locked) {
                     }
                 }
 
-                inner_buf->version_id = version == mc_inner_buf_t::faux_version_id ? inner_buf->cache->get_current_version_id() : version;
+                inner_buf->version_id = version_to_access == mc_inner_buf_t::faux_version_id ? inner_buf->cache->get_current_version_id() : version_to_access;
                 //inner_buf->version_id = inner_buf->cache->get_current_version_id();
 
                 if (need_to_create_snapshot) {
@@ -317,10 +313,18 @@ void mc_buf_t::acquire_block(bool locked) {
         }
     }
 
+    version_to_access = mc_inner_buf_t::faux_version_id;
+
     pm_bufs_held.begin(&start_time);
 
     ready = true;
     if (callback) callback->on_block_available(this);
+
+    if (snapshotted) {
+        if (locked)
+            inner_buf->lock.unlock();
+        non_locking_access = true;
+    }
 }
 
 void mc_buf_t::apply_patch(buf_patch_t *patch) {

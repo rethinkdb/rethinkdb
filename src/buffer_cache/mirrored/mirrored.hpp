@@ -151,7 +151,7 @@ private:
 
     access_t mode;
     bool non_locking_access;
-    mc_inner_buf_t::version_id_t version;
+    mc_inner_buf_t::version_id_t version_to_access; // internal version id used while acquiring the block. Do not use for buf_t version identification.
     bool snapshotted;
     mc_inner_buf_t *inner_buf;
     void *data; /* Usually the same as inner_buf->data. If a COW happens or this mc_buf_t is part of a snapshotted transaction, it reference a different buffer however. */
