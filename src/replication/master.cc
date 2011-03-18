@@ -102,7 +102,8 @@ void master_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t
 }
 
 template <class net_struct_type>
-void master_t::incr_decr_like(uint8_t msgcode, const store_key_t &key, uint64_t amount, castime_t castime) {
+void master_t::incr_decr_like(uint8_t msgcode, UNUSED const store_key_t &key, uint64_t amount, castime_t castime) {
+    // TODO: Fix this.  key is unused.  Look at other functions too.  This is broken.
     headed<net_struct_type> msg;
     msg.hdr.message_multipart_aspect = SMALL;
     msg.hdr.msgcode = msgcode;

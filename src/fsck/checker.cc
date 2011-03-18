@@ -888,7 +888,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, 
     errs->lv_bogus_ref = true;
 }
 
-void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_errs, value_error *errs) {
+void check_value(slicecx& cx, const btree_value *value, value_error *errs) {
     errs->bad_metadata_flags = !!(value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
     size_t size = value->value_size();
@@ -946,7 +946,7 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
         errs->out_of_order |= !(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0);
 
         value_error valerr(errs->block_id);
-        check_value(cx, pair->value(), tree_errs, &valerr);
+        check_value(cx, pair->value(), &valerr);
 
         if (valerr.is_bad()) {
             valerr.key = std::string(pair->key.contents, pair->key.contents + pair->key.size);

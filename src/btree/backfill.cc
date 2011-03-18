@@ -97,7 +97,8 @@ public:
         return level_counts[level];
     }
 
-    static int64_t level_max(int level) {
+    static int64_t level_max(UNUSED int level) {
+        // This is probably sub-optimal.
         return 1000;
     }
 

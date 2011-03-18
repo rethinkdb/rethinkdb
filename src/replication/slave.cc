@@ -59,23 +59,23 @@ void slave_t::kill_conn() {
 }
 
 struct not_allowed_visitor_t : public boost::static_visitor<mutation_result_t> {
-    mutation_result_t operator()(const get_cas_mutation_t &m) const {
+    mutation_result_t operator()(UNUSED const get_cas_mutation_t& m) const {
         /* TODO: This is a hack. We can't give a valid result because the CAS we return will
         not be usable with the master. But currently there's no way to signal an error on
         gets. So we pretend the value was not found. Technically this is a lie, but screw
         it. */
         return get_result_t();
     }
-    mutation_result_t operator()(const set_mutation_t &m) const {
+    mutation_result_t operator()(UNUSED const set_mutation_t& m) const {
         return sr_not_allowed;
     }
-    mutation_result_t operator()(const incr_decr_mutation_t &m) const {
+    mutation_result_t operator()(UNUSED const incr_decr_mutation_t& m) const {
         return incr_decr_result_t(incr_decr_result_t::idr_not_allowed);
     }
-    mutation_result_t operator()(const append_prepend_mutation_t &m) const {
+    mutation_result_t operator()(UNUSED const append_prepend_mutation_t& m) const {
         return apr_not_allowed;
     }
-    mutation_result_t operator()(const delete_mutation_t &m) const {
+    mutation_result_t operator()(UNUSED const delete_mutation_t& m) const {
         return dr_not_allowed;
     }
 };
@@ -107,24 +107,26 @@ std::string slave_t::failover_reset() {
     return std::string("Reseting failover\n");
 }
 
- /* message_callback_t interface */
-void slave_t::hello(net_hello_t message) { }
-void slave_t::send(buffed_data_t<net_backfill_t>& message) { }
-void slave_t::send(buffed_data_t<net_announce_t>& message) { }
-void slave_t::send(buffed_data_t<net_get_cas_t>& message) { }
-void slave_t::send(stream_pair<net_set_t>& message) { }
-void slave_t::send(stream_pair<net_add_t>& message) { }
-void slave_t::send(stream_pair<net_replace_t>& message) { }
-void slave_t::send(stream_pair<net_cas_t>& message) { }
-void slave_t::send(buffed_data_t<net_incr_t>& message) { }
-void slave_t::send(buffed_data_t<net_decr_t>& message) { }
-void slave_t::send(stream_pair<net_append_t>& message) { }
-void slave_t::send(stream_pair<net_prepend_t>& message) { }
-void slave_t::send(buffed_data_t<net_delete_t>& message) { }
-void slave_t::send(buffed_data_t<net_nop_t>& message) { }
-void slave_t::send(buffed_data_t<net_ack_t>& message) { }
-void slave_t::send(buffed_data_t<net_shutting_down_t>& message) { }
-void slave_t::send(buffed_data_t<net_goodbye_t>& message) { }
+// TODO: What are these functions, and why are they empty?
+
+/* message_callback_t interface */
+void slave_t::hello(UNUSED net_hello_t message) { }
+void slave_t::send(UNUSED buffed_data_t<net_backfill_t>& message) { }
+void slave_t::send(UNUSED buffed_data_t<net_announce_t>& message) { }
+void slave_t::send(UNUSED buffed_data_t<net_get_cas_t>& message) { }
+void slave_t::send(UNUSED stream_pair<net_set_t>& message) { }
+void slave_t::send(UNUSED stream_pair<net_add_t>& message) { }
+void slave_t::send(UNUSED stream_pair<net_replace_t>& message) { }
+void slave_t::send(UNUSED stream_pair<net_cas_t>& message) { }
+void slave_t::send(UNUSED buffed_data_t<net_incr_t>& message) { }
+void slave_t::send(UNUSED buffed_data_t<net_decr_t>& message) { }
+void slave_t::send(UNUSED stream_pair<net_append_t>& message) { }
+void slave_t::send(UNUSED stream_pair<net_prepend_t>& message) { }
+void slave_t::send(UNUSED buffed_data_t<net_delete_t>& message) { }
+void slave_t::send(UNUSED buffed_data_t<net_nop_t>& message) { }
+void slave_t::send(UNUSED buffed_data_t<net_ack_t>& message) { }
+void slave_t::send(UNUSED buffed_data_t<net_shutting_down_t>& message) { }
+void slave_t::send(UNUSED buffed_data_t<net_goodbye_t>& message) { }
 void slave_t::conn_closed() {
     coro->notify();
 }
@@ -238,11 +240,12 @@ std::string slave_t::new_master(int argc, char **argv) {
     return std::string("New master set\n");
 }
 
-std::string slave_t::failover_reset_control_t::call(int argc, char **argv) {
+// TODO: instead of UNUSED, ensure that these parameters are empty.
+std::string slave_t::failover_reset_control_t::call(UNUSED int argc, UNUSED char **argv) {
     return slave->failover_reset();
 }
 
-std::string slave_t::new_master_control_t::call(int argc, char **argv) {
+std::string slave_t::new_master_control_t::call(UNUSED int argc, UNUSED char **argv) {
     return slave->new_master(argc, argv);
 }
 

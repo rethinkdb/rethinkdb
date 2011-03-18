@@ -34,7 +34,7 @@ buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_
 struct large_value_acquired_t : public large_buf_available_callback_t {
     coro_t *self;
     large_value_acquired_t() : self(coro_t::self()) { }
-    void on_large_buf_available(large_buf_t *large_value) { self->notify(); }
+    void on_large_buf_available(UNUSED large_buf_t *large_value) { self->notify(); }
 };
 
 void co_acquire_large_buf_for_unprepend(large_buf_t *lb, int64_t length) {
@@ -106,7 +106,7 @@ transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expecte
 struct transaction_committed_t : public transaction_commit_callback_t {
     coro_t *self;
     transaction_committed_t() : self(coro_t::self()) { }
-    void on_txn_commit(transaction_t *transaction) {
+    void on_txn_commit(UNUSED transaction_t *transaction) {
         self->notify();
     }
 };

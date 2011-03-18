@@ -140,7 +140,7 @@ void scc_transaction_t<inner_cache_t>::on_txn_begin(typename inner_cache_t::tran
 }
 
 template<class inner_cache_t>
-void scc_transaction_t<inner_cache_t>::on_txn_commit(typename inner_cache_t::transaction_t *txn) {
+void scc_transaction_t<inner_cache_t>::on_txn_commit(UNUSED typename inner_cache_t::transaction_t *txn) {
     if (commit_cb) commit_cb->on_txn_commit(this);
     delete this;
 }

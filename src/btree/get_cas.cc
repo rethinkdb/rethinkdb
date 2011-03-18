@@ -54,7 +54,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         }
     }
 
-    int compute_expected_change_count(const size_t block_size) {
+    int compute_expected_change_count(UNUSED const size_t block_size) {
         return 1;
     }
 

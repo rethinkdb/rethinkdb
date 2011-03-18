@@ -663,7 +663,7 @@ void mark_deleted_and_release(large_buf_t *lb, buf_t *b) {
 #endif
 }
 
-void mark_deleted_only(large_buf_t *lb, buf_t *b) {
+void mark_deleted_only(UNUSED large_buf_t *lb, buf_t *b) {
     b->mark_deleted(false);
 }
 void release_only(large_buf_t *lb, buf_t *b) {

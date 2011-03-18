@@ -534,7 +534,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 // look, it's the next largest entry.  Should we keep gc'ing?  Returns
 // false when the entry is active or young, or when its garbage ratio
 // is lower than GC_THRESHOLD_RATIO_*.
-bool data_block_manager_t::should_we_keep_gcing(const gc_entry& entry) const {
+bool data_block_manager_t::should_we_keep_gcing(UNUSED const gc_entry& entry) const {
     return !gc_state.should_be_stopped && garbage_ratio() > dynamic_config->gc_low_ratio;
 }
 
