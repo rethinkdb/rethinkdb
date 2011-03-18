@@ -701,8 +701,8 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
 }
 
 // The block_id is there to keep the interface independent from the serializer
-// implementation. This method should work even if there's no transaction id in
-// buf.
+// implementation. The interface should be ok even for serializers which don't
+// have a transaction id in buf.
 ser_transaction_id_t log_serializer_t::get_current_transaction_id(UNUSED ser_block_id_t block_id, const void* buf) {
     buf_data_t *ser_data = (buf_data_t*)buf;
     ser_data--;
