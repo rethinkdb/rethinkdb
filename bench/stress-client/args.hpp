@@ -43,24 +43,24 @@ void usage(const char *name) {
            "\t\t\tP - number of prepends\n" \
            "\t\t\tV - number of verifications\n" \
            "\t\tDefaults to [");
-    _d.load.print();
+    _d.load.op_ratios.print();
     printf("]\n");
     printf("\t-k, --keys\n\t\tKey distribution in DISTR format (see below). Defaults to [");
-    _d.keys.print();
+    _d.load.keys.print();
     printf("].\n");
     printf("\t-K, --keys-prefix\n\t\tPrefix every key with the following string. Defaults to [");
-    printf("%s", _d.keys.prefix.c_str());
+    printf("%s", _d.load.keys.prefix.c_str());
     printf("].\n");
     printf("\t-v, --values\n\t\tValue distribution in DISTR format (see below). Maximum possible\n");
     printf("\t\tvalue size is [%d]. Defaults to [", MAX_VALUE_SIZE);
-    _d.values.print();
+    _d.load.values.print();
     printf("].\n");
     printf("\t-d, --duration\n\t\tDuration of the run. Defaults to [");
     _d.duration.print();
     printf("].\n");
     printf("\t-b, --batch-factor\n\t\tA range in DISTR format for average number of reads\n" \
            "\t\tto perform in one shot. Defaults to [");
-    _d.batch_factor.print();
+    _d.load.batch_factor.print();
     printf("].\n");
     printf("\t-l, --latency-file\n\t\tFile name to output individual latency information (in us).\n" \
            "\t\tThe information is not outputted if this argument is skipped.\n");
@@ -149,17 +149,17 @@ void parse(config_t *config, int argc, char *argv[]) {
             config->clients = atoi(optarg);
             break;
         case 'w':
-            config->load.parse(optarg);
+            config->load.op_ratios.parse(optarg);
             break;
         case 'k':
-            config->keys.parse(optarg);
+            config->load.keys.parse(optarg);
             break;
         case 'K':
-            config->keys.prefix = optarg;
+            config->load.keys.prefix = optarg;
             break;
         case 'v':
-            config->values.parse(optarg);
-            if (config->values.min > MAX_VALUE_SIZE || config->values.max > MAX_VALUE_SIZE) {
+            config->load.values.parse(optarg);
+            if (config->load.values.min > MAX_VALUE_SIZE || config->load.values.max > MAX_VALUE_SIZE) {
                 fprintf(stderr, "Invalid value distribution (maximum value size exceeded).\n");
                 exit(-1);
             }
@@ -168,7 +168,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             config->duration.parse(optarg);
             break;
         case 'b':
-            config->batch_factor.parse(optarg);
+            config->load.batch_factor.parse(optarg);
             break;
         case 'l':
             strncpy(config->latency_file, optarg, MAX_FILE);
@@ -189,17 +189,17 @@ void parse(config_t *config, int argc, char *argv[]) {
             strncpy(config->db_file, optarg, MAX_FILE);
             break;
         case 'a':
-            config->keys.append_client_suffix = true;
+            config->load.keys.append_client_suffix = true;
             break;
         case 'r':
             if(strcmp(optarg, "uniform") == 0) {
-                config->distr = rnd_uniform_t;
+                config->load.distr = rnd_uniform_t;
             } else if(strcmp(optarg, "normal") == 0) {
-                config->distr = rnd_normal_t;
+                config->load.distr = rnd_normal_t;
             }
             break;
         case 'm':
-            config->mu = atoi(optarg);
+            config->load.mu = atoi(optarg);
             break;
         case 'h':
             usage(argv[0]);

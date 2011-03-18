@@ -308,7 +308,7 @@ struct memcached_sock_protocol_t : public protocol_t {
                 exit(-1);
             }
             // Should be enough:
-            buffer = new char[config->values.max + 1024];
+            buffer = new char[config->load.values.max + 1024];
             thread_buffer.resize(1024 * 8, '\0');
             mock_parse = config->mock_parse;
         }

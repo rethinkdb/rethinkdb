@@ -5,32 +5,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "distr.hpp"
 
 /* Defines a load in terms of ratio of deletes, updates, inserts, and
  * reads. */
-struct load_t {
+struct op_ratios_t {
 public:
-    load_t()
+    op_ratios_t()
         : deletes(1), updates(4),
           inserts(8), reads(64),
           appends(0), prepends(0),
           verifies(0)
         {}
 
-    load_t(int d, int u, int i, int r, int a, int p, int v)
+    op_ratios_t(int d, int u, int i, int r, int a, int p, int v)
         : deletes(d), updates(u),
           inserts(i), reads(r),
           appends(a), prepends(p),
           verifies(v)
         {}
 
-    enum load_op_t {
+    enum op_t {
         delete_op, update_op, insert_op, read_op, append_op, prepend_op, verify_op,
     };
 
     // Generates an operation to perform using the ratios as
     // probabilities.
-    load_op_t toss(float read_factor) {
+    op_t toss(float read_factor) {
         // Scale everything by read factor (note, we don't divide
         // reads because we might end up with zero too easily)
         int deletes = this->deletes * read_factor;
@@ -116,6 +117,36 @@ public:
     int appends;
     int prepends;
     int verifies;
+};
+
+/* Describes a full workload: key sizes, batch factors, etc. in addition to op ratios */
+struct load_t {
+    load_t() : op_ratios(op_ratios_t()), keys(distr_t(8, 16)), values(distr_t(8, 128)),
+        batch_factor(distr_t(1, 16)), distr(rnd_uniform_t), mu(1) { }
+    op_ratios_t op_ratios;
+    distr_t keys;
+    distr_t values;
+    distr_t batch_factor;
+    rnd_distr_t distr;
+    int mu;
+
+    void print() {
+        printf("Load..............");
+        op_ratios.print();
+        printf("\nKeys..............");
+        keys.print();
+        printf("\nValues............");
+        values.print();
+        printf("\nBatch factor......");
+        batch_factor.print();
+        printf("\nDistribution......");
+        if(distr == rnd_uniform_t)
+            printf("uniform\n");
+        if(distr == rnd_normal_t) {
+            printf("normal\n");
+            printf("MU................%d\n", mu);
+        }
+    }
 };
 
 #endif // __LOAD_HPP__

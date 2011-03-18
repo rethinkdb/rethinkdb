@@ -39,11 +39,11 @@ struct query_stats_t {
 
 /* Communication structure for main thread and clients */
 struct client_data_t {
-    config_t *config;
+    load_t *load;
     server_t *server;
     protocol_t *proto;
     sqlite_protocol_t *sqlite;
-    int id;
+    int id, num_clients;
     int min_seed, max_seed;
 
     // This spinlock governs all the communications variables between the client and main threads.
@@ -63,7 +63,7 @@ struct client_data_t {
 void* run_client(void* data) {
     // Grab the config
     client_data_t *client_data = (client_data_t*)data;
-    config_t *config = client_data->config;
+    load_t *load = client_data->load ;
     server_t *server = client_data->server;
     protocol_t *proto = client_data->proto;
     sqlite_protocol_t *sqlite = client_data->sqlite;
@@ -72,28 +72,28 @@ void* run_client(void* data) {
 
     bool enable_latency_samples = client_data->enable_latency_samples;
 
-    const size_t per_key_size = config->keys.calculate_max_length(config->clients - 1);
+    const size_t per_key_size = load->keys.calculate_max_length(client_data->num_clients - 1);
 
-    char *buffer_of_As = new char[config->values.max];
-    memset((void *) buffer_of_As, 'A', config->values.max);
+    char *buffer_of_As = new char[load->values.max];
+    memset((void *) buffer_of_As, 'A', load->values.max);
 
     client_data->spinlock.lock();
-    rnd_gen_t _rnd = xrandom_create(config->distr, config->mu);
+    rnd_gen_t _rnd = xrandom_create(load->distr, load->mu);
     while(client_data->keep_running) {
         client_data->spinlock.unlock();
 
         // Generate the command
-        load_t::load_op_t cmd = config->load.toss((config->batch_factor.min + config->batch_factor.max) / 2.0f);
+        op_ratios_t::op_t cmd = load->op_ratios.toss((load->batch_factor.min + load->batch_factor.max) / 2.0f);
 
-        payload_t op_keys[config->batch_factor.max];
-        char key_space[per_key_size * config->batch_factor.max];
+        payload_t op_keys[load->batch_factor.max];
+        char key_space[per_key_size * load->batch_factor.max];
 
-        for (int i = 0; i < config->batch_factor.max; i++)
+        for (int i = 0; i < load->batch_factor.max; i++)
             op_keys[i].first = key_space + (per_key_size * i);
 
-        payload_t op_vals[config->batch_factor.max];
+        payload_t op_vals[load->batch_factor.max];
 
-        for (int i = 0; i < config->batch_factor.max; i++)
+        for (int i = 0; i < load->batch_factor.max; i++)
             op_vals[i].first = buffer_of_As;
 
         char val_verifcation_buffer[MAX_VALUE_SIZE];
@@ -107,11 +107,11 @@ void* run_client(void* data) {
         id_salt += id_salt << 32;
         try {
             switch(cmd) {
-            case load_t::delete_op: {
+            case op_ratios_t::delete_op: {
                 if (client_data->min_seed == client_data->max_seed)
                     break;
 
-                config->keys.toss(op_keys, client_data->min_seed ^ id_salt, client_data->id, config->clients - 1);
+                load->keys.toss(op_keys, client_data->min_seed ^ id_salt, client_data->id, client_data->num_clients - 1);
 
                 // Delete it from the server
                 ticks_t start_time = get_ticks();
@@ -129,15 +129,15 @@ void* run_client(void* data) {
                 break;
             }
 
-            case load_t::update_op: {
+            case op_ratios_t::update_op: {
                 // Find the key and generate the payload
                 if (client_data->min_seed == client_data->max_seed)
                     break;
 
                 int keyn = xrandom(_rnd, client_data->min_seed, client_data->max_seed);
 
-                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt ^ update_salt);
+                load->keys.toss(op_keys, keyn ^ id_salt, client_data->id, client_data->num_clients - 1);
+                op_vals[0].second = seeded_xrandom(load->values.min, load->values.max, client_data->max_seed ^ id_salt ^ update_salt);
 
                 // Send it to server
                 ticks_t start_time = get_ticks();
@@ -153,10 +153,10 @@ void* run_client(void* data) {
                 break;
             }
 
-            case load_t::insert_op: {
+            case op_ratios_t::insert_op: {
                 // Generate the payload
-                config->keys.toss(op_keys, client_data->max_seed ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+                load->keys.toss(op_keys, client_data->max_seed ^ id_salt, client_data->id, client_data->num_clients - 1);
+                op_vals[0].second = seeded_xrandom(load->values.min, load->values.max, client_data->max_seed ^ id_salt);
 
                 // Send it to server
                 ticks_t start_time = get_ticks();
@@ -174,15 +174,15 @@ void* run_client(void* data) {
                 break;
             }
 
-            case load_t::read_op: {
+            case op_ratios_t::read_op: {
                 // Find the key
                 if(client_data->min_seed == client_data->max_seed)
                     break;
-                int j = xrandom(config->batch_factor.min, config->batch_factor.max);
+                int j = xrandom(load->batch_factor.min, load->batch_factor.max);
                 j = std::min(j, client_data->max_seed - client_data->min_seed);
                 int l = xrandom(_rnd, client_data->min_seed, client_data->max_seed - 1);
                 for (int k = 0; k < j; k++) {
-                    config->keys.toss(&op_keys[k], l ^ id_salt, client_data->id, config->clients - 1);
+                    load->keys.toss(&op_keys[k], l ^ id_salt, client_data->id, client_data->num_clients - 1);
                     l++;
                     if(l >= client_data->max_seed)
                         l = client_data->min_seed;
@@ -199,7 +199,7 @@ void* run_client(void* data) {
                 break;
             }
 
-            case load_t::append_op: {
+            case op_ratios_t::append_op: {
                 //TODO, this doesn't check if we'll be making the value too big. Gotta check for that.
                 //Find the key
                 if (client_data->min_seed == client_data->max_seed)
@@ -207,8 +207,8 @@ void* run_client(void* data) {
 
                 int keyn = xrandom(_rnd, client_data->min_seed, client_data->max_seed);
 
-                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+                load->keys.toss(op_keys, keyn ^ id_salt, client_data->id, client_data->num_clients - 1);
+                op_vals[0].second = seeded_xrandom(load->values.min, load->values.max, client_data->max_seed ^ id_salt);
 
                 ticks_t start_time = get_ticks();
                 proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
@@ -223,15 +223,15 @@ void* run_client(void* data) {
                 break;
             }
 
-            case load_t::prepend_op: {
+            case op_ratios_t::prepend_op: {
                 //Find the key
                 if (client_data->min_seed == client_data->max_seed)
                     break;
 
                 int keyn = xrandom(_rnd, client_data->min_seed, client_data->max_seed);
 
-                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
+                load->keys.toss(op_keys, keyn ^ id_salt, client_data->id, client_data->num_clients - 1);
+                op_vals[0].second = seeded_xrandom(load->values.min, load->values.max, client_data->max_seed ^ id_salt);
 
                 ticks_t start_time = get_ticks();
                 proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
@@ -246,7 +246,7 @@ void* run_client(void* data) {
                 break;
             }
 
-            case load_t::verify_op: {
+            case op_ratios_t::verify_op: {
                 /* this is a very expensive operation it will first do a very
                  * expensive operation on the SQLITE reference db and then it will
                  * do several queries on the db that's being stressed (and only add

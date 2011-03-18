@@ -71,11 +71,11 @@ int main(int argc, char *argv[])
     // Parse the arguments
     config_t config;
     parse(&config, argc, argv);
-    if (config.load.verifies > 0 && config.clients > 1) {
+    if (config.load.op_ratios.verifies > 0 && config.clients > 1) {
         printf("Automatically enabled per-client key suffixes\n");
-        config.keys.append_client_suffix = true;
+        config.load.keys.append_client_suffix = true;
     }
-    if (config.load.verifies > 0) {
+    if (config.load.op_ratios.verifies > 0) {
         config.mock_parse = false;
     }
     config.print();
@@ -114,9 +114,10 @@ int main(int argc, char *argv[])
 
     client_data_t client_data[config.clients];
     for(int i = 0; i < config.clients; i++) {
-        client_data[i].config = &config;
+        client_data[i].load = &config.load;
         client_data[i].server = &config.servers[i % config.servers.size()];
         client_data[i].id = i;
+        client_data[i].num_clients = config.clients;
         client_data[i].min_seed = 0;
         client_data[i].max_seed = 0;
 

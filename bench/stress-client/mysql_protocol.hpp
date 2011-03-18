@@ -111,7 +111,7 @@ struct mysql_protocol_t : public protocol_t {
             }
 
             // Prepare read statements for each batch factor
-            for(int bf = config->batch_factor.min; bf <= config->batch_factor.max; bf++) {
+            for(int bf = config->load.batch_factor.min; bf <= config->load.batch_factor.max; bf++) {
                 MYSQL_STMT *read_stmt;
                 read_stmt = mysql_stmt_init(&mysql);
 
@@ -235,7 +235,7 @@ struct mysql_protocol_t : public protocol_t {
             bind[i].length = &keys[i].second;
         }
 
-        MYSQL_STMT *read_stmt = read_stmts[count - config->batch_factor.min];
+        MYSQL_STMT *read_stmt = read_stmts[count - config->load.batch_factor.min];
         int res = mysql_stmt_bind_param(read_stmt, bind);
         if(res != 0) {
             fprintf(stderr, "Could not bind read statement\n");
@@ -338,7 +338,7 @@ private:
                  "CREATE TABLE bench (__key varchar(%lu), __value varchar(%d)," \
                  "PRIMARY KEY (__key)) "                             \
                  "ENGINE=InnoDB",
-                 config->keys.calculate_max_length(config->clients - 1), config->values.max);
+                 config->load.keys.calculate_max_length(config->clients - 1), config->load.values.max);
         status = mysql_query(&mysql, buf);
         if(status != 0) {
             fprintf(stderr, "Could not create the table.\n");
