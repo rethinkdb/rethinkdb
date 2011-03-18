@@ -305,7 +305,7 @@ void translator_serializer_t::register_read_ahead_cb(translator_serializer_t::re
     inner->register_read_ahead_cb(this);
     read_ahead_callback = cb;
 }
-void translator_serializer_t::unregister_read_ahead_cb(translator_serializer_t::read_ahead_callback_t *cb) {
+void translator_serializer_t::unregister_read_ahead_cb(UNUSED translator_serializer_t::read_ahead_callback_t *cb) {
     rassert(read_ahead_callback == NULL || cb == read_ahead_callback);
     inner->unregister_read_ahead_cb(this);
     read_ahead_callback = NULL;

@@ -655,7 +655,7 @@ buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64
     }
 }
 
-void mark_deleted_and_release(large_buf_t *lb, buf_t *b) {
+void mark_deleted_and_release(UNUSED large_buf_t *lb, buf_t *b) {
     b->mark_deleted(false);
     b->release();
 #ifndef NDEBUG
@@ -666,7 +666,7 @@ void mark_deleted_and_release(large_buf_t *lb, buf_t *b) {
 void mark_deleted_only(UNUSED large_buf_t *lb, buf_t *b) {
     b->mark_deleted(false);
 }
-void release_only(large_buf_t *lb, buf_t *b) {
+void release_only(UNUSED large_buf_t *lb, buf_t *b) {
     b->release();
 #ifndef NDEBUG
     lb->num_bufs--;
