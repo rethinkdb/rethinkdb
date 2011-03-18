@@ -26,6 +26,17 @@ struct repli_timestamp {
     static const repli_timestamp invalid;
 };
 
+struct initialized_repli_timestamp {
+    uint32_t time;
+    explicit initialized_repli_timestamp(uint32_t _time) : time(_time) { }
+    initialized_repli_timestamp(repli_timestamp timestamp) : time(timestamp.time) { }
+
+    operator repli_timestamp() const {
+        repli_timestamp ret = { time };
+        return ret;
+    }
+};
+
 struct charslice {
     char *beg, *end;
     charslice(char *beg_, char *end_) : beg(beg_), end(end_) { }

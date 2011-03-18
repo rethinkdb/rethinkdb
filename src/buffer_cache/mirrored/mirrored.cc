@@ -43,8 +43,8 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load)
     : cache(cache),
       block_id(block_id),
+      subtree_recency(repli_timestamp::invalid),  // Gets initialized by load_buf_fsm_t.
       data(cache->serializer->malloc()),
-      /* TODO initialize subtree_recency */
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -68,11 +68,11 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
 }
 
 // Thid form of the buf constructor is used when the block exists on disks but has been loaded into buf already
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp recency_timestamp)
     : cache(cache),
       block_id(block_id),
+      subtree_recency(recency_timestamp),
       data(buf),
-      /* TODO initialize subtree_recency */
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
@@ -89,15 +89,15 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf)
 
     // Read the transaction id
     transaction_id = cache->serializer->get_current_transaction_id(block_id, data);
-    
+
     replay_patches();
 }
 
 // This form of the buf constructor is used when a completely new block is being created
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, repli_timestamp recency_timestamp)
     : cache(cache),
       block_id(cache->free_list.gen_block_id()),
-      subtree_recency(current_time() /* TODO take a timestamp parameter */),
+      subtree_recency(recency_timestamp),
       data(cache->serializer->malloc()),
       next_patch_counter(1),
       refcount(0),
@@ -508,7 +508,7 @@ mc_buf_t *mc_transaction_t::allocate() {
     assert_thread();
 
     // This form of the inner_buf_t constructor generates a new block with a new block ID.
-    inner_buf_t *inner_buf = new inner_buf_t(cache);
+    inner_buf_t *inner_buf = new inner_buf_t(cache, recency_timestamp);
 
     // This must pass since no one else holds references to this block.
     buf_t *buf = new buf_t(inner_buf, rwi_write);

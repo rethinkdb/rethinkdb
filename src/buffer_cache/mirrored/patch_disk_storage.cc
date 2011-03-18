@@ -71,6 +71,8 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &cache, block_id_t start_i
             }
         }
     }
+
+    // TODO: Somebody answer this question.
     coro_t::yield();   // Why?
 
     // Load all log blocks into memory
@@ -78,7 +80,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &cache, block_id_t start_i
         
         if (block_is_empty[current_block - first_block]) {
             // Initialize a new log block here (we rely on the properties of block_id assignment)
-            mc_inner_buf_t *new_ibuf = new mc_inner_buf_t(&cache);
+            mc_inner_buf_t *new_ibuf = new mc_inner_buf_t(&cache, repli_timestamp::invalid);
             guarantee(new_ibuf->block_id == current_block);
 
             log_block_bufs.push_back(acquire_block_no_locking(current_block));
