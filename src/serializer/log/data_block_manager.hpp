@@ -196,6 +196,7 @@ private:
         
         off64_t offset; /* !< the offset that this extent starts at */
         bitset_t g_array; /* !< bit array for whether or not each block is garbage */
+        intrusive_list_t<ls_block_token_t*> tokens; /* List of tokens which have their offsets in this extent */
         microtime_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
         
