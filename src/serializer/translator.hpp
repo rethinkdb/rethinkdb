@@ -122,6 +122,8 @@ public:
     virtual void *clone(void*);
     void free(void *ptr);
 
+    void block_read(boost::shared_ptr<serializer_t::block_token_t> token, void *buf);
+    boost::shared_ptr<serializer_t::block_token_t> index_read(block_id_t block_id);
     bool do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback);
     ser_transaction_id_t get_current_transaction_id(block_id_t block_id, const void* buf);
     struct write_t {

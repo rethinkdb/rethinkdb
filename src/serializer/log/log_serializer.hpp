@@ -93,27 +93,23 @@ public:
     static void check_existing(const char *filename, check_callback_t *cb);
 
 public:
-    /* TODO!
-     * So this is the plan:
-     * log_serializer has a map from ls_block_token_t* to disk offsets.
-     * Also each extent has a list of pointers on the ls_block_token.
-     * register_block_token allocates an offset, places the data into the map, puts it into the right extent's list, marks the garbage collector bitmap busy
-     * unregister_block_token removes it from the extent list, marks the garbage collector bitmap, removes it from the map.
-     */
-    class ls_block_token_t {
+    class ls_block_token_t : public serializer_t::block_token_t {
         friend class log_serializer_t;
 
         ls_block_token_t(log_serializer_t *serializer, off64_t initial_offset) : serializer(serializer) {
             serializer->assert_thread();
             serializer->register_block_token(this, initial_offset);
         }
+        log_serializer_t *serializer;
+
+    public:
         virtual ~ls_block_token_t() {
             on_thread_t(serializer->home_thread);
             serializer->unregister_block_token(this);
         }
-
-        log_serializer_t *serializer;
     };
+
+    // TODO! Do the writers
 
     /* Implementation of the serializer_t API */
     void *malloc();
@@ -122,9 +118,9 @@ public:
 
     void register_read_ahead_cb(read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf);
-    void block_read(boost::shared_ptr<block_token_t> token, void *buf);
+    void index_read(boost::shared_ptr<block_token_t> token, void *buf);
     boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id);
-    //bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
+    void index_delete(ser_block_id_t block_id); // TODO! Should unset offset_is_indexed, update garbage collector if no token exists etc.
     ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf);
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL);
     block_size_t get_block_size();
@@ -134,9 +130,11 @@ public:
 
 private:
     std::map<ls_block_token_t*, off64_t> token_offsets;
-    std::multimap<off64_t, ls_block_token_t*> offset_tokens; // TODO! Should GC really have to check all the offsets in here?
+    std::multimap<off64_t, ls_block_token_t*> offset_tokens;
+    std::set<off64_t> offset_is_indexed; // Contains all offset for which block_tokens currently exist and which are also indexed in the LBA or somewhere
     void register_block_token(ls_block_token_t *token, off64_t offset);
     void unregister_block_token(ls_block_token_t *token);
+    void remap_block_to_new_offset(off64_t current_offset, off64_t new_offset);
 
     std::vector<read_ahead_callback_t*> read_ahead_callbacks;
     bool offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf);

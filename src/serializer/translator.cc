@@ -209,6 +209,14 @@ void translator_serializer_t::free(void *ptr) {
     inner->free(ptr);
 }
 
+void translator_serializer_t::block_read(boost::shared_ptr<serializer_t::block_token_t> token, void *buf) {
+    return inner->block_read(token, buf);
+}
+
+boost::shared_ptr<serializer_t::block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
+    return inner->index_read(xlate(block_id));
+}
+
 bool translator_serializer_t::do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback) {
     return inner->do_read(xlate(block_id), buf, callback);
 }

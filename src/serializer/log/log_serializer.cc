@@ -702,53 +702,73 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
 }
 */
 
-
 void log_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf) {
+    ls_block_token_t *ls_token = dynamic_cast<ls_block_token_t*>(token.get());
+    rassert(ls_token);
     assert_thread();
     rassert(state == state_ready);
-    rassert(token_offsets.find(token) != token_offsets.end());
+    rassert(token_offsets.find(ls_token) != token_offsets.end());
 
     // Is this necessary?
-    co_lock_mutex(main_mutex);
+    co_lock_mutex(&main_mutex);
 
-    const off64_t offset = token_offsets[token];
+    const off64_t offset = token_offsets[ls_token];
 
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
-    if (!read(offset, buf, cb)) cb.wait();
+    if (!data_block_manager->read(offset, buf, &cb)) cb.wait();
 
     main_mutex.unlock();
 }
 
-boost::shared_ptr<block_token_t> log_serializer_t::index_read(ser_block_id_t block_id) {
+boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::index_read(ser_block_id_t block_id) {
     assert_thread();
     rassert(state == state_ready);
     
-    co_lock_mutex(main_mutex);
+    co_lock_mutex(&main_mutex);
 
-    flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
+    flagged_off64_t offset = lba_index->get_block_offset(block_id);
     rassert(!offset.parts.is_delete);   // Make sure the block actually exists
 
     main_mutex.unlock();
 
-    // TODO! This creates a new token every time. unregister has to handle that. Should we not do this? However sharing a shared_ptr between different threads would be dangerous.
-    return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset->parts.value));
+    return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset.parts.value));
 }
 
 void log_serializer_t::register_block_token(ls_block_token_t *token, off64_t offset) {
     rassert(token_offsets.find(token) == token_offsets.end());
     token_offsets[token] = offset;
-    offset_tokens.insert(std::pair<off64_t, ls_block_token_t*>(offset, token));
+    offset_is_indexed.insert(offset);
 
-    // TODO! Mark live in GC or something like that if we are the first for the offset
+    offset_tokens.insert(std::pair<off64_t, ls_block_token_t*>(offset, token));
 }
 
-void log_serializer_t::unregister_block_token(ls_block_token_t *token) {
-    // TODO! Mark garbage in GC if there is noone else left for the token's offset
+void log_serializer_t::unregister_block_token(ls_block_token_t *token) {    
+    std::map<ls_block_token_t*, off64_t>::iterator token_offset_it = token_offsets.find(token);
+    rassert(token_offset_it != token_offsets.end());
 
-    rassert(token_offsets.find(token) != token_offsets.end());
-    token_offsets.erase(token);
+    for (std::multimap<off64_t, ls_block_token_t*>::iterator offset_token_it = offset_tokens.find(token_offset_it->second);
+            offset_token_it != offset_tokens.end() && offset_token_it->first == token_offset_it->second;
+            ++offset_token_it) {
+
+        if (offset_token_it->second == token) {
+            offset_tokens.erase(offset_token_it);
+            break;
+        }
+    }
+
+    const bool last_token_for_offset = offset_tokens.find(token_offset_it->second) == offset_tokens.end();
+    if (last_token_for_offset) {
+        if (offset_is_indexed.count(token_offset_it->second) == 0) {
+            // Mark offset garbage in GC
+            data_block_manager->mark_token_garbage(token_offset_it->second);
+        } else {
+            offset_is_indexed.erase(token_offset_it->second);
+        }
+    }
+    
+    token_offsets.erase(token_offset_it);
 }
 
 // The block_id is there to keep the interface independent from the serializer

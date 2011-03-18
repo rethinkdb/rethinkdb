@@ -5,6 +5,7 @@
 #include "serializer/types.hpp"
 #include "server/cmd_args.hpp"
 
+#include<boost/smart_ptr.hpp>
 #include "utils2.hpp"
 #include "utils.hpp"
 
@@ -39,21 +40,38 @@ struct serializer_t :
     virtual void register_read_ahead_cb(read_ahead_callback_t *cb) = 0;
     virtual void unregister_read_ahead_cb(read_ahead_callback_t *cb) = 0;
 
-    /* TODO! */
     class block_token_t {
+    public:
         virtual ~block_token_t() { }
     };
 
     /* Reading a block from the serializer */
-    
-    /*struct read_callback_t {
+
+    // TODO: Remove this compatiblity layer at some point
+    struct read_callback_t {
         virtual void on_serializer_read() = 0;
         virtual ~read_callback_t() {}
-    };*/
-    //virtual bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) = 0;
+    };
+private:
+    static void do_read_wrapper(serializer_t *serializer, ser_block_id_t block_id, void *buf, read_callback_t *callback) {
+        serializer->block_read(serializer->index_read(block_id), buf);
+        callback->on_serializer_read();
+    }
+public:
+
+    // do_read() is DEPRECATED.
+    // Please use block_read(index_read(...), ...) to get the same functionality
+    // in a coroutine aware manner
+    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
+        // Just a wrapper around the new interface. TODO: Get rid of this eventually
+        coro_t::spawn(boost::bind(&serializer_t::do_read_wrapper, this, block_id, buf, callback));
+        return false;
+    }
+
     /* Require coroutine context, block until data is available */
-    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf);
-    virtual boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id);
+    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf) = 0;
+    virtual boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id) = 0;
+    virtual void index_delete(ser_block_id_t block_id) = 0;
 
     virtual ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf) = 0;
     
