@@ -270,7 +270,7 @@ public:
 private:
     castime_t make_castime();
     set_store_t *target;
-    int cas_counter;
+    uint32_t cas_counter;
 };
 
 #endif /* __STORE_HPP__ */

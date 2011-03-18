@@ -236,7 +236,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                 interrupt_cond.wait();
 
-                logINF("Shutting down... this may take time if there is a lot of unsaved data.\n");
+                logINF("Waiting for running operations to complete...\n");
             } catch (conn_acceptor_t::address_in_use_exc_t) {
                 logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
             }
@@ -245,6 +245,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 delete slave_store;
 
             // store destructor called here
+            logINF("Waiting for changes to flush to disk...\n");
         } else {
             logINF("Shutting down...\n");
         }

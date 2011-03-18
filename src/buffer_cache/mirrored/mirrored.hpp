@@ -208,6 +208,7 @@ public:
 
     bool commit(transaction_commit_callback_t *callback);
 
+    // TODO: Get rid of this default parameter, it's very evil.
     buf_t *acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();

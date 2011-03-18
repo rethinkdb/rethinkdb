@@ -19,7 +19,10 @@ struct co_block_available_callback_t : public block_available_callback_t {
 buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode, cond_t *acquisition_cond) {
     transaction->ensure_thread();
     co_block_available_callback_t cb;
-    buf_t *value = transaction->acquire(block_id, mode, &cb, acquisition_cond);
+    buf_t *value = transaction->acquire(block_id, mode, &cb);
+    if (acquisition_cond) {
+        acquisition_cond->pulse();
+    }
     if (!value) {
         value = cb.join();
     }
@@ -45,7 +48,9 @@ void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size, c
     large_value_acquired_t acquired;
     lb->ensure_thread();
     lb->acquire_slice(offset, size, &acquired);
-    acquisition_cond->pulse();
+    if (acquisition_cond) {
+        acquisition_cond->pulse();
+    }
     coro_t::wait();
 }
 

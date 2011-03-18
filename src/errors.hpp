@@ -39,6 +39,8 @@
  * every single time it gets included.
  */
 
+#define UNUSED __attribute__((unused))
+
 // TODO: Abort probably is not the right thing to do here.
 #define fail_due_to_user_error(msg, ...) do {                       \
         report_user_error(msg, ##__VA_ARGS__);                                     \
