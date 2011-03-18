@@ -38,14 +38,22 @@ struct serializer_t :
     };
     virtual void register_read_ahead_cb(read_ahead_callback_t *cb) = 0;
     virtual void unregister_read_ahead_cb(read_ahead_callback_t *cb) = 0;
-    
+
+    /* TODO! */
+    class block_token_t {
+        virtual ~block_token_t() { }
+    };
+
     /* Reading a block from the serializer */
     
-    struct read_callback_t {
+    /*struct read_callback_t {
         virtual void on_serializer_read() = 0;
         virtual ~read_callback_t() {}
-    };
-    virtual bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) = 0;
+    };*/
+    //virtual bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) = 0;
+    /* Require coroutine context, block until data is available */
+    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf);
+    virtual boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id);
 
     virtual ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf) = 0;
     

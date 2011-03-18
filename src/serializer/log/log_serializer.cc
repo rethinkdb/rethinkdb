@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <boost/smart_ptr/shared_ptr.hpp>
 
 #include "buffer_cache/types.hpp"
 
@@ -634,7 +635,7 @@ bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, in
 
 perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1));
 
-struct ls_read_fsm_t :
+/*struct ls_read_fsm_t :
     private iocallback_t,
     private lock_available_callback_t
 {
@@ -664,7 +665,7 @@ struct ls_read_fsm_t :
 
     void on_lock_available() {
 
-        /* Should not cause anything else to go immediately */
+        // Should not cause anything else to go immediately
         ser->main_mutex.unlock();
         
         flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
@@ -688,7 +689,7 @@ struct ls_read_fsm_t :
 bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
     rassert(state == state_ready);
     assert_thread();
-    
+
     ls_read_fsm_t *fsm = new ls_read_fsm_t(this, block_id, buf);
     fsm->run();
     if (fsm->done) {
@@ -698,6 +699,56 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
         fsm->callback = callback;
         return false;
     }
+}
+*/
+
+
+void log_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf) {
+    assert_thread();
+    rassert(state == state_ready);
+    rassert(token_offsets.find(token) != token_offsets.end());
+
+    // Is this necessary?
+    co_lock_mutex(main_mutex);
+
+    const off64_t offset = token_offsets[token];
+
+    struct : public cond_t, public iocallback_t {
+        void on_io_complete() { pulse(); }
+    } cb;
+    if (!read(offset, buf, cb)) cb.wait();
+
+    main_mutex.unlock();
+}
+
+boost::shared_ptr<block_token_t> log_serializer_t::index_read(ser_block_id_t block_id) {
+    assert_thread();
+    rassert(state == state_ready);
+    
+    co_lock_mutex(main_mutex);
+
+    flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
+    rassert(!offset.parts.is_delete);   // Make sure the block actually exists
+
+    main_mutex.unlock();
+
+    // TODO! This creates a new token every time. unregister has to handle that. Should we not do this? However sharing a shared_ptr between different threads would be dangerous.
+    return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset->parts.value));
+}
+
+void log_serializer_t::register_block_token(ls_block_token_t *token, off64_t offset) {
+    rassert(token_offsets.find(token) == token_offsets.end());
+    token_offsets[token] = offset;
+    offset_tokens.insert(std::pair<off64_t, ls_block_token_t*>(offset, token));
+
+    // TODO! Mark live in GC or something like that if we are the first for the offset
+}
+
+void log_serializer_t::unregister_block_token(ls_block_token_t *token) {
+    // TODO! Mark garbage in GC if there is noone else left for the token's offset
+
+    rassert(token_offsets.find(token) != token_offsets.end());
+    token_offsets.erase(token);
 }
 
 // The block_id is there to keep the interface independent from the serializer
