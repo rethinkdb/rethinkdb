@@ -74,7 +74,10 @@ void master_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t
 }
 
 template <class net_struct_type>
-void master_t::incr_decr_like(uint8_t msgcode, const store_key_t &key, uint64_t amount, castime_t castime) {
+void master_t::incr_decr_like(UNUSED uint8_t msgcode, UNUSED const store_key_t &key, uint64_t amount, castime_t castime) {
+    // TODO: We aren't using the parameter key.  How did we do this?
+    // TODO: We aren't using the parameter msgcode.  This is obviously broken!
+
     net_struct_type msg;
     msg.timestamp = castime.timestamp;
     msg.proposed_cas = castime.proposed_cas;

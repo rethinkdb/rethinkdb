@@ -272,7 +272,7 @@ struct shutdown_control_t : public control_t
     shutdown_control_t(std::string key)
         : control_t(key, "Shut down the server.")
     {}
-    std::string call(int argc, char **argv) {
+    std::string call(UNUSED int argc, UNUSED char **argv) {
         server_shutdown();
         // TODO: Only print this if there actually *is* a lot of unsaved data.
         return std::string("Shutting down... this may take time if there is a lot of unsaved data.\r\n");

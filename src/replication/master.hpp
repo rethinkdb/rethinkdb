@@ -65,20 +65,20 @@ public:
     // Listener callback functions
     void on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn);
 
-    void hello(net_hello_t message) { debugf("Received hello from slave.\n"); }
-    void send(buffed_data_t<net_backfill_t>& message) { }
-    void send(buffed_data_t<net_announce_t>& message) { rassert(false, "slave sent announce"); }
-    void send(buffed_data_t<net_get_cas_t>& message) { rassert(false, "slave sent get_cas"); }
-    void send(stream_pair<net_sarc_t>& message) { rassert(false, "slave sent sarc"); }
-    void send(buffed_data_t<net_incr_t>& message) { rassert(false, "slave sent incr"); }
-    void send(buffed_data_t<net_decr_t>& message) { rassert(false, "slave sent decr"); }
-    void send(stream_pair<net_append_t>& message) { rassert(false, "slave sent append"); }
-    void send(stream_pair<net_prepend_t>& message) { rassert(false, "slave sent prepend"); }
-    void send(buffed_data_t<net_delete_t>& message) { rassert(false, "slave sent delete"); }
-    void send(buffed_data_t<net_nop_t>& message) { rassert(false, "slave sent nop"); }
-    void send(buffed_data_t<net_ack_t>& message) { }
-    void send(buffed_data_t<net_shutting_down_t>& message) { }
-    void send(buffed_data_t<net_goodbye_t>& message) { }
+    void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
+    void send(UNUSED buffed_data_t<net_backfill_t>& message) { }
+    void send(UNUSED buffed_data_t<net_announce_t>& message) { rassert(false, "slave sent announce"); }
+    void send(UNUSED buffed_data_t<net_get_cas_t>& message) { rassert(false, "slave sent get_cas"); }
+    void send(UNUSED stream_pair<net_sarc_t>& message) { rassert(false, "slave sent sarc"); }
+    void send(UNUSED buffed_data_t<net_incr_t>& message) { rassert(false, "slave sent incr"); }
+    void send(UNUSED buffed_data_t<net_decr_t>& message) { rassert(false, "slave sent decr"); }
+    void send(UNUSED stream_pair<net_append_t>& message) { rassert(false, "slave sent append"); }
+    void send(UNUSED stream_pair<net_prepend_t>& message) { rassert(false, "slave sent prepend"); }
+    void send(UNUSED buffed_data_t<net_delete_t>& message) { rassert(false, "slave sent delete"); }
+    void send(UNUSED buffed_data_t<net_nop_t>& message) { rassert(false, "slave sent nop"); }
+    void send(UNUSED buffed_data_t<net_ack_t>& message) { }
+    void send(UNUSED buffed_data_t<net_shutting_down_t>& message) { }
+    void send(UNUSED buffed_data_t<net_goodbye_t>& message) { }
     void conn_closed() { destroy_existing_slave_conn_if_it_exists(); }
 
     void do_nop_rebound(repli_timestamp t);

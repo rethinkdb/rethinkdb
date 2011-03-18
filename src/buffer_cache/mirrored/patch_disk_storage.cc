@@ -260,7 +260,8 @@ unsigned int patch_disk_storage_t::get_number_of_log_blocks() const {
     return (unsigned int)number_of_blocks;
 }
 
-void patch_disk_storage_t::reclaim_space(const size_t space_required) {
+// TODO: Why do we not use space_required?
+void patch_disk_storage_t::reclaim_space(UNUSED const size_t space_required) {
     block_id_t compress_block_id = select_log_block_for_compression();
     if (!block_is_empty[compress_block_id - first_block])
         compress_block(compress_block_id);

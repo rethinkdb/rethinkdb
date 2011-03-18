@@ -384,8 +384,6 @@ void run_storage_command(txt_memcached_handler_t *rh,
 
     rh->begin_write_command();
 
-    repli_timestamp timestamp = current_time();
-
     if (sc != append_command && sc != prepend_command) {
         add_policy_t add_policy;
         replace_policy_t replace_policy;

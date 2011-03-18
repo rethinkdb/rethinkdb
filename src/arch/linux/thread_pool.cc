@@ -250,7 +250,7 @@ void linux_thread_pool_t::interrupt_handler(int) {
     }
 }
 
-void linux_thread_pool_t::sigsegv_handler(int signum, siginfo_t *info, void *data) {
+void linux_thread_pool_t::sigsegv_handler(int signum, siginfo_t *info, UNUSED void *data) {
     if (signum == SIGSEGV) {
         if (is_coroutine_stack_overflow(info->si_addr)) {
             crash("Callstack overflow in a coroutine");

@@ -45,7 +45,7 @@ template <> struct stream_type<net_sarc_t> { typedef stream_pair<net_sarc_t> typ
 template <> struct stream_type<net_prepend_t> { typedef stream_pair<net_prepend_t> type; };
 template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t> type; };
 
-template <class T> size_t objsize(const T *buf) { return sizeof(T); }
+template <class T> size_t objsize(UNUSED const T *buf) { return sizeof(T); }
 template <> size_t objsize<net_get_cas_t>(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
 template <> size_t objsize<net_sarc_t>(const net_sarc_t *buf) { return sizeof(net_sarc_t) + buf->key_size + buf->value_size; }
 template <> size_t objsize<net_append_t>(const net_append_t *buf) { return sizeof(net_append_t) + buf->key_size + buf->value_size; }
@@ -386,7 +386,7 @@ void repli_stream_t::send(net_ack_t msg) {
     sendobj(ACK, &msg);
 }
 
-void repli_stream_t::send_hello(const mutex_acquisition_t& evidence_of_acquisition) {
+void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_acquisition) {
     net_hello_t msg;
     rassert(sizeof(msg.hello_magic) == 16);
     // TODO make a #define for this.

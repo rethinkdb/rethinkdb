@@ -161,7 +161,9 @@ bool rwi_lock_t::try_lock_intent(bool from_queue) {
     }
 }
 
-bool rwi_lock_t::try_lock_upgrade(bool from_queue) {
+// TODO: Why do we not use this parameter, from_queue?  We probably
+// don't want to pass this parameter.
+bool rwi_lock_t::try_lock_upgrade(UNUSED bool from_queue) {
     rassert(state == rwis_reading_with_intent);
     if (nreaders == 0) {
         state = rwis_writing;

@@ -76,7 +76,7 @@ void mock_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     apply_patch(new memmove_patch_t(internal_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
 }
 
-void mock_buf_t::mark_deleted(bool write_null) {
+void mock_buf_t::mark_deleted(UNUSED bool write_null) {
     // write_null is ignored for the mock cache.
     rassert(access == rwi_write);
     deleted = true;
@@ -124,7 +124,7 @@ void mock_transaction_t::finish_committing(mock_transaction_commit_callback_t *c
     delete this;
 }
 
-mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock_block_available_callback_t *callback, bool should_load) {
+mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock_block_available_callback_t *callback, UNUSED bool should_load) {
     // should_load is ignored for the mock cache.
     if (mode == rwi_write) rassert(this->access == rwi_write);
     
@@ -182,9 +182,12 @@ mock_transaction_t::~mock_transaction_t() {
 
 /* Cache */
 
+// TODO: Why do we take a static_config if we don't use it?
+// (I.i.r.c. we have a similar situation in the mirrored cache.)
+
 void mock_cache_t::create(
     translator_serializer_t *serializer,
-    mirrored_cache_static_config_t *static_config)
+    UNUSED mirrored_cache_static_config_t *static_config)
 {
     on_thread_t switcher(serializer->home_thread);
 
@@ -201,9 +204,11 @@ void mock_cache_t::create(
     serializer->free(superblock);
 }
 
+// dynamic_config is unused because this is a mock cache and the
+// configuration parameters don't apply.
 mock_cache_t::mock_cache_t(
     translator_serializer_t *serializer,
-    mirrored_cache_config_t *dynamic_config)
+    UNUSED mirrored_cache_config_t *dynamic_config)
     : serializer(serializer), block_size(serializer->get_block_size())
 {
     on_thread_t switcher(serializer->home_thread);
@@ -252,7 +257,7 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-mock_transaction_t *mock_cache_t::begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, mock_transaction_begin_callback_t *callback) {
+mock_transaction_t *mock_cache_t::begin_transaction(access_t access, UNUSED int expected_change_count, repli_timestamp recency_timestamp, mock_transaction_begin_callback_t *callback) {
     
     mock_transaction_t *txn = new mock_transaction_t(this, access, recency_timestamp);
     

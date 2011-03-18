@@ -134,20 +134,20 @@ private:
     perfmon_sampler_t recent;
 #endif
 public:
-    perfmon_duration_sampler_t(std::string name, ticks_t length)
+    perfmon_duration_sampler_t(std::string name, UNUSED ticks_t length)
         : active(name + "_active_count"), total(name + "_total")
 #ifndef FAST_PERFMON
         , recent(name, length, true)
 #endif
         { }
-    void begin(ticks_t *v) {
+    void begin(UNUSED ticks_t *v) {
         active++;
         total++;
 #ifndef FAST_PERFMON
         *v = get_ticks();
 #endif
     }
-    void end(ticks_t *v) {
+    void end(UNUSED ticks_t *v) {
         active--;
 #ifndef FAST_PERFMON
         recent.record(ticks_to_secs(get_ticks() - *v));

@@ -16,7 +16,7 @@ void generic_crash_handler(int signum) {
     }
 }
 
-void ignore_crash_handler(int signum) {}
+void ignore_crash_handler(UNUSED int signum) { }
 
 void install_generic_crash_handler() {
     struct sigaction action;

@@ -51,7 +51,7 @@ bool insert(block_size_t block_size, buf_t& node_buf, const btree_key_t *key, co
     return true;
 }
 
-void insert(block_size_t block_size, leaf_node_t *node, const btree_key_t *key, const btree_value* value, repli_timestamp insertion_time) {
+void insert(UNUSED block_size_t block_size, leaf_node_t *node, const btree_key_t *key, const btree_value* value, repli_timestamp insertion_time) {
     int index = impl::get_offset_index(node, key);
 
     uint16_t prev_offset;
@@ -112,7 +112,7 @@ void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
 }
 
 // TODO: We don't use the block_size parameter, so get rid of it.
-void remove(block_size_t block_size, leaf_node_t *node, const btree_key_t *key) {
+void remove(UNUSED block_size_t block_size, leaf_node_t *node, const btree_key_t *key) {
     int index = impl::find_key(node, key);
     rassert(index != impl::key_not_found);
     rassert(index != node->npairs);
