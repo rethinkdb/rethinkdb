@@ -3,6 +3,119 @@
 #define __ARGS_HPP__
 #include <getopt.h>
 
+#include "protocol.hpp"
+
+#define MAX_FILE    255
+#define MAX_KEY_SIZE (250)
+#define MAX_VALUE_SIZE (1024*1024)
+
+struct duration_t {
+public:
+    enum duration_units_t {
+        queries_t, seconds_t, inserts_t
+    };
+
+public:
+    duration_t(long _duration, duration_units_t _units)
+        : duration(_duration), units(_units)
+        {}
+
+    void print() {
+        printf("%ld", duration);
+        switch(units) {
+        case queries_t:
+            printf("q");
+            break;
+        case seconds_t:
+            printf("s");
+            break;
+        case inserts_t:
+            printf("i");
+            break;
+        default:
+            fprintf(stderr, "Unknown duration unit\n");
+            exit(-1);
+        }
+    }
+
+    void parse(char *duration) {
+        if (strcmp(duration, "infinity") == 0) {
+            this->duration = -1;
+            units = queries_t;
+        } else {
+            int len = strlen(duration);
+            switch(duration[len - 1]) {
+            case 'q':
+                units = queries_t;
+                break;
+            case 's':
+                units = seconds_t;
+                break;
+            case 'i':
+                units = inserts_t;
+                break;
+            default:
+                if(duration[len - 1] >= '0' && duration[len - 1] <= '9')
+                    units = queries_t;
+                else {
+                    fprintf(stderr, "Unknown duration unit\n");
+                    exit(-1);
+                }
+                break;
+            }
+
+            this->duration = atol(duration);
+        }
+    }
+
+public:
+    long duration;
+    duration_units_t units;
+};
+
+/* Defines a client configuration, including sensible default
+ * values.*/
+struct config_t {
+public:
+    config_t()
+        : clients(64), duration(10000000L, duration_t::queries_t), load(load_t())
+        {
+            latency_file[0] = 0;
+            worst_latency_file[0] = 0;
+            qps_file[0] = 0;
+            out_file[0] = 0;
+            in_file[0] = 0;
+            db_file[0] = 0;
+        }
+
+    void print() {
+        printf("---- Workload ----\n");
+        printf("Duration..........");
+        duration.print();
+        printf("\n");
+        for (int i = 0; i < servers.size(); i++) {
+            printf("Server............");
+            servers[i].print();
+            printf("\n");
+        }
+        printf("Clients...........%d\n", clients);
+        load.print();
+        printf("\n");
+    }
+
+public:
+    std::vector<server_t> servers;
+    int clients;
+    duration_t duration;
+    load_t load;
+    char latency_file[MAX_FILE];
+    char worst_latency_file[MAX_FILE];
+    char qps_file[MAX_FILE];
+    char out_file[MAX_FILE];
+    char in_file[MAX_FILE];
+    char db_file[MAX_FILE];
+};
+
 /* List supported protocols. */
 void list_protocols() {
     // I'll just cheat here.

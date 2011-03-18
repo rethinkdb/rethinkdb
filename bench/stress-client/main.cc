@@ -8,45 +8,11 @@
 #include "utils.hpp"
 #include "load.hpp"
 #include "distr.hpp"
-#include "config.hpp"
 #include "client.hpp"
 #include "args.hpp"
 #include "sys/stat.h"
-#include "memcached_sock_protocol.hpp"
-#ifdef USE_LIBMEMCACHED
-#  include "memcached_protocol.hpp"
-#endif
-#ifdef USE_MYSQL
-#  include "mysql_protocol.hpp"
-#endif
-#include "sqlite_protocol.hpp"
-
 
 using namespace std;
-
-protocol_t *make_protocol(protocol_enum_t protocol, config_t *config) {
-    switch (protocol) {
-        case protocol_sockmemcached:
-            return (protocol_t*) new memcached_sock_protocol_t(config);
-            break;
-#ifdef USE_MYSQL
-        case protocol_mysql:
-            return (protocol_t*) new mysql_protocol_t(config);
-            break;
-#endif
-#ifdef USE_LIBMEMCACHED
-        case protocol_libmemcached:
-            return (protocol_t*) new memcached_protocol_t(config);
-            break;
-#endif
-        case protocol_sqlite:
-            return (protocol_t*) new sqlite_protocol_t(config);
-            break;
-        default:
-            fprintf(stderr, "Unknown protocol\n");
-            exit(-1);
-    }
-}
 
 FILE *get_out_file(const char *name, const char *what) {
     if (strcmp(name, "-") == 0) {
@@ -62,6 +28,8 @@ FILE *get_out_file(const char *name, const char *what) {
     }
 }
 
+#define BACKUP_FOLDER "sqlite_backup"
+
 /* Tie it all together */
 int main(int argc, char *argv[])
 {
@@ -75,9 +43,6 @@ int main(int argc, char *argv[])
         printf("Automatically enabled per-client key suffixes\n");
         config.load.keys.append_client_suffix = true;
     }
-    if (config.load.op_ratios.verifies > 0) {
-        config.mock_parse = false;
-    }
     config.print();
 
     /* Open output files */
@@ -90,24 +55,6 @@ int main(int argc, char *argv[])
         mkdir(BACKUP_FOLDER, 0777);
     }
 
-    // Gotta run the shared init for each server.
-    for (int i = 0; i < config.servers.size(); i++) {
-        protocol_t *p = make_protocol(config.servers[i].protocol, &config);
-        p->connect(&config.servers[i]);
-        p->shared_init();
-        delete p;
-    }
-
-    for (int i = 0; i < config.clients; i++) {
-        if (config.db_file[0]) {
-            sqlite_protocol_t *sqlite = new sqlite_protocol_t(&config);
-            sqlite->set_id(i);
-            sqlite->connect(&config.servers[0]);
-            sqlite->shared_init();
-            delete sqlite;
-        };
-    }
-
     // Let's rock 'n roll
     int res;
     vector<pthread_t> threads(config.clients);
@@ -115,7 +62,6 @@ int main(int argc, char *argv[])
     client_data_t client_data[config.clients];
     for(int i = 0; i < config.clients; i++) {
         client_data[i].load = &config.load;
-        client_data[i].server = &config.servers[i % config.servers.size()];
         client_data[i].id = i;
         client_data[i].num_clients = config.clients;
         client_data[i].min_seed = 0;
@@ -127,12 +73,11 @@ int main(int argc, char *argv[])
 
         // Create and connect all protocols first to avoid weird TCP
         // timeout bugs
-        client_data[i].proto = (*make_protocol)(client_data[i].server->protocol, &config);
-        client_data[i].proto->connect(client_data[i].server);
+        client_data[i].proto = config.servers[i % config.servers.size()].connect(&config.load);
         if (config.db_file[0]) {
-            client_data[i].sqlite = new sqlite_protocol_t(&config);
-            client_data[i].sqlite->set_id(i);
-            client_data[i].sqlite->connect(client_data[i].server);
+            char buffer[2048];
+            sprintf(buffer, "%s/%d_%s", BACKUP_FOLDER, i, config.db_file);
+            client_data[i].sqlite = new sqlite_protocol_t(buffer, &config.load);
         } else {
             client_data[i].sqlite = NULL;
         }

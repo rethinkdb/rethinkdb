@@ -6,7 +6,7 @@
 #include <string>
 #include <string.h>
 #include <stdint.h>
-#include "load.hpp"
+#include "utils.hpp"
 
 #define SALT1 0xFEEDABE0
 #define SALT2 0xBEDFACE8
@@ -16,12 +16,12 @@
 /* Helpful typedefs */
 typedef std::pair<char*, size_t> payload_t;
 
-void append(payload_t *p, payload_t *other) {
+inline void append(payload_t *p, payload_t *other) {
     p->second += other->second;
     memcpy(p->first + p->second, other->first, other->second);
 }
 
-void prepend(payload_t *p, payload_t *other) {
+inline void prepend(payload_t *p, payload_t *other) {
     p->second += other->second;
     memmove(p->first + p->second, p->first, p->second);
     memcpy(p->first, other->first, other->second);
@@ -41,29 +41,58 @@ public:
     // Generates a random payload within given bounds. It is the
     // user's responsibility to clean up the payload.
     void toss(payload_t *payload, uint64_t seed, const int client_id = -1, int max_client_id = -1) {
+
+        // First part of payload: user-specified prefix, if any
+
+        strncpy(payload->first, prefix.c_str(), prefix.length());
+        payload->second = prefix.length();
+
+        // Second part of payload: randomly generated payload body
+
+        int body_min = min, body_max = max;
+        body_min -= prefix.length();
+        body_max -= prefix.length();
+        int client_suffix_length;
+        if (append_client_suffix) {
+            if (max_client_id < 0 || client_id < 0) {
+                fprintf(stderr, "Internal error: No client id given to toss().\n");
+                exit(-2);
+            }
+            client_suffix_length = count_decimal_digits(max_client_id);
+            body_min -= client_suffix_length;
+            body_max -= client_suffix_length;
+        }
+
+        if (body_min < 0) {
+            fprintf(stderr, "Lower bound for length is specified to be %d, but prefix and suffix "
+                "together are %d bytes, making lower bound unattainable.\n",
+                min, min - body_min);
+            exit(-1);
+        } else if (body_max < 0) {
+            fprintf(stderr, "Specified maximum length is %d bytes, but prefix and suffix together "
+                "are %d bytes, making it impossible to generate a valid payload.\n",
+                max, max - body_max);
+            exit(-1);
+        }
+
         /* compute out the size */
-        uint64_t size = seed;
-        size ^= SALT1;
-        size += size << 19;
-        size ^= size >> 17;
-        size += size << 3;
-        size ^= size >> 37;
-        size += size << 5;
-        size ^= size >> 11;
-        size += size << 2;
-        size ^= size >> 45;
-        size += size << 13;
+        uint64_t body_size = seed;
+        body_size ^= SALT1;
+        body_size += body_size << 19;
+        body_size ^= body_size >> 17;
+        body_size += body_size << 3;
+        body_size ^= body_size >> 37;
+        body_size += body_size << 5;
+        body_size ^= body_size >> 11;
+        body_size += body_size << 2;
+        body_size ^= body_size >> 45;
+        body_size += body_size << 13;
 
-        size %= max - min + 1;
-        size += min;
+        body_size %= body_max - body_min + 1;
+        body_size += body_min;
 
-        size_t prefix_len = prefix.length();
-        char *l = payload->first + prefix_len;
-
-        strncpy(payload->first, prefix.c_str(), prefix_len);
-        payload->second = size + prefix_len;
-
-        int _size = size;
+        char *l = payload->first + prefix.length();
+        int _size = body_size;
         do {
             uint64_t hash = seed;
             hash ^= ((uint64_t)_size << 7);
@@ -82,50 +111,19 @@ public:
             }
             _size -= 4;
         } while(_size > 0);
-        
-        if (append_client_suffix) {
-            // Append the client id as a suffix
-            if (max_client_id < 0)
-                max_client_id = client_id;
-            if (client_id < 0) {
-                fprintf(stderr, "Internal error: No client id given to toss().\n");
-                exit(-2);
-            }
-            int remainder = max_client_id;
-            int denominator = 1;
-            size_t suffix_length = 1;
-            while (remainder > 10) {
-                denominator *= 10;
-                remainder /= 10;
-                ++suffix_length;
-            }
-            remainder = client_id;
-            for (size_t i = suffix_length; i > 0; --i) {
-                *l++ = '0' + (remainder / denominator);
-                remainder = remainder % denominator;
-                denominator *= 10;
-            }
-            payload->second += suffix_length;
-        }
 
-    }
-    
-    size_t calculate_max_length(const int client_id = -1) {
-        size_t suffix_length = 0;
+        payload->second += body_size;
+
+        // Third part of payload: per-client suffix
+
         if (append_client_suffix) {
-            if (client_id < 0) {
-                fprintf(stderr, "Internal error: No client id given to calculate_max_length().\n");
-                exit(-2);
-            }
-            
             int remainder = client_id;
-            ++suffix_length;
-            while (remainder >= 10) {
+            for (int i = client_suffix_length - 1; i >= 0; --i) {
+                l[i] = '0' + remainder % 10;
                 remainder /= 10;
-                ++suffix_length;
             }
+            payload->second += client_suffix_length;
         }
-        return max + suffix_length + prefix.length();
     }
 
     void parse(char *str) {

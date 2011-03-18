@@ -40,7 +40,6 @@ struct query_stats_t {
 /* Communication structure for main thread and clients */
 struct client_data_t {
     load_t *load;
-    server_t *server;
     protocol_t *proto;
     sqlite_protocol_t *sqlite;
     int id, num_clients;
@@ -59,20 +58,17 @@ struct client_data_t {
     query_stats_t stats;
 };
 
+#define RELIABILITY 100 /* every RELIABILITYth key is put in the sqlite backup */
+
 /* The function that does the work */
 void* run_client(void* data) {
     // Grab the config
     client_data_t *client_data = (client_data_t*)data;
     load_t *load = client_data->load ;
-    server_t *server = client_data->server;
     protocol_t *proto = client_data->proto;
     sqlite_protocol_t *sqlite = client_data->sqlite;
-    if(sqlite)
-        sqlite->set_id(client_data->id);
 
     bool enable_latency_samples = client_data->enable_latency_samples;
-
-    const size_t per_key_size = load->keys.calculate_max_length(client_data->num_clients - 1);
 
     char *buffer_of_As = new char[load->values.max];
     memset((void *) buffer_of_As, 'A', load->values.max);
@@ -86,17 +82,17 @@ void* run_client(void* data) {
         op_ratios_t::op_t cmd = load->op_ratios.toss((load->batch_factor.min + load->batch_factor.max) / 2.0f);
 
         payload_t op_keys[load->batch_factor.max];
-        char key_space[per_key_size * load->batch_factor.max];
+        char key_space[load->keys.max * load->batch_factor.max];
 
         for (int i = 0; i < load->batch_factor.max; i++)
-            op_keys[i].first = key_space + (per_key_size * i);
+            op_keys[i].first = key_space + (load->keys.max * i);
 
         payload_t op_vals[load->batch_factor.max];
 
         for (int i = 0; i < load->batch_factor.max; i++)
             op_vals[i].first = buffer_of_As;
 
-        char val_verifcation_buffer[MAX_VALUE_SIZE];
+        char val_verifcation_buffer[load->values.max];
         char *old_val_buffer;
 
         // The operation we run may or may not acquire the spinlock itself. If it does it sets

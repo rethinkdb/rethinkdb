@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <vector>
+#include <map>
 #include "protocol.hpp"
 
 class non_existent_command_error_t : public protocol_error_t {
@@ -232,6 +234,7 @@ public:
         failure_message = successful ? "" : "Failed to read a total of " + std::string(number_of_failed_gets_c_str) + " values.";
     }
     
+    bool mock_parse;
     std::map<std::string, std::string> values;
     std::map<std::string, int> flags;
     
@@ -291,57 +294,41 @@ private:
         if (line_length > 0)
             throw protocol_error_t("Did not get line break after value.");
     }
-    
-    bool mock_parse;
+
     unsigned int number_of_keys;
 };
 
 struct memcached_sock_protocol_t : public protocol_t {
-    memcached_sock_protocol_t(config_t *config)
-        : sockfd(-1), protocol_t(config)
-        {
-            // init the socket
-            sockfd = socket(AF_INET, SOCK_STREAM, 0);
-            if(sockfd < 0) {
-                int err = errno;
-                fprintf(stderr, "Could not create socket\n");
-                exit(-1);
-            }
-            // Should be enough:
-            buffer = new char[config->load.values.max + 1024];
-            thread_buffer.resize(1024 * 8, '\0');
-            mock_parse = config->mock_parse;
-        }
-
-    virtual ~memcached_sock_protocol_t() {
-        if(sockfd != -1) {
-            int res = close(sockfd);
+    memcached_sock_protocol_t(const char *conn_str, load_t *load) : sockfd(-1) {
+        // init the socket
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if(sockfd < 0) {
             int err = errno;
-            if(res != 0) {
-                fprintf(stderr, "Could not close socket\n");
-                exit(-1);
-            }
+            fprintf(stderr, "Could not create socket\n");
+            exit(-1);
         }
-        delete[] buffer;
-    }
 
-    virtual void connect(server_t *server) {
+        // Should be enough:
+        buffer = new char[load->values.max + 1024];
+        thread_buffer.resize(1024 * 8, '\0');
+
         // Parse the host string
         char _host[MAX_HOST];
-        strncpy(_host, server->host, MAX_HOST);
+        strncpy(_host, conn_str, MAX_HOST);
 
-        char *_port = NULL;
-
-        _port = strchr(_host, ':');
-        if(_port) {
+        int port;
+        if(char *_port = strchr(_host, ':')) {
             *_port = '\0';
             _port++;
+            port = atoi(_port);
+            if (port == 0) {
+                fprintf(stderr, "Cannot parse port string: \"%s\".\n", _port);
+                exit(-1);
+            }
         } else {
             fprintf(stderr, "Please use host string of the form host:port.\n");
             exit(-1);
         }
-
-        int port = atoi(_port);
 
         // Setup the host/port data structures
         struct sockaddr_in sin;
@@ -361,6 +348,18 @@ struct memcached_sock_protocol_t : public protocol_t {
             fprintf(stderr, "Could not connect to server (%d)\n", err);
             exit(-1);
         }
+    }
+
+    virtual ~memcached_sock_protocol_t() {
+        if(sockfd != -1) {
+            int res = close(sockfd);
+            int err = errno;
+            if(res != 0) {
+                fprintf(stderr, "Could not close socket\n");
+                exit(-1);
+            }
+        }
+        delete[] buffer;
     }
 
     virtual void remove(const char *key, size_t key_size) {
@@ -444,7 +443,7 @@ struct memcached_sock_protocol_t : public protocol_t {
         }
         buf += sprintf(buf, "\r\n");
 
-        memcached_retrieval_response_t response(thread_buffer, count, mock_parse);
+        memcached_retrieval_response_t response(thread_buffer, count, !values);
 
         retry:
         // Send it on its merry way to the server
@@ -557,7 +556,6 @@ private:
     int sockfd;
     char *buffer;
     std::vector<char> thread_buffer;
-    bool mock_parse;
 };
 
 

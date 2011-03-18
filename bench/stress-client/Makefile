@@ -1,6 +1,6 @@
 
 LIBS = -lpthread -ldl 
-SRC = main.cc utils.cc random.cc sqlite3.c
+SRC = main.cc utils.cc random.cc protocol.cc sqlite3.c
 
 MYSQL ?= 1
 LIBMEMCACHED ?= 1
