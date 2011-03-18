@@ -334,7 +334,7 @@ bool change_unsafe(const internal_node_t *node) {
     return sizeof(internal_node_t) + node->npairs * sizeof(*node->pair_offsets) + MAX_KEY_SIZE >= node->frontmost_offset;
 }
 
-void validate(block_size_t block_size, const internal_node_t *node) {
+void validate(UNUSED block_size_t block_size, UNUSED const internal_node_t *node) {
 #ifndef NDEBUG
     rassert(ptr_cast<byte>(&(node->pair_offsets[node->npairs])) <= ptr_cast<byte>(get_pair(node, node->frontmost_offset)));
     rassert(node->frontmost_offset > 0);

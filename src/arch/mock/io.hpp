@@ -143,7 +143,7 @@ private:
     };
     segmented_vector_t<block_t, 10*GIGABYTE/DEVICE_BLOCK_SIZE> blocks;
     
-    void verify(size_t offset, size_t length, void *buf) {
+    void verify(UNUSED size_t offset, UNUSED size_t length, UNUSED void *buf) {
         rassert(buf);
         rassert(offset + length <= get_size());
         rassert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
