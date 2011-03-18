@@ -52,6 +52,9 @@ def make_option_parser():
     o["mem-cap"] = IntFlag("--mem-cap", None)
     o["min-qps"] = IntFlag("--min-qps", None)
     o["garbage-range"] = MultiValueFlag("--garbage-range", [float_converter, float_converter], default = None)
+    o["failover"] = BoolFlag("--failover")
+    o["kill_failover_server_prob"] = FloatFlag("--kill-failover-server-prob", .01)
+    o["resurrect_failover_server_prob"] = FloatFlag("--resurrect-failover-server-prob", .01)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -259,13 +262,12 @@ class Server(object):
     # Server should not take more than %(server_start_time)d seconds to start up
     server_start_time = 60 * ec2
     
-    def __init__(self, opts, test_dir, name = "server", extra_flags = [], data_files = None, replicate_from = None):
+    def __init__(self, opts, test_dir, name = "server", extra_flags = [], data_files = None):
         self.running = False
         self.opts = opts
         self.base_name = name
         self.extra_flags = extra_flags
         self.test_dir = test_dir
-        self.replicate_from = replicate_from
         
         if self.opts["database"] == "rethinkdb":
             self.executable_path = get_executable_path(self.opts, "rethinkdb")
@@ -301,7 +303,7 @@ class Server(object):
         # Start the server
         assert self.server is None
         self.server = SubProcess(
-            command_line + (["--slave-of", "%s:%d" % self.replicate_from] if self.replicate_from else []),
+            command_line,
             "%s_output.txt" % self.name.replace(" ","_"),
             self.test_dir,
             valgrind_tool = (None if not self.opts["valgrind"] else self.opts["valgrind-tool"]),
@@ -412,6 +414,47 @@ class MemcachedWrapperThatRestartsServer(object):
         print "Done restarting server; now resuming test."
         self.internal_mc = self.internal_mc_maker()
 
+class FailoverMemcachedWrapper(object):
+    def __init__(self, opts, master, slave, master_mc_maker, slave_mc_maker, test_dir):
+        self.opts = opts
+        self.server = {'master' : master, 'slave' : slave}
+        self.down = {'master' : False, 'slave' : False}
+        self.mc_maker = {'master' : master_mc_maker, 'slave' : slave_mc_maker}
+        self.mc = {'master' : master_mc_maker(), 'slave' : master_mc_maker()}
+        self.test_dir = test_dir
+
+    def __getattr__(self, name):
+        if random.random() < self.opts["kill_failover_server_prob"]:
+            self.kill_server()
+        if random.random() < self.opts["resurrect_failover_server_prob"]:
+            self.resurrect_server()
+
+        if (self.down['master']): 
+            mc_to_use = self.mc['slave']
+        else:
+            mc_to_use = self.mc['master']
+
+        return getattr(mc_to_use, name)
+
+    def kill_server(self):
+        assert(not (self.down['master'] and self.down['slave']))
+        if not (self.down['master'] or self.down['slave']):
+            victim = random.choice(['master', 'slave'])
+            print "Killing %s" % victim
+            self.mc[victim].disconnect_all()
+            self.server[victim].kill()
+            self.down[victim] = True
+
+    def resurrect_server(self):
+        assert(not (self.down['master'] and self.down['slave']))
+
+        if (self.down['master'] or self.down['slave']):
+            victim = 'master' if self.down['master'] else 'slave'
+            print "Resurrecting %s" % victim
+            self.server[victim].start()
+            self.mc[victim] = self.mc_maker[victim]()
+            self.down[victim] = False
+
 def connect_to_port(opts, port):
     if opts["mclib"] == "pylibmc":
         import pylibmc
@@ -429,7 +472,6 @@ def connect_to_server(opts, server, test_dir):
     if opts.get("restart_server_prob", 0) > 0:
         mc_maker = lambda: connect_to_port(opts, server.port)
         mc = MemcachedWrapperThatRestartsServer(opts, server, mc_maker, test_dir)
-    
     else:
         mc = connect_to_port(opts, server.port)
     
@@ -506,12 +548,29 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
     do not shut down or start up again."""
     try:
         if opts["auto"]:
-            server = Server(opts, extra_flags=extra_flags, test_dir=test_dir)
-            server.start()
+            if (opts["failover"]):
+                repli_port = find_unused_port()
+                master = Server(opts, extra_flags=extra_flags + ["--master-port", "%d" % repli_port], test_dir=test_dir)
+                master.start()
+                
+                slave = Server(opts, extra_flags=extra_flags + ["--slave-of", "localhost:%d" % repli_port], test_dir=test_dir)
+                slave.start()
+                
+                servers = [master, slave]
 
-            stat_checker = start_stats(opts, server.port)
+                mc = FailoverMemcachedWrapper(opts, master, slave, lambda: (connect_to_server(opts, master, test_dir=test_dir)), lambda: (connect_to_server(opts, slave, test_dir=test_dir)), test_dir=test_dir)
 
-            mc = connect_to_server(opts, server, test_dir=test_dir)
+                stat_checkers = [start_stats(opts, master.port), start_stats(opts, slave.port)]
+
+            else:
+                server = Server(opts, extra_flags=extra_flags, test_dir=test_dir)
+                server.start()
+
+                servers = [server]
+
+                stat_checkers = [start_stats(opts, server.port)]
+
+                mc = connect_to_server(opts, server, test_dir=test_dir)
             try:
                 run_with_timeout(test_function, args=(opts, mc), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
             except Exception, e:
@@ -520,10 +579,11 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
                 test_failure = None
             mc.disconnect_all()
 
-            if stat_checker:
-                stat_checker.stop()
+            for stat_checker in stat_checkers:
+                if stat_checker: stat_checker.stop()
 
-            if server.running: server.shutdown()
+            for server in servers:
+                if server.running: server.shutdown()
 
             if test_failure: raise test_failure
 
@@ -565,7 +625,7 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
             server = Server(opts, extra_flags=extra_flags + ["--master-port", "%d" % repli_port], test_dir=test_dir)
             server.start()
             
-            repli_server = Server(opts, extra_flags=extra_flags, test_dir=test_dir, replicate_from = ('localhost', repli_port))
+            repli_server = Server(opts, extra_flags=extra_flags + ["--slave-of", "%d" % repli_port], test_dir=test_dir)
             repli_server.start()
 
             stat_checker = start_stats(opts, server.port)
