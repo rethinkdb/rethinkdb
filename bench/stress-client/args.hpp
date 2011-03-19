@@ -34,7 +34,7 @@ void usage(const char *name) {
     printf("].\n");
     printf("\t-c, --clients\n\t\tNumber of concurrent clients. Defaults to [%d].\n", _d.clients);
     printf("\t--client-suffix\n\t\tAppend a per-client id to key names.\n");
-    printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R/A/P/V, where\n" \
+    printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R/A/P/V/RR, where\n" \
            "\t\t\tD - number of deletes\n" \
            "\t\t\tU - number of updates\n" \
            "\t\t\tI - number of inserts\n" \
@@ -42,6 +42,7 @@ void usage(const char *name) {
            "\t\t\tA - number of appends\n" \
            "\t\t\tP - number of prepends\n" \
            "\t\t\tV - number of verifications\n" \
+           "\t\t\tRR - number of range reads\n" \
            "\t\tDefaults to [");
     _d.load.print();
     printf("]\n");
@@ -61,6 +62,10 @@ void usage(const char *name) {
     printf("\t-b, --batch-factor\n\t\tA range in DISTR format for average number of reads\n" \
            "\t\tto perform in one shot. Defaults to [");
     _d.batch_factor.print();
+    printf("].\n");
+    printf("\t-R, --range-size\n\t\tA range in DISTR format for average number of values\n" \
+           "\t\tto retrieve per range get. Defaults to [");
+    _d.range_size.print();
     printf("].\n");
     printf("\t-l, --latency-file\n\t\tFile name to output individual latency information (in us).\n" \
            "\t\tThe information is not outputted if this argument is skipped.\n");
@@ -112,6 +117,7 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"values",             required_argument, 0, 'v'},
                 {"duration",           required_argument, 0, 'd'},
                 {"batch-factor",       required_argument, 0, 'b'},
+                {"range-size",         required_argument, 0, 'R'},
                 {"latency-file",       required_argument, 0, 'l'},
                 {"worst-latency-file", required_argument, 0, 'L'},
                 {"qps-file",           required_argument, 0, 'q'},
@@ -126,7 +132,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:l:L:q:o:i:h:f:m:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:R:l:L:q:o:i:h:f:m:", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -169,6 +175,9 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'b':
             config->batch_factor.parse(optarg);
+            break;
+        case 'R':
+            config->range_size.parse(optarg);
             break;
         case 'l':
             strncpy(config->latency_file, optarg, MAX_FILE);

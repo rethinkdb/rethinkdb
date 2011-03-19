@@ -473,6 +473,43 @@ struct memcached_sock_protocol_t : public protocol_t {
         }
     }
 
+    virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
+        // Setup the text command
+        char *buf = buffer;
+        buf += sprintf(buf, "rget ");
+        memcpy(buf, lkey, lkey_size);
+        buf += lkey_size;
+        buf += sprintf(buf, " ");
+        memcpy(buf, rkey, rkey_size);
+        buf += rkey_size;
+        buf += sprintf(buf, " 0 0 %d", count_limit);
+        buf += sprintf(buf, "\r\n");
+
+        memcached_retrieval_response_t response(thread_buffer, count_limit, mock_parse);
+
+        retry:
+        // Send it on its merry way to the server
+        send_command(buf - buffer);
+
+        // Parse the response
+        try {
+            response.read_from_socket(sockfd);
+        } catch (temporary_server_error_t& e) {
+            // Sleep a moment, then retry
+            usleep(1000);
+            goto retry;
+        }
+
+        // Check the result
+        if (!response.successful) {
+            //fprintf(stderr, "Failed to read: %s\n", response.failure_message.c_str());
+        }
+
+        if (values) {
+            fprintf(stderr, "Value verification not implemented for range reads\n");
+        }
+    }
+
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
         // Setup the text command

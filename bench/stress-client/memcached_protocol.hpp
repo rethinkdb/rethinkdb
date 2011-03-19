@@ -113,6 +113,9 @@ struct memcached_protocol_t : public protocol_t {
         } while(_value != NULL);
     }
 
+    virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
+    }
+
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
     }

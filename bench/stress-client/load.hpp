@@ -14,18 +14,18 @@ public:
         : deletes(1), updates(4),
           inserts(8), reads(64),
           appends(0), prepends(0),
-          verifies(0)
+          verifies(0), range_reads(0)
         {}
 
-    load_t(int d, int u, int i, int r, int a, int p, int v)
+    load_t(int d, int u, int i, int r, int a, int p, int v, int rr)
         : deletes(d), updates(u),
           inserts(i), reads(r),
           appends(a), prepends(p),
-          verifies(v)
+          verifies(v), range_reads(rr)
         {}
 
     enum load_op_t {
-        delete_op, update_op, insert_op, read_op, append_op, prepend_op, verify_op,
+        delete_op, update_op, insert_op, read_op, range_read_op, append_op, prepend_op, verify_op,
     };
 
     // Generates an operation to perform using the ratios as
@@ -36,12 +36,13 @@ public:
         int deletes = this->deletes * read_factor;
         int updates = this->updates * read_factor;
         int inserts = this->inserts * read_factor;
+        int range_reads = this->range_reads * read_factor;
         int appends = this->appends * read_factor;
         int prepends = this->prepends * read_factor;
         int verifies = this->verifies * read_factor;
 
         // Do the toss
-        int total = deletes + updates + inserts + reads + appends + prepends + verifies;
+        int total = deletes + updates + inserts + reads + range_reads + appends + prepends + verifies;
         int rand_op = xrandom(0, total - 1);
         int acc = 0;
 
@@ -53,6 +54,8 @@ public:
             return insert_op;
         if(rand_op >= acc && rand_op < (acc += reads))
             return read_op;
+        if(rand_op >= acc && rand_op < (acc += range_reads))
+            return range_read_op;
         if(rand_op >= acc && rand_op < (acc += appends))
             return append_op;
         if(rand_op >= acc && rand_op < (acc += prepends))
@@ -90,8 +93,11 @@ public:
             case 6:
                 verifies = atoi(tok);
                 break;
+            case 7:
+                range_reads = atoi(tok);
+                break;
             default:
-                fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V)\n");
+                fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V/RR)\n");
                 exit(-1);
                 break;
             }
@@ -99,13 +105,13 @@ public:
             c++;
         }
         if(c < 4) {
-            fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V)\n");
+            fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V/RR)\n");
             exit(-1);
         }
     }
 
     void print() {
-        printf("%d/%d/%d/%d/%d/%d/%d", deletes, updates, inserts, reads,appends, prepends, verifies);
+        printf("%d/%d/%d/%d/%d/%d/%d/%d", deletes, updates, inserts, reads,appends, prepends, verifies, range_reads);
     }
 
 public:
@@ -113,6 +119,7 @@ public:
     int updates;
     int inserts;
     int reads;
+    int range_reads;
     int appends;
     int prepends;
     int verifies;
