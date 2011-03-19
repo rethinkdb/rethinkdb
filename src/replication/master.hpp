@@ -3,6 +3,7 @@
 
 #include "store.hpp"
 #include "arch/arch.hpp"
+#include "btree/backfill.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/snag_ptr.hpp"
 #include "containers/thick_list.hpp"
@@ -84,6 +85,10 @@ public:
     void do_nop_rebound(repli_timestamp t);
 
     void consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp timestamp);
+
+    void do_backfill(repli_timestamp since_when);
+
+    void send_backfill_atom_to_slave(backfill_atom_t atom);
 
 private:
     // Spawns a coroutine.

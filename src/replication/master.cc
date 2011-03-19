@@ -197,6 +197,57 @@ void master_t::do_nop_rebound(repli_timestamp t) {
     stream_->send(msg);
 }
 
+struct do_backfill_cb : public backfill_callback_t {
+    int count;
+    master_t *master;
+    cond_t *for_when_done;
+
+    void on_keyvalue(backfill_atom_t atom) {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_backfill_atom_to_slave, master, atom));
+    }
+    void done() {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this));
+    }
+
+    void do_done() {
+        rassert(get_thread_id() == master->home_thread);
+
+        if (0 == --count) {
+            for_when_done->pulse();
+        }
+    }
+};
+
+void master_t::do_backfill(repli_timestamp since_when) {
+    assert_thread();
+
+    int n = dispatchers_.size();
+    cond_t done_cond;
+
+    do_backfill_cb cb;
+    cb.count = n;
+    cb.master = this;
+    cb.for_when_done = &done_cond;
+
+    for (int i = 0, n = dispatchers_.size(); i < n; ++i) {
+        dispatchers_[i]->spawn_backfill(since_when, &cb);
+    }
+
+    done_cond.wait();
+}
+
+void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
+    const const_buffer_group_t *group = atom.value->get_data_as_buffers();
+    debugf("Would have sent atom '%.*s': flags=%u exptime=%u recency=%u cas=%lu\n",
+           atom.key.size, atom.key.contents, atom.flags, atom.exptime, atom.recency, atom.cas_or_zero);
+    for (int i = 0, n = group->num_buffers(); i < n; ++i) {
+        const_buffer_group_t::buffer_t buf = group->get_buffer(i);
+        debugf("(Part): %.*s\n", buf.size, buf.data);
+    }
+    debugf("END\n");
+}
+
+
 
 }  // namespace replication
 
