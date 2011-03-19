@@ -16,11 +16,7 @@ public:
     /* set_store_t interface. */
 
     mutation_result_t change(const mutation_t &m, castime_t castime);
-    void spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
-        on_thread_t th(slice_->home_thread);
-        slice_->spawn_backfill(since_when, callback);
-    }
-
+    void spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback);
     void nop_back_on_masters_thread(repli_timestamp timestamp, cond_t *cond, int *counter);
 
 private:

@@ -220,6 +220,7 @@ struct do_backfill_cb : public backfill_callback_t {
 
 void master_t::do_backfill(repli_timestamp since_when) {
     assert_thread();
+    debugf("Somebody called do_backfill(%u)\n", since_when.time);
 
     int n = dispatchers_.size();
     cond_t done_cond;
@@ -229,11 +230,15 @@ void master_t::do_backfill(repli_timestamp since_when) {
     cb.master = this;
     cb.for_when_done = &done_cond;
 
-    for (int i = 0, n = dispatchers_.size(); i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
+        debugf("Spawning backfill %d of %d\n", i, n);
         dispatchers_[i]->spawn_backfill(since_when, &cb);
+        debugf("Spawned... %d of %d\n", i, n);
     }
 
+    debugf("Done spawning, now waiting for done_cond...\n");
     done_cond.wait();
+    debugf("Done backfill.\n");
 }
 
 void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {

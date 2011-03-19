@@ -219,7 +219,8 @@ public:
         pulse_response_ = waiter.wait();
 
         // Now actually acquire the node.
-        co_acquire_block(state_.transactor_ptr->transaction(), block_id, rwi_read, acquisition_cond);
+        buf_lock_t tmp(state_.transactor_ptr->transaction(), block_id, rwi_read, acquisition_cond);
+        inner_lock_.swap(tmp);
     }
 
     buf_t *operator->() { return inner_lock_.buf(); }
@@ -236,17 +237,21 @@ private:
 
 
 void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
+    debugf("spawn_btree_backfill\n");
     backfill_state_t state(slice, since_when, callback);
-
+    debugf("Created backfill_state_t object.\n");
     buf_lock_t buf_lock(*state.transactor_ptr, SUPERBLOCK_ID, rwi_read);
+    debugf("Acquired superblock\n");
     block_id_t root_id = reinterpret_cast<const btree_superblock_t *>(buf_lock.buf()->get_data_read())->root_block;
     rassert(root_id != SUPERBLOCK_ID);
 
     if (root_id == NULL_BLOCK_ID) {
+        debugf("No root, returning.\n");
         // No root, so no keys in this entire shard.
         return;
     }
 
+    debugf("subtrees_backfill here we go!\n");
     subtrees_backfill(state, buf_lock, 0, &root_id, 1);
 }
 
@@ -254,24 +259,31 @@ void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, b
     boost::scoped_array<repli_timestamp> recencies(new repli_timestamp[num_block_ids]);
     get_recency_timestamps(state, block_ids, num_block_ids, recencies.get());
 
+    debugf("Got recency timestamps.\n");
+
     // Conds activated when we first try to acquire the children.
     // TODO: Replace acquisition_conds with a counter that counts down to zero.
     boost::scoped_array<cond_t> acquisition_conds(new cond_t[num_block_ids]);
+
     for (int i = 0; i < num_block_ids; ++i) {
         if (recencies[i].time >= state.since_when.time) {
+            debugf("Looks like we have to spawn.\n");
             coro_t::spawn(boost::bind(do_subtree_backfill, boost::ref(state), level, block_ids[i], &acquisition_conds[i]));
         } else {
             acquisition_conds[i].pulse();
         }
     }
 
+    debugf("Waiting on acquisition conds\n");
     for (int i = 0; i < num_block_ids; ++i) {
         acquisition_conds[i].wait();
     }
+    debugf("Releasing parent\n");
 
     // The children are all pending acquisition; we can release the parent.
 
     parent.release();
+    debugf("Done subtrees_backfill... one of them.\n");
 }
 
 void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond) {

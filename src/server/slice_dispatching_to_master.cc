@@ -77,3 +77,7 @@ void btree_slice_dispatching_to_master_t::nop_back_on_masters_thread(repli_times
         cond->pulse();
     }
 }
+
+void btree_slice_dispatching_to_master_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+    coro_t::spawn_on_thread(slice_->home_thread, boost::bind(&btree_slice_t::spawn_backfill, slice_, since_when, callback));
+}

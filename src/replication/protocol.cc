@@ -404,6 +404,4 @@ void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_ac
 }
 
 
-
-
 }  // namespace replication

@@ -263,6 +263,10 @@ void run(slave_t *slave) {
             first_connect = false;
             logINF("Connected as slave to: %s:%d\n", slave->replication_config_.hostname, slave->replication_config_.port);
 
+            repli_timestamp fake = { 0 };
+            net_backfill_t bf;
+            bf.timestamp = fake;
+            slave->stream_->send(&bf);
 
             // wait for things to fail
             coro_t::wait();
