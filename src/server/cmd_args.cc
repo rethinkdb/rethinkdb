@@ -89,7 +89,9 @@ void usage_serve() {
                 "                        Defaults to %d\n", COROUTINE_STACK_SIZE); */ 
     help->pagef("\n"
                 "Replication & Failover options:\n"
-                "      --slave-of host:port Run this server as a slave of a master server. As a\n"
+                "      --master-port     Sets the port on which slaves should contact this server.\n"
+                "      --slave-of host:port\n"
+                "                        Run this server as a slave of a master server. As a\n"
                 "                        slave it will be replica of the master and will respond\n"
                 "                        only to gets. When the master goes down it will begin\n"
                 "                        responding to writes.\n"
