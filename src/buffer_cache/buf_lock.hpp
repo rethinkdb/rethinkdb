@@ -11,8 +11,7 @@
 // release() as soon as it's feasible to do so.  The destructor will
 // release the buf_t, so don't worry!
 
-class buf_lock_t
-{
+class buf_lock_t {
 public:
     buf_lock_t() : buf_(NULL) { }
 
