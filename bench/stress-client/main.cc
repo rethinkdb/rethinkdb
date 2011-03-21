@@ -55,34 +55,27 @@ int main(int argc, char *argv[])
         mkdir(BACKUP_FOLDER, 0777);
     }
 
-    // Let's rock 'n roll
-    int res;
-    vector<pthread_t> threads(config.clients);
+    /* Create client objects */
+    protocol_t *protocols[config.clients];
+    sqlite_protocol_t *sqlites[config.clients];
+    client_t *clients[config.clients];
+    for (int i = 0; i < config.clients; i++) {
 
-    client_data_t client_data[config.clients];
-    for(int i = 0; i < config.clients; i++) {
-        client_data[i].load = &config.load;
-        client_data[i].id = i;
-        client_data[i].num_clients = config.clients;
-        client_data[i].min_seed = 0;
-        client_data[i].max_seed = 0;
+        protocols[i] = config.servers[i % config.servers.size()].connect(&config.load);
 
-        // Sampling latencies can be expensive because it makes many calls to random(), so we
-        // disable it if we aren't going to give latencies to the user
-        client_data[i].enable_latency_samples = latencies_fd != NULL ? true : false;
-
-        // Create and connect all protocols first to avoid weird TCP
-        // timeout bugs
-        client_data[i].proto = config.servers[i % config.servers.size()].connect(&config.load);
         if (config.db_file[0]) {
             char buffer[2048];
             sprintf(buffer, "%s/%d_%s", BACKUP_FOLDER, i, config.db_file);
-            client_data[i].sqlite = new sqlite_protocol_t(buffer, &config.load);
+            sqlites[i] = new sqlite_protocol_t(buffer, &config.load);
         } else {
-            client_data[i].sqlite = NULL;
+            sqlites[i] = NULL;
         }
 
-        client_data[i].keep_running = true;
+        clients[i] = new client_t(&config.load, protocols[i], sqlites[i], i, config.clients);
+
+        /* Collecting latency samples is a potentially expensive operation, so we disable it
+        if the user does not ask for them. */
+        if (latencies_fd == NULL) clients[i]->enable_latency_samples = false;
     }
 
     // If input keys are provided, read them in
@@ -109,20 +102,16 @@ int main(int argc, char *argv[])
             res = fread(&min_seed, sizeof(min_seed), 1, in_file);
             res = fread(&max_seed, sizeof(max_seed), 1, in_file);
 
-            client_data[id].min_seed = min_seed;
-            client_data[id].max_seed = max_seed;
+            clients[id]->min_seed = min_seed;
+            clients[id]->max_seed = max_seed;
         }
 
         fclose(in_file);
     }
 
-    // Create the threads
+    // Start everything running
     for(int i = 0; i < config.clients; i++) {
-        int res = pthread_create(&threads[i], NULL, run_client, &client_data[i]);
-        if(res != 0) {
-            fprintf(stderr, "Can't create thread\n");
-            exit(-1);
-        }
+        clients[i]->start();
     }
 
     /* The main loop polls the threads for stats once a second, and issues the order to stop when
@@ -152,14 +141,9 @@ int main(int argc, char *argv[])
         /* Poll all the clients for stats */
         query_stats_t stats_for_this_second;
         for(int i = 0; i < config.clients; i++) {
-            /* We don't want to hold the spinlock for very long, so we copy the client stats into
-            a temporary buffer at first, and then do the (potentially expensive) aggregation
-            operation after we have released the spinlock */
-            client_data[i].spinlock.lock();
-            query_stats_t stat_buffer(client_data[i].stats);
-            client_data[i].stats = query_stats_t();
-            client_data[i].spinlock.unlock();
-            stats_for_this_second.aggregate(&stat_buffer);
+            query_stats_t buffer;
+            clients[i]->poll(&buffer);
+            stats_for_this_second.aggregate(buffer);
         }
 
         /* Report the stats we got from the clients */
@@ -182,7 +166,7 @@ int main(int argc, char *argv[])
         }
 
         /* Update the aggregate total stats, and check if we are done running */
-        total_stats.aggregate(&stats_for_this_second);
+        total_stats.aggregate(stats_for_this_second);
         seconds_of_run += delay_seconds;
         if (config.duration.duration != -1) {
             switch (config.duration.units) {
@@ -202,31 +186,21 @@ int main(int argc, char *argv[])
         }
     }
 
+    // Stop the threads
+    for (int i = 0; i < config.clients; i++) {
+        clients[i]->stop();
+    }
+
+    /* Collect information about the last few operations performed, then print totals. */
+    for (int i = 0; i < config.clients; i++) {
+        query_stats_t buffer;
+        clients[i]->poll(&buffer);
+        total_stats.aggregate(buffer);
+    }
     printf("Total running time: %f seconds\n", ticks_to_secs(get_ticks() - start_time));
     printf("Total operations: %d\n", total_stats.queries);
     printf("Total keys inserted minus keys deleted: %d\n", total_stats.inserts_minus_deletes);
 
-    // Notify the threads to shut down
-    for(int i = 0; i < config.clients; i++) {
-        client_data[i].spinlock.lock();
-        client_data[i].keep_running = false;
-        client_data[i].spinlock.unlock();
-    }
-
-    // Wait for the threads to finish
-    for(int i = 0; i < config.clients; i++) {
-        res = pthread_join(threads[i], NULL);
-        if(res != 0) {
-            fprintf(stderr, "Can't join on the thread\n");
-            exit(-1);
-        }
-    }
-
-    // Disconnect everyone
-    for(int i = 0; i < config.clients; i++) {
-        delete client_data[i].proto;
-    }
-    
     // Dump key vectors if we have an out file
     if(config.out_file[0] != 0) {
         FILE *out_file = fopen(config.out_file, "w");
@@ -235,13 +209,19 @@ int main(int argc, char *argv[])
 
         // Dump the keys
         for(int i = 0; i < config.clients; i++) {
-            client_data_t *cd = &client_data[i];
-            fwrite(&cd->id, sizeof(cd->id), 1, out_file);
-            fwrite(&cd->min_seed, sizeof(cd->min_seed), 1, out_file);
-            fwrite(&cd->max_seed, sizeof(cd->max_seed), 1, out_file);
+            fwrite(&i, sizeof(i), 1, out_file);
+            fwrite(&clients[i]->min_seed, sizeof(clients[i]->min_seed), 1, out_file);
+            fwrite(&clients[i]->max_seed, sizeof(clients[i]->max_seed), 1, out_file);
         }
 
         fclose(out_file);
+    }
+
+    // Clean up
+    for(int i = 0; i < config.clients; i++) {
+        delete clients[i];
+        if (sqlites[i]) delete sqlites[i];
+        delete protocols[i];
     }
 
     if (qps_fd && qps_fd != stdout) fclose(qps_fd);
