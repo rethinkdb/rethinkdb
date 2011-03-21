@@ -241,7 +241,7 @@ void master_t::do_backfill(repli_timestamp since_when) {
 }
 
 void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
-    // TODO: This is bad because (1) the slave can't sort out
+    // TODO: This is bad because the slave can't sort out
     // backfilling messages from real ones.
     //
     // TODO: Make sure that we're sending things such that the slave
