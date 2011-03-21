@@ -241,14 +241,19 @@ void master_t::do_backfill(repli_timestamp since_when) {
 }
 
 void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
-    const const_buffer_group_t *group = atom.value->get_data_as_buffers();
-    debugf("Would have sent atom '%.*s': flags=%u exptime=%u recency=%u cas=%lu\n",
+    // TODO: This is bad because (1) the slave can't sort out
+    // backfilling messages from real ones.
+    //
+    // TODO: Make sure that we're sending things such that the slave
+    // uses the latest cas value if it's not zero, and doesn't simply
+    // discard it or do something stupid like that.
+
+    debugf("We are about to send atom '%.*s': flags=%u exptime=%u recency=%u cas=%lu...\n",
            atom.key.size, atom.key.contents, atom.flags, atom.exptime, atom.recency, atom.cas_or_zero);
-    for (int i = 0, n = group->num_buffers(); i < n; ++i) {
-        const_buffer_group_t::buffer_t buf = group->get_buffer(i);
-        debugf("(Part): %.*s\n", buf.size, buf.data);
-    }
-    debugf("END\n");
+
+    sarc(atom.key, atom.value.release(), atom.flags, atom.exptime, castime_t(atom.cas_or_zero, atom.recency), add_policy_yes, replace_policy_yes, NO_CAS_SUPPLIED);
+
+    debugf("Finished sending atom '%.*s'.\n", atom.key.size, atom.key.contents);
 }
 
 
