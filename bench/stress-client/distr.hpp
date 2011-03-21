@@ -126,7 +126,9 @@ public:
         }
     }
 
-    void parse(char *str) {
+    void parse(const char *const_str) {
+        char str[200];
+        strncpy(str, const_str, sizeof(str));
         if (!strchr(str, '-')) {
             min = max = atoi(str);
             return;

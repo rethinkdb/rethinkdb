@@ -68,7 +68,9 @@ struct server_t {
         }
     }
 
-    void parse(char *str) {
+    void parse(const char *const_str) {
+        char str[500];
+        strncpy(str, const_str, sizeof(str));
         char *_host = NULL;
         if (_host = strchr(str, ',')) {
             *_host = '\0';

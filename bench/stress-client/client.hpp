@@ -26,7 +26,9 @@ struct query_stats_t {
         queries += batch_count;
         inserts_minus_deletes += imd;
         worst_latency = std::max(worst_latency, latency);
-        if (enable_latency_samples) latency_samples.push(latency);
+        if (enable_latency_samples) {
+            for (int i = 0; i < batch_count; i++) latency_samples.push(latency);
+        }
     }
 
     void aggregate(const query_stats_t &other) {

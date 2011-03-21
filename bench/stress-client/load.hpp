@@ -65,7 +65,9 @@ public:
         exit(-1);
     }
 
-    void parse(char *str) {
+    void parse(const char *const_str) {
+        char str[200];
+        strncpy(str, const_str, sizeof(str));
         char *tok = strtok(str, "/");
         int c = 0;
         while(tok != NULL) {
