@@ -186,7 +186,6 @@ void master_t::do_nop_rebound(repli_timestamp t) {
     for (std::vector<btree_slice_dispatching_to_master_t *>::iterator p = dispatchers_.begin(), e = dispatchers_.end();
          p != e;
          ++p) {
-        debugf("thread id is %d (home_thread = %d)\n", get_thread_id(), home_thread);
         coro_t::spawn(boost::bind(&btree_slice_dispatching_to_master_t::nop_back_on_masters_thread, *p, t, &cond, &counter));
     }
 

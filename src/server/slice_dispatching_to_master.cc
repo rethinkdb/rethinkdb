@@ -60,7 +60,6 @@ mutation_result_t btree_slice_dispatching_to_master_t::change(const mutation_t &
 }
 
 void btree_slice_dispatching_to_master_t::nop_back_on_masters_thread(repli_timestamp timestamp, cond_t *cond, int *counter) {
-    debugf("thread id is %d after spawn\n", get_thread_id());
     rassert(get_thread_id() == master_->home_thread);
 
     repli_timestamp t;
