@@ -6,10 +6,7 @@
 struct read_op_t : public op_t {
 
     read_op_t(client_t *c, int freq, protocol_t *p, distr_t batch_factor) :
-            op_t(c, freq, 0), proto(p), batch_factor(batch_factor)
-    {
-    }
-
+            op_t(c, freq, 0), proto(p), batch_factor(batch_factor) { }
     protocol_t *proto;
     distr_t batch_factor;
 
@@ -26,7 +23,7 @@ struct read_op_t : public op_t {
         for (int i = 0; i < nkeys; i++) keys_to_get[i].first = key_space + (client->keys.max * i);
         int l = xrandom(client->_rnd, client->min_seed, client->max_seed - 1);
         for (int i = 0; i < nkeys; i++) {
-            client->keys.toss(&keys_to_get[i], l ^ client->id_salt, client->id, client->num_clients - 1);
+            client->gen_key(&keys_to_get[i], l);
             l++;
             if(l >= client->max_seed) l = client->min_seed;
         }
@@ -44,7 +41,6 @@ struct verify_op_t : public op_t {
 
     verify_op_t(client_t *c, int freq, protocol_t *p) :
         op_t(c, freq, 0), proto(p) { }
-
     protocol_t *proto;
 
     void run() {
@@ -56,14 +52,12 @@ struct verify_op_t : public op_t {
         // we can't do anything without a reference
         if (!client->sqlite) return;
 
-        payload_t key;
-        char key_space[client->keys.max];
-        key.first = key_space;
+        payload_buffer_t key(client->keys.max);
 
         client->sqlite->dump_start();
         ticks_t start_time = get_ticks();
-        while (client->sqlite->dump_next(&key, &client->value_buffer)) {
-            proto->read(&key, 1, &client->value_buffer);
+        while (client->sqlite->dump_next(&key.payload, &client->value_buffer)) {
+            proto->read(&key.payload, 1, &client->value_buffer);
         }
         ticks_t end_time = get_ticks();
         client->sqlite->dump_end();

@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
 #endif
 
     /* Create client objects */
+
     struct client_stuff_t {
 
         protocol_t *protocol;

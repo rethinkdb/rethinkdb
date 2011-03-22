@@ -27,6 +27,17 @@ inline void prepend(payload_t *p, payload_t *other) {
     memcpy(p->first, other->first, other->second);
 }
 
+struct payload_buffer_t {
+    char *buffer;
+    payload_t payload;
+    payload_buffer_t(int size) : buffer(new char[size]) {
+        payload.first = buffer;
+    }
+    ~payload_buffer_t() {
+        delete[] buffer;
+    }
+};
+
 /* Defines a distribution of values, from min to max. */
 struct distr_t {
 public:

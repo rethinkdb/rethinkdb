@@ -33,6 +33,9 @@ CXXFLAGS = -g $(INCLUDE) $(DEFINES) -fPIC # -O3
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
+%.o: %.cc $(HEADERS)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 $(EXEC_NAME): $(OBJ) main.o $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) main.o -lm -lrt $(TLIB) $(LIBS)
 

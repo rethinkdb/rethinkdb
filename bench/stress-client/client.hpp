@@ -35,9 +35,42 @@ struct query_stats_t {
     }
 };
 
-struct op_t;
+/* There is a 1:1:1 correspondence between client_t's, threads, and key-ranges. There has
+to be a 1:1 correspondence between threads and key ranges to avoid race conditions, and a
+client_t is the object that wraps a thread/keyrange.
 
-#define RELIABILITY 100 /* every RELIABILITYth key is put in the sqlite backup */
+There is a 1:many correspondence between client_t's and op_t's. An op_t represents a type
+of operation that can be run against a client.
+
+For example, suppose that we wanted to make three clients perform reads and writes against
+a server, with a 5:2 read:write ratio. We could write this code:
+
+    protocol_t *connections[3];
+    client_t *clients[3];
+    read_op_t *read_ops[3];
+    insert_op_t *write_ops[3];
+
+    for (int i = 0; i < 3; i++) {
+        connections[i] = server.connect();
+        clients[i] = new client_t(i, 3, ...);
+        read_ops[i] = new read_op_t(clients[i], 5, connections[i], ...);
+        insert_ops[i] = new insert_op_t(clients[i], 2, connections[i], ...);
+        clients[i]->start();
+    }
+
+Note that we must create a separate set of op_ts for each client. Also, we must create a
+separate protocol_t for every client. If we later want to see how many reads each of our
+three clients has done, we could do this:
+
+    for (int i = 0; i < 3; i++) {
+        clients[i]->spinlock.lock();   // This is only necessary if the client is running
+        printf("Client %d has done %d reads.\n", i, read_ops[i]->stats.queries);
+        clients[i]->spinlock.unlock();
+    }
+
+*/
+
+struct op_t;
 
 /* Structure that represents a running client */
 struct client_t {
@@ -109,6 +142,10 @@ struct client_t {
     // The ops that we are running against the database
     std::vector<op_t *> ops;
     int total_freq;
+
+    void gen_key(payload_t *pl, int keyn) {
+        keys.toss(pl, keyn ^ id_salt, id, num_clients - 1);
+    }
 
 private:
     pthread_t thread;
