@@ -10,6 +10,8 @@ typedef uint64_t ser_transaction_id_t;
 #define NULL_SER_TRANSACTION_ID (ser_transaction_id_t(0))
 #define FIRST_SER_TRANSACTION_ID (ser_transaction_id_t(1))
 
+// TODO! Introduce a block sequence id!
+
 struct ser_block_id_t {
     typedef uint32_t number_t;
 
@@ -37,6 +39,7 @@ struct ser_block_id_t {
 /* TODO: buf_data_t and block_size_t depend on the serializer implementation details, so they don't
 belong in this file. */
 
+// TODO! Move buf_data_t to log_serializer, then remove the transaction_id and block_id (?) from there and add 128 bit block_sequence_id instead
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
 struct buf_data_t {
     ser_block_id_t block_id;

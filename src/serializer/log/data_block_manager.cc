@@ -56,7 +56,8 @@ void data_block_manager_t::mark_live(off64_t offset) {
 
     /* mark the block as alive */
     rassert(entries.get(extent_id)->g_array[block_id] == 1);
-    entries.get(extent_id)->g_array.set(block_id, 0);
+    entries.get(extent_id)->i_array.set(block_id, 1);
+    entries.get(extent_id)->update_g_array(block_id);
 }
 
 void data_block_manager_t::end_reconstruct() {
@@ -206,6 +207,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb)
     return false;
 }
 
+// TODO! Remove
 bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
@@ -227,41 +229,52 @@ bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, se
     return false;
 }
 
-void data_block_manager_t::mark_garbage(off64_t offset) {
-    unsigned int extent_id = static_config->extent_index(offset);
-    unsigned int block_id = static_config->block_index(offset);
-    
+off64_t data_block_manager_t::write(const void *buf_in, UNUSED bool assign_new_block_sequence_id) {
+    // Either we're ready to write, or we're shutting down and just
+    // finished reading blocks for gc and called do_write.
+    rassert(state == state_ready
+           || (state == state_shutting_down && gc_state.step() == gc_write));
+
+    off64_t offset = gimme_a_new_offset();
+
+    pm_serializer_data_blocks_written++;
+
+    buf_data_t *data = (buf_data_t*)buf_in;
+    data--;
+    // TODO! Implement block sequence assignment
+
+    struct : public cond_t, public iocallback_t {
+        void on_io_complete() { pulse(); }
+    } cb;
+    if (!dbfile->write_async(offset, static_config->block_size().ser_value(), data, &cb)) cb.wait();
+
+    return offset;
+}
+
+void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id) {
     gc_entry *entry = entries.get(extent_id);
-    rassert(entry->g_array[block_id] == 0);
-    entry->g_array.set(block_id, 1);
-    
-    rassert(entry->g_array.size() == static_config->blocks_per_extent());
-    
-    if (entry->state == gc_entry::state_old) {
-        gc_stats.old_garbage_blocks++;
-    }
-    
+
     if (entry->g_array.count() == static_config->blocks_per_extent() && entry->state != gc_entry::state_active) {
         /* Every block in the extent is now garbage. */
         switch (entry->state) {
             case gc_entry::state_reconstructing:
                 unreachable("Marking something as garbage during startup.");
-            
+
             case gc_entry::state_active:
                 unreachable("We shouldn't have gotten here.");
-            
+
             /* Remove from the young extent queue */
             case gc_entry::state_young:
                 young_extent_queue.remove(entry);
                 break;
-            
+
             /* Remove from the priority queue */
             case gc_entry::state_old:
                 gc_pq.remove(entry->our_pq_entry);
                 gc_stats.old_total_blocks -= static_config->blocks_per_extent();
                 gc_stats.old_garbage_blocks -= static_config->blocks_per_extent();
                 break;
-            
+
             /* Notify the GC that the extent got released during GC */
             case gc_entry::state_in_gc:
                 rassert(gc_state.current_entry == entry);
@@ -270,13 +283,71 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
             default:
                 unreachable();
         }
-        
+
         pm_serializer_data_extents_reclaimed++;
-        
+
         entry->destroy();
     } else if (entry->state == gc_entry::state_old) {
         entry->our_pq_entry->update();
     }
+}
+
+void data_block_manager_t::check_and_handle_empty_extent_later(unsigned int extent_id) {
+    potentially_empty_extents.push_back(extent_id);
+}
+
+void data_block_manager_t::check_and_handle_outstanding_empty_extents() {
+    for (size_t i = 0; i < potentially_empty_extents.size(); ++i) {
+        check_and_handle_empty_extent(potentially_empty_extents[i]);
+    }
+
+    potentially_empty_extents.clear();
+}
+
+void data_block_manager_t::mark_garbage(off64_t offset) {
+    unsigned int extent_id = static_config->extent_index(offset);
+    unsigned int block_id = static_config->block_index(offset);
+    
+    gc_entry *entry = entries.get(extent_id);
+    rassert(entry->g_array[block_id] == 0);
+    entry->i_array.set(block_id, 0);
+    entry->update_g_array(block_id);
+    
+    rassert(entry->g_array.size() == static_config->blocks_per_extent());
+
+    // TODO! Is any change required w.r.t. old_garbage_blocks?
+    if (entry->state == gc_entry::state_old) {
+        gc_stats.old_garbage_blocks++;
+    }
+    
+    check_and_handle_empty_extent(extent_id);
+    /* We handle outstanding cleanup work now */
+    check_and_handle_outstanding_empty_extents();
+}
+
+void data_block_manager_t::mark_token_live(off64_t offset) {
+    unsigned int extent_id = static_config->extent_index(offset);
+    unsigned int block_id = static_config->block_index(offset);
+
+    gc_entry *entry = entries.get(extent_id);
+    rassert(entry->t_array[block_id] == 0);
+    entry->t_array.set(block_id, 1);
+    entry->update_g_array(block_id);
+}
+
+void data_block_manager_t::mark_token_garbage(off64_t offset) {
+    unsigned int extent_id = static_config->extent_index(offset);
+    unsigned int block_id = static_config->block_index(offset);
+
+    gc_entry *entry = entries.get(extent_id);
+    rassert(entry->t_array[block_id] == 1);
+    rassert(entry->g_array[block_id] == 0);
+    entry->t_array.set(block_id, 0);
+    entry->update_g_array(block_id);
+
+    // We delay this check as we don't want to interfere with active extent manager transactions
+    // TODO: Maybe change how stuff works to make delaying this unnecessary?
+    check_and_handle_empty_extent_later(extent_id);
 }
 
 void data_block_manager_t::start_gc() {
@@ -355,6 +426,7 @@ void data_block_manager_t::run_gc() {
                     ser_block_id_t id = (reinterpret_cast<buf_data_t *>(block))->block_id;
                     void *data = block + sizeof(buf_data_t);
 
+                    // TODO! Make gc_write_t remap token offsets. Ideally, make all these write_t and gc_write_t objects completely obsolete (but instead implement an internal index_update or something)
                     gc_writes.push_back(gc_write_t(id, data));
                 }
 
@@ -468,7 +540,8 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     off64_t offset = active_extents[next_active_extent]->offset + blocks_in_active_extent[next_active_extent] * static_config->block_size().ser_value();
 
     rassert(active_extents[next_active_extent]->g_array[blocks_in_active_extent[next_active_extent]]);
-    active_extents[next_active_extent]->g_array.set(blocks_in_active_extent[next_active_extent], 0);
+    active_extents[next_active_extent]->i_array.set(blocks_in_active_extent[next_active_extent], 1);
+    active_extents[next_active_extent]->update_g_array(blocks_in_active_extent[next_active_extent]);
     
     blocks_in_active_extent[next_active_extent]++;
     
@@ -524,7 +597,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
     entry->our_pq_entry = gc_pq.push(entry);
     
     gc_stats.old_total_blocks += static_config->blocks_per_extent();
-    gc_stats.old_garbage_blocks += entry->g_array.count();
+    gc_stats.old_garbage_blocks += entry->g_array.count(); // TODO!
 }
 
 

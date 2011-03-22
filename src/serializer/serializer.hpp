@@ -59,9 +59,11 @@ private:
     }
 public:
 
-    // do_read() is DEPRECATED.
-    // Please use block_read(index_read(...), ...) to get the same functionality
-    // in a coroutine aware manner
+    /*
+    do_read() is DEPRECATED.
+    Please use block_read(index_read(...), ...) to get the same functionality
+    in a coroutine aware manner
+    */
     bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
         // Just a wrapper around the new interface. TODO: Get rid of this eventually
         coro_t::spawn(boost::bind(&serializer_t::do_read_wrapper, this, block_id, buf, callback));
@@ -71,8 +73,53 @@ public:
     /* Require coroutine context, block until data is available */
     virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf) = 0;
     virtual boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id) = 0;
-    virtual void index_delete(ser_block_id_t block_id) = 0;
 
+    /* TODO!
+     * The current writes have to be split up into a number of steps.
+     * On delete:
+     *  index_write_delete_t
+     * On recency update:
+     *  index_write_recency_t
+     * On writing a new buffer:
+     *  call block_write()
+     *  index_write_recency_t
+     *  index_write_block_t
+     *
+     * TODO! Consider how we can get extract work again. Problems: block_id in the block header, zero deleted blocks
+     * TODO! Transaction id assignment: Add a block sequence id which is independent from transaction id. Each time block_write is called, an increased value is assigned. Maybe use 128 bits?
+     *
+     * TODO! On load: Initialize block_id in the buf with data from the LBA!
+     */
+
+    /* The serializer uses RTTI to identify which operation is to be performed */
+    struct index_write_op_t {
+        virtual ~index_write_op_t() { }
+        // Data
+        ser_block_id_t block_id;
+    protected:
+        index_write_op_t(const ser_block_id_t &block_id) : block_id(block_id) { }
+    };
+
+    struct index_write_delete_t : public index_write_op_t {
+        index_write_delete_t(const ser_block_id_t &block_id) : index_write_op_t(block_id) { }
+    };
+    struct index_write_recency_t : public index_write_op_t {
+        index_write_recency_t(const ser_block_id_t &block_id, const repli_timestamp &recency) : index_write_op_t(block_id), recency(recency) { }
+        // Data
+        repli_timestamp recency;
+    };
+    struct index_write_block_t : public index_write_op_t {
+        index_write_block_t(const ser_block_id_t &block_id, const boost::shared_ptr<block_token_t> &token) : index_write_op_t(block_id), token(token) { }
+        // Data
+        boost::shared_ptr<block_token_t> token;
+    };
+
+    /* index_write() applies all given index operations in an atomic way */
+    virtual void index_write(const std::vector<index_write_op_t*>& write_ops) = 0;
+    virtual boost::shared_ptr<block_token_t> block_write(void *buf) = 0;
+
+
+    // TODO! Misguiding name. If the above scheme is implemented, rename to get_block_sequence_id
     virtual ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf) = 0;
     
     /* do_write() updates or deletes a group of bufs.
@@ -84,7 +131,9 @@ public:
     call the given callback at a later date.
     
     'writes' can be freed as soon as do_write() returns. */
-    
+
+    // TODO! Clean up this mess (or add a wrapper for now, but probably it's better to just change writeback on possible other places which use this
+
     struct write_txn_callback_t {
         virtual void on_serializer_write_txn() = 0;
         virtual ~write_txn_callback_t() {}

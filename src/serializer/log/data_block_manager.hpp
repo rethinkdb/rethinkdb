@@ -104,7 +104,11 @@ public:
     /* The offset that the data block manager chose will be left in off_out as soon as write()
     returns. The callback will be called when the data is actually on disk and it is safe to reuse
     the buffer. */
+    // TODO! This is DEPRECATED
     bool write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb);
+
+    /* Returns the offset to which the block has been written */
+    off64_t write(const void *buf_in, bool assign_new_block_sequence_id);
 
 public:
     /* exposed gc api */
@@ -119,6 +123,12 @@ public:
     void start_reconstruct();
     void mark_live(off64_t);  // Takes a real off64_t.
     void end_reconstruct();
+
+    /* We must make sure that blocks which have tokens pointing to them don't
+    get garbage collected. This interface allows log_serializer to tell us about
+    tokens */
+    void mark_token_live(off64_t);
+    void mark_token_garbage(off64_t);
 
     /* garbage collect the extents which meet the gc_criterion */
     void start_gc();
@@ -177,6 +187,14 @@ private:
 
     off64_t gimme_a_new_offset();
 
+    /* Checks whether the extent is empty and if it is, notifies the extent manager and cleans up */
+    void check_and_handle_empty_extent(unsigned int extent_id);
+    /* Just pushes the given extent on the potentially_empty_extents queue */
+    void check_and_handle_empty_extent_later(unsigned int extent_id);
+    std::vector<unsigned int> potentially_empty_extents;
+    /* Runs check_and_handle_empty extent() for each extent in potentially_empty_extents */
+    void check_and_handle_outstanding_empty_extents();
+
 private:
     
     struct gc_entry;
@@ -196,6 +214,12 @@ private:
         
         off64_t offset; /* !< the offset that this extent starts at */
         bitset_t g_array; /* !< bit array for whether or not each block is garbage */
+        bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
+        bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
+        // Recalculates g_array[block_id] based on t_array[block_id] and i_array[block_id]
+        void update_g_array(unsigned int block_id) {
+            g_array.set(block_id, t_array[block_id] || i_array[block_id] ? 0 : 1);
+        }
         microtime_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
         
@@ -219,6 +243,8 @@ private:
             : parent(parent),
               offset(parent->extent_manager->gen_extent()),
               g_array(parent->static_config->blocks_per_extent()),
+              t_array(parent->static_config->blocks_per_extent()),
+              i_array(parent->static_config->blocks_per_extent()),
               timestamp(current_microtime())
         {
             rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
@@ -234,6 +260,8 @@ private:
             : parent(parent),
               offset(offset),
               g_array(parent->static_config->blocks_per_extent()),
+              t_array(parent->static_config->blocks_per_extent()),
+              i_array(parent->static_config->blocks_per_extent()),
               timestamp(current_microtime())
         {
             parent->extent_manager->reserve_extent(offset);

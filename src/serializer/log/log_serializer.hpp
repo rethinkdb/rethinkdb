@@ -36,14 +36,13 @@ struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_index_t::metablock_mixin_t lba_index_part;
     data_block_manager_t::metablock_mixin_t data_block_manager_part;
-    ser_transaction_id_t transaction_id;
+    ser_transaction_id_t transaction_id; // TODO! also store the block_sequence_id!
 };
 
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
 // Used internally
 struct ls_block_writer_t;
-struct ls_write_fsm_t;
 struct ls_read_fsm_t;
 struct ls_start_new_fsm_t;
 struct ls_start_existing_fsm_t;
@@ -55,7 +54,6 @@ struct log_serializer_t :
     private lba_index_t::shutdown_callback_t
 {
     friend class ls_block_writer_t;
-    friend class ls_write_fsm_t;
     friend class ls_read_fsm_t;
     friend class ls_start_new_fsm_t;
     friend class ls_start_existing_fsm_t;
@@ -109,8 +107,6 @@ public:
         }
     };
 
-    // TODO! Do the writers
-
     /* Implementation of the serializer_t API */
     void *malloc();
     void *clone(void*); // clones a buf
@@ -120,7 +116,8 @@ public:
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf);
     void index_read(boost::shared_ptr<block_token_t> token, void *buf);
     boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id);
-    void index_delete(ser_block_id_t block_id); // TODO! Should unset offset_is_indexed, update garbage collector if no token exists etc.
+    void index_write(const std::vector<index_write_op_t*>& write_ops);
+    boost::shared_ptr<block_token_t> block_write(void *buf);
     ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf);
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL);
     block_size_t get_block_size();
@@ -131,7 +128,6 @@ public:
 private:
     std::map<ls_block_token_t*, off64_t> token_offsets;
     std::multimap<off64_t, ls_block_token_t*> offset_tokens;
-    std::set<off64_t> offset_is_indexed; // Contains all offset for which block_tokens currently exist and which are also indexed in the LBA or somewhere
     void register_block_token(ls_block_token_t *token, off64_t offset);
     void unregister_block_token(ls_block_token_t *token);
     void remap_block_to_new_offset(off64_t current_offset, off64_t new_offset);
@@ -139,6 +135,16 @@ private:
     std::vector<read_ahead_callback_t*> read_ahead_callbacks;
     bool offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf);
     bool should_perform_read_ahead();
+
+    struct index_write_context_t {
+        index_write_context_t() : next_metablock_write(NULL) { }
+        extent_manager_t::transaction_t *extent_txn;
+        cond_t *next_metablock_write;
+    };
+    /* Starts a new transaction, updates perfmons etc. */
+    void index_write_prepare(index_write_context_t &context);
+    /* Finishes a write transaction */
+    void index_write_finish(index_write_context_t &context);
 
     /* Called by the data block manager when it wants us to rewrite some blocks */
     bool write_gcs(data_block_manager_t::gc_write_t *writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb);
@@ -182,7 +188,7 @@ private:
     /* We want to be able to yield the CPU when preparing large writes, so to
     avoid corruption we have this mutex. It is used to make sure that another
     read or write doesn't come along during the time we are yielding the CPU. */
-    mutex_t main_mutex;
+    mutex_t main_mutex; // TODO! Remove, we don't need this anymore...
 
     typedef log_serializer_metablock_t metablock_t;
     void prepare_metablock(metablock_t *mb_buffer);
@@ -205,11 +211,11 @@ private:
     lba_index_t *lba_index;
     data_block_manager_t *data_block_manager;
     
-    /* The ls_write_fsm_ts organize themselves into a list so that they can be sure to
+    /* The running index writes organize themselves into a list so that they can be sure to
     write their metablocks in the correct order. last_write points to the most recent
-    transaction that started but did not finish; new ls_write_fsm_ts use it to find the
+    transaction that started but did not finish; new index writes use it to find the
     end of the list so they can append themselves to it. */
-    ls_write_fsm_t *last_write;
+    index_write_context_t *last_write;
     
     int active_write_count;
 

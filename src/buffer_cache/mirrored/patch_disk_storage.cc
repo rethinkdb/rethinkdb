@@ -40,10 +40,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &cache, block_id_t start_i
     mc_config_block_t *config_block = reinterpret_cast<mc_config_block_t *>(cache.serializer->malloc());
     {
         on_thread_t switcher(cache.serializer->home_thread);
-        struct : public serializer_t::read_callback_t, public cond_t {
-            void on_serializer_read() { pulse(); }
-        } cb;
-        if (!cache.serializer->do_read(start_id, (void*)config_block, &cb)) cb.wait();
+        cache.serializer->block_read(cache.serializer->index_read(start_id), (void*)config_block);
     }
     guarantee(check_magic<mc_config_block_t>(config_block->magic), "Invalid mirrored cache config block magic");
     number_of_blocks = config_block->cache.n_patch_log_blocks;
