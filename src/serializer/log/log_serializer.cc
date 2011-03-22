@@ -307,73 +307,7 @@ bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, in
 }
 
 perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1));
-
-/*struct ls_read_fsm_t :
-    private iocallback_t,
-    private lock_available_callback_t
-{
-    ticks_t start_time;
-    log_serializer_t *ser;
-    ser_block_id_t block_id;
-    void *buf;
-    
-    ls_read_fsm_t(log_serializer_t *ser, ser_block_id_t block_id, void *buf)
-        : ser(ser), block_id(block_id), buf(buf)
-    {
-        pm_serializer_reads.begin(&start_time);
-        callback = NULL;
-        done = false;
-    }
-    
-    ~ls_read_fsm_t() {
-        pm_serializer_reads.end(&start_time);
-    }
-    
-    serializer_t::read_callback_t *callback;
-    bool done;
-    
-    void run() {
-        ser->main_mutex.lock(this);
-    }
-
-    void on_lock_available() {
-
-        // Should not cause anything else to go immediately
-        ser->main_mutex.unlock();
-        
-        flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
-        rassert(!offset.parts.is_delete);   // Make sure the block actually exists
-
-        if (ser->data_block_manager->read(offset.parts.value, buf, this)) {
-            on_io_complete();
-        }
-    }
-
-    void on_io_complete() {
-        done = true;
-
-        if (callback) {
-            callback->on_serializer_read();
-            delete this;
-        }
-    }
-};
-
-bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
-    rassert(state == state_ready);
-    assert_thread();
-
-    ls_read_fsm_t *fsm = new ls_read_fsm_t(this, block_id, buf);
-    fsm->run();
-    if (fsm->done) {
-        delete fsm;
-        return true;
-    } else {
-        fsm->callback = callback;
-        return false;
-    }
-}
-*/
+// TODO! Update perfmons
 
 void log_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf) {
     ls_block_token_t *ls_token = dynamic_cast<ls_block_token_t*>(token.get());
@@ -411,7 +345,7 @@ boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::index_read(ser_
 
 void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_ops) {
     index_write_context_t context;
-
+    
     index_write_prepare(context);
 
     for (std::vector<index_write_op_t*>::const_iterator write_op_it = write_ops.begin();
@@ -453,6 +387,9 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
             rassert(token_offsets.find(ls_token) != token_offsets.end());
             const off64_t offset = token_offsets[ls_token];
 
+            /* mark the life */
+            data_block_manager->mark_live(offset);
+
             lba_index->set_block_info(block_op.block_id, recency, flagged_off64_t::real(offset));
 
         } else {
@@ -464,6 +401,8 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
 }
 
 void log_serializer_t::index_write_prepare(index_write_context_t &context) {
+    co_lock_mutex(&main_mutex);
+
 #ifndef NDEBUG
     {
         log_serializer_t::metablock_t _debug_mb_buffer;
@@ -521,6 +460,8 @@ void log_serializer_t::index_write_finish(index_write_context_t &context) {
     prepare_metablock(&debug_mb_buffer);
 #endif
 
+    main_mutex.unlock();
+
     struct : public cond_t, public mb_manager_t::metablock_write_callback_t {
         void on_metablock_write() { pulse(); }
     } on_metablock_write;
@@ -557,9 +498,15 @@ void log_serializer_t::index_write_finish(index_write_context_t &context) {
 }
 
 boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::block_write(const void *buf, iocallback_t *cb) {
+    // TODO! We must not block here!
+    co_lock_mutex(&main_mutex);
+
     extent_manager_t::transaction_t *em_trx = extent_manager->begin_transaction();
     const off64_t offset = data_block_manager->write(buf, true, cb);
     extent_manager->end_transaction(em_trx);
+
+    main_mutex.unlock();
+
     return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset));
 }
 

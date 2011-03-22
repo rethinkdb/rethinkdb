@@ -43,19 +43,18 @@ void data_block_manager_t::start_reconstruct() {
 // everything is presumed to be garbage, until we mark it as
 // non-garbage.)
 void data_block_manager_t::mark_live(off64_t offset) {
-    rassert(gc_state.step() == gc_reconstruct);  // This is called at startup.
-
     int extent_id = static_config->extent_index(offset);
     int block_id = static_config->block_index(offset);
 
     if (entries.get(extent_id) == NULL) {
+        rassert(gc_state.step() == gc_reconstruct);  // This is called at startup.
+
         gc_entry *entry = new gc_entry(this, extent_id * extent_manager->extent_size);
         entry->state = gc_entry::state_reconstructing;
         reconstructed_extents.push_back(entry);
     }
 
     /* mark the block as alive */
-    rassert(entries.get(extent_id)->g_array[block_id] == 1);
     entries.get(extent_id)->i_array.set(block_id, 1);
     entries.get(extent_id)->update_g_array(block_id);
 }
@@ -310,7 +309,6 @@ void data_block_manager_t::mark_token_live(off64_t offset) {
     unsigned int block_id = static_config->block_index(offset);
 
     gc_entry *entry = entries.get(extent_id);
-    rassert(entry->t_array[block_id] == 0);
     entry->t_array.set(block_id, 1);
     entry->update_g_array(block_id);
 }
@@ -524,7 +522,7 @@ off64_t data_block_manager_t::gimme_a_new_offset() {
     off64_t offset = active_extents[next_active_extent]->offset + blocks_in_active_extent[next_active_extent] * static_config->block_size().ser_value();
 
     rassert(active_extents[next_active_extent]->g_array[blocks_in_active_extent[next_active_extent]]);
-    active_extents[next_active_extent]->i_array.set(blocks_in_active_extent[next_active_extent], 1);
+    active_extents[next_active_extent]->t_array.set(blocks_in_active_extent[next_active_extent], 1);
     active_extents[next_active_extent]->update_g_array(blocks_in_active_extent[next_active_extent]);
     
     blocks_in_active_extent[next_active_extent]++;
