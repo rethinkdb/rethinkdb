@@ -128,9 +128,8 @@ public:
     void index_read(boost::shared_ptr<block_token_t> token, void *buf);
     boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id);
     void index_write(const std::vector<index_write_op_t*>& write_ops);
-    boost::shared_ptr<block_token_t> block_write(void *buf);
+    boost::shared_ptr<block_token_t> block_write(const void *buf, iocallback_t *cb);
     ser_block_sequence_id_t get_block_sequence_id(ser_block_id_t block_id, const void* buf);
-    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL);
     block_size_t get_block_size();
     ser_block_id_t max_block_id();
     bool block_in_use(ser_block_id_t id);

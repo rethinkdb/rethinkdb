@@ -201,13 +201,14 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb)
     return false;
 }
 
-// TODO! Remove
-bool data_block_manager_t::write(UNUSED const void *buf_in, UNUSED ser_block_id_t block_id, UNUSED ser_transaction_id_t transaction_id, UNUSED off64_t *off_out, UNUSED iocallback_t *cb) {
-    // TODO! Remove!
-    return true;
-}
-
-off64_t data_block_manager_t::write(const void *buf_in, bool assign_new_block_sequence_id) {
+/*
+ Instead of wrapping this into a coroutine, we are still using a callback as we
+ want to be able to spawn a lot of writes in parallel. Having to spawn a coroutine
+ for each of them would involve a major memory overhead for all the stacks.
+ Also this makes stuff easier in other places, as we get the offset as well as a freshly
+ set block_sequence_id immediately.
+ */
+off64_t data_block_manager_t::write(const void *buf_in, bool assign_new_block_sequence_id, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
@@ -223,10 +224,9 @@ off64_t data_block_manager_t::write(const void *buf_in, bool assign_new_block_se
         data->block_sequence_id = ++serializer->latest_block_sequence_id;
     }
 
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    if (!dbfile->write_async(offset, static_config->block_size().ser_value(), data, &cb)) cb.wait();
+    if (dbfile->write_async(offset, static_config->block_size().ser_value(), data, cb)) {
+        cb->on_io_complete();
+    }
 
     return offset;
 }
@@ -581,7 +581,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
     entry->our_pq_entry = gc_pq.push(entry);
     
     gc_stats.old_total_blocks += static_config->blocks_per_extent();
-    gc_stats.old_garbage_blocks += entry->g_array.count(); // TODO!
+    gc_stats.old_garbage_blocks += entry->g_array.count();
 }
 
 

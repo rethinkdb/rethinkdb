@@ -89,14 +89,8 @@ public:
 public:
     bool read(off64_t off_in, void *buf_out, iocallback_t *cb);
 
-    /* The offset that the data block manager chose will be left in off_out as soon as write()
-    returns. The callback will be called when the data is actually on disk and it is safe to reuse
-    the buffer. */
-    // TODO! This is DEPRECATED
-    bool write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb);
-
-    /* Returns the offset to which the block has been written */
-    off64_t write(const void *buf_in, bool assign_new_block_sequence_id);
+    /* Returns the offset to which the block will be written */
+    off64_t write(const void *buf_in, bool assign_new_block_sequence_id, iocallback_t *cb);
 
 public:
     /* exposed gc api */

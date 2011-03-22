@@ -68,7 +68,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &cache, block_id_t start_i
             }
         }
     }
-    coro_t::yield();   // Why?
+    coro_t::yield();   // Yield to allow preload_block become effective
 
     // Load all log blocks into memory
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {

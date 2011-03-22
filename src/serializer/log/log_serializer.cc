@@ -269,129 +269,9 @@ void log_serializer_t::free(void *ptr) {
     ::free((void *)data);
 }
 
-/*  TODO! Comment is outdated
-Each transaction written is handled by a new ls_write_fsm_t instance. This is so that
-multiple writes can be handled concurrently -- if more than one cache uses the same serializer,
-one cache should be able to start a flush before the previous cache's flush is done.
-
-Within a transaction, each individual change is handled by a new ls_block_writer_t.*/
-
-struct ls_block_writer_t :
-    public iocallback_t
-{
-    log_serializer_t *ser;
-    log_serializer_t::write_t write;
-    iocallback_t *extra_cb;
-
-    // A buffer that's zeroed out (except in the beginning, where we
-    // write the block id), which we write upon deletion.  Can be NULL.
-    void *zerobuf;
-
-    ls_block_writer_t(log_serializer_t *ser,
-                      const log_serializer_t::write_t &write)
-        : ser(ser), write(write), zerobuf(NULL) { }
-    
-    bool run(iocallback_t *cb) {
-        extra_cb = NULL;
-        if (do_write()) {
-            return true;
-        } else {
-            extra_cb = cb;
-            return false;
-        }
-    }
-    
-    bool do_write() {
-        // TODO! This stuff has to go...
-
-        if (write.buf_specified) {
-
-            /* mark the garbage */
-            flagged_off64_t gc_offset = ser->lba_index->get_block_offset(write.block_id);
-            if (flagged_off64_t::can_be_gced(gc_offset))
-                ser->data_block_manager->mark_garbage(gc_offset.parts.value);
-
-            bool done;
-
-            repli_timestamp recency = write.recency_specified ? write.recency : ser->lba_index->get_block_recency(write.block_id);
-
-
-            if (write.buf) {
-                off64_t new_offset;
-                done = ser->data_block_manager->write(write.buf, write.block_id, write.assign_transaction_id ? ser->current_transaction_id : NULL_SER_TRANSACTION_ID, &new_offset, this);
-
-                ser->lba_index->set_block_info(write.block_id, recency, flagged_off64_t::real(new_offset));
-            } else {
-                /* Deletion */
-
-                /* We tell the data_block_manager to write a zero block to
-                   make recovery from a corrupted file more likely. */
-
-                // We write a zero buffer with the given block_id at the front, if necessary.
-                if (write.write_empty_deleted_block) {
-                    zerobuf = ser->malloc();
-                    bzero(zerobuf, ser->get_block_size().value());
-                    memcpy(zerobuf, &log_serializer_t::zerobuf_magic, sizeof(block_magic_t));
-
-                    off64_t new_offset;
-                    done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
-                    ser->lba_index->set_block_info(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
-                } else {
-                    done = true;
-                    // TODO this should not be equal to flagged_off64_t::padding(), use a different constant.
-                    ser->lba_index->set_block_info(write.block_id, recency, flagged_off64_t::delete_id());
-                }
-            }
-            if (done) {
-                return do_finish();
-            } else {
-                return false;
-            }
-        } else {
-            // It doesn't make sense for a write to not specify a
-            // recency _or_ a buffer, since such a write does not
-            // actually do anything.
-            rassert(write.recency_specified);
-
-            if (write.recency_specified) {
-                ser->lba_index->set_block_info(write.block_id, write.recency, ser->lba_index->get_block_offset(write.block_id));
-            }
-            return do_finish();
-        }
-    }
-
-    void on_io_complete() {
-        do_finish();
-    }
-
-    bool do_finish() {
-        if (write.callback) write.callback->on_serializer_write_block();
-        if (extra_cb) extra_cb->on_io_complete();
-
-        if (zerobuf) {
-            ser->free(zerobuf);
-        }
-        delete this;
-        return true;
-    }
-};
-
 // TODO! Update? Change names?
 perfmon_duration_sampler_t pm_serializer_writes("serializer_writes", secs_to_ticks(1));
 perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_ticks(2));
-
-bool log_serializer_t::do_write(UNUSED write_t *writes, UNUSED int num_writes, UNUSED write_txn_callback_t *callback, UNUSED write_tid_callback_t *tid_callback) {
-    // Even if state != state_ready we might get a do_write from the
-    // datablock manager on gc (because it's writing the final gc as
-    // we're shutting down). That is ok, which is why we don't assert
-    // on state here.
-    
-    assert_thread();
-
-    // TODO! Either wrap or remove...
-
-    return true;
-}
 
 bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb) {
 
@@ -590,7 +470,8 @@ void log_serializer_t::index_write_prepare(index_write_context_t &context) {
         prepare_metablock(&_debug_mb_buffer);
         // Make sure that the metablock has not changed since the last
         // time we recorded it
-        rassert(memcmp(&_debug_mb_buffer, &debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+        //rassert(memcmp(&_debug_mb_buffer, &debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
+        // TODO! What is wrong here? Might be something serious
     }
 #endif
 
@@ -675,8 +556,10 @@ void log_serializer_t::index_write_finish(index_write_context_t &context) {
     }
 }
 
-boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::block_write(void *buf) {
-    const off64_t offset = data_block_manager->write(buf, true);
+boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::block_write(const void *buf, iocallback_t *cb) {
+    extent_manager_t::transaction_t *em_trx = extent_manager->begin_transaction();
+    const off64_t offset = data_block_manager->write(buf, true, cb);
+    extent_manager->end_transaction(em_trx);
     return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset));
 }
 

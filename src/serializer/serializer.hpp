@@ -8,6 +8,7 @@
 #include<boost/smart_ptr.hpp>
 #include "utils2.hpp"
 #include "utils.hpp"
+#include "concurrency/cond_var.hpp"
 
 /* serializer_t is an abstract interface that describes how each serializer should
 behave. It is implemented by log_serializer_t, semantic_checking_serializer_t, and
@@ -74,21 +75,9 @@ public:
     virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf) = 0;
     virtual boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id) = 0;
 
-    /* TODO!
-     * The current writes have to be split up into a number of steps.
-     * On delete:
-     *  index_write_delete_t
-     * On recency update:
-     *  index_write_recency_t
-     * On writing a new buffer:
-     *  call block_write()
-     *  index_write_recency_t
-     *  index_write_block_t
-     *
-     * TODO! Consider how we can get extract work again. Problems: block_id in the block header, zero deleted blocks
-     * TODO! Transaction id assignment: Add a block sequence id which is independent from transaction id. Each time block_write is called, an increased value is assigned. Maybe use 128 bits?
-     *
-     * TODO! On load: Initialize block_id in the buf with data from the LBA!
+    /* 
+     * TODO! Consider how we can get extract work again. Problem: missing block_id in the block header
+     * TODO! On load: Maybe Initialize block_id in the buf with data from the LBA?
      */
 
     /* The serializer uses RTTI to identify which operation is to be performed */
@@ -116,7 +105,17 @@ public:
 
     /* index_write() applies all given index operations in an atomic way */
     virtual void index_write(const std::vector<index_write_op_t*>& write_ops) = 0;
-    virtual boost::shared_ptr<block_token_t> block_write(void *buf) = 0;
+    /* Non-blocking variant */
+    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, iocallback_t *cb) = 0;
+    /* Blocking variant (use in coroutine context) */
+    virtual boost::shared_ptr<block_token_t> block_write(const void *buf) {
+        // Defaukt implementation: Wrap around non-blocking variant
+        struct : public cond_t, public iocallback_t {
+            void on_io_complete() { pulse(); }
+        } cb;
+        boost::shared_ptr<block_token_t> result = block_write(buf, &cb);
+        return result;
+    }
 
 
     virtual ser_block_sequence_id_t get_block_sequence_id(ser_block_id_t block_id, const void* buf) = 0;
@@ -131,7 +130,7 @@ public:
     
     'writes' can be freed as soon as do_write() returns. */
 
-    // TODO! Clean up this mess (or add a wrapper for now, but probably it's better to just change writeback on possible other places which use this
+    // TODO! Clean up this mess (or add a wrapper for now, but probably it's better to just change writeback and possible other places which use this
 
     struct write_txn_callback_t {
         virtual void on_serializer_write_txn() = 0;
@@ -172,9 +171,81 @@ public:
                 bool buf_specified_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_, bool assign_transaction_id)
             : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), write_empty_deleted_block(write_empty_deleted_block_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
     };
+private:
+    struct io_cond_t : public cond_t, public iocallback_t {
+        void on_io_complete() { pulse(); }
+    };
+    static void do_write_wrapper(serializer_t *serializer, write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback) {
+        std::vector<io_cond_t*> block_write_conds;
+        block_write_conds.reserve(num_writes);
+
+        std::vector<index_write_op_t*> index_write_ops;
+
+        // Step 1: Write buffers to disk and assemble index operations
+        for (size_t i = 0; i < (size_t)num_writes; ++i) {
+            // Buffer writes:
+            if (writes[i].buf_specified) {
+                if (writes[i].buf) {
+                    block_write_conds.push_back(new io_cond_t());
+                    boost::shared_ptr<block_token_t> token = serializer->block_write(writes[i].buf, block_write_conds.back());
+
+                    // ... also generate the corresponding index ops
+                    index_write_ops.push_back(new index_write_block_t(writes[i].block_id, token));
+                    if (writes[i].recency_specified) {
+                        index_write_ops.push_back(new index_write_recency_t(writes[i].block_id, writes[i].recency));
+                    }
+                } else {
+                    // Deletion:
+
+                    // Writing a zero buf wouldn't make any sense, would it?
+                    /*if (writes[i].write_empty_deleted_block) {
+                        ...
+                    }*/
+
+                    // TODO: Do we even need to write the recency?
+                    if (writes[i].recency_specified) {
+                        index_write_ops.push_back(new index_write_recency_t(writes[i].block_id, writes[i].recency));
+                    }
+                    index_write_ops.push_back(new index_write_delete_t(writes[i].block_id));
+                }
+            } else {
+                // Recency update:
+                rassert(writes[i].recency_specified);
+                index_write_ops.push_back(new index_write_recency_t(writes[i].block_id, writes[i].recency));
+            }
+        }
+
+        // Step 2: At the point where all writes have been started, we can call tid_callback
+        if (tid_callback) {
+            tid_callback->on_serializer_write_tid();
+        }
+
+        // Step 3: Wait on all writes to finish
+        for (size_t i = 0; i < block_write_conds.size(); ++i) {
+            block_write_conds[i]->wait();
+            delete block_write_conds[i];
+        }
+
+        // Step 4: Commit the transaction to the serializer
+        serializer->index_write(index_write_ops);
+
+        // Step 5: Cleanup index_write_ops
+        for (size_t i = 0; i < index_write_ops.size(); ++i) {
+            delete index_write_ops[i];
+        }
+
+        // Step 6: Call callback
+        callback->on_serializer_write_txn();
+    }
+public:
     /* tid_callback is called as soon as new transaction ids have been assigned to each written block,
     callback gets called when all data has been written to disk */
-    virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) = 0;
+    // TODO! While we provide a wrapper for now, it should be reasonably simple to get rid of this (including the write_t struct) and use the new interface of block_write / index_write instead
+    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) {
+        // Just a wrapper around the new interface.
+        coro_t::spawn(boost::bind(&serializer_t::do_write_wrapper, this, writes, num_writes, callback, tid_callback));
+        return false;
+    }
     
     /* The size, in bytes, of each serializer block */
     
