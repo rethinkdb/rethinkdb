@@ -333,6 +333,12 @@ void data_block_manager_t::start_gc() {
 }
 
 void data_block_manager_t::on_gc_write_done() {
+    // Remap tokens to new offsets...
+    for (size_t i = 0; i < gc_writes.size(); ++i) {
+        const flagged_off64_t new_offset = serializer->lba_index->get_block_offset(gc_writes[i].block_id);
+        rassert(flagged_off64_t::has_value(new_offset));
+        serializer->remap_block_to_new_offset(gc_writes[i].old_offset, new_offset.parts.value);
+    }
     run_gc();
 }
 
@@ -407,9 +413,8 @@ void data_block_manager_t::run_gc() {
                     //ser_block_id_t id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;
                     void *data = block + sizeof(ls_buf_data_t);
 
-                    // TODO! Make gc_write_t remap token offsets. Ideally, make all these write_t and gc_write_t objects completely obsolete (but instead implement an internal index_update or something)
-                    // TODO! The way it's now, GC just breaks everything
-                    gc_writes.push_back(gc_write_t(id, data));
+                    // TODO! Instead of having all this gc_write stuff around, utilize the new block_write and index_write interface to do the same stuff in a more direct way!
+                    gc_writes.push_back(gc_write_t(id, data, block_offset));
                 }
 
                 rassert(gc_writes.size() == (size_t)num_writes);

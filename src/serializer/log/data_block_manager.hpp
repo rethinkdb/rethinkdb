@@ -47,7 +47,8 @@ public:
     struct gc_write_t {
         ser_block_id_t block_id;
         const void *buf;
-        gc_write_t(ser_block_id_t i, const void *b) : block_id(i), buf(b) { }
+        off64_t old_offset;
+        gc_write_t(ser_block_id_t i, const void *b, off64_t old_offset) : block_id(i), buf(b), old_offset(old_offset) { }
     };
     
     struct gc_writer_t {
