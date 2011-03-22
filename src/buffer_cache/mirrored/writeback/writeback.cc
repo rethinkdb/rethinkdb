@@ -87,6 +87,9 @@ writeback_t::writeback_t(
       force_patch_storage_flush(false),
       cache(cache),
       start_next_sync_immediately(false) {
+
+    rassert(max_dirty_blocks >= 10); // sanity check: you really don't want to have less than this.
+                                     // 10 is rather arbitrary.
 }
 
 writeback_t::~writeback_t() {

@@ -199,6 +199,41 @@ void* run_client(void* data) {
                 break;
             }
 
+            case load_t::range_read_op: {
+                // Find the keys
+                if(client_data->min_seed == client_data->max_seed)
+                    break;
+                int j = xrandom(config->batch_factor.min, config->batch_factor.max);
+                j = std::min(j, client_data->max_seed - client_data->min_seed);
+                int l = xrandom(_rnd, client_data->min_seed, client_data->max_seed - 1);
+                payload_t lkey, rkey;
+                lkey.first = new char[per_key_size];
+                rkey.first = new char[per_key_size];
+                config->keys.toss(&lkey, l ^ id_salt, client_data->id, config->clients - 1);
+                l++;
+                if(l >= client_data->max_seed)
+                    l = client_data->min_seed;
+                config->keys.toss(&rkey, l ^ id_salt, client_data->id, config->clients - 1);
+
+                // Arrange keys in the right order
+                if (strncmp(lkey.first, rkey.first, std::min(lkey.second, rkey.second)) > 0) {
+                    std::swap(lkey, rkey);
+                }
+
+                // Read it from the server
+                ticks_t start_time = get_ticks();
+                proto->range_read(lkey.first, lkey.second, rkey.first, rkey.second, xrandom(config->range_size.min, config->range_size.max));
+                ticks_t end_time = get_ticks();
+
+                delete[] lkey.first;
+                delete[] rkey.first;
+
+                client_data->spinlock.lock();
+                have_lock = true;
+                client_data->stats.push(end_time - start_time, 0, enable_latency_samples, j);
+                break;
+            }
+
             case load_t::append_op: {
                 //TODO, this doesn't check if we'll be making the value too big. Gotta check for that.
                 //Find the key
