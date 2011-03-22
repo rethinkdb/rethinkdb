@@ -148,11 +148,11 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
 
 // Returns true on success, false if patch could not be stored (e.g. because of insufficient free space in log)
 // This function never blocks and must only be called while the flush_lock is held.
-bool patch_disk_storage_t::store_patch(buf_patch_t &patch, const ser_transaction_id_t current_block_transaction_id) {
+bool patch_disk_storage_t::store_patch(buf_patch_t &patch, const ser_block_sequence_id_t current_block_block_sequence_id) {
     rassert(log_block_bufs.size() == number_of_blocks);
     cache.assert_thread();
-    rassert(patch.get_transaction_id() == NULL_SER_TRANSACTION_ID);
-    patch.set_transaction_id(current_block_transaction_id);
+    rassert(patch.get_block_sequence_id() == NULL_SER_TRANSACTION_ID);
+    patch.set_block_sequence_id(current_block_block_sequence_id);
 
     if (number_of_blocks == 0)
         return false;

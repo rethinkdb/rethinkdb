@@ -36,8 +36,19 @@ struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_index_t::metablock_mixin_t lba_index_part;
     data_block_manager_t::metablock_mixin_t data_block_manager_part;
-    ser_transaction_id_t transaction_id; // TODO! also store the block_sequence_id!
+    ser_transaction_id_t transaction_id;
+    ser_block_sequence_id_t block_sequence_id;
 };
+
+//  Data to be serialized to disk with each block.  Changing this changes the disk format!
+struct ls_buf_data_t {
+    /* The following data is not generally available on block_write.
+    TODO: Consider alternatives for making extract work again
+    */
+    //ser_block_id_t block_id;
+    //ser_transaction_id_t transaction_id;
+    ser_block_sequence_id_t block_sequence_id;
+} __attribute__((__packed__));
 
 typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
@@ -118,7 +129,7 @@ public:
     boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id);
     void index_write(const std::vector<index_write_op_t*>& write_ops);
     boost::shared_ptr<block_token_t> block_write(void *buf);
-    ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf);
+    ser_block_sequence_id_t get_block_sequence_id(ser_block_id_t block_id, const void* buf);
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL);
     block_size_t get_block_size();
     ser_block_id_t max_block_id();
@@ -220,7 +231,7 @@ private:
     int active_write_count;
 
     ser_transaction_id_t current_transaction_id;
-
+    ser_block_sequence_id_t latest_block_sequence_id;
 #ifndef NDEBUG
     metablock_t debug_mb_buffer;
 #endif

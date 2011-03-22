@@ -203,7 +203,7 @@ public:
         bool do_write();       // Called on serializer thread
         virtual void on_serializer_write_tid();   // Called on serializer thread
         virtual void on_serializer_write_txn();   // Called on serializer thread
-        void update_transaction_ids();  // Called on cache thread
+        void update_block_sequence_ids();  // Called on cache thread
         bool do_cleanup();   // Called on cache thread
 
         writeback_t* parent; // We need this for flush concurrency control (i.e. flush_lock, active_flushes etc.)

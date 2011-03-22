@@ -24,7 +24,7 @@ struct block_knowledge {
 
     // The serializer transaction id we saw when we've read the block.
     // Or, NULL_SER_TRANSACTION_ID, if we have not read the block.
-    ser_transaction_id_t transaction_id;
+    ser_block_sequence_id_t block_sequence_id;
 
     static const block_knowledge unused;
 };
@@ -227,7 +227,7 @@ public:
             err = no_block;
             return false;
         }
-        if (info.transaction_id != NULL_SER_TRANSACTION_ID) {
+        if (info.block_sequence_id != NULL_SER_BLOCK_SEQUENCE_ID) {
             err = already_accessed;
             return false;
         }
@@ -236,6 +236,9 @@ public:
             return false;
         }
 
+        
+        // TODO! Broken...
+        /*
         ser_transaction_id_t tx_id = realbuf->transaction_id;
         if (tx_id < FIRST_SER_TRANSACTION_ID) {
             err = transaction_id_invalid;
@@ -243,18 +246,19 @@ public:
         } else if (tx_id > knog->metablock->transaction_id) {
             err = transaction_id_too_large;
             return false;
-        }
+        }*/
+        ser_block_sequence_id_t bseq_id = realbuf->block_sequence_id;
 
         if (patches_list) {
             // Replay patches
             for (std::list<buf_patch_t*>::iterator patch = patches_list->begin(); patch != patches_list->end(); ++patch) {
-                ser_transaction_id_t first_matching_id = NULL_SER_TRANSACTION_ID;
-                if ((*patch)->get_transaction_id() >= realbuf->transaction_id) {
-                    if (first_matching_id == NULL_SER_TRANSACTION_ID) {
-                        first_matching_id = (*patch)->get_transaction_id();
+                ser_block_sequence_id_t first_matching_id = NULL_SER_BLOCK_SEQUENCE_ID;
+                if ((*patch)->get_block_sequence_id() >= realbuf->block_sequence_id) {
+                    if (first_matching_id == NULL_SER_BLOCK_SEQUENCE_ID) {
+                        first_matching_id = (*patch)->get_block_sequence_id();
                     }
-                    else if (first_matching_id != (*patch)->get_transaction_id()) {
-                        err = patch_transaction_id_mismatch;
+                    else if (first_matching_id != (*patch)->get_block_sequence_id()) {
+                        err = patch_transaction_id_mismatch; // TODO! It's a block sequence id mismatch!
                         return false;
                     }
                     (*patch)->apply_to_buf((char*)buf);
@@ -266,7 +270,7 @@ public:
         // the main reason we have this btree_block abstraction.)
         {
             write_locker locker(knog);
-            locker.block_info()[ser_block_id.value].transaction_id = tx_id;
+            locker.block_info()[ser_block_id.value].block_sequence_id = bseq_id;
         }
 
         err = none;
@@ -680,7 +684,7 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
             b.init(cx.block_size(), cx.file, info.offset.parts.value, ser_block_id);
             {
                 write_locker locker(cx.knog);
-                locker.block_info()[ser_block_id.value].transaction_id = b.realbuf->transaction_id;
+                locker.block_info()[ser_block_id.value].block_sequence_id = b.realbuf->block_sequence_id;
             }
 
             const void *buf_data = b.buf;
@@ -713,16 +717,16 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
         patch_list->second.sort(dereferencing_compare_t<buf_patch_t>());
 
         // Verify patches list
-        ser_transaction_id_t previous_transaction = 0;
+        ser_block_sequence_id_t previous_block_sequence = 0;
         patch_counter_t previous_patch_counter = 0;
         for(std::list<buf_patch_t*>::const_iterator p = patch_list->second.begin(); p != patch_list->second.end(); ++p) {
-            if (previous_transaction == 0 || (*p)->get_transaction_id() != previous_transaction) {
+            if (previous_block_sequence == 0 || (*p)->get_block_sequence_id() != previous_block_sequence) {
                 previous_patch_counter = 0;
             }
             if (!(previous_patch_counter == 0 || (*p)->get_patch_counter() > previous_patch_counter))
                 ++errs->non_sequential_logs;
             previous_patch_counter = (*p)->get_patch_counter();
-            previous_transaction = (*p)->get_transaction_id();
+            previous_block_sequence = (*p)->get_block_sequence_id();
         }
     }
 }
@@ -1100,7 +1104,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
                 errs->contiguity_failure = first_valueless_block;
             }
 
-            if (!info.offset.parts.is_delete && info.transaction_id == NULL_SER_TRANSACTION_ID) {
+            if (!info.offset.parts.is_delete && info.block_sequence_id == NULL_SER_BLOCK_SEQUENCE_ID) {
                 // Aha!  We have an orphan block!  Crap.
                 rogue_block_description desc;
                 desc.block_id = id;
@@ -1114,7 +1118,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
 
                 errs->orphan_blocks.push_back(desc);
             } else if (info.offset.parts.is_delete) {
-                rassert(info.transaction_id == NULL_SER_TRANSACTION_ID);
+                rassert(info.block_sequence_id == NULL_SER_BLOCK_SEQUENCE_ID);
                 rogue_block_description desc;
                 desc.block_id = id;
 

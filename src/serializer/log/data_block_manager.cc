@@ -133,6 +133,10 @@ struct dbm_read_ahead_fsm_t :
     {
         extent = floor_aligned(off_in, parent->static_config->extent_size());
 
+        // TODO: Now that we have a reverse LBA available, we can check whether
+        // there is a significant amount of useful data in the read-ahead part
+        // before actually perfoming the read ahead. We might consider using that information
+
         // Read up to MAX_READ_AHEAD_BLOCKS blocks
         read_ahead_size = std::min(parent->static_config->extent_size(), MAX_READ_AHEAD_BLOCKS * parent->static_config->block_size().ser_value());
         // We divide the extent into chunks of size read_ahead_size, then select the one which contains off_in
@@ -154,11 +158,12 @@ struct dbm_read_ahead_fsm_t :
 
             // Copy either into buf_out or create a new buffer for read ahead
             if ((off64_t)current_offset == off_in) {
-                buf_data_t *data = (buf_data_t*)buf_out;
+                ls_buf_data_t *data = (ls_buf_data_t*)buf_out;
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
             } else {
-                const ser_block_id_t block_id = ((buf_data_t*)current_buf)->block_id;
+                // TODO! This is broken. Maybe use a reverse LBA?
+                const ser_block_id_t block_id = ((ls_buf_data_t*)current_buf)->block_id;
 
                 // Determine whether the block is live.
                 bool block_is_live = block_id.value != 0;
@@ -172,7 +177,7 @@ struct dbm_read_ahead_fsm_t :
                     continue;
                 }
 
-                buf_data_t *data = (buf_data_t*)parent->serializer->malloc();
+                ls_buf_data_t *data = (ls_buf_data_t*)parent->serializer->malloc();
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
@@ -199,7 +204,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb)
         new dbm_read_ahead_fsm_t(this, off_in, buf_out, cb);
     }
     else {
-        buf_data_t *data = (buf_data_t*)buf_out;
+        ls_buf_data_t *data = (ls_buf_data_t*)buf_out;
         data--;
         dbfile->read_async(off_in, static_config->block_size().ser_value(), data, cb);
     }
@@ -208,28 +213,12 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb)
 }
 
 // TODO! Remove
-bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb) {
-    // Either we're ready to write, or we're shutting down and just
-    // finished reading blocks for gc and called do_write.
-    rassert(state == state_ready
-           || (state == state_shutting_down && gc_state.step() == gc_write));
-
-    off64_t offset = *off_out = gimme_a_new_offset();
-
-    pm_serializer_data_blocks_written++;
-
-    buf_data_t *data = (buf_data_t*)buf_in;
-    data--;
-    if (transaction_id != NULL_SER_TRANSACTION_ID) {
-        *const_cast<buf_data_t *>(data) = make_buf_data_t(block_id, transaction_id);
-    }
-
-    dbfile->write_async(offset, static_config->block_size().ser_value(), data, cb);
-
-    return false;
+bool data_block_manager_t::write(UNUSED const void *buf_in, UNUSED ser_block_id_t block_id, UNUSED ser_transaction_id_t transaction_id, UNUSED off64_t *off_out, UNUSED iocallback_t *cb) {
+    // TODO! Remove!
+    return true;
 }
 
-off64_t data_block_manager_t::write(const void *buf_in, UNUSED bool assign_new_block_sequence_id) {
+off64_t data_block_manager_t::write(const void *buf_in, bool assign_new_block_sequence_id) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
@@ -239,9 +228,11 @@ off64_t data_block_manager_t::write(const void *buf_in, UNUSED bool assign_new_b
 
     pm_serializer_data_blocks_written++;
 
-    buf_data_t *data = (buf_data_t*)buf_in;
+    ls_buf_data_t *data = (ls_buf_data_t*)buf_in;
     data--;
-    // TODO! Implement block sequence assignment
+    if (assign_new_block_sequence_id) {
+        data->block_sequence_id = ++serializer->latest_block_sequence_id;
+    }
 
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
@@ -423,8 +414,9 @@ void data_block_manager_t::run_gc() {
                     if (gc_state.current_entry->g_array[i]) continue;
 
                     byte *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
-                    ser_block_id_t id = (reinterpret_cast<buf_data_t *>(block))->block_id;
-                    void *data = block + sizeof(buf_data_t);
+                    // TODO! This is broken. How can we work around that? Build a reverse LBA? Would be useful for other stuff too (read ahead specifically, also extract maybe)
+                    ser_block_id_t id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;
+                    void *data = block + sizeof(ls_buf_data_t);
 
                     // TODO! Make gc_write_t remap token offsets. Ideally, make all these write_t and gc_write_t objects completely obsolete (but instead implement an internal index_update or something)
                     gc_writes.push_back(gc_write_t(id, data));

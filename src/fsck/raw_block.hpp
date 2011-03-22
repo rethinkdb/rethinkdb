@@ -2,6 +2,7 @@
 #define __FSCK_RAW_BLOCK_HPP__
 
 #include "serializer/log/data_block_manager.hpp"
+#include "serializer/log/log_serializer.hpp"
 
 namespace fsck {
 
@@ -14,7 +15,7 @@ public:
 
     error err;
 
-    // buf is a fake!  buf is sizeof(buf_data_t) greater than realbuf, which is below.
+    // buf is a fake!  buf is sizeof(ls_buf_data_t) greater than realbuf, which is below.
     void *buf;
 
 protected:
@@ -23,7 +24,7 @@ protected:
     void init(int64_t size, nondirect_file_t *file, off64_t offset);
     bool init(block_size_t size, nondirect_file_t *file, off64_t offset, ser_block_id_t ser_block_id);
 
-    buf_data_t *realbuf;
+    ls_buf_data_t *realbuf;
 private:
     DISABLE_COPYING(raw_block);
 };

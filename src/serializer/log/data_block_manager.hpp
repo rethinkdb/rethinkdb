@@ -83,18 +83,6 @@ public:
     restarting an existing database, call start() with the last metablock. */
 
 public:
-
-        
-    static buf_data_t make_buf_data_t(ser_block_id_t block_id, ser_transaction_id_t transaction_id) {
-        buf_data_t ret;
-        ret.block_id = block_id;
-        ret.transaction_id = transaction_id;
-        return ret;
-    }
-
-
-
-public:
     static void prepare_initial_metablock(metablock_mixin_t *mb);
     void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 

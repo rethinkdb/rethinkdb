@@ -408,17 +408,17 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
         }
 
         if (!lbuf->needs_flush && lbuf->dirty && inner_buf->next_patch_counter > 1) {
-            const ser_transaction_id_t transaction_id = inner_buf->transaction_id;
+            const ser_block_sequence_id_t block_sequence_id = inner_buf->block_sequence_id;
             const std::vector<buf_patch_t*>* patches = parent->cache->patch_memory_storage.get_patches(inner_buf->block_id);
             if (patches != NULL) {
 #ifndef NDEBUG
                 patch_counter_t previous_patch_counter = 0;
 #endif
                 for (size_t patch_index = patches->size(); patch_index > 0; --patch_index) {
-                    rassert(transaction_id > NULL_SER_TRANSACTION_ID);
+                    rassert(block_sequence_id > NULL_SER_BLOCK_SEQUENCE_ID);
                     rassert(previous_patch_counter == 0 || (*patches)[patch_index-1]->get_patch_counter() == previous_patch_counter - 1);
                     if (lbuf->last_patch_materialized < (*patches)[patch_index-1]->get_patch_counter()) {
-                        if (!parent->cache->patch_disk_storage->store_patch(*(*patches)[patch_index-1], transaction_id)) {
+                        if (!parent->cache->patch_disk_storage->store_patch(*(*patches)[patch_index-1], block_sequence_id)) {
                             patch_storage_failure = true;
                             //fprintf(stderr, "Patch storage failure\n");
                             lbuf->needs_flush = true;
@@ -554,14 +554,14 @@ bool writeback_t::concurrent_flush_t::do_write() {
 
     if (continue_instantly) {
         // The order matters! We rely on the message hub to call stuff in the same order in which we submit it.
-        do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
+        do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_block_sequence_ids, this));
         do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_cleanup, this));
     }
 
     return true;
 }
 
-void writeback_t::concurrent_flush_t::update_transaction_ids() {
+void writeback_t::concurrent_flush_t::update_block_sequence_ids() {
     rassert(parent->writeback_in_progress);
     parent->cache->assert_thread();
 
@@ -569,7 +569,7 @@ void writeback_t::concurrent_flush_t::update_transaction_ids() {
     size_t inner_buf_ix = 0;
     for (size_t i = 0; i < serializer_writes.size(); ++i) {
         if (serializer_writes[i].buf_specified && serializer_writes[i].buf) {
-            serializer_inner_bufs[inner_buf_ix++]->transaction_id = parent->cache->serializer->get_current_transaction_id(serializer_writes[i].block_id, serializer_writes[i].buf);
+            serializer_inner_bufs[inner_buf_ix++]->block_sequence_id = parent->cache->serializer->get_block_sequence_id(serializer_writes[i].block_id, serializer_writes[i].buf);
         }
     }
 
@@ -585,7 +585,7 @@ void writeback_t::concurrent_flush_t::update_transaction_ids() {
 }
 
 void writeback_t::concurrent_flush_t::on_serializer_write_tid() {
-    do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
+    do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_block_sequence_ids, this));
 }
 
 void writeback_t::concurrent_flush_t::on_serializer_write_txn() {

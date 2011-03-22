@@ -221,8 +221,8 @@ bool translator_serializer_t::do_read(block_id_t block_id, void *buf, serializer
     return inner->do_read(xlate(block_id), buf, callback);
 }
 
-ser_transaction_id_t translator_serializer_t::get_current_transaction_id(block_id_t block_id, const void* buf) {
-    return inner->get_current_transaction_id(xlate(block_id), buf);
+ser_block_sequence_id_t translator_serializer_t::get_block_sequence_id(block_id_t block_id, const void* buf) {
+    return inner->get_block_sequence_id(xlate(block_id), buf);
 }
 
 struct write_fsm_t : public serializer_t::write_txn_callback_t, public serializer_t::write_tid_callback_t {

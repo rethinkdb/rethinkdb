@@ -19,9 +19,9 @@ buf_patch_t* buf_patch_t::load_patch(char* source) {
     patch_counter_t patch_counter = *((patch_counter_t*)(source));
     source += sizeof(patch_counter);
     remaining_length -= sizeof(block_id);
-    ser_transaction_id_t applies_to_transaction_id = *((ser_transaction_id_t*)(source));
-    source += sizeof(applies_to_transaction_id);
-    remaining_length -= sizeof(applies_to_transaction_id);
+    ser_block_sequence_id_t applies_to_block_sequence_id = *((ser_block_sequence_id_t*)(source));
+    source += sizeof(applies_to_block_sequence_id);
+    remaining_length -= sizeof(applies_to_block_sequence_id);
     patch_operation_code_t operation_code = *((patch_operation_code_t*)(source));
     source += sizeof(operation_code);
     remaining_length -= sizeof(operation_code);
@@ -44,7 +44,7 @@ buf_patch_t* buf_patch_t::load_patch(char* source) {
             guarantee(false, "Unsupported patch operation code");
             return NULL;
     }
-    result->set_transaction_id(applies_to_transaction_id);
+    result->set_block_sequence_id(applies_to_block_sequence_id);
     return result;
 }
 
@@ -56,8 +56,8 @@ void buf_patch_t::serialize(char* destination) const {
     destination += sizeof(block_id);
     memcpy(destination, &patch_counter, sizeof(patch_counter));
     destination += sizeof(patch_counter);
-    memcpy(destination, &applies_to_transaction_id, sizeof(applies_to_transaction_id));
-    destination += sizeof(applies_to_transaction_id);
+    memcpy(destination, &applies_to_block_sequence_id, sizeof(applies_to_block_sequence_id));
+    destination += sizeof(applies_to_block_sequence_id);
     memcpy(destination, &operation_code, sizeof(operation_code));
     destination += sizeof(operation_code);
     serialize_data(destination);
@@ -66,13 +66,13 @@ void buf_patch_t::serialize(char* destination) const {
 buf_patch_t::buf_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const patch_operation_code_t operation_code) :
             block_id(block_id),
             patch_counter(patch_counter),
-            applies_to_transaction_id(NULL_SER_TRANSACTION_ID),
+            applies_to_block_sequence_id(NULL_SER_BLOCK_SEQUENCE_ID),
             operation_code(operation_code) {
 }
 
 bool buf_patch_t::operator<(const buf_patch_t& p) const {
     rassert(block_id == p.block_id, "Tried to compare incomparable patches");
-    return applies_to_transaction_id < p.applies_to_transaction_id || (applies_to_transaction_id == p.applies_to_transaction_id && patch_counter < p.patch_counter);
+    return applies_to_block_sequence_id < p.applies_to_block_sequence_id || (applies_to_block_sequence_id == p.applies_to_block_sequence_id && patch_counter < p.patch_counter);
 }
 
 

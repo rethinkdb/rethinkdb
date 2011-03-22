@@ -246,7 +246,7 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
     int sibling_size = block_size.value() - sibling->frontmost_offset;
 
     if (sibling_size < node_size + 2) {
-        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<const buf_data_t *>(reinterpret_cast<const byte *>(node) - sizeof(buf_data_t))->block_id.value);
+        logWRN("leaf::level called with bad node_size %d and sibling_size %d\n", node_size, sibling_size);
         return false;
     }
 

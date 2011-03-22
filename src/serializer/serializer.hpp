@@ -119,8 +119,7 @@ public:
     virtual boost::shared_ptr<block_token_t> block_write(void *buf) = 0;
 
 
-    // TODO! Misguiding name. If the above scheme is implemented, rename to get_block_sequence_id
-    virtual ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf) = 0;
+    virtual ser_block_sequence_id_t get_block_sequence_id(ser_block_id_t block_id, const void* buf) = 0;
     
     /* do_write() updates or deletes a group of bufs.
     

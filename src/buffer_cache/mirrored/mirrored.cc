@@ -23,8 +23,8 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
             if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this))
                 on_serializer_read();
         } else {
-            // Read the transaction id
-            inner_buf->transaction_id = inner_buf->cache->serializer->get_current_transaction_id(inner_buf->block_id, inner_buf->data);
+            // Read the block sequence id
+            inner_buf->block_sequence_id = inner_buf->cache->serializer->get_block_sequence_id(inner_buf->block_id, inner_buf->data);
 
             inner_buf->replay_patches();
 
@@ -53,7 +53,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
-      transaction_id(NULL_SER_TRANSACTION_ID) {
+      block_sequence_id(NULL_SER_BLOCK_SEQUENCE_ID) {
     if (should_load) {
         new load_buf_fsm_t(this);
     }
@@ -80,15 +80,15 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf)
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
-      transaction_id(NULL_SER_TRANSACTION_ID) {
+      block_sequence_id(NULL_SER_BLOCK_SEQUENCE_ID) {
 
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
     refcount--;
 
-    // Read the transaction id
-    transaction_id = cache->serializer->get_current_transaction_id(block_id, data);
+    // Read the block sequence id
+    block_sequence_id = cache->serializer->get_block_sequence_id(block_id, data);
     
     replay_patches();
 }
@@ -107,7 +107,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
-      transaction_id(NULL_SER_TRANSACTION_ID) {
+      block_sequence_id(NULL_SER_BLOCK_SEQUENCE_ID) {
     cache->assert_thread();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
@@ -142,7 +142,7 @@ void mc_inner_buf_t::replay_patches() {
     const std::vector<buf_patch_t*>* patches = cache->patch_memory_storage.get_patches(block_id);
     // Remove obsolete patches from diff storage
     if (patches) {
-        cache->patch_memory_storage.filter_applied_patches(block_id, transaction_id);
+        cache->patch_memory_storage.filter_applied_patches(block_id, block_sequence_id);
         patches = cache->patch_memory_storage.get_patches(block_id);
     }
     // All patches that currently exist must have been materialized out of core...
@@ -248,8 +248,8 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     patch->apply_to_buf((char*)data);
     inner_buf->writeback_buf.set_dirty();
 
-    // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks)
-    if (inner_buf->transaction_id == NULL_SER_TRANSACTION_ID) {
+    // We cannot accept patches for blocks without a valid block sequence id (namely newly allocated blocks, they have to be written to disk at least once)
+    if (inner_buf->block_sequence_id == NULL_SER_BLOCK_SEQUENCE_ID) {
         ensure_flush();
     }
 
@@ -322,7 +322,7 @@ void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
         memcpy(const_cast<void*>(dest), src, n);
     } else {
         size_t offset = (const char*)dest - (const char*)data;
-        // transaction ID will be set later...
+        // block_sequence ID will be set later...
         apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, (const char*)src, n));
     }
 }
@@ -343,7 +343,7 @@ void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     } else {
         size_t dest_offset = (const char*)dest - (const char*)data;
         size_t src_offset = (const char*)src - (const char*)data;
-        // transaction ID will be set later...
+        // block_sequence ID will be set later...
         apply_patch(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
     }
 }

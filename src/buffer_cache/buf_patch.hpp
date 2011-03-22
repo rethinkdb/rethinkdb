@@ -17,7 +17,7 @@ typedef byte patch_operation_code_t;
 /*
  * A buf_patch_t is an in-memory representation for a patch. A patch describes
  * a specific change which can be applied to a buffer.
- * Each buffer patch has a patch counter as well as a transaction id. The transaction id
+ * Each buffer patch has a patch counter as well as a block sequence id. The block sequence id
  * is used to determine to which version of a block the patch applies. Within
  * one version of a block, the patch counter explicitly encodes an ordering, which
  * is used to ensure that patches can be applied in the correct order
@@ -40,20 +40,20 @@ public:
     void serialize(char* destination) const;
 
     inline uint16_t get_serialized_size() const {
-        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_transaction_id) + sizeof(operation_code) + get_data_size();
+        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_block_sequence_id) + sizeof(operation_code) + get_data_size();
     }
     inline static uint16_t get_min_serialized_size() {
-        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_transaction_id) + sizeof(operation_code);
+        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_block_sequence_id) + sizeof(operation_code);
     }
 
     inline patch_counter_t get_patch_counter() const {
         return patch_counter;
     }
-    inline ser_transaction_id_t get_transaction_id() const {
-        return applies_to_transaction_id;
+    inline ser_block_sequence_id_t get_block_sequence_id() const {
+        return applies_to_block_sequence_id;
     }
-    inline void set_transaction_id(const ser_transaction_id_t transaction_id) {
-        applies_to_transaction_id = transaction_id;
+    inline void set_block_sequence_id(const ser_block_sequence_id_t block_sequence_id) {
+        applies_to_block_sequence_id = block_sequence_id;
     }
     inline block_id_t get_block_id() const {
         return block_id;
@@ -84,7 +84,7 @@ protected:
 private:
     block_id_t block_id;
     patch_counter_t patch_counter;
-    ser_transaction_id_t applies_to_transaction_id;
+    ser_block_sequence_id_t applies_to_block_sequence_id;
     patch_operation_code_t operation_code;
 };
 

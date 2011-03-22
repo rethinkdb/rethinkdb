@@ -6,6 +6,11 @@
 
 #include "buffer_cache/types.hpp"
 
+// TODO: This is just kind of a hack. See types.hpp for more information
+uint64_t block_size_t::value() const {
+    return ser_bs_ - sizeof(ls_buf_data_t);
+}
+
 const block_magic_t log_serializer_t::zerobuf_magic = { { 'z', 'e', 'r', 'o' } };
 
 void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, static_config_t *static_config) {
@@ -26,6 +31,7 @@ void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_
     lba_index_t::prepare_initial_metablock(&metablock.lba_index_part);
 
     metablock.transaction_id = FIRST_SER_TRANSACTION_ID;
+    metablock.block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
 
     mb_manager_t::create(&df, static_config->extent_size(), &metablock);
 }
@@ -98,6 +104,7 @@ struct ls_start_existing_fsm_t :
 #endif
 
             ser->current_transaction_id = metablock_buffer.transaction_id;
+            ser->latest_block_sequence_id = metablock_buffer.block_sequence_id;
 
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
                 state = state_reconstruct;
@@ -233,10 +240,10 @@ void *log_serializer_t::malloc() {
     // the malloc object in a different way.
     char *data = (char *)malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE);
 
-    // Initialize the transaction id...
-    ((buf_data_t*)data)->transaction_id = NULL_SER_TRANSACTION_ID;
+    // Initialize the block sequence id...
+    ((ls_buf_data_t*)data)->block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
 
-    data += sizeof(buf_data_t);
+    data += sizeof(ls_buf_data_t);
     return (void *)data;
 }
 
@@ -249,8 +256,8 @@ void *log_serializer_t::clone(void *_data) {
     // the same core as the cache that's using it, so we should expose
     // the malloc object in a different way.
     char *data = (char *)malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE);
-    memcpy(data, (char *)_data - sizeof(buf_data_t), static_config.block_size().ser_value());
-    data += sizeof(buf_data_t);
+    memcpy(data, (char *)_data - sizeof(ls_buf_data_t), static_config.block_size().ser_value());
+    data += sizeof(ls_buf_data_t);
     return (void *)data;
 }
 
@@ -258,7 +265,7 @@ void log_serializer_t::free(void *ptr) {
     rassert(state == state_ready || state == state_shutting_down);
     
     char *data = (char *)ptr;
-    data -= sizeof(buf_data_t);
+    data -= sizeof(ls_buf_data_t);
     ::free((void *)data);
 }
 
@@ -295,6 +302,8 @@ struct ls_block_writer_t :
     }
     
     bool do_write() {
+        // TODO! This stuff has to go...
+
         if (write.buf_specified) {
 
             /* mark the garbage */
@@ -721,13 +730,12 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
 }
 
 // The block_id is there to keep the interface independent from the serializer
-// implementation. This method should work even if there's no transaction id in
+// implementation. This method should work even if there's no block sequence id in
 // buf.
-ser_transaction_id_t log_serializer_t::get_current_transaction_id(UNUSED ser_block_id_t block_id, const void* buf) {
-    buf_data_t *ser_data = (buf_data_t*)buf;
+ser_block_sequence_id_t log_serializer_t::get_block_sequence_id(UNUSED ser_block_id_t block_id, const void* buf) {
+    ls_buf_data_t *ser_data = (ls_buf_data_t*)buf;
     ser_data--;
-    rassert(block_id == ser_data->block_id);
-    return ser_data->transaction_id;
+    return ser_data->block_sequence_id;
 }
 
 block_size_t log_serializer_t::get_block_size() {
@@ -844,6 +852,7 @@ void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
     data_block_manager->prepare_metablock(&mb_buffer->data_block_manager_part);
     lba_index->prepare_metablock(&mb_buffer->lba_index_part);
     mb_buffer->transaction_id = current_transaction_id;
+    mb_buffer->block_sequence_id = latest_block_sequence_id;
 }
 
 

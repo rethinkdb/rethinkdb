@@ -89,7 +89,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
 
     ~mc_inner_buf_t();
 
-    ser_transaction_id_t transaction_id;
+    ser_block_sequence_id_t block_sequence_id;
 
 private:
     // Helper function for inner_buf construction from an existing block
