@@ -25,7 +25,7 @@ public:
     using raw_block::init;
     using raw_block::realbuf;
 
-    const buf_data_t& buf_data() const {
+    const ls_buf_data_t& buf_data() const {
         return *realbuf;
     }
 };
@@ -195,7 +195,7 @@ void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_
     }
 }
 
-void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
+void load_diff_log(UNUSED const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
     // Scan through all log blocks, build a map block_id -> patch list
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
          offset <= max_offset;
@@ -203,14 +203,15 @@ void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, non
         block b;
         b.init(cfg.block_size().ser_value(), &file, offset);
 
-        ser_block_id_t block_id = b.buf_data().block_id;
+        // TODO! Broken
+        /*ser_block_id_t block_id = b.buf_data().block_id;
 
         if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
             const void *data = (char*)b.buf;
             if (memcmp((const char*)data, "LOGB00", 6) == 0) {
                 int num_patches = 0;
                 uint16_t current_offset = 6; //sizeof(LOG_BLOCK_MAGIC);
-                while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(buf_data_t)) {
+                while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(ls_buf_data_t)) {
                     buf_patch_t *patch = buf_patch_t::load_patch((char*)data + current_offset);
                     if (!patch) {
                         break;
@@ -226,7 +227,7 @@ void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, non
                     logDBG("We have a log block with %d patches.\n", num_patches);
                 }
             }
-        }
+        }*/
     }
 
     for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = buf_patches.begin(); patch_list != buf_patches.end(); ++patch_list) {
@@ -235,7 +236,7 @@ void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, non
     }
 }
 
-void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
+void get_all_values(UNUSED dumper_t& dumper, UNUSED const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
     // If the database has been copied to a normal filesystem, it's
     // _way_ faster to rescan the file in order of offset than in
     // order of block id.  However, we still do some random access
@@ -247,6 +248,8 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
         block b;
         b.init(cfg.block_size().ser_value(), &file, offset);
         
+        // TODO! Broken
+        /*
         ser_block_id_t block_id = b.buf_data().block_id;
 
 
@@ -290,6 +293,7 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
                 }
             }
         }
+        */
     }
 }
 

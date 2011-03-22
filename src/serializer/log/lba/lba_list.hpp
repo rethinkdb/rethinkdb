@@ -23,7 +23,7 @@ public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
     
 public:
-    explicit lba_list_t(extent_manager_t *em);
+    explicit lba_list_t(extent_manager_t *em, size_t block_size);
     ~lba_list_t();
 
 public:
@@ -38,10 +38,13 @@ public:
 public:
     flagged_off64_t get_block_offset(ser_block_id_t block);
     repli_timestamp get_block_recency(ser_block_id_t block);
-    
+
+    bool is_offset_indexed(off64_t offset);
+    ser_block_id_t get_block_id(off64_t offset);
+
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
     that block ID. */
-    ser_block_id_t max_block_id();
+    ser_block_id_t end_block_id();
     
 #ifndef NDEBUG
     bool is_extent_referenced(off64_t offset);
@@ -50,7 +53,7 @@ public:
 #endif
     
 public:
-    void set_block_offset(ser_block_id_t block, repli_timestamp recency,
+    void set_block_info(ser_block_id_t block, repli_timestamp recency,
                           flagged_off64_t offset);
 
     struct sync_callback_t {

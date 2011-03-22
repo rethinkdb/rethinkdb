@@ -85,7 +85,7 @@ struct ls_start_existing_fsm_t :
             ser->extent_manager->reserve_extent(0);   /* For static header */
             
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
-            ser->lba_index = new lba_index_t(ser->extent_manager);
+            ser->lba_index = new lba_index_t(ser->extent_manager, ser->static_config.block_size().ser_value());
             ser->data_block_manager = new data_block_manager_t(ser, ser->dynamic_config, ser->extent_manager, ser, &ser->static_config);
             
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
@@ -116,7 +116,7 @@ struct ls_start_existing_fsm_t :
         
         if (state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
-            for (ser_block_id_t::number_t id = 0; id < ser->lba_index->max_block_id().value; id++) {
+            for (ser_block_id_t::number_t id = 0; id < ser->lba_index->end_block_id().value; id++) {
                 flagged_off64_t offset = ser->lba_index->get_block_offset(ser_block_id_t::make(id));
                 if (flagged_off64_t::can_be_gced(offset)) {
                     ser->data_block_manager->mark_live(offset.parts.value);
@@ -320,7 +320,7 @@ struct ls_block_writer_t :
                 off64_t new_offset;
                 done = ser->data_block_manager->write(write.buf, write.block_id, write.assign_transaction_id ? ser->current_transaction_id : NULL_SER_TRANSACTION_ID, &new_offset, this);
 
-                ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::real(new_offset));
+                ser->lba_index->set_block_info(write.block_id, recency, flagged_off64_t::real(new_offset));
             } else {
                 /* Deletion */
 
@@ -335,11 +335,11 @@ struct ls_block_writer_t :
 
                     off64_t new_offset;
                     done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
-                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
+                    ser->lba_index->set_block_info(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
                 } else {
                     done = true;
                     // TODO this should not be equal to flagged_off64_t::padding(), use a different constant.
-                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::delete_id());
+                    ser->lba_index->set_block_info(write.block_id, recency, flagged_off64_t::delete_id());
                 }
             }
             if (done) {
@@ -354,7 +354,7 @@ struct ls_block_writer_t :
             rassert(write.recency_specified);
 
             if (write.recency_specified) {
-                ser->lba_index->set_block_offset(write.block_id, write.recency, ser->lba_index->get_block_offset(write.block_id));
+                ser->lba_index->set_block_info(write.block_id, write.recency, ser->lba_index->get_block_offset(write.block_id));
             }
             return do_finish();
         }
@@ -547,13 +547,13 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
             // deletion
             const index_write_delete_t &delete_op = dynamic_cast<const index_write_delete_t&>(**write_op_it);
 
-            lba_index->set_block_offset(delete_op.block_id, repli_timestamp::invalid, flagged_off64_t::delete_id());
+            lba_index->set_block_info(delete_op.block_id, repli_timestamp::invalid, flagged_off64_t::delete_id());
 
         } else if (dynamic_cast<const index_write_recency_t*>(*write_op_it)) {
             // write recency
             const index_write_recency_t &recency_op = dynamic_cast<const index_write_recency_t&>(**write_op_it);
 
-            lba_index->set_block_offset(recency_op.block_id, recency_op.recency, lba_index->get_block_offset(recency_op.block_id));
+            lba_index->set_block_info(recency_op.block_id, recency_op.recency, lba_index->get_block_offset(recency_op.block_id));
 
         } else if (dynamic_cast<const index_write_block_t*>(*write_op_it)) {
             // update the offset or add a new index for the block
@@ -573,7 +573,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
             rassert(token_offsets.find(ls_token) != token_offsets.end());
             const off64_t offset = token_offsets[ls_token];
 
-            lba_index->set_block_offset(block_op.block_id, recency, flagged_off64_t::real(offset));
+            lba_index->set_block_info(block_op.block_id, recency, flagged_off64_t::real(offset));
 
         } else {
             unreachable("Unhandled write operation supplied to index_write()");
@@ -742,11 +742,12 @@ block_size_t log_serializer_t::get_block_size() {
     return static_config.block_size();
 }
 
+// TODO: Should be called end_block_id I guess (or should subtract 1 frim end_block_id?
 ser_block_id_t log_serializer_t::max_block_id() {
     rassert(state == state_ready);
     assert_thread();
     
-    return lba_index->max_block_id();
+    return lba_index->end_block_id();
 }
 
 bool log_serializer_t::block_in_use(ser_block_id_t id) {

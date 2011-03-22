@@ -67,7 +67,7 @@ union flagged_off64_t {
     }
 
     static inline bool can_be_gced(flagged_off64_t offset) {
-        return has_value(offset);
+        return has_value(offset); // TODO! Huh?
     }
 
     static inline bool is_delete_id(flagged_off64_t offset) {

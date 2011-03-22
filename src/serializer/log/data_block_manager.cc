@@ -162,29 +162,18 @@ struct dbm_read_ahead_fsm_t :
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
             } else {
-                // TODO! This is broken. Maybe use a reverse LBA?
-                const ser_block_id_t block_id = ((ls_buf_data_t*)current_buf)->block_id;
+                if (parent->serializer->lba_index->is_offset_indexed(current_offset)) {
+                    const ser_block_id_t block_id = parent->serializer->lba_index->get_block_id(current_offset);
 
-                // Determine whether the block is live.
-                bool block_is_live = block_id.value != 0;
-                // Do this by checking the LBA
-                const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
-                block_is_live = block_is_live && !flagged_lba_offset.parts.is_delete && flagged_lba_offset.has_value(flagged_lba_offset);
-                // As a last sanity check, verify that the offsets match
-                block_is_live = block_is_live && (off64_t)current_offset == flagged_lba_offset.parts.value;
-
-                if (!block_is_live) {
-                    continue;
-                }
-
-                ls_buf_data_t *data = (ls_buf_data_t*)parent->serializer->malloc();
-                --data;
-                memcpy(data, current_buf, parent->static_config->block_size().ser_value());
-                ++data;
-                if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data)) {
-                    // If there is no interest anymore, delete the buffer again
-                    parent->serializer->free(data);
-                    continue;
+                    ls_buf_data_t *data = (ls_buf_data_t*)parent->serializer->malloc();
+                    --data;
+                    memcpy(data, current_buf, parent->static_config->block_size().ser_value());
+                    ++data;
+                    if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data)) {
+                        // If there is no interest anymore, delete the buffer again
+                        parent->serializer->free(data);
+                        continue;
+                    }
                 }
             }
         }
@@ -414,11 +403,14 @@ void data_block_manager_t::run_gc() {
                     if (gc_state.current_entry->g_array[i]) continue;
 
                     byte *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
-                    // TODO! This is broken. How can we work around that? Build a reverse LBA? Would be useful for other stuff too (read ahead specifically, also extract maybe)
-                    ser_block_id_t id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;
+                    const off64_t block_offset = gc_state.current_entry->offset + (i * static_config->block_size().ser_value());
+                    // TODO! Do we have to check for liveness first?
+                    ser_block_id_t id = serializer->lba_index->get_block_id(block_offset);
+                    //ser_block_id_t id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;
                     void *data = block + sizeof(ls_buf_data_t);
 
                     // TODO! Make gc_write_t remap token offsets. Ideally, make all these write_t and gc_write_t objects completely obsolete (but instead implement an internal index_update or something)
+                    // TODO! The way it's now, GC just breaks everything
                     gc_writes.push_back(gc_write_t(id, data));
                 }
 

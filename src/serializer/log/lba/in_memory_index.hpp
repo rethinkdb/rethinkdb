@@ -9,19 +9,26 @@
 #include "serializer/log/lba/disk_format.hpp"
 
 
-struct in_memory_index_t
+class in_memory_index_t
 {
     // blocks.get_size() == timestamps.get_size().  We use parallel
     // arrays to avoid wasting memory from alignment.
     segmented_vector_t<flagged_off64_t, MAX_BLOCK_ID> blocks;
     segmented_vector_t<repli_timestamp, MAX_BLOCK_ID> timestamps;
 
-public:
-    in_memory_index_t();
+    // TODO: Make the max size a constant in args.hpp or something?
+    // (on the other hand: 128 TB should be enough for everyone...)
+    // TODO! Test actual memory usage of this... (should be 16 MB initially and about 1 GB per TB database size with 4 KB blocks)
+    // We store only offsets which are block-size aligned, i.e. block_ids[5] contains the block_id for the offset 5 * block_size
+    segmented_vector_t<ser_block_id_t, TERABYTE / DEVICE_BLOCK_SIZE * 128ul> block_ids;
 
-    // TODO: Rename this function.  It's one greater than the max
-    // block id.
-    ser_block_id_t max_block_id();
+    size_t block_size;
+
+public:
+    in_memory_index_t(size_t block_size);
+
+    // end_block_id is one greater than the max block id.
+    ser_block_id_t end_block_id();
 
     struct info_t {
         flagged_off64_t offset;
@@ -31,6 +38,9 @@ public:
     info_t get_block_info(ser_block_id_t id);
     void set_block_info(ser_block_id_t id, repli_timestamp recency,
                         flagged_off64_t offset);
+
+    bool is_offset_indexed(off64_t offset);
+    ser_block_id_t get_block_id(off64_t offset);
 
 #ifndef NDEBUG
     void print();
