@@ -2,6 +2,7 @@
 LIBS = -lpthread -ldl 
 # Do not include main.cc or python_interface.cc in SRC
 SRC = utils.cc random.cc protocol.cc sqlite3.c
+HEADERS = $(wildcard *.hpp)
 
 MYSQL ?= 1
 LIBMEMCACHED ?= 1
@@ -32,10 +33,10 @@ CXXFLAGS = -g $(INCLUDE) $(DEFINES) -fPIC # -O3
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
-$(EXEC_NAME): $(OBJ) main.o
+$(EXEC_NAME): $(OBJ) main.o $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) main.o -lm -lrt $(TLIB) $(LIBS)
 
-$(SO_NAME): $(OBJ) python_interface.o
+$(SO_NAME): $(OBJ) python_interface.o $(HEADERS) python_interface.h
 	$(CXX) $(CXXFLAGS) -shared -o $(SO_NAME) $(OBJ) python_interface.o -lm -lrt $(TLIB) $(LIBS)
 
 clean:

@@ -10,50 +10,84 @@
 
 using namespace std;
 
+#define MYSQL_CONN_STR_MESSAGE ("The connection string for MySQL should be of the form " \
+    "\"username/password@host:port+database\" or \"username/password@host:port+database+" \
+    "tablename+keyname+valuename\".")
+
 struct mysql_protocol_t : public protocol_t {
-    mysql_protocol_t(const char *conn_str, load_t *load) : load(load) {
+
+    static bool parse_conn_str(char *conn_str, const char **username, const char **password,
+            const char **host, int *port, const char **database, const char **table,
+            const char **key, const char **value) {
+
+        *username = conn_str;
+        conn_str = strstr(conn_str, "/");
+        if (!conn_str) return false;
+        *conn_str++ = '\0';
+
+        *password = conn_str;
+        conn_str = strstr(conn_str, "@");
+        if (!conn_str) return false;
+        *conn_str++ = '\0';
+
+        *host = conn_str;
+        conn_str = strstr(conn_str, ":");
+        if (!conn_str) return false;
+        *conn_str++ = '\0';
+
+        const char *port_str = conn_str;
+        conn_str = strstr(conn_str, "+");
+        if (!conn_str) return false;
+        *conn_str++ = '\0';
+        *port = atoi(port_str);
+        if (*port == 0) return false;
+
+        *database = conn_str;
+        conn_str = strstr(conn_str, "+");
+
+        if (conn_str) {
+            *conn_str++ = '\0';
+
+            *table = conn_str;
+            conn_str = strstr(conn_str, "+");
+            if (!conn_str) return false;
+            *conn_str++ = '\0';
+
+            *key = conn_str;
+            conn_str = strstr(conn_str, "+");
+            if (!conn_str) return false;
+            *conn_str++ = '\0';
+
+            *value = conn_str;
+            conn_str = strstr(conn_str, "+");
+            if (conn_str) return false;
+
+        } else {
+            *table = "bench";
+            *key = "__key";
+            *value = "__value";
+        }
+
+        return true;
+    }
+
+    mysql_protocol_t(const char *conn_str) {
         mysql_init(&mysql);
 
         // Parse the host string
-        char __host[512];
-        strcpy(__host, conn_str);
-        char *_host = NULL;
-        char *_port;
-        char *_username = NULL;
-        char *_password = NULL;
-        _dbname = strstr((char*)__host, "+");
-        if(_dbname) {
-            *_dbname = '\0';
-            _dbname++;
-        }
-        _port = strstr((char*)__host, ":");
-        if(_port) {
-            *_port = '\0';
-            _port++;
-        }
-        _host = strstr((char*)__host, "@");
-        if(_host) {
-            *_host = '\0';
-            _host++;
-        }
-        _password = strstr((char*)__host, "/");
-        if(_password) {
-            *_password = '\0';
-            _password++;
-        }
-        _username = (char*)__host;
-
-        if(!_dbname || !_host || !_port || !_username || !_password) {
-            fprintf(stderr, "Please use host string of the form username/password@host:port+database.\n");
+        char buffer[512];
+        strncpy(buffer, conn_str, sizeof(buffer));
+        const char *host, *username, *password, *dbname, *tablename, *keycol, *valuecol;
+        int port;
+        if (!parse_conn_str(buffer, &username, &password, &host, &port, &dbname, &tablename,
+                &keycol, &valuecol)) {
+            fprintf(stderr, "%s Your input was \"%s\".\n", MYSQL_CONN_STR_MESSAGE, conn_str);
             exit(-1);
         }
 
-        int port = atoi(_port);
-
         // Connect to the db
         MYSQL *_mysql = mysql_real_connect(
-            &mysql, _host, _username, _password, NULL,
-            port, NULL, 0);
+            &mysql, host, username, password, NULL, port, NULL, 0);
         if(_mysql != &mysql) {
             fprintf(stderr, "Could not connect to mysql: %s\n", mysql_error(&mysql));
             exit(-1);
@@ -65,38 +99,18 @@ struct mysql_protocol_t : public protocol_t {
         char buf[2048];
         int res;
 
-        // Create a database if necessary
-        snprintf(buf, sizeof(buf), "CREATE DATABASE IF NOT EXISTS %s", _dbname);
-        res = mysql_query(&mysql, buf);
-        if(res != 0) {
-            fprintf(stderr, "Could not create the database.\n");
-            exit(-1);
-        }
-
         // Use the database
-        snprintf(buf, sizeof(buf), "USE %s", _dbname);
+        snprintf(buf, sizeof(buf), "USE %s", dbname);
         res = mysql_query(&mysql, buf);
         if(res != 0) {
             fprintf(stderr, "Could not use the database.\n");
             exit(-1);
         }
 
-        // Create a table if necessary
-        snprintf(buf, sizeof(buf),
-                 "CREATE TABLE IF NOT EXISTS bench (__key varchar(%d), __value varchar(%d)," \
-                 "PRIMARY KEY (__key)) "                             \
-                 "ENGINE=InnoDB",
-                 load->keys.max, load->values.max);
-        res = mysql_query(&mysql, buf);
-        if(res != 0) {
-            fprintf(stderr, "Could not create the table.\n");
-            exit(-1);
-        }
-
         // Prepare remove statement
         remove_stmt = mysql_stmt_init(&mysql);
-        const char remove_stmt_str[] = "DELETE FROM bench WHERE __key=?";
-        res = mysql_stmt_prepare(remove_stmt, remove_stmt_str, strlen(remove_stmt_str));
+        snprintf(buf, sizeof(buf), "DELETE FROM %s WHERE %s=?", tablename, keycol);
+        res = mysql_stmt_prepare(remove_stmt, buf, strlen(buf));
         if(res != 0) {
             fprintf(stderr, "Could not prepare remove statement: %s\n",
                     mysql_stmt_error(remove_stmt));
@@ -105,8 +119,8 @@ struct mysql_protocol_t : public protocol_t {
 
         // Prepare update statement
         update_stmt = mysql_stmt_init(&mysql);
-        const char update_stmt_str[] = "UPDATE bench SET __value=? WHERE __key=?";
-        res = mysql_stmt_prepare(update_stmt, update_stmt_str, strlen(update_stmt_str));
+        snprintf(buf, sizeof(buf), "UPDATE %s SET %s=? WHERE %s=?", tablename, valuecol, keycol);
+        res = mysql_stmt_prepare(update_stmt, buf, strlen(buf));
         if(res != 0) {
             fprintf(stderr, "Could not prepare update statement: %s\n",
                     mysql_stmt_error(update_stmt));
@@ -115,8 +129,8 @@ struct mysql_protocol_t : public protocol_t {
 
         // Prepare insert statement
         insert_stmt = mysql_stmt_init(&mysql);
-        const char insert_stmt_str[] = "INSERT INTO bench VALUES (?, ?)";
-        res = mysql_stmt_prepare(insert_stmt, insert_stmt_str, strlen(insert_stmt_str));
+        snprintf(buf, sizeof(buf), "INSERT INTO %s SET %s=?, %s=?", tablename, keycol, valuecol);
+        res = mysql_stmt_prepare(insert_stmt, buf, strlen(buf));
         if(res != 0) {
             fprintf(stderr, "Could not prepare insert statement: %s\n",
                     mysql_stmt_error(insert_stmt));
@@ -124,16 +138,17 @@ struct mysql_protocol_t : public protocol_t {
         }
 
         // Prepare read statements for each batch factor
-        for(int bf = load->batch_factor.min; bf <= load->batch_factor.max; bf++) {
+        for(int bf = 1; bf <= 32; bf++) {
             MYSQL_STMT *read_stmt;
             read_stmt = mysql_stmt_init(&mysql);
 
             // Set up the string for the current read factor
             char read_stmt_str[8192];
-            int count = snprintf(read_stmt_str, sizeof(read_stmt_str), "SELECT __value FROM bench WHERE __key=?");
+            int count = snprintf(read_stmt_str, sizeof(read_stmt_str), "SELECT %s FROM %s WHERE %s=?",
+                valuecol, tablename, keycol);
             for(int i = 0; i < bf - 1; i++) {
                 count += snprintf(read_stmt_str + count, sizeof(read_stmt_str) - count,
-                                  " OR __key=?");
+                                  " OR %s=?", keycol);
             }
 
             // Prepare the actual statement
@@ -156,10 +171,6 @@ struct mysql_protocol_t : public protocol_t {
         mysql_stmt_close(remove_stmt);
 
         mysql_close(&mysql);
-    }
-
-    virtual void connect(server_t *server) {
-        
     }
 
     virtual void remove(const char *key, size_t key_size) {
@@ -251,6 +262,12 @@ struct mysql_protocol_t : public protocol_t {
     }
 
     virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
+
+        if (count - 1 >= read_stmts.size()) {
+            fprintf(stderr, "Batch factor of %d is too high (no prepared statement).\n", count);
+            exit(-1);
+        }
+
         // Bind the data
         MYSQL_BIND bind[count];
         memset(bind, 0, sizeof(bind));
@@ -262,7 +279,7 @@ struct mysql_protocol_t : public protocol_t {
             bind[i].length = &keys[i].second;
         }
 
-        MYSQL_STMT *read_stmt = read_stmts[count - load->batch_factor.min];
+        MYSQL_STMT *read_stmt = read_stmts[count - 1];
         int res = mysql_stmt_bind_param(read_stmt, bind);
         if(res != 0) {
             fprintf(stderr, "Could not bind read statement\n");
@@ -314,13 +331,73 @@ struct mysql_protocol_t : public protocol_t {
     }
 
 private:
-    load_t *load;
     MYSQL mysql;
     MYSQL_STMT *remove_stmt, *update_stmt, *insert_stmt;
     vector<MYSQL_STMT*> read_stmts;
-    char *_dbname;
 };
 
+/* The protocol_ts are not responsible for setting up the database to profile against; they
+assume that the database and any necessary tables are already set up. However, it's convenient
+to be able to just run the stress client against a database without doing any extra setup.
+So there is this function: initialize_mysql_table() constructs a table in the given MySQL
+database. The created table uses InnoDB and two varchar columns, one for keys and one for
+values. */
+
+inline void initialize_mysql_table(const char *conn_str, int key_size, int value_size) {
+
+    char buffer[512];
+    strncpy(buffer, conn_str, sizeof(buffer));
+    const char *host, *username, *password, *dbname, *tablename, *keycol, *valuecol;
+    int port;
+    if (!mysql_protocol_t::parse_conn_str(buffer, &username, &password, &host, &port, &dbname,
+            &tablename, &keycol, &valuecol)) {
+        fprintf(stderr, "%s Your input was \"%s\".\n", MYSQL_CONN_STR_MESSAGE, conn_str);
+        exit(-1);
+    }
+
+    // Connect to the db
+    MYSQL mysql;
+    if(mysql_real_connect(&mysql, host, username, password, NULL, port, NULL, 0) != &mysql) {
+        fprintf(stderr, "Could not connect to mysql: %s\n", mysql_error(&mysql));
+        exit(-1);
+    }
+
+    // Make sure autocommit is on
+    mysql_autocommit(&mysql, 1);
+
+    char buf[2048];
+    int res;
+
+    // Create a database if necessary
+    snprintf(buf, sizeof(buf), "CREATE DATABASE IF NOT EXISTS %s", dbname);
+    res = mysql_query(&mysql, buf);
+    if(res != 0) {
+        fprintf(stderr, "Could not create the database.\n");
+        exit(-1);
+    }
+
+    // Use the database
+    snprintf(buf, sizeof(buf), "USE %s", dbname);
+    res = mysql_query(&mysql, buf);
+    if(res != 0) {
+        fprintf(stderr, "Could not use the database.\n");
+        exit(-1);
+    }
+
+    // Create a table if necessary
+    snprintf(buf, sizeof(buf),
+             "CREATE TABLE IF NOT EXISTS %s (%s varchar(%d), %s varchar(%d)," \
+             "PRIMARY KEY (%s)) "                             \
+             "ENGINE=InnoDB",
+             tablename, keycol, key_size, valuecol, value_size, keycol);
+    res = mysql_query(&mysql, buf);
+    if(res != 0) {
+        fprintf(stderr, "Could not create the table.\n");
+        exit(-1);
+    }
+
+    mysql_close(&mysql);
+}
 
 #endif // __MYSQL_PROTOCOL_HPP__
 

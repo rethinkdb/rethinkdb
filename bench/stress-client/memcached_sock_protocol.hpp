@@ -299,7 +299,7 @@ private:
 };
 
 struct memcached_sock_protocol_t : public protocol_t {
-    memcached_sock_protocol_t(const char *conn_str, load_t *load) : sockfd(-1) {
+    memcached_sock_protocol_t(const char *conn_str) : sockfd(-1) {
         // init the socket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if(sockfd < 0) {
@@ -309,7 +309,6 @@ struct memcached_sock_protocol_t : public protocol_t {
         }
 
         // Should be enough:
-        buffer = new char[load->values.max + 1024];
         thread_buffer.resize(1024 * 8, '\0');
 
         // Parse the host string
@@ -359,12 +358,16 @@ struct memcached_sock_protocol_t : public protocol_t {
                 exit(-1);
             }
         }
-        delete[] buffer;
+    }
+
+    void send_buffer_at_least(int size) {
+        if ((int)send_buffer.size() < size) send_buffer.resize(size);
     }
 
     virtual void remove(const char *key, size_t key_size) {
         // Setup the text command
-        char *buf = buffer;
+        send_buffer_at_least(key_size + 1024);
+        char *buf = send_buffer.data();
         buf += sprintf(buf, "delete ");
         memcpy(buf, key, key_size);
         buf += key_size;
@@ -374,7 +377,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
         retry:
         // Send it on its merry way to the server
-        send_command(buf - buffer);
+        send_command(buf - send_buffer.data());
 
         // Parse the response
         try {
@@ -399,7 +402,8 @@ struct memcached_sock_protocol_t : public protocol_t {
     virtual void insert(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
         // Setup the text command
-        char *buf = buffer;
+        send_buffer_at_least(key_size + value_size + 1024);
+        char *buf = send_buffer.data();
         buf += sprintf(buf, "set ");
         memcpy(buf, key, key_size);
         buf += key_size;
@@ -412,7 +416,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
         retry:
         // Send it on its merry way to the server
-        send_command(buf - buffer);
+        send_command(buf - send_buffer.data());
 
         // Parse the response
         try {
@@ -432,7 +436,8 @@ struct memcached_sock_protocol_t : public protocol_t {
 
     virtual void read(payload_t *keys, int count, payload_t *values = NULL) {
         // Setup the text command
-        char *buf = buffer;
+        send_buffer_at_least(count * keys[0].second + 1024);
+        char *buf = send_buffer.data();
         buf += sprintf(buf, "get ");
         for(int i = 0; i < count; i++) {
             memcpy(buf, keys[i].first, keys[i].second);
@@ -447,7 +452,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
         retry:
         // Send it on its merry way to the server
-        send_command(buf - buffer);
+        send_command(buf - send_buffer.data());
 
         // Parse the response
         try {
@@ -475,7 +480,8 @@ struct memcached_sock_protocol_t : public protocol_t {
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
         // Setup the text command
-        char *buf = buffer;
+        send_buffer_at_least(key_size + value_size + 1024);
+        char *buf = send_buffer.data();
         buf += sprintf(buf, "append ");
         memcpy(buf, key, key_size);
         buf += key_size;
@@ -488,7 +494,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
         retry:
         // Send it on its merry way to the server
-        send_command(buf - buffer);
+        send_command(buf - send_buffer.data());
 
         // Parse the response
         try {
@@ -508,7 +514,8 @@ struct memcached_sock_protocol_t : public protocol_t {
     virtual void prepend(const char *key, size_t key_size,
                           const char *value, size_t value_size) {
         // Setup the text command
-        char *buf = buffer;
+        send_buffer_at_least(key_size + value_size + 1024);
+        char *buf = send_buffer.data();
         buf += sprintf(buf, "prepend ");
         memcpy(buf, key, key_size);
         buf += key_size;
@@ -521,7 +528,7 @@ struct memcached_sock_protocol_t : public protocol_t {
 
         retry:
         // Send it on its merry way to the server
-        send_command(buf - buffer);
+        send_command(buf - send_buffer.data());
 
         // Parse the response
         try {
@@ -542,7 +549,7 @@ private:
     void send_command(int total) {
         int count = 0, res = 0;
         do {
-            res = write(sockfd, buffer + count, total - count);
+            res = write(sockfd, send_buffer.data() + count, total - count);
             if(res < 0) {
                 int err = errno;
                 fprintf(stderr, "Could not send command (%d)\n", errno);
@@ -554,7 +561,7 @@ private:
 
 private:
     int sockfd;
-    char *buffer;
+    std::vector<char> send_buffer;
     std::vector<char> thread_buffer;
 };
 

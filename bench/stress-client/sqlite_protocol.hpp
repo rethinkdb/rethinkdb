@@ -16,7 +16,7 @@
 using namespace std;
 
 struct sqlite_protocol_t : public protocol_t {
-    sqlite_protocol_t(const char *conn_str, load_t *load) : _dbname(NULL), _dbhandle(NULL) {
+    sqlite_protocol_t(const char *conn_str) : _dbname(NULL), _dbhandle(NULL) {
         sqlite3_open(conn_str, &_dbhandle);
 
         sprintf(buffer, "CREATE TABLE IF NOT EXISTS %s (%s VARCHAR PRIMARY KEY, %s VARCHAR);\n", TABLE_NAME, KEY_COL_NAME, VAL_COL_NAME);

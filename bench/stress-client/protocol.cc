@@ -8,20 +8,20 @@
 #endif
 #include "sqlite_protocol.hpp"
 
-protocol_t *server_t::connect(load_t *load) {
+protocol_t *server_t::connect() {
     switch (protocol) {
     case protocol_sockmemcached:
-        return new memcached_sock_protocol_t(host, load);
+        return new memcached_sock_protocol_t(host);
 #ifdef USE_MYSQL
     case protocol_mysql:
-        return new mysql_protocol_t(host, load);
+        return new mysql_protocol_t(host);
 #endif
 #ifdef USE_LIBMEMCACHED
     case protocol_libmemcached:
-        return new memcached_protocol_t(host, load);
+        return new memcached_protocol_t(host);
 #endif
     case protocol_sqlite:
-        return new sqlite_protocol_t(host, load);
+        return new sqlite_protocol_t(host);
     default:
         fprintf(stderr, "Unknown protocol\n");
         exit(-1);

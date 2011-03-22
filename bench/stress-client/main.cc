@@ -5,12 +5,14 @@
 #include <stdio.h>
 #include <vector>
 #include <stdio.h>
-#include "utils.hpp"
-#include "load.hpp"
-#include "distr.hpp"
+#include <sys/stat.h>
 #include "client.hpp"
 #include "args.hpp"
-#include "sys/stat.h"
+#include "read_ops.hpp"
+#include "write_ops.hpp"
+#ifdef USE_MYSQL
+#include "mysql_protocol.hpp"   // For initialize_mysql_table()
+#endif
 
 using namespace std;
 
@@ -55,27 +57,81 @@ int main(int argc, char *argv[])
         mkdir(BACKUP_FOLDER, 0777);
     }
 
+#ifdef USE_MYSQL
+    /* Initialize any MySQL servers */
+    for (int i = 0; i < config.servers.size(); i++) {
+        if (config.servers[i].protocol == protocol_mysql) {
+            initialize_mysql_table(config.servers[i].host,
+                config.load.keys.max, config.load.values.max);
+        }
+    }
+#endif
+
     /* Create client objects */
-    protocol_t *protocols[config.clients];
-    sqlite_protocol_t *sqlites[config.clients];
-    client_t *clients[config.clients];
-    for (int i = 0; i < config.clients; i++) {
+    struct client_stuff_t {
 
-        protocols[i] = config.servers[i % config.servers.size()].connect(&config.load);
+        protocol_t *protocol;
+        sqlite_protocol_t *sqlite;
+        client_t client;
+        read_op_t read_op;
+        delete_op_t delete_op;
+        update_op_t update_op;
+        insert_op_t insert_op;
+        append_prepend_op_t append_op;
+        append_prepend_op_t prepend_op;
+        verify_op_t verify_op;
 
-        if (config.db_file[0]) {
-            char buffer[2048];
-            sprintf(buffer, "%s/%d_%s", BACKUP_FOLDER, i, config.db_file);
-            sqlites[i] = new sqlite_protocol_t(buffer, &config.load);
-        } else {
-            sqlites[i] = NULL;
+        static sqlite_protocol_t *make_sqlite_if_necessary(config_t *config, int i) {
+            if (config->db_file[0]) {
+                char buffer[2048];
+                sprintf(buffer, "%s/%d_%s", BACKUP_FOLDER, i, config->db_file);
+                return new sqlite_protocol_t(buffer);
+            } else {
+                return NULL;
+            }
         }
 
-        clients[i] = new client_t(&config.load, protocols[i], sqlites[i], i, config.clients);
+        client_stuff_t(config_t *config, int i) :
+
+            /* Connect to the server */
+            protocol(config->servers[i % config->servers.size()].connect()),
+            sqlite(make_sqlite_if_necessary(config, i)),
+
+            /* Construct the client object */
+            client(i, config->clients, config->load.keys, config->load.distr, config->load.mu, sqlite),
+
+            /* Set up some operations for the client to perform */
+            read_op(&client,
+                // Scale the read-ratio to take into account the batch factor for reads
+                config->load.op_ratios.reads / ((config->load.batch_factor.min + config->load.batch_factor.max) / 2),
+                protocol, config->load.batch_factor),
+            delete_op(&client, config->load.op_ratios.deletes, protocol),
+            update_op(&client, config->load.op_ratios.updates, protocol, config->load.values),
+            insert_op(&client, config->load.op_ratios.inserts, protocol, config->load.values),
+            append_op(&client, config->load.op_ratios.appends, protocol, true, config->load.values),
+            prepend_op(&client, config->load.op_ratios.prepends, protocol, false, config->load.values),
+            verify_op(&client, config->load.op_ratios.verifies, protocol)
+        {
+        }
+
+        ~client_stuff_t() {
+            if (sqlite) delete sqlite;
+            delete protocol;
+        }
+    };
+
+    client_stuff_t *clients[config.clients];
+
+    for (int i = 0; i < config.clients; i++) {
+        clients[i] = new client_stuff_t(&config, i);
 
         /* Collecting latency samples is a potentially expensive operation, so we disable it
         if the user does not ask for them. */
-        if (latencies_fd == NULL) clients[i]->enable_latency_samples = false;
+        if (latencies_fd == NULL) {
+            for (int j = 0; j < (int)clients[i]->client.ops.size(); j++) {
+                clients[i]->client.ops[j]->enable_latency_samples = false;
+            }
+        }
     }
 
     // If input keys are provided, read them in
@@ -102,8 +158,8 @@ int main(int argc, char *argv[])
             res = fread(&min_seed, sizeof(min_seed), 1, in_file);
             res = fread(&max_seed, sizeof(max_seed), 1, in_file);
 
-            clients[id]->min_seed = min_seed;
-            clients[id]->max_seed = max_seed;
+            clients[id]->client.min_seed = min_seed;
+            clients[id]->client.max_seed = max_seed;
         }
 
         fclose(in_file);
@@ -111,18 +167,16 @@ int main(int argc, char *argv[])
 
     // Start everything running
     for(int i = 0; i < config.clients; i++) {
-        clients[i]->start();
+        clients[i]->client.start();
     }
 
     /* The main loop polls the threads for stats once a second, and issues the order to stop when
     it decides it is time. */
 
-    // Used to sum up total number of queries and total inserts_minus_deletes. Its worst_latency
-    // is valid but not used. Its latency sample pool is not valid.
-    query_stats_t total_stats;
-
     ticks_t start_time = get_ticks();
-    int seconds_of_run = 0;
+
+    query_stats_t total_stats;
+    int total_time = 0, total_inserts_minus_deletes = 0;
 
     // TODO: If an workload contains contains no inserts and there are no keys available for a
     // particular client (and the duration is specified in q/i), it'll just loop forever.
@@ -131,53 +185,76 @@ int main(int argc, char *argv[])
     while(keep_running) {
 
         /* Delay an integer number of seconds, preferably 1. */
-        int delay_seconds = 1;
+        int round_time = 1;
         ticks_t now = get_ticks();
-        while (now > start_time + (seconds_of_run + delay_seconds) * secs_to_ticks(1)) {
-            delay_seconds++;
+        while (now > start_time + (total_time + round_time) * secs_to_ticks(1)) {
+            round_time++;
         }
-        sleep_ticks(start_time + (seconds_of_run + delay_seconds) * secs_to_ticks(1) - now);
+        sleep_ticks(start_time + (total_time + round_time) * secs_to_ticks(1) - now);
 
-        /* Poll all the clients for stats */
-        query_stats_t stats_for_this_second;
+        /* Poll all the clients for stats. We mix the results from all the clients together;
+        if you want to get stats for individual clients separately, use the Python
+        interface. */
+        query_stats_t round_stats;
+        int round_inserts_minus_deletes = 0;
         for(int i = 0; i < config.clients; i++) {
-            query_stats_t buffer;
-            clients[i]->poll(&buffer);
-            stats_for_this_second.aggregate(buffer);
+            client_stuff_t *c = clients[i];
+            c->client.spinlock.lock();
+
+            /* We pool all the stats from different operations together into one pool for
+            reporting. If you want to get stats for individual operations separately, use
+            the Python interface. */
+            for (int j = 0; j < (int)c->client.ops.size(); j++) {
+                round_stats.aggregate(c->client.ops[j]->stats);
+            }
+
+            /* Count total number of keys inserted and deleted (we will use this if our
+            duration is specified in inserts) */
+            round_inserts_minus_deletes += c->insert_op.stats.queries - c->delete_op.stats.queries;
+
+            /* Reset the stats, so that every time we poll we only get the stats from
+            since we last polled. */
+            for (int j = 0; j < (int)c->client.ops.size(); j++) {
+                c->client.ops[j]->stats = query_stats_t();
+            }
+
+            c->client.spinlock.unlock();
         }
 
         /* Report the stats we got from the clients */
         if (qps_fd) {
-            fprintf(qps_fd, "%d\t\t%d\n", seconds_of_run, stats_for_this_second.queries / delay_seconds);
+            fprintf(qps_fd, "%d\t\t%d\n", total_time, round_stats.queries / round_time);
             fflush(qps_fd);
         }
         if (latencies_fd) {
-            for (int i = 0; i < stats_for_this_second.latency_samples.size(); i++) {
+            for (int i = 0; i < round_stats.latency_samples.size(); i++) {
                 fprintf(latencies_fd, "%d\t\t%.2f\n",
-                    seconds_of_run,
-                    ticks_to_us(stats_for_this_second.latency_samples.samples[i]));
+                    total_time,
+                    ticks_to_us(round_stats.latency_samples.samples[i]));
             }
             fflush(latencies_fd);
         }
         if (worst_latencies_fd) {
             fprintf(worst_latencies_fd, "worst-latency\t%d\t%.2f\n",
-                seconds_of_run, ticks_to_us(stats_for_this_second.worst_latency));
+                total_time, ticks_to_us(round_stats.worst_latency));
             fflush(worst_latencies_fd);
         }
 
         /* Update the aggregate total stats, and check if we are done running */
-        total_stats.aggregate(stats_for_this_second);
-        seconds_of_run += delay_seconds;
+        total_stats.aggregate(round_stats);
+        total_inserts_minus_deletes += round_inserts_minus_deletes;
+        total_time += round_time;
+
         if (config.duration.duration != -1) {
             switch (config.duration.units) {
             case duration_t::queries_t:
                 keep_running = total_stats.queries < config.duration.duration;
                 break;
             case duration_t::seconds_t:
-                keep_running = seconds_of_run < config.duration.duration;
+                keep_running = total_time < config.duration.duration;
                 break;
             case duration_t::inserts_t:
-                keep_running = total_stats.inserts_minus_deletes < config.duration.duration;
+                keep_running = total_inserts_minus_deletes < config.duration.duration;
                 break;
             default:
                 fprintf(stderr, "Unknown duration unit\n");
@@ -188,18 +265,21 @@ int main(int argc, char *argv[])
 
     // Stop the threads
     for (int i = 0; i < config.clients; i++) {
-        clients[i]->stop();
+        clients[i]->client.stop();
     }
 
     /* Collect information about the last few operations performed, then print totals. */
     for (int i = 0; i < config.clients; i++) {
-        query_stats_t buffer;
-        clients[i]->poll(&buffer);
-        total_stats.aggregate(buffer);
+        client_stuff_t *c = clients[i];
+        for (int j = 0; j < (int)c->client.ops.size(); j++) {
+            total_stats.aggregate(c->client.ops[j]->stats);
+        }
+        total_inserts_minus_deletes += c->insert_op.stats.queries - c->delete_op.stats.queries;
     }
+
     printf("Total running time: %f seconds\n", ticks_to_secs(get_ticks() - start_time));
     printf("Total operations: %d\n", total_stats.queries);
-    printf("Total keys inserted minus keys deleted: %d\n", total_stats.inserts_minus_deletes);
+    printf("Total keys inserted minus keys deleted: %d\n", total_inserts_minus_deletes);
 
     // Dump key vectors if we have an out file
     if(config.out_file[0] != 0) {
@@ -210,8 +290,8 @@ int main(int argc, char *argv[])
         // Dump the keys
         for(int i = 0; i < config.clients; i++) {
             fwrite(&i, sizeof(i), 1, out_file);
-            fwrite(&clients[i]->min_seed, sizeof(clients[i]->min_seed), 1, out_file);
-            fwrite(&clients[i]->max_seed, sizeof(clients[i]->max_seed), 1, out_file);
+            fwrite(&clients[i]->client.min_seed, sizeof(clients[i]->client.min_seed), 1, out_file);
+            fwrite(&clients[i]->client.max_seed, sizeof(clients[i]->client.max_seed), 1, out_file);
         }
 
         fclose(out_file);
@@ -220,8 +300,6 @@ int main(int argc, char *argv[])
     // Clean up
     for(int i = 0; i < config.clients; i++) {
         delete clients[i];
-        if (sqlites[i]) delete sqlites[i];
-        delete protocols[i];
     }
 
     if (qps_fd && qps_fd != stdout) fclose(qps_fd);

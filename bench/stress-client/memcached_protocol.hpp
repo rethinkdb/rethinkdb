@@ -7,7 +7,7 @@
 #include "protocol.hpp"
 
 struct memcached_protocol_t : public protocol_t {
-    memcached_protocol_t(const char *conn_str, load_t *load) {
+    memcached_protocol_t(const char *conn_str) {
 
         memcached_create(&memcached);
 

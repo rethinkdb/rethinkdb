@@ -4,8 +4,7 @@
 
 #include <exception>
 #include <string>
-
-#include "load.hpp"
+#include "distr.hpp"
 
 class protocol_error_t : public std::exception, public std::string {
 public:
@@ -105,7 +104,7 @@ struct server_t {
         printf(",%s", host);
     }
 
-    protocol_t *connect(load_t *load);
+    protocol_t *connect();
 
     protocol_enum_t protocol;
     char host[MAX_HOST];
