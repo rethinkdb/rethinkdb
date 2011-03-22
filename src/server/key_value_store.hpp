@@ -62,6 +62,10 @@ public:
 
     mutation_result_t change(const mutation_t &m, castime_t ct);
 
+    // No particular interface.
+
+    void time_barrier(repli_timestamp lower_bound_on_future_timestamps);
+
 public:
     int n_files;
     btree_config_t btree_static_config;
@@ -137,6 +141,9 @@ private:
     };
 
     hash_control_t hash_control;
+
+private:
+    void do_time_barrier_on_slice(repli_timestamp timestamp, int i);
 };
 
 #endif /* __BTREE_KEY_VALUE_STORE_HPP__ */

@@ -282,3 +282,11 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m) {
 mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t ct) {
     return slice_for_key_set(m.get_key())->change(m, ct);
 }
+
+void btree_key_value_store_t::do_time_barrier_on_slice(repli_timestamp timestamp, int i) {
+    btrees[i]->time_barrier(timestamp);
+}
+
+void btree_key_value_store_t::time_barrier(repli_timestamp lower_bound_on_future_timestamps) {
+    pmap(btree_static_config.n_slices, boost::bind(&btree_key_value_store_t::do_time_barrier_on_slice, this, lower_bound_on_future_timestamps, _1));
+}

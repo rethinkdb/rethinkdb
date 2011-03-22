@@ -94,3 +94,9 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) 
 void btree_slice_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
     spawn_btree_backfill(this, since_when, callback);
 }
+
+void btree_slice_t::time_barrier(repli_timestamp lower_bound_on_future_timestamps) {
+    transactor_t transactor(&cache(), rwi_write, lower_bound_on_future_timestamps);
+    buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
+    superblock->touch_recency(lower_bound_on_future_timestamps);
+}

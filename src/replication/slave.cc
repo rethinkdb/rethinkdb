@@ -185,6 +185,7 @@ void slave_t::send(buffed_data_t<net_nop_t>& message) {
     ackreply.timestamp = message->timestamp;
     stream_->send(ackreply);
     debugf("sent ack reply\n");
+    internal_store_->time_barrier(message->timestamp);
 }
 void slave_t::send(UNUSED buffed_data_t<net_ack_t>& message) {
     rassert("ack message received.. as slave?\n");

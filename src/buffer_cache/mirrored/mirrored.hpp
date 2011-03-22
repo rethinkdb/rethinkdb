@@ -241,7 +241,6 @@ private:
     DISABLE_COPYING(mc_buf_t);
 };
 
-class mc_transaction_t;
 /* Transaction class. */
 class mc_transaction_t :
     public intrusive_list_node_t<mc_transaction_t>,
