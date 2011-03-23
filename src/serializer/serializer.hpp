@@ -130,8 +130,6 @@ public:
     
     'writes' can be freed as soon as do_write() returns. */
 
-    // TODO! Clean up this mess (or add a wrapper for now, but probably it's better to just change writeback and possible other places which use this
-
     struct write_txn_callback_t {
         virtual void on_serializer_write_txn() = 0;
         virtual ~write_txn_callback_t() {}
@@ -183,6 +181,7 @@ private:
         write_block_callback_t *callback;
     };
     static void do_write_wrapper(serializer_t *serializer, write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback) {
+        fprintf(stderr, "Starting write\n");
         std::vector<block_write_cond_t*> block_write_conds;
         block_write_conds.reserve(num_writes);
 
@@ -241,13 +240,18 @@ private:
             delete index_write_ops[i];
         }
 
+        fprintf(stderr, "Finished write\n");
+
         // Step 6: Call callback
         callback->on_serializer_write_txn();
     }
 public:
     /* tid_callback is called as soon as new transaction ids have been assigned to each written block,
     callback gets called when all data has been written to disk */
-    // TODO! While we provide a wrapper for now, it should be reasonably simple to get rid of this (including the write_t struct) and use the new interface of block_write / index_write instead
+    /*
+    do_write() is DEPRECATED.
+    Please use block_write and index_write instead
+    */
     bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) {
         // Just a wrapper around the new interface.
         coro_t::spawn(boost::bind(&serializer_t::do_write_wrapper, this, writes, num_writes, callback, tid_callback));

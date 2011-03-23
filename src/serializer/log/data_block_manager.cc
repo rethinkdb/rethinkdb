@@ -413,6 +413,7 @@ void data_block_manager_t::run_gc() {
                     void *data = block + sizeof(ls_buf_data_t);
 
                     // TODO! Instead of having all this gc_write stuff around, utilize the new block_write and index_write interface to do the same stuff in a more direct way!
+                    // TODO! This is broken, as assign_transaction_id is not honored in the do_write wrapper.
                     gc_writes.push_back(gc_write_t(id, data, block_offset));
                 }
 
