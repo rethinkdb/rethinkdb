@@ -167,6 +167,7 @@ struct op_t {
         c->ops.push_back(this);
         c->total_freq += freq;
         c->max_value_size = std::max(c->max_value_size, max_value_size);
+        enable_latency_samples = true;
     }
     virtual ~op_t() {
     }

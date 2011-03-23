@@ -81,23 +81,21 @@ public:
         : deletes(1), updates(4),
           inserts(8), reads(64),
           appends(0), prepends(0),
-          verifies(0)
+          verifies(0), range_reads(0)
         {}
 
-    op_ratios_t(int d, int u, int i, int r, int a, int p, int v)
+    op_ratios_t(int d, int u, int i, int r, int a, int p, int v, int rr)
         : deletes(d), updates(u),
           inserts(i), reads(r),
           appends(a), prepends(p),
-          verifies(v)
+          verifies(v), range_reads(rr)
         {}
 
-    enum op_t {
-        delete_op, update_op, insert_op, read_op, append_op, prepend_op, verify_op,
+    enum load_op_t {
+        delete_op, update_op, insert_op, read_op, range_read_op, append_op, prepend_op, verify_op,
     };
 
-    void parse(const char *const_str) {
-        char str[200];
-        strncpy(str, const_str, sizeof(str));
+    void parse(char *str) {
         char *tok = strtok(str, "/");
         int c = 0;
         while(tok != NULL) {
@@ -123,8 +121,11 @@ public:
             case 6:
                 verifies = atoi(tok);
                 break;
+            case 7:
+                range_reads = atoi(tok);
+                break;
             default:
-                fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V)\n");
+                fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V/RR)\n");
                 exit(-1);
                 break;
             }
@@ -132,13 +133,13 @@ public:
             c++;
         }
         if(c < 4) {
-            fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V)\n");
+            fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V/RR)\n");
             exit(-1);
         }
     }
 
     void print() {
-        printf("%d/%d/%d/%d/%d/%d/%d", deletes, updates, inserts, reads,appends, prepends, verifies);
+        printf("%d/%d/%d/%d/%d/%d/%d/%d", deletes, updates, inserts, reads,appends, prepends, verifies, range_reads);
     }
 
 public:
@@ -146,39 +147,10 @@ public:
     int updates;
     int inserts;
     int reads;
+    int range_reads;
     int appends;
     int prepends;
     int verifies;
-};
-
-/* Describes a full workload: key sizes, batch factors, etc. in addition to op ratios */
-struct load_t {
-    load_t() : op_ratios(op_ratios_t()), keys(distr_t(8, 16)), values(distr_t(8, 128)),
-        batch_factor(distr_t(1, 16)), distr(rnd_uniform_t), mu(1) { }
-    op_ratios_t op_ratios;
-    distr_t keys;
-    distr_t values;
-    distr_t batch_factor;
-    rnd_distr_t distr;
-    int mu;
-
-    void print() {
-        printf("Load..............");
-        op_ratios.print();
-        printf("\nKeys..............");
-        keys.print();
-        printf("\nValues............");
-        values.print();
-        printf("\nBatch factor......");
-        batch_factor.print();
-        printf("\nDistribution......");
-        if(distr == rnd_uniform_t)
-            printf("uniform\n");
-        if(distr == rnd_normal_t) {
-            printf("normal\n");
-            printf("MU................%d\n", mu);
-        }
-    }
 };
 
 /* Defines a client configuration, including sensible default
@@ -186,7 +158,10 @@ struct load_t {
 struct config_t {
 public:
     config_t()
-        : clients(64), duration(10000000L, duration_t::queries_t), load(load_t())
+        : clients(64), duration(10000000L, duration_t::queries_t), op_ratios(op_ratios_t()),
+            keys(distr_t(8, 16)), values(distr_t(8, 128)),
+            batch_factor(distr_t(1, 16)), range_size(distr_t(16, 128)),
+            distr(rnd_uniform_t), mu(1)
         {
             latency_file[0] = 0;
             worst_latency_file[0] = 0;
@@ -207,7 +182,23 @@ public:
             printf("\n");
         }
         printf("Clients...........%d\n", clients);
-        load.print();
+        printf("Load..............");
+        op_ratios.print();
+        printf("\nKeys..............");
+        keys.print();
+        printf("\nValues............");
+        values.print();
+        printf("\nBatch factor......");
+        batch_factor.print();
+        printf("\nRange size........");
+        range_size.print();
+        printf("\nDistribution......");
+        if(distr == rnd_uniform_t)
+            printf("uniform\n");
+        if(distr == rnd_normal_t) {
+            printf("normal\n");
+            printf("MU................%d\n", mu);
+        }
         printf("\n");
     }
 
@@ -215,7 +206,13 @@ public:
     std::vector<server_t> servers;
     int clients;
     duration_t duration;
-    load_t load;
+    op_ratios_t op_ratios;
+    distr_t keys;
+    distr_t values;
+    distr_t batch_factor;
+    distr_t range_size;
+    rnd_distr_t distr;
+    int mu;
     char latency_file[MAX_FILE];
     char worst_latency_file[MAX_FILE];
     char qps_file[MAX_FILE];
@@ -255,7 +252,7 @@ void usage(const char *name) {
     printf("].\n");
     printf("\t-c, --clients\n\t\tNumber of concurrent clients. Defaults to [%d].\n", _d.clients);
     printf("\t--client-suffix\n\t\tAppend a per-client id to key names.\n");
-    printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R/A/P/V, where\n" \
+    printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R/A/P/V/RR, where\n" \
            "\t\t\tD - number of deletes\n" \
            "\t\t\tU - number of updates\n" \
            "\t\t\tI - number of inserts\n" \
@@ -263,25 +260,30 @@ void usage(const char *name) {
            "\t\t\tA - number of appends\n" \
            "\t\t\tP - number of prepends\n" \
            "\t\t\tV - number of verifications\n" \
+           "\t\t\tRR - number of range reads\n" \
            "\t\tDefaults to [");
-    _d.load.op_ratios.print();
+    _d.op_ratios.print();
     printf("]\n");
     printf("\t-k, --keys\n\t\tKey distribution in DISTR format (see below). Defaults to [");
-    _d.load.keys.print();
+    _d.keys.print();
     printf("].\n");
     printf("\t-K, --keys-prefix\n\t\tPrefix every key with the following string. Defaults to [");
-    printf("%s", _d.load.keys.prefix.c_str());
+    printf("%s", _d.keys.prefix.c_str());
     printf("].\n");
     printf("\t-v, --values\n\t\tValue distribution in DISTR format (see below). Maximum possible\n");
     printf("\t\tvalue size is [%d]. Defaults to [", MAX_VALUE_SIZE);
-    _d.load.values.print();
+    _d.values.print();
     printf("].\n");
     printf("\t-d, --duration\n\t\tDuration of the run. Defaults to [");
     _d.duration.print();
     printf("].\n");
     printf("\t-b, --batch-factor\n\t\tA range in DISTR format for average number of reads\n" \
            "\t\tto perform in one shot. Defaults to [");
-    _d.load.batch_factor.print();
+    _d.batch_factor.print();
+    printf("].\n");
+    printf("\t-R, --range-size\n\t\tA range in DISTR format for average number of values\n" \
+           "\t\tto retrieve per range get. Defaults to [");
+    _d.range_size.print();
     printf("].\n");
     printf("\t-l, --latency-file\n\t\tFile name to output individual latency information (in us).\n" \
            "\t\tThe information is not outputted if this argument is skipped.\n");
@@ -333,6 +335,7 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"values",             required_argument, 0, 'v'},
                 {"duration",           required_argument, 0, 'd'},
                 {"batch-factor",       required_argument, 0, 'b'},
+                {"range-size",         required_argument, 0, 'R'},
                 {"latency-file",       required_argument, 0, 'l'},
                 {"worst-latency-file", required_argument, 0, 'L'},
                 {"qps-file",           required_argument, 0, 'q'},
@@ -347,7 +350,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:l:L:q:o:i:h:f:m:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:R:l:L:q:o:i:h:f:m:", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -370,17 +373,17 @@ void parse(config_t *config, int argc, char *argv[]) {
             config->clients = atoi(optarg);
             break;
         case 'w':
-            config->load.op_ratios.parse(optarg);
+            config->op_ratios.parse(optarg);
             break;
         case 'k':
-            config->load.keys.parse(optarg);
+            config->keys.parse(optarg);
             break;
         case 'K':
-            config->load.keys.prefix = optarg;
+            config->keys.prefix = optarg;
             break;
         case 'v':
-            config->load.values.parse(optarg);
-            if (config->load.values.min > MAX_VALUE_SIZE || config->load.values.max > MAX_VALUE_SIZE) {
+            config->values.parse(optarg);
+            if (config->values.min > MAX_VALUE_SIZE || config->values.max > MAX_VALUE_SIZE) {
                 fprintf(stderr, "Invalid value distribution (maximum value size exceeded).\n");
                 exit(-1);
             }
@@ -389,7 +392,10 @@ void parse(config_t *config, int argc, char *argv[]) {
             config->duration.parse(optarg);
             break;
         case 'b':
-            config->load.batch_factor.parse(optarg);
+            config->batch_factor.parse(optarg);
+            break;
+        case 'R':
+            config->range_size.parse(optarg);
             break;
         case 'l':
             strncpy(config->latency_file, optarg, MAX_FILE);
@@ -410,17 +416,17 @@ void parse(config_t *config, int argc, char *argv[]) {
             strncpy(config->db_file, optarg, MAX_FILE);
             break;
         case 'a':
-            config->load.keys.append_client_suffix = true;
+            config->keys.append_client_suffix = true;
             break;
         case 'r':
             if(strcmp(optarg, "uniform") == 0) {
-                config->load.distr = rnd_uniform_t;
+                config->distr = rnd_uniform_t;
             } else if(strcmp(optarg, "normal") == 0) {
-                config->load.distr = rnd_normal_t;
+                config->distr = rnd_normal_t;
             }
             break;
         case 'm':
-            config->load.mu = atoi(optarg);
+            config->mu = atoi(optarg);
             break;
         case 'h':
             usage(argv[0]);

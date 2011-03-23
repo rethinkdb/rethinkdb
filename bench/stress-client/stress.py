@@ -12,7 +12,7 @@ libstress = ctypes.cdll.LoadLibrary(libstress_path)
 # we explicitly specify their return types.
 
 for fname in ["protocol_create", "op_create_read", "op_create_insert", "op_create_update",
-        "op_create_delete", "op_create_appendprepend", "client_create"]:
+        "op_create_delete", "op_create_appendprepend", "op_create_rangeread", "client_create"]:
     fun = libstress[fname]
     fun.restype = ctypes.c_void_p
     globals()["libstress_%s" % fname] = fun
@@ -76,7 +76,7 @@ class Op(object):
         return {
             "queries": queries.value,
             "worst_latency": worst_latency.value,
-            "latency_samples": [samples[i].value for i in xrange(samples_count.value)],
+            "latency_samples": [samples[i] for i in xrange(samples_count.value)],
             }
 
     def reset(self):
@@ -131,6 +131,13 @@ class AppendPrependOp(SingleConnectionOp):
             libstress_op_create_appendprepend(
                 client._client, connection._connection, freq,
                 mode_int, distr_min(size), distr_max(size)))
+
+class RangeReadOp(SingleConnectionOp):
+    def __init__(self, client, connection, freq=1, rangesize=(16,128)):
+        SingleConnectionOp.__init__(self, client, connection,
+            libstress_op_create_rangeread(
+                client._client, connection._connection, freq,
+                distr_min(rangesize), distr_max(rangesize)))
 
 # Client corresponds to client_t in the C++ stress client.
 

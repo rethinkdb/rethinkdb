@@ -111,12 +111,21 @@ struct memcached_protocol_t : public protocol_t {
         } while(_value != NULL);
     }
 
+    virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
+        fprintf(stderr, "Stress client does not support range reads for libmemcached.\n");
+        exit(-1);
+    }
+
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
+        fprintf(stderr, "Stress client does not support appends/prepends with libmemcached.\n");
+        exit(-1);
     }
 
     virtual void prepend(const char *key, size_t key_size,
                           const char *value, size_t value_size) {
+        fprintf(stderr, "Stress client does not support appends/prepends with libmemcached.\n");
+        exit(-1);
     }
 
 private:

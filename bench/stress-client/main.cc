@@ -41,9 +41,9 @@ int main(int argc, char *argv[])
     // Parse the arguments
     config_t config;
     parse(&config, argc, argv);
-    if (config.load.op_ratios.verifies > 0 && config.clients > 1) {
+    if (config.op_ratios.verifies > 0 && config.clients > 1) {
         printf("Automatically enabled per-client key suffixes\n");
-        config.load.keys.append_client_suffix = true;
+        config.keys.append_client_suffix = true;
     }
     config.print();
 
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < config.servers.size(); i++) {
         if (config.servers[i].protocol == protocol_mysql) {
             initialize_mysql_table(config.servers[i].host,
-                config.load.keys.max, config.load.values.max);
+                config.keys.max, config.values.max);
         }
     }
 #endif
@@ -81,6 +81,7 @@ int main(int argc, char *argv[])
         append_prepend_op_t append_op;
         append_prepend_op_t prepend_op;
         verify_op_t verify_op;
+        range_read_op_t range_read_op;
 
         static sqlite_protocol_t *make_sqlite_if_necessary(config_t *config, int i) {
             if (config->db_file[0]) {
@@ -99,19 +100,20 @@ int main(int argc, char *argv[])
             sqlite(make_sqlite_if_necessary(config, i)),
 
             /* Construct the client object */
-            client(i, config->clients, config->load.keys, config->load.distr, config->load.mu, sqlite),
+            client(i, config->clients, config->keys, config->distr, config->mu, sqlite),
 
             /* Set up some operations for the client to perform */
             read_op(&client,
                 // Scale the read-ratio to take into account the batch factor for reads
-                config->load.op_ratios.reads / ((config->load.batch_factor.min + config->load.batch_factor.max) / 2),
-                protocol, config->load.batch_factor),
-            delete_op(&client, config->load.op_ratios.deletes, protocol),
-            update_op(&client, config->load.op_ratios.updates, protocol, config->load.values),
-            insert_op(&client, config->load.op_ratios.inserts, protocol, config->load.values),
-            append_op(&client, config->load.op_ratios.appends, protocol, true, config->load.values),
-            prepend_op(&client, config->load.op_ratios.prepends, protocol, false, config->load.values),
-            verify_op(&client, config->load.op_ratios.verifies, protocol)
+                config->op_ratios.reads / ((config->batch_factor.min + config->batch_factor.max) / 2),
+                protocol, config->batch_factor),
+            delete_op(&client, config->op_ratios.deletes, protocol),
+            update_op(&client, config->op_ratios.updates, protocol, config->values),
+            insert_op(&client, config->op_ratios.inserts, protocol, config->values),
+            append_op(&client, config->op_ratios.appends, protocol, true, config->values),
+            prepend_op(&client, config->op_ratios.prepends, protocol, false, config->values),
+            verify_op(&client, config->op_ratios.verifies, protocol),
+            range_read_op(&client, config->op_ratios.range_reads, protocol, config->range_size)
         {
         }
 

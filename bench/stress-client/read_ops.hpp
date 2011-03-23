@@ -17,7 +17,7 @@ struct read_op_t : public op_t {
         int nkeys = xrandom(batch_factor.min, batch_factor.max);
         nkeys = std::min(nkeys, client->max_seed - client->min_seed);
 
-        // Generate keys
+        // Generate keys. To ensure uniqueness we choose an adjacent group of seeds.
         payload_t keys_to_get[nkeys];
         char key_space[nkeys * client->keys.max];
         for (int i = 0; i < nkeys; i++) keys_to_get[i].first = key_space + (client->keys.max * i);
@@ -61,6 +61,39 @@ struct verify_op_t : public op_t {
         }
         ticks_t end_time = get_ticks();
         client->sqlite->dump_end();
+
+        push_stats(end_time - start_time, 1);
+    }
+};
+
+struct range_read_op_t : public op_t {
+
+    range_read_op_t(client_t *c, int freq, protocol_t *p, distr_t range_size) :
+        op_t(c, freq, 0), proto(p), range_size(range_size) { }
+    protocol_t *proto;
+    distr_t range_size;
+
+    void run() {
+        // There must be at least 2 keys in the database for this to work
+        if(client->max_seed - client->min_seed < 2) return;
+
+        // Pick two random keys. To ensure uniqueness we just choose two adjacent seeds.
+        int l = xrandom(client->_rnd, client->min_seed, client->max_seed - 1);
+        payload_buffer_t lkey(client->keys.max), rkey(client->keys.max);
+        client->gen_key(&lkey.payload, l);
+        client->gen_key(&rkey.payload, l + 1 == client->max_seed ? client->min_seed : l + 1);
+
+        // Arrange keys in the right order
+        if (strncmp(lkey.payload.first, rkey.payload.first, std::min(lkey.payload.second, rkey.payload.second)) > 0) {
+            std::swap(lkey, rkey);
+        }
+
+        // Read it from the server
+        ticks_t start_time = get_ticks();
+        proto->range_read(lkey.payload.first, lkey.payload.second,
+            rkey.payload.first, rkey.payload.second,
+            xrandom(range_size.min, range_size.max));
+        ticks_t end_time = get_ticks();
 
         push_stats(end_time - start_time, 1);
     }

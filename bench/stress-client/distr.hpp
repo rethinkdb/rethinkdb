@@ -29,13 +29,28 @@ inline void prepend(payload_t *p, payload_t *other) {
 
 struct payload_buffer_t {
     char *buffer;
+    int size;
     payload_t payload;
-    payload_buffer_t(int size) : buffer(new char[size]) {
+    payload_buffer_t(int size) : buffer(new char[size]), size(size) {
         payload.first = buffer;
+    }
+    payload_buffer_t(const payload_buffer_t &p) : buffer(new char[p.size]), size(p.size) {
+        payload.first = buffer;
+        memcpy(buffer, p.buffer, size);
+        payload.second = p.payload.second;
+    }
+    payload_buffer_t &operator=(const payload_buffer_t &p) {
+        delete[] buffer;
+        buffer = new char[p.size];
+        payload.first = buffer;
+        size = p.size;
+        memcpy(buffer, p.buffer, size);
+        payload.second = p.payload.second;
     }
     ~payload_buffer_t() {
         delete[] buffer;
     }
+    
 };
 
 /* Defines a distribution of values, from min to max. */

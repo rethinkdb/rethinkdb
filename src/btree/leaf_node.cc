@@ -408,7 +408,7 @@ bool is_full(const leaf_node_t *node, const btree_key_t *key, const btree_value 
         node->frontmost_offset;
 }
 
-void validate(block_size_t block_size, const leaf_node_t *node) {
+void validate(UNUSED block_size_t block_size, UNUSED const leaf_node_t *node) {
 #ifndef NDEBUG
     rassert(ptr_cast<byte>(&(node->pair_offsets[node->npairs])) <= ptr_cast<byte>(get_pair(node, node->frontmost_offset)));
     rassert(node->frontmost_offset > 0);

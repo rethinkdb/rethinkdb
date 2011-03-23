@@ -588,13 +588,13 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     assert_thread();
 
     ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
+    w->tid_callback = tid_callback;
     w->run();
     if (w->done) {
         delete w;
         return true;
     } else {
         w->callback = callback;
-        w->tid_callback = tid_callback;
         return false;
     }
 }
@@ -700,12 +700,13 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
     }
 }
 
-// TODO: If block_id is unused, maybe we should get rid of it.  (Or we
-// could add an rassert that checks that the buf has the appropriate
-// block id.  Maybe that's what we want.)
+// The block_id is there to keep the interface independent from the serializer
+// implementation. The interface should be ok even for serializers which don't
+// have a transaction id in buf.
 ser_transaction_id_t log_serializer_t::get_current_transaction_id(UNUSED ser_block_id_t block_id, const void* buf) {
     buf_data_t *ser_data = (buf_data_t*)buf;
     ser_data--;
+    rassert(block_id == ser_data->block_id);
     return ser_data->transaction_id;
 }
 

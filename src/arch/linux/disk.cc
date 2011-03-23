@@ -184,7 +184,7 @@ linux_file_t::~linux_file_t() {
     if (fd != INVALID_FD) close(fd);
 }
 
-void linux_file_t::verify(size_t offset, size_t length, void *buf) {
+void linux_file_t::verify(UNUSED size_t offset, UNUSED size_t length, UNUSED void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
     rassert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);

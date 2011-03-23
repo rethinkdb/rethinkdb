@@ -86,6 +86,15 @@ void *op_create_appendprepend(void *vclient, void *vprotocol, int freq, int is_a
         ));
 }
 
+void *op_create_rangeread(void *vclient, void *vprotocol, int freq, int rangesize_min, int rangesize_max) {
+    return static_cast<void*>(new range_read_op_t(
+        static_cast<client_t*>(vclient),
+        freq,
+        static_cast<protocol_t*>(vprotocol),
+        distr_t(rangesize_min, rangesize_max)
+        ));
+}
+
 void op_poll(void *vop, int *queries_out, float *worstlatency_out, int *samples_count_inout, float *samples_out) {
     // Assume that the Python script already locked the spinlock
     query_stats_t *stats = &static_cast<op_t*>(vop)->stats;
@@ -95,7 +104,7 @@ void op_poll(void *vop, int *queries_out, float *worstlatency_out, int *samples_
     }
 
     if (worstlatency_out) {
-        *worstlatency_out = stats->worst_latency;
+        *worstlatency_out = ticks_to_secs(stats->worst_latency);
     }
 
     if (samples_count_inout && samples_out) {
@@ -113,7 +122,7 @@ void op_poll(void *vop, int *queries_out, float *worstlatency_out, int *samples_
                 take_this_sample = xrandom(0, samples_we_have-1) < samples_we_need;
             }
             if (take_this_sample) {
-                samples_out[--samples_we_need] = stats->latency_samples.samples[--samples_we_have];
+                samples_out[--samples_we_need] = ticks_to_secs(stats->latency_samples.samples[--samples_we_have]);
             } else {
                 --samples_we_have;
             }

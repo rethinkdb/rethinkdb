@@ -23,6 +23,8 @@ struct protocol_t {
 
     virtual void read(payload_t *keys, int count, payload_t *values = NULL) = 0;
 
+    virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) = 0;
+
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) = 0;
 

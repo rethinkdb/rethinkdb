@@ -54,6 +54,11 @@ struct sqlite_protocol_t : public protocol_t {
         }
     }
 
+    virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
+        fprintf(stderr, "Range reads not currently supported with SQLite!\n");
+        exit(-1);
+    }
+
     /* start a dump (selecting all the keys from the database) */
     void dump_start() {
         sprintf(buffer, "SELECT * FROM %s ORDER BY %s;\n", TABLE_NAME, KEY_COL_NAME); 

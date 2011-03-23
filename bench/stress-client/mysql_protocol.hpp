@@ -160,6 +160,17 @@ struct mysql_protocol_t : public protocol_t {
             }
             read_stmts.push_back(read_stmt);
         }
+
+        // Prepare range read statment
+        range_read_stmt = mysql_stmt_init(&mysql);
+        snprintf(buf, sizeof(buf), "SELECT %s FROM %s WHERE %s BETWEEN ? AND ? LIMIT ?",
+            valuecol, tablename, keycol);
+        res = mysql_stmt_prepare(range_read_stmt, buf, strlen(buf));
+        if(res != 0) {
+            fprintf(stderr, "Could not prepare range read statement: %s\n",
+                    mysql_stmt_error(range_read_stmt));
+            exit(-1);
+        }
     }
 
     virtual ~mysql_protocol_t() {
@@ -169,6 +180,7 @@ struct mysql_protocol_t : public protocol_t {
         mysql_stmt_close(insert_stmt);
         mysql_stmt_close(update_stmt);
         mysql_stmt_close(remove_stmt);
+        mysql_stmt_close(range_read_stmt);
 
         mysql_close(&mysql);
     }
@@ -320,6 +332,72 @@ struct mysql_protocol_t : public protocol_t {
             // validity
         }
     }
+
+    virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
+        // TODO: The following is completely untested!
+        // Bind the data
+        MYSQL_BIND bind[3];
+        memset(bind, 0, sizeof(bind));
+
+        bind[0].buffer_type = MYSQL_TYPE_STRING;
+        bind[0].buffer = lkey;
+        bind[0].buffer_length = lkey_size;
+        bind[0].is_null = 0;
+        bind[0].length = &lkey_size;
+
+        bind[1].buffer_type = MYSQL_TYPE_STRING;
+        bind[1].buffer = rkey;
+        bind[1].buffer_length = rkey_size;
+        bind[1].is_null = 0;
+        bind[1].length = &rkey_size;
+
+        bind[2].buffer_type = MYSQL_TYPE_LONG;
+        bind[2].buffer = &count_limit;
+        bind[2].buffer_length = sizeof(count_limit);
+        bind[2].is_null = 0;
+
+        MYSQL_STMT *range_read_stmt = range_read_stmt;
+        int res = mysql_stmt_bind_param(range_read_stmt, bind);
+        if(res != 0) {
+            fprintf(stderr, "Could not bind range read statement\n");
+            exit(-1);
+        }
+
+        // Execute the statement
+        res = mysql_stmt_execute(range_read_stmt);
+        if(res != 0) {
+            fprintf(stderr, "Could not execute range read statement: %s\n", mysql_stmt_error(range_read_stmt));
+            exit(-1);
+        }
+
+        // Go through the results so we don't get out of sync errors
+        MYSQL_BIND resbind[1];
+        char buf[8192];
+        long unsigned int val_length;
+        memset(resbind, 0, sizeof(resbind));
+        resbind[0].buffer_type = MYSQL_TYPE_STRING;
+        resbind[0].buffer = buf;
+        resbind[0].buffer_length = sizeof(buf);
+        resbind[0].length = &val_length;
+
+        if(mysql_stmt_bind_result(range_read_stmt, resbind) != 0) {
+            fprintf(stderr, "Could not bind range read result: %s\n", mysql_stmt_error(range_read_stmt));
+            exit(-1);
+        }
+
+        // Buffer everything on the client so we don't fetch it one at a time
+        if(mysql_stmt_store_result(range_read_stmt)) {
+            fprintf(stderr, "Could not buffer resultset: %s\n", mysql_stmt_error(range_read_stmt));
+            exit(-1);
+        }
+
+        while (!mysql_stmt_fetch(range_read_stmt)) {
+            // Ain't nothing to do, we're just fetching for kicks and
+            // giggles and avoiding out of sync issues and benchmark
+            // validity
+        }
+    }
+
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
         //TODO fill this in for MYSQL
@@ -336,7 +414,7 @@ struct mysql_protocol_t : public protocol_t {
 
 private:
     MYSQL mysql;
-    MYSQL_STMT *remove_stmt, *update_stmt, *insert_stmt;
+    MYSQL_STMT *remove_stmt, *update_stmt, *insert_stmt, *range_read_stmt;
     vector<MYSQL_STMT*> read_stmts;
 };
 
