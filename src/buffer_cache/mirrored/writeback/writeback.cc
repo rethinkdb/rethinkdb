@@ -557,6 +557,9 @@ bool writeback_t::concurrent_flush_t::do_write() {
 
     if (continue_instantly) {
         // the tid_callback gets called even if do_write returns true...
+        if (serializer_writes.empty()) {
+            do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
+        }
         do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_cleanup, this));
     }
 
