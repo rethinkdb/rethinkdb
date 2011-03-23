@@ -55,7 +55,6 @@ private:
 except between multiple coroutines on the same thread. It can only be used once. */
 
 struct cond_t {
-
     cond_t() : ready(false), waiter(NULL) { }
     void pulse() {
         rassert(!ready);
@@ -81,7 +80,6 @@ private:
 used with multiple coroutines on different threads. */
 
 struct threadsafe_cond_t {
-
     threadsafe_cond_t() : ready(false), waiter(NULL) { }
     void pulse() {
         lock.lock();
