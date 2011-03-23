@@ -47,6 +47,9 @@ private:
     spinlock_t &operator=(const spinlock_t &);
 };
 
+/* Return the number of digits in the number */
+int count_decimal_digits(int);
+
 /* We want to collect a fixed number of latency samples over each second, but we don't know how
 many there are going to be. This type magically solves that problem using reservoir sampling. */
 template<class sample_t, int goal = 100>

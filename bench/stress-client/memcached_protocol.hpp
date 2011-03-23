@@ -7,8 +7,8 @@
 #include "protocol.hpp"
 
 struct memcached_protocol_t : public protocol_t {
-    memcached_protocol_t(config_t *config) : protocol_t(config)
-        {
+    memcached_protocol_t(const char *conn_str) {
+
         memcached_create(&memcached);
 
         // NOTE: we don't turn on noreply behavior because the stress
@@ -18,17 +18,10 @@ struct memcached_protocol_t : public protocol_t {
         // wait for store notifications for the batch.
 
         //memcached_behavior_set(&memcached, MEMCACHED_BEHAVIOR_NOREPLY, 1);
-    }
 
-    virtual ~memcached_protocol_t() {
-        // Disconnect
-        memcached_free(&memcached);
-    }
-
-    virtual void connect(server_t *server) {
         // Parse the host string
         char _host[MAX_HOST];
-        strncpy(_host, server->host, MAX_HOST);
+        strncpy(_host, conn_str, MAX_HOST);
 
         char *_port = NULL;
 
@@ -45,6 +38,11 @@ struct memcached_protocol_t : public protocol_t {
 
         // Connect to server
         memcached_server_add(&memcached, _host, port);
+    }
+
+    virtual ~memcached_protocol_t() {
+        // Disconnect
+        memcached_free(&memcached);
     }
 
     virtual void remove(const char *key, size_t key_size) {
@@ -114,14 +112,20 @@ struct memcached_protocol_t : public protocol_t {
     }
 
     virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
+        fprintf(stderr, "Stress client does not support range reads for libmemcached.\n");
+        exit(-1);
     }
 
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
+        fprintf(stderr, "Stress client does not support appends/prepends with libmemcached.\n");
+        exit(-1);
     }
 
     virtual void prepend(const char *key, size_t key_size,
                           const char *value, size_t value_size) {
+        fprintf(stderr, "Stress client does not support appends/prepends with libmemcached.\n");
+        exit(-1);
     }
 
 private:
