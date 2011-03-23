@@ -212,7 +212,7 @@ log_serializer_t::log_serializer_t(dynamic_config_t *config, private_dynamic_con
 }
 
 log_serializer_t::~log_serializer_t() {
-
+    
     cond_t cond;
     if (!shutdown(&cond)) cond.wait();
 

@@ -410,7 +410,6 @@ void data_block_manager_t::run_gc() {
                     const off64_t block_offset = gc_state.current_entry->offset + (i * static_config->block_size().ser_value());
                     // TODO! Do we have to check for liveness first?
                     ser_block_id_t id = serializer->lba_index->get_block_id(block_offset);
-                    //ser_block_id_t id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;
                     void *data = block + sizeof(ls_buf_data_t);
 
                     // TODO! Instead of having all this gc_write stuff around, utilize the new block_write and index_write interface to do the same stuff in a more direct way!
