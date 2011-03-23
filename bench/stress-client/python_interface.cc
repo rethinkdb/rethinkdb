@@ -1,78 +1,129 @@
 #include "python_interface.h"
 #include "client.hpp"
+#include "read_ops.hpp"
+#include "write_ops.hpp"
 
-void *client_create(const char *server_str, int id, int num_clients, const char **opts) {
-
-    load_t *load = new load_t();
-    while (*opts) {
-        const char *key = *(opts++);
-        const char *value = *(opts++);
-        if (strcmp(key, "op_ratios") == 0) {
-            load->op_ratios.parse(value);
-        } else if (strcmp(key, "keys") == 0) {
-            load->keys.parse(value);
-        } else if (strcmp(key, "values") == 0) {
-            load->values.parse(value);
-        } else if (strcmp(key, "batch_factor") == 0) {
-            load->batch_factor.parse(value);
-        } else if (strcmp(key, "distr") == 0) {
-            if (strcmp(value, "uniform") == 0) {
-                load->distr = rnd_uniform_t;
-            } else if (strcmp(value, "normal") == 0) {
-                load->distr = rnd_normal_t;
-            } else {
-                fprintf(stderr, "Unrecognized distribution '%s'\n", value);
-                exit(-1);
-            }
-        } else if (strcmp(key, "mu") == 0) {
-            load->mu = atoi(value);
-        } else {
-            fprintf(stderr, "Unrecognized configuration key '%s'\n", key);
-            exit(-1);
-        }
-    }
-
+void *protocol_create(const char *server_str) {
     server_t server;
     server.parse(server_str);
-    protocol_t *proto = server.connect(load);
-
-    client_t *client = new client_t(load, proto, NULL, id, num_clients);
-
-    return reinterpret_cast<void*>(client);
+    return static_cast<void*>(server.connect());
 }
 
-void client_start(void *client) {
-    reinterpret_cast<client_t *>(client)->start();
+void protocol_destroy(void *vprotocol) {
+    delete static_cast<protocol_t*>(vprotocol);
 }
 
-void client_poll(void *client,
-    int *queries_out, int *inserts_minus_deletes_out,
-    float *worst_latency_out,
-    int *n_latencies_inout, float *latencies_out) {
-
-    query_stats_t stats;
-    reinterpret_cast<client_t *>(client)->poll(&stats);
-
-    if (queries_out) *queries_out = stats.queries;
-    if (inserts_minus_deletes_out) *inserts_minus_deletes_out = stats.inserts_minus_deletes;
-    if (worst_latency_out) *worst_latency_out = ticks_to_secs(stats.worst_latency);
-
-    if (n_latencies_inout) {
-        int n_latencies = std::min((int)stats.latency_samples.size(), *n_latencies_inout);
-        *n_latencies_inout = n_latencies;
-        for (int i = 0; i < n_latencies; i++) {
-            latencies_out[i] = ticks_to_secs(stats.latency_samples.samples[i]);
-        }
-    }
+void *client_create(int id, int num_clients, int keysize_min, int keysize_max) {
+    return static_cast<void*>(new client_t(
+        id, num_clients,
+        distr_t(keysize_min, keysize_max),
+        rnd_uniform_t, 1, NULL));
 }
 
-void client_stop(void *client) {
-    reinterpret_cast<client_t *>(client)->stop();
+void client_start(void *vclient) {
+    static_cast<client_t*>(vclient)->start();
+}
+
+void client_lock(void *vclient) {
+    static_cast<client_t*>(vclient)->spinlock.lock();
+}
+
+void client_unlock(void *vclient) {
+    static_cast<client_t*>(vclient)->spinlock.unlock();
+}
+
+void client_stop(void *vclient) {
+    static_cast<client_t*>(vclient)->stop();
 }
 
 void client_destroy(void *vclient) {
-    client_t *client = reinterpret_cast<client_t *>(vclient);
-    delete client->proto;
-    delete client->load;
-    delete client;
+    delete static_cast<client_t*>(vclient);
+}
+
+void *op_create_read(void *vclient, void *vprotocol, int freq, int batchfactor_min, int batchfactor_max) {
+    return static_cast<void*>(new read_op_t(
+        static_cast<client_t*>(vclient),
+        freq,
+        static_cast<protocol_t*>(vprotocol),
+        distr_t(batchfactor_min, batchfactor_max)
+        ));
+}
+
+void *op_create_insert(void *vclient, void *vprotocol, int freq, int size_min, int size_max) {
+    return static_cast<void*>(new insert_op_t(
+        static_cast<client_t*>(vclient),
+        freq,
+        static_cast<protocol_t*>(vprotocol),
+        distr_t(size_min, size_max)
+        ));
+}
+
+void *op_create_update(void *vclient, void *vprotocol, int freq, int size_min, int size_max) {
+    return static_cast<void*>(new update_op_t(
+        static_cast<client_t*>(vclient),
+        freq,
+        static_cast<protocol_t*>(vprotocol),
+        distr_t(size_min, size_max)
+        ));
+}
+
+void *op_create_delete(void *vclient, void *vprotocol, int freq) {
+    return static_cast<void*>(new delete_op_t(
+        static_cast<client_t*>(vclient),
+        freq,
+        static_cast<protocol_t*>(vprotocol)
+        ));
+}
+
+void *op_create_appendprepend(void *vclient, void *vprotocol, int freq, int is_append, int size_min, int size_max) {
+    return static_cast<void*>(new append_prepend_op_t(
+        static_cast<client_t*>(vclient),
+        freq,
+        static_cast<protocol_t*>(vprotocol),
+        is_append != 0,
+        distr_t(size_min, size_max)
+        ));
+}
+
+void op_poll(void *vop, int *queries_out, float *worstlatency_out, int *samples_count_inout, float *samples_out) {
+    // Assume that the Python script already locked the spinlock
+    query_stats_t *stats = &static_cast<op_t*>(vop)->stats;
+
+    if (queries_out) {
+        *queries_out = stats->queries;
+    }
+
+    if (worstlatency_out) {
+        *worstlatency_out = stats->worst_latency;
+    }
+
+    if (samples_count_inout && samples_out) {
+        int samples_we_have = stats->latency_samples.size();
+        int samples_we_need = *samples_count_inout = std::min(samples_we_have, *samples_count_inout);
+        /* We have to be smart about delivering the samples so that if they request less
+        samples than we have, we deliver a random representative sample. */
+        while (samples_we_need > 0) {
+            bool take_this_sample;
+            if (samples_we_have == samples_we_need) {
+                /* We are taking every sample */
+                take_this_sample = true;
+            } else if (samples_we_have > samples_we_need) {
+                /* Roll a die to determine whether or not to take this sample */
+                take_this_sample = xrandom(0, samples_we_have-1) < samples_we_need;
+            }
+            if (take_this_sample) {
+                samples_out[--samples_we_need] = stats->latency_samples.samples[--samples_we_have];
+            } else {
+                --samples_we_have;
+            }
+        }
+    }
+}
+
+void op_reset(void *vop) {
+    static_cast<op_t*>(vop)->stats = query_stats_t();
+}
+
+void op_destroy(void *vop) {
+    delete static_cast<op_t*>(vop);
 }

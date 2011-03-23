@@ -168,6 +168,8 @@ struct op_t {
         c->total_freq += freq;
         c->max_value_size = std::max(c->max_value_size, max_value_size);
     }
+    virtual ~op_t() {
+    }
 
     client_t *client;
 
