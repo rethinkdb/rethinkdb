@@ -72,7 +72,6 @@ struct mysql_protocol_t : public protocol_t {
     }
 
     mysql_protocol_t(const char *conn_str) {
-        mysql_init(&mysql);
 
         // Parse the host string
         char buffer[512];
@@ -86,6 +85,7 @@ struct mysql_protocol_t : public protocol_t {
         }
 
         // Connect to the db
+        mysql_init(&mysql);
         MYSQL *_mysql = mysql_real_connect(
             &mysql, host, username, password, NULL, port, NULL, 0);
         if(_mysql != &mysql) {
@@ -323,11 +323,15 @@ struct mysql_protocol_t : public protocol_t {
     virtual void append(const char *key, size_t key_size,
                         const char *value, size_t value_size) {
         //TODO fill this in for MYSQL
+        fprintf(stderr, "Append and prepend are not supported for MySQL at this time.\n");
+        exit(-1);
     }
 
     virtual void prepend(const char *key, size_t key_size,
                           const char *value, size_t value_size) {
         //TODO fill this in foir MYSQL
+        fprintf(stderr, "Append and prepend are not supported for MySQL at this time.\n");
+        exit(-1);
     }
 
 private:
@@ -357,6 +361,7 @@ inline void initialize_mysql_table(const char *conn_str, int key_size, int value
 
     // Connect to the db
     MYSQL mysql;
+    mysql_init(&mysql);
     if(mysql_real_connect(&mysql, host, username, password, NULL, port, NULL, 0) != &mysql) {
         fprintf(stderr, "Could not connect to mysql: %s\n", mysql_error(&mysql));
         exit(-1);

@@ -1,9 +1,21 @@
 import ctypes, os
 
+# Load the shared library that has the guts of the stress client
+
 my_dir = os.path.split(__file__)[0]
 libstress_path = os.path.abspath(os.path.join(my_dir, "libstress.so"))
 assert os.path.exists(libstress_path)
 libstress = ctypes.cdll.LoadLibrary(libstress_path)
+
+# These functions have a void* return type, but ctypes defaults to int as the
+# return type. To avoid possible issues where void* and int are not interchangeable,
+# we explicitly specify their return types.
+
+for fname in ["protocol_create", "op_create_read", "op_create_insert", "op_create_update",
+        "op_create_delete", "op_create_appendprepend", "client_create"]:
+    fun = libstress[fname]
+    fun.restype = ctypes.c_void_p
+    globals()["libstress_%s" % fname] = fun
 
 # Where the functions below accept a distribution, they expect either a single
 # number or a tuple of (min, max).
@@ -29,7 +41,7 @@ def distr_max(distr):
 class Connection(object):
     def __init__(self, server_str):
         assert isinstance(server_str, str)
-        self._connection = libstress.protocol_create(server_str)
+        self._connection = libstress_protocol_create(server_str)
         self.client = None
     def __del__(self):
         if hasattr(self, "_connection"):
@@ -86,28 +98,28 @@ class SingleConnectionOp(Op):
 class ReadOp(SingleConnectionOp):
     def __init__(self, client, connection, freq=1, batch_factor = (1,16)):
         SingleConnectionOp.__init__(self, client, connection,
-            libstress.op_create_read(
+            libstress_op_create_read(
                 client._client, connection._connection, freq,
                 distr_min(batch_factor), distr_max(batch_factor)))
 
 class InsertOp(SingleConnectionOp):
     def __init__(self, client, connection, freq=1, size=(8,16)):
         SingleConnectionOp.__init__(self, client, connection,
-            libstress.op_create_insert(
+            libstress_op_create_insert(
                 client._client, connection._connection, freq,
                 distr_min(size), distr_max(size)))
 
 class UpdateOp(SingleConnectionOp):
     def __init__(self, client, connection, freq=1, size=(8,16)):
         SingleConnectionOp.__init__(self, client, connection,
-            libstress.op_create_update(
+            libstress_op_create_update(
                 client._client, connection._connection, freq,
                 distr_min(size), distr_max(size)))
 
 class DeleteOp(SingleConnectionOp):
     def __init__(self, client, connection, freq=1):
         SingleConnectionOp.__init__(self, client, connection,
-            libstress.op_create_delete(
+            libstress_op_create_delete(
                 client._client, connection._connection, freq))
 
 class AppendPrependOp(SingleConnectionOp):
@@ -116,7 +128,7 @@ class AppendPrependOp(SingleConnectionOp):
         elif mode == "prepend": mode_int = 0
         else: raise ValueError("'mode' should be 'append' or 'prepend'")
         SingleConnectionOp.__init__(self, client, connection,
-            libstress.op_create_appendprepend(
+            libstress_op_create_appendprepend(
                 client._client, connection._connection, freq,
                 mode_int, distr_min(size), distr_max(size)))
 
@@ -129,7 +141,7 @@ class Client(object):
         assert isinstance(n_clients, int)
         assert id < n_clients
         assert id >= 0
-        self._client = libstress.client_create(id, n_clients, distr_min(keys), distr_max(keys))
+        self._client = libstress_client_create(id, n_clients, distr_min(keys), distr_max(keys))
         self.ops = []
         self.locked = False
         self.running = False
@@ -159,3 +171,15 @@ class Client(object):
     def __del__(self):
         if hasattr(self, "_client"):
             libstress.client_destroy(self._client)
+
+def initialize_mysql_table(string, max_key, max_value):
+    """If you intend to run the stress client against a MySQL server, you must set up a
+    table and key/value columns. This convenience function does that work automatically.
+    Call initialize_mysql_table(conn_str, max_key, max_value), where conn_str is the
+    connection string for the MySQL protocol (without the "mysql," part) and max_key
+    and max_value are the sizes of the largest keys and values that will ever be inserted
+    by the workload you intend to run against the server."""
+    assert isinstance(string, str)
+    assert isinstance(max_key, int)
+    assert isinstance(max_value, int)
+    libstress.py_initialize_mysql_table(string, max_key, max_value)

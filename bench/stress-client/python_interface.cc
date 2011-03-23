@@ -2,6 +2,7 @@
 #include "client.hpp"
 #include "read_ops.hpp"
 #include "write_ops.hpp"
+#include "mysql_protocol.hpp"
 
 void *protocol_create(const char *server_str) {
     server_t server;
@@ -126,4 +127,8 @@ void op_reset(void *vop) {
 
 void op_destroy(void *vop) {
     delete static_cast<op_t*>(vop);
+}
+
+void py_initialize_mysql_table(const char *server_str, int max_key, int max_value) {
+    initialize_mysql_table(server_str, max_key, max_value);
 }

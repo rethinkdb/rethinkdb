@@ -18,4 +18,6 @@ extern "C" {
     void op_poll(void *op, int *queries_out, float *worstlatency_out, int *samples_count_inout, float *samples_out);
     void op_reset(void *op);
     void op_destroy(void *op);
+
+    void py_initialize_mysql_table(const char *server_str, int max_key, int max_value);
 }
