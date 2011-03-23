@@ -588,13 +588,13 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     assert_thread();
 
     ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
+    w->tid_callback = tid_callback;
     w->run();
     if (w->done) {
         delete w;
         return true;
     } else {
         w->callback = callback;
-        w->tid_callback = tid_callback;
         return false;
     }
 }

@@ -553,11 +553,10 @@ bool writeback_t::concurrent_flush_t::do_write() {
     parent->cache->serializer->assert_thread();
 
     bool continue_instantly = serializer_writes.empty() ||
-            parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this);
+            parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this, this);
 
     if (continue_instantly) {
-        // The order matters! We rely on the message hub to call stuff in the same order in which we submit it.
-        do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
+        // the tid_callback gets called even if do_write returns true...
         do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_cleanup, this));
     }
 
