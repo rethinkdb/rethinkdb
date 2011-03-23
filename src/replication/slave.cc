@@ -189,8 +189,17 @@ void slave_t::send(buffed_data_t<net_delete_t>& msg) {
     delete_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
     // TODO: where does msg->timestamp go???  IS THIS RIGHT?? WHO KNOWS.
-    internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED /* TODO: F THIS */, msg->timestamp));
+    internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, msg->timestamp));
     debugf("delete message received.\n");
+}
+void slave_t::send(buffed_data_t<net_backfill_delete_t>& msg) {
+    delete_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->key);
+    // NO_CAS_SUPPLIED is not used in any way for deletions, and
+    // msg->timestamp is part of the "->change" interface in a way not
+    // relevant to slaves -- it's used when putting deletions into the
+    // delete queue.
+    internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED, msg->timestamp));
 }
 void slave_t::send(buffed_data_t<net_nop_t>& message) {
     int current_thread = get_thread_id();

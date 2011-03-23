@@ -45,6 +45,7 @@ public:
     virtual void send(stream_pair<net_append_t>& message) = 0;
     virtual void send(stream_pair<net_prepend_t>& message) = 0;
     virtual void send(buffed_data_t<net_delete_t>& message) = 0;
+    virtual void send(buffed_data_t<net_backfill_delete_t>& message) = 0;
     virtual void send(buffed_data_t<net_nop_t>& message) = 0;
     virtual void send(buffed_data_t<net_ack_t>& message) = 0;
     virtual void send(buffed_data_t<net_shutting_down_t>& message) = 0;
@@ -109,8 +110,6 @@ public:
         debugf("repli_stream done co_shutdown\n");
     }
 
-    // message_callback_t functions
-
     void send(net_backfill_t *msg);
     void send(net_announce_t *msg);
     void send(net_get_cas_t *msg);
@@ -121,6 +120,7 @@ public:
     void send(net_append_t *msg, const char *key, data_provider_t *value);
     void send(net_prepend_t *msg, const char *key, data_provider_t *value);
     void send(net_delete_t *msg);
+    void send(net_backfill_delete_t *msg);
 
     // TODO remove this
     void send(net_nop_t msg);

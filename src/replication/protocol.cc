@@ -52,6 +52,7 @@ template <> size_t objsize<net_sarc_t>(const net_sarc_t *buf) { return sizeof(ne
 template <> size_t objsize<net_append_t>(const net_append_t *buf) { return sizeof(net_append_t) + buf->key_size + buf->value_size; }
 template <> size_t objsize<net_prepend_t>(const net_prepend_t *buf) { return sizeof(net_prepend_t) + buf->key_size + buf->value_size; }
 template <> size_t objsize<net_backfill_set_t>(const net_backfill_set_t *buf) { return sizeof(net_backfill_set_t) + buf->key_size + buf->value_size; }
+template <> size_t objsize<net_backfill_delete_t>(const net_backfill_delete_t *buf) { return sizeof(net_backfill_delete_t) + buf->key_size; }
 
 template <class T>
 void check_pass(message_callback_t *receiver, weak_buf_t buffer, size_t realoffset, size_t realsize) {
@@ -127,6 +128,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         case PREPEND: check_pass<net_prepend_t>(receiver, buffer, realbegin, realsize); break;
         case DELETE: check_pass<net_delete_t>(receiver, buffer, realbegin, realsize); break;
         case BACKFILL_SET: check_pass<net_backfill_set_t>(receiver, buffer, realbegin, realsize); break;
+        case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver, buffer, realbegin, realsize); break;
         default: throw protocol_exc_t("invalid message code");
         }
         rassert(very_current_thread == get_thread_id());
@@ -396,6 +398,10 @@ void repli_stream_t::send(net_prepend_t *msg, const char *key, data_provider_t *
 
 void repli_stream_t::send(net_delete_t *msg) {
     sendobj(DELETE, msg);
+}
+
+void repli_stream_t::send(net_backfill_delete_t *msg) {
+    sendobj(BACKFILL_DELETE, msg);
 }
 
 void repli_stream_t::send(net_nop_t msg) {

@@ -77,6 +77,7 @@ public:
     void send(UNUSED stream_pair<net_append_t>& message) { guarantee(false, "slave sent append"); }
     void send(UNUSED stream_pair<net_prepend_t>& message) { guarantee(false, "slave sent prepend"); }
     void send(UNUSED buffed_data_t<net_delete_t>& message) { guarantee(false, "slave sent delete"); }
+    void send(UNUSED buffed_data_t<net_backfill_delete_t>& message) { guarantee(false, "slave sent backfill_delete"); }
     void send(UNUSED buffed_data_t<net_nop_t>& message) { guarantee(false, "slave sent nop"); }
     void send(UNUSED buffed_data_t<net_ack_t>& message) { }
     void send(UNUSED buffed_data_t<net_shutting_down_t>& message) { }

@@ -68,6 +68,7 @@ public:
     void send(stream_pair<net_append_t>& message);
     void send(stream_pair<net_prepend_t>& message);
     void send(buffed_data_t<net_delete_t>& message);
+    void send(buffed_data_t<net_backfill_delete_t>& message);
     void send(buffed_data_t<net_nop_t>& message);
     void send(buffed_data_t<net_ack_t>& message);
     void send(buffed_data_t<net_shutting_down_t>& message);
