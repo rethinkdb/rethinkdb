@@ -356,7 +356,10 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         boost::shared_ptr<serializer_t::block_token_t> token = parent->serializer->generate_block_token(offset);
 
         // ... also generate the corresponding index op
-        index_write_ops.push_back(new serializer_t::index_write_block_t(writes[i].block_id, token));
+        if (writes[i].block_id != ser_block_id_t::null()) {
+            index_write_ops.push_back(new serializer_t::index_write_block_t(writes[i].block_id, token));
+        }
+        // (if we don't have a block id, the block is referenced by tokens only. These get remapped later)
     }
 
     // Step 2: Wait on all writes to finish
@@ -374,6 +377,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
     }
 
     // Step 5: Call parent
+    done = true;
     parent->on_gc_write_done();
 
     // Step 6: Delete us
@@ -456,11 +460,15 @@ void data_block_manager_t::run_gc() {
 
                     byte *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
                     const off64_t block_offset = gc_state.current_entry->offset + (i * static_config->block_size().ser_value());
-                    // TODO! Do we have to check for liveness first? (apparentlt!)
-                    ser_block_id_t id = serializer->lba_index->get_block_id(block_offset);
+                    ser_block_id_t id;
+                    // The block is either referenced by an index or by a token (or both)
+                    if (serializer->lba_index->is_offset_indexed(block_offset)) {
+                        id = serializer->lba_index->get_block_id(block_offset);
+                    } else {
+                        id = ser_block_id_t::null();
+                    }
                     void *data = block + sizeof(ls_buf_data_t);
 
-                    // TODO! Should we get rid of gc_write_t and refactor that stuff?
                     gc_writes.push_back(gc_write_t(id, data, block_offset));
                 }
 
