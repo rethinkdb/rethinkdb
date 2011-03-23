@@ -118,7 +118,7 @@
 #define MAX_VALUE_SIZE                            MEGABYTE
 
 // Values larger than this will be streamed in a set operation.
-#define MAX_BUFFERED_SET_SIZE                     1000
+#define MAX_BUFFERED_SET_SIZE                     2000000
 
 // Values larger than this will be streamed in a get operation
 #define MAX_BUFFERED_GET_SIZE                     10000

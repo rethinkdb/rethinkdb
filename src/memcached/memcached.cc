@@ -549,6 +549,7 @@ public:
             if (value_buffer[value_size] != '\r' || value_buffer[value_size + 1] != '\n') {
                 rh->writef("CLIENT_ERROR bad data chunk\r\n");
                 rh->read_next_command();
+                delete[] value_buffer;
                 delete this;
                 return;
             }
