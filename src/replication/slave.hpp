@@ -62,6 +62,7 @@ public:
     void send(buffed_data_t<net_announce_t>& message);
     void send(buffed_data_t<net_get_cas_t>& message);
     void send(stream_pair<net_sarc_t>& message);
+    void send(stream_pair<net_backfill_set_t>& message);
     void send(buffed_data_t<net_incr_t>& message);
     void send(buffed_data_t<net_decr_t>& message);
     void send(stream_pair<net_append_t>& message);

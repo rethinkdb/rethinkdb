@@ -140,6 +140,19 @@ void slave_t::send(stream_pair<net_sarc_t>& msg) {
     internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("sarc message received and applied.\n");
 }
+void slave_t::send(stream_pair<net_backfill_set_t>& msg) {
+    set_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->keyvalue);
+    mut.data = msg.stream;
+    mut.flags = msg->flags;
+    mut.exptime = msg->exptime;
+    mut.add_policy = add_policy_yes;
+    mut.replace_policy = replace_policy_yes;
+    mut.old_cas = NO_CAS_SUPPLIED;
+
+    // TODO: We need this operation to force the cas to be set.
+    internal_store_->change(mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
+}
 void slave_t::send(buffed_data_t<net_incr_t>& msg) {
     incr_decr_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);

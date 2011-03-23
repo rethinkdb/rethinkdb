@@ -68,15 +68,16 @@ public:
 
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
     void send(UNUSED buffed_data_t<net_backfill_t>& message) { coro_t::spawn(boost::bind(&master_t::do_backfill, this, message->timestamp)); }
-    void send(UNUSED buffed_data_t<net_announce_t>& message) { rassert(false, "slave sent announce"); }
-    void send(UNUSED buffed_data_t<net_get_cas_t>& message) { rassert(false, "slave sent get_cas"); }
-    void send(UNUSED stream_pair<net_sarc_t>& message) { rassert(false, "slave sent sarc"); }
-    void send(UNUSED buffed_data_t<net_incr_t>& message) { rassert(false, "slave sent incr"); }
-    void send(UNUSED buffed_data_t<net_decr_t>& message) { rassert(false, "slave sent decr"); }
-    void send(UNUSED stream_pair<net_append_t>& message) { rassert(false, "slave sent append"); }
-    void send(UNUSED stream_pair<net_prepend_t>& message) { rassert(false, "slave sent prepend"); }
-    void send(UNUSED buffed_data_t<net_delete_t>& message) { rassert(false, "slave sent delete"); }
-    void send(UNUSED buffed_data_t<net_nop_t>& message) { rassert(false, "slave sent nop"); }
+    void send(UNUSED buffed_data_t<net_announce_t>& message) { guarantee(false, "slave sent announce"); }
+    void send(UNUSED buffed_data_t<net_get_cas_t>& message) { guarantee(false, "slave sent get_cas"); }
+    void send(UNUSED stream_pair<net_sarc_t>& message) { guarantee(false, "slave sent sarc"); }
+    void send(UNUSED stream_pair<net_backfill_set_t>& message) { guarantee(false, "slave sent backfill_set"); }
+    void send(UNUSED buffed_data_t<net_incr_t>& message) { guarantee(false, "slave sent incr"); }
+    void send(UNUSED buffed_data_t<net_decr_t>& message) { guarantee(false, "slave sent decr"); }
+    void send(UNUSED stream_pair<net_append_t>& message) { guarantee(false, "slave sent append"); }
+    void send(UNUSED stream_pair<net_prepend_t>& message) { guarantee(false, "slave sent prepend"); }
+    void send(UNUSED buffed_data_t<net_delete_t>& message) { guarantee(false, "slave sent delete"); }
+    void send(UNUSED buffed_data_t<net_nop_t>& message) { guarantee(false, "slave sent nop"); }
     void send(UNUSED buffed_data_t<net_ack_t>& message) { }
     void send(UNUSED buffed_data_t<net_shutting_down_t>& message) { }
     void send(UNUSED buffed_data_t<net_goodbye_t>& message) { }

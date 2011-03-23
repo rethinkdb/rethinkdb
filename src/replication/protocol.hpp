@@ -39,6 +39,7 @@ public:
     virtual void send(buffed_data_t<net_announce_t>& message) = 0;
     virtual void send(buffed_data_t<net_get_cas_t>& message) = 0;
     virtual void send(stream_pair<net_sarc_t>& message) = 0;
+    virtual void send(stream_pair<net_backfill_set_t>& message) = 0;
     virtual void send(buffed_data_t<net_incr_t>& message) = 0;
     virtual void send(buffed_data_t<net_decr_t>& message) = 0;
     virtual void send(stream_pair<net_append_t>& message) = 0;
@@ -114,6 +115,7 @@ public:
     void send(net_announce_t *msg);
     void send(net_get_cas_t *msg);
     void send(net_sarc_t *msg, const char *key, data_provider_t *value);
+    void send(net_backfill_set_t *msg, const char *key, data_provider_t *value);
     void send(net_incr_t *msg);
     void send(net_decr_t *msg);
     void send(net_append_t *msg, const char *key, data_provider_t *value);

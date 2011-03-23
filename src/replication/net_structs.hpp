@@ -13,7 +13,7 @@ enum multipart_aspect { SMALL = 0x81, FIRST = 0x82, MIDDLE = 0x83, LAST = 0x84 }
 enum message_code { MSGCODE_NIL = 0, BACKFILL = 0x01, ANNOUNCE = 0x02, NOP = 0x03, ACK = 0x04, SHUTTING_DOWN = 0x05,
                     GOODBYE = 0x06,
 
-                    GET_CAS = 0x21, SARC, INCR, DECR, APPEND, PREPEND, DELETE };
+                    GET_CAS = 0x21, SARC, INCR, DECR, APPEND, PREPEND, DELETE, BACKFILL_SET };
 
 enum role_enum_t { role_master = 0, role_new_slave = 1, role_slave = 2 };
 
@@ -90,6 +90,16 @@ struct net_sarc_t {
     uint8_t add_policy;
     uint8_t replace_policy;
     cas_t old_cas;
+    char keyvalue[];
+} __attribute__((__packed__));
+
+struct net_backfill_set_t {
+    repli_timestamp timestamp;
+    mcflags_t flags;
+    exptime_t exptime;
+    cas_t cas_or_zero;
+    uint16_t key_size;
+    uint32_t value_size;
     char keyvalue[];
 } __attribute__((__packed__));
 

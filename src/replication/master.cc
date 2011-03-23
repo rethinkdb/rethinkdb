@@ -241,21 +241,22 @@ void master_t::do_backfill(repli_timestamp since_when) {
 }
 
 void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
-    // TODO: This is bad because the slave can't sort out
-    // backfilling messages from real ones.
-    //
-    // TODO: Make sure that we're sending things such that the slave
-    // uses the latest cas value if it's not zero, and doesn't simply
-    // discard it or do something stupid like that.
+    data_provider_t *data = atom.value.release();
 
-    debugf("We are about to send atom '%.*s': flags=%u exptime=%u recency=%u cas=%lu...\n",
-           atom.key.size, atom.key.contents, atom.flags, atom.exptime, atom.recency, atom.cas_or_zero);
+    if (stream_) {
+        net_backfill_set_t msg;
+        msg.timestamp = atom.recency;
+        msg.flags = atom.flags;
+        msg.exptime = atom.exptime;
+        msg.cas_or_zero = atom.cas_or_zero;
+        msg.key_size = atom.key.size;
+        msg.value_size = data->get_size();
+        stream_->send(&msg, atom.key.contents, data);
+    }
 
-    sarc(atom.key, atom.value.release(), atom.flags, atom.exptime, castime_t(atom.cas_or_zero, atom.recency), add_policy_yes, replace_policy_yes, NO_CAS_SUPPLIED);
-
-    debugf("Finished sending atom '%.*s'.\n", atom.key.size, atom.key.contents);
+    // TODO: do we delete data or does repli_stream_t delete it?
+    delete data;
 }
-
 
 
 }  // namespace replication

@@ -358,6 +358,10 @@ void repli_stream_t::send(net_sarc_t *msg, const char *key, data_provider_t *val
     sendobj(SARC, msg, key, value);
 }
 
+void repli_stream_t::send(net_backfill_set_t *msg, const char *key, data_provider_t *value) {
+    sendobj(BACKFILL_SET, msg, key, value);
+}
+
 void repli_stream_t::send(net_incr_t *msg) {
     sendobj(INCR, msg);
 }

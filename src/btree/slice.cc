@@ -96,7 +96,7 @@ void btree_slice_t::spawn_backfill(repli_timestamp since_when, backfill_callback
 }
 
 void btree_slice_t::time_barrier(repli_timestamp lower_bound_on_future_timestamps) {
-    transactor_t transactor(&cache(), rwi_write, lower_bound_on_future_timestamps);
+    transactor_t transactor(&cache(), rwi_write, 0, lower_bound_on_future_timestamps);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
     superblock->touch_recency(lower_bound_on_future_timestamps);
 }
