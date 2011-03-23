@@ -160,10 +160,6 @@ public:
         friend class translator_serializer_t;
 
     private:
-        static write_t make_internal(ser_block_id_t block_id_, const void *buf_, write_block_callback_t *callback_) {
-            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, true, callback_);
-        }
-
         write_t(ser_block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
                 bool buf_specified_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_)
             : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), write_empty_deleted_block(write_empty_deleted_block_), callback(callback_) { }

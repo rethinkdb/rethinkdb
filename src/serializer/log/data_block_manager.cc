@@ -332,6 +332,54 @@ void data_block_manager_t::start_gc() {
     if (gc_state.step() == gc_ready) run_gc();
 }
 
+data_block_manager_t::gc_writer_t::gc_writer_t(gc_write_t *writes, int num_writes, data_block_manager_t *parent) : done(num_writes == 0), parent(parent) {
+    if (!done) {
+        coro_t::spawn(boost::bind(&data_block_manager_t::gc_writer_t::write_gcs, this, writes, num_writes));
+    }
+}
+
+struct block_write_cond_t : public cond_t, public iocallback_t {
+    void on_io_complete() {
+        pulse();
+    }
+};
+void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_writes) {
+    std::vector<block_write_cond_t*> block_write_conds;
+    block_write_conds.reserve(num_writes);
+
+    std::vector<serializer_t::index_write_op_t*> index_write_ops;
+
+    // Step 1: Write buffers to disk and assemble index operations
+    for (size_t i = 0; i < (size_t)num_writes; ++i) {
+        block_write_conds.push_back(new block_write_cond_t());
+        const off64_t offset = parent->write(writes[i].buf, false, block_write_conds.back()); // False -> don't assign new block sequence id
+        boost::shared_ptr<serializer_t::block_token_t> token = parent->serializer->generate_block_token(offset);
+
+        // ... also generate the corresponding index op
+        index_write_ops.push_back(new serializer_t::index_write_block_t(writes[i].block_id, token));
+    }
+
+    // Step 2: Wait on all writes to finish
+    for (size_t i = 0; i < block_write_conds.size(); ++i) {
+        block_write_conds[i]->wait();
+        delete block_write_conds[i];
+    }
+
+    // Step 3: Commit the transaction to the serializer
+    parent->serializer->index_write(index_write_ops);
+
+    // Step 4: Cleanup index_write_ops
+    for (size_t i = 0; i < index_write_ops.size(); ++i) {
+        delete index_write_ops[i];
+    }
+
+    // Step 5: Call parent
+    parent->on_gc_write_done();
+
+    // Step 6: Delete us
+    delete this;
+}
+
 void data_block_manager_t::on_gc_write_done() {
     // Remap tokens to new offsets...
     for (size_t i = 0; i < gc_writes.size(); ++i) {
@@ -412,8 +460,7 @@ void data_block_manager_t::run_gc() {
                     ser_block_id_t id = serializer->lba_index->get_block_id(block_offset);
                     void *data = block + sizeof(ls_buf_data_t);
 
-                    // TODO! Instead of having all this gc_write stuff around, utilize the new block_write and index_write interface to do the same stuff in a more direct way!
-                    // TODO! This is broken, as assign_transaction_id is not honored in the do_write wrapper.
+                    // TODO! Should we get rid of gc_write_t and refactor that stuff?
                     gc_writes.push_back(gc_write_t(id, data, block_offset));
                 }
 
@@ -423,8 +470,8 @@ void data_block_manager_t::run_gc() {
                 gc_state.set_step(gc_write);
 
                 /* schedule the write */
-                bool done = gc_writer->write_gcs(gc_writes.data(), gc_writes.size(), this);
-                if (!done) break;
+                gc_writer_t *gc_writer = new gc_writer_t(gc_writes.data(), gc_writes.size(), this);
+                if (!gc_writer->done) break;
             }
                 
             case gc_write:

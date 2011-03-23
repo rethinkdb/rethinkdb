@@ -29,36 +29,30 @@ extern perfmon_counter_t
 //extern perfmon_function_t
 //    pm_serializer_garbage_ratio;
 
-struct data_block_manager_gc_write_callback_t {
-
-    virtual void on_gc_write_done() = 0;
-};
-
-class data_block_manager_t :
-    public data_block_manager_gc_write_callback_t
+class data_block_manager_t
 {
 
     friend class dbm_read_ahead_fsm_t;
 
-public:
-
-    typedef data_block_manager_gc_write_callback_t gc_write_callback_t;
-    
+private:
     struct gc_write_t {
         ser_block_id_t block_id;
         const void *buf;
         off64_t old_offset;
         gc_write_t(ser_block_id_t i, const void *b, off64_t old_offset) : block_id(i), buf(b), old_offset(old_offset) { }
     };
-    
+
     struct gc_writer_t {
-    
-        virtual bool write_gcs(gc_write_t *writes, int num_writes, gc_write_callback_t *cb) = 0;
+        gc_writer_t(gc_write_t *writes, int num_writes, data_block_manager_t *parent);
+        bool done;
+    private:
+        void write_gcs(gc_write_t *writes, int num_writes);
+        data_block_manager_t *parent;
     };
 
 public:
-    data_block_manager_t(gc_writer_t *gc_writer, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_static_config_t *static_config)
-        : shutdown_callback(NULL), state(state_unstarted), gc_writer(gc_writer),
+    data_block_manager_t(const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_static_config_t *static_config)
+        : shutdown_callback(NULL), state(state_unstarted), 
           dynamic_config(dynamic_config), static_config(static_config), extent_manager(em), serializer(serializer),
           next_active_extent(0),
           gc_state(extent_manager->extent_size)//,
@@ -66,7 +60,6 @@ public:
     {
         rassert(dynamic_config);
         rassert(static_config);
-        rassert(gc_writer);
         rassert(extent_manager);
         rassert(serializer);
     }

@@ -86,7 +86,7 @@ struct ls_start_existing_fsm_t :
             
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
             ser->lba_index = new lba_index_t(ser->extent_manager, ser->static_config.block_size().ser_value());
-            ser->data_block_manager = new data_block_manager_t(ser, ser->dynamic_config, ser->extent_manager, ser, &ser->static_config);
+            ser->data_block_manager = new data_block_manager_t(ser->dynamic_config, ser->extent_manager, ser, &ser->static_config);
             
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
                 state = state_start_lba;
@@ -273,47 +273,6 @@ void log_serializer_t::free(void *ptr) {
 perfmon_duration_sampler_t pm_serializer_writes("serializer_writes", secs_to_ticks(1));
 perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_ticks(2));
 
-bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb) {
-
-    // TODO! Change this to a nice and correct implementation!
-
-    /*
-     * TODO!
-     * Use data_block_manager writes, at the point where they are done: update the LBA offsets and remap tokens. This should actually just go into data_block_manager.
-     * I can probably refactor run_gc to use a coroutine!
-     */
-
-    struct gc_callback_wrapper_t : public write_txn_callback_t {
-        virtual void on_serializer_write_txn() {
-            target->on_gc_write_done();
-            delete this;
-        }
-        std::vector<write_t> writes;
-        data_block_manager_t::gc_write_callback_t *target;
-    } *cb_wrapper = new gc_callback_wrapper_t;
-    cb_wrapper->target = cb;
-
-    for (int i = 0; i < num_writes; i++) {
-        /* If the block is not currently in use, we must write a deletion. Otherwise we
-        would write the zero-buf that was written when we first deleted it. */
-        if (block_in_use(gc_writes[i].block_id)) {
-            /* make_internal() makes a write_t that will not change the timestamp. */
-            cb_wrapper->writes.push_back(write_t::make_internal(gc_writes[i].block_id, gc_writes[i].buf, NULL));
-        } else {
-            // TODO: Does this assert fail for large values now?
-            rassert(memcmp(gc_writes[i].buf, "zero", 4) == 0);   // Check for zerobuf magic
-            cb_wrapper->writes.push_back(write_t::make_internal(gc_writes[i].block_id, NULL, NULL));
-        }
-    }
-
-    if (do_write(cb_wrapper->writes.data(), cb_wrapper->writes.size(), cb_wrapper)) {
-        delete cb_wrapper;
-        return true;
-    } else {
-        return false;
-    }
-}
-
 perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1));
 // TODO! Update perfmons
 
@@ -492,13 +451,17 @@ void log_serializer_t::index_write_finish(index_write_context_t &context) {
     }
 }
 
+boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::generate_block_token(off64_t offset) {
+    return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset));
+}
+
 boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::block_write(const void *buf, iocallback_t *cb) {
     extent_manager_t::transaction_t *em_trx = extent_manager->begin_transaction();
     const off64_t offset = data_block_manager->write(buf, true, cb);
     extent_manager->end_transaction(em_trx);
     extent_manager->commit_transaction(em_trx);
 
-    return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset));
+    return generate_block_token(offset);
 }
 
 void log_serializer_t::register_block_token(ls_block_token_t *token, off64_t offset) {
