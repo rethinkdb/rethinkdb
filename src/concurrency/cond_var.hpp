@@ -117,10 +117,6 @@ cond_t type so that you can make it thread-safe if you need to. */
 template <class val_t, class underlying_cond_t = cond_t>
 struct promise_t {
 
-    // TODO: This is criminally insane, neh?  This type eventually
-    // calls delete on the address of a parameter that had been passed
-    // by reference.
-
     promise_t() : value(NULL) { }
     void pulse(const val_t &v) {
         value = new val_t(v);
