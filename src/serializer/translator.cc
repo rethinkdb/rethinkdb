@@ -246,7 +246,7 @@ bool translator_serializer_t::do_write(write_t *writes, int num_writes, serializ
     fsm->tid_cb = tid_callback;
     for (int i = 0; i < num_writes; i++) {
         fsm->writes.push_back(serializer_t::write_t(xlate(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
-                                                writes[i].buf_specified, writes[i].buf, writes[i].write_empty_deleted_block, writes[i].callback, writes[i].assign_transaction_id));
+                                                writes[i].buf_specified, writes[i].buf, writes[i].write_empty_deleted_block, writes[i].callback));
     }
     if (inner->do_write(fsm->writes.data(), num_writes, fsm, fsm)) {
         delete fsm;

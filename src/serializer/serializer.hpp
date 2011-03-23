@@ -150,24 +150,23 @@ public:
         const void *buf;   /* If NULL, a deletion */
         bool write_empty_deleted_block;
         write_block_callback_t *callback;
-        bool assign_transaction_id;
 
         friend class log_serializer_t;
 
         static write_t make(ser_block_id_t block_id_, repli_timestamp recency_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, true, buf_, write_empty_deleted_block_, callback_, true);
+            return write_t(block_id_, true, recency_, true, buf_, write_empty_deleted_block_, callback_);
         }
 
         friend class translator_serializer_t;
 
     private:
         static write_t make_internal(ser_block_id_t block_id_, const void *buf_, write_block_callback_t *callback_) {
-            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, true, callback_, false);
+            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, true, callback_);
         }
 
         write_t(ser_block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
-                bool buf_specified_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_, bool assign_transaction_id)
-            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), write_empty_deleted_block(write_empty_deleted_block_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
+                bool buf_specified_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_)
+            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), write_empty_deleted_block(write_empty_deleted_block_), callback(callback_) { }
     };
 private:
     struct block_write_cond_t : public cond_t, public iocallback_t {
@@ -181,7 +180,6 @@ private:
         write_block_callback_t *callback;
     };
     static void do_write_wrapper(serializer_t *serializer, write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback) {
-        fprintf(stderr, "Starting write\n");
         std::vector<block_write_cond_t*> block_write_conds;
         block_write_conds.reserve(num_writes);
 
@@ -239,8 +237,6 @@ private:
         for (size_t i = 0; i < index_write_ops.size(); ++i) {
             delete index_write_ops[i];
         }
-
-        fprintf(stderr, "Finished write\n");
 
         // Step 6: Call callback
         callback->on_serializer_write_txn();

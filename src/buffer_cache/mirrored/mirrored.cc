@@ -153,7 +153,7 @@ void mc_inner_buf_t::replay_patches() {
     }
 
     /*if (patches) {
-        fprintf(stderr, "Replaying %d patches on block %d\n", (int)patches->size(), inner_buf->block_id);
+        fprintf(stderr, "Replaying %d patches on block %d\n", (int)patches->size(), block_id);
     }*/
 
     // Apply outstanding patches

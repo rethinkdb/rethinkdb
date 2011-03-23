@@ -408,7 +408,7 @@ void data_block_manager_t::run_gc() {
 
                     byte *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
                     const off64_t block_offset = gc_state.current_entry->offset + (i * static_config->block_size().ser_value());
-                    // TODO! Do we have to check for liveness first?
+                    // TODO! Do we have to check for liveness first? (apparentlt!)
                     ser_block_id_t id = serializer->lba_index->get_block_id(block_offset);
                     void *data = block + sizeof(ls_buf_data_t);
 

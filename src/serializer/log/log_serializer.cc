@@ -275,6 +275,14 @@ perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_tick
 
 bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb) {
 
+    // TODO! Change this to a nice and correct implementation!
+
+    /*
+     * TODO!
+     * Use data_block_manager writes, at the point where they are done: update the LBA offsets and remap tokens. This should actually just go into data_block_manager.
+     * I can probably refactor run_gc to use a coroutine!
+     */
+
     struct gc_callback_wrapper_t : public write_txn_callback_t {
         virtual void on_serializer_write_txn() {
             target->on_gc_write_done();
@@ -488,6 +496,7 @@ boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::block_write(con
     extent_manager_t::transaction_t *em_trx = extent_manager->begin_transaction();
     const off64_t offset = data_block_manager->write(buf, true, cb);
     extent_manager->end_transaction(em_trx);
+    extent_manager->commit_transaction(em_trx);
 
     return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset));
 }

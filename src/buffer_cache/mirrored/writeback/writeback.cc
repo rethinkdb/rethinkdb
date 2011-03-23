@@ -565,7 +565,7 @@ void writeback_t::concurrent_flush_t::update_block_sequence_ids() {
     rassert(parent->writeback_in_progress);
     parent->cache->assert_thread();
 
-    // Retrieve changed transaction ids
+    // Retrieve changed block sequence ids
     size_t inner_buf_ix = 0;
     for (size_t i = 0; i < serializer_writes.size(); ++i) {
         if (serializer_writes[i].buf_specified && serializer_writes[i].buf) {
