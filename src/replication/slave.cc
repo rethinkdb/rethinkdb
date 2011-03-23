@@ -193,12 +193,16 @@ void slave_t::send(buffed_data_t<net_delete_t>& msg) {
     debugf("delete message received.\n");
 }
 void slave_t::send(buffed_data_t<net_nop_t>& message) {
+    int current_thread = get_thread_id();
     debugf("nop message received.\n");
     net_ack_t ackreply;
     ackreply.timestamp = message->timestamp;
+    rassert(current_thread == get_thread_id(), "A");
     stream_->send(ackreply);
     debugf("sent ack reply\n");
+    rassert(current_thread == get_thread_id(), "B");
     internal_store_->time_barrier(message->timestamp);
+    rassert(current_thread == get_thread_id(), "C");
 }
 void slave_t::send(UNUSED buffed_data_t<net_ack_t>& message) {
     rassert("ack message received.. as slave?\n");

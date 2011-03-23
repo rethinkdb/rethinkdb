@@ -95,8 +95,13 @@ void btree_slice_t::spawn_backfill(repli_timestamp since_when, backfill_callback
     spawn_btree_backfill(this, since_when, callback);
 }
 
-void btree_slice_t::time_barrier(repli_timestamp lower_bound_on_future_timestamps) {
+void btree_slice_t::time_barrier(UNUSED repli_timestamp lower_bound_on_future_timestamps) {
+    on_thread_t th(cache().home_thread);
+    int current_thread = get_thread_id();
     transactor_t transactor(&cache(), rwi_write, 0, lower_bound_on_future_timestamps);
+    rassert(current_thread == get_thread_id(), "B");
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
+    rassert(current_thread == get_thread_id(), "C");
     superblock->touch_recency(lower_bound_on_future_timestamps);
+    rassert(current_thread == get_thread_id(), "D");
 }

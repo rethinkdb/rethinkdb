@@ -241,6 +241,8 @@ void master_t::do_backfill(repli_timestamp since_when) {
 }
 
 void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+
     data_provider_t *data = atom.value.release();
 
     if (stream_) {

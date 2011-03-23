@@ -42,20 +42,25 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
 
 template <class T> struct stream_type { typedef buffed_data_t<T> type; };
 template <> struct stream_type<net_sarc_t> { typedef stream_pair<net_sarc_t> type; };
-template <> struct stream_type<net_prepend_t> { typedef stream_pair<net_prepend_t> type; };
 template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t> type; };
+template <> struct stream_type<net_prepend_t> { typedef stream_pair<net_prepend_t> type; };
+template <> struct stream_type<net_backfill_set_t> { typedef stream_pair<net_backfill_set_t> type; };
 
 template <class T> size_t objsize(UNUSED const T *buf) { return sizeof(T); }
 template <> size_t objsize<net_get_cas_t>(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
 template <> size_t objsize<net_sarc_t>(const net_sarc_t *buf) { return sizeof(net_sarc_t) + buf->key_size + buf->value_size; }
 template <> size_t objsize<net_append_t>(const net_append_t *buf) { return sizeof(net_append_t) + buf->key_size + buf->value_size; }
 template <> size_t objsize<net_prepend_t>(const net_prepend_t *buf) { return sizeof(net_prepend_t) + buf->key_size + buf->value_size; }
+template <> size_t objsize<net_backfill_set_t>(const net_backfill_set_t *buf) { return sizeof(net_backfill_set_t) + buf->key_size + buf->value_size; }
 
 template <class T>
 void check_pass(message_callback_t *receiver, weak_buf_t buffer, size_t realoffset, size_t realsize) {
     if (sizeof(T) <= realsize && objsize<T>(buffer.get<T>(realoffset)) == realsize) {
+        int current_thread = get_thread_id();
         typename stream_type<T>::type buf(buffer, realoffset, realsize);
+        rassert(current_thread == get_thread_id(), "A");
         receiver->send(buf);
+        rassert(current_thread == get_thread_id(), "B");
     } else {
         debugf("realsize: %zu sizeof(T): %zu objsize: %zu\n", realsize, sizeof(T), objsize<T>(buffer.get<T>(realoffset)));
         throw protocol_exc_t("message wrong length for message code");
@@ -84,6 +89,8 @@ void check_first_size(message_callback_t *receiver, weak_buf_t& buffer, size_t r
 size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t buffer, size_t offset, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
+    int current_thread = get_thread_id();
+
     if (num_read < sizeof(net_multipart_header_t)) {
         return 0;
     }
@@ -104,6 +111,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         size_t realbegin = offset + sizeof(net_header_t);
         size_t realsize = msgsize - sizeof(net_header_t);
 
+        int very_current_thread = get_thread_id();
         switch (hdr->msgcode) {
         case BACKFILL: check_pass<net_backfill_t>(receiver, buffer, realbegin, realsize); break;
         case ANNOUNCE: check_pass<net_announce_t>(receiver, buffer, realbegin, realsize); break;
@@ -118,8 +126,10 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         case APPEND: check_pass<net_append_t>(receiver, buffer, realbegin, realsize); break;
         case PREPEND: check_pass<net_prepend_t>(receiver, buffer, realbegin, realsize); break;
         case DELETE: check_pass<net_delete_t>(receiver, buffer, realbegin, realsize); break;
+        case BACKFILL_SET: check_pass<net_backfill_set_t>(receiver, buffer, realbegin, realsize); break;
         default: throw protocol_exc_t("invalid message code");
         }
+        rassert(very_current_thread == get_thread_id());
     } else {
         const net_multipart_header_t *multipart_hdr = buffer.get<net_multipart_header_t>(offset);
         uint32_t ident = multipart_hdr->ident;
@@ -131,6 +141,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
             case SARC: check_first_size<net_sarc_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
             case APPEND: check_first_size<net_append_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
             case PREPEND: check_first_size<net_prepend_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
+            case BACKFILL_SET: check_first_size<net_backfill_set_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
             default: throw protocol_exc_t("invalid message code for multipart message");
             }
         } else if (hdr->message_multipart_aspect == MIDDLE || hdr->message_multipart_aspect == LAST) {
@@ -160,6 +171,8 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         }
     }
 
+    rassert(current_thread == get_thread_id());
+
     return msgsize;
 }
 
@@ -185,7 +198,10 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
 
     marker.p = &is_live;
 
+    int current_thread = get_thread_id();
+
     while (is_live) {
+        rassert(current_thread == get_thread_id());
         // Try handling the message.
         size_t handled = handle_message(receiver, weak_buf_t(shared_buf), offset, num_read, streams);
         if (handled > 0) {
