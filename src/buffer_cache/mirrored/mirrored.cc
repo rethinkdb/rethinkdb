@@ -578,6 +578,7 @@ mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access, int expected
 
 mc_transaction_t::~mc_transaction_t() {
     rassert(state == state_committed);
+    debugf("~mc_transaction_t for %p\n", this);
     pm_transactions_committing.end(&start_time);
 }
 

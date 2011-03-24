@@ -96,13 +96,13 @@ int large_buf_t::num_ref_inlined() const {
     return compute_large_buf_ref_num_inlined(block_size(), root_ref->size + root_ref->offset, root_ref_limit);
 }
 
-large_buf_t::large_buf_t(transaction_t *txn_, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_)
-    : root_ref(root_ref_), root_ref_limit(ref_limit_), access(access_), txn(txn_)
+large_buf_t::large_buf_t(const boost::shared_ptr<transactor_t>& _txor, large_buf_ref *_root_ref, lbref_limit_t _ref_limit, access_t _access)
+    : root_ref(_root_ref), root_ref_limit(_ref_limit), access(_access), txor(_txor)
 #ifndef NDEBUG
     , state(not_loaded), num_bufs(0)
 #endif
 {
-    rassert(txn);
+    rassert(txor && txor->transaction());
     rassert(root_ref);
 }
 
@@ -125,7 +125,7 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
     ret->level = levels;
 #endif
 
-    ret->buf = txn->allocate();
+    ret->buf = (*txor)->allocate();
     *block_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
@@ -223,7 +223,7 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
 
     void go() {
         bool should_load = should_load_leaves || levels != 1;
-        buf_t *buf = lb->txn->acquire(block_id, lb->access, this, should_load);
+        buf_t *buf = (*lb->txor)->acquire(block_id, lb->access, this, should_load);
         if (buf) {
             on_block_available(buf);
         }
@@ -271,9 +271,9 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     }
 };
 
-void large_buf_t::co_enqueue(transaction_t *txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, void *buf, int64_t n) {
+void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, void *buf, int64_t n) {
     rassert(root_ref->size - amount_to_dequeue + n > 0);
-    boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txn, root_ref, ref_limit, rwi_write));
+    boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
 
     // 1. Enqueue.
     if (root_ref->size == 0) {
@@ -369,7 +369,7 @@ void large_buf_t::adds_level(block_id_t *ids
 #endif
 
     block_id_t new_id;
-    ret->buf = txn->allocate();
+    ret->buf = (*txor)->allocate();
     new_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
@@ -781,7 +781,7 @@ void large_buf_t::mark_deleted() {
 void large_buf_t::lv_release() {
     rassert(state == loaded || state == deleted);
 
-    txn->ensure_thread();
+    (*txor)->ensure_thread();
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
     release_tree_structures(&roots, 0, max_offset(sublevels) * num_ref_inlined(), sublevels);
 

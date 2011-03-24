@@ -1,7 +1,10 @@
 #ifndef __LARGE_BUF_HPP__
 #define __LARGE_BUF_HPP__
 
+#include <boost/shared_ptr.hpp>
+
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/transactor.hpp"
 #include "config/args.hpp"
 
 #include "containers/buffer_group.hpp"
@@ -63,7 +66,7 @@ private:
     access_t const access;
 
     // The transaction in which this large_buf_t's lifetime exists.
-    transaction_t *const txn;
+    boost::shared_ptr<transactor_t> const txor;
 
     // When we allocate or acquire a large buffer, we create a tree of
     // butrees, parallel to the on-disk tree, where each node holds
@@ -99,7 +102,7 @@ public:
     int64_t num_bufs;
 #endif
 
-    explicit large_buf_t(transaction_t *txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, access_t access);
+    explicit large_buf_t(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, access_t access);
     ~large_buf_t();
 
     // This is a COMPLETE HACK
@@ -114,7 +117,7 @@ public:
     void acquire_for_delete(large_buf_available_callback_t *callback);
     void acquire_for_unprepend(int64_t extra_size, large_buf_available_callback_t *callback);
 
-    void co_enqueue(transaction_t *txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, void *buf, int64_t n);
+    void co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, void *buf, int64_t n);
 
 
 
@@ -133,7 +136,7 @@ public:
     void mark_deleted();
 
     // TODO:  Stop being a bad programmer and start knowing what thread you're on.
-    void ensure_thread() const { txn->ensure_thread(); }
+    void ensure_thread() const { (*txor)->ensure_thread(); }
 
     void on_block_available(buf_t *buf);
 
@@ -189,7 +192,7 @@ private:
     void removes_level(block_id_t *ids, int copyees);
     int try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t stepsize);
 
-    block_size_t block_size() const { return txn->cache->get_block_size(); }
+    block_size_t block_size() const { return (*txor)->cache->get_block_size(); }
 
     void lv_release();
 
