@@ -837,7 +837,7 @@ void mc_cache_t::register_snapshot(mc_transaction_t *txn) {
     rassert(txn->snapshot_version == mc_inner_buf_t::faux_version_id, "Snapshot has been already created for this transaction");
 
     txn->snapshot_version = next_snapshot_version++;
-    active_snapshots[txn->snapshot_version] = txn;    // RSI does that get properly optimized?
+    active_snapshots[txn->snapshot_version] = txn;
 }
 
 void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {

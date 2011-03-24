@@ -167,6 +167,10 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     
     // Set up interrupt handlers
     
+    // TODO: Should we save and restore previous interrupt handlers? This would
+    // be a good thing to do before distributing the RethinkDB IO layer, but it's
+    // not really important.
+    
     linux_thread_pool_t::thread_pool = this;   // So signal handlers can find us
     {
         struct sigaction sa;
@@ -198,7 +202,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     {
         struct sigaction sa;
         bzero((char*)&sa, sizeof(struct sigaction));
-        sa.sa_handler = SIG_DFL;
+        sa.sa_handler = SIG_IGN;
     
         res = sigaction(SIGTERM, &sa, NULL);
         guarantee_err(res == 0, "Could not remove TERM handler");

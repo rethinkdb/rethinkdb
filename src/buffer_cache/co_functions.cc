@@ -75,18 +75,14 @@ void co_acquire_large_buf_for_delete(large_buf_t *large_value) {
 
 // Well this is repetitive.
 struct transaction_begun_callback_t : public transaction_begin_callback_t {
-    coro_t *self;
-    transaction_t *value;
+    flat_promise_t<transaction_t*> txn;
 
-    void on_txn_begin(transaction_t *txn) {
-        value = txn;
-        self->notify();
+    void on_txn_begin(transaction_t *txn_) {
+        txn.pulse(txn_);
     }
 
     transaction_t *join() {
-        self = coro_t::self();
-        coro_t::wait();
-        return value;
+        return txn.wait();
     }
 };
 

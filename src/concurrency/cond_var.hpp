@@ -55,7 +55,6 @@ private:
 except between multiple coroutines on the same thread. It can only be used once. */
 
 struct cond_t {
-
     cond_t() : ready(false), waiter(NULL) { }
     void pulse() {
         rassert(!ready);
@@ -81,7 +80,6 @@ private:
 used with multiple coroutines on different threads. */
 
 struct threadsafe_cond_t {
-
     threadsafe_cond_t() : ready(false), waiter(NULL) { }
     void pulse() {
         lock.lock();
@@ -116,10 +114,6 @@ cond_t type so that you can make it thread-safe if you need to. */
 
 template <class val_t, class underlying_cond_t = cond_t>
 struct promise_t {
-
-    // TODO: This is criminally insane, neh?  This type eventually
-    // calls delete on the address of a parameter that had been passed
-    // by reference.
 
     promise_t() : value(NULL) { }
     void pulse(const val_t &v) {
