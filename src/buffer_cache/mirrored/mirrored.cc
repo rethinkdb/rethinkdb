@@ -298,8 +298,8 @@ void mc_buf_t::acquire_block(bool locked) {
                 } else {
                     data = inner_buf->data;
                     inner_buf->cow_will_be_needed = true;
-                    inner_buf->lock.unlock();
                 }
+                inner_buf->lock.unlock();
                 break;
             }
             case rwi_write: {
