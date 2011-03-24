@@ -85,6 +85,9 @@
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       11211
 
+// Default port to do replication on
+#define DEFAULT_REPLICATION_PORT                  11319
+
 // Default extension for the semantic file which is appended to the database name
 #define DEFAULT_SEMANTIC_EXTENSION                ".semantic"
 

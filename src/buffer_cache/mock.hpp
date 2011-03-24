@@ -57,6 +57,7 @@ public:
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
     void mark_deleted(bool write_null = true);
+    void touch_recency(repli_timestamp timestamp);
     void release();
     bool is_dirty();
 

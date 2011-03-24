@@ -219,7 +219,8 @@ public:
         pulse_response_ = waiter.wait();
 
         // Now actually acquire the node.
-        co_acquire_block(state_.transactor_ptr->transaction(), block_id, rwi_read, acquisition_cond);
+        buf_lock_t tmp(state_.transactor_ptr->transaction(), block_id, rwi_read, acquisition_cond);
+        inner_lock_.swap(tmp);
     }
 
     buf_t *operator->() { return inner_lock_.buf(); }
@@ -237,7 +238,6 @@ private:
 
 void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
     backfill_state_t state(slice, since_when, callback);
-
     buf_lock_t buf_lock(*state.transactor_ptr, SUPERBLOCK_ID, rwi_read);
     block_id_t root_id = reinterpret_cast<const btree_superblock_t *>(buf_lock.buf()->get_data_read())->root_block;
     rassert(root_id != SUPERBLOCK_ID);
@@ -257,6 +257,7 @@ void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, b
     // Conds activated when we first try to acquire the children.
     // TODO: Replace acquisition_conds with a counter that counts down to zero.
     boost::scoped_array<cond_t> acquisition_conds(new cond_t[num_block_ids]);
+
     for (int i = 0; i < num_block_ids; ++i) {
         if (recencies[i].time >= state.since_when.time) {
             coro_t::spawn(boost::bind(do_subtree_backfill, boost::ref(state), level, block_ids[i], &acquisition_conds[i]));

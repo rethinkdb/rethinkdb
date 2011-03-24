@@ -84,6 +84,8 @@ public:
     buffered_data_provider_t(size_t, void **);    // Allocate buffer, let creator fill it
     size_t get_size() const;
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+
+    char *peek() { return buffer.get(); }
 private:
     size_t size;
     const_buffer_group_t bg;
@@ -120,18 +122,22 @@ public:
         // Takes the thread that the reader reads from.  Soon after
         // construction, this serves as the de facto home thread of
         // the side_data_provider_t.
-        side_data_provider_t(int reading_thread, size_t size);
+        side_data_provider_t(int reading_thread, size_t size, cond_t *done_cond);
         ~side_data_provider_t();
 
         size_t get_size() const;
         const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
-        void supply_buffers_and_wait(const buffer_group_t *buffers);
+
+        void supply_buffers_and_wait(const const_buffer_group_t *buffers);
+        void supply_no_buffers();
 
     private:
         int reading_thread_;
         unicond_t<const const_buffer_group_t *> cond_;
-        cond_t done_cond_;
+        cond_t *done_cond_;
+        bool got_data_;
         size_t size_;
+        bool will_never_get_data_;
     };
 
 
@@ -145,8 +151,14 @@ public:
     side_data_provider_t *side_provider();
 private:
     data_provider_t *inner_;
+    cond_t done_cond_;  // Lives on the side_reader_thread.
     side_data_provider_t *side_;
     bool side_owned_;
+    bool supplied_buffers_;
+#ifndef NDEBUG
+    bool in_get_data_into_buffers_;
+#endif
 };
+
 
 #endif /* __DATA_PROVIDER_HPP__ */

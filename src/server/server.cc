@@ -174,7 +174,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         /* Record information about disk drives to log file */
         log_disk_info(cmd_config->store_dynamic_config.serializer_private);
 
-        replication::master_t master;
+        replication::master_t master(thread_pool, cmd_config->replication_master_listen_port);
 
         /* Create store if necessary */
         if (cmd_config->create_store) {
@@ -189,8 +189,11 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             /* Start key-value store */
             logINF("Loading database...\n");
-            //store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config, NULL /* &master - commented out because master eats the data_provider */);
+
+            snag_ptr_t<replication::master_t> master_ptr(master);
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config, master_ptr);
+            master_ptr.reset();
+
             server.get_store = &store;   // Gets always go straight to the key-value store
 
             /* Are we a replication slave? */

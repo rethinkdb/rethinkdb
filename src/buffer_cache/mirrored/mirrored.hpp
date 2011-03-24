@@ -88,12 +88,21 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     // Load an existing buf from disk
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load);
 
-    // Load an existing buf but use the provided data buffer (for read ahead)
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf);
+    // Load an existing buf but use the provided data buffer (for read
+    // ahead)
+    //
+    // TODO: Can we really pass the recency_timestamp here?  If
+    // we have the buf, we probably got it from the serializer, right?
+    // That means we could have gotten the recency_timestamp then, too
+    // (instead of doing a cross-thread message now).
+    //
+    // TODO: I don't know, it seems to me like this "for read ahead"
+    // rationale is fishy.
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
 
     // Create an entirely new buf
-    static mc_inner_buf_t *allocate(cache_t *cache, version_id_t snapshot_version);
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version);
+    static mc_inner_buf_t *allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp recency_timestamp);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp recency_timestamp);
     ~mc_inner_buf_t();
 
     struct buf_snapshot_info_t {
@@ -197,12 +206,23 @@ public:
     void mark_deleted(bool write_null = true);
 
     void touch_recency(repli_timestamp timestamp) {
-        // TODO: Add rassert(inner_buf->subtree_recency <= timestamp)
+        // Some operations acquire in write mode but should not
+        // actually affect subtree recency.  For example, delete
+        // operations, and delete_expired operations -- the subtree
+        // recency is an upper bound of the maximum timestamp of all
+        // the subtree's keys, and this cannot get affected by a
+        // delete operation.  (It is a bit ghetto that we use
+        // repli_timestamp invalid as a magic constant that indicates
+        // this fact, instead of using something robust.  We are so
+        // prone to using that value as a placeholder.)
+        if (timestamp.time != repli_timestamp::invalid.time) {
+            // TODO: Add rassert(inner_buf->subtree_recency <= timestamp)
 
-        // TODO: use some slice-specific timestamp that gets updated
-        // every epoll call.
-        inner_buf->subtree_recency = timestamp;
-        inner_buf->writeback_buf.set_recency_dirty();
+            // TODO: use some slice-specific timestamp that gets updated
+            // every epoll call.
+            inner_buf->subtree_recency = timestamp;
+            inner_buf->writeback_buf.set_recency_dirty();
+        }
     }
 
     repli_timestamp get_recency() {
@@ -221,7 +241,6 @@ private:
     DISABLE_COPYING(mc_buf_t);
 };
 
-class mc_transaction_t;
 /* Transaction class. */
 class mc_transaction_t :
     public intrusive_list_node_t<mc_transaction_t>,

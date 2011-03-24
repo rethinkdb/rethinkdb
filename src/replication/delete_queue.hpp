@@ -2,6 +2,7 @@
 #define __REPLICATION_DELETE_QUEUE_HPP__
 
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/transactor.hpp"
 
 /*
                        D E L E T E   Q U E U E
@@ -79,13 +80,13 @@ protected:
 // Acquires a delete queue, appends a (timestamp, key) pair to the
 // queue, and releases the queue.  The delete queue is identified by
 // queue_root.  This must be called on the transaction's home thread.
-void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root, repli_timestamp timestamp, const store_key_t *key);
+void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp timestamp, const store_key_t *key);
 
 // Dumps keys from the delete queue, blocking until all the keys in
 // the interval have been passed to the recipient.  All keys whose
 // timestamps are grequal to the begin_timestamp and less than the
 // end_timestamp are passed to recipient, in no particular order.
-void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_stream_receiver_t *recipient);
+void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_stream_receiver_t *recipient);
 
 
 
