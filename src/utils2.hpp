@@ -110,7 +110,7 @@ bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
 
 /* Debugging printing API (prints current thread in addition to message) */
 
-void debugf(const char *msg, ...);
+void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.

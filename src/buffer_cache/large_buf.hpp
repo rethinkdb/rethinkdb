@@ -184,8 +184,8 @@ private:
                     );
     void allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void allocates_part_of_tree(std::vector<buftree_t *> *ptrs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t sublevels);
-    buftree_t *walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *));
-    void walk_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *));
+    buftree_t *walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *, bool, bool), buftree_t *(*buftree_cleaner)(buftree_t *, bool, bool));
+    void walk_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels, void (*bufdoer)(large_buf_t *, buf_t *, bool, bool), buftree_t *(*buftree_cleaner)(buftree_t *, bool, bool));
     void delete_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels);
     void only_mark_deleted_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels);
     void release_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels);
