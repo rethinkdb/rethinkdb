@@ -107,4 +107,4 @@ if __name__ == "__main__":
     op["chunk_size"] = IntFlag("--chunk-size", 10)
     op["num_ints"] = IntFlag("--num-ints", 1000)
     op["num_chunks"] = IntFlag("--num-chunks", 50)
-    auto_server_test_main(test_function, op.parse(sys.argv), timeout = 300)
+    auto_server_test_main(test_function, op.parse(sys.argv), timeout = op.parse(sys.argv)["num_ints"] * 0.03)
