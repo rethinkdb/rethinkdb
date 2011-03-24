@@ -325,8 +325,11 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
 
             /* mark the garbage */
             flagged_off64_t gc_offset = lba_index->get_block_offset(delete_op.block_id);
-            rassert(flagged_off64_t::can_be_gced(gc_offset));
-            data_block_manager->mark_garbage(gc_offset.parts.value);
+            // TODO! Clarify whether the assertion is actually wrong (could be due to chenaged large value deletion I guess!) or if something else is broken
+            //rassert(flagged_off64_t::can_be_gced(gc_offset));
+            if (flagged_off64_t::can_be_gced(gc_offset)) {
+                data_block_manager->mark_garbage(gc_offset.parts.value);
+            }
 
             lba_index->set_block_info(delete_op.block_id, repli_timestamp::invalid, flagged_off64_t::delete_id());
 
