@@ -238,6 +238,13 @@ void master_t::do_backfill(repli_timestamp since_when) {
     debugf("Done spawning, now waiting for done_cond...\n");
     done_cond.wait();
     debugf("Done backfill.\n");
+    if (stream_) {
+        debugf("Sending backfill_complete...\n");
+        net_backfill_complete_t msg;
+        memset(msg.ignore, 0, sizeof(msg.ignore));
+        stream_->send(&msg);
+        debugf("Sent backfill_complete.\n");
+    }
 }
 
 void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {

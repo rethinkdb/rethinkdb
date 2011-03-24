@@ -365,6 +365,10 @@ void repli_stream_t::send(net_backfill_t *msg) {
     sendobj(BACKFILL, msg);
 }
 
+void repli_stream_t::send(net_backfill_complete_t *msg) {
+    sendobj(BACKFILL_COMPLETE, msg);
+}
+
 void repli_stream_t::send(net_announce_t *msg) {
     sendobj(ANNOUNCE, msg);
 }

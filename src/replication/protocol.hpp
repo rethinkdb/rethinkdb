@@ -112,6 +112,7 @@ public:
     }
 
     void send(net_backfill_t *msg);
+    void send(net_backfill_complete_t *msg);
     void send(net_announce_t *msg);
     void send(net_get_cas_t *msg);
     void send(net_sarc_t *msg, const char *key, data_provider_t *value);
