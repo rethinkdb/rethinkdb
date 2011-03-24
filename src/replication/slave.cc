@@ -122,6 +122,7 @@ void slave_t::send(UNUSED buffed_data_t<net_backfill_complete_t>& message) {
     // TODO: Make the parameter not UNUSED and implement this.  The
     // slave should queue non-backfilling messages until backfilling
     // is complete.
+    debugf("Received a BACKFILL_COMPLETE message.\n");
 }
 void slave_t::send(UNUSED buffed_data_t<net_announce_t>& message) {
     debugf("announce message received.\n");
