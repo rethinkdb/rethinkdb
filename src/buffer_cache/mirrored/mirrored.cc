@@ -56,24 +56,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
       page_map_buf(this),
       transaction_id(NULL_SER_TRANSACTION_ID) {
 
-    if (block_id == 18) {
-        debugf("Inner buf (2-A) with block_id %u has state %d\n", this->block_id, this->lock.state);
-    }
-
     if (should_load) {
-        if (block_id == 18) {
-            debugf("Inner buf (2-B) with block_id %u has state %d\n", this->block_id, this->lock.state);
-        }
-
         new load_buf_fsm_t(this);
-
-        if (block_id == 18) {
-            debugf("Inner buf (2-C) with block_id %u has state %d\n", this->block_id, this->lock.state);
-        }
-    }
-
-    if (block_id == 18) {
-        debugf("Inner buf (2-D) with block_id %u has state %d\n", this->block_id, this->lock.state);
     }
 
     // pm_n_blocks_in_memory gets incremented in cases where
@@ -82,21 +66,9 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
-    if (block_id == 18) {
-        debugf("Inner buf (2-E) with block_id %u has state %d\n", this->block_id, this->lock.state);
-    }
-
     cache->page_repl.make_space(1);
 
-    if (block_id == 18) {
-        debugf("Inner buf (2-F) with block_id %u has state %d\n", this->block_id, this->lock.state);
-    }
-
     refcount--;
-
-    if (block_id == 18) {
-        debugf("Inner buf (2-G) with block_id %u has state %d\n", this->block_id, this->lock.state);
-    }
 }
 
 // This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
@@ -115,31 +87,15 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
       page_map_buf(this),
       transaction_id(NULL_SER_TRANSACTION_ID) {
 
-    if (block_id == 18) {
-        debugf("Inner buf (1-A) with block_id %u has state %d\n", this->block_id, this->lock.state);
-    }
-
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
     refcount--;
 
-    if (block_id == 18) {
-        debugf("Inner buf (1-B) with block_id %u has state %d\n", this->block_id, this->lock.state);
-    }
-
     // Read the transaction id
     transaction_id = cache->serializer->get_current_transaction_id(block_id, data);
 
-    if (block_id == 18) {
-        debugf("Inner buf (1-C) with block_id %u has state %d\n", this->block_id, this->lock.state);
-    }
-
     replay_patches();
-
-    if (block_id == 18) {
-        debugf("Inner buf (1-D) with block_id %u has state %d\n", this->block_id, this->lock.state);
-    }
 }
 
 mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp recency_timestamp) {
@@ -190,10 +146,6 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
       page_map_buf(this),
       transaction_id(NULL_SER_TRANSACTION_ID)
 {
-    if (block_id == 18) {
-        debugf("Inner buf (A) with block_id %u has state %d\n", this->block_id, this->lock.state);
-    }
-
     cache->assert_thread();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
@@ -205,15 +157,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
-    if (block_id == 18) {
-        debugf("Inner buf (B) with block_id %u has state %d\n", this->block_id, this->lock.state);
-    }
-
     cache->page_repl.make_space(1);
-
-    if (block_id == 18) {
-        debugf("Inner buf (C) with block_id %u has state %d\n", this->block_id, this->lock.state);
-    }
 
     refcount--;
 }
@@ -647,7 +591,6 @@ mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access, int expected
 
 mc_transaction_t::~mc_transaction_t() {
     rassert(state == state_committed);
-    debugf("~mc_transaction_t for %p\n", this);
     pm_transactions_committing.end(&start_time);
 }
 
@@ -726,9 +669,6 @@ mc_buf_t *mc_transaction_t::allocate() {
 
     assert_thread();
 
-    debugf("Inner buf with block_id %u has state %d\n", inner_buf->block_id, inner_buf->lock.state);
-
-    debugf("Allocating block id %u\n", inner_buf->block_id);
     // This must pass since no one else holds references to this block.
     mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write, snapshot_version, snapshotted);
 
