@@ -430,6 +430,8 @@ void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {
 void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
     rassert(state == loaded);
 
+    debugf("large_buf_t::prepend\n");
+
     int original_refsize = root_ref->refsize(block_size(), root_ref_limit);
 
     const int64_t back = root_ref->offset + root_ref->size;
@@ -444,8 +446,10 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         root_ref->size += extra_size;
     } else {
 
+        int sublevels = num_sublevels(back);
     tryagain:
-        int64_t shiftsize = max_offset(num_sublevels(back));
+        int64_t shiftsize = max_offset(sublevels);
+        debugf("large_buf_t::prepend tryagain back=%ld sublevels=%d shiftsize=%ld\n", back, sublevels, shiftsize);
 
         // Find minimal k s.t. newoffset + k * shiftsize >= 0.
         // I.e. find min k s.t. newoffset >= -k * shiftsize.
@@ -462,9 +466,11 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
                        , num_sublevels(back) + 1
 #endif
                        );
+            sublevels++;
             goto tryagain;
         }
 
+        debugf("large_buf_t::prepend done tryagain loop\n");
         int64_t roots_back_k = roots.size();
         rassert(roots_back_k <= back_k);
         roots.resize(roots_back_k + k);
@@ -484,7 +490,11 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         root_ref->offset = newoffset + k * shiftsize;
         root_ref->size += extra_size;
 
+        debugf("large_buf_t::prepend about to call allocates_part_of_tree\n");
+
         allocates_part_of_tree(&roots, root_ref->block_ids, root_ref->offset, extra_size, num_sublevels(root_ref->offset + root_ref->size));
+
+        debugf("large_buf_t::prepend about called allocates_part_of_tree\n");
     }
 
     *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
