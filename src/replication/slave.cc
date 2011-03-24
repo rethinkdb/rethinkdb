@@ -31,7 +31,15 @@ slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t r
 slave_t::~slave_t() {
     shutting_down_ = true;
     coro_t::move_to_thread(home_thread);
-    kill_conn();
+    if (stream_) {
+        kill_conn();
+    } else {
+        // Is there some coro we're supposed to notify?  We call
+        // coro_->notify in the other place we call kill_conn.
+
+        // TODO: This is too complicated, if the answer to this
+        // question is non-obvious.
+    }
 
     /* cancel the timer */
     if (reconnection_timer_token_) {
@@ -103,8 +111,12 @@ std::string slave_t::failover_reset() {
         reconnection_timer_token_ = NULL;
     }
 
-    if (stream_) kill_conn(); //this will cause a notify
-    else coro_->notify();
+    if (stream_) {
+        kill_conn(); //this will cause a notify
+    }
+    else {
+        coro_->notify();
+    }
 
     return std::string("Resetting failover\n");
 }
