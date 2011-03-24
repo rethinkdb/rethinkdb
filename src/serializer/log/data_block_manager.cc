@@ -232,6 +232,9 @@ off64_t data_block_manager_t::write(const void *buf_in, bool assign_new_block_se
 
 void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id) {
     gc_entry *entry = entries.get(extent_id);
+    if (!entry) {
+        return; // The extent has already been deleted
+    }
 
     if (entry->g_array.count() == static_config->blocks_per_extent() && entry->state != gc_entry::state_active) {
         /* Every block in the extent is now garbage. */
@@ -264,8 +267,9 @@ void data_block_manager_t::check_and_handle_empty_extent(unsigned int extent_id)
         }
 
         pm_serializer_data_extents_reclaimed++;
-
         entry->destroy();
+        entries.set(extent_id, NULL);
+
     } else if (entry->state == gc_entry::state_old) {
         entry->our_pq_entry->update();
     }
@@ -349,10 +353,12 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 
     std::vector<serializer_t::index_write_op_t*> index_write_ops;
 
+    extent_manager_t::transaction_t *em_trx = parent->serializer->extent_manager->begin_transaction();
     // Step 1: Write buffers to disk and assemble index operations
     for (size_t i = 0; i < (size_t)num_writes; ++i) {
         block_write_conds.push_back(new block_write_cond_t());
         const off64_t offset = parent->write(writes[i].buf, false, block_write_conds.back()); // False -> don't assign new block sequence id
+        writes[i].new_offset = offset;
         boost::shared_ptr<serializer_t::block_token_t> token = parent->serializer->generate_block_token(offset);
 
         // ... also generate the corresponding index op
@@ -361,6 +367,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
         }
         // (if we don't have a block id, the block is referenced by tokens only. These get remapped later)
     }
+    parent->serializer->extent_manager->end_transaction(em_trx);
+    parent->serializer->extent_manager->commit_transaction(em_trx);
 
     // Step 2: Wait on all writes to finish
     for (size_t i = 0; i < block_write_conds.size(); ++i) {
@@ -387,10 +395,16 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
 void data_block_manager_t::on_gc_write_done() {
     // Remap tokens to new offsets...
     for (size_t i = 0; i < gc_writes.size(); ++i) {
-        const flagged_off64_t new_offset = serializer->lba_index->get_block_offset(gc_writes[i].block_id);
-        rassert(flagged_off64_t::has_value(new_offset));
-        serializer->remap_block_to_new_offset(gc_writes[i].old_offset, new_offset.parts.value);
+        serializer->remap_block_to_new_offset(gc_writes[i].old_offset, gc_writes[i].new_offset);
     }
+    
+    // Process GC data changes which have been caused by the tokens
+    extent_manager_t::transaction_t *em_trx = serializer->extent_manager->begin_transaction();
+    check_and_handle_outstanding_empty_extents();
+    serializer->extent_manager->end_transaction(em_trx);
+    serializer->extent_manager->commit_transaction(em_trx);
+
+    // Continue GC
     run_gc();
 }
 
@@ -462,7 +476,8 @@ void data_block_manager_t::run_gc() {
                     const off64_t block_offset = gc_state.current_entry->offset + (i * static_config->block_size().ser_value());
                     ser_block_id_t id;
                     // The block is either referenced by an index or by a token (or both)
-                    if (serializer->lba_index->is_offset_indexed(block_offset)) {
+                    rassert(serializer->lba_index->is_offset_indexed(block_offset) == gc_state.current_entry->i_array[i]);
+                    if (gc_state.current_entry->i_array[i]) {
                         id = serializer->lba_index->get_block_id(block_offset);
                     } else {
                         id = ser_block_id_t::null();

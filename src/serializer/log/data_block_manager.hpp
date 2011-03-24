@@ -39,7 +39,8 @@ private:
         ser_block_id_t block_id;
         const void *buf;
         off64_t old_offset;
-        gc_write_t(ser_block_id_t i, const void *b, off64_t old_offset) : block_id(i), buf(b), old_offset(old_offset) { }
+        off64_t new_offset;
+        gc_write_t(ser_block_id_t i, const void *b, off64_t old_offset) : block_id(i), buf(b), old_offset(old_offset), new_offset(0) { }
     };
 
     struct gc_writer_t {
@@ -194,7 +195,7 @@ private:
         bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
         // Recalculates g_array[block_id] based on t_array[block_id] and i_array[block_id]
         void update_g_array(unsigned int block_id) {
-            g_array.set(block_id, t_array[block_id] || i_array[block_id] ? 0 : 1);
+            g_array.set(block_id, (t_array[block_id] || i_array[block_id]) ? 0 : 1);
         }
         microtime_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */

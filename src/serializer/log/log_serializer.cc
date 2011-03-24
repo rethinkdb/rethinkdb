@@ -119,6 +119,10 @@ struct ls_start_existing_fsm_t :
             for (ser_block_id_t::number_t id = 0; id < ser->lba_index->end_block_id().value; id++) {
                 flagged_off64_t offset = ser->lba_index->get_block_offset(ser_block_id_t::make(id));
                 if (flagged_off64_t::can_be_gced(offset)) {
+                    // (Ensure consistency of the reverse LBA)
+                    rassert(ser->lba_index->is_offset_indexed(offset.parts.value));
+                    rassert(ser->lba_index->get_block_id(offset.parts.value) == ser_block_id_t::make(id));
+                    
                     ser->data_block_manager->mark_live(offset.parts.value);
                 }
             }
@@ -319,6 +323,11 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
             // deletion
             const index_write_delete_t &delete_op = dynamic_cast<const index_write_delete_t&>(**write_op_it);
 
+            /* mark the garbage */
+            flagged_off64_t gc_offset = lba_index->get_block_offset(delete_op.block_id);
+            rassert(flagged_off64_t::can_be_gced(gc_offset));
+            data_block_manager->mark_garbage(gc_offset.parts.value);
+
             lba_index->set_block_info(delete_op.block_id, repli_timestamp::invalid, flagged_off64_t::delete_id());
 
         } else if (dynamic_cast<const index_write_recency_t*>(*write_op_it)) {
@@ -331,14 +340,15 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
             // update the offset or add a new index for the block
             const index_write_block_t &block_op = dynamic_cast<const index_write_block_t&>(**write_op_it);
 
+            /* Keep recency intact. If a new recency should be set, a separate write_recency_op is required */
+            const repli_timestamp recency = lba_index->get_block_recency(block_op.block_id);
+
             /* mark the garbage */
             flagged_off64_t gc_offset = lba_index->get_block_offset(block_op.block_id);
             if (flagged_off64_t::can_be_gced(gc_offset)) {
+                rassert(lba_index->is_offset_indexed(gc_offset.parts.value));
                 data_block_manager->mark_garbage(gc_offset.parts.value);
             }
-
-            /* Keep recency intact. If a new recency should be set, a separate write_recency_op is required */
-            const repli_timestamp recency = lba_index->get_block_recency(block_op.block_id);
 
             ls_block_token_t *ls_token = dynamic_cast<ls_block_token_t*>(block_op.token.get());
             rassert(ls_token);
@@ -502,14 +512,23 @@ void log_serializer_t::unregister_block_token(ls_block_token_t *token) {
 
 void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t new_offset) {
     rassert(new_offset != current_offset);
+    bool have_to_update_gc = false;
+
     for (std::multimap<off64_t, ls_block_token_t*>::iterator offset_token_it = offset_tokens.find(current_offset);
             offset_token_it != offset_tokens.end() && offset_token_it->first == current_offset;
             ++offset_token_it) {
+        
+        have_to_update_gc = true;
 
         rassert(token_offsets[offset_token_it->second] == current_offset);
         token_offsets[offset_token_it->second] = new_offset;
         offset_tokens.insert(std::pair<off64_t, ls_block_token_t*>(new_offset, offset_token_it->second));
         offset_tokens.erase(offset_token_it);
+    }
+
+    if (have_to_update_gc) {
+        data_block_manager->mark_token_garbage(current_offset);
+        data_block_manager->mark_token_live(new_offset);
     }
 }
 

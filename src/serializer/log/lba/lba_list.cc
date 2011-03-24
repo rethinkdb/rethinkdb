@@ -92,7 +92,7 @@ ser_block_id_t lba_list_t::end_block_id() {
 
 flagged_off64_t lba_list_t::get_block_offset(ser_block_id_t block) {
     rassert(state == state_ready);
-    
+
     return in_memory_index.get_block_info(block).offset;
 }
 
