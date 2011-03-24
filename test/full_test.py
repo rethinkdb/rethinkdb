@@ -260,7 +260,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=3)
+                  repeat=3, timeout = 60 * ec2)
 
     do_test_cloud("integration/incr_decr.py",
                   { "auto"        : True,
