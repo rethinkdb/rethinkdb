@@ -132,7 +132,7 @@ mc_inner_buf_t::~mc_inner_buf_t() {
     memset(data, 0xDD, cache->serializer->get_block_size().value());
 #endif
 
-    rassert(safe_to_unload()); // TODO!
+    rassert(safe_to_unload());
     cache->serializer->free(data);
 
     pm_n_blocks_in_memory--;
