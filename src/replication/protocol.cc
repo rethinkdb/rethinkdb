@@ -115,6 +115,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         int very_current_thread = get_thread_id();
         switch (hdr->msgcode) {
         case BACKFILL: check_pass<net_backfill_t>(receiver, buffer, realbegin, realsize); break;
+        case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, buffer, realbegin, realsize); break;
         case ANNOUNCE: check_pass<net_announce_t>(receiver, buffer, realbegin, realsize); break;
         case NOP: check_pass<net_nop_t>(receiver, buffer, realbegin, realsize); break;
         case ACK: check_pass<net_ack_t>(receiver, buffer, realbegin, realsize); break;

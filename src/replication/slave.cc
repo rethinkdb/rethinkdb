@@ -114,7 +114,14 @@ void slave_t::hello(UNUSED net_hello_t message) {
     debugf("hello message received.\n");
 }
 void slave_t::send(UNUSED buffed_data_t<net_backfill_t>& message) {
+    // TODO: Kill connection instead of crashing server, when master
+    // sends garbage.
     rassert(false, "backfill message?  what?\n");
+}
+void slave_t::send(UNUSED buffed_data_t<net_backfill_complete_t>& message) {
+    // TODO: Make the parameter not UNUSED and implement this.  The
+    // slave should queue non-backfilling messages until backfilling
+    // is complete.
 }
 void slave_t::send(UNUSED buffed_data_t<net_announce_t>& message) {
     debugf("announce message received.\n");
