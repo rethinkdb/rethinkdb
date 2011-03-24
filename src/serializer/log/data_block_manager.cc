@@ -298,8 +298,8 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
     
     rassert(entry->g_array.size() == static_config->blocks_per_extent());
 
-    // TODO! Is any change required w.r.t. old_garbage_blocks?
-    if (entry->state == gc_entry::state_old) {
+    // Add to old garbage count if we have toggled the g_array bit (works because of the g_array[block_id] == 0 assertion above)
+    if (entry->state == gc_entry::state_old && entry->g_array[block_id]) {
         gc_stats.old_garbage_blocks++;
     }
     
@@ -326,6 +326,13 @@ void data_block_manager_t::mark_token_garbage(off64_t offset) {
     rassert(entry->g_array[block_id] == 0);
     entry->t_array.set(block_id, 0);
     entry->update_g_array(block_id);
+
+    rassert(entry->g_array.size() == static_config->blocks_per_extent());
+
+    // Add to old garbage count if we have toggled the g_array bit (works because of the g_array[block_id] == 0 assertion above)
+    if (entry->state == gc_entry::state_old && entry->g_array[block_id]) {
+        gc_stats.old_garbage_blocks++;
+    }
 
     // We delay this check as we don't want to interfere with active extent manager transactions
     // TODO: Maybe change how stuff works to make delaying this unnecessary?
