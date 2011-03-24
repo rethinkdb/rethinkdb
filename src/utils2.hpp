@@ -26,6 +26,17 @@ struct repli_timestamp {
     static const repli_timestamp invalid;
 };
 
+struct initialized_repli_timestamp {
+    uint32_t time;
+    explicit initialized_repli_timestamp(uint32_t _time) : time(_time) { }
+    initialized_repli_timestamp(repli_timestamp timestamp) : time(timestamp.time) { }
+
+    operator repli_timestamp() const {
+        repli_timestamp ret = { time };
+        return ret;
+    }
+};
+
 struct charslice {
     char *beg, *end;
     charslice(char *beg_, char *end_) : beg(beg_), end(end_) { }
@@ -40,9 +51,9 @@ struct const_charslice {
 
 
 
-// Converts a time_t (in seconds) to a repli_timestamp.  The important
-// thing here is that this will never return repli_timestamp::invalid,
-// which will matter for one second every 116 years.
+// Converts a time_t (in seconds) to a repli_timestamp, but avoids
+// returning the invalid repli_timestamp value, which might matter
+// once every 116 years.
 repli_timestamp repli_time(time_t t);
 
 // TODO: move this to a different file

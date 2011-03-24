@@ -13,8 +13,8 @@ enum multipart_aspect { SMALL = 0x81, FIRST = 0x82, MIDDLE = 0x83, LAST = 0x84 }
 enum message_code { MSGCODE_NIL = 0, BACKFILL = 0x01, ANNOUNCE = 0x02, NOP = 0x03, ACK = 0x04, SHUTTING_DOWN = 0x05,
                     GOODBYE = 0x06,
 
-                    GET_CAS = 0x21, SET = 0x22, ADD = 0x23, REPLACE = 0x24, CAS = 0x25,
-                    INCR = 0x26, DECR = 0x27, APPEND = 0x28, PREPEND = 0x29, DELETE = 0x2A };
+                    // TODO: Explicitly number these
+                    GET_CAS = 0x21, SARC, INCR, DECR, APPEND, PREPEND, DELETE, BACKFILL_SET, BACKFILL_DELETE };
 
 enum role_enum_t { role_master = 0, role_new_slave = 1, role_slave = 2 };
 
@@ -79,42 +79,26 @@ struct net_get_cas_t {
     char key[];
 } __attribute__((__packed__));
 
-struct net_set_t {
+// TODO: Make this structure more efficient, use optional fields for
+// flags, exptime, add_policy, old_cas.
+struct net_sarc_t {
     repli_timestamp timestamp;
     cas_t proposed_cas;
     mcflags_t flags;
     exptime_t exptime;
     uint16_t key_size;
     uint32_t value_size;
+    uint8_t add_policy;
+    uint8_t replace_policy;
+    cas_t old_cas;
     char keyvalue[];
 } __attribute__((__packed__));
 
-struct net_add_t {
+struct net_backfill_set_t {
     repli_timestamp timestamp;
-    cas_t proposed_cas;
     mcflags_t flags;
     exptime_t exptime;
-    uint16_t key_size;
-    uint32_t value_size;
-    char keyvalue[];
-} __attribute__((__packed__));
-
-struct net_replace_t {
-    repli_timestamp timestamp;
-    cas_t proposed_cas;
-    mcflags_t flags;
-    exptime_t exptime;
-    uint16_t key_size;
-    uint32_t value_size;
-    char keyvalue[];
-} __attribute__((__packed__));
-
-struct net_cas_t {
-    repli_timestamp timestamp;
-    cas_t expected_cas;
-    cas_t proposed_cas;
-    mcflags_t flags;
-    exptime_t exptime;
+    cas_t cas_or_zero;
     uint16_t key_size;
     uint32_t value_size;
     char keyvalue[];
@@ -124,12 +108,16 @@ struct net_incr_t {
     repli_timestamp timestamp;
     cas_t proposed_cas;
     uint64_t amount;
+    uint16_t key_size;
+    char key[];
 } __attribute__((__packed__));
 
 struct net_decr_t {
     repli_timestamp timestamp;
     cas_t proposed_cas;
     uint64_t amount;
+    uint16_t key_size;
+    char key[];
 } __attribute__((__packed__));
 
 struct net_append_t {
@@ -155,6 +143,12 @@ struct net_prepend_t {
 } __attribute__((__packed__));
 
 struct net_delete_t {
+    repli_timestamp timestamp;
+    uint16_t key_size;
+    char key[];
+} __attribute__((__packed__));
+
+struct net_backfill_delete_t {
     repli_timestamp timestamp;
     uint16_t key_size;
     char key[];

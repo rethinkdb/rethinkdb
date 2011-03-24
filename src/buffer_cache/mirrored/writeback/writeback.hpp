@@ -130,7 +130,7 @@ private:
     int expected_active_change_count;
     /* The same, but for transactions which are currently delayed and have not got the green light yet */
     int expected_delayed_change_count;
-    
+
     bool writeback_in_progress;
     unsigned int active_flushes;
 

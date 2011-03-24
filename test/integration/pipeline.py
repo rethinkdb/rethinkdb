@@ -34,6 +34,9 @@ def test_function(opts, port, test_dir):
     
     start = time.time()
     print "Get time"
+
+    s.send("set foo 0 0 3\r\nbar\r\n")
+    s.recv(len("STORED\r\n"))
     
     #pipeline some gets
     command_string = ''

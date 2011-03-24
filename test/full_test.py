@@ -260,7 +260,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=3)
+                  repeat=3, timeout = 60 * ec2)
 
     do_test_cloud("integration/incr_decr.py",
                   { "auto"        : True,
@@ -381,6 +381,16 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices},
                   repeat=10, timeout=30 * ec2)
+
+    do_test_cloud("integration/replication.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 340 },
+                  repeat=5, timeout=460 * ec2)
 
     for suite_test in glob.glob('integration/memcached_suite/*.t'):
         do_test_cloud("integration/memcached_suite.py",

@@ -11,8 +11,8 @@ struct internal_buf_t
     void *data;
     rwi_lock_t lock;
     
-    internal_buf_t(mock_cache_t *cache, block_id_t block_id)
-        : cache(cache), block_id(block_id), subtree_recency(current_time() /* TODO take a timestamp parameter */),
+    internal_buf_t(mock_cache_t *_cache, block_id_t _block_id, repli_timestamp _subtree_recency)
+        : cache(_cache), block_id(_block_id), subtree_recency(_subtree_recency),
           data(cache->serializer->malloc()) {
         rassert(data);
         bzero(data, cache->block_size.value());
@@ -80,6 +80,11 @@ void mock_buf_t::mark_deleted(UNUSED bool write_null) {
     // write_null is ignored for the mock cache.
     rassert(access == rwi_write);
     deleted = true;
+}
+
+void mock_buf_t::touch_recency(repli_timestamp timestamp) {
+    rassert(access == rwi_write);
+    internal_buf->subtree_recency = timestamp;
 }
 
 void mock_buf_t::release() {
@@ -154,7 +159,8 @@ mock_buf_t *mock_transaction_t::allocate() {
     
     block_id_t block_id = cache->bufs.get_size();
     cache->bufs.set_size(block_id + 1);
-    internal_buf_t *internal_buf = cache->bufs[block_id] = new internal_buf_t(cache, block_id);
+    internal_buf_t *internal_buf = new internal_buf_t(cache, block_id, recency_timestamp);
+    cache->bufs[block_id] = internal_buf;
     bool locked __attribute__((unused)) = internal_buf->lock.lock(rwi_write, NULL);
     rassert(locked);
     
@@ -221,7 +227,8 @@ mock_cache_t::mock_cache_t(
     bufs.set_size(end_block_id, NULL);
     for (block_id_t i = 0; i < end_block_id; i++) {
         if (serializer->block_in_use(i)) {
-            internal_buf_t *internal_buf = bufs[i] = new internal_buf_t(this, i);
+            internal_buf_t *internal_buf = new internal_buf_t(this, i, serializer->get_recency(i));
+            bufs[i] = internal_buf;
             if (!serializer->do_read(i, internal_buf->data, &read_cb)) read_cb.acquire();
         }
     }

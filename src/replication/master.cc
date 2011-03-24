@@ -5,252 +5,134 @@
 #include "logger.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
+#include "server/slice_dispatching_to_master.hpp"
 
 namespace replication {
 
-void master_t::hello() {
-    net_hello_t msg;
-    rassert(sizeof(msg.hello_magic) == 16);
-    // TODO make a #define for this.
-    memcpy(msg.hello_magic, "13rethinkdbrepl", 16);
-    msg.replication_protocol_version = 1;
-    msg.role = role_master;
-    // TODO have this use actual database_magic!  Or die!
-    msg.database_creation_timestamp = 0;
-    rassert(sizeof(msg.informal_name) == 32);
-    // TODO possibly have a user configurable name.  Or decide not to.
-    char informal_name[32] = "master";
-    memcpy(msg.informal_name, informal_name, 32);
+void master_t::register_dispatcher(btree_slice_dispatching_to_master_t *dispatcher) {
+    dispatchers_.push_back(dispatcher);
+}
 
-    {
-        mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write(&msg, sizeof(msg));
+void master_t::get_cas(const store_key_t& key, castime_t castime) {
+    // There is something disgusting with this.  What if the thing
+    // that the tmp_hold would prevent happens before we grap the
+    // tmp_hold?  Right now, this can't happen because spawn_on_thread
+    // won't block before we grab the tmp_hold, because we don't do
+    // anything before.
+
+    // TODO Is grabbing a tmp_hold really necessary?  I wish it wasn't.
+    snag_ptr_t<master_t> tmp_hold(*this);
+
+    if (stream_) {
+        consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
+
+        size_t n = sizeof(net_get_cas_t) + key.size;
+        scoped_malloc<net_get_cas_t> msg(n);
+        msg->proposed_cas = castime.proposed_cas;
+        msg->timestamp = castime.timestamp;
+        msg->key_size = key.size;
+
+        memcpy(msg->key, key.contents, key.size);
+
+        stream_->send(msg.get());
     }
 }
 
-void master_t::get_cas(const store_key_t &key, castime_t castime) {
-    size_t n = sizeof(headed<net_get_cas_t>) + key.size;
-    scoped_malloc<headed<net_get_cas_t> > message(n);
-    message->hdr.message_multipart_aspect = SMALL;
-    message->hdr.msgcode = GET_CAS;
-    message->hdr.msgsize = n;
-    message->data.proposed_cas = castime.proposed_cas;
-    message->data.timestamp = castime.timestamp;
-    memcpy(message->data.key, key.contents, key.size);
+void master_t::sarc(const store_key_t& key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+    snag_ptr_t<master_t> tmp_hold(*this);
 
-    {
-        mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write(message.get(), n);
+    if (stream_) {
+        consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
+
+        net_sarc_t stru;
+        stru.timestamp = castime.timestamp;
+        stru.proposed_cas = castime.proposed_cas;
+        stru.flags = flags;
+        stru.exptime = exptime;
+        stru.key_size = key.size;
+        stru.value_size = data->get_size();
+        stru.add_policy = add_policy;
+        stru.replace_policy = replace_policy;
+        stru.old_cas = old_cas;
+        stream_->send(&stru, key.contents, data);
     }
-}
-
-void master_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    if (add_policy == add_policy_yes) {
-        if (replace_policy == replace_policy_yes) {
-            setlike<net_set_t>(SET, key, data, flags, exptime, castime);
-        } else if (replace_policy == replace_policy_no) {
-            setlike<net_add_t>(ADD, key, data, flags, exptime, castime);
-        } else {
-            rassert(false, "invalid sarc operation");
-            logWRN("invalid sarc operation in master.\n");
-        }
-    } else {
-        if (replace_policy == replace_policy_yes) {
-            setlike<net_replace_t>(REPLACE, key, data, flags, exptime, castime);
-        } else if (replace_policy == replace_policy_if_cas_matches) {
-            cas(key, data, flags, exptime, old_cas, castime);
-        } else {
-            rassert(false, "invalid sarc operation");
-            logWRN("invalid sarc operation in master\n");
-        }
-    }
-}
-
-template <class net_struct_type>
-void master_t::setlike(int msgcode, const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime) {
-    net_struct_type setstruct;
-    setstruct.timestamp = castime.timestamp;
-    setstruct.proposed_cas = castime.proposed_cas;
-    setstruct.flags = flags;
-    setstruct.exptime = exptime;
-    setstruct.key_size = key.size;
-    setstruct.value_size = data->get_size();
-
-    stereotypical(msgcode, key, data, setstruct);
-}
-
-void master_t::cas(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, cas_t unique, castime_t castime) {
-    net_cas_t casstruct;
-    casstruct.timestamp = castime.timestamp;
-    casstruct.expected_cas = unique;
-    casstruct.proposed_cas = castime.proposed_cas;
-    casstruct.flags = flags;
-    casstruct.exptime = exptime;
-    casstruct.key_size = key.size;
-    casstruct.value_size = data->get_size();
-
-    stereotypical(CAS, key, data, casstruct);
+    // TODO: do we delete data or does repli_stream_t delete it?
+    delete data;
 }
 
 void master_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
-    if (kind == incr_decr_INCR) {
-        incr_decr_like<net_incr_t>(INCR, key, amount, castime);
-    } else {
-        rassert(kind == incr_decr_DECR);
-        incr_decr_like<net_decr_t>(DECR, key, amount, castime);
+    if (stream_) {
+        consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
+
+        if (kind == incr_decr_INCR) {
+            incr_decr_like<net_incr_t>(INCR, key, amount, castime);
+        } else {
+            rassert(kind == incr_decr_DECR);
+            incr_decr_like<net_decr_t>(DECR, key, amount, castime);
+        }
     }
 }
 
 template <class net_struct_type>
-void master_t::incr_decr_like(uint8_t msgcode, UNUSED const store_key_t &key, uint64_t amount, castime_t castime) {
-    // TODO: Fix this.  key is unused.  Look at other functions too.  This is broken.
-    headed<net_struct_type> msg;
-    msg.hdr.message_multipart_aspect = SMALL;
-    msg.hdr.msgcode = msgcode;
-    msg.hdr.msgsize = sizeof(msg);
-    msg.data.timestamp = castime.timestamp;
-    msg.data.proposed_cas = castime.proposed_cas;
-    msg.data.amount = amount;
+void master_t::incr_decr_like(UNUSED uint8_t msgcode, UNUSED const store_key_t &key, uint64_t amount, castime_t castime) {
+    // TODO: We aren't using the parameter key.  How did we do this?
+    // TODO: We aren't using the parameter msgcode.  This is obviously broken!
 
-    {
-        mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write(&msg, sizeof(msg));
-    }
+    net_struct_type msg;
+    msg.timestamp = castime.timestamp;
+    msg.proposed_cas = castime.proposed_cas;
+    msg.amount = amount;
+
+    stream_->send(&msg);
 }
 
+
 void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
-    if (kind == append_prepend_APPEND) {
-        net_append_t appendstruct;
-        appendstruct.timestamp = castime.timestamp;
-        appendstruct.proposed_cas = castime.proposed_cas;
-        appendstruct.key_size = key.size;
-        appendstruct.value_size = data->get_size();
+    if (stream_) {
+        consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
 
-        stereotypical(APPEND, key, data, appendstruct);
-    } else {
-        rassert(kind == append_prepend_PREPEND);
+        if (kind == append_prepend_APPEND) {
+            net_append_t appendstruct;
+            appendstruct.timestamp = castime.timestamp;
+            appendstruct.proposed_cas = castime.proposed_cas;
+            appendstruct.key_size = key.size;
+            appendstruct.value_size = data->get_size();
 
-        net_prepend_t prependstruct;
-        prependstruct.timestamp = castime.timestamp;
-        prependstruct.proposed_cas = castime.proposed_cas;
-        prependstruct.key_size = key.size;
-        prependstruct.value_size = data->get_size();
+            stream_->send(&appendstruct, key.contents, data);
+        } else {
+            rassert(kind == append_prepend_PREPEND);
 
-        stereotypical(PREPEND, key, data, prependstruct);
+            net_prepend_t prependstruct;
+            prependstruct.timestamp = castime.timestamp;
+            prependstruct.proposed_cas = castime.proposed_cas;
+            prependstruct.key_size = key.size;
+            prependstruct.value_size = data->get_size();
+
+            stream_->send(&prependstruct, key.contents, data);
+        }
     }
+    delete data;
 }
 
 void master_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
-    size_t n = sizeof(headed<net_delete_t>) + key.size;
-    scoped_malloc<headed<net_delete_t> > message(n);
-    message->hdr.message_multipart_aspect = SMALL;
-    message->hdr.msgcode = DELETE;
-    message->hdr.msgsize = n;
-    message->data.timestamp = timestamp;
-    message->data.key_size = key.size;
-    memcpy(message->data.key, key.contents, key.size);
+    size_t n = sizeof(net_delete_t) + key.size;
+    if (stream_) {
+        consider_nop_dispatch_and_update_latest_timestamp(timestamp);
 
-    {
-        mutex_acquisition_t lock(&message_contiguity_);
-        slave_->write(message.get(), n);
+        scoped_malloc<net_delete_t> msg(n);
+        msg->timestamp = timestamp;
+        msg->key_size = key.size;
+        memcpy(msg->key, key.contents, key.size);
+
+        stream_->send(msg.get());
     }
 }
 
-// For operations with keys and values whose structs use the stereotypical names.
-template <class net_struct_type>
-void master_t::stereotypical(int msgcode, const store_key_t &key, data_provider_t *data, net_struct_type netstruct) {
-    size_t n = sizeof(headed<net_struct_type>) + key.size + data->get_size();
+void nop_timer_trigger(void *master_) {
+    master_t *master = reinterpret_cast<master_t *>(master_);
 
-    if (n <= 0xFFFF) {
-        scoped_malloc<headed<net_struct_type> > message(n);
-        message->hdr.message_multipart_aspect = SMALL;
-        message->hdr.msgcode = msgcode;
-        message->hdr.msgsize = n;
-        message->data = netstruct;
-        memcpy(message->data.keyvalue, key.contents, key.size);
-
-        struct buffer_group_t group;
-        group.add_buffer(data->get_size(), message->data.keyvalue + key.size);
-        data->get_data_into_buffers(&group);
-
-        {
-            mutex_acquisition_t lock(&message_contiguity_);
-            slave_->write(message.get(), n);
-        }
-    } else {
-        // For now, we have no way to get the first chunk of all the
-        // data, so the first chunk has size zero, and we send all the
-        // other chunks contiguously.  Later, data_provider_t might
-        // stream.
-
-        n = sizeof(multipart_headed<net_struct_type>) + key.size;
-
-        scoped_malloc<multipart_headed<net_struct_type> > message(n);
-
-        message->hdr.message_multipart_aspect = FIRST;
-        message->hdr.msgcode = msgcode;
-        message->hdr.msgsize = n;
-        message->data = netstruct;
-        memcpy(message->data.keyvalue, key.contents, key.size);
-
-        uint32_t ident = sources_.add(data);
-        message->hdr.ident = ident;
-
-        {
-            mutex_acquisition_t lock(&message_contiguity_);
-            slave_->write(message.get(), n);
-        }
-
-        // TODO: make sure we aren't taking liberties with the data_provider_t lifetime.
-        coro_t::spawn(boost::bind(&master_t::send_data_with_ident, this, data, ident));
-    }
+    master->consider_nop_dispatch_and_update_latest_timestamp(current_time());
 }
-
-void master_t::send_data_with_ident(data_provider_t *data, uint32_t ident) {
-    size_t size = data->get_size();
-
-    const const_buffer_group_t *group = data->get_data_as_buffers();
-
-    ssize_t chunksize = 0xFFFF - sizeof(net_multipart_header_t);
-
-    ssize_t n = size;
-
-    net_multipart_header_t multi_header;
-    multi_header.msgcode = MSGCODE_NIL;
-    multi_header.ident = ident;
-
-    std::vector<const_buffer_group_t::buffer_t>::size_type bufnum = 0;
-    ssize_t off = 0;
-    while (n > 0) {
-
-        multi_header.message_multipart_aspect = n <= chunksize ? LAST : MIDDLE;
-        ssize_t m = std::min(n, chunksize);
-        n -= m;
-        multi_header.msgsize = sizeof(net_multipart_header_t) + m;
-
-        mutex_acquisition_t lock(&message_contiguity_);
-
-        slave_->write(&multi_header, sizeof(multi_header));
-        while (m > 0) {
-            rassert(bufnum < group->num_buffers());
-            const_buffer_group_t::buffer_t buf = group->get_buffer(bufnum);
-            size_t write_size = std::min(m, buf.size - off);
-            slave_->write(reinterpret_cast<const char *>(buf.data) + off, write_size);
-            m -= write_size;
-            off += write_size;
-
-            if (buf.size == off) {
-                bufnum++;
-                off = 0;
-            }
-        }
-    }
-
-    // TODO: How do we declaim ownership of the data_provider_t?
-
-    sources_.drop(ident);
-}
-
 
 void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     // TODO: Carefully handle case where a slave is already connected.
@@ -259,16 +141,124 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
     // somebody has partially written a message to it (and writes the
     // rest of the message to conn?)  That will happen, the way the
     // code is, right now.
-    slave_.reset();
-    slave_.swap(conn);
+    {
+        debugf("listener accept, destroying existing slave conn\n");
+        destroy_existing_slave_conn_if_it_exists();
+        debugf("making new repli_stream..\n");
+        stream_ = new repli_stream_t(conn, this);
+        next_timestamp_nop_timer_ = timer_handler_->add_timer_internal(1100, nop_timer_trigger, this, true);
+        debugf("made repli_stream.\n");
+    }
+    // TODO when sending/receiving hello handshake, use database magic
+    // to handle case where slave is already connected.
 
-    logDBG("Received replica.\n");
-
-    hello();
-    // TODO send hello handshake, use database magic to handle case
-    // where slave is already connected.
+    // TODO receive hello handshake before sending other messages.
 }
 
+void master_t::destroy_existing_slave_conn_if_it_exists() {
+    assert_thread();
+    if (stream_) {
+        stream_->co_shutdown();
+        cancel_timer(next_timestamp_nop_timer_);
+        next_timestamp_nop_timer_ = NULL;
+    }
+
+    stream_ = NULL;
+}
+
+void master_t::consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp timestamp) {
+    assert_thread();
+    rassert(timestamp.time != repli_timestamp::invalid.time);
+
+    if (timestamp.time > latest_timestamp_.time) {
+        latest_timestamp_ = timestamp;
+        coro_t::spawn(boost::bind(&master_t::do_nop_rebound, this, timestamp));
+    }
+
+    timer_handler_->cancel_timer(next_timestamp_nop_timer_);
+    next_timestamp_nop_timer_ = timer_handler_->add_timer_internal(1100, nop_timer_trigger, this, true);
+}
+
+void master_t::do_nop_rebound(repli_timestamp t) {
+    assert_thread();
+    cond_t cond;
+    int counter = dispatchers_.size();
+    for (std::vector<btree_slice_dispatching_to_master_t *>::iterator p = dispatchers_.begin(), e = dispatchers_.end();
+         p != e;
+         ++p) {
+        coro_t::spawn(boost::bind(&btree_slice_dispatching_to_master_t::nop_back_on_masters_thread, *p, t, &cond, &counter));
+    }
+
+    cond.wait();
+
+    net_nop_t msg;
+    msg.timestamp = t;
+    stream_->send(msg);
+}
+
+struct do_backfill_cb : public backfill_callback_t {
+    int count;
+    master_t *master;
+    cond_t *for_when_done;
+
+    void on_keyvalue(backfill_atom_t atom) {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_backfill_atom_to_slave, master, atom));
+    }
+    void done() {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this));
+    }
+
+    void do_done() {
+        rassert(get_thread_id() == master->home_thread);
+
+        if (0 == --count) {
+            for_when_done->pulse();
+        }
+    }
+};
+
+void master_t::do_backfill(repli_timestamp since_when) {
+    assert_thread();
+    debugf("Somebody called do_backfill(%u)\n", since_when.time);
+
+    int n = dispatchers_.size();
+    cond_t done_cond;
+
+    do_backfill_cb cb;
+    cb.count = n;
+    cb.master = this;
+    cb.for_when_done = &done_cond;
+
+    for (int i = 0; i < n; ++i) {
+        debugf("Spawning backfill %d of %d\n", i, n);
+        dispatchers_[i]->spawn_backfill(since_when, &cb);
+        debugf("Spawned... %d of %d\n", i, n);
+    }
+
+    debugf("Done spawning, now waiting for done_cond...\n");
+    done_cond.wait();
+    debugf("Done backfill.\n");
+}
+
+void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+
+    data_provider_t *data = atom.value.release();
+
+    if (stream_) {
+        net_backfill_set_t msg;
+        msg.timestamp = atom.recency;
+        msg.flags = atom.flags;
+        msg.exptime = atom.exptime;
+        msg.cas_or_zero = atom.cas_or_zero;
+        msg.key_size = atom.key.size;
+        msg.value_size = data->get_size();
+        stream_->send(&msg, atom.key.contents, data);
+    }
+
+    // TODO: do we delete data or does repli_stream_t delete it?
+    delete data;
+}
 
 
 }  // namespace replication

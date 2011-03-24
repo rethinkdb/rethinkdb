@@ -13,48 +13,50 @@ namespace replication {
 // TODO unit test offsets
 
 
-slave_t::slave_t(btree_key_value_store_t *internal_store_, replication_config_t replication_config_, failover_config_t failover_config_)
-    : failover_script(failover_config_.failover_script_path),
-      timeout(INITIAL_TIMEOUT),
-      timer_token(NULL),
-      failover_reset_control(std::string("failover_reset"), this),
-      new_master_control(std::string("new_master"), this),
-      internal_store(internal_store_),
-      replication_config(replication_config_),
-      failover_config(failover_config_),
-      conn(NULL),
-      shutting_down(false)
+slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t replication_config, failover_config_t failover_config)
+    : failover_script_(failover_config.failover_script_path),
+      timeout_(INITIAL_TIMEOUT),
+      reconnection_timer_token_(NULL),
+      failover_reset_control_(std::string("failover reset"), this),
+      new_master_control_(std::string("new master"), this),
+      internal_store_(internal_store),
+      replication_config_(replication_config),
+      failover_config_(failover_config),
+      stream_(NULL),
+      shutting_down_(false)
 {
     coro_t::spawn(boost::bind(&run, this));
 }
 
 slave_t::~slave_t() {
-    shutting_down = true;
+    shutting_down_ = true;
     coro_t::move_to_thread(home_thread);
     kill_conn();
-    
+
     /* cancel the timer */
-    if(timer_token) cancel_timer(timer_token);
+    if (reconnection_timer_token_) {
+        cancel_timer(reconnection_timer_token_);
+    }
 }
 
 void slave_t::kill_conn() {
-    struct : public message_parser_t::message_parser_shutdown_callback_t, public cond_t {
-            void on_parser_shutdown() { pulse(); }
-    } parser_shutdown_cb;
-
     {
         on_thread_t thread_switch(home_thread);
 
-        if (!parser.shutdown(&parser_shutdown_cb))
-            parser_shutdown_cb.wait();
-    }
+        debugf("Calling stream_->co_shutdown.\n");
 
-    { //on_thread_t scope
-        on_thread_t thread_switch(get_num_threads() - 2);
-        if (conn) {
-            delete conn;
-            conn = NULL;
-        }
+        stream_->co_shutdown();
+
+        debugf("stream_->co_shutdown has returned.\n");
+        //    }
+
+        //    {
+        // TODO: why is this going to get_num_threads() - 2 instead of home_thread?  I don't get it.
+
+        //        on_thread_t thread_switch(get_num_threads() - 2);
+
+        delete stream_;
+        stream_ = NULL;
     }
 }
 
@@ -82,9 +84,8 @@ struct not_allowed_visitor_t : public boost::static_visitor<mutation_result_t> {
 
 mutation_result_t slave_t::change(const mutation_t &m) {
 
-    if (respond_to_queries) {
-        return internal_store->change(m);
-
+    if (respond_to_queries_) {
+        return internal_store_->change(m);
     } else {
         /* Construct a "failure" response of the right sort */
         return boost::apply_visitor(not_allowed_visitor_t(), m.mutation);
@@ -92,63 +93,159 @@ mutation_result_t slave_t::change(const mutation_t &m) {
 }
 
 std::string slave_t::failover_reset() {
+    // TODO don't say get_num_threads() - 2, what does this mean?
     on_thread_t thread_switch(get_num_threads() - 2);
-    give_up.reset();
-    timeout = INITIAL_TIMEOUT;
+    give_up_.reset();
+    timeout_ = INITIAL_TIMEOUT;
 
-    if (timer_token) {
-        cancel_timer(timer_token);
-        timer_token = NULL;
+    if (reconnection_timer_token_) {
+        cancel_timer(reconnection_timer_token_);
+        reconnection_timer_token_ = NULL;
     }
 
-    if (conn) kill_conn(); //this will cause a notify
-    else coro->notify();
+    if (stream_) kill_conn(); //this will cause a notify
+    else coro_->notify();
 
-    return std::string("Reseting failover\n");
+    return std::string("Resetting failover\n");
 }
 
-// TODO: What are these functions, and why are they empty?
+ /* message_callback_t interface */
+void slave_t::hello(UNUSED net_hello_t message) {
+    debugf("hello message received.\n");
+}
+void slave_t::send(UNUSED buffed_data_t<net_backfill_t>& message) {
+    rassert(false, "backfill message?  what?\n");
+}
+void slave_t::send(UNUSED buffed_data_t<net_announce_t>& message) {
+    debugf("announce message received.\n");
+}
+void slave_t::send(buffed_data_t<net_get_cas_t>& msg) {
+    // TODO this returns a get_result_t (with cross-thread messaging),
+    // and we don't really care for that.
+    get_cas_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->key);
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
+    debugf("get_cas message received and applied.\n");
+}
+void slave_t::send(stream_pair<net_sarc_t>& msg) {
+    set_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->keyvalue);
+    mut.data = msg.stream;
+    mut.flags = msg->flags;
+    mut.exptime = msg->exptime;
+    mut.add_policy = add_policy_t(msg->add_policy);
+    mut.replace_policy = replace_policy_t(msg->replace_policy);
+    mut.old_cas = msg->old_cas;
 
-/* message_callback_t interface */
-void slave_t::hello(UNUSED net_hello_t message) { }
-void slave_t::send(UNUSED buffed_data_t<net_backfill_t>& message) { }
-void slave_t::send(UNUSED buffed_data_t<net_announce_t>& message) { }
-void slave_t::send(UNUSED buffed_data_t<net_get_cas_t>& message) { }
-void slave_t::send(UNUSED stream_pair<net_set_t>& message) { }
-void slave_t::send(UNUSED stream_pair<net_add_t>& message) { }
-void slave_t::send(UNUSED stream_pair<net_replace_t>& message) { }
-void slave_t::send(UNUSED stream_pair<net_cas_t>& message) { }
-void slave_t::send(UNUSED buffed_data_t<net_incr_t>& message) { }
-void slave_t::send(UNUSED buffed_data_t<net_decr_t>& message) { }
-void slave_t::send(UNUSED stream_pair<net_append_t>& message) { }
-void slave_t::send(UNUSED stream_pair<net_prepend_t>& message) { }
-void slave_t::send(UNUSED buffed_data_t<net_delete_t>& message) { }
-void slave_t::send(UNUSED buffed_data_t<net_nop_t>& message) { }
-void slave_t::send(UNUSED buffed_data_t<net_ack_t>& message) { }
-void slave_t::send(UNUSED buffed_data_t<net_shutting_down_t>& message) { }
-void slave_t::send(UNUSED buffed_data_t<net_goodbye_t>& message) { }
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
+    debugf("sarc message received and applied.\n");
+}
+void slave_t::send(stream_pair<net_backfill_set_t>& msg) {
+    set_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->keyvalue);
+    mut.data = msg.stream;
+    mut.flags = msg->flags;
+    mut.exptime = msg->exptime;
+    mut.add_policy = add_policy_yes;
+    mut.replace_policy = replace_policy_yes;
+    mut.old_cas = NO_CAS_SUPPLIED;
+
+    // TODO: We need this operation to force the cas to be set.
+    internal_store_->change(mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
+}
+void slave_t::send(buffed_data_t<net_incr_t>& msg) {
+    incr_decr_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->key);
+    mut.kind = incr_decr_INCR;
+    mut.amount = msg->amount;
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
+    debugf("incr message received and applied.\n");
+}
+void slave_t::send(buffed_data_t<net_decr_t>& msg) {
+    incr_decr_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->key);
+    mut.kind = incr_decr_DECR;
+    mut.amount = msg->amount;
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
+    debugf("decr message received and applied.\n");
+}
+void slave_t::send(stream_pair<net_append_t>& msg) {
+    append_prepend_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->keyvalue);
+    mut.data = msg.stream;
+    mut.kind = append_prepend_APPEND;
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
+    debugf("append message received and applied.\n");
+}
+void slave_t::send(stream_pair<net_prepend_t>& msg) {
+    append_prepend_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->keyvalue);
+    mut.data = msg.stream;
+    mut.kind = append_prepend_PREPEND;
+    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
+    debugf("prepend message received and applied.\n");
+}
+void slave_t::send(buffed_data_t<net_delete_t>& msg) {
+    delete_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->key);
+    // TODO: where does msg->timestamp go???  IS THIS RIGHT?? WHO KNOWS.
+    internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, msg->timestamp));
+    debugf("delete message received.\n");
+}
+void slave_t::send(buffed_data_t<net_backfill_delete_t>& msg) {
+    delete_mutation_t mut;
+    mut.key.assign(msg->key_size, msg->key);
+    // NO_CAS_SUPPLIED is not used in any way for deletions, and
+    // msg->timestamp is part of the "->change" interface in a way not
+    // relevant to slaves -- it's used when putting deletions into the
+    // delete queue.
+    internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED, msg->timestamp));
+}
+void slave_t::send(buffed_data_t<net_nop_t>& message) {
+    int current_thread = get_thread_id();
+    debugf("nop message received.\n");
+    net_ack_t ackreply;
+    ackreply.timestamp = message->timestamp;
+    rassert(current_thread == get_thread_id(), "A");
+    stream_->send(ackreply);
+    debugf("sent ack reply\n");
+    rassert(current_thread == get_thread_id(), "B");
+    internal_store_->time_barrier(message->timestamp);
+    rassert(current_thread == get_thread_id(), "C");
+}
+void slave_t::send(UNUSED buffed_data_t<net_ack_t>& message) {
+    rassert("ack message received.. as slave?\n");
+}
+void slave_t::send(UNUSED buffed_data_t<net_shutting_down_t>& message) {
+    debugf("shutting_down message received.\n");
+}
+void slave_t::send(UNUSED buffed_data_t<net_goodbye_t>& message) {
+    debugf("goodbye message received.\n");
+}
+
 void slave_t::conn_closed() {
-    coro->notify();
+    debugf("conn_closed.\n");
+    coro_->notify();
 }
 
 /* failover driving functions */
 void slave_t::reconnect_timer_callback(void *ctx) {
-    slave_t *self = static_cast<slave_t*>(ctx);
-    self->coro->notify();
+    slave_t *self = static_cast<slave_t *>(ctx);
+    self->coro_->notify();
 }
 
 /* give_up_t interface: the give_up_t struct keeps track of the last N times
  * the server failed. If it's failing to frequently then it will tell us to
  * give up on the server and stop trying to reconnect */
 void slave_t::give_up_t::on_reconnect() {
-    succesful_reconnects.push(ticks_to_secs(get_ticks()));
+    successful_reconnects.push(ticks_to_secs(get_ticks()));
     limit_to(MAX_RECONNECTS_PER_N_SECONDS);
 }
 
 bool slave_t::give_up_t::give_up() {
     limit_to(MAX_RECONNECTS_PER_N_SECONDS);
 
-    return (succesful_reconnects.size() == MAX_RECONNECTS_PER_N_SECONDS && (succesful_reconnects.back() - ticks_to_secs(get_ticks())) < N_SECONDS);
+    return (successful_reconnects.size() == MAX_RECONNECTS_PER_N_SECONDS && (successful_reconnects.back() - ticks_to_secs(get_ticks())) < N_SECONDS);
 }
 
 void slave_t::give_up_t::reset() {
@@ -156,70 +253,80 @@ void slave_t::give_up_t::reset() {
 }
 
 void slave_t::give_up_t::limit_to(unsigned int limit) {
-    while (succesful_reconnects.size() > limit)
-        succesful_reconnects.pop();
+    while (successful_reconnects.size() > limit)
+        successful_reconnects.pop();
 }
 
 /* failover callback */
 void slave_t::on_failure() {
-    respond_to_queries = true;
+    respond_to_queries_ = true;
 }
 
 void slave_t::on_resume() {
-    respond_to_queries = false;
+    respond_to_queries_ = false;
 }
 
 void run(slave_t *slave) {
-    slave->coro = coro_t::self();
+    slave->coro_ = coro_t::self();
     slave->failover.add_callback(slave);
-    slave->respond_to_queries = false;
+    slave->respond_to_queries_ = false;
     bool first_connect = true;
-    while (!slave->shutting_down) {
+    while (!slave->shutting_down_) {
         try {
-            if (slave->conn) { 
-                delete slave->conn;
-                slave->conn = NULL;
+            delete slave->stream_;
+            slave->stream_ = NULL;
+
+            logINF("Attempting to connect as slave to: %s:%d\n", slave->replication_config_.hostname, slave->replication_config_.port);
+            {
+                boost::scoped_ptr<tcp_conn_t> conn(new tcp_conn_t(slave->replication_config_.hostname, slave->replication_config_.port));
+                slave->stream_ = new repli_stream_t(conn, slave);
             }
-            coro_t::move_to_thread(get_num_threads() - 2);
-            logINF("Attempting to connect as slave to: %s:%d\n", slave->replication_config.hostname, slave->replication_config.port);
-            slave->conn = new tcp_conn_t(slave->replication_config.hostname, slave->replication_config.port);
-            slave->timeout = INITIAL_TIMEOUT;
-            slave->give_up.on_reconnect();
+            slave->timeout_ = INITIAL_TIMEOUT;
+            slave->give_up_.on_reconnect();
 
-            slave->parser.parse_messages(slave->conn, slave);
-            if (!first_connect) //UGLY :( but it's either this or code duplication
-                slave->failover.on_resume(); //Call on_resume if we've failed before
+            if (!first_connect) {
+                slave->failover.on_resume();
+            }
             first_connect = false;
-            logINF("Connected as slave to: %s:%d\n", slave->replication_config.hostname, slave->replication_config.port);
+            logINF("Connected as slave to: %s:%d\n", slave->replication_config_.hostname, slave->replication_config_.port);
 
+            repli_timestamp fake = { 0 };
+            net_backfill_t bf;
+            bf.timestamp = fake;
+            slave->stream_->send(&bf);
 
-            coro_t::wait(); //wait for things to fail
+            // wait for things to fail
+            coro_t::wait();
+
             slave->failover.on_failure();
-            if (slave->shutting_down) break;
+
+            if (slave->shutting_down_) {
+                break;
+            }
 
         } catch (tcp_conn_t::connect_failed_exc_t& e) {
             //Presumably if the master doesn't even accept an initial
             //connection then this is a user error rather than some sort of
             //failure
-            if (first_connect)
-                crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up yet. But what do I know I'm just a database\n", slave->replication_config.hostname, slave->replication_config.port); 
+            if (first_connect) {
+                crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up yet. But what do I know, I'm just a database.\n", slave->replication_config_.hostname, slave->replication_config_.port);
+            }
         }
 
-        /* The connection has failed. Let's see what se should do */
-        if (!slave->give_up.give_up()) {
-            slave->timer_token = fire_timer_once(slave->timeout, &slave->reconnect_timer_callback, slave);
+        /* The connection has failed. Let's see what we should do */
+        if (!slave->give_up_.give_up()) {
+            slave->reconnection_timer_token_ = fire_timer_once(slave->timeout_, &slave_t::reconnect_timer_callback, slave);
 
-            slave->timeout *= TIMEOUT_GROWTH_FACTOR;
-            if (slave->timeout > TIMEOUT_CAP) slave->timeout = TIMEOUT_CAP;
+            slave->timeout_ = std::min(slave->timeout_ * TIMEOUT_GROWTH_FACTOR, (long)TIMEOUT_CAP);
 
             coro_t::wait(); //waiting on a timer
-            slave->timer_token = NULL;
+            slave->reconnection_timer_token_ = NULL;
         } else {
-            logINF("Master at %s:%d has failed %d times in the last %d seconds," \
-                    "going rogue. To resume slave behavior send the command" \
-                    "\"rethinkdb failover reset\" (over telnet)\n",
-                    slave->replication_config.hostname, slave->replication_config.port,
-                    MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS); 
+            logINF("Master at %s:%d has failed %d times in the last %d seconds, "
+                   "going rogue. To resume slave behavior send the command "
+                   "\"rethinkdb failover reset\" (over telnet).\n",
+                   slave->replication_config_.hostname, slave->replication_config_.port,
+                   MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS);
             coro_t::wait(); //the only thing that can save us now is a reset
         }
     }
@@ -232,11 +339,11 @@ std::string slave_t::new_master(int argc, char **argv) {
         return std::string("That hostname is too long; use a shorter one.\n");
 
     /* redo the replication_config info */
-    strcpy(replication_config.hostname, host.c_str());
-    replication_config.port = atoi(argv[2]); //TODO this is ugly
+    strcpy(replication_config_.hostname, host.c_str());
+    replication_config_.port = atoi(argv[2]); //TODO this is ugly
 
     failover_reset();
-    
+
     return std::string("New master set\n");
 }
 

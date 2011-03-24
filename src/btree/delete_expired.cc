@@ -22,8 +22,15 @@ public:
 // delete_expired coroutine is actually spawned. So for now we'll make a copy
 // of the key and then free it when delete_expired is done.
 
+// TODO: delete_expired (and for that matter, delete) should not
+// really supply a timestamp, since it does not create a new key in
+// the database, and so the subtrees it passes through have no data to
+// replicate.
 void co_btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
     btree_delete_expired_oper_t oper;
+    // TODO: Something is wrong with our abstraction since we are
+    // passing a completely meaningless proposed cas and because we
+    // should not really be passing a recency timestamp.
     run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp::invalid));
 }
 

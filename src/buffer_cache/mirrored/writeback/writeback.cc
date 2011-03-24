@@ -103,7 +103,11 @@ perfmon_sampler_t pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), 
 bool writeback_t::sync(sync_callback_t *callback) {
     cache->assert_thread();
 
-    if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0)
+    // Have to check active_flushes too, because a return value of true has to guarantee that changes handled
+    // by previous flushes are also on disk. If these are still running, we must initiate a new flush
+    // even if there are no dirty blocks to make sure that the callbacks get called only
+    // after all other flushes have finished (which is at least enforced by the serializer's metablock queue currently)
+    if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0 && active_flushes == 0)
         return true;
 
     if (callback)
@@ -313,8 +317,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     bool saved_shutting_down = parent->cache->shutting_down;
     parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
 
-    // TODO: Is repli_timestamp::invalid the right thing here?
-    // TODO: Put a rationale in the comments here.
+    // It's a read transaction, that's why we use repli_timestamp::invalid.
     transaction = parent->cache->begin_transaction(rwi_read, 0, repli_timestamp::invalid, NULL);
     parent->cache->shutting_down = saved_shutting_down;
     rassert(transaction != NULL); // Read txns always start immediately.
@@ -500,7 +503,10 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
             NULL
             ));
 
-        parent->cache->free_list.release_block_id(parent->deleted_blocks[i].block_id);
+        block_id_t id = parent->deleted_blocks[i].block_id;
+        parent->cache->free_list.release_block_id(id);
+        debugf("Releasing block id %u\n", id);
+        print_backtrace();
     }
     parent->deleted_blocks.clear();
 

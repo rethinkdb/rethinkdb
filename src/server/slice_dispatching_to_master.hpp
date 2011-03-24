@@ -10,20 +10,18 @@ class backfill_callback_t;
 
 class btree_slice_dispatching_to_master_t : public set_store_t {
 public:
-    btree_slice_dispatching_to_master_t(btree_slice_t *slice, replication::master_t *master)
-        : slice_(slice), master_(master) { }
+    btree_slice_dispatching_to_master_t(btree_slice_t *slice, snag_ptr_t<replication::master_t> master);
+    ~btree_slice_dispatching_to_master_t() { }
 
     /* set_store_t interface. */
 
     mutation_result_t change(const mutation_t &m, castime_t castime);
-    void spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
-        on_thread_t th(slice_->home_thread);
-        slice_->spawn_backfill(since_when, callback);
-    }
+    void spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback);
+    void nop_back_on_masters_thread(repli_timestamp timestamp, cond_t *cond, int *counter);
 
 private:
     btree_slice_t *slice_;
-    replication::master_t *master_;
+    snag_ptr_t<replication::master_t> master_;
 
     DISABLE_COPYING(btree_slice_dispatching_to_master_t);
 };
