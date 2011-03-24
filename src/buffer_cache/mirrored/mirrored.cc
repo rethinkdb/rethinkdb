@@ -102,10 +102,8 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
     cache->assert_thread();
 
     block_id_t block_id = cache->free_list.gen_block_id();
-    debugf("Generated block_id %u\n", block_id);
     mc_inner_buf_t *inner_buf = cache->page_map.find(block_id);
     if (!inner_buf) {
-        debugf("Creating brand spanking new inner_buf for id %u.\n", block_id);
         return new mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp);
     } else {
         // Block with block_id was logically deleted, but its inner_buf survived.
@@ -252,23 +250,18 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
     patches_affected_data_size_at_start = -1;
 #endif
 
-    //    debugf("In mc_buf_t::mc_buf_t.\n");
 
     // If the top version is less or equal to version_to_access, then we need to acquire
     // a read lock first (otherwise we may get the data of the unfinished write on top).
     if (version_to_access != mc_inner_buf_t::faux_version_id && snapshotted  && version_to_access < inner_buf->version_id) {
-        //        debugf("In mc_buf_t::mc_buf_t (A).\n");
         rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
         inner_buf->refcount++;
         acquire_block(false);
     } else {
-        //        debugf("In mc_buf_t::mc_buf_t (B).\n");
         // the top version is the right one for us
         pm_bufs_acquiring.begin(&start_time);
         inner_buf->refcount++;
-        debugf("Inner buf with block_id %u has state %d\n", inner_buf->block_id, inner_buf->lock.state);
         if (inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
-            //            debugf("In mc_buf_t::mc_buf_t (C).\n");
             on_lock_available();
         }
     }
