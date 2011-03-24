@@ -15,6 +15,7 @@
 #include "utils2.hpp"
 #include <string>
 
+
 // Precise time (time+nanoseconds) for logging, etc.
 struct precise_time_t : public tm {
     uint32_t ns;    // nanoseconds since the start of the second
@@ -82,8 +83,12 @@ struct on_thread_t : public home_thread_mixin_t {
 };
 
 struct thread_saver_t {
-    thread_saver_t() : thread_id(get_thread_id()) { }
-    thread_saver_t(int thread_id) : thread_id(thread_id) { }
+    thread_saver_t() : thread_id(get_thread_id()) {
+        assert_good_thread_id(thread_id);
+    }
+    thread_saver_t(int _thread_id) : thread_id(_thread_id) {
+        assert_good_thread_id(thread_id);
+    }
     ~thread_saver_t() {
         coro_t::move_to_thread(thread_id);
     }
