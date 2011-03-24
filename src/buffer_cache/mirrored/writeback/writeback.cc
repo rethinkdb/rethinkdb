@@ -100,7 +100,11 @@ perfmon_sampler_t pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), 
 bool writeback_t::sync(sync_callback_t *callback) {
     cache->assert_thread();
 
-    if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0)
+    // Have to check active_flushes too, because a return value of true has to guarantee that changes handled
+    // by previous flushes are also on disk. If these are still running, we must initiate a new flush
+    // even if there are no dirty blocks to make sure that the callbacks get called only
+    // after all other flushes have finished (which is at least enforced by the serializer's metablock queue currently)
+    if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0 && active_flushes == 0)
         return true;
 
     if (callback)
