@@ -82,6 +82,11 @@ void mock_buf_t::mark_deleted(UNUSED bool write_null) {
     deleted = true;
 }
 
+void mock_buf_t::touch_recency(repli_timestamp timestamp) {
+    rassert(access == rwi_write);
+    internal_buf->subtree_recency = timestamp;
+}
+
 void mock_buf_t::release() {
     internal_buf->lock.unlock();
     if (deleted) internal_buf->destroy();

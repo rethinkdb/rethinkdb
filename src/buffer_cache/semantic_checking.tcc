@@ -52,6 +52,13 @@ void scc_buf_t<inner_cache_t>::mark_deleted(bool write_null) {
 }
 
 template<class inner_cache_t>
+void scc_buf_t<inner_cache_t>::touch_recency(repli_timestamp timestamp) {
+    rassert(inner_buf);
+    // TODO: Why are we not tracking this?
+    inner_buf->touch_recency(timestamp);
+}
+
+template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::release() {
     rassert(inner_buf);
     if (!snapshotted) {
