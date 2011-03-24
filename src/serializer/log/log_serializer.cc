@@ -98,10 +98,6 @@ struct ls_start_existing_fsm_t :
         
         if (state == state_start_lba) {
             guarantee(metablock_found, "Could not find any valid metablock.");
-            
-#ifndef NDEBUG
-            memcpy(&ser->debug_mb_buffer, &metablock_buffer, sizeof(metablock_buffer));
-#endif
 
             ser->current_transaction_id = metablock_buffer.transaction_id;
             ser->latest_block_sequence_id = metablock_buffer.block_sequence_id;
@@ -139,15 +135,6 @@ struct ls_start_existing_fsm_t :
             rassert(ser->state == log_serializer_t::state_starting_up);
             ser->state = log_serializer_t::state_ready;
 
-#ifndef NDEBUG
-            {
-                log_serializer_t::metablock_t debug_mb_buffer;
-                ser->prepare_metablock(&debug_mb_buffer);
-                // Make sure that the metablock has not changed since the last
-                // time we recorded it
-                rassert(memcmp(&debug_mb_buffer, &ser->debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
-            }
-#endif
             if (to_signal_when_done) to_signal_when_done->pulse();
 
             delete this;
@@ -273,14 +260,19 @@ void log_serializer_t::free(void *ptr) {
     ::free((void *)data);
 }
 
-// TODO! Update? Change names?
-perfmon_duration_sampler_t pm_serializer_writes("serializer_writes", secs_to_ticks(1));
-perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_ticks(2));
+perfmon_duration_sampler_t pm_serializer_block_reads("serializer_block_reads", secs_to_ticks(1));
+perfmon_counter_t pm_serializer_index_reads("serializer_index_reads");
+// TODO: Should be a duration sampler (see block_write() below)
+//perfmon_duration_sampler_t pm_serializer_block_writes("serializer_block_writes", secs_to_ticks(1));
+perfmon_counter_t pm_serializer_block_writes("serializer_block_writes");
+perfmon_duration_sampler_t pm_serializer_index_writes("serializer_index_writes", secs_to_ticks(1));
+perfmon_sampler_t pm_serializer_index_writes_size("serializer_index_writes_size", secs_to_ticks(1));
 
-perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1));
-// TODO! Update perfmons
 
 void log_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf) {
+    ticks_t pm_time;
+    pm_serializer_block_reads.begin(&pm_time);
+
     ls_block_token_t *ls_token = dynamic_cast<ls_block_token_t*>(token.get());
     rassert(ls_token);
     assert_thread();
@@ -293,9 +285,13 @@ void log_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *
         void on_io_complete() { pulse(); }
     } cb;
     if (!data_block_manager->read(offset, buf, &cb)) cb.wait();
+
+    pm_serializer_block_reads.end(&pm_time);
 }
 
 boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::index_read(ser_block_id_t block_id) {
+    pm_serializer_index_reads++;
+
     assert_thread();
     rassert(state == state_ready);
 
@@ -306,8 +302,11 @@ boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::index_read(ser_
 }
 
 void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_ops) {
+    ticks_t pm_time;
+    pm_serializer_index_writes.begin(&pm_time);
+    pm_serializer_index_writes_size.record(write_ops.size());
+
     index_write_context_t context;
-    
     index_write_prepare(context);
 
     for (std::vector<index_write_op_t*>::const_iterator write_op_it = write_ops.begin();
@@ -325,8 +324,6 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
 
             /* mark the garbage */
             flagged_off64_t gc_offset = lba_index->get_block_offset(delete_op.block_id);
-            // TODO! Clarify whether the assertion is actually wrong (could be due to chenaged large value deletion I guess!) or if something else is broken
-            //rassert(flagged_off64_t::can_be_gced(gc_offset));
             if (flagged_off64_t::can_be_gced(gc_offset)) {
                 data_block_manager->mark_garbage(gc_offset.parts.value);
             }
@@ -369,20 +366,11 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
     }
 
     index_write_finish(context);
+
+    pm_serializer_index_writes.end(&pm_time);
 }
 
 void log_serializer_t::index_write_prepare(index_write_context_t &context) {
-#ifndef NDEBUG
-    {
-        log_serializer_t::metablock_t _debug_mb_buffer;
-        prepare_metablock(&_debug_mb_buffer);
-        // Make sure that the metablock has not changed since the last
-        // time we recorded it
-        //rassert(memcmp(&_debug_mb_buffer, &debug_mb_buffer, sizeof(debug_mb_buffer)) == 0);
-        // TODO! What is wrong here? Might be something serious
-    }
-#endif
-
     current_transaction_id++;
     active_write_count++;
 
@@ -425,10 +413,6 @@ void log_serializer_t::index_write_finish(index_write_context_t &context) {
     if (!offsets_were_written) on_lba_sync.wait();
     if (waiting_for_prev_write) on_prev_write_submitted_metablock.wait();
 
-#ifndef NDEBUG
-    prepare_metablock(&debug_mb_buffer);
-#endif
-
     struct : public cond_t, public mb_manager_t::metablock_write_callback_t {
         void on_metablock_write() { pulse(); }
     } on_metablock_write;
@@ -469,6 +453,9 @@ boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::generate_block_
 }
 
 boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::block_write(const void *buf, iocallback_t *cb) {
+    // TODO: Implement a duration sampler perfmon for this
+    pm_serializer_block_writes++;
+
     extent_manager_t::transaction_t *em_trx = extent_manager->begin_transaction();
     const off64_t offset = data_block_manager->write(buf, true, cb);
     extent_manager->end_transaction(em_trx);

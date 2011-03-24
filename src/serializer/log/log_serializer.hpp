@@ -223,9 +223,6 @@ private:
 
     ser_transaction_id_t current_transaction_id;
     ser_block_sequence_id_t latest_block_sequence_id;
-#ifndef NDEBUG
-    metablock_t debug_mb_buffer;
-#endif
 };
 
 #endif /* __LOG_SERIALIZER_HPP__ */
