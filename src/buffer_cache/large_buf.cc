@@ -729,10 +729,12 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
     int64_t sublevels = num_sublevels(root_ref->offset + root_ref->size);
     rassert(roots[0]->level == sublevels);
 
-    int64_t delbeg = floor_aligned(root_ref->offset, num_leaf_bytes());
-    int64_t delend = floor_aligned(root_ref->offset + extra_size, num_leaf_bytes());
-    if (delbeg < delend) {
-        delete_tree_structures(&roots, delbeg, delend - delbeg, sublevels);
+    {
+        int64_t delbeg = floor_aligned(root_ref->offset, num_leaf_bytes());
+        int64_t delend = floor_aligned(root_ref->offset + extra_size, num_leaf_bytes());
+        if (delbeg < delend) {
+            delete_tree_structures(&roots, delbeg, delend - delbeg, sublevels);
+        }
     }
 
     root_ref->offset += extra_size;
@@ -744,8 +746,11 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
     root_ref->offset -= stepsize * try_shifting(&roots, root_ref->block_ids, root_ref->offset, root_ref->size, stepsize);
 
  tryagain:
+    debugf("large_buf_t::unprepend tryagain\n");
     if (ceil_divide(root_ref->offset + root_ref->size, stepsize) == 1) {
-        rassert(roots.size() == 1 && roots[0] != NULL);
+        debugf("roots.size() is %lu\n", roots.size());
+        rassert(roots.size() == 1);
+        rassert(roots[0] != NULL);
 
         // Now we've gotta shift the block _before_ considering whether to remove a level.
 
@@ -768,10 +773,13 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
             int num_copied = ceil_divide(root_ref->offset + root_ref->size, substepsize);
             if (num_copied <= int((root_ref_limit.value - sizeof(large_buf_ref)) / sizeof(block_id_t))) {
                 removes_level(root_ref->block_ids, num_copied);
+                sublevels --;
+                stepsize = max_offset(sublevels);
                 goto tryagain;
             }
         }
     }
+    debugf("large_buf_t::unprepend out of tryagain.\n");
 
     *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
     rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
