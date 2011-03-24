@@ -206,8 +206,8 @@ void mc_buf_t::on_lock_available() {
             } else {
                 data = inner_buf->data;
                 inner_buf->cow_will_be_needed = true;
-                inner_buf->lock.unlock();
             }
+            inner_buf->lock.unlock();
             break;
         }
         case rwi_write: {
