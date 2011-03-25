@@ -129,7 +129,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
     observe_blocks(registry, file, cfg, filesize);
 
     // 2.  Pass 2.  Load diff log / Visit leaf nodes, dump their values.
-    const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets = registry.destroy_transaction_ids();
+    const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets = registry.destroy_block_sequence_ids();
 
     size_t n = offsets.get_size();
     if (n == 0) {
@@ -205,8 +205,7 @@ void load_diff_log(UNUSED const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offse
         block b;
         b.init(cfg.block_size().ser_value(), &file, offset);
 
-        // TODO! Broken
-        /*ser_block_id_t block_id = b.buf_data().block_id;
+        ser_block_id_t block_id = b.buf_data().block_id;
 
         if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
             const void *data = (char*)b.buf;
@@ -229,7 +228,7 @@ void load_diff_log(UNUSED const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offse
                     logDBG("We have a log block with %d patches.\n", num_patches);
                 }
             }
-        }*/
+        }
     }
 
     for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = buf_patches.begin(); patch_list != buf_patches.end(); ++patch_list) {
@@ -250,8 +249,6 @@ void get_all_values(UNUSED dumper_t& dumper, UNUSED const segmented_vector_t<off
         block b;
         b.init(cfg.block_size().ser_value(), &file, offset);
         
-        // TODO! Broken
-        /*
         ser_block_id_t block_id = b.buf_data().block_id;
 
 
@@ -263,13 +260,11 @@ void get_all_values(UNUSED dumper_t& dumper, UNUSED const segmented_vector_t<off
                 // Replay patches
                 std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = buf_patches.find(cache_block_id);
                 if (patches != buf_patches.end()) {
-                    // We apply only patches which match exactly the provided transaction ID.
+                    // We apply only patches which match exactly the provided block sequence ID.
                     // Sepcifically, this ensures that we only replay patches which are for the right slice,
-                    // as transaction IDs are disjoint across slices (this relies on the current implementation
-                    // details of the cache and serializer though)
+                    // as block sequence IDs are disjoint across slices
                     for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
-                        //fprintf(stdout, "Checking patch with TID %d against TID %d...\n", (int)(*patch)->get_transaction_id(), (int)b.buf_data().transaction_id);
-                        if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
+                        if ((*patch)->get_block_sequence_id() == b.buf_data().block_sequence_id) {
                             (*patch)->apply_to_buf((char*)b.buf);
                         }
                     }
@@ -295,7 +290,6 @@ void get_all_values(UNUSED dumper_t& dumper, UNUSED const segmented_vector_t<off
                 }
             }
         }
-        */
     }
 }
 

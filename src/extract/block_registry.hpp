@@ -19,13 +19,13 @@ public:
   
     // Destroys transaction_ids, we don't need them any more and we'd
     // like to free up memory.
-    const segmented_vector_t<off64_t, MAX_BLOCK_ID>& destroy_transaction_ids();
+    const segmented_vector_t<off64_t, MAX_BLOCK_ID>& destroy_block_sequence_ids();
 
     enum { null = -1 };
 
 private:
 
-    segmented_vector_t<ser_transaction_id_t, MAX_BLOCK_ID> transaction_ids;
+    segmented_vector_t<ser_block_sequence_id_t, MAX_BLOCK_ID> block_sequence_ids;
     segmented_vector_t<off64_t, MAX_BLOCK_ID> offsets;
 
     DISABLE_COPYING(block_registry);
