@@ -867,9 +867,9 @@ void log_serializer_t::unregister_read_ahead_cb(read_ahead_callback_t *cb) {
     }
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf) {
+bool log_serializer_t::offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
-        if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf)) {
+        if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, recency_timestamp)) {
             return true;
         }
     }

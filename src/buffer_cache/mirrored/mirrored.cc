@@ -893,18 +893,18 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-void mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf) {
+void mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
-    do_on_thread(home_thread, boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf));
+    do_on_thread(home_thread, boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, recency_timestamp));
 }
 
-bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf) {
+bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     assert_thread();
 
     // We only load the buffer if we don't have it yet
     // Also we have to recheck that the block has not been deleted in the meantime
     if (!shutting_down && !page_map.find(block_id)) {
-        new mc_inner_buf_t(this, block_id, buf);
+        new mc_inner_buf_t(this, block_id, buf, recency_timestamp);
     } else {
         serializer->free(buf);
     }

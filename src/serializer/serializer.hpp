@@ -35,7 +35,7 @@ struct serializer_t :
     public:
         virtual ~read_ahead_callback_t() { }
         /* If the callee returns true, it is responsible to free buf by calling free(buf) in the corresponding serializer. */
-        virtual bool offer_read_ahead_buf(ser_block_id_t block_id, void *buf) = 0;
+        virtual bool offer_read_ahead_buf(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp) = 0;
     };
     virtual void register_read_ahead_cb(read_ahead_callback_t *cb) = 0;
     virtual void unregister_read_ahead_cb(read_ahead_callback_t *cb) = 0;
