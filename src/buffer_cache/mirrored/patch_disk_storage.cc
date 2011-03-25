@@ -72,8 +72,8 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
         }
     }
 
-    // TODO: Somebody answer this question.
-    coro_t::yield();   // Why?
+    // Yield to let the preloading become effective before we go on calling acquire_block_no_locking
+    coro_t::yield();
 
     // Load all log blocks into memory
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
