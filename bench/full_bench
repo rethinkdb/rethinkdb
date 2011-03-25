@@ -21,18 +21,17 @@ make clean
 make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
 git checkout master
 cd ../bench/stress-client
-make stress
-make libstress.so
+make clean stress libstress.so
 scp stress puzzler:/home/teapot/stress
 scp libstress.so puzzler:/home/teapot/libstress.so
 scp stress.py puzzler:/home/teapot/stress.py
 # This is a hack. The rgetMix workload needs to run its own Python script remotely because
 # its workload cannot be expressed as a stress-client command line. We manually copy the
 # custom stress client to puzzler.
-scp workloads/rgetMix/rgetMixStressClient.py puzzler:/home/teapot/rgetMixStressClient.py
+scp ../workloads/rgetMix/rgetMixStressClient.py puzzler:/home/teapot/rgetMixStressClient.py
 STRESS_CLIENT="puzzler:/home/teapot/stress"
 # Hack to tell the rgetMix workload where its custom stress client has been put
-RGET_MIX_STRESS_CLIENT="puzzler:/home/teapot/rgetMixStressClient.py"
+export RGET_MIX_STRESS_CLIENT="puzzler:/home/teapot/rgetMixStressClient.py"
 cd ../dbench
 
 # Some helper functions

@@ -136,7 +136,7 @@ while True:
         # Choose 20 (or less) latency samples to write
         samples = random.sample(round_latencies, min(20, len(round_latencies)))
         for sample in samples:
-            latencies_file.write("%d\t%f\n" % (total_time, sample))
+            latencies_file.write("%d\t%d\n" % (total_time, sample * 1000000))
 
     # Update running totals
     total_queries += round_queries
