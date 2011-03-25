@@ -50,8 +50,8 @@ typedef io_config_t::thread_message_t thread_message_t;
 
 #ifndef NDEBUG
 inline void assert_good_thread_id(int thread) {
-    rassert(thread >= 0);
-    rassert(thread < thread_pool_t::thread_pool->n_threads);
+    rassert(thread >= 0, "(thread = %d)", thread);
+    rassert(thread < thread_pool_t::thread_pool->n_threads, "(thread = %d, n_threads = %d)", thread, thread_pool_t::thread_pool->n_threads);
 }
 #else
 #define assert_good_thread_id(thread) do { } while(0)

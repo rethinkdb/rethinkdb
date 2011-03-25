@@ -62,7 +62,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         } catch (tcp_conn_t::write_closed_exc_t) {
         }
     }
-    void write_from_data_provider(data_provider_t *dp) {
+    void write_from_data_provider(const thread_saver_t& saver, data_provider_t *dp) {
         /* Write the value itself. If the value is small, write it into the send buffer;
         otherwise, stream it. */
         const const_buffer_group_t *bg;
@@ -73,7 +73,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         for (size_t i = 0; i < bg->num_buffers(); i++) {
             const_buffer_group_t::buffer_t b = bg->get_buffer(i);
             if (dp->get_size() < MAX_BUFFERED_GET_SIZE) {
-                write(ptr_cast<const char>(b.data), b.size);
+                write(ptr_cast<const char>(b.data), b.size, saver);
             } else {
                 write_unbuffered(ptr_cast<const char>(b.data), b.size);
             }
@@ -219,7 +219,7 @@ void do_get(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool with_
                     rh->write_value_header(saver, key.contents, key.size, res.flags, res.value->get_size());
                 }
 
-                rh->write_from_data_provider(res.value.get());
+                rh->write_from_data_provider(saver, res.value.get());
                 rh->write_crlf(saver);
             }
         }
@@ -296,7 +296,7 @@ void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc,
         const boost::shared_ptr<data_provider_t>& dp = kv.value_provider;
 
         rh->write_value_header(saver, key.c_str(), key.length(), kv.mcflags, dp->get_size());
-        rh->write_from_data_provider(dp.get());
+        rh->write_from_data_provider(saver, dp.get());
         rh->write_crlf(saver);
     }
     rh->write_end(saver);

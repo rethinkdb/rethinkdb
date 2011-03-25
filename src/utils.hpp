@@ -62,7 +62,7 @@ public:
     thread_saver_t() : thread_id_(get_thread_id()) {
         assert_good_thread_id(thread_id_);
     }
-    thread_saver_t(int thread_id) : thread_id_(thread_id) {
+    explicit thread_saver_t(int thread_id) : thread_id_(thread_id) {
         assert_good_thread_id(thread_id_);
     }
     ~thread_saver_t() {
