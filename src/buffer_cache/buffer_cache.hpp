@@ -15,7 +15,7 @@
 typedef scc_cache_t<mc_cache_t > cache_t;
 #else
 typedef mc_cache_t cache_t;
-#endif
+#endif  // !defined(VALGRIND) && !defined(NDEBUG)
 
 #else
 
@@ -23,13 +23,13 @@ typedef mc_cache_t cache_t;
 #include "buffer_cache/semantic_checking.hpp"
 typedef scc_cache_t<mock_cache_t> cache_t;
 
-#endif /* MOCK_CACHE */
+#endif // MOCK_CACHE_CHECK
 
 /* Move elements of chosen cache into global namespace */
 
 #ifndef CUSTOM_BUF_TYPE
 typedef cache_t::buf_t buf_t;
-#endif
+#endif  // CUSTOM_BUF_TYPE
 typedef cache_t::transaction_t transaction_t;
 typedef cache_t::block_available_callback_t block_available_callback_t;
 typedef cache_t::transaction_begin_callback_t transaction_begin_callback_t;

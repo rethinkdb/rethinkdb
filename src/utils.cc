@@ -54,7 +54,7 @@ std::string strip_spaces(std::string str) {
 void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     flockfile(stderr);
 
-    const char *buf = (const char *)vbuf;
+    const char *buf = reinterpret_cast<const char *>(vbuf);
     ssize_t length = ulength;
 
     char bd_sample[16] = { 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 

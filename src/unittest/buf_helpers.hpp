@@ -35,16 +35,16 @@ public:
         return &data[0];
     }
 
-    void set_data(void* dest, const void* src, size_t n) {
+    void set_data(void *dest, const void *src, size_t n) {
         memcpy(dest, src, n);
     }
 
-    void move_data(void* dest, const void* src, size_t n) {
+    void move_data(void *dest, const void *src, size_t n) {
         memmove(dest, src, n);
     }
 
     void apply_patch(buf_patch_t *patch) {
-        patch->apply_to_buf((char*)get_data_major_write());
+        patch->apply_to_buf(reinterpret_cast<char *>(get_data_major_write()));
         delete patch;
     }
 

@@ -206,12 +206,12 @@ void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, non
         ser_block_id_t block_id = b.buf_data().block_id;
 
         if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
-            const void *data = (char*)b.buf;
-            if (memcmp((const char*)data, "LOGB00", 6) == 0) {
+            const void *data = b.buf;
+            if (memcmp(reinterpret_cast<const char *>(data), "LOGB00", 6) == 0) {
                 int num_patches = 0;
                 uint16_t current_offset = 6; //sizeof(LOG_BLOCK_MAGIC);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(buf_data_t)) {
-                    buf_patch_t *patch = buf_patch_t::load_patch((char*)data + current_offset);
+                    buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
                     if (!patch) {
                         break;
                     }

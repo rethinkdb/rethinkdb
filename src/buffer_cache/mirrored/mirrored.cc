@@ -440,7 +440,7 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
 
 // Personally I'd be happier if these functions took offsets.  That's
 // a sort of long-term TODO, though.
-void mc_buf_t::set_data(void* dest, const void* src, size_t n) {
+void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
     rassert(data == inner_buf->data);
     if (n == 0) {
         return;
@@ -454,9 +454,9 @@ void mc_buf_t::set_data(void* dest, const void* src, size_t n) {
         get_data_major_write();
         memcpy(dest, src, n);
     } else {
-        size_t offset = (const char*)dest - (const char*)data;
+        size_t offset = reinterpret_cast<const char *>(dest) - reinterpret_cast<const char *>(data);
         // transaction ID will be set later...
-        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, (const char*)src, n));
+        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, reinterpret_cast<const char *>(src), n));
     }
 }
 
@@ -475,8 +475,8 @@ void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
         get_data_major_write();
         memmove(dest, src, n);
     } else {
-        size_t dest_offset = (const char*)dest - (const char*)data;
-        size_t src_offset = (const char*)src - (const char*)data;
+        size_t dest_offset = reinterpret_cast<const char *>(dest) - reinterpret_cast<const char *>(data);
+        size_t src_offset = reinterpret_cast<const char *>(src) - reinterpret_cast<const char *>(data);
         // transaction ID will be set later...
         apply_patch(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
     }
