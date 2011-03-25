@@ -211,7 +211,9 @@ struct do_backfill_cb : public backfill_callback_t {
     void do_done() {
         rassert(get_thread_id() == master->home_thread);
 
-        if (0 == --count) {
+        count = count - 1;
+        debugf("do_done, decrementing count to %d\n", count);
+        if (0 == count) {
             for_when_done->pulse();
         }
     }
@@ -225,14 +227,13 @@ void master_t::do_backfill(repli_timestamp since_when) {
     cond_t done_cond;
 
     do_backfill_cb cb;
+    debugf("do_backfill_cb, count = %d\n", n);
     cb.count = n;
     cb.master = this;
     cb.for_when_done = &done_cond;
 
     for (int i = 0; i < n; ++i) {
-        debugf("Spawning backfill %d of %d\n", i, n);
         dispatchers_[i]->spawn_backfill(since_when, &cb);
-        debugf("Spawned... %d of %d\n", i, n);
     }
 
     debugf("Done spawning, now waiting for done_cond...\n");
@@ -244,6 +245,8 @@ void master_t::do_backfill(repli_timestamp since_when) {
         memset(msg.ignore, 0, sizeof(msg.ignore));
         stream_->send(&msg);
         debugf("Sent backfill_complete.\n");
+    } else {
+        debugf("Not sending backfill...\n");
     }
 }
 

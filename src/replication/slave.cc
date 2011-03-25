@@ -125,20 +125,24 @@ std::string slave_t::failover_reset() {
 void slave_t::hello(UNUSED net_hello_t message) {
     debugf("hello message received.\n");
 }
+
 void slave_t::send(UNUSED buffed_data_t<net_backfill_t>& message) {
     // TODO: Kill connection instead of crashing server, when master
     // sends garbage.
     rassert(false, "backfill message?  what?\n");
 }
+
 void slave_t::send(UNUSED buffed_data_t<net_backfill_complete_t>& message) {
     // TODO: Make the parameter not UNUSED and implement this.  The
     // slave should queue non-backfilling messages until backfilling
     // is complete.
     debugf("Received a BACKFILL_COMPLETE message.\n");
 }
+
 void slave_t::send(UNUSED buffed_data_t<net_announce_t>& message) {
     debugf("announce message received.\n");
 }
+
 void slave_t::send(buffed_data_t<net_get_cas_t>& msg) {
     // TODO this returns a get_result_t (with cross-thread messaging),
     // and we don't really care for that.
@@ -147,6 +151,7 @@ void slave_t::send(buffed_data_t<net_get_cas_t>& msg) {
     internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("get_cas message received and applied.\n");
 }
+
 void slave_t::send(stream_pair<net_sarc_t>& msg) {
     set_mutation_t mut;
     mut.key.assign(msg->key_size, msg->keyvalue);
@@ -160,6 +165,7 @@ void slave_t::send(stream_pair<net_sarc_t>& msg) {
     internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("sarc message received and applied.\n");
 }
+
 void slave_t::send(stream_pair<net_backfill_set_t>& msg) {
     set_mutation_t mut;
     mut.key.assign(msg->key_size, msg->keyvalue);
@@ -173,6 +179,7 @@ void slave_t::send(stream_pair<net_backfill_set_t>& msg) {
     // TODO: We need this operation to force the cas to be set.
     internal_store_->change(mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
 }
+
 void slave_t::send(buffed_data_t<net_incr_t>& msg) {
     incr_decr_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
@@ -181,6 +188,7 @@ void slave_t::send(buffed_data_t<net_incr_t>& msg) {
     internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("incr message received and applied.\n");
 }
+
 void slave_t::send(buffed_data_t<net_decr_t>& msg) {
     incr_decr_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
@@ -189,6 +197,7 @@ void slave_t::send(buffed_data_t<net_decr_t>& msg) {
     internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("decr message received and applied.\n");
 }
+
 void slave_t::send(stream_pair<net_append_t>& msg) {
     append_prepend_mutation_t mut;
     mut.key.assign(msg->key_size, msg->keyvalue);
@@ -197,6 +206,7 @@ void slave_t::send(stream_pair<net_append_t>& msg) {
     internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("append message received and applied.\n");
 }
+
 void slave_t::send(stream_pair<net_prepend_t>& msg) {
     append_prepend_mutation_t mut;
     mut.key.assign(msg->key_size, msg->keyvalue);
@@ -205,6 +215,7 @@ void slave_t::send(stream_pair<net_prepend_t>& msg) {
     internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
     debugf("prepend message received and applied.\n");
 }
+
 void slave_t::send(buffed_data_t<net_delete_t>& msg) {
     delete_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
@@ -212,6 +223,7 @@ void slave_t::send(buffed_data_t<net_delete_t>& msg) {
     internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, msg->timestamp));
     debugf("delete message received.\n");
 }
+
 void slave_t::send(buffed_data_t<net_backfill_delete_t>& msg) {
     delete_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
@@ -221,24 +233,28 @@ void slave_t::send(buffed_data_t<net_backfill_delete_t>& msg) {
     // delete queue.
     internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED, msg->timestamp));
 }
+
 void slave_t::send(buffed_data_t<net_nop_t>& message) {
     int current_thread = get_thread_id();
-    debugf("nop message received.\n");
     net_ack_t ackreply;
     ackreply.timestamp = message->timestamp;
     rassert(current_thread == get_thread_id(), "A");
     stream_->send(ackreply);
-    debugf("sent ack reply\n");
     rassert(current_thread == get_thread_id(), "B");
     internal_store_->time_barrier(message->timestamp);
     rassert(current_thread == get_thread_id(), "C");
+    debugf("handled nop message %u\n", message->timestamp.time);
 }
+
 void slave_t::send(UNUSED buffed_data_t<net_ack_t>& message) {
+    // TODO: Kill connection when master sends garbage.
     rassert("ack message received.. as slave?\n");
 }
+
 void slave_t::send(UNUSED buffed_data_t<net_shutting_down_t>& message) {
     debugf("shutting_down message received.\n");
 }
+
 void slave_t::send(UNUSED buffed_data_t<net_goodbye_t>& message) {
     debugf("goodbye message received.\n");
 }
