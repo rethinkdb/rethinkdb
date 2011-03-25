@@ -13,8 +13,10 @@ struct thread_doer_t :
         state_go_home
     } state;
     
-    thread_doer_t(const callable_t &callable, int thread)
-        : callable(callable), thread(thread), state(state_go_to_core) { }
+    thread_doer_t(const callable_t& _callable, int _thread)
+        : callable(_callable), thread(_thread), state(state_go_to_core) {
+        assert_good_thread_id(thread);
+    }
     
     void run() {
         state = state_go_to_core;
@@ -50,6 +52,7 @@ struct thread_doer_t :
 
 template<class callable_t>
 void do_on_thread(int thread, const callable_t &callable) {
+    assert_good_thread_id(thread);
     thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
     fsm->run();
 }
@@ -60,8 +63,8 @@ struct later_doer_t :
 {
     callable_t callable;
     
-    later_doer_t(const callable_t &callable)
-        : callable(callable) {
+    later_doer_t(const callable_t &_callable)
+        : callable(_callable) {
         call_later_on_this_thread(this);
     }
     

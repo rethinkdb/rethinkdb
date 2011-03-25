@@ -149,6 +149,10 @@ public:
                 }
             }
         }
+
+        if (total_level_count() == 0) {
+            callback->done();
+        }
     }
 
     int64_t total_level_count() {
@@ -244,10 +248,10 @@ void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, back
 
     if (root_id == NULL_BLOCK_ID) {
         // No root, so no keys in this entire shard.
-        return;
+        callback->done();
+    } else {
+        subtrees_backfill(state, buf_lock, 0, &root_id, 1);
     }
-
-    subtrees_backfill(state, buf_lock, 0, &root_id, 1);
 }
 
 void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids) {
