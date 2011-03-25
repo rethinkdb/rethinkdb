@@ -4,13 +4,12 @@
 
 struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
-    btree_append_prepend_oper_t(data_provider_t *data_, bool append_)
-        : data(data_), append(append_)
+    btree_append_prepend_oper_t(data_provider_t *_data, bool _append)
+        : data(_data), append(_append)
     { }
 
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         try {
-            debugf("append_prepend operate...\n");
             if (!old_value) {
                 result = apr_not_found;
                 return false;
@@ -43,7 +42,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
             if (new_size <= MAX_IN_NODE_VALUE_SIZE) { // small -> small
                 rassert(!old_value->is_large());
-                // XXX This does unnecessary copying now.
+                // This does unnecessary copying now.
                 if (append) {
                     buffer_group.add_buffer(data->get_size(), value.value() + old_value->value_size());
                 } else { // prepend
@@ -64,8 +63,6 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                     large_buflock->HACK_root_ref(value.lb_ref());
                     int refsize_adjustment;
 
-                    debugf("append_prepend operate about to do work...\n");
-
 
                     if (append) {
                         // TIED large_buflock TO value.
@@ -74,7 +71,6 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                     else {
                         large_buflock->prepend(data->get_size(), &refsize_adjustment);
                     }
-                    debugf("append_prepend operate did work.\n");
 
                     value.size += refsize_adjustment;
                     is_old_large_value = true;
@@ -107,10 +103,8 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                             large_buflock->unappend(data->get_size(), &refsize_adjustment);
                         }
                         else {
-                            debugf("Start unprepend...\n");
                             // TIED large_buflock TO value
                             large_buflock->unprepend(data->get_size(), &refsize_adjustment);
-                            debugf("Finish unprepend.\n");
                         }
                         value.size += refsize_adjustment;
                     } else {

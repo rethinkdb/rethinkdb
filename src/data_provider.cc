@@ -210,8 +210,8 @@ void buffer_borrowing_data_provider_t::get_data_into_buffers(const buffer_group_
     try {
 #endif
 
-        supplied_buffers_ = true;
         inner_->get_data_into_buffers(dest);
+        supplied_buffers_ = true;
         side_->supply_buffers_and_wait(const_view(dest));
 
 #ifndef NDEBUG
