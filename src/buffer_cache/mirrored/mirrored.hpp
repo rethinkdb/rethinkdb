@@ -192,9 +192,9 @@ public:
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
     void *get_data_major_write();
     // Convenience function to set some address in the buffer acquired through get_data_read. (similar to memcpy)
-    void set_data(const void* dest, const void* src, const size_t n);
+    void set_data(void *dest, const void *src, size_t n);
     // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
-    void move_data(const void* dest, const void* src, const size_t n);
+    void move_data(void* dest, const void* src, size_t n);
 
     // Makes sure the block itself gets flushed, instead of just the patch log
     void ensure_flush();

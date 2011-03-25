@@ -438,17 +438,21 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
     return inner_buf->next_patch_counter++;
 }
 
-void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
+// Personally I'd be happier if these functions took offsets.  That's
+// a sort of long-term TODO, though.
+void mc_buf_t::set_data(void* dest, const void* src, size_t n) {
     rassert(data == inner_buf->data);
-    if (n == 0)
+    if (n == 0) {
         return;
+    }
+    // TODO: stop this obnoxious unsigned type usage.
     rassert(dest >= data && (size_t)dest < (size_t)data + inner_buf->cache->get_block_size().value());
     rassert((size_t)dest + n <= (size_t)data + inner_buf->cache->get_block_size().value());
 
     if (inner_buf->writeback_buf.needs_flush) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
-        memcpy(const_cast<void*>(dest), src, n);
+        memcpy(dest, src, n);
     } else {
         size_t offset = (const char*)dest - (const char*)data;
         // transaction ID will be set later...
@@ -456,10 +460,11 @@ void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
     }
 }
 
-void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
+void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
     rassert(data == inner_buf->data);
-    if (n == 0)
+    if (n == 0) {
         return;
+    }
     rassert(dest >= data && (size_t)dest < (size_t)data + inner_buf->cache->get_block_size().value());
     rassert((size_t)dest + n <= (size_t)data + inner_buf->cache->get_block_size().value());
     rassert(src >= data && (size_t)src < (size_t)data + inner_buf->cache->get_block_size().value());
@@ -468,7 +473,7 @@ void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     if (inner_buf->writeback_buf.needs_flush) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
-        memmove(const_cast<void*>(dest), src, n);
+        memmove(dest, src, n);
     } else {
         size_t dest_offset = (const char*)dest - (const char*)data;
         size_t src_offset = (const char*)src - (const char*)data;

@@ -29,7 +29,7 @@ perfmon_counter_t pm_btree_depth("btree_depth");
 
 void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
     rassert(sb_buf.is_acquired());
-    sb_buf->set_data(&ptr_cast<btree_superblock_t>(sb_buf->get_data_read())->root_block, &root_id, sizeof(root_id));
+    sb_buf->set_data(const_cast<block_id_t *>(&ptr_cast<btree_superblock_t>(sb_buf->get_data_read())->root_block), &root_id, sizeof(root_id));
 
     sb_buf.release();
 }

@@ -56,7 +56,7 @@ private:
     }
 
     static void change_value(buf_t *buf, uint32_t value) {
-        buf->set_data(buf->get_data_read(), &value, sizeof(value));
+        buf->set_data(const_cast<void *>(buf->get_data_read()), &value, sizeof(value));
     }
 
     static uint32_t get_value(buf_t *buf) {

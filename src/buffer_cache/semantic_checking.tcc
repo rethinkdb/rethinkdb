@@ -26,12 +26,12 @@ void *scc_buf_t<inner_cache_t>::get_data_major_write() {
 }
 
 template<class inner_cache_t>
-void scc_buf_t<inner_cache_t>::set_data(const void* dest, const void* src, const size_t n) {
+void scc_buf_t<inner_cache_t>::set_data(void* dest, const void* src, const size_t n) {
     inner_buf->set_data(dest, src, n);
 }
 
 template<class inner_cache_t>
-void scc_buf_t<inner_cache_t>::move_data(const void* dest, const void* src, const size_t n) {
+void scc_buf_t<inner_cache_t>::move_data(void* dest, const void* src, const size_t n) {
     inner_buf->move_data(dest, src, n);
 }
 
