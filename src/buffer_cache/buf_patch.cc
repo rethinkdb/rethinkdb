@@ -6,24 +6,24 @@
 #include <string.h>
 #include "errors.hpp"
 
-buf_patch_t* buf_patch_t::load_patch(char* source) {
-    uint16_t remaining_length = *reinterpret_cast<uint16_t *>(source);
+buf_patch_t* buf_patch_t::load_patch(const char* source) {
+    uint16_t remaining_length = *reinterpret_cast<const uint16_t *>(source);
     source += sizeof(remaining_length);
     if (remaining_length == 0) {
         return NULL;
     }
     remaining_length -= sizeof(remaining_length);
     guarantee(remaining_length >= sizeof(block_id) + sizeof(patch_counter) + sizeof(operation_code));
-    block_id_t block_id = *reinterpret_cast<block_id_t *>(source);
+    block_id_t block_id = *reinterpret_cast<const block_id_t *>(source);
     source += sizeof(block_id);
     remaining_length -= sizeof(block_id);
-    patch_counter_t patch_counter = *reinterpret_cast<patch_counter_t *>(source);
+    patch_counter_t patch_counter = *reinterpret_cast<const patch_counter_t *>(source);
     source += sizeof(patch_counter);
     remaining_length -= sizeof(block_id);
-    ser_transaction_id_t applies_to_transaction_id = *reinterpret_cast<ser_transaction_id_t *>(source);
+    ser_transaction_id_t applies_to_transaction_id = *reinterpret_cast<const ser_transaction_id_t *>(source);
     source += sizeof(applies_to_transaction_id);
     remaining_length -= sizeof(applies_to_transaction_id);
-    patch_operation_code_t operation_code = *reinterpret_cast<patch_operation_code_t *>(source);
+    patch_operation_code_t operation_code = *reinterpret_cast<const patch_operation_code_t *>(source);
     source += sizeof(operation_code);
     remaining_length -= sizeof(operation_code);
 
