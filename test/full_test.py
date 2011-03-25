@@ -23,7 +23,7 @@ for mode in ["debug", "release"]:
                             cmd_format="make")
 
 # Make sure auxillary tools compile
-do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0",
+do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0 LIBGSL=0",
         {},
         cmd_format="make")
 do_test("cd ../bench/serializer-bench/; make clean; make -j",
@@ -76,7 +76,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices,
-                    "chunk-size"  : 10000 if (mode == "release" and not checker) else 100,
+                    "chunk-size"  : 1000 if (mode == "release" and not checker) else 100,
                     "num-ints"    : 1000000 if (mode == "release" and not checker) else 1000,
                     "sigint-timeout" : sigint_timeout },
                   repeat=3, timeout = 180 * ec2)
@@ -260,7 +260,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=3)
+                  repeat=3, timeout = 60 * ec2)
 
     do_test_cloud("integration/incr_decr.py",
                   { "auto"        : True,
@@ -382,6 +382,16 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices},
                   repeat=10, timeout=30 * ec2)
 
+    do_test_cloud("integration/replication.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 340 },
+                  repeat=5, timeout=460 * ec2)
+
     for suite_test in glob.glob('integration/memcached_suite/*.t'):
         do_test_cloud("integration/memcached_suite.py",
                       { "auto"        : True,
@@ -393,6 +403,130 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "sigint-timeout" : 360,
                         "suite-test"  : suite_test},
                       repeat=3, timeout=480)
+                      
+    # Test different command line configurations (defaults less thoroughly)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 180,
+                    "restart-server-prob" : "0.002",
+                    "serve-flags" : "--read-ahead y"},
+                          repeat=3, timeout=300)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 180,
+                    "restart-server-prob" : "0.002",
+                    "serve-flags" : "--read-ahead n"},
+                          repeat=1, timeout=300)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 180,
+                    "restart-server-prob" : "0.002",
+                    "serve-flags" : "--flush-concurrency 20 --flush-timer 500"},
+                          repeat=3, timeout=300)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 180,
+                    "restart-server-prob" : "0.002",
+                    "serve-flags" : "--flush-concurrency 1 --flush-timer 500"},
+                          repeat=1, timeout=300)
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 180,
+                    "serve-flags" : "--flush-concurrency 20 --flush-timer 500",
+                    "fsck"        : False},
+                  repeat=3, timeout=300 * ec2)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 180,
+                    "restart-server-prob" : "0.002",
+                    "serve-flags" : "--io-backend pool"},
+                          repeat=3, timeout=300)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 180,
+                    "restart-server-prob" : "0.002",
+                    "serve-flags" : "--io-backend native"},
+                          repeat=1, timeout=300)
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 180,
+                    "serve-flags" : "--io-backend pool",
+                    "fsck"        : False},
+                  repeat=3, timeout=300 * ec2)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 180,
+                    "diff-log-size" : 0,
+                    "restart-server-prob" : "0.002"},
+                          repeat=3, timeout=300)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 180,
+                    "diff-log-size" : 8,
+                    "restart-server-prob" : "0.002"},
+                          repeat=1, timeout=300)
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 180,
+                    "diff-log-size" : 0,
+                    "fsck"        : False},
+                  repeat=3, timeout=300 * ec2)
+    
                 
     # Canonical tests are included in all tests
     run_canonical_tests(mode, checker, protocol, cores, slices)

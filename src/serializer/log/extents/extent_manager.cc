@@ -167,7 +167,7 @@ void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb, int exte
     mb->debug_extents_in_use = extents_in_use;
 }
 
-void extent_manager_t::start_existing(metablock_mixin_t *last_metablock) {
+void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) {
 
     rassert(state == state_reserving_extents);
     current_transaction = NULL;
@@ -270,7 +270,7 @@ void extent_manager_t::release_extent(off64_t extent) {
     current_transaction->free_queue.push_back(extent);
 }
 
-void extent_manager_t::end_transaction(transaction_t *t) {
+void extent_manager_t::end_transaction(UNUSED transaction_t *t) {
     rassert(current_transaction == t);
     rassert(t);
     current_transaction = NULL;

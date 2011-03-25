@@ -37,7 +37,7 @@ public:
 
     // Blocks
     btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                            replication::master_t *master);
+                            snag_ptr_t<replication::master_t> master);
 
     // Blocks
     ~btree_key_value_store_t();
@@ -56,24 +56,15 @@ public:
 
     /* set_store_interface_t interface */
 
-    get_result_t get_cas(const store_key_t &key);
-    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
-
-    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data);
-
-    delete_result_t delete_key(const store_key_t &key);
+    mutation_result_t change(const mutation_t &m);
 
     /* set_store_t interface */
 
-    get_result_t get_cas(const store_key_t &key, castime_t castime);
-    
-    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime,
-                      add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
-    delete_result_t delete_key(const store_key_t &key, repli_timestamp timestamp);
+    mutation_result_t change(const mutation_t &m, castime_t ct);
 
-    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime);
+    // No particular interface.
+
+    void time_barrier(repli_timestamp lower_bound_on_future_timestamps);
 
 public:
     int n_files;
@@ -150,6 +141,9 @@ private:
     };
 
     hash_control_t hash_control;
+
+private:
+    void do_time_barrier_on_slice(repli_timestamp timestamp, int i);
 };
 
 #endif /* __BTREE_KEY_VALUE_STORE_HPP__ */

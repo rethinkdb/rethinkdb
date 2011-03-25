@@ -7,6 +7,7 @@
 
 class initialize_superblock_fsm_t;
 struct btree_replicant_t;
+class backfill_callback_t;
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
@@ -36,16 +37,14 @@ public:
 
     /* set_store_t interface */
 
-    get_result_t get_cas(const store_key_t &key, castime_t castime);
-    
-    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime,
-                      add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
-    delete_result_t delete_key(const store_key_t &key, repli_timestamp timestamp);
+    mutation_result_t change(const mutation_t &m, castime_t castime);
 
-    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime);
+    void time_barrier(repli_timestamp lower_bound_on_future_timestamps);
 
-    /* For internal use */
+    /* backfilling interface */
+    void spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback);
+
+    // TODO: Why does this return by reference?
     cache_t& cache() { return cache_; }
 
 private:
@@ -53,13 +52,5 @@ private:
 
     DISABLE_COPYING(btree_slice_t);
 };
-
-// Stats
-
-extern perfmon_duration_sampler_t
-    pm_cmd_set,
-    pm_cmd_get,
-    pm_cmd_get_without_threads,
-    pm_cmd_rget;
 
 #endif /* __BTREE_SLICE_HPP__ */

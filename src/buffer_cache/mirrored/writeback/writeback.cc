@@ -1,22 +1,38 @@
 #include "writeback.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
+#include <cmath>
 
 writeback_t::begin_transaction_fsm_t::begin_transaction_fsm_t(writeback_t *wb, mc_transaction_t *txn, mc_transaction_begin_callback_t *cb)
     : writeback(wb), transaction(txn)
 {
     txn->begin_callback = cb;
-    if (writeback->too_many_dirty_blocks()) {
-        /* When a flush happens, we will get popped off the throttled transactions list
-        and given a green light. */
-        writeback->throttled_transactions_list.push_back(this);
+
+    writeback->expected_delayed_change_count += transaction->expected_change_count;
+    const unsigned int delay_ms = writeback->throttle_delay_ms();
+    if (delay_ms > 0) {
+        fire_timer_once(delay_ms, &timer_callback, (void*)this);
     } else {
-        green_light();
+        timer_callback((void*)this);
+    }
+    
+}
+
+void writeback_t::begin_transaction_fsm_t::timer_callback(void *btfsm) {
+    begin_transaction_fsm_t *fsm = reinterpret_cast<begin_transaction_fsm_t*>(btfsm);
+
+    if (fsm->writeback->too_many_dirty_blocks()) {
+        /* When a flush happens, we will get popped off the throttled transactions list
+and given a green light. */
+        fsm->writeback->throttled_transactions_list.push_back(fsm);
+    } else {
+        fsm->green_light();
     }
 }
 
 void writeback_t::begin_transaction_fsm_t::green_light() {
 
-    writeback->active_write_transactions++;
+    writeback->expected_delayed_change_count -= transaction->expected_change_count;
+    writeback->expected_active_change_count += transaction->expected_change_count;
 
     // Lock the flush lock "for reading", but what we really mean is to lock it non-
     // exclusively because more than one write transaction can proceed at once.
@@ -64,18 +80,22 @@ writeback_t::writeback_t(
       flush_threshold(flush_threshold),
       flush_timer(NULL),
       outstanding_disk_writes(0),
-      active_write_transactions(0),
+      expected_active_change_count(0),
+      expected_delayed_change_count(0),
       writeback_in_progress(false),
       active_flushes(0),
       force_patch_storage_flush(false),
       cache(cache),
       start_next_sync_immediately(false) {
+
+    rassert(max_dirty_blocks >= 10); // sanity check: you really don't want to have less than this.
+                                     // 10 is rather arbitrary.
 }
 
 writeback_t::~writeback_t() {
     rassert(!flush_timer);
     rassert(outstanding_disk_writes == 0);
-    rassert(active_write_transactions == 0);
+    rassert(expected_active_change_count == 0);
 }
 
 perfmon_sampler_t pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), false);
@@ -83,7 +103,11 @@ perfmon_sampler_t pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), 
 bool writeback_t::sync(sync_callback_t *callback) {
     cache->assert_thread();
 
-    if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0)
+    // Have to check active_flushes too, because a return value of true has to guarantee that changes handled
+    // by previous flushes are also on disk. If these are still running, we must initiate a new flush
+    // even if there are no dirty blocks to make sure that the callbacks get called only
+    // after all other flushes have finished (which is at least enforced by the serializer's metablock queue currently)
+    if (num_dirty_blocks() == 0 && sync_callbacks.size() == 0 && active_flushes == 0)
         return true;
 
     if (callback)
@@ -128,7 +152,7 @@ bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callba
 void writeback_t::on_transaction_commit(transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
         
-        active_write_transactions--;
+        expected_active_change_count -= txn->expected_change_count;
         possibly_unthrottle_transactions();
         
         flush_lock.unlock();
@@ -153,9 +177,37 @@ unsigned int writeback_t::num_dirty_blocks() {
     return dirty_bufs.size();
 }
 
+perfmon_sampler_t pm_delay("throttling_delay", secs_to_ticks(1.0));
+
+unsigned int writeback_t::throttle_delay_ms() {
+    const int max_delay_time = 500;
+    const size_t expected_dirty_blocks = num_dirty_blocks() + outstanding_disk_writes + expected_active_change_count + expected_delayed_change_count;
+    const size_t start_throttling_threshold = (double)max_dirty_blocks * START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION;
+
+    if (expected_dirty_blocks <= start_throttling_threshold) {
+        return 0;
+    }
+
+    const float overcommit_fraction = (float)(expected_dirty_blocks - start_throttling_threshold) / (max_dirty_blocks - start_throttling_threshold);
+
+    if (overcommit_fraction >= 1.0f) {
+        return max_delay_time;
+    }
+
+    float delay_ms = 1.0f / (1.0f - powf(overcommit_fraction, 0.05f)) - 1.0f; // The power (0.05) controls the steepness of throttling (the higher the value, the less steep it is)
+
+    if (std::isnan(delay_ms) || delay_ms < 0.0f) {
+        return max_delay_time;
+    }
+
+    delay_ms = std::min(delay_ms, (float)max_delay_time);
+    pm_delay.record(delay_ms);
+    return (int)delay_ms;
+}
+
 bool writeback_t::too_many_dirty_blocks() {
     return
-        num_dirty_blocks() + outstanding_disk_writes + active_write_transactions * 3
+        num_dirty_blocks() + outstanding_disk_writes + expected_active_change_count
         >= max_dirty_blocks;
 }
 
@@ -211,6 +263,14 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
     }
 }
 
+// Add block_id to deleted_blocks list.
+void writeback_t::local_buf_t::mark_block_id_deleted() {
+    writeback_t::deleted_block_t deleted_block;
+    deleted_block.block_id = gbuf->block_id;
+    deleted_block.write_empty_block = gbuf->write_empty_deleted_block;
+    gbuf->cache->writeback.deleted_blocks.push_back(deleted_block);
+}
+
 void writeback_t::flush_timer_callback(void *ctx) {
     writeback_t *self = static_cast<writeback_t *>(ctx);
     self->flush_timer = NULL;
@@ -256,7 +316,9 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     rassert(transaction == NULL);
     bool saved_shutting_down = parent->cache->shutting_down;
     parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
-    transaction = parent->cache->begin_transaction(rwi_read, NULL);
+
+    // It's a read transaction, that's why we use repli_timestamp::invalid.
+    transaction = parent->cache->begin_transaction(rwi_read, 0, repli_timestamp::invalid, NULL);
     parent->cache->shutting_down = saved_shutting_down;
     rassert(transaction != NULL); // Read txns always start immediately.
 
@@ -324,7 +386,7 @@ void writeback_t::concurrent_flush_t::do_writeback() {
     // Write transactions can now proceed again.
     parent->flush_lock.unlock();
 
-    do_on_thread(parent->cache->serializer->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_write, this, false));
+    do_on_thread(parent->cache->serializer->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_write, this));
     // ... continue in on_serializer_write_txn
 }
 
@@ -423,18 +485,35 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
     /* Request read locks on all of the blocks we need to flush. */
     pm_flushes_writing.begin(&start_time);
 
-    serializer_writes.reserve(parent->dirty_bufs.size());
-    serializer_inner_bufs.reserve(parent->dirty_bufs.size());
-
     // Log the size of this flush
     pm_flushes_blocks.record(parent->dirty_bufs.size());
 
+    // Request read locks on all of the blocks we need to flush.
+    serializer_writes.reserve(parent->deleted_blocks.size() + parent->dirty_bufs.size());
+    serializer_inner_bufs.reserve(parent->dirty_bufs.size());
+
+    // Write deleted block_ids.
+    for (size_t i = 0; i < parent->deleted_blocks.size(); i++) {
+        // NULL indicates a deletion
+        serializer_writes.push_back(translator_serializer_t::write_t::make(
+            parent->deleted_blocks[i].block_id,
+            repli_timestamp::invalid,
+            NULL,
+            parent->deleted_blocks[i].write_empty_block,
+            NULL
+            ));
+
+        block_id_t id = parent->deleted_blocks[i].block_id;
+        parent->cache->free_list.release_block_id(id);
+        debugf("Releasing block id %u\n", id);
+        print_backtrace();
+    }
+    parent->deleted_blocks.clear();
+
     unsigned int really_dirty = 0;
 
-    int i = 0;
     while (local_buf_t *lbuf = parent->dirty_bufs.head()) {
         inner_buf_t *inner_buf = lbuf->gbuf;
-        serializer_inner_bufs.push_back(inner_buf);
 
         bool buf_needs_flush = lbuf->needs_flush;
         //bool buf_dirty = lbuf->dirty;
@@ -448,97 +527,76 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
         if (buf_needs_flush) {
             ++really_dirty;
 
-            bool do_delete = inner_buf->do_delete;
+            rassert(!inner_buf->do_delete);
 
             // Acquire the blocks
-            inner_buf->do_delete = false; /* Backdoor around acquire()'s assertion */
-            access_t buf_access_mode = do_delete ? rwi_read : rwi_read_outdated_ok;
-            buf_t *buf = transaction->acquire(inner_buf->block_id, buf_access_mode, NULL);
-            rassert(buf);         // Acquire must succeed since we hold the flush_lock.
+            buf_t *buf = transaction->acquire(inner_buf->block_id, rwi_read_outdated_ok, NULL);
+            rassert(buf); // Acquire must succeed since we hold the flush_lock.
+            serializer_inner_bufs.push_back(inner_buf);
 
             // Fill the serializer structure
-            if (!do_delete) {
-                serializer_writes.push_back(translator_serializer_t::write_t::make(
-                    inner_buf->block_id,
-                    inner_buf->subtree_recency,
-                    buf->get_data_read(),
-                    inner_buf->write_empty_deleted_block,
-                    new buf_writer_t(parent, buf)
-                    ));
-
-            } else {
-                // NULL indicates a deletion
-                serializer_writes.push_back(translator_serializer_t::write_t::make(
-                    inner_buf->block_id,
-                    inner_buf->subtree_recency,
-                    NULL,
-                    inner_buf->write_empty_deleted_block,
-                    NULL
-                    ));
-
-                rassert(buf_access_mode != rwi_read_outdated_ok);
-                buf->release();
-
-                parent->cache->free_list.release_block_id(inner_buf->block_id);
-
-                delete inner_buf;
-            }
+            serializer_writes.push_back(translator_serializer_t::write_t::make(
+                inner_buf->block_id,
+                inner_buf->subtree_recency,
+                buf->get_data_read(),
+                inner_buf->write_empty_deleted_block,
+                new buf_writer_t(parent, buf)
+                ));
         } else if (recency_dirty) {
             // No need to acquire the block.
             serializer_writes.push_back(translator_serializer_t::write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency, NULL));
         }
 
-        i++;
     }
 
     pm_flushes_blocks_dirty.record(really_dirty);
 }
 
-bool writeback_t::concurrent_flush_t::do_write(const bool write_issued) {
-    if (!write_issued) {
-        /* Start writing all the dirty bufs down, as a transaction. */
+bool writeback_t::concurrent_flush_t::do_write() {
+    /* Start writing all the dirty bufs down, as a transaction. */
 
-        // TODO(NNW): Now that the serializer/aio-system breaks writes up into
-        // chunks, we may want to worry about submitting more heavily contended
-        // bufs earlier in the process so more write FSMs can proceed sooner.
+    rassert(parent->writeback_in_progress);
+    parent->cache->serializer->assert_thread();
 
-        rassert(parent->writeback_in_progress);
-        parent->cache->serializer->assert_thread();
+    bool continue_instantly = serializer_writes.empty() ||
+            parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this, this);
 
-        bool continue_instantly = serializer_writes.empty() ||
-                parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this);
-
-        do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_write, this, true));
-
-        if (continue_instantly)
-            on_serializer_write_txn();
-
-        return true;
-    }
-    else {
-        rassert(parent->writeback_in_progress);
-        parent->cache->assert_thread();
-
-        // Retrieve changed transaction ids in case COW was used
-        rassert(serializer_inner_bufs.size() == serializer_writes.size());
-        for (size_t i = 0; i < serializer_inner_bufs.size(); ++i) {
-            if (serializer_writes[i].buf_specified && serializer_writes[i].buf) {
-                serializer_inner_bufs[i]->transaction_id = parent->cache->serializer->get_current_transaction_id(serializer_writes[i].block_id, serializer_writes[i].buf);
-            }
+    if (continue_instantly) {
+        // the tid_callback gets called even if do_write returns true...
+        if (serializer_writes.empty()) {
+            do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
         }
-
-        // Allow new concurrent flushes to start from now on
-        // (we had to wait until the transaction got passed to the serializer)
-        parent->writeback_in_progress = false;
-
-        // Also start the next sync now in case it was requested
-        if (parent->start_next_sync_immediately) {
-            parent->start_next_sync_immediately = false;
-            parent->sync(NULL);
-        }
-
-        return true;
+        do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_cleanup, this));
     }
+
+    return true;
+}
+
+void writeback_t::concurrent_flush_t::update_transaction_ids() {
+    rassert(parent->writeback_in_progress);
+    parent->cache->assert_thread();
+
+    // Retrieve changed transaction ids
+    size_t inner_buf_ix = 0;
+    for (size_t i = 0; i < serializer_writes.size(); ++i) {
+        if (serializer_writes[i].buf_specified && serializer_writes[i].buf) {
+            serializer_inner_bufs[inner_buf_ix++]->transaction_id = parent->cache->serializer->get_current_transaction_id(serializer_writes[i].block_id, serializer_writes[i].buf);
+        }
+    }
+
+    // Allow new concurrent flushes to start from now on
+    // (we had to wait until the transaction got passed to the serializer)
+    parent->writeback_in_progress = false;
+
+    // Also start the next sync now in case it was requested
+    if (parent->start_next_sync_immediately) {
+        parent->start_next_sync_immediately = false;
+        parent->sync(NULL);
+    }
+}
+
+void writeback_t::concurrent_flush_t::on_serializer_write_tid() {
+    do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
 }
 
 void writeback_t::concurrent_flush_t::on_serializer_write_txn() {

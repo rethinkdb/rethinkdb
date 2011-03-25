@@ -16,10 +16,13 @@ struct co_block_available_callback_t : public block_available_callback_t {
     }
 };
 
-buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode) {
+buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode, cond_t *acquisition_cond) {
     transaction->ensure_thread();
     co_block_available_callback_t cb;
     buf_t *value = transaction->acquire(block_id, mode, &cb);
+    if (acquisition_cond) {
+        acquisition_cond->pulse();
+    }
     if (!value) {
         value = cb.join();
     }
@@ -31,56 +34,63 @@ buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_
 struct large_value_acquired_t : public large_buf_available_callback_t {
     coro_t *self;
     large_value_acquired_t() : self(coro_t::self()) { }
-    void on_large_buf_available(large_buf_t *large_value) { self->notify(); }
+    void on_large_buf_available(UNUSED large_buf_t *large_value) { self->notify(); }
 };
 
-void co_acquire_large_value(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
+void co_acquire_large_buf_for_unprepend(large_buf_t *lb, int64_t length) {
     large_value_acquired_t acquired;
-
-    large_value->get_transaction()->ensure_thread();
-    large_value->acquire(root_ref_, ref_limit_, access_, &acquired);
+    lb->ensure_thread();
+    lb->acquire_for_unprepend(length, &acquired);
     coro_t::wait();
 }
 
-void co_acquire_large_value_lhs(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
+void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size, cond_t *acquisition_cond) {
     large_value_acquired_t acquired;
-    large_value->acquire_lhs(root_ref_, ref_limit_, access_, &acquired);
+    lb->ensure_thread();
+    lb->acquire_slice(offset, size, &acquired);
+    if (acquisition_cond) {
+        acquisition_cond->pulse();
+    }
     coro_t::wait();
 }
 
-void co_acquire_large_value_rhs(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
-    large_value_acquired_t acquired;
-    large_value->acquire_rhs(root_ref_, ref_limit_, access_, &acquired);
-    coro_t::wait();
+void co_acquire_large_buf(large_buf_t *lb, cond_t *acquisition_cond) {
+    co_acquire_large_buf_slice(lb, 0, lb->root_ref->size, acquisition_cond);
 }
 
-void co_acquire_large_value_for_delete(large_buf_t *large_value, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_) {
+void co_acquire_large_buf_lhs(large_buf_t *lb) {
+    co_acquire_large_buf_slice(lb, 0, std::min(1L, lb->root_ref->size));
+}
+
+void co_acquire_large_buf_rhs(large_buf_t *lb) {
+    int64_t beg = std::max(int64_t(0), lb->root_ref->size - 1);
+    co_acquire_large_buf_slice(lb, beg, lb->root_ref->size - beg);
+}
+
+void co_acquire_large_buf_for_delete(large_buf_t *large_value) {
     large_value_acquired_t acquired;
-    large_value->acquire_for_delete(root_ref_, ref_limit_, access_, &acquired);
+    large_value->acquire_for_delete(&acquired);
     coro_t::wait();
 }
 
 // Well this is repetitive.
 struct transaction_begun_callback_t : public transaction_begin_callback_t {
-    coro_t *self;
-    transaction_t *value;
+    flat_promise_t<transaction_t*> txn;
 
-    void on_txn_begin(transaction_t *txn) {
-        value = txn;
-        self->notify();
+    void on_txn_begin(transaction_t *txn_) {
+        txn.pulse(txn_);
     }
 
     transaction_t *join() {
-        self = coro_t::self();
-        coro_t::wait();
-        return value;
+        return txn.wait();
     }
 };
 
-transaction_t *co_begin_transaction(cache_t *cache, access_t access) {
+transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp) {
+    // TODO: ensure_thread is retarded.
     cache->ensure_thread();
     transaction_begun_callback_t cb;
-    transaction_t *value = cache->begin_transaction(access, &cb);
+    transaction_t *value = cache->begin_transaction(access, expected_change_count, recency_timestamp, &cb);
     if (!value) {
         value = cb.join();
     }
@@ -93,7 +103,7 @@ transaction_t *co_begin_transaction(cache_t *cache, access_t access) {
 struct transaction_committed_t : public transaction_commit_callback_t {
     coro_t *self;
     transaction_committed_t() : self(coro_t::self()) { }
-    void on_txn_commit(transaction_t *transaction) {
+    void on_txn_commit(UNUSED transaction_t *transaction) {
         self->notify();
     }
 };

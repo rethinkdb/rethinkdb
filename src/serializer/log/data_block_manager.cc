@@ -115,12 +115,93 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     state = state_ready;
 }
 
+struct dbm_read_ahead_fsm_t :
+    public iocallback_t
+{
+    data_block_manager_t *parent;
+    iocallback_t *callback;
+    off64_t extent;
+    void *read_ahead_buf;
+    size_t read_ahead_size;
+    size_t read_ahead_offset;
+    off64_t off_in;
+    void *buf_out;
+
+    dbm_read_ahead_fsm_t(data_block_manager_t *p, off64_t off_in, void *buf_out, iocallback_t *cb)
+        : parent(p), callback(cb), read_ahead_buf(NULL), off_in(off_in), buf_out(buf_out)
+    {
+        extent = floor_aligned(off_in, parent->static_config->extent_size());
+
+        // Read up to MAX_READ_AHEAD_BLOCKS blocks
+        read_ahead_size = std::min(parent->static_config->extent_size(), MAX_READ_AHEAD_BLOCKS * parent->static_config->block_size().ser_value());
+        // We divide the extent into chunks of size read_ahead_size, then select the one which contains off_in
+        read_ahead_offset = extent + (off_in - extent) / read_ahead_size * read_ahead_size;
+        read_ahead_buf = malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE);
+        parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, this);
+    }
+
+    void on_io_complete() {
+        rassert(off_in >= (off64_t)read_ahead_offset);
+        rassert(off_in < (off64_t)read_ahead_offset + (off64_t)read_ahead_size);
+        rassert((off_in - (off64_t)read_ahead_offset) % parent->static_config->block_size().ser_value() == 0);
+
+        // Walk over the read ahead buffer and copy stuff...
+        for (uint64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
+
+            const char *current_buf = (char*)read_ahead_buf + (current_block * parent->static_config->block_size().ser_value());
+            const size_t current_offset = read_ahead_offset + (current_block * parent->static_config->block_size().ser_value());
+
+            // Copy either into buf_out or create a new buffer for read ahead
+            if ((off64_t)current_offset == off_in) {
+                buf_data_t *data = (buf_data_t*)buf_out;
+                --data;
+                memcpy(data, current_buf, parent->static_config->block_size().ser_value());
+            } else {
+                const ser_block_id_t block_id = ((buf_data_t*)current_buf)->block_id;
+
+                // Determine whether the block is live.
+                bool block_is_live = block_id.value != 0;
+                // Do this by checking the LBA
+                const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
+                block_is_live = block_is_live && !flagged_lba_offset.parts.is_delete && flagged_lba_offset.has_value(flagged_lba_offset);
+                // As a last sanity check, verify that the offsets match
+                block_is_live = block_is_live && (off64_t)current_offset == flagged_lba_offset.parts.value;
+
+                if (!block_is_live) {
+                    continue;
+                }
+
+                buf_data_t *data = (buf_data_t*)parent->serializer->malloc();
+                --data;
+                memcpy(data, current_buf, parent->static_config->block_size().ser_value());
+                ++data;
+                if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data)) {
+                    // If there is no interest anymore, delete the buffer again
+                    parent->serializer->free(data);
+                    continue;
+                }
+            }
+        }
+
+        free(read_ahead_buf);
+
+        callback->on_io_complete();
+        delete this;
+    }
+};
+
 bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb) {
     rassert(state == state_ready);
 
-    buf_data_t *data = (buf_data_t*)buf_out;
-    data--;
-    dbfile->read_async(off_in, static_config->block_size().ser_value(), data, cb);
+    if (serializer->should_perform_read_ahead()) {
+        // We still need an fsm for read ahead as additional work has to be done on io complete...
+        new dbm_read_ahead_fsm_t(this, off_in, buf_out, cb);
+    }
+    else {
+        buf_data_t *data = (buf_data_t*)buf_out;
+        data--;
+        dbfile->read_async(off_in, static_config->block_size().ser_value(), data, cb);
+    }
 
     return false;
 }
@@ -261,8 +342,8 @@ void data_block_manager_t::run_gc() {
 #ifndef NDEBUG
                 int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
 #endif
-                std::vector<gc_write_t> writes;
 
+                gc_writes.clear();
                 for (unsigned int i = 0; i < static_config->blocks_per_extent(); i++) {
 
                     /* We re-check the bit array here in case a write came in for one of the
@@ -270,20 +351,20 @@ void data_block_manager_t::run_gc() {
                     out-of-date data. */
                     if (gc_state.current_entry->g_array[i]) continue;
 
-                    byte_t *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
-                    ser_block_id_t id = *reinterpret_cast<ser_block_id_t *>(block);
+                    byte *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
+                    ser_block_id_t id = (reinterpret_cast<buf_data_t *>(block))->block_id;
                     void *data = block + sizeof(buf_data_t);
 
-                    writes.push_back(gc_write_t(id, data));
+                    gc_writes.push_back(gc_write_t(id, data));
                 }
 
-                rassert(writes.size() == (size_t)num_writes);
+                rassert(gc_writes.size() == (size_t)num_writes);
 
                 /* make sure the callback knows who we are */
                 gc_state.set_step(gc_write);
 
                 /* schedule the write */
-                bool done = gc_writer->write_gcs(writes.data(), writes.size(), this);
+                bool done = gc_writer->write_gcs(gc_writes.data(), gc_writes.size(), this);
                 if (!done) break;
             }
                 
@@ -423,7 +504,7 @@ void data_block_manager_t::mark_unyoung_entries() {
         remove_last_unyoung_entry();
     }
 
-    gc_entry::timestamp_t current_time = gc_entry::current_timestamp();
+    uint64_t current_time = current_microtime();
 
     while (young_extent_queue.head()
            && current_time - young_extent_queue.head()->timestamp > GC_YOUNG_EXTENT_TIMELIMIT_MICROS) {
@@ -453,7 +534,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 // look, it's the next largest entry.  Should we keep gc'ing?  Returns
 // false when the entry is active or young, or when its garbage ratio
 // is lower than GC_THRESHOLD_RATIO_*.
-bool data_block_manager_t::should_we_keep_gcing(const gc_entry& entry) const {
+bool data_block_manager_t::should_we_keep_gcing(UNUSED const gc_entry& entry) const {
     return !gc_state.should_be_stopped && garbage_ratio() > dynamic_config->gc_low_ratio;
 }
 

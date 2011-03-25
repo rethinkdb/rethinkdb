@@ -57,6 +57,7 @@ public:
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
     void mark_deleted(bool write_null = true);
+    void touch_recency(repli_timestamp timestamp);
     void release();
     bool is_dirty();
 
@@ -84,9 +85,11 @@ class mock_transaction_t
 public:
     bool commit(transaction_commit_callback_t *callback);
 
+    void snapshot() { }
+
     buf_t *acquire(block_id_t block_id, access_t mode, block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
-    repli_timestamp get_subtree_recency(block_id_t block_id);
+    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 
     mock_cache_t *cache;
 
@@ -94,8 +97,9 @@ private:
     friend class mock_cache_t;
     access_t access;
     int n_bufs;
+    repli_timestamp recency_timestamp;
     void finish_committing(mock_transaction_commit_callback_t *cb);
-    mock_transaction_t(mock_cache_t *cache, access_t access);
+    mock_transaction_t(mock_cache_t *cache, access_t access, repli_timestamp recency_timestamp);
     ~mock_transaction_t();
 };
 
@@ -120,7 +124,7 @@ public:
     ~mock_cache_t();
 
     block_size_t get_block_size();
-    transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
+    transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
 private:
     friend class mock_transaction_t;

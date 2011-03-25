@@ -9,14 +9,12 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         : btree_modify_oper_t(), data(data), mcflags(mcflags), exptime(exptime),
             add_policy(ap), replace_policy(rp), req_cas(req_cas)
     {
-        pm_cmd_set.begin(&start_time);
     }
 
     ~btree_set_oper_t() {
-        pm_cmd_set.end(&start_time);
     }
 
-    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
+    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         try {
 
             /* We may be instructed to abort depending on the old value */
@@ -67,7 +65,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 
             value.value_size(data->get_size(), slice->cache().get_block_size());
 
-            large_buf_lock_t large_buflock;
+            boost::scoped_ptr<large_buf_t> large_buflock;
             buffer_group_t buffer_group;
 
             rassert(data->get_size() <= MAX_VALUE_SIZE);
@@ -75,19 +73,15 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 buffer_group.add_buffer(data->get_size(), value.value());
                 data->get_data_into_buffers(&buffer_group);
             } else {
-                large_buflock.set(new large_buf_t(txor->transaction()));
-                large_buflock.lv()->allocate(data->get_size(), value.large_buf_ref_ptr(), btree_value::lbref_limit);
-                for (int64_t i = 0; i < large_buflock.lv()->get_num_segments(); i++) {
-                    uint16_t size;
-                    void *data = large_buflock.lv()->get_segment_write(i, &size);
-                    buffer_group.add_buffer(size, data);
-                }
+                large_buflock.reset(new large_buf_t(txor, value.lb_ref(), btree_value::lbref_limit, rwi_write));
+                large_buflock->allocate(data->get_size());
+
+                large_buflock->bufs_at(0, data->get_size(), false, &buffer_group);
 
                 try {
                     data->get_data_into_buffers(&buffer_group);
                 } catch (...) {
-                    large_buflock.lv()->mark_deleted();
-                    large_buflock.release();
+                    large_buflock->mark_deleted();
                     throw;
                 }
             }
@@ -103,8 +97,18 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
     }
 
-    virtual void actually_acquire_large_value(large_buf_t *lb, large_buf_ref *lbref) {
-        co_acquire_large_value_for_delete(lb, lbref, btree_value::lbref_limit, rwi_write);
+    virtual int compute_expected_change_count(const size_t block_size) {
+        if (data->get_size() < MAX_IN_NODE_VALUE_SIZE) {
+            return 1;
+        } else {
+            size_t size = ceil_aligned(data->get_size(), block_size);
+            // one for the leaf node plus the number of blocks required to hold the large value
+            return 1 + size / block_size;
+        }
+    }
+
+    virtual void actually_acquire_large_value(large_buf_t *lb) {
+        co_acquire_large_buf_for_delete(lb);
     }
 
     ticks_t start_time;

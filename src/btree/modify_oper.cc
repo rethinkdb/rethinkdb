@@ -6,13 +6,13 @@
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/co_functions.hpp"
 #include "buffer_cache/large_buf.hpp"
-#include "buffer_cache/large_buf_lock.hpp"
 #include "buffer_cache/transactor.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 
 #include "buffer_cache/co_functions.hpp"
 #include "buffer_cache/transactor.hpp"
+#include "slice.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 
@@ -29,7 +29,7 @@ perfmon_counter_t pm_btree_depth("btree_depth");
 
 void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
     rassert(sb_buf.is_acquired());
-    sb_buf.buf()->set_data(&ptr_cast<btree_superblock_t>(sb_buf.buf()->get_data_read())->root_block, &root_id, sizeof(root_id));
+    sb_buf->set_data(&ptr_cast<btree_superblock_t>(sb_buf->get_data_read())->root_block, &root_id, sizeof(root_id));
 
     sb_buf.release();
 }
@@ -39,7 +39,7 @@ void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
 // split internal nodes proactively).
 void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
                                                 const btree_key_t *key, btree_value *new_value, block_size_t block_size) {
-    const node_t *node = ptr_cast<node_t>(buf.buf()->get_data_read());
+    const node_t *node = ptr_cast<node_t>(buf->get_data_read());
 
     // If the node isn't full, we don't need to split, so we're done.
     if (node::is_leaf(node)) { // This should only be called when update_needed.
@@ -65,11 +65,11 @@ void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& las
         last_buf.allocate(txor);
         internal_node::init(block_size, *last_buf.buf());
 
-        insert_root(last_buf.buf()->get_block_id(), sb_buf);
+        insert_root(last_buf->get_block_id(), sb_buf);
         pm_btree_depth++;
     }
 
-    bool success __attribute__((unused)) = internal_node::insert(block_size, *last_buf.buf(), median, buf.buf()->get_block_id(), rbuf.buf()->get_block_id());
+    bool success __attribute__((unused)) = internal_node::insert(block_size, *last_buf.buf(), median, buf->get_block_id(), rbuf->get_block_id());
     rassert(success, "could not insert internal btree node");
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
@@ -87,10 +87,10 @@ void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& las
 // Merge or level the node if necessary.
 void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
                                                     const btree_key_t *key, block_size_t block_size) {
-    const node_t *node = ptr_cast<node_t>(buf.buf()->get_data_read());
+    const node_t *node = ptr_cast<node_t>(buf->get_data_read());
     if (last_buf.is_acquired() && node::is_underfull(block_size, node)) { // The root node is never underfull.
 
-        const internal_node_t *parent_node = ptr_cast<internal_node_t>(last_buf.buf()->get_data_read());
+        const internal_node_t *parent_node = ptr_cast<internal_node_t>(last_buf->get_data_read());
 
         // Acquire a sibling to merge or level with.
         block_id_t sib_node_id;
@@ -98,7 +98,7 @@ void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t&
 
         // Now decide whether to merge or level.
         buf_lock_t sib_buf(txor, sib_node_id, rwi_write);
-        const node_t *sib_node = ptr_cast<node_t>(sib_buf.buf()->get_data_read());
+        const node_t *sib_node = ptr_cast<node_t>(sib_buf->get_data_read());
 
 #ifndef NDEBUG
         node::validate(block_size, sib_node);
@@ -112,11 +112,11 @@ void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t&
 
             if (nodecmp_node_with_sib < 0) { // Nodes must be passed to merge in ascending order.
                 node::merge(block_size, node, *sib_buf.buf(), key_to_remove, parent_node);
-                buf.buf()->mark_deleted();
+                buf->mark_deleted();
                 buf.swap(sib_buf);
             } else {
                 node::merge(block_size, sib_node, *buf.buf(), key_to_remove, parent_node);
-                sib_buf.buf()->mark_deleted();
+                sib_buf->mark_deleted();
             }
 
             sib_buf.release();
@@ -127,8 +127,8 @@ void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t&
                 // The parent has only 1 key after the merge (which means that
                 // it's the root and our node is its only child). Insert our
                 // node as the new root.
-                last_buf.buf()->mark_deleted();
-                insert_root(buf.buf()->get_block_id(), sb_buf);
+                last_buf->mark_deleted();
+                insert_root(buf->get_block_id(), sb_buf);
                 pm_btree_depth--;
             }
         } else { // Level
@@ -149,7 +149,7 @@ void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t&
 void get_root(transactor_t& txor, buf_lock_t& sb_buf, block_size_t block_size, buf_lock_t *buf_out, repli_timestamp timestamp) {
     rassert(!buf_out->is_acquired());
 
-    block_id_t node_id = reinterpret_cast<const btree_superblock_t*>(sb_buf.buf()->get_data_read())->root_block;
+    block_id_t node_id = reinterpret_cast<const btree_superblock_t*>(sb_buf->get_data_read())->root_block;
 
     if (node_id != NULL_BLOCK_ID) {
         buf_lock_t tmp(txor, node_id, rwi_write);
@@ -180,7 +180,9 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         // temporary sanity-check
         rassert(get_thread_id() == slice->home_thread);
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
-        boost::shared_ptr<transactor_t> txor(new transactor_t(&slice->cache(), rwi_write));
+
+        // TODO: why is this a shared_ptr?
+        boost::shared_ptr<transactor_t> txor(new transactor_t(&slice->cache(), rwi_write, oper->compute_expected_change_count(slice->cache().get_block_size().value()),  castime.timestamp));
 
         buf_lock_t sb_buf(*txor, SUPERBLOCK_ID, rwi_write);
         buf_lock_t last_buf;
@@ -188,7 +190,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         get_root(*txor, sb_buf, block_size, &buf, castime.timestamp);
 
         // Walk down the tree to the leaf.
-        while (node::is_internal(ptr_cast<node_t>(buf.buf()->get_data_read()))) {
+        while (node::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
             // Check if the node is overfull and proactively split it if it is (since this is an internal node).
             check_and_handle_split(*txor, buf, last_buf, sb_buf, key, NULL, block_size);
             // Check if the node is underfull, and merge/level if it is.
@@ -206,7 +208,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             // the next previous node (which is the current node).
 
             // Look up and acquire the next node.
-            block_id_t node_id = internal_node::lookup(ptr_cast<internal_node_t>(buf.buf()->get_data_read()), key);
+            block_id_t node_id = internal_node::lookup(ptr_cast<internal_node_t>(buf->get_data_read()), key);
             rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
             buf_lock_t tmp(*txor, node_id, rwi_write);
@@ -215,18 +217,18 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         }
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
-        bool key_found = leaf::lookup(ptr_cast<leaf_node_t>(buf.buf()->get_data_read()), key, &old_value);
+        bool key_found = leaf::lookup(ptr_cast<leaf_node_t>(buf->get_data_read()), key, &old_value);
 
         // If there's a large value, acquire that too.
-        large_buf_lock_t old_large_buflock;
+        boost::scoped_ptr<large_buf_t> old_large_buflock;
 
         if (key_found && old_value.is_large()) {
-            old_large_buflock.set(new large_buf_t(txor->transaction()));
+            old_large_buflock.reset(new large_buf_t(txor, old_value.lb_ref(), btree_value::lbref_limit, rwi_write));
             // We don't know whether we want to acquire all of the large value or
             // just part of it, so we let the oper acquire it for us.
             // TIED old_large_buflock TO old_value
-            oper->actually_acquire_large_value(old_large_buflock.lv(), old_value.large_buf_ref_ptr());
-            rassert(old_large_buflock.lv()->state == large_buf_t::loaded);
+            oper->actually_acquire_large_value(old_large_buflock.get());
+            rassert(old_large_buflock->state == large_buf_t::loaded);
         }
 
         // Check whether the value is expired. If it is, we tell operate() that
@@ -238,40 +240,20 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
         // Now we actually run the operation to compute the new value.
         btree_value *new_value;
-        large_buf_lock_t new_large_buflock;
+        boost::scoped_ptr<large_buf_t> new_large_buflock;
         bool update_needed = oper->operate(txor, key_found ? &old_value : NULL, old_large_buflock, &new_value, new_large_buflock);
 
         // Make sure that the new_value and new_large_buf returned by operate() are consistent.
 #ifndef NDEBUG
         if (update_needed) {
             if (new_value && new_value->is_large()) {
-                rassert(new_large_buflock.has_lv());
-                if (0 != memcmp(new_value->lb_ref()->block_ids, new_large_buflock.lv()->get_root_ref()->block_ids, new_large_buflock.lv()->get_root_ref()->refsize(slice->cache().get_block_size(), btree_value::lbref_limit) - sizeof(large_buf_ref))) {
-                    debugf("val size=%ld offset=%ld\n", new_value->lb_ref()->size, new_value->lb_ref()->offset);
-                    int vallim = new_value->lb_ref()->refsize(slice->cache().get_block_size(), btree_value::lbref_limit);
-                    debugf("val reflim=%d\n", vallim);
-                    int valnum = (vallim - sizeof(large_buf_ref)) / sizeof(block_id_t);
-                    for (int i = 0; i < valnum; ++i) {
-                        debugf("%d: %u\n", i, new_value->lb_ref()->block_ids[i]);
-                    }
-
-                    const large_buf_ref *lvref = new_large_buflock.lv()->get_root_ref();
-                    int lvreflim = lvref->refsize(slice->cache().get_block_size(), btree_value::lbref_limit);
-                    debugf("larval size=%ld offset=%ld\n", lvref->size, lvref->offset);
-                    debugf("larval reflim=%d\n", lvreflim);
-
-                    int lvrefnum = (lvreflim - sizeof(large_buf_ref)) / sizeof(block_id_t);
-                    for (int i = 0; i < lvrefnum; ++i) {
-                        debugf("%d: %u\n", i, lvref->block_ids[i]);
-                    }
-
-                    rassert(false, "new_value and new_large_buflock refs do not match!");
-                }
+                rassert(new_large_buflock);
+                rassert(new_large_buflock->root_ref_is(new_value->lb_ref()));
             } else {
-                rassert(!new_large_buflock.has_lv());
+                rassert(!new_large_buflock);
             }
         } else {
-            rassert(!new_large_buflock.has_lv());
+            rassert(!new_large_buflock);
         }
 #endif
 
@@ -327,11 +309,12 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
         // Release all the large bufs that we used.
         if (update_needed) {
-            if (old_large_buflock.has_lv() && new_large_buflock.lv() != old_large_buflock.lv()) {
+            if (old_large_buflock && new_large_buflock.get() != old_large_buflock.get()) {
                 // operate() switched to a new large buf, so we need to delete the old one.
                 rassert(old_value.is_large());
-                rassert(0 == memcmp(old_value.lb_ref()->block_ids, old_large_buflock.lv()->get_root_ref()->block_ids, old_large_buflock.lv()->get_root_ref()->refsize(slice->cache().get_block_size(), btree_value::lbref_limit) - sizeof(large_buf_ref)));
-                old_large_buflock.lv()->mark_deleted();
+                rassert(old_large_buflock->root_ref_is(old_value.lb_ref()));
+
+                old_large_buflock->mark_deleted();
             }
         }
 

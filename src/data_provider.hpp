@@ -5,65 +5,10 @@
 #include <boost/scoped_ptr.hpp>
 #include <vector>
 #include <exception>
+#include "containers/buffer_group.hpp"
 #include "errors.hpp"
 
 #include "concurrency/cond_var.hpp"
-
-class const_buffer_group_t {
-public:
-    struct buffer_t {
-        ssize_t size;
-        const void *data;
-    };
-    void add_buffer(size_t s, const void *d) {
-        buffer_t b;
-        b.size = s;
-        b.data = d;
-        buffers_.push_back(b);
-    }
-    size_t num_buffers() const {
-        return buffers_.size();
-    }
-    buffer_t get_buffer(size_t i) const {
-        return buffers_[i];
-    }
-    size_t get_size() const {
-        size_t s = 0;
-        for (int i = 0; i < (int)buffers_.size(); i++) {
-            s += buffers_[i].size;
-        }
-        return s;
-    }
-private:
-    std::vector<buffer_t> buffers_;
-};
-
-class buffer_group_t {
-public:
-    struct buffer_t {
-        ssize_t size;
-        void *data;
-    };
-    void add_buffer(size_t s, void *d) { inner_.add_buffer(s, d); }
-    size_t num_buffers() const { return inner_.num_buffers(); }
-    buffer_t get_buffer(size_t i) const {
-        buffer_t ret;
-        const_buffer_group_t::buffer_t tmp = inner_.get_buffer(i);
-        ret.size = tmp.size;
-        ret.data = const_cast<void *>(tmp.data);
-        return ret;
-    }
-    size_t get_size() const { return inner_.get_size(); }
-    friend const const_buffer_group_t *const_view(const buffer_group_t *group);
-
-private:
-    const_buffer_group_t inner_;
-};
-
-inline const const_buffer_group_t *const_view(const buffer_group_t *group) {
-    return &group->inner_;
-}
-
 
 /* Data providers can throw data_provider_failed_exc_t to cancel the operation they are being used
 for. In general no information can be carried along with the data_provider_failed_exc_t; it's meant
@@ -139,6 +84,8 @@ public:
     buffered_data_provider_t(size_t, void **);    // Allocate buffer, let creator fill it
     size_t get_size() const;
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+
+    char *peek() { return buffer.get(); }
 private:
     size_t size;
     const_buffer_group_t bg;
@@ -175,18 +122,22 @@ public:
         // Takes the thread that the reader reads from.  Soon after
         // construction, this serves as the de facto home thread of
         // the side_data_provider_t.
-        side_data_provider_t(int reading_thread, size_t size);
+        side_data_provider_t(int reading_thread, size_t size, cond_t *done_cond);
         ~side_data_provider_t();
 
         size_t get_size() const;
         const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
-        void supply_buffers_and_wait(const buffer_group_t *buffers);
+
+        void supply_buffers_and_wait(const const_buffer_group_t *buffers);
+        void supply_no_buffers();
 
     private:
         int reading_thread_;
         unicond_t<const const_buffer_group_t *> cond_;
-        cond_t done_cond_;
+        cond_t *done_cond_;
+        bool got_data_;
         size_t size_;
+        bool will_never_get_data_;
     };
 
 
@@ -200,8 +151,14 @@ public:
     side_data_provider_t *side_provider();
 private:
     data_provider_t *inner_;
+    cond_t done_cond_;  // Lives on the side_reader_thread.
     side_data_provider_t *side_;
     bool side_owned_;
+    bool supplied_buffers_;
+#ifndef NDEBUG
+    bool in_get_data_into_buffers_;
+#endif
 };
+
 
 #endif /* __DATA_PROVIDER_HPP__ */

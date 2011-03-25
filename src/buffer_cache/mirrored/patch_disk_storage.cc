@@ -49,9 +49,9 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &cache, block_id_t start_i
     number_of_blocks = config_block->cache.n_patch_log_blocks;
     cache.serializer->free((void*)config_block);
     
-    if ((unsigned long long)number_of_blocks > (unsigned long long)cache.dynamic_config->max_dirty_size / cache.get_block_size().ser_value()) {
+    if ((unsigned long long)number_of_blocks > (unsigned long long)cache.dynamic_config->max_size / cache.get_block_size().ser_value()) {
         fail_due_to_user_error("The cache of size %d blocks is too small to hold this database's diff log of %d blocks.",
-            (int)(cache.dynamic_config->max_dirty_size / cache.get_block_size().ser_value()),
+            (int)(cache.dynamic_config->max_size / cache.get_block_size().ser_value()),
             (int)(number_of_blocks));
     }
 
@@ -71,6 +71,8 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &cache, block_id_t start_i
             }
         }
     }
+
+    // TODO: Somebody answer this question.
     coro_t::yield();   // Why?
 
     // Load all log blocks into memory
@@ -78,7 +80,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &cache, block_id_t start_i
         
         if (block_is_empty[current_block - first_block]) {
             // Initialize a new log block here (we rely on the properties of block_id assignment)
-            mc_inner_buf_t *new_ibuf = new mc_inner_buf_t(&cache);
+            mc_inner_buf_t *new_ibuf = mc_inner_buf_t::allocate(&cache, mc_inner_buf_t::faux_version_id, repli_timestamp::invalid);
             guarantee(new_ibuf->block_id == current_block);
 
             log_block_bufs.push_back(acquire_block_no_locking(current_block));
@@ -260,7 +262,8 @@ unsigned int patch_disk_storage_t::get_number_of_log_blocks() const {
     return (unsigned int)number_of_blocks;
 }
 
-void patch_disk_storage_t::reclaim_space(const size_t space_required) {
+// TODO: Why do we not use space_required?
+void patch_disk_storage_t::reclaim_space(UNUSED const size_t space_required) {
     block_id_t compress_block_id = select_log_block_for_compression();
     if (!block_is_empty[compress_block_id - first_block])
         compress_block(compress_block_id);
@@ -444,7 +447,7 @@ mc_buf_t* patch_disk_storage_t::acquire_block_no_locking(const block_id_t block_
     }
     
     // We still have to acquire the lock once to wait for the buf to get ready
-    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_read);
+    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_read, mc_inner_buf_t::faux_version_id, false);
 
     if (buf->ready) {
         // Release the lock we've got

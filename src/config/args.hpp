@@ -45,6 +45,9 @@
 // Size of each extent (in bytes)
 #define DEFAULT_EXTENT_SIZE                       (8 * MEGABYTE)
 
+// Max number of blocks which can be read ahead in one i/o transaction (if enabled)
+#define MAX_READ_AHEAD_BLOCKS 32
+
 // Max size of log file name
 #define MAX_LOG_FILE_NAME                         1024
 
@@ -82,6 +85,9 @@
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       11211
 
+// Default port to do replication on
+#define DEFAULT_REPLICATION_PORT                  11319
+
 // Default extension for the semantic file which is appended to the database name
 #define DEFAULT_SEMANTIC_EXTENSION                ".semantic"
 
@@ -117,13 +123,18 @@
 // transactions will be throttled.
 // A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
 // times the max cache size
-#define DEFAULT_UNSAVED_DATA_LIMIT                0
+// (please note that we start throttling gradually at START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION times this value already)
+#define DEFAULT_UNSAVED_DATA_LIMIT                4096 * MEGABYTE
 
 // The unsaved data limit cannot exceed this fraction of the max cache size
-#define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.9
+#define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.5
+
+// We start delaying transactions when this fraction of the unsaved data limit is dirty.
+// The closer we get to unsaved data limit, the longer we delay new transactions.
+#define START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION 0.3
 
 // We start flushing dirty pages as soon as we hit this fraction of the unsaved data limit
-#define FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT   0.9
+#define FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT   0.2
 
 // How many times the page replacement algorithm tries to find an eligible page before giving up.
 // Note that (MAX_UNSAVED_DATA_LIMIT_FRACTION ** PAGE_REPL_NUM_TRIES) is the probability that the
@@ -149,10 +160,10 @@
 #define MAX_VALUE_SIZE                            MEGABYTE
 
 // Values larger than this will be streamed in a set operation.
-#define MAX_BUFFERED_SET_SIZE                     1000
+#define MAX_BUFFERED_SET_SIZE                     32768
 
 // Values larger than this will be streamed in a get operation
-#define MAX_BUFFERED_GET_SIZE                     10000
+#define MAX_BUFFERED_GET_SIZE                     32768
 
 // If a single connection sends this many 'noreply' commands, the next command will
 // have to wait until the first one finishes
@@ -184,11 +195,11 @@
 
 // The ratio at which we should start GCing.
 #define DEFAULT_GC_HIGH_RATIO                     0.65
-#define MAX_GC_HIGH_RATIO                         0.99
+#define MAX_GC_HIGH_RATIO                         0.990001
 
 // The ratio at which we don't want to keep GC'ing.
 #define DEFAULT_GC_LOW_RATIO                      0.5
-#define MIN_GC_LOW_RATIO                          0.01
+#define MIN_GC_LOW_RATIO                          0.099999
 
 
 // What's the maximum number of "young" extents we can have?

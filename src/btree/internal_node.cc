@@ -29,6 +29,14 @@ void init(block_size_t block_size, buf_t &node_buf, const internal_node_t *lnode
     std::sort(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node));
 }
 
+void get_children_ids(const internal_node_t *node, boost::scoped_array<block_id_t>& ids_out, size_t *num_children) {
+    ids_out.reset(new block_id_t[node->npairs]);
+    *num_children = node->npairs;
+    for (int i = 0, n = node->npairs; i < n; ++i) {
+        ids_out[i] = get_pair_by_index(node, i)->lnode;
+    }
+}
+
 block_id_t lookup(const internal_node_t *node, const btree_key_t *key) {
     int index = get_offset_index(node, key);
 #ifdef BTREE_DEBUG
@@ -48,7 +56,8 @@ block_id_t lookup(const internal_node_t *node, const btree_key_t *key) {
     return get_pair_by_index(node, index)->lnode;
 }
 
-bool insert(block_size_t block_size, buf_t& node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode) {
+// TODO: If it's unused, let's get rid of it.
+bool insert(UNUSED block_size_t block_size, buf_t& node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode) {
     const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
 
     //TODO: write a unit test for this
@@ -325,7 +334,7 @@ bool change_unsafe(const internal_node_t *node) {
     return sizeof(internal_node_t) + node->npairs * sizeof(*node->pair_offsets) + MAX_KEY_SIZE >= node->frontmost_offset;
 }
 
-void validate(block_size_t block_size, const internal_node_t *node) {
+void validate(UNUSED block_size_t block_size, UNUSED const internal_node_t *node) {
 #ifndef NDEBUG
     rassert(ptr_cast<byte>(&(node->pair_offsets[node->npairs])) <= ptr_cast<byte>(get_pair(node, node->frontmost_offset)));
     rassert(node->frontmost_offset > 0);
@@ -337,6 +346,10 @@ void validate(block_size_t block_size, const internal_node_t *node) {
     rassert(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
         "Offsets no longer in sorted order");
 #endif
+}
+
+bool has_sensible_offsets(block_size_t block_size, const internal_node_t *node) {
+    return offsetof(internal_node_t, pair_offsets) + node->npairs * sizeof(*node->pair_offsets) <= node->frontmost_offset && node->frontmost_offset <= block_size.value();
 }
 
 bool is_underfull(block_size_t block_size, const internal_node_t *node) {

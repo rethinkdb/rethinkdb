@@ -52,12 +52,21 @@ void scc_buf_t<inner_cache_t>::mark_deleted(bool write_null) {
 }
 
 template<class inner_cache_t>
+void scc_buf_t<inner_cache_t>::touch_recency(repli_timestamp timestamp) {
+    rassert(inner_buf);
+    // TODO: Why are we not tracking this?
+    inner_buf->touch_recency(timestamp);
+}
+
+template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::release() {
     rassert(inner_buf);
-    if (!inner_buf->is_dirty() && cache->crc_map.get(inner_buf->get_block_id())) {
-        rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
-    } else {
-        cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
+    if (!snapshotted) {
+        if (!inner_buf->is_dirty() && cache->crc_map.get(inner_buf->get_block_id())) {
+            rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
+        } else {
+            cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
+        }
     }
 
     inner_buf->release();
@@ -70,17 +79,19 @@ void scc_buf_t<inner_cache_t>::on_block_available(typename inner_cache_t::buf_t 
     rassert(buf);
 
     inner_buf = buf;
-    if (cache->crc_map.get(inner_buf->get_block_id())) {
-        rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
-    } else {
-        cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
+    if (!snapshotted) {
+        if (cache->crc_map.get(inner_buf->get_block_id())) {
+            rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
+        } else {
+            cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
+        }
     }
     if (available_cb) available_cb->on_block_available(this);
 }
 
 template<class inner_cache_t>
-scc_buf_t<inner_cache_t>::scc_buf_t(scc_cache_t<inner_cache_t> *_cache)
-    : inner_buf(NULL), available_cb(NULL), cache(_cache) { }
+scc_buf_t<inner_cache_t>::scc_buf_t(scc_cache_t<inner_cache_t> *_cache, bool snapshotted)
+    : snapshotted(snapshotted), inner_buf(NULL), available_cb(NULL), cache(_cache) { }
 
 /* Transaction */
 
@@ -98,15 +109,17 @@ bool scc_transaction_t<inner_cache_t>::commit(transaction_commit_callback_t *cal
 template<class inner_cache_t>
 scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback, bool should_load) {
-    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache);
+    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache, snapshotted);
     buf->cache = this->cache;
     if (typename inner_cache_t::buf_t *inner_buf = inner_transaction->acquire(block_id, mode, buf, should_load)) {
         buf->inner_buf = inner_buf;
         rassert(block_id == buf->get_block_id());
-        if (cache->crc_map.get(block_id)) {
-            rassert(buf->compute_crc() == cache->crc_map.get(block_id));
-        } else {
-            cache->crc_map.set(block_id, buf->compute_crc());
+        if (!snapshotted) {
+            if (cache->crc_map.get(block_id)) {
+                rassert(buf->compute_crc() == cache->crc_map.get(block_id));
+            } else {
+                cache->crc_map.set(block_id, buf->compute_crc());
+            }
         }
         return buf;
     } else {
@@ -117,20 +130,20 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t b
 
 template<class inner_cache_t>
 scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate() {
-    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache);
+    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache, snapshotted);
     buf->inner_buf = inner_transaction->allocate();
     cache->crc_map.set(buf->inner_buf->get_block_id(), buf->compute_crc());
     return buf;
 }
 
 template<class inner_cache_t>
-repli_timestamp scc_transaction_t<inner_cache_t>::get_subtree_recency(block_id_t block_id) {
-    return inner_transaction->get_subtree_recency(block_id);
+void scc_transaction_t<inner_cache_t>::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+    return inner_transaction->get_subtree_recencies(block_ids, num_block_ids, recencies_out);
 }
 
 template<class inner_cache_t>
 scc_transaction_t<inner_cache_t>::scc_transaction_t(access_t _access, scc_cache_t<inner_cache_t> *_cache)
-    : cache(_cache), access(_access), begin_cb(NULL), inner_transaction(NULL) { }
+    : cache(_cache), snapshotted(false), access(_access), begin_cb(NULL), inner_transaction(NULL) { }
 
 template<class inner_cache_t>
 void scc_transaction_t<inner_cache_t>::on_txn_begin(typename inner_cache_t::transaction_t *txn) {
@@ -140,7 +153,7 @@ void scc_transaction_t<inner_cache_t>::on_txn_begin(typename inner_cache_t::tran
 }
 
 template<class inner_cache_t>
-void scc_transaction_t<inner_cache_t>::on_txn_commit(typename inner_cache_t::transaction_t *txn) {
+void scc_transaction_t<inner_cache_t>::on_txn_commit(UNUSED typename inner_cache_t::transaction_t *txn) {
     if (commit_cb) commit_cb->on_txn_commit(this);
     delete this;
 }
@@ -168,9 +181,9 @@ block_size_t scc_cache_t<inner_cache_t>::get_block_size() {
 }
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(access_t access, transaction_begin_callback_t *callback) {
+scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
     scc_transaction_t<inner_cache_t> *txn = new scc_transaction_t<inner_cache_t>(access, this);
-    if (typename inner_cache_t::transaction_t *inner_txn = inner_cache.begin_transaction(access, txn)) {
+    if (typename inner_cache_t::transaction_t *inner_txn = inner_cache.begin_transaction(access, expected_change_count, recency_timestamp, txn)) {
         txn->inner_transaction = inner_txn;
         return txn;
     } else {

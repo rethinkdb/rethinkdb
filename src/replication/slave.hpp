@@ -8,9 +8,14 @@
 #include <queue>
 #include "control.hpp"
 
-#define INITIAL_TIMEOUT  (100) //initial time we wait reconnect to the master server on failure in ms
-#define TIMEOUT_GROWTH_FACTOR   (2) //every failed reconnect the timeout increase by this factor
-#define TIMEOUT_CAP (1000*60*2) //until it reaches the cap (that's 2 minutes over there)
+// The initial time we wait to reconnect to the master, upon failure.  In ms.
+#define INITIAL_TIMEOUT  (100)
+
+// Every failed reconnect, the timeout increases by this factor.
+#define TIMEOUT_GROWTH_FACTOR 2
+
+// But it can't surpass the cap.
+#define TIMEOUT_CAP (1000*60*2)
 
 /* if we mave more than MAX_RECONNECTS_PER_N_SECONDS in N_SECONDS then we give
  * up on the master server for a longer time (possibly until the user tells us
@@ -27,7 +32,7 @@ namespace replication {
  * and pushing the values that it receives in to its internal store. It also
  * handles the failover module if failover is enabled. Currently the slave_t
  * also is itself a failover callback and derives from the store_t class, thus
- * allowing it to modify the behaviour of the store. */ 
+ * allowing it to modify the behaviour of the store. */
 
 /* It has been suggested that the failover callback and replication
  * functionality of the slave_t class be separated. I don't think this is such
@@ -45,20 +50,10 @@ public:
     slave_t(btree_key_value_store_t *, replication_config_t, failover_config_t);
     ~slave_t();
 
-    /* failover module which is alerted by an on_failure() call when we go out
-     * of contact with the master */
-    failover_t failover;
-
     /* set_store_interface_t interface. This interface will not work properly for anything until
     we fail over. */
 
-    get_result_t get_cas(const store_key_t &key);
-    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
-    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
-
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data);
-
-    delete_result_t delete_key(const store_key_t &key);
+    mutation_result_t change(const mutation_t &m);
 
     /* message_callback_t interface */
     // These call .swap on their parameter, taking ownership of the pointee.
@@ -66,20 +61,23 @@ public:
     void send(buffed_data_t<net_backfill_t>& message);
     void send(buffed_data_t<net_announce_t>& message);
     void send(buffed_data_t<net_get_cas_t>& message);
-    void send(stream_pair<net_set_t>& message);
-    void send(stream_pair<net_add_t>& message);
-    void send(stream_pair<net_replace_t>& message);
-    void send(stream_pair<net_cas_t>& message);
+    void send(stream_pair<net_sarc_t>& message);
+    void send(stream_pair<net_backfill_set_t>& message);
     void send(buffed_data_t<net_incr_t>& message);
     void send(buffed_data_t<net_decr_t>& message);
     void send(stream_pair<net_append_t>& message);
     void send(stream_pair<net_prepend_t>& message);
     void send(buffed_data_t<net_delete_t>& message);
+    void send(buffed_data_t<net_backfill_delete_t>& message);
     void send(buffed_data_t<net_nop_t>& message);
     void send(buffed_data_t<net_ack_t>& message);
     void send(buffed_data_t<net_shutting_down_t>& message);
     void send(buffed_data_t<net_goodbye_t>& message);
     void conn_closed();
+
+    /* failover module which is alerted by an on_failure() call when we go out
+     * of contact with the master */
+    failover_t failover;
 
 private:
     friend class failover_t;
@@ -88,15 +86,8 @@ private:
     void on_failure();
     void on_resume();
 
-    /* Other failover callbacks */
-    failover_script_callback_t failover_script;
-
-    /* state for failover */
-    bool respond_to_queries; /* are we responding to queries */
-    long timeout; /* ms to wait before trying to reconnect */
 
     static void reconnect_timer_callback(void *ctx);
-    timer_token_t *timer_token;
 
     /* structure to tell us when to give up on the master */
     class give_up_t {
@@ -106,8 +97,8 @@ private:
         void reset();
     private:
         void limit_to(unsigned int limit);
-        std::queue<float> succesful_reconnects;
-    } give_up;
+        std::queue<float> successful_reconnects;
+    };
 
     /* Failover controllers */
 
@@ -123,7 +114,6 @@ private:
     private:
         slave_t *slave;
     };
-    failover_reset_control_t failover_reset_control;
 
     /* Control to allow the master to be changed during run time */
     std::string new_master(int argc, char **argv);
@@ -137,19 +127,36 @@ private:
     private:
         slave_t *slave;
     };
-    new_master_control_t new_master_control;
 
     void kill_conn();
-    coro_t *coro;
-
-    btree_key_value_store_t *internal_store;
-    replication_config_t replication_config;
-    failover_config_t failover_config;
-    tcp_conn_t *conn;
-    message_parser_t parser;
-    bool shutting_down;
 
 
+    // This is too complicated.
+
+    give_up_t give_up_;
+
+    /* Other failover callbacks */
+    failover_script_callback_t failover_script_;
+
+    /* state for failover */
+    bool respond_to_queries_; /* are we responding to queries */
+    long timeout_; /* ms to wait before trying to reconnect */
+
+    timer_token_t *reconnection_timer_token_;
+
+    failover_reset_control_t failover_reset_control_;
+
+
+    new_master_control_t new_master_control_;
+
+    coro_t *coro_;
+
+    btree_key_value_store_t *internal_store_;
+    replication_config_t replication_config_;
+    failover_config_t failover_config_;
+
+    repli_stream_t *stream_;
+    bool shutting_down_;
 };
 
 void run(slave_t *); //TODO make this static and private

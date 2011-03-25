@@ -5,6 +5,7 @@
 #include "concurrency/cond_var.hpp"
 
 bool rwi_lock_t::lock(access_t access, lock_available_callback_t *callback) {
+    //    debugf("rwi_lock_t::lock (access = %d)\n", access);
     if (try_lock(access, false)) {
         return true;
     } else {
@@ -66,6 +67,7 @@ bool rwi_lock_t::locked() {
 }
 
 bool rwi_lock_t::try_lock(access_t access, bool from_queue) {
+    //    debugf("rwi_lock_t::try_lock (access = %d, state = %d)\n", access, state);
     bool res = false;
     switch (access) {
         case rwi_read:
@@ -161,7 +163,9 @@ bool rwi_lock_t::try_lock_intent(bool from_queue) {
     }
 }
 
-bool rwi_lock_t::try_lock_upgrade(bool from_queue) {
+// TODO: Why do we not use this parameter, from_queue?  We probably
+// don't want to pass this parameter.
+bool rwi_lock_t::try_lock_upgrade(UNUSED bool from_queue) {
     rassert(state == rwis_reading_with_intent);
     if (nreaders == 0) {
         state = rwis_writing;

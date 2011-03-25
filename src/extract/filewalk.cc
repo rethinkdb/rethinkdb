@@ -250,8 +250,8 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
         ser_block_id_t block_id = b.buf_data().block_id;
 
 
-        int mod_id = translator_serializer_t::untranslate_block_id(block_id, cfg.mod_count, CONFIG_BLOCK_ID);
-        block_id_t cache_block_id = (block_id.value - CONFIG_BLOCK_ID.subsequent_ser_id().value - mod_id) / cfg.mod_count;
+        int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(block_id, cfg.mod_count, CONFIG_BLOCK_ID);
+        block_id_t cache_block_id = translator_serializer_t::untranslate_block_id_to_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
 
         if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
             if (!cfg.ignore_diff_log) {
@@ -378,8 +378,10 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
         // We check that ref->size > MAX_IN_NODE_VALUE_SIZE in check_value.
         if (ref->size >= 0) {
             if (ref->offset >= 0) {
-                // ensure no overflow for ref->offset + ref->size:
-                if (0x7fffFfffFfffFfffLL - ref->offset > ref->size) {
+                // ensure no overflow for ref->offset + ref->size or
+                // for ceil_aligned(ref->offset + ref->size,
+                // max_offset(sublevels))
+                if (std::numeric_limits<int64_t>::max() / 4 - ref->offset > ref->size) {
 
                     int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cfg.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
 
@@ -430,9 +432,9 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
 
 
     if (value->is_large()) {
-        int mod_id = translator_serializer_t::untranslate_block_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
+        int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
 
-        int64_t seg_size = large_buf_t::cache_size_to_leaf_bytes(cfg.block_size());
+        int64_t seg_size = large_buf_t::bytes_per_leaf(cfg.block_size());
 
         const large_buf_ref *ref = value->lb_ref();
         if (!get_large_buf_segments(key, file, ref, value->size, cfg, mod_id, offsets, &segblocks)) {

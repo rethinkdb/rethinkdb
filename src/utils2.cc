@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 #include <boost/scoped_array.hpp>
 
@@ -40,6 +41,14 @@ repli_timestamp current_time() {
     // time(NULL) does not do a system call (on Linux), last time we
     // checked, but it's still kind of slow.
     return repli_time(time(NULL));
+}
+
+microtime_t current_microtime() {
+    // This could be done more efficiently, surely.
+    struct timeval t;
+    int res __attribute__((unused)) = gettimeofday(&t, NULL);
+    rassert(0 == res);
+    return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
 
 int repli_compare(repli_timestamp x, repli_timestamp y) {

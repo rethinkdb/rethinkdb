@@ -62,12 +62,14 @@ public:
         void green_light();
         void on_thread_switch();
         void on_lock_available();
+        static void timer_callback(void*);
     };
     intrusive_list_t<begin_transaction_fsm_t> throttled_transactions_list;
 
     unsigned int num_dirty_blocks();
 
     bool too_many_dirty_blocks();
+    unsigned int throttle_delay_ms();
     void possibly_unthrottle_transactions();
 
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
@@ -80,6 +82,7 @@ public:
         
         void set_dirty(bool _dirty = true);
         void set_recency_dirty(bool _recency_dirty = true);
+        void mark_block_id_deleted();
         
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
 
@@ -123,9 +126,11 @@ private:
     /* The number of writes that we dispatched to the disk that have not come back yet. */
     unsigned long long outstanding_disk_writes;
     
-    /* The number of currently active write transactions */
-    int active_write_transactions;
-    
+    /* The sum of the expected_change_counts of the currently active write transactions. */
+    int expected_active_change_count;
+    /* The same, but for transactions which are currently delayed and have not got the green light yet */
+    int expected_delayed_change_count;
+
     bool writeback_in_progress;
     unsigned int active_flushes;
 
@@ -163,11 +168,21 @@ private:
     // List of bufs that are currenty dirty
     intrusive_list_t<local_buf_t> dirty_bufs;
 
+    // List of block_ids that have been deleted
+    struct deleted_block_t {
+        block_id_t block_id;
+        bool write_empty_block;
+    };
+    std::vector<deleted_block_t> deleted_blocks;
+
+    /* Internal variables used only during a flush operation. */
+
     ticks_t start_time;
 
 public:
     // A separate type to support concurrent flushes
     class concurrent_flush_t :
+            public serializer_t::write_tid_callback_t,
             public serializer_t::write_txn_callback_t,
             public lock_available_callback_t {
 
@@ -185,8 +200,10 @@ public:
         void do_writeback();  // Called on cache thread
         virtual void on_lock_available();   // Called on cache thread
         void acquire_bufs();   // Called on cache thread
-        bool do_write(const bool write_issued);   // Called on serializer thread
+        bool do_write();       // Called on serializer thread
+        virtual void on_serializer_write_tid();   // Called on serializer thread
         virtual void on_serializer_write_txn();   // Called on serializer thread
+        void update_transaction_ids();  // Called on cache thread
         bool do_cleanup();   // Called on cache thread
 
         writeback_t* parent; // We need this for flush concurrency control (i.e. flush_lock, active_flushes etc.)

@@ -15,288 +15,210 @@ using namespace std;
 struct query_stats_t {
 
     int queries;
-    int inserts_minus_deletes;
     ticks_t worst_latency;
     reservoir_sample_t<ticks_t> latency_samples;
 
-    query_stats_t() :
-        queries(0), inserts_minus_deletes(0), worst_latency(0) { }
+    query_stats_t() : queries(0), worst_latency(0) { }
 
-    void push(ticks_t latency, int imd, bool enable_latency_samples, int batch_count) {
+    void push(ticks_t latency, bool enable_latency_samples, int batch_count) {
         queries += batch_count;
-        inserts_minus_deletes += imd;
         worst_latency = std::max(worst_latency, latency);
-        if (enable_latency_samples) latency_samples.push(latency);
+        if (enable_latency_samples) {
+            for (int i = 0; i < batch_count; i++) latency_samples.push(latency);
+        }
     }
 
-    void aggregate(const query_stats_t *other) {
-        queries += other->queries;
-        inserts_minus_deletes += other->inserts_minus_deletes;
-        worst_latency = std::max(worst_latency, other->worst_latency);
-        latency_samples += other->latency_samples;
+    void aggregate(const query_stats_t &other) {
+        queries += other.queries;
+        worst_latency = std::max(worst_latency, other.worst_latency);
+        latency_samples += other.latency_samples;
     }
 };
 
-/* Communication structure for main thread and clients */
-struct client_data_t {
-    config_t *config;
-    server_t *server;
-    protocol_t *proto;
-    sqlite_protocol_t *sqlite;
-    int id;
+/* There is a 1:1:1 correspondence between client_t's, threads, and key-ranges. There has
+to be a 1:1 correspondence between threads and key ranges to avoid race conditions, and a
+client_t is the object that wraps a thread/keyrange.
+
+There is a 1:many correspondence between client_t's and op_t's. An op_t represents a type
+of operation that can be run against a client.
+
+For example, suppose that we wanted to make three clients perform reads and writes against
+a server, with a 5:2 read:write ratio. We could write this code:
+
+    protocol_t *connections[3];
+    client_t *clients[3];
+    read_op_t *read_ops[3];
+    insert_op_t *write_ops[3];
+
+    for (int i = 0; i < 3; i++) {
+        connections[i] = server.connect();
+        clients[i] = new client_t(i, 3, ...);
+        read_ops[i] = new read_op_t(clients[i], 5, connections[i], ...);
+        insert_ops[i] = new insert_op_t(clients[i], 2, connections[i], ...);
+        clients[i]->start();
+    }
+
+Note that we must create a separate set of op_ts for each client. Also, we must create a
+separate protocol_t for every client. If we later want to see how many reads each of our
+three clients has done, we could do this:
+
+    for (int i = 0; i < 3; i++) {
+        clients[i]->spinlock.lock();   // This is only necessary if the client is running
+        printf("Client %d has done %d reads.\n", i, read_ops[i]->stats.queries);
+        clients[i]->spinlock.unlock();
+    }
+
+*/
+
+struct op_t;
+
+/* Structure that represents a running client */
+struct client_t {
+
+    client_t(int id, int num_clients, distr_t keys, rnd_distr_t distr, int mu, sqlite_protocol_t *sp) :
+        id(id), num_clients(num_clients), min_seed(0), max_seed(0), keys(keys), sqlite(sp)
+    {
+        keep_running = false;
+        total_freq = 0;
+        _rnd = xrandom_create(distr, mu);
+
+        id_salt = id;
+        id_salt += id_salt << 32;
+
+        max_value_size = 0;
+    }
+
+    void start() {
+
+        value_buffer.first = new char[max_value_size];
+        memset(value_buffer.first, 'A', max_value_size);   // Is this necessary?
+
+        assert(!keep_running);
+        keep_running = true;
+
+        int res = pthread_create(&thread, NULL, &client_t::run_client, (void*)this);
+        if(res != 0) {
+            fprintf(stderr, "Can't create thread\n");
+            exit(-1);
+        }
+    }
+
+    void stop() {
+        assert(keep_running);
+
+        spinlock.lock();
+        keep_running = false;
+        spinlock.unlock();
+
+        int res = pthread_join(thread, NULL);
+        if(res != 0) {
+            fprintf(stderr, "Can't join on the thread\n");
+            exit(-1);
+        }
+
+        delete[] value_buffer.first;
+    }
+
+    ~client_t() {
+        assert(!keep_running);
+    }
+
+    int id, num_clients;
     int min_seed, max_seed;
+
+    distr_t keys;
+    rnd_gen_t _rnd;
+
+    sqlite_protocol_t *sqlite;
 
     // This spinlock governs all the communications variables between the client and main threads.
     spinlock_t spinlock;
 
+    uint64_t id_salt;
+
+    int max_value_size;
+    payload_t value_buffer;   // For the convenience of op_t's
+
+    // The ops that we are running against the database
+    std::vector<op_t *> ops;
+    int total_freq;
+
+    void gen_key(payload_t *pl, int keyn) {
+        keys.toss(pl, keyn ^ id_salt, id, num_clients - 1);
+    }
+
+private:
+    pthread_t thread;
+
     // Main thread sets this to false in order to stop the client
     bool keep_running;
 
-    bool enable_latency_samples;
+    static void* run_client(void* data) {
+        static_cast<client_t*>(data)->run();
+    }
 
-    // Stat reporting variables. These are updated by the client thread and read & reset by the
-    // main thread.
-    query_stats_t stats;
+    void run();
 };
 
-/* The function that does the work */
-void* run_client(void* data) {
-    // Grab the config
-    client_data_t *client_data = (client_data_t*)data;
-    config_t *config = client_data->config;
-    server_t *server = client_data->server;
-    protocol_t *proto = client_data->proto;
-    sqlite_protocol_t *sqlite = client_data->sqlite;
-    if(sqlite)
-        sqlite->set_id(client_data->id);
+struct op_t {
 
-    bool enable_latency_samples = client_data->enable_latency_samples;
+    op_t(client_t *c, int freq, int max_value_size) : client(c), freq(freq)
+    {
+        c->ops.push_back(this);
+        c->total_freq += freq;
+        c->max_value_size = std::max(c->max_value_size, max_value_size);
+        enable_latency_samples = true;
+    }
+    virtual ~op_t() {
+    }
 
-    const size_t per_key_size = config->keys.calculate_max_length(config->clients - 1);
+    client_t *client;
 
-    char *buffer_of_As = new char[config->values.max];
-    memset((void *) buffer_of_As, 'A', config->values.max);
+    /* The probability that this op will be run is its frequency divided by the sum
+    of all the frequencies of all the ops on this client. */
+    int freq;
 
-    client_data->spinlock.lock();
-    rnd_gen_t _rnd = xrandom_create(config->distr, config->mu);
-    while(client_data->keep_running) {
-        client_data->spinlock.unlock();
+    void push_stats(float latency, int count) {
+        client->spinlock.lock();
+        stats.push(latency, enable_latency_samples, count);
+        client->spinlock.unlock();
+    }
 
-        // Generate the command
-        load_t::load_op_t cmd = config->load.toss((config->batch_factor.min + config->batch_factor.max) / 2.0f);
+    query_stats_t stats;
+    bool enable_latency_samples;
 
-        payload_t op_keys[config->batch_factor.max];
-        char key_space[per_key_size * config->batch_factor.max];
+    virtual void run() = 0;
+};
 
-        for (int i = 0; i < config->batch_factor.max; i++)
-            op_keys[i].first = key_space + (per_key_size * i);
+// We declare this function down here to break the circular dependency between
+// client_t and op_t.
+inline void client_t::run() {
 
-        payload_t op_vals[config->batch_factor.max];
+    spinlock.lock();
+    while(keep_running) {
+        spinlock.unlock();
 
-        for (int i = 0; i < config->batch_factor.max; i++)
-            op_vals[i].first = buffer_of_As;
-
-        char val_verifcation_buffer[MAX_VALUE_SIZE];
-        char *old_val_buffer;
-
-        // The operation we run may or may not acquire the spinlock itself. If it does it sets
-        // have_lock to true.
-        bool have_lock = false;
-
-        uint64_t id_salt = client_data->id;
-        id_salt += id_salt << 32;
-        try {
-            switch(cmd) {
-            case load_t::delete_op: {
-                if (client_data->min_seed == client_data->max_seed)
-                    break;
-
-                config->keys.toss(op_keys, client_data->min_seed ^ id_salt, client_data->id, config->clients - 1);
-
-                // Delete it from the server
-                ticks_t start_time = get_ticks();
-                proto->remove(op_keys->first, op_keys->second);
-                ticks_t end_time = get_ticks();
-
-                if (sqlite && (client_data->min_seed % RELIABILITY) == 0)
-                    sqlite->remove(op_keys->first, op_keys->second);
-
-                client_data->min_seed++;
-
-                client_data->spinlock.lock();
-                have_lock = true;
-                client_data->stats.push(end_time - start_time, -1, enable_latency_samples, 1);
+        /* Select which operation to perform */
+        int op_counter = xrandom(0, total_freq - 1);
+        op_t *op_to_do = NULL;
+        for (int i = 0; i < ops.size(); i++) {
+            if (op_counter < ops[i]->freq) {
+                op_to_do = ops[i];
                 break;
+            } else {
+                op_counter -= ops[i]->freq;
             }
-
-            case load_t::update_op: {
-                // Find the key and generate the payload
-                if (client_data->min_seed == client_data->max_seed)
-                    break;
-
-                int keyn = xrandom(_rnd, client_data->min_seed, client_data->max_seed);
-
-                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt ^ update_salt);
-
-                // Send it to server
-                ticks_t start_time = get_ticks();
-                proto->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
-                ticks_t end_time = get_ticks();
-
-                if (sqlite && (keyn % RELIABILITY) == 0)
-                    sqlite->update(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
-
-                client_data->spinlock.lock();
-                have_lock = true;
-                client_data->stats.push(end_time - start_time, 0, enable_latency_samples, 1);
-                break;
-            }
-
-            case load_t::insert_op: {
-                // Generate the payload
-                config->keys.toss(op_keys, client_data->max_seed ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
-
-                // Send it to server
-                ticks_t start_time = get_ticks();
-                proto->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
-                ticks_t end_time = get_ticks();
-
-                if (sqlite && (client_data->max_seed % RELIABILITY) == 0)
-                    sqlite->insert(op_keys->first, op_keys->second, op_vals[0].first, op_vals[0].second);
-
-                client_data->max_seed++;
-
-                client_data->spinlock.lock();
-                have_lock = true;
-                client_data->stats.push(end_time - start_time, 1, enable_latency_samples, 1);
-                break;
-            }
-
-            case load_t::read_op: {
-                // Find the key
-                if(client_data->min_seed == client_data->max_seed)
-                    break;
-                int j = xrandom(config->batch_factor.min, config->batch_factor.max);
-                j = std::min(j, client_data->max_seed - client_data->min_seed);
-                int l = xrandom(_rnd, client_data->min_seed, client_data->max_seed - 1);
-                for (int k = 0; k < j; k++) {
-                    config->keys.toss(&op_keys[k], l ^ id_salt, client_data->id, config->clients - 1);
-                    l++;
-                    if(l >= client_data->max_seed)
-                        l = client_data->min_seed;
-
-                }
-                // Read it from the server
-                ticks_t start_time = get_ticks();
-                proto->read(&op_keys[0], j);
-                ticks_t end_time = get_ticks();
-
-                client_data->spinlock.lock();
-                have_lock = true;
-                client_data->stats.push(end_time - start_time, 0, enable_latency_samples, j);
-                break;
-            }
-
-            case load_t::append_op: {
-                //TODO, this doesn't check if we'll be making the value too big. Gotta check for that.
-                //Find the key
-                if (client_data->min_seed == client_data->max_seed)
-                    break;
-
-                int keyn = xrandom(_rnd, client_data->min_seed, client_data->max_seed);
-
-                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
-
-                ticks_t start_time = get_ticks();
-                proto->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
-                ticks_t end_time = get_ticks();
-
-                if (sqlite && (keyn % RELIABILITY) == 0)
-                    sqlite->append(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
-
-                client_data->spinlock.lock();
-                have_lock = true;
-                client_data->stats.push(end_time - start_time, 0, enable_latency_samples, 1);
-                break;
-            }
-
-            case load_t::prepend_op: {
-                //Find the key
-                if (client_data->min_seed == client_data->max_seed)
-                    break;
-
-                int keyn = xrandom(_rnd, client_data->min_seed, client_data->max_seed);
-
-                config->keys.toss(op_keys, keyn ^ id_salt, client_data->id, config->clients - 1);
-                op_vals[0].second = seeded_xrandom(config->values.min, config->values.max, client_data->max_seed ^ id_salt);
-
-                ticks_t start_time = get_ticks();
-                proto->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
-                ticks_t end_time = get_ticks();
-
-                if (sqlite && (keyn % RELIABILITY) == 0)
-                    sqlite->prepend(op_keys->first, op_keys->second, op_vals->first, op_vals->second);
-
-                client_data->spinlock.lock();
-                have_lock = true;
-                client_data->stats.push(end_time - start_time, 0, enable_latency_samples, 1);
-                break;
-            }
-
-            case load_t::verify_op: {
-                /* this is a very expensive operation it will first do a very
-                 * expensive operation on the SQLITE reference db and then it will
-                 * do several queries on the db that's being stressed (and only add
-                 * 1 total query), it does not make sense to use this as part of a
-                 * benchmarking run */
-                
-                // we can't do anything without a reference
-                if (!sqlite)
-                    break;
-
-                /* this is hacky but whatever */
-                old_val_buffer = op_vals[0].first;
-                op_vals[0].first = val_verifcation_buffer;
-                op_vals[0].second = 0;
-
-                sqlite->dump_start();
-                ticks_t start_time = get_ticks();
-                while (sqlite->dump_next(op_keys, op_vals)) {
-                    proto->read(op_keys, 1, op_vals);
-                }
-                ticks_t end_time = get_ticks();
-                sqlite->dump_end();
-
-                op_vals[0].first = old_val_buffer;
-
-                client_data->spinlock.lock();
-                have_lock = true;
-                client_data->stats.push(end_time - start_time, 0, enable_latency_samples, 1);
-                break;
-            }
-
-            default:
-                fprintf(stderr, "Uknown operation\n");
-                exit(-1);
-            };
-        } catch (const protocol_error_t& e) {
-            fprintf(stderr, "Protocol error: %s\n", e.c_str());
+        }
+        if (!op_to_do) {
+            fprintf(stderr, "Something went horribly wrong with the random op choice.\n");
             exit(-1);
         }
 
-        if (!have_lock) {
-            // We must acquire the lock before we continue the while loop, or there is a race
-            // condition on client_data->keep_running
-            client_data->spinlock.lock();
-        }
+        op_to_do->run();
+
+        spinlock.lock();
     }
-
-    client_data->spinlock.unlock();
-
-    delete[] buffer_of_As;
+    spinlock.unlock();
 }
 
 #endif // __CLIENT_HPP__

@@ -1,7 +1,10 @@
 
 #include <time.h>
 #include <stdlib.h>
+#include <stdio.h>
+#ifdef USE_LIBGSL
 #include <gsl/gsl_randist.h>
+#endif
 #include "utils.hpp"
 
 /* Really fast random function */
@@ -50,8 +53,10 @@ size_t seeded_random(size_t min, size_t max, unsigned long seed) {
 rnd_gen_t xrandom_create(rnd_distr_t rnd_distr, int mu) {
     rnd_gen_t rnd;
     rnd.rnd_distr = rnd_distr;
+#ifdef USE_LIBGSL
     rnd.gsl_rnd = gsl_rng_alloc(gsl_rng_mt19937);
     gsl_rng_set((gsl_rng *)rnd.gsl_rnd, get_ticks());
+#endif
     rnd.mu = mu;
     return rnd;
 }
@@ -71,9 +76,15 @@ size_t xrandom(rnd_gen_t rnd, size_t min, size_t max) {
         tmp = random(min, max);
         break;
     case rnd_normal_t:
+#ifdef USE_LIBGSL
         // Here one percent of the database is within the standard deviation
-        tmp = gsl_ran_gaussian((gsl_rng*)rnd.gsl_rnd,  (double)len / rnd.mu) + (len / 2);
+        tmp = gsl_ran_gaussian((gsl_rng*)rnd.gsl_rnd,  (double)len * (double)rnd.mu / 100.0) + (len / 2);
         break;
+#else
+        fprintf(stderr, "LIBGSL not compiled in (but required for normal distribution)\n");
+        exit(-1);
+        break;
+#endif
     };
     
     if(tmp < min)
@@ -99,9 +110,15 @@ size_t seeded_xrandom(rnd_gen_t rnd, size_t min, size_t max, unsigned long seed)
         tmp = seeded_random(min, max, seed);
         break;
     case rnd_normal_t:
+#ifdef USE_LIBGSL
         gsl_rng_set((gsl_rng *)rnd.gsl_rnd, seed);
         tmp = gsl_ran_gaussian((gsl_rng*)rnd.gsl_rnd,  (double)len / 4) + (len / 2);
         break;
+#else
+        fprintf(stderr, "LIBGSL not compiled in (but required for normal distribution)\n");
+        exit(-1);
+        break;
+#endif
     };
     
     if(tmp < min)

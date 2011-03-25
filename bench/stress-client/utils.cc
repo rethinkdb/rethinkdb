@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "utils.hpp"
 
 /* Timing related functions */
@@ -42,4 +43,17 @@ void sleep_ticks(ticks_t ticks) {
     if (ticks) {
         usleep(ticks_to_ms(ticks));
     }
+}
+
+int count_decimal_digits(int n) {
+    if (n < 0) {
+        fprintf(stderr, "Didn't expect a negative number in count_decimal_digits().\n");
+        exit(-1);
+    }
+    int digits = 1;
+    while (n > 10) {
+        n /= 10;
+        digits++;
+    }
+    return digits;
 }

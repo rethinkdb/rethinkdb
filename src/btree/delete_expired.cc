@@ -5,11 +5,15 @@
 class btree_delete_expired_oper_t : public btree_modify_oper_t
 {
 public:
-    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
+    bool operate(UNUSED const boost::shared_ptr<transactor_t>& txor, UNUSED btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, UNUSED btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         /* Don't do anything. run_btree_modify_oper() will take advantage of
          * the fact that we got to the leaf in write mode to automatically
          * delete the expired key if necessary. */
         return false;
+    }
+
+    int compute_expected_change_count(UNUSED const size_t block_size) {
+        return 1;
     }
 };
 
@@ -18,8 +22,15 @@ public:
 // delete_expired coroutine is actually spawned. So for now we'll make a copy
 // of the key and then free it when delete_expired is done.
 
+// TODO: delete_expired (and for that matter, delete) should not
+// really supply a timestamp, since it does not create a new key in
+// the database, and so the subtrees it passes through have no data to
+// replicate.
 void co_btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
     btree_delete_expired_oper_t oper;
+    // TODO: Something is wrong with our abstraction since we are
+    // passing a completely meaningless proposed cas and because we
+    // should not really be passing a recency timestamp.
     run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp::invalid));
 }
 

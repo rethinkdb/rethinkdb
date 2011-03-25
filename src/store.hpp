@@ -8,6 +8,7 @@
 #include "containers/iterators.hpp"
 #include "containers/unique_ptr.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/variant.hpp>
 
 typedef uint32_t mcflags_t;
 typedef uint32_t exptime_t;
@@ -16,6 +17,18 @@ typedef uint64_t cas_t;
 struct store_key_t {
     uint8_t size;
     char contents[MAX_KEY_SIZE];
+
+    store_key_t() { }
+    store_key_t(int sz, char *buf) {
+        assign(sz, buf);
+    }
+
+    void assign(int sz, const char *buf) {
+        rassert(sz <= MAX_KEY_SIZE);
+        size = sz;
+        memcpy(contents, buf, sz);
+    }
+
     void print() const {
         printf("%*.*s", size, size, contents);
     }
@@ -88,6 +101,39 @@ struct castime_t {
 
     castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
         : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
+    // TODO: ugh.
+    castime_t() { }
+};
+
+/* get_cas is a mutation instead of another method on get_store_t because it may need to
+put a CAS-unique on a key that didn't have one before */
+
+struct get_cas_mutation_t {
+    store_key_t key;
+};
+
+enum add_policy_t {
+    add_policy_yes,
+    add_policy_no
+};
+
+enum replace_policy_t {
+    replace_policy_yes,
+    replace_policy_if_cas_matches,
+    replace_policy_no
+};
+
+#define NO_CAS_SUPPLIED 0
+
+// TODO: freaking rename this to sarc_mutation_t.
+struct set_mutation_t {
+    store_key_t key;
+    data_provider_t *data;
+    mcflags_t flags;
+    exptime_t exptime;
+    add_policy_t add_policy;
+    replace_policy_t replace_policy;
+    cas_t old_cas;
 };
 
 enum set_result_t {
@@ -106,18 +152,26 @@ enum set_result_t {
     sr_not_allowed,
 };
 
-enum add_policy_t {
-    add_policy_yes,
-    add_policy_no
+struct delete_mutation_t {
+    store_key_t key;
 };
 
-enum replace_policy_t {
-    replace_policy_yes,
-    replace_policy_if_cas_matches,
-    replace_policy_no
+enum delete_result_t {
+    dr_deleted,
+    dr_not_found,
+    dr_not_allowed
 };
 
-#define NO_CAS_SUPPLIED 0
+enum incr_decr_kind_t {
+    incr_decr_INCR,
+    incr_decr_DECR
+};
+
+struct incr_decr_mutation_t {
+    incr_decr_kind_t kind;
+    store_key_t key;
+    uint64_t amount;
+};
 
 struct incr_decr_result_t {
     enum result_t {
@@ -131,9 +185,12 @@ struct incr_decr_result_t {
     incr_decr_result_t(result_t r, uint64_t n = 0) : res(r), new_value(n) { }
 };
 
-enum incr_decr_kind_t {
-    incr_decr_INCR,
-    incr_decr_DECR
+enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
+
+struct append_prepend_mutation_t {
+    append_prepend_kind_t kind;
+    store_key_t key;
+    data_provider_t *data;
 };
 
 enum append_prepend_result_t {
@@ -144,24 +201,38 @@ enum append_prepend_result_t {
     apr_not_allowed,
 };
 
-enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
+struct mutation_t {
 
-enum delete_result_t {
-    dr_deleted,
-    dr_not_found,
-    dr_not_allowed
+    boost::variant<get_cas_mutation_t, set_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation;
+
+    // implicit
+    template<class T>
+    mutation_t(const T &m) : mutation(m) { }
+
+    /* get_key() extracts the "key" field from whichever sub-mutation we actually are */
+    store_key_t get_key() const;
+};
+
+struct mutation_result_t {
+
+    boost::variant<get_result_t, set_result_t, delete_result_t, incr_decr_result_t, append_prepend_result_t> result;
+
+    // implicit
+    template<class T>
+    mutation_result_t(const T &r) : result(r) { }
 };
 
 class set_store_interface_t {
 
 public:
-    virtual get_result_t get_cas(const store_key_t &key) = 0;
+    /* These NON-VIRTUAL methods all construct a mutation_t and then call change(). */
+    get_result_t get_cas(const store_key_t &key);
+    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data);
+    delete_result_t delete_key(const store_key_t &key);
 
-    virtual set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
-    virtual delete_result_t delete_key(const store_key_t &key) = 0;
-
-    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount) = 0;
-    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data) = 0;
+    virtual mutation_result_t change(const mutation_t&) = 0;
 
     virtual ~set_store_interface_t() {}
 };
@@ -177,15 +248,7 @@ arbitrary order.*/
 class set_store_t {
 
 public:
-    /* get_cas is in set_store_t instead of get_store_t because it may require modifying the
-    database if no CAS had ever been set for that key. */
-    virtual get_result_t get_cas(const store_key_t &key, castime_t castime) = 0;
-
-    virtual set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) = 0;
-    virtual delete_result_t delete_key(const store_key_t &key, repli_timestamp timestamp) = 0;
-
-    virtual incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) = 0;
-    virtual append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) = 0;
+    virtual mutation_result_t change(const mutation_t&, castime_t) = 0;
 
     virtual ~set_store_t() {}
 };
@@ -203,17 +266,12 @@ class timestamping_set_store_interface_t :
 public:
     timestamping_set_store_interface_t(set_store_t *target);
 
-    get_result_t get_cas(const store_key_t &key);
-
-    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
-    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data);
-    delete_result_t delete_key(const store_key_t &key);
+    mutation_result_t change(const mutation_t &);
 
 private:
     castime_t make_castime();
     set_store_t *target;
-    int cas_counter;
+    uint32_t cas_counter;
 };
 
 #endif /* __STORE_HPP__ */

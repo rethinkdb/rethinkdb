@@ -8,7 +8,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         : increment(increment), delta(delta)
     { }
 
-    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
+    bool operate(UNUSED const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         // If the key didn't exist before, we fail
         if (!old_value) {
             result.res = incr_decr_result_t::idr_not_found;
@@ -58,6 +58,10 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
 
         *new_value = &temp_value;
         return true;
+    }
+
+    int compute_expected_change_count(UNUSED const size_t block_size) {
+        return 1;
     }
 
     bool increment;   // If false, then decrement

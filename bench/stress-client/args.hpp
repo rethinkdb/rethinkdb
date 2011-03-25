@@ -3,6 +3,224 @@
 #define __ARGS_HPP__
 #include <getopt.h>
 
+#include "protocol.hpp"
+
+#define MAX_FILE    255
+#define MAX_KEY_SIZE (250)
+#define MAX_VALUE_SIZE (1024*1024)
+
+struct duration_t {
+public:
+    enum duration_units_t {
+        queries_t, seconds_t, inserts_t
+    };
+
+public:
+    duration_t(long _duration, duration_units_t _units)
+        : duration(_duration), units(_units)
+        {}
+
+    void print() {
+        printf("%ld", duration);
+        switch(units) {
+        case queries_t:
+            printf("q");
+            break;
+        case seconds_t:
+            printf("s");
+            break;
+        case inserts_t:
+            printf("i");
+            break;
+        default:
+            fprintf(stderr, "Unknown duration unit\n");
+            exit(-1);
+        }
+    }
+
+    void parse(char *duration) {
+        if (strcmp(duration, "infinity") == 0) {
+            this->duration = -1;
+            units = queries_t;
+        } else {
+            int len = strlen(duration);
+            switch(duration[len - 1]) {
+            case 'q':
+                units = queries_t;
+                break;
+            case 's':
+                units = seconds_t;
+                break;
+            case 'i':
+                units = inserts_t;
+                break;
+            default:
+                if(duration[len - 1] >= '0' && duration[len - 1] <= '9')
+                    units = queries_t;
+                else {
+                    fprintf(stderr, "Unknown duration unit\n");
+                    exit(-1);
+                }
+                break;
+            }
+
+            this->duration = atol(duration);
+        }
+    }
+
+public:
+    long duration;
+    duration_units_t units;
+};
+
+/* Defines a load in terms of ratio of deletes, updates, inserts, and
+ * reads. */
+struct op_ratios_t {
+public:
+    op_ratios_t()
+        : deletes(1), updates(4),
+          inserts(8), reads(64),
+          appends(0), prepends(0),
+          verifies(0), range_reads(0)
+        {}
+
+    op_ratios_t(int d, int u, int i, int r, int a, int p, int v, int rr)
+        : deletes(d), updates(u),
+          inserts(i), reads(r),
+          appends(a), prepends(p),
+          verifies(v), range_reads(rr)
+        {}
+
+    enum load_op_t {
+        delete_op, update_op, insert_op, read_op, range_read_op, append_op, prepend_op, verify_op,
+    };
+
+    void parse(char *str) {
+        char *tok = strtok(str, "/");
+        int c = 0;
+        while(tok != NULL) {
+            switch(c) {
+            case 0:
+                deletes = atoi(tok);
+                break;
+            case 1:
+                updates = atoi(tok);
+                break;
+            case 2:
+                inserts = atoi(tok);
+                break;
+            case 3:
+                reads = atoi(tok);
+                break;
+            case 4:
+                appends = atoi(tok);
+                break;
+            case 5:
+                prepends = atoi(tok);
+                break;
+            case 6:
+                verifies = atoi(tok);
+                break;
+            case 7:
+                range_reads = atoi(tok);
+                break;
+            default:
+                fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V/RR)\n");
+                exit(-1);
+                break;
+            }
+            tok = strtok(NULL, "/");
+            c++;
+        }
+        if(c < 4) {
+            fprintf(stderr, "Invalid load format (use D/U/I/R/A/P/V/RR)\n");
+            exit(-1);
+        }
+    }
+
+    void print() {
+        printf("%d/%d/%d/%d/%d/%d/%d/%d", deletes, updates, inserts, reads,appends, prepends, verifies, range_reads);
+    }
+
+public:
+    int deletes;
+    int updates;
+    int inserts;
+    int reads;
+    int range_reads;
+    int appends;
+    int prepends;
+    int verifies;
+};
+
+/* Defines a client configuration, including sensible default
+ * values.*/
+struct config_t {
+public:
+    config_t()
+        : clients(64), duration(10000000L, duration_t::queries_t), op_ratios(op_ratios_t()),
+            keys(distr_t(8, 16)), values(distr_t(8, 128)),
+            batch_factor(distr_t(1, 16)), range_size(distr_t(16, 128)),
+            distr(rnd_uniform_t), mu(1)
+        {
+            latency_file[0] = 0;
+            worst_latency_file[0] = 0;
+            qps_file[0] = 0;
+            out_file[0] = 0;
+            in_file[0] = 0;
+            db_file[0] = 0;
+        }
+
+    void print() {
+        printf("---- Workload ----\n");
+        printf("Duration..........");
+        duration.print();
+        printf("\n");
+        for (int i = 0; i < servers.size(); i++) {
+            printf("Server............");
+            servers[i].print();
+            printf("\n");
+        }
+        printf("Clients...........%d\n", clients);
+        printf("Load..............");
+        op_ratios.print();
+        printf("\nKeys..............");
+        keys.print();
+        printf("\nValues............");
+        values.print();
+        printf("\nBatch factor......");
+        batch_factor.print();
+        printf("\nRange size........");
+        range_size.print();
+        printf("\nDistribution......");
+        if(distr == rnd_uniform_t)
+            printf("uniform\n");
+        if(distr == rnd_normal_t) {
+            printf("normal\n");
+            printf("MU................%d\n", mu);
+        }
+        printf("\n");
+    }
+
+public:
+    std::vector<server_t> servers;
+    int clients;
+    duration_t duration;
+    op_ratios_t op_ratios;
+    distr_t keys;
+    distr_t values;
+    distr_t batch_factor;
+    distr_t range_size;
+    rnd_distr_t distr;
+    int mu;
+    char latency_file[MAX_FILE];
+    char worst_latency_file[MAX_FILE];
+    char qps_file[MAX_FILE];
+    char out_file[MAX_FILE];
+    char in_file[MAX_FILE];
+    char db_file[MAX_FILE];
+};
+
 /* List supported protocols. */
 void list_protocols() {
     // I'll just cheat here.
@@ -34,7 +252,7 @@ void usage(const char *name) {
     printf("].\n");
     printf("\t-c, --clients\n\t\tNumber of concurrent clients. Defaults to [%d].\n", _d.clients);
     printf("\t--client-suffix\n\t\tAppend a per-client id to key names.\n");
-    printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R/A/P/V, where\n" \
+    printf("\t-w, --workload\n\t\tTarget load to generate. Expects a value in format D/U/I/R/A/P/V/RR, where\n" \
            "\t\t\tD - number of deletes\n" \
            "\t\t\tU - number of updates\n" \
            "\t\t\tI - number of inserts\n" \
@@ -42,8 +260,9 @@ void usage(const char *name) {
            "\t\t\tA - number of appends\n" \
            "\t\t\tP - number of prepends\n" \
            "\t\t\tV - number of verifications\n" \
+           "\t\t\tRR - number of range reads\n" \
            "\t\tDefaults to [");
-    _d.load.print();
+    _d.op_ratios.print();
     printf("]\n");
     printf("\t-k, --keys\n\t\tKey distribution in DISTR format (see below). Defaults to [");
     _d.keys.print();
@@ -61,6 +280,10 @@ void usage(const char *name) {
     printf("\t-b, --batch-factor\n\t\tA range in DISTR format for average number of reads\n" \
            "\t\tto perform in one shot. Defaults to [");
     _d.batch_factor.print();
+    printf("].\n");
+    printf("\t-R, --range-size\n\t\tA range in DISTR format for average number of values\n" \
+           "\t\tto retrieve per range get. Defaults to [");
+    _d.range_size.print();
     printf("].\n");
     printf("\t-l, --latency-file\n\t\tFile name to output individual latency information (in us).\n" \
            "\t\tThe information is not outputted if this argument is skipped.\n");
@@ -112,6 +335,7 @@ void parse(config_t *config, int argc, char *argv[]) {
                 {"values",             required_argument, 0, 'v'},
                 {"duration",           required_argument, 0, 'd'},
                 {"batch-factor",       required_argument, 0, 'b'},
+                {"range-size",         required_argument, 0, 'R'},
                 {"latency-file",       required_argument, 0, 'l'},
                 {"worst-latency-file", required_argument, 0, 'L'},
                 {"qps-file",           required_argument, 0, 'q'},
@@ -126,7 +350,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:l:L:q:o:i:h:f:m:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "s:n:p:r:c:w:k:K:v:d:b:R:l:L:q:o:i:h:f:m:", long_options, &option_index);
 
         if(do_help)
             c = 'h';
@@ -149,7 +373,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             config->clients = atoi(optarg);
             break;
         case 'w':
-            config->load.parse(optarg);
+            config->op_ratios.parse(optarg);
             break;
         case 'k':
             config->keys.parse(optarg);
@@ -169,6 +393,9 @@ void parse(config_t *config, int argc, char *argv[]) {
             break;
         case 'b':
             config->batch_factor.parse(optarg);
+            break;
+        case 'R':
+            config->range_size.parse(optarg);
             break;
         case 'l':
             strncpy(config->latency_file, optarg, MAX_FILE);

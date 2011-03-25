@@ -7,6 +7,9 @@
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/buf_patch.hpp"
 
+// TODO: Have the semantic checking cache make sure that the
+// repli_timestamps are correct.
+
 /* The semantic-checking cache (scc_cache_t) is a wrapper around another cache that will
 make sure that the inner cache obeys the proper semantics. */
 
@@ -57,14 +60,16 @@ public:
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
     void mark_deleted(bool write_null = true);
+    void touch_recency(repli_timestamp timestamp);
     void release();
 
 private:
     friend class scc_transaction_t<inner_cache_t>;
+    bool snapshotted;
     typename inner_cache_t::buf_t *inner_buf;
     void on_block_available(typename inner_cache_t::buf_t *buf);
     block_available_callback_t *available_cb;
-    explicit scc_buf_t(scc_cache_t<inner_cache_t> *);
+    explicit scc_buf_t(scc_cache_t<inner_cache_t> *, bool snapshotted);
     scc_cache_t<inner_cache_t> *cache;
 private:
     crc_t compute_crc() {
@@ -88,16 +93,23 @@ class scc_transaction_t :
     typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
 
 public:
+    // TODO: Implement semantic checking for snapshots!
+    void snapshot() {
+        snapshotted = true;
+        inner_transaction->snapshot();
+    }
     bool commit(transaction_commit_callback_t *callback);
 
     buf_t *acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
-    repli_timestamp get_subtree_recency(block_id_t block_id);
+    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 
     scc_cache_t<inner_cache_t> *cache;
 
 private:
+    bool snapshotted; // Disables CRC checks
+
     friend class scc_cache_t<inner_cache_t>;
     scc_transaction_t(access_t, scc_cache_t<inner_cache_t> *);
     access_t access;
@@ -127,7 +139,8 @@ public:
         mirrored_cache_config_t *dynamic_config);
 
     block_size_t get_block_size();
-    transaction_t *begin_transaction(access_t access, transaction_begin_callback_t *callback);
+
+    transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
 private:
     inner_cache_t inner_cache;

@@ -1,5 +1,7 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/stats.hpp"
+#include "callbacks.hpp"
+#include "mirrored.hpp"
 
 /**
  * Buffer implementation.
@@ -7,10 +9,7 @@
 
 /* This mini-FSM loads a buf from disk. */
 
-struct load_buf_fsm_t :
-    public thread_message_t,
-    serializer_t::read_callback_t
-{
+struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
     explicit load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
@@ -28,32 +27,7 @@ struct load_buf_fsm_t :
             // Read the transaction id
             inner_buf->transaction_id = inner_buf->cache->serializer->get_current_transaction_id(inner_buf->block_id, inner_buf->data);
 
-            const std::vector<buf_patch_t*>* patches = inner_buf->cache->patch_memory_storage.get_patches(inner_buf->block_id);
-            // Remove obsolete patches from diff storage
-            if (patches) {
-                inner_buf->cache->patch_memory_storage.filter_applied_patches(inner_buf->block_id, inner_buf->transaction_id);
-                patches = inner_buf->cache->patch_memory_storage.get_patches(inner_buf->block_id);
-            }
-            // All patches that currently exist must have been materialized out of core...
-            if (patches) {
-                inner_buf->writeback_buf.last_patch_materialized = patches->back()->get_patch_counter();
-            } else {
-                inner_buf->writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
-            }
-
-            /*if (patches) {
-                fprintf(stderr, "Replaying %d patches on block %d\n", (int)patches->size(), inner_buf->block_id);
-            }*/
-
-            // Apply outstanding patches
-            inner_buf->cache->patch_memory_storage.apply_patches(inner_buf->block_id, (char*)inner_buf->data);
-            
-            // Set next_patch_counter such that the next patches get values consistent with the existing patches
-            if (patches) {
-                inner_buf->next_patch_counter = patches->back()->get_patch_counter() + 1;
-            } else {
-                inner_buf->next_patch_counter = 1;
-            }
+            inner_buf->replay_patches();
 
             inner_buf->lock.unlock();
             delete this;
@@ -66,11 +40,12 @@ struct load_buf_fsm_t :
 };
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load)
     : cache(cache),
       block_id(block_id),
+      subtree_recency(repli_timestamp::invalid),  // Gets initialized by load_buf_fsm_t.
       data(cache->serializer->malloc()),
+      version_id(cache->get_min_snapshot_version(cache->get_current_version_id())),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -80,22 +55,85 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
       page_repl_buf(this),
       page_map_buf(this),
       transaction_id(NULL_SER_TRANSACTION_ID) {
+
     if (should_load) {
         new load_buf_fsm_t(this);
     }
+
+    // pm_n_blocks_in_memory gets incremented in cases where
+    // should_load == false, because currently we're still mallocing
+    // the buffer.
+    pm_n_blocks_in_memory++;
+    refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
+
+    cache->page_repl.make_space(1);
+
+    refcount--;
+}
+
+// This form of the buf constructor is used when the block exists on disks but has been loaded into buf already
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp recency_timestamp)
+    : cache(cache),
+      block_id(block_id),
+      subtree_recency(recency_timestamp),
+      data(buf),
+      version_id(cache->get_min_snapshot_version(cache->get_current_version_id())),
+      refcount(0),
+      do_delete(false),
+      write_empty_deleted_block(false),
+      cow_will_be_needed(false),
+      writeback_buf(this),
+      page_repl_buf(this),
+      page_map_buf(this),
+      transaction_id(NULL_SER_TRANSACTION_ID) {
 
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
     refcount--;
+
+    // Read the transaction id
+    transaction_id = cache->serializer->get_current_transaction_id(block_id, data);
+
+    replay_patches();
 }
 
-// This form of the buf constructor is used when a completely new block is being created
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
+mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp recency_timestamp) {
+    cache->assert_thread();
+
+    block_id_t block_id = cache->free_list.gen_block_id();
+    mc_inner_buf_t *inner_buf = cache->page_map.find(block_id);
+    if (!inner_buf) {
+        return new mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp);
+    } else {
+        // Block with block_id was logically deleted, but its inner_buf survived.
+        // That can happen when there are active snapshots that holding older versions
+        // of the block. It's safe to update the top version of the block though.
+        rassert(inner_buf->data == NULL && inner_buf->do_delete);
+
+        inner_buf->subtree_recency = recency_timestamp;
+        inner_buf->data = cache->serializer->malloc();
+        inner_buf->version_id = snapshot_version;
+        inner_buf->do_delete = false;
+        inner_buf->next_patch_counter = 1;
+        inner_buf->write_empty_deleted_block = false;
+        inner_buf->cow_will_be_needed = false;
+        inner_buf->transaction_id = NULL_SER_TRANSACTION_ID;
+
+        return inner_buf;
+    }
+}
+
+// This form of the buf constructor is used when a completely new block is being created.
+// Internal use from mc_inner_buf_t::allocate only!
+// If you update this constructor, please don't forget to update mc_inner_buf_tallocate
+// accordingly.
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp recency_timestamp)
     : cache(cache),
-      block_id(cache->free_list.gen_block_id()),
-      subtree_recency(current_time()),
+      block_id(block_id),
+      subtree_recency(recency_timestamp),
       data(cache->serializer->malloc()),
+      version_id(snapshot_version),
       next_patch_counter(1),
       refcount(0),
       do_delete(false),
@@ -104,7 +142,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
-      transaction_id(NULL_SER_TRANSACTION_ID) {
+      transaction_id(NULL_SER_TRANSACTION_ID)
+{
     cache->assert_thread();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
@@ -112,99 +151,209 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache)
     // between problems with uninitialized memory and problems with uninitialized blocks
     memset(data, 0xCD, cache->serializer->get_block_size().value());
 #endif
-    
+
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
+
     cache->page_repl.make_space(1);
+
     refcount--;
 }
 
 mc_inner_buf_t::~mc_inner_buf_t() {
     cache->assert_thread();
-    
+
 #ifndef NDEBUG
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
     // be flushed out of the cache.
     memset(data, 0xDD, cache->serializer->get_block_size().value());
 #endif
-    
+
     rassert(safe_to_unload());
-    cache->serializer->free(data);
-    
+    if (data)
+        cache->serializer->free(data);
+
     pm_n_blocks_in_memory--;
 }
 
+void mc_inner_buf_t::replay_patches() {
+    const std::vector<buf_patch_t*>* patches = cache->patch_memory_storage.get_patches(block_id);
+    // Remove obsolete patches from diff storage
+    if (patches) {
+        cache->patch_memory_storage.filter_applied_patches(block_id, transaction_id);
+        patches = cache->patch_memory_storage.get_patches(block_id);
+    }
+    // All patches that currently exist must have been materialized out of core...
+    if (patches) {
+        writeback_buf.last_patch_materialized = patches->back()->get_patch_counter();
+    } else {
+        writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
+    }
+
+    // Apply outstanding patches
+    cache->patch_memory_storage.apply_patches(block_id, (char*)data);
+
+    // Set next_patch_counter such that the next patches get values consistent with the existing patches
+    if (patches) {
+        next_patch_counter = patches->back()->get_patch_counter() + 1;
+    } else {
+        next_patch_counter = 1;
+    }
+}
+
+void mc_inner_buf_t::snapshot() {
+    cache->assert_thread();
+    rassert(snapshots.size() == 0 || snapshots.front().snapshotted_version < version_id);
+
+    size_t num_snapshots_affected = cache->register_snapshotted_block(this, version_id);
+    rassert(cow_will_be_needed || num_snapshots_affected > 0);
+
+    snapshots.push_front(buf_snapshot_info_t(data, version_id, num_snapshots_affected));
+}
+
+template<typename Predicate> void mc_inner_buf_t::release_snapshot(Predicate p) {
+    for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
+        buf_snapshot_info_t& snap = *it;
+        if (p(snap)) {
+            if (--snap.refcount == 0) {
+                cache->serializer->free(snap.data);
+                snapshots.erase(it);
+            }
+            return;
+        }
+    }
+    unreachable("Tried to release block snapshot that doesn't exist");
+}
+
+template<> void mc_inner_buf_t::release_snapshot(version_id_t version) {
+    release_snapshot(version_predicate_t(version));
+}
+
+template<> void mc_inner_buf_t::release_snapshot(void *data) {
+    release_snapshot(data_predicate_t(data));
+}
+
 bool mc_inner_buf_t::safe_to_unload() {
-    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && !cow_will_be_needed;
+    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && !cow_will_be_needed && snapshots.size() == 0;
 }
 
 perfmon_duration_sampler_t
     pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
-mc_buf_t::mc_buf_t(mc_inner_buf_t *inner, access_t mode)
-    : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner)
+mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted)
+    : ready(false), callback(NULL), mode(mode), non_locking_access(false), version_to_access(version_to_access), snapshotted(snapshotted), inner_buf(inner_buf), data(NULL)
 {
+    inner_buf->cache->assert_thread();
 #ifndef FAST_PERFMON
     patches_affected_data_size_at_start = -1;
 #endif
 
-    pm_bufs_acquiring.begin(&start_time);
-    inner_buf->refcount++;
-    if (inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
-        on_lock_available();
+
+    // If the top version is less or equal to version_to_access, then we need to acquire
+    // a read lock first (otherwise we may get the data of the unfinished write on top).
+    if (version_to_access != mc_inner_buf_t::faux_version_id && snapshotted  && version_to_access < inner_buf->version_id) {
+        rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
+        inner_buf->refcount++;
+        acquire_block(false);
+    } else {
+        // the top version is the right one for us
+        pm_bufs_acquiring.begin(&start_time);
+        inner_buf->refcount++;
+        if (inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
+            on_lock_available();
+        }
     }
+}
+
+void *mc_inner_buf_t::get_snapshot_data(version_id_t version_to_access) {
+    rassert(version_to_access != mc_inner_buf_t::faux_version_id);
+    for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); it++) {
+        if ((*it).snapshotted_version <= version_to_access) {
+            return (*it).data;
+        }
+    }
+    return NULL;
 }
 
 void mc_buf_t::on_lock_available() {
     pm_bufs_acquiring.end(&start_time);
-    
+    acquire_block(true);
+}
+
+void mc_buf_t::acquire_block(bool locked) {
     inner_buf->cache->assert_thread();
-    rassert(!inner_buf->do_delete);
-    
-    switch (mode) {
-        case rwi_read: {
-            data = inner_buf->data;
-            break;
-        }
-        case rwi_read_outdated_ok: {
-            if (inner_buf->cow_will_be_needed) {
-                data = inner_buf->cache->serializer->malloc();
-                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
-            } else {
+
+    mc_inner_buf_t::version_id_t inner_version = inner_buf->version_id;
+    // In case we don't have received a version yet (i.e. this is the first block we are acquiring, just access the most recent version)
+    if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id) {
+        data = inner_version <= version_to_access ? inner_buf->data : inner_buf->get_snapshot_data(version_to_access);
+        guarantee(data != NULL);
+    } else {
+        rassert(!inner_buf->do_delete);
+
+        switch (mode) {
+            case rwi_read: {
                 data = inner_buf->data;
-                inner_buf->cow_will_be_needed = true;
+                break;
+            }
+            case rwi_read_outdated_ok: {
+                if (inner_buf->cow_will_be_needed) {
+                    data = inner_buf->cache->serializer->clone(inner_buf->data);
+                } else {
+                    data = inner_buf->data;
+                    inner_buf->cow_will_be_needed = true;
+                }
                 inner_buf->lock.unlock();
+                break;
             }
-            break;
-        }
-        case rwi_write: {
-            if (inner_buf->cow_will_be_needed) {
-                data = inner_buf->cache->serializer->malloc();
-                memcpy(data, inner_buf->data, inner_buf->cache->get_block_size().value());
-                inner_buf->data = data;
-                inner_buf->cow_will_be_needed = false;
-            }
-            data = inner_buf->data;
+            case rwi_write: {
+                bool need_to_create_snapshot = inner_buf->cow_will_be_needed || (inner_version != mc_inner_buf_t::faux_version_id && inner_version <= inner_buf->cache->get_max_snapshot_version(mc_inner_buf_t::faux_version_id));
+                if (need_to_create_snapshot) {
+                    inner_buf->snapshot();
+
+                    if (inner_buf->cow_will_be_needed)
+                        ++inner_buf->snapshots.front().refcount;
+                }
+
+                inner_buf->version_id = version_to_access == mc_inner_buf_t::faux_version_id ? inner_buf->cache->get_current_version_id() : version_to_access;
+                //inner_buf->version_id = inner_buf->cache->get_current_version_id();
+
+                if (need_to_create_snapshot) {
+                    data = inner_buf->cache->serializer->clone(inner_buf->data);
+                    inner_buf->data = data;
+                    inner_buf->cow_will_be_needed = false;
+                }
+                data = inner_buf->data;
+
 #ifndef FAST_PERFMON
-            if (!inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start == -1) {
-                patches_affected_data_size_at_start = inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id);
-            }
+                if (!inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start == -1) {
+                    patches_affected_data_size_at_start = inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id);
+                }
 #endif
-            break;
+                break;
+            }
+            case rwi_intent:
+                not_implemented("Locking with intent not supported yet.");
+            case rwi_upgrade:
+            default:
+                unreachable();
         }
-        case rwi_intent:
-            not_implemented("Locking with intent not supported yet.");
-        case rwi_upgrade:
-        default:
-            unreachable();
     }
-    
+
+    version_to_access = mc_inner_buf_t::faux_version_id;
+
     pm_bufs_held.begin(&start_time);
-    
+
     ready = true;
     if (callback) callback->on_block_available(this);
+
+    if (snapshotted) {
+        if (locked)
+            inner_buf->lock.unlock();
+        non_locking_access = true;
+    }
 }
 
 void mc_buf_t::apply_patch(buf_patch_t *patch) {
@@ -239,7 +388,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
         }
     }
 
-    
+
     if (inner_buf->writeback_buf.needs_flush) {
         delete patch;
     }
@@ -269,6 +418,24 @@ void mc_buf_t::ensure_flush() {
         // Make sure that the buf is marked as dirty
         inner_buf->writeback_buf.set_dirty();
     }
+}
+
+void mc_buf_t::mark_deleted(bool write_null) {
+    rassert(mode == rwi_write);
+    rassert(!inner_buf->safe_to_unload());
+
+    bool need_to_create_snapshot = inner_buf->version_id <= inner_buf->cache->get_max_snapshot_version(mc_inner_buf_t::faux_version_id);
+    if (need_to_create_snapshot) {
+        inner_buf->snapshot();
+
+        inner_buf->data = NULL;
+        data = NULL;
+        inner_buf->version_id = inner_buf->cache->get_current_version_id();
+    }
+
+    inner_buf->do_delete = true;
+    inner_buf->write_empty_deleted_block = write_null;
+    ensure_flush(); // Disable patch log system for the buffer
 }
 
 patch_counter_t mc_buf_t::get_next_patch_counter() {
@@ -323,6 +490,7 @@ perfmon_sampler_t pm_patches_size_per_write("patches_size_per_write_buf", secs_t
 #endif
 
 void mc_buf_t::release() {
+    inner_buf->cache->assert_thread();
     pm_bufs_held.end(&start_time);
 
 #ifndef FAST_PERFMON
@@ -331,9 +499,9 @@ void mc_buf_t::release() {
             pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
     }
 #endif
-    
+
     inner_buf->cache->assert_thread();
-    
+
     inner_buf->refcount--;
 
     if (!non_locking_access) {
@@ -347,7 +515,8 @@ void mc_buf_t::release() {
                 if (data == inner_buf->data) {
                     inner_buf->cow_will_be_needed = false;
                 } else {
-                    inner_buf->cache->serializer->free(data);
+                    inner_buf->release_snapshot(data);
+                    //inner_buf->cache->serializer->free(data);
                 }
                 break;
             }
@@ -357,17 +526,32 @@ void mc_buf_t::release() {
                 unreachable("Unexpected mode.");
         }
     }
-    
-    // If this code is not commented out, then it will cause bufs to be unloaded very aggressively.
+
+    // If the buf is marked deleted, then we can delete it from memory already
+    // and just keep track of the deleted block_id (and whether to write an
+    // empty block).
+    if (inner_buf->do_delete) {
+        if (mode == rwi_write) {
+            inner_buf->writeback_buf.mark_block_id_deleted();
+            inner_buf->writeback_buf.set_dirty(false);
+            inner_buf->writeback_buf.set_recency_dirty(false); // TODO: Do we need to handle recency in master in some other way?
+        }
+        if (inner_buf->safe_to_unload()) {
+            delete inner_buf;
+            inner_buf = NULL;
+        }
+    }
+
+#if AGGRESSIVE_BUF_UNLOADING == 1
+    // If this code is enabled, then it will cause bufs to be unloaded very aggressively.
     // This is useful for catching bugs in which something expects a buf to remain valid even though
     // it is eligible to be unloaded.
-    
-    /*
-    if (inner_buf->safe_to_unload()) {
+
+    if (inner_buf && inner_buf->safe_to_unload()) {
         delete inner_buf;
     }
-    */
-    
+#endif
+
     delete this;
 }
 
@@ -383,12 +567,17 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access)
+mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp _recency_timestamp)
     : cache(cache),
+      expected_change_count(expected_change_count),
       access(access),
+      recency_timestamp(_recency_timestamp),
       begin_callback(NULL),
       commit_callback(NULL),
-      state(state_open) {
+      state(state_open),
+      snapshot_version(mc_inner_buf_t::faux_version_id),
+      snapshotted(false)
+{
     pm_transactions_starting.begin(&start_time);
     rassert(access == rwi_read || access == rwi_write);
 }
@@ -410,7 +599,14 @@ bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
     pm_transactions_committing.begin(&start_time);
 
     assert_thread();
-    
+
+    if (snapshotted && snapshot_version != mc_inner_buf_t::faux_version_id) {
+        cache->unregister_snapshot(this);
+        for (owned_snapshots_list_t::iterator it = owned_buf_snapshots.begin(); it != owned_buf_snapshots.end(); it++) {
+            (*it).first->release_snapshot((*it).second);
+        }
+    }
+
     /* We have to call sync_patiently() before on_transaction_commit() so that if
     on_transaction_commit() starts a sync, we will get included in it */
     if (access == rwi_write && cache->writeback.wait_for_flush) {
@@ -422,9 +618,9 @@ bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
     } else {
         state = state_committed;
     }
-    
+
     cache->on_transaction_commit(this);
-    
+
     if (state == state_in_commit_call) {
         state = state_committing;
         commit_callback = callback;
@@ -442,7 +638,7 @@ void mc_transaction_t::on_sync() {
     don't delete ourselves yet and just set state to state_committed instead, thereby signalling
     commit() to delete us. I think there must be a better way to do this, but I can't think of it
     right now. */
-    
+
     if (state == state_in_commit_call) {
         state = state_committed;
     } else if (state == state_committing) {
@@ -458,13 +654,18 @@ void mc_transaction_t::on_sync() {
 mc_buf_t *mc_transaction_t::allocate() {
     /* Make a completely new block, complete with a shiny new block_id. */
     rassert(access == rwi_write);
+    //rassert(this->snapshot_version != mc_inner_buf_t::faux_version_id);
+    rassert(!snapshotted);
     assert_thread();
-    
-    // This form of the inner_buf_t constructor generates a new block with a new block ID.
-    inner_buf_t *inner_buf = new inner_buf_t(cache);
-    
+
+    inner_buf_t *inner_buf = inner_buf_t::allocate(cache, snapshot_version, recency_timestamp);
+
+    assert_thread();
+
     // This must pass since no one else holds references to this block.
-    buf_t *buf = new buf_t(inner_buf, rwi_write);
+    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write, snapshot_version, snapshotted);
+
+    assert_thread();
     rassert(buf->ready);
 
     return buf;
@@ -472,50 +673,81 @@ mc_buf_t *mc_transaction_t::allocate() {
 
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     block_available_callback_t *callback, bool should_load) {
-    rassert(mode == rwi_read || mode == rwi_read_outdated_ok || access != rwi_read);
+    rassert(is_read_mode(mode) || access != rwi_read);
     assert_thread();
-       
+
     inner_buf_t *inner_buf = cache->page_map.find(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
         inner_buf = new inner_buf_t(cache, block_id, should_load);
     }
 
-    buf_t *buf = new buf_t(inner_buf, mode);
+    // If we are not in a snapshot transaction, then snapshot_version is faux_version_id,
+    // so the latest block version will be acquired (possibly, after acquiring the lock).
+    // If the snapshot version is specified, then no locking is used.
+    buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted);
 
-    // We set the recency _before_ we get the buf.  This is correct,
-    // because we are "underneath" any replicators that come later
-    // (trees grow downward from the root).
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
-        buf->touch_recency();
+        buf->touch_recency(recency_timestamp);
     }
 
     if (buf->ready) {
+        maybe_finalize_version();
         return buf;
     } else {
-        buf->callback = callback;
+        buf->callback = snapshotted ? new snapshot_wrapper_t(this, callback) : callback;
         return NULL;
     }
 }
 
-repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
-    crash("Operation not implemented: mc_transaction_t::get_subtree_recency");
-    /*
-    inner_buf_t *inner_buf = cache->page_map.find(block_id);
-    if (inner_buf) {
-        // The buf is in the cache and we must use its recency.
-        return inner_buf->subtree_recency;
-    } else {
-        // The buf is not in the cache, so ask the serializer.
-        // This is dangerous and will make things crash.
+void mc_transaction_t::snapshot_wrapper_t::on_block_available(mc_buf_t *block) {
+    trx->maybe_finalize_version();
+    cb->on_block_available(block);
+    delete this;
+}
 
-        return cache->serializer->get_recency(block_id);
+void mc_transaction_t::maybe_finalize_version() {
+    cache->assert_thread();
 
-        // This is dangerous because we're not on the same core, being
-        // on the same core would be a hassle for a feature that never
-        // gets used so far.
+    const bool have_to_snapshot = snapshot_version == mc_inner_buf_t::faux_version_id && snapshotted;
+    if (have_to_snapshot) {
+        // register_snapshot sets transaction snapshot_version
+        cache->register_snapshot(this);
     }
-*/
+    if (snapshot_version == mc_inner_buf_t::faux_version_id) {
+        // For non-snapshotted transactions, we still assign a version number on the first acquire
+        snapshot_version = cache->next_snapshot_version;
+    }
+}
+
+void mc_transaction_t::snapshot() {
+    rassert(is_read_mode(get_access()), "Can only make a snapshot in non-writing transaction");
+    rassert(snapshot_version == mc_inner_buf_t::faux_version_id, "Tried to take a snapshot after having acquired a first block");
+
+    snapshotted = true;
+}
+
+void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+    bool need_second_loop = false;
+    for (size_t i = 0; i < num_block_ids; ++i) {
+        inner_buf_t *inner_buf = cache->page_map.find(block_ids[i]);
+        if (inner_buf) {
+            recencies_out[i] = inner_buf->subtree_recency;
+        } else {
+            need_second_loop = true;
+            recencies_out[i] = repli_timestamp::invalid;
+        }
+    }
+
+    if (need_second_loop) {
+        on_thread_t th(cache->serializer->home_thread);
+
+        for (size_t i = 0; i < num_block_ids; ++i) {
+            if (recencies_out[i].time == repli_timestamp::invalid.time) {
+                recencies_out[i] = cache->serializer->get_recency(block_ids[i]);
+            }
+        }
+    }
 }
 
 /**
@@ -523,7 +755,6 @@ repli_timestamp mc_transaction_t::get_subtree_recency(block_id_t block_id) {
  */
 
 void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_static_config_t *config) {
-
     /* Initialize config block and differential log */
 
     patch_disk_storage_t::create(serializer, MC_CONFIGBLOCK_ID, config);
@@ -568,16 +799,20 @@ mc_cache_t::mc_cache_t(
     shutting_down(false),
     num_live_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),
-    max_patches_size_ratio(dynamic_config->wait_for_flush ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN)
+    max_patches_size_ratio(dynamic_config->wait_for_flush ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
+    next_snapshot_version(mc_inner_buf_t::faux_version_id+1)
 {
     /* Load differential log from disk */
     patch_disk_storage.reset(new patch_disk_storage_t(*this, MC_CONFIGBLOCK_ID));
     patch_disk_storage->load_patches(patch_memory_storage);
+
+    // Register us for read ahead to warm up faster
+    serializer->register_read_ahead_cb(this);
 }
 
 mc_cache_t::~mc_cache_t() {
-
     shutting_down = true;
+    serializer->unregister_read_ahead_cb(this);
 
     /* Wait for all transactions to commit before shutting down */
     if (num_live_transactions > 0) {
@@ -608,13 +843,38 @@ block_size_t mc_cache_t::get_block_size() {
     return serializer->get_block_size();
 }
 
-mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
-        transaction_begin_callback_t *callback) {
-    
+void mc_cache_t::register_snapshot(mc_transaction_t *txn) {
+    rassert(txn->snapshot_version == mc_inner_buf_t::faux_version_id, "Snapshot has been already created for this transaction");
+
+    txn->snapshot_version = next_snapshot_version++;
+    active_snapshots[txn->snapshot_version] = txn;
+}
+
+void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
+    snapshots_map_t::iterator it = active_snapshots.find(txn->snapshot_version);
+    if (it != active_snapshots.end() && (*it).second == txn) {
+        active_snapshots.erase(it);
+    } else {
+        unreachable("Tried to unregister a snapshot which doesn't exist");
+    }
+}
+
+size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, mc_inner_buf_t::version_id_t snapshotted_version) {
+    size_t num_snapshots_affected = 0;
+    for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version); it != active_snapshots.end(); it++) {
+        (*it).second->register_snapshotted_block(inner_buf, snapshotted_version);
+        num_snapshots_affected++;
+    }
+    return num_snapshots_affected;
+}
+
+mc_transaction_t *mc_cache_t::begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
     assert_thread();
     rassert(!shutting_down);
-    
-    transaction_t *txn = new transaction_t(this, access);
+
+    rassert(access == rwi_write || expected_change_count == 0);
+
+    transaction_t *txn = new transaction_t(this, access, expected_change_count, recency_timestamp);
     num_live_transactions++;
     if (writeback.begin_transaction(txn, callback)) {
         pm_transactions_starting.end(&txn->start_time);
@@ -626,13 +886,36 @@ mc_transaction_t *mc_cache_t::begin_transaction(access_t access,
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {
-    
     writeback.on_transaction_commit(txn);
-    
+
     num_live_transactions--;
     if (to_pulse_when_last_transaction_commits && num_live_transactions == 0) {
         // We started a shutdown earlier, but we had to wait for the transactions to all finish.
         // Now that all transactions are done, continue shutting down.
         to_pulse_when_last_transaction_commits->pulse();
     }
+}
+
+void mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf) {
+    // Note that the offered buf might get deleted between the point where the serializer offers it and below message gets delivered!
+    do_on_thread(home_thread, boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf));
+}
+
+bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf) {
+    assert_thread();
+
+    // We only load the buffer if we don't have it yet
+    // Also we have to recheck that the block has not been deleted in the meantime
+    if (!shutting_down && !page_map.find(block_id)) {
+        new mc_inner_buf_t(this, block_id, buf);
+    } else {
+        serializer->free(buf);
+    }
+
+    // Check if we want to unregister ourselves
+    if (page_repl.is_full(5)) {
+        serializer->unregister_read_ahead_cb(this);
+    }
+
+    return true;
 }

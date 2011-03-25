@@ -66,7 +66,7 @@ struct btree_key_t {
     uint8_t size;
     char contents[0];
     uint16_t full_size() const {
-        return size + offsetof(store_key_t, contents);
+        return size + offsetof(btree_key_t, contents);
     }
     void print() const {
         printf("%*.*s", size, size, contents);
@@ -118,6 +118,7 @@ inline bool is_internal(const node_t *node) {
     return check_magic<internal_node_t>(node->magic);
 }
 
+bool has_sensible_offsets(block_size_t block_size, const node_t *node);
 bool is_underfull(block_size_t block_size, const node_t *node);
 bool is_mergable(block_size_t block_size, const node_t *node, const node_t *sibling, const internal_node_t *parent);
 int nodecmp(const node_t *node1, const node_t *node2);

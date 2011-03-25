@@ -1,0 +1,5 @@
+#!/bin/bash
+
+if [ $DATABASE == "rethinkdb" ]; then
+    ../../build/release/rethinkdb create $SSD_DRIVES --force
+fi

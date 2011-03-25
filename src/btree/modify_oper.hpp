@@ -7,7 +7,6 @@
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/large_buf.hpp"
-#include "buffer_cache/large_buf_lock.hpp"
 #include "buffer_cache/transactor.hpp"
 #include "buffer_cache/co_functions.hpp"
 
@@ -32,7 +31,9 @@ public:
      * similarly for *new_large_buf).
      */
     virtual bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value,
-        large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) = 0;
+        boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) = 0;
+
+    virtual int compute_expected_change_count(const size_t block_size) = 0;
 
     // These two variables are only used by the get_cas_oper; there should be a
     // nicer way to handle this.
@@ -45,8 +46,8 @@ public:
     // btree_modify_opers need to acquire it in a particular way.
 
     // TIED lb TO lbref  TODO CHECK CALLERS
-    virtual void actually_acquire_large_value(large_buf_t *lb, large_buf_ref *lbref) {
-        co_acquire_large_value(lb, lbref, btree_value::lbref_limit, rwi_write);
+    virtual void actually_acquire_large_value(large_buf_t *lb) {
+        co_acquire_large_buf(lb);
     }
 };
 

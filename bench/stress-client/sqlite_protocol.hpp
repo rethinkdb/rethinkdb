@@ -9,24 +9,22 @@
 #include "distr.hpp"
 
 #define MAX_COMMAND_SIZE (3 * 1024 * 1024)
+#define TABLE_NAME "pairs"
+#define KEY_COL_NAME "key"
+#define VAL_COL_NAME "val"
 
 using namespace std;
 
 struct sqlite_protocol_t : public protocol_t {
-    sqlite_protocol_t(config_t *config) : _id(-1), _dbname(NULL), protocol_t(config), _dbhandle(NULL) {
+    sqlite_protocol_t(const char *conn_str) : _dbname(NULL), _dbhandle(NULL) {
+        sqlite3_open(conn_str, &_dbhandle);
+
+        sprintf(buffer, "CREATE TABLE IF NOT EXISTS %s (%s VARCHAR PRIMARY KEY, %s VARCHAR);\n", TABLE_NAME, KEY_COL_NAME, VAL_COL_NAME);
+        exec();
     }
 
     ~sqlite_protocol_t() {
         sqlite3_close(_dbhandle);
-    }
-
-    virtual void connect(server_t *server) {
-        if (_id == -1) {
-            fprintf(stderr, "Can't connect unless you tell me my id\n");
-            exit(-1);
-        }
-        sprintf(buffer, "%s/%d_%s", BACKUP_FOLDER, _id, config->db_file);
-        sqlite3_open(buffer, &_dbhandle);
     }
 
     virtual void remove(const char *key, size_t key_size) {
@@ -54,6 +52,11 @@ struct sqlite_protocol_t : public protocol_t {
                 sqlite_assert(strncmp(val, values[i].first, values[i].second) == 0);
             clean_up();
         }
+    }
+
+    virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
+        fprintf(stderr, "Range reads not currently supported with SQLite!\n");
+        exit(-1);
     }
 
     /* start a dump (selecting all the keys from the database) */
@@ -110,16 +113,7 @@ struct sqlite_protocol_t : public protocol_t {
         free(orig_val);
     }
 
-    virtual void shared_init() {
-        sprintf(buffer, "CREATE TABLE IF NOT EXISTS %s (%s VARCHAR PRIMARY KEY, %s VARCHAR);\n", TABLE_NAME, KEY_COL_NAME, VAL_COL_NAME);
-        exec();
-    }
-public:
-    void set_id(int id) {
-        _id = id;
-    }
 private:
-    int _id;
     char *_dbname;
     sqlite3 *_dbhandle;
     char buffer[MAX_COMMAND_SIZE];

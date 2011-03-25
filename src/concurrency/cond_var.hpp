@@ -6,6 +6,81 @@
 
 // Let's use C++0x and use std::move!  Let's do it!  NOWWWWW!
 
+class interruptable_cond_token_t {
+    template <class value_type>
+    friend class interruptable_cond_t;
+    uint64_t version_number_;
+};
+
+
+template <class value_type>
+class interruptable_cond_t {
+    typedef interruptable_cond_token_t token_t;
+public:
+
+    interruptable_cond_t() : waiter_(NULL), value_(), satisfied_(false), version_(0) { }
+
+    // HACK, probably INCORRECT.  A version of pulse that doesn't take
+    // a version.  TODO get rid of this, perhaps.
+    void pulse(value_type value) {
+        value_ = value;
+        satisfied_ = true;
+        if (waiter_) {
+            waiter_->notify();
+        }
+    }
+
+    void pulse(token_t version, value_type value) {
+        if (version.version_number_ == version_) {
+            value_ = value;
+        }
+    }
+
+    bool wait(token_t version, value_type *out) {
+        if (version.version_number_ == version_) {
+            if (satisfied_) {
+                *out = value_;
+                return true;
+            } else {
+                waiter_ = coro_t::self();
+                coro_t::wait();
+                if (version.version_number_ == version_) {
+                    rassert(satisfied_);
+                    *out = value_;
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
+    }
+
+    token_t reset() {
+        ++ version_;
+        if (waiter_) {
+            rassert(!satisfied_);
+            waiter_->notify();
+        } else {
+            satisfied_ = false;
+            value_ = value_type();
+        }
+        token_t ret;
+        ret.version_number_ = version_;
+        return ret;
+    }
+
+private:
+    coro_t *waiter_;
+    value_type value_;
+    bool satisfied_;
+    uint64_t version_;
+
+    DISABLE_COPYING(interruptable_cond_t);
+};
+
+
 // value_type should be something copyable.
 template <class value_type>
 class unicond_t {
@@ -55,7 +130,6 @@ private:
 except between multiple coroutines on the same thread. It can only be used once. */
 
 struct cond_t {
-
     cond_t() : ready(false), waiter(NULL) { }
     void pulse() {
         rassert(!ready);
@@ -81,7 +155,6 @@ private:
 used with multiple coroutines on different threads. */
 
 struct threadsafe_cond_t {
-
     threadsafe_cond_t() : ready(false), waiter(NULL) { }
     void pulse() {
         lock.lock();
@@ -114,7 +187,7 @@ private:
 is transmitted to the thing waiting on the condition variable. It's parameterized on an underlying
 cond_t type so that you can make it thread-safe if you need to. */
 
-template<class val_t, class underlying_cond_t = cond_t>
+template <class val_t, class underlying_cond_t = cond_t>
 struct promise_t {
 
     promise_t() : value(NULL) { }
@@ -133,6 +206,31 @@ struct promise_t {
 private:
     underlying_cond_t cond;
     val_t *value;
+
+    DISABLE_COPYING(promise_t);
+};
+
+// A flat_promise_t is like a promise_t except that it doesn't use a
+// pointer, doesn't own the value.
+template <class T, class underlying_cond_t = cond_t>
+class flat_promise_t {
+public:
+    flat_promise_t() : cond_(), value_() { }
+    ~flat_promise_t() { }
+    void pulse(const T& v) {
+        value_ = v;
+        cond_.pulse();
+    }
+    T wait() {
+        cond_.wait();
+        return value_;
+    }
+
+private:
+    underlying_cond_t cond_;
+    T value_;
+
+    DISABLE_COPYING(flat_promise_t);
 };
 
 #endif /* __CONCURRENCY_COND_VAR_HPP__ */

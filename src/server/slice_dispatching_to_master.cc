@@ -1,48 +1,82 @@
-#include "server/slice_dispatching_to_master.hpp"
-
 #include "replication/master.hpp"
+
+#include "server/slice_dispatching_to_master.hpp"
 
 using replication::master_t;
 
+btree_slice_dispatching_to_master_t::btree_slice_dispatching_to_master_t(btree_slice_t *slice, snag_ptr_t<replication::master_t> master) : slice_(slice), master_(master) {
+    master_->register_dispatcher(this);
+}
+
+
 /* set_store_t interface. */
 
-get_result_t btree_slice_dispatching_to_master_t::get_cas(const store_key_t &key, castime_t castime) {
-    on_thread_t th(slice_->home_thread);
-    if (master_) spawn_on_home(master_, boost::bind(&master_t::get_cas, _1, key, castime));
-    return slice_->get_cas(key, castime);
-}
+struct change_visitor_t : public boost::static_visitor<mutation_result_t> {
+    master_t *master;
+    btree_slice_t *slice;
+    castime_t castime;
+    mutation_result_t operator()(const get_cas_mutation_t &m) {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::get_cas, master, m.key, castime));
+        return slice->change(m, castime);
+    }
+    mutation_result_t operator()(const set_mutation_t &m) {
+        buffer_borrowing_data_provider_t borrower(master->home_thread, m.data);
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::sarc, master,
+            m.key, borrower.side_provider(), m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
+        set_mutation_t m2(m);
+        m2.data = &borrower;
+        return slice->change(m2, castime);
+    }
+    mutation_result_t operator()(const incr_decr_mutation_t &m) {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::incr_decr, master, m.kind, m.key, m.amount, castime));
+        return slice->change(m, castime);
+    }
+    mutation_result_t operator()(const append_prepend_mutation_t &m) {
+        buffer_borrowing_data_provider_t borrower(master->home_thread, m.data);
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::append_prepend, master,
+            m.kind, m.key, borrower.side_provider(), castime));
+        append_prepend_mutation_t m2(m);
+        m2.data = &borrower;
+        return slice->change(m2, castime);
+    }
+    mutation_result_t operator()(const delete_mutation_t &m) {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::delete_key, master, m.key, castime.timestamp));
+        return slice->change(m, castime);
+    }
+};
 
-set_result_t btree_slice_dispatching_to_master_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    on_thread_t th(slice_->home_thread);
+mutation_result_t btree_slice_dispatching_to_master_t::change(const mutation_t &m, castime_t castime) {
 
+    on_thread_t th(slice_->home_thread);
     if (master_) {
-        buffer_borrowing_data_provider_t borrower(master_->home_thread, data);
-        spawn_on_home(master_, boost::bind(&master_t::sarc, _1, key, borrower.side_provider(), flags, exptime, castime, add_policy, replace_policy, old_cas));
-        return slice_->sarc(key, &borrower, flags, exptime, castime, add_policy, replace_policy, old_cas);
+        change_visitor_t functor;
+        functor.master = master_.get();
+        functor.slice = slice_;
+        functor.castime = castime;
+        return boost::apply_visitor(functor, m.mutation);
     } else {
-        return slice_->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
+        return slice_->change(m, castime);
     }
 }
 
-incr_decr_result_t btree_slice_dispatching_to_master_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
-    on_thread_t th(slice_->home_thread);
-    if (master_) spawn_on_home(master_, boost::bind(&master_t::incr_decr, _1, kind, key, amount, castime));
-    return slice_->incr_decr(kind, key, amount, castime);
-}
+void btree_slice_dispatching_to_master_t::nop_back_on_masters_thread(repli_timestamp timestamp, cond_t *cond, int *counter) {
+    rassert(get_thread_id() == master_->home_thread);
 
-append_prepend_result_t btree_slice_dispatching_to_master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
-    on_thread_t th(slice_->home_thread);
-    if (master_) {
-        buffer_borrowing_data_provider_t borrower(master_->home_thread, data);
-        spawn_on_home(master_, boost::bind(&master_t::append_prepend, _1, kind, key, borrower.side_provider(), castime));
-        return slice_->append_prepend(kind, key, &borrower, castime);
-    } else {
-        return slice_->append_prepend(kind, key, data, castime);
+    repli_timestamp t;
+    {
+        on_thread_t th(slice_->home_thread);
+
+        t = current_time();
+        rassert(t.time >= timestamp.time);
+    }
+
+    --*counter;
+    rassert(*counter >= 0);
+    if (*counter == 0) {
+        cond->pulse();
     }
 }
 
-delete_result_t btree_slice_dispatching_to_master_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
-    on_thread_t th(slice_->home_thread);
-    if (master_) spawn_on_home(master_, boost::bind(&master_t::delete_key, _1, key, timestamp));
-    return slice_->delete_key(key, timestamp);
+void btree_slice_dispatching_to_master_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+    coro_t::spawn_on_thread(slice_->home_thread, boost::bind(&btree_slice_t::spawn_backfill, slice_, since_when, callback));
 }

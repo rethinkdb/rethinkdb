@@ -2,6 +2,10 @@
 #ifndef __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
+#include <functional>
+#include <queue>
+#include <utility>
+
 #include "arch/arch.hpp"
 #include "server/cmd_args.hpp"
 #include "containers/priority_queue.hpp"
@@ -10,11 +14,10 @@
 #include "extents/extent_manager.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/types.hpp"
-#include <functional>
-#include <queue>
-#include <utility>
-#include <sys/time.h>
 #include "perfmon.hpp"
+#include "utils2.hpp"
+
+class log_serializer_t;
 
 // Stats
 
@@ -35,7 +38,7 @@ class data_block_manager_t :
     public data_block_manager_gc_write_callback_t
 {
 
-    friend class dbm_read_fsm_t;
+    friend class dbm_read_ahead_fsm_t;
 
 public:
 
@@ -53,9 +56,9 @@ public:
     };
 
 public:
-    data_block_manager_t(gc_writer_t *gc_writer, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, const log_serializer_static_config_t *static_config)
+    data_block_manager_t(gc_writer_t *gc_writer, const log_serializer_dynamic_config_t *dynamic_config, extent_manager_t *em, log_serializer_t *serializer, const log_serializer_static_config_t *static_config)
         : shutdown_callback(NULL), state(state_unstarted), gc_writer(gc_writer),
-          dynamic_config(dynamic_config), static_config(static_config), extent_manager(em),
+          dynamic_config(dynamic_config), static_config(static_config), extent_manager(em), serializer(serializer),
           next_active_extent(0),
           gc_state(extent_manager->extent_size)//,
 //          garbage_ratio_reporter(this)
@@ -64,6 +67,7 @@ public:
         rassert(static_config);
         rassert(gc_writer);
         rassert(extent_manager);
+        rassert(serializer);
     }
     ~data_block_manager_t() {
         rassert(state == state_unstarted || state == state_shut_down);
@@ -167,6 +171,7 @@ private:
     const log_serializer_static_config_t* const static_config;
 
     extent_manager_t* const extent_manager;
+    log_serializer_t *serializer;
 
     direct_file_t* dbfile;
 
@@ -187,13 +192,11 @@ private:
         public intrusive_list_node_t<gc_entry>
     {
     public:
-        typedef uint64_t timestamp_t;
-        
         data_block_manager_t *parent;
         
         off64_t offset; /* !< the offset that this extent starts at */
         bitset_t g_array; /* !< bit array for whether or not each block is garbage */
-        timestamp_t timestamp; /* !< when we started writing to the extent */
+        microtime_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
         
         enum state_t {
@@ -216,7 +219,7 @@ private:
             : parent(parent),
               offset(parent->extent_manager->gen_extent()),
               g_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_timestamp())
+              timestamp(current_microtime())
         {
             rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
             parent->entries.set(offset / parent->extent_manager->extent_size, this);
@@ -231,7 +234,7 @@ private:
             : parent(parent),
               offset(offset),
               g_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_timestamp())
+              timestamp(current_microtime())
         {
             parent->extent_manager->reserve_extent(offset);
             rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
@@ -262,14 +265,6 @@ private:
             debugf("\n");
             debugf("\n");
 #endif
-        }
-
-        // Returns the current timestamp in microseconds.
-        static timestamp_t current_timestamp() {
-            struct timeval t;
-            int res __attribute__((unused)) = gettimeofday(&t, NULL);
-            rassert(0 == res);
-            return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
         }
     };
     
@@ -319,6 +314,9 @@ private:
         gc_read,  /* waiting for reads, sending out writes */
         gc_write, /* waiting for writes */
     };
+
+    /* Buffer used during GC. */
+    std::vector<gc_write_t> gc_writes;
 
     struct gc_state_t {
     private:

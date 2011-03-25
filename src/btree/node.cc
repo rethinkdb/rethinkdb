@@ -8,6 +8,13 @@ const block_magic_t leaf_node_t::expected_magic = { {'l','e','a','f'} };
 
 namespace node {
 
+
+bool has_sensible_offsets(block_size_t block_size, const node_t *node) {
+    return (is_leaf(node) && leaf::has_sensible_offsets(block_size, ptr_cast<leaf_node_t>(node)))
+        || (is_internal(node) && internal_node::has_sensible_offsets(block_size, ptr_cast<internal_node_t>(node)));
+}
+
+
 bool is_underfull(block_size_t block_size, const node_t *node) {
     return (is_leaf(node) && leaf::is_underfull(block_size, ptr_cast<leaf_node_t>(node)))
         || (is_internal(node) && internal_node::is_underfull(block_size, ptr_cast<internal_node_t>(node)));
@@ -61,7 +68,7 @@ void print(const node_t *node) {
     }
 }
 
-void validate(block_size_t block_size, const node_t *node) {
+void validate(UNUSED block_size_t block_size, UNUSED const node_t *node) {
 #ifndef NDEBUG
     if (check_magic<leaf_node_t>(node->magic)) {
         leaf::validate(block_size, (leaf_node_t *)node);

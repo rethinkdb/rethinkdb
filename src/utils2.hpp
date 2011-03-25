@@ -16,14 +16,25 @@ int get_cpu_count();
 long get_available_ram();
 long get_total_ram();
 
+// This may be surprising to some people.
 typedef char byte;
-typedef char byte_t;
 
 // for safety  TODO: move this to a different file
 struct repli_timestamp {
     uint32_t time;
 
     static const repli_timestamp invalid;
+};
+
+struct initialized_repli_timestamp {
+    uint32_t time;
+    explicit initialized_repli_timestamp(uint32_t _time) : time(_time) { }
+    initialized_repli_timestamp(repli_timestamp timestamp) : time(timestamp.time) { }
+
+    operator repli_timestamp() const {
+        repli_timestamp ret = { time };
+        return ret;
+    }
 };
 
 struct charslice {
@@ -40,13 +51,17 @@ struct const_charslice {
 
 
 
-// Converts a time_t (in seconds) to a repli_timestamp.  The important
-// thing here is that this will never return repli_timestamp::invalid,
-// which will matter for one second every 116 years.
+// Converts a time_t (in seconds) to a repli_timestamp, but avoids
+// returning the invalid repli_timestamp value, which might matter
+// once every 116 years.
 repli_timestamp repli_time(time_t t);
 
 // TODO: move this to a different file
 repli_timestamp current_time();
+
+typedef uint64_t microtime_t;
+
+microtime_t current_microtime();
 
 // This is not a transitive operation.  It compares times "locally."
 // Imagine a comparison function that compares angles, in the range
@@ -106,7 +121,7 @@ bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
 
 /* Debugging printing API (prints current thread in addition to message) */
 
-void debugf(const char *msg, ...);
+void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.

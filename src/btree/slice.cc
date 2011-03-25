@@ -1,3 +1,6 @@
+#include <boost/scoped_ptr.hpp>
+
+#include "btree/backfill.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/transactor.hpp"
@@ -11,7 +14,6 @@
 #include "btree/delete.hpp"
 #include "btree/get_cas.hpp"
 #include "replication/master.hpp"
-#include <boost/scoped_ptr.hpp>
 
 void btree_slice_t::create(translator_serializer_t *serializer,
                            mirrored_cache_static_config_t *static_config) {
@@ -23,8 +25,8 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     /* The values we pass here are almost totally irrelevant. The cache-size parameter must
     be big enough to hold the patch log so we don't trip an assert, though. */
     mirrored_cache_config_t startup_dynamic_config;
-    int size = static_config->n_patch_log_blocks * serializer->get_block_size().value() + MEGABYTE;
-    startup_dynamic_config.max_size = size;
+    int size = static_config->n_patch_log_blocks * serializer->get_block_size().ser_value() + MEGABYTE;
+    startup_dynamic_config.max_size = size * 2;
     startup_dynamic_config.wait_for_flush = false;
     startup_dynamic_config.flush_timer_ms = NEVER_FLUSH;
     startup_dynamic_config.max_dirty_size = size;
@@ -36,9 +38,10 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     boost::scoped_ptr<cache_t> cache(new cache_t(serializer, &startup_dynamic_config));
 
     /* Initialize the root block */
-    transactor_t transactor(cache.get(), rwi_write);
+    transactor_t transactor(cache.get(), rwi_write, 1, current_time());
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
-    btree_superblock_t *sb = (btree_superblock_t*)(superblock.buf()->get_data_major_write());
+    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
+    bzero((void*)sb, cache->get_block_size().value());
     sb->magic = btree_superblock_t::expected_magic;
     sb->root_block = NULL_BLOCK_ID;
 
@@ -57,35 +60,48 @@ get_result_t btree_slice_t::get(const store_key_t &key) {
     return btree_get(key, this);
 }
 
-get_result_t btree_slice_t::get_cas(const store_key_t &key, castime_t castime) {
-    return btree_get_cas(key, this, castime);
-}
-
 rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
     return btree_rget_slice(this, left_mode, left_key, right_mode, right_key);
 }
 
-set_result_t btree_slice_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime,
-                                          add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    return btree_set(key, this, data, flags, exptime, add_policy, replace_policy, old_cas, castime);
+struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_result_t> {
+    mutation_result_t operator()(const get_cas_mutation_t &m) {
+        return btree_get_cas(m.key, parent, ct);
+    }
+    mutation_result_t operator()(const set_mutation_t &m) {
+        return btree_set(m.key, parent, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, ct);
+    }
+    mutation_result_t operator()(const incr_decr_mutation_t &m) {
+        return btree_incr_decr(m.key, parent, (m.kind == incr_decr_INCR), m.amount, ct);
+    }
+    mutation_result_t operator()(const append_prepend_mutation_t &m) {
+        return btree_append_prepend(m.key, parent, m.data, (m.kind == append_prepend_APPEND), ct);
+    }
+    mutation_result_t operator()(const delete_mutation_t &m) {
+        return btree_delete(m.key, parent, ct.timestamp);
+    }
+    btree_slice_t *parent;
+    castime_t ct;
+};
+
+mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) {
+    btree_slice_change_visitor_t functor;
+    functor.parent = this;
+    functor.ct = castime;
+    return boost::apply_visitor(functor, m.mutation);
 }
 
-incr_decr_result_t btree_slice_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
-    return btree_incr_decr(key, this, kind == incr_decr_INCR, amount, castime);
+void btree_slice_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+    spawn_btree_backfill(this, since_when, callback);
 }
 
-append_prepend_result_t btree_slice_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
-    return btree_append_prepend(key, this, data, kind == append_prepend_APPEND, castime);
+void btree_slice_t::time_barrier(UNUSED repli_timestamp lower_bound_on_future_timestamps) {
+    on_thread_t th(cache().home_thread);
+    int current_thread = get_thread_id();
+    transactor_t transactor(&cache(), rwi_write, 0, lower_bound_on_future_timestamps);
+    rassert(current_thread == get_thread_id(), "B");
+    buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
+    rassert(current_thread == get_thread_id(), "C");
+    superblock->touch_recency(lower_bound_on_future_timestamps);
+    rassert(current_thread == get_thread_id(), "D");
 }
-
-delete_result_t btree_slice_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
-    return btree_delete(key, this, timestamp);
-}
-
-// Stats
-
-perfmon_duration_sampler_t
-    pm_cmd_set("cmd_set", secs_to_ticks(1)),
-    pm_cmd_get_without_threads("cmd_get_without_threads", secs_to_ticks(1)),
-    pm_cmd_get("cmd_get", secs_to_ticks(1)),
-    pm_cmd_rget("cmd_rget", secs_to_ticks(1));

@@ -12,6 +12,7 @@ namespace unittest {
 
 #include "btree/leaf_node.cc" // Build a local variant which uses test_buf_t!
 
+repli_timestamp fake_timestamp = { -2 };
 
 // TODO: Sperg out and make these tests much more brutal.
 
@@ -237,7 +238,7 @@ public:
 
     void init() {
         SCOPED_TRACE("init");
-        leaf::init(bs, *node_buf, repli_timestamp::invalid);
+        leaf::init(bs, *node_buf, fake_timestamp);
         initialized = true;
         validate();
     }
@@ -259,9 +260,9 @@ public:
         StackValue sval(v, bs);
 
         if (expected_space() < int((1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets))) {
-            ASSERT_FALSE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), repli_timestamp::invalid));
+            ASSERT_FALSE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), fake_timestamp));
         } else {
-            ASSERT_TRUE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), repli_timestamp::invalid));
+            ASSERT_TRUE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), fake_timestamp));
 
             std::pair<expected_t::iterator, bool> res = expected.insert(std::make_pair(k, v));
             if (res.second) {

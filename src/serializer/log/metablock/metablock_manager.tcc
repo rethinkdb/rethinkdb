@@ -11,7 +11,7 @@ metablock_manager_t<metablock_t>::metablock_manager_t::head_t::head_t(metablock_
     : mb_slot(0), saved_mb_slot(-1), wraparound(false), mgr(manager) { }
 
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++(int a) {
+void metablock_manager_t<metablock_t>::metablock_manager_t::head_t::operator++(UNUSED int stupid_plusplus_parameter) {
     mb_slot++;
     wraparound = false;
     

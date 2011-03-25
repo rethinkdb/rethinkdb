@@ -14,7 +14,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t, threadsafe_cond_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
-    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, large_buf_lock_t& old_large_buflock, btree_value **new_value, large_buf_lock_t& new_large_buflock) {
+    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         if (!old_value) {
             /* If not found, there's nothing to do */
             res->pulse(get_result_t());
@@ -54,6 +54,10 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         }
     }
 
+    int compute_expected_change_count(UNUSED const size_t block_size) {
+        return 1;
+    }
+
     cas_t proposed_cas;
     get_result_t result;
     promise_t<get_result_t, threadsafe_cond_t> *res;
@@ -71,7 +75,6 @@ void co_btree_get_cas(const store_key_t &key, castime_t castime, btree_slice_t *
 }
 
 get_result_t btree_get_cas(const store_key_t &key, btree_slice_t *slice, castime_t castime) {
-    block_pm_duration get_timer(&pm_cmd_get);
     promise_t<get_result_t, threadsafe_cond_t> res;
     coro_t::spawn_now(boost::bind(co_btree_get_cas, key, castime, slice, &res));
     return res.wait();

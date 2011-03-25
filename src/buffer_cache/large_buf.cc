@@ -1,36 +1,86 @@
 #include "large_buf.hpp"
+
 #include <algorithm>
 
-int64_t large_buf_t::cache_size_to_leaf_bytes(block_size_t block_size) {
+#include "buffer_cache/co_functions.hpp"
+
+// TODO: In general, we've got a bunch of duplicated logic, in which
+// we compute some subslice of a std::vector<buftree_t *>.  We do this
+// over and over again.  Maybe some helper functions would help.
+
+struct buftree_t {
+#ifndef NDEBUG
+    // A positive number.
+    int level;
+#endif
+    buf_t *buf;
+    std::vector<buftree_t *> children;
+};
+
+struct lb_interval { int64_t offset, size; };
+
+class lb_indexer {
+public:
+    int index() const { return index_; }
+    int end_index() const { return end_index_; }
+    bool done() const { return index_ >= end_index_; }
+    lb_interval subinterval() const {
+        int64_t lo = index_ * step_;
+        int64_t beg = std::max(lo, offset_);
+        int64_t end = std::min(lo + step_, offset_ + size_);
+        lb_interval ret;
+        ret.offset = beg - lo;
+        ret.size = end - beg;
+        return ret;
+    }
+    void step() {
+        rassert(!done());
+        ++index_;
+    }
+
+    lb_indexer(int64_t offset, int64_t size, int64_t step)
+        : step_(step), offset_(offset), size_(size), index_(offset / step), end_index_(ceil_divide(offset + size, step))  {
+        rassert(0 <= offset);
+        rassert(0 <= size);
+        rassert(std::numeric_limits<int64_t>::max() - size >= offset);
+    }
+
+private:
+    int64_t step_;
+    int64_t offset_, size_;
+    int index_, end_index_;
+    DISABLE_COPYING(lb_indexer);
+};
+
+
+int64_t large_buf_t::bytes_per_leaf(block_size_t block_size) {
     return block_size.value() - sizeof(large_buf_leaf);
 }
 
-int64_t large_buf_t::cache_size_to_internal_kids(block_size_t block_size) {
+int64_t large_buf_t::kids_per_internal(block_size_t block_size) {
     return (block_size.value() - sizeof(large_buf_internal)) / sizeof(block_id_t);
 }
 
 int64_t large_buf_t::compute_max_offset(block_size_t block_size, int levels) {
     rassert(levels >= 1);
-    int64_t x = cache_size_to_leaf_bytes(block_size);
+    int64_t x = bytes_per_leaf(block_size);
     while (levels > 1) {
-        x *= cache_size_to_internal_kids(block_size);
+        x *= kids_per_internal(block_size);
         --levels;
     }
     return x;
 }
 
-int large_buf_t::compute_num_levels(block_size_t block_size, int64_t end_offset) {
+int large_buf_t::compute_num_sublevels(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit) {
     rassert(end_offset >= 0);
+    rassert(ref_limit.value > int(sizeof(large_buf_ref) + sizeof(block_id_t)));
+
     int levels = 1;
-    while (compute_max_offset(block_size, levels) < end_offset) {
+    int max_inlined = (ref_limit.value - sizeof(large_buf_ref)) / sizeof(block_id_t);
+    while (compute_max_offset(block_size, levels) * max_inlined < end_offset) {
         levels++;
     }
     return levels;
-}
-
-int large_buf_t::compute_num_sublevels(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit) {
-    int levels = compute_num_levels(block_size, end_offset);
-    return compute_large_buf_ref_num_inlined(block_size, end_offset, ref_limit) == 1 ? levels : levels - 1;
 }
 
 int large_buf_t::num_sublevels(int64_t end_offset) const {
@@ -38,41 +88,36 @@ int large_buf_t::num_sublevels(int64_t end_offset) const {
 }
 
 int large_buf_t::compute_large_buf_ref_num_inlined(block_size_t block_size, int64_t end_offset, lbref_limit_t ref_limit) {
-    rassert(end_offset >= 0);
-    int levels = compute_num_levels(block_size, end_offset);
-    if (levels == 1) {
-        return 1;
-    } else {
-        int64_t sub_width = compute_max_offset(block_size, levels - 1);
-        int n = ceil_divide(end_offset, sub_width);
-        return int(sizeof(large_buf_ref) + n * sizeof(block_id_t)) > ref_limit.value ? 1 : n;
-    }
+    return ceil_divide(end_offset, compute_max_offset(block_size, compute_num_sublevels(block_size, end_offset, ref_limit)));
 }
 
-large_buf_t::large_buf_t(transaction_t *txn_) : root_ref(NULL)
-                                              , txn(txn_)
+int large_buf_t::num_ref_inlined() const {
+    rassert(state == loading || state == loaded || state == deleted);
+    return compute_large_buf_ref_num_inlined(block_size(), root_ref->size + root_ref->offset, root_ref_limit);
+}
+
+large_buf_t::large_buf_t(const boost::shared_ptr<transactor_t>& _txor, large_buf_ref *_root_ref, lbref_limit_t _ref_limit, access_t _access)
+    : root_ref(_root_ref), root_ref_limit(_ref_limit), access(_access), txor(_txor)
 #ifndef NDEBUG
-                                              , state(not_loaded)
-                                              , num_bufs(0)
+    , state(not_loaded), num_bufs(0)
 #endif
 {
-    rassert(txn);
+    debugf("Constructed large_buf_t, num_bufs = %ld\n", num_bufs);
+
+    rassert(txor && txor->transaction());
+    rassert(root_ref);
 }
 
 int64_t large_buf_t::num_leaf_bytes() const {
-    return cache_size_to_leaf_bytes(block_size());
+    return bytes_per_leaf(block_size());
 }
 
 int64_t large_buf_t::num_internal_kids() const {
-    return cache_size_to_internal_kids(block_size());
+    return kids_per_internal(block_size());
 }
 
 int64_t large_buf_t::max_offset(int levels) const {
     return compute_max_offset(block_size(), levels);
-}
-
-int large_buf_t::num_levels(int64_t end_offset) const {
-    return compute_num_levels(block_size(), end_offset);
 }
 
 buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int levels, block_id_t *block_id) {
@@ -82,7 +127,7 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
     ret->level = levels;
 #endif
 
-    ret->buf = txn->allocate();
+    ret->buf = (*txor)->allocate();
     *block_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
@@ -109,29 +154,22 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
 }
 
 void large_buf_t::allocates_part_of_tree(std::vector<buftree_t *> *ptrs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t sublevels) {
-    int64_t step = max_offset(sublevels);
-    for (int k = 0; int64_t(k) * step < offset + size; ++k) {
-        int64_t i = int64_t(k) * step;
+    if (size == 0) {
+        return;
+    }
 
-        rassert((int)ptrs->size() >= k);
+    lb_indexer ixer(offset, size, max_offset(sublevels));
 
-        if ((int64_t)ptrs->size() == k) {
-            ptrs->push_back(NULL);
-            block_ids[k] = NULL_BLOCK_ID;
-        }
+    ptrs->resize(std::max(size_t(ixer.end_index()), ptrs->size()), NULL);
 
-        if (i + step > offset) {
-            int64_t child_offset = std::max(offset - i, 0L);
-            int64_t child_end_offset = std::min(offset + size - i, step);
+    for (; !ixer.done(); ixer.step()) {
+        int k = ixer.index();
+        lb_interval in = ixer.subinterval();
 
-            if ((*ptrs)[k] == NULL) {
-                block_id_t id;
-                buftree_t *child = allocate_buftree(child_offset, child_end_offset - child_offset, sublevels, &id);
-                (*ptrs)[k] = child;
-                block_ids[k] = id;
-            } else {
-                allocate_part_of_tree((*ptrs)[k], child_offset, child_end_offset - child_offset, sublevels);
-            }
+        if ((*ptrs)[k] == NULL) {
+            (*ptrs)[k] = allocate_buftree(in.offset, in.size, sublevels, &block_ids[k]);
+        } else {
+            allocate_part_of_tree((*ptrs)[k], in.offset, in.size, sublevels);
         }
     }
 }
@@ -149,47 +187,21 @@ void large_buf_t::allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t s
     }
 }
 
-void large_buf_t::allocate(int64_t _size, large_buf_ref *ref, lbref_limit_t ref_limit) {
-    access = rwi_write;
-
+void large_buf_t::allocate(int64_t _size) {
+    rassert(access == rwi_write);
     rassert(state == not_loaded);
 
-#ifndef NDEBUG
-    state = loading;
-#endif
-
-    rassert(root_ref == NULL);
-    root_ref = ref;
-    root_ref_limit = ref_limit;
     root_ref->offset = 0;
     root_ref->size = _size;
 
-    int num_inlined = large_buf_t::compute_large_buf_ref_num_inlined(block_size(), _size, root_ref_limit);
-    roots.resize(num_inlined);
-    if (num_inlined == 1) {
-        roots[0] = allocate_buftree(0, _size, num_levels(_size), root_ref->block_ids);
-    } else {
-        for (int i = 0; i < num_inlined; ++i) {
-            int num_sublevels = num_levels(_size) - 1;
-            rassert(num_sublevels >= 1);
-            int sz = max_offset(num_sublevels);
-            roots[i] = allocate_buftree(0, (i == num_inlined - 1 ? _size - i * sz : sz), num_sublevels,
-                                        &root_ref->block_ids[i]);
-        }
-    }
+    DEBUG_ONLY(state = loading);
 
-#ifndef NDEBUG
-    state = loaded;
-#endif
+    allocates_part_of_tree(&roots, root_ref->block_ids, 0, _size, num_sublevels(_size));
 
-    rassert(roots[0]->level == num_levels(root_ref->offset + root_ref->size) - (num_inlined != 1));
+    DEBUG_ONLY(state = loaded);
+
+    rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
 }
-
-struct tree_available_callback_t {
-    // responsible for calling delete this
-    virtual void on_available(buftree_t *tr, int index) = 0;
-    virtual ~tree_available_callback_t() {}
-};
 
 struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_available_callback_t {
     block_id_t block_id;
@@ -204,7 +216,7 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     // When this becomes 0, we return and destroy.
     int life_counter;
 
-    acquire_buftree_fsm_t(large_buf_t *lb_, block_id_t block_id_, int64_t offset_, int64_t size_, int levels_, tree_available_callback_t *cb_, int index_, bool should_load_leaves_ = true)
+    acquire_buftree_fsm_t(large_buf_t *lb_, block_id_t block_id_, int64_t offset_, int64_t size_, int levels_, tree_available_callback_t *cb_, int index_, bool should_load_leaves_)
         : block_id(block_id_), offset(offset_), size(size_), levels(levels_), cb(cb_), tr(new buftree_t()), index(index_), lb(lb_), should_load_leaves(should_load_leaves_) {
 #ifndef NDEBUG
         tr->level = levels_;
@@ -213,7 +225,7 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
 
     void go() {
         bool should_load = should_load_leaves || levels != 1;
-        buf_t *buf = lb->txn->acquire(block_id, lb->access, this, should_load);
+        buf_t *buf = (*lb->txor)->acquire(block_id, lb->access, this, should_load);
         if (buf) {
             on_block_available(buf);
         }
@@ -231,28 +243,18 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
         if (levels == 1) {
             finish();
         } else {
-            int64_t step = lb->max_offset(levels - 1);
-
             const large_buf_internal *node = reinterpret_cast<const large_buf_internal *>(buf->get_data_read());
 
-            // We start life_counter to 1 and decrement after the for
-            // loop, so that it can't reach 0 until we're done the for
-            // loop.
-            life_counter = 1;
-            for (int k = 0; int64_t(k) * step < offset + size; ++k) {
-                int64_t i = int64_t(k) * step;
-                tr->children.push_back(NULL);
-                if (offset < i + step) {
-                    life_counter++;
-                    int64_t child_offset = std::max(offset - i, 0L);
-                    int64_t child_end_offset = std::min(offset + size - i, step);
+            lb_indexer ixer(offset, size, lb->max_offset(levels - 1));
+            tr->children.resize(ixer.end_index(), NULL);
 
-                    acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[k], child_offset, child_end_offset - child_offset, levels - 1, this, k, should_load_leaves);
-                    fsm->go();
-                }
+            life_counter = ixer.end_index() - ixer.index();
+            for (; !ixer.done(); ixer.step()) {
+                int k = ixer.index();
+                lb_interval in = ixer.subinterval();
+                acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[k], in.offset, in.size, levels - 1, this, k, should_load_leaves);
+                fsm->go();
             }
-            if (--life_counter == 0)
-                finish();
         }
     }
 
@@ -271,90 +273,75 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     }
 };
 
-// TODO get rid of this, just have large_buf_t : public
-// tree_available_callback_t.
-struct lb_tree_available_callback_t : public tree_available_callback_t {
-    large_buf_t *lb;
-    explicit lb_tree_available_callback_t(large_buf_t *lb_) : lb(lb_) { }
-    void on_available(buftree_t *tr, int index) {
-        large_buf_t *l = lb;
-        delete this;
-        l->buftree_acquired(tr, index);
+void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, void *buf, int64_t n) {
+    rassert(root_ref->size - amount_to_dequeue + n > 0);
+    boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
+
+    // 1. Enqueue.
+    if (root_ref->size == 0) {
+        lb->allocate(n);
+        rassert(lb->state == loaded);
+    } else {
+        co_acquire_large_buf_slice(lb.get(), root_ref->size - 1, 1);
+        rassert(lb->state == loaded);
+
+        int refsize_adjustment;
+        lb->append(n, &refsize_adjustment);
     }
-};
 
-void large_buf_t::acquire_slice(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_) {
-    rassert(0 <= slice_offset);
+    fill_at(root_ref->size, buf, n);
+
+    // 2. Dequeue.
+    if (amount_to_dequeue > 0) {
+        co_acquire_large_buf_for_unprepend(lb.get(), amount_to_dequeue);
+
+        int refsize_adjustment;
+        lb->unprepend(amount_to_dequeue, &refsize_adjustment);
+    }
+}
+
+
+void large_buf_t::acquire_for_unprepend(int64_t extra_size, large_buf_available_callback_t *callback) {
+    do_acquire_slice(root_ref->offset, extra_size, callback, false);
+}
+
+void large_buf_t::acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_) {
+    do_acquire_slice(root_ref->offset + slice_offset, slice_size, callback_, true);
+}
+
+void large_buf_t::do_acquire_slice(int64_t raw_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_) {
+    rassert(0 <= raw_offset);
     rassert(0 <= slice_size);
-    rassert(slice_offset + slice_size <= root_ref_->size);
+    rassert(raw_offset + slice_size <= root_ref->offset + root_ref->size);
 
-    rassert(root_ref == NULL);
-    root_ref = root_ref_;
-    root_ref_limit = ref_limit_;
-    access = access_;
     callback = callback_;
 
     rassert(state == not_loaded);
 
-#ifndef NDEBUG
-    state = loading;
-#endif
+    DEBUG_ONLY(state = loading);
 
-    int levels = num_levels(root_ref->offset + root_ref->size);
-    int num_inlined = compute_large_buf_ref_num_inlined(block_size(), root_ref->offset + root_ref->size, root_ref_limit);
+    int sublevels = num_sublevels(root_ref->offset + root_ref->size);
 
-    roots.resize(num_inlined);
-    if (num_inlined == 1) {
-        num_to_acquire = 1;
-        tree_available_callback_t *cb = new lb_tree_available_callback_t(this);
-        // TODO LARGEBUF acquire for delete properly.
-        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[0], root_ref->offset + slice_offset, slice_size, levels, cb, 0, should_load_leaves_);
+    lb_indexer ixer(raw_offset, slice_size, max_offset(sublevels));
+    roots.resize(ixer.end_index(), NULL);
+    num_to_acquire = ixer.end_index() - ixer.index();
+
+    // TODO: This duplicates logic inside acquire_buftree_fsm_t, and
+    // we could fix that, but it's not that important.
+
+    for (; !ixer.done(); ixer.step()) {
+        int k = ixer.index();
+        lb_interval in = ixer.subinterval();
+        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[k], in.offset, in.size, sublevels, this, k, should_load_leaves_);
         f->go();
-    } else {
-        // Yet another case of slicing logic.
-
-        int num_sublevels = levels - 1;
-        int64_t subsize = max_offset(num_sublevels);
-        int64_t beg = root_ref->offset + slice_offset;
-        int64_t end = beg + slice_size;
-
-        int i = beg / subsize;
-        int e = ceil_divide(end, subsize);
-
-        num_to_acquire = e - i;
-
-        for (int i = beg / subsize, e = ceil_divide(end, subsize); i < e; ++i) {
-            tree_available_callback_t *cb = new lb_tree_available_callback_t(this);
-            int64_t thisbeg = std::max(beg, i * subsize);
-            int64_t thisend = std::min(end, (i + 1) * subsize);
-            acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[i], thisbeg, thisend - thisbeg, num_sublevels, cb, i, should_load_leaves_);
-            f->go();
-        }
     }
 }
 
-void large_buf_t::acquire(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_) {
-    acquire_slice(root_ref_, ref_limit_, access_, 0, root_ref_->size, callback_);
+void large_buf_t::acquire_for_delete(large_buf_available_callback_t *callback_) {
+    do_acquire_slice(root_ref->offset, root_ref->size, callback_, false);
 }
 
-void large_buf_t::acquire_rhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_) {
-    int64_t beg = std::max(int64_t(0), root_ref_->size - 1);
-    int64_t end = root_ref_->size;
-    acquire_slice(root_ref_, ref_limit_, access_, beg, end - beg, callback_);
-}
-
-void large_buf_t::acquire_lhs(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_) {
-    int64_t beg = 0;
-    int64_t end = std::min(int64_t(1), root_ref_->size);
-    acquire_slice(root_ref_, ref_limit_, access_, beg, end - beg, callback_);
-}
-
-void large_buf_t::acquire_for_delete(large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_, large_buf_available_callback_t *callback_) {
-    // TODO why do we have access_?
-    acquire_slice(root_ref_, ref_limit_, access_, 0, root_ref_->size, callback_, false);
-}
-
-void large_buf_t::buftree_acquired(buftree_t *tr, int index) {
+void large_buf_t::on_available(buftree_t *tr, int index) {
     rassert(state == loading);
     rassert(tr);
     rassert(0 <= index && size_t(index) < roots.size());
@@ -362,13 +349,12 @@ void large_buf_t::buftree_acquired(buftree_t *tr, int index) {
 
     roots[index] = tr;
 
-    rassert(tr->level == num_levels(root_ref->offset + root_ref->size) - (compute_large_buf_ref_num_inlined(block_size(), root_ref->offset + root_ref->size, root_ref_limit) != 1));
+    rassert(tr->level == num_sublevels(root_ref->offset + root_ref->size));
 
     num_to_acquire --;
     if (num_to_acquire == 0) {
-#ifndef NDEBUG
-        state = loaded;
-#endif
+        DEBUG_ONLY(state = loaded);
+        debugf("Calling on_large_buf_available.. num_bufs = %ld\n", num_bufs);
         callback->on_large_buf_available(this);
     }
 }
@@ -386,7 +372,7 @@ void large_buf_t::adds_level(block_id_t *ids
 #endif
 
     block_id_t new_id;
-    ret->buf = txn->allocate();
+    ret->buf = (*txor)->allocate();
     new_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
@@ -418,7 +404,6 @@ void large_buf_t::adds_level(block_id_t *ids
     roots.push_back(ret);
 }
 
-// TODO check for and support partial acquisition
 void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {
     rassert(state == loaded);
     rassert(root_ref != NULL);
@@ -448,6 +433,8 @@ void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {
 void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
     rassert(state == loaded);
 
+    debugf("large_buf_t::prepend, num_bufs originally = %ld\n", num_bufs);
+
     int original_refsize = root_ref->refsize(block_size(), root_ref_limit);
 
     const int64_t back = root_ref->offset + root_ref->size;
@@ -462,8 +449,10 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         root_ref->size += extra_size;
     } else {
 
+        int sublevels = num_sublevels(back);
     tryagain:
-        int64_t shiftsize = max_offset(num_sublevels(back));
+        int64_t shiftsize = max_offset(sublevels);
+        debugf("large_buf_t::prepend tryagain back=%ld sublevels=%d shiftsize=%ld\n", back, sublevels, shiftsize);
 
         // Find minimal k s.t. newoffset + k * shiftsize >= 0.
         // I.e. find min k s.t. newoffset >= -k * shiftsize.
@@ -480,9 +469,11 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
                        , num_sublevels(back) + 1
 #endif
                        );
+            sublevels++;
             goto tryagain;
         }
 
+        debugf("large_buf_t::prepend done tryagain loop\n");
         int64_t roots_back_k = roots.size();
         rassert(roots_back_k <= back_k);
         roots.resize(roots_back_k + k);
@@ -502,48 +493,94 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         root_ref->offset = newoffset + k * shiftsize;
         root_ref->size += extra_size;
 
+        debugf("large_buf_t::prepend about to call allocates_part_of_tree\n");
+
         allocates_part_of_tree(&roots, root_ref->block_ids, root_ref->offset, extra_size, num_sublevels(root_ref->offset + root_ref->size));
+
+        debugf("large_buf_t::prepend about called allocates_part_of_tree\n");
     }
 
     *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
     rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size),
            "roots[0]->level=%d num=%d offset=%ld size=%ld extra_size=%ld\n",
            roots[0]->level, num_sublevels(root_ref->offset + root_ref->size), root_ref->offset, root_ref->size, extra_size);
+
+    debugf("large_buf_t::prepend complete, num_bufs = %ld\n", num_bufs);
 }
 
 
-// Reads size bytes from data.
-void large_buf_t::fill_at(int64_t pos, const byte *data, int64_t fill_size) {
+void large_buf_t::bufs_at(int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out) {
     rassert(state == loaded);
     rassert(0 <= pos && pos <= root_ref->size);
-    rassert(fill_size <= root_ref->size - pos);
+    rassert(read_size <= root_ref->size - pos);
+
+    if (read_size == 0) {
+        // We need a special case for read_size, otherwise we'll
+        // return a buf if (root_ref->offset + pos) isn't aligned to a
+        // buf boundary.
+        return;
+    }
 
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
-    fill_trees_at(roots, root_ref->offset + pos, data, fill_size, sublevels);
+    trees_bufs_at(roots, sublevels, root_ref->offset + pos, read_size, use_read_mode, bufs_out);
 }
 
-void large_buf_t::fill_trees_at(const std::vector<buftree_t *>& trees, int64_t pos, const byte *data, int64_t fill_size, int sublevels) {
-    rassert(trees[0]->level == sublevels);
-
-    int64_t step = max_offset(sublevels);
-
-    for (int k = pos / step, ke = ceil_divide(pos + fill_size, step); k < ke; ++k) {
-        int64_t i = int64_t(k) * step;
-        int64_t beg = std::max(i, pos);
-        int64_t end = std::min(pos + fill_size, i + step);
-        fill_tree_at(trees[k], beg - i, data + (beg - pos), end - beg, sublevels);
+void large_buf_t::trees_bufs_at(const std::vector<buftree_t *>& trees, int sublevels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out) {
+    for (lb_indexer ixer(pos, read_size, max_offset(sublevels)); !ixer.done(); ixer.step()) {
+        lb_interval in = ixer.subinterval();
+        tree_bufs_at(trees[ixer.index()], sublevels, in.offset, in.size, use_read_mode, bufs_out);
     }
 }
 
-void large_buf_t::fill_tree_at(buftree_t *tr, int64_t pos, const byte *data, int64_t fill_size, int levels) {
+void large_buf_t::tree_bufs_at(buftree_t *tr, int levels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out) {
+    rassert(tr);
     rassert(tr->level == levels);
+    rassert(0 < read_size);
 
     if (levels == 1) {
-        large_buf_leaf *node = reinterpret_cast<large_buf_leaf *>(tr->buf->get_data_major_write());
-        memcpy(node->buf + pos, data, fill_size);
+        large_buf_leaf *node;
+        if (use_read_mode) {
+            node = reinterpret_cast<large_buf_leaf *>(const_cast<void *>(tr->buf->get_data_read()));
+        } else {
+            node = reinterpret_cast<large_buf_leaf *>(tr->buf->get_data_major_write());
+        }
+        rassert(0 <= pos);
+        rassert(pos < num_leaf_bytes());
+        rassert(pos + read_size <= num_leaf_bytes());
+        bufs_out->add_buffer(read_size, node->buf + pos);
     } else {
-        fill_trees_at(tr->children, pos, data, fill_size, levels - 1);
+        trees_bufs_at(tr->children, levels - 1, pos, read_size, use_read_mode, bufs_out);
     }
+}
+
+void large_buf_t::read_at(int64_t pos, void *data_out, int64_t read_size) {
+    buffer_group_t group;
+    bufs_at(pos, read_size, true, &group);
+
+    char *data = reinterpret_cast<char *>(data_out);
+    int64_t off = 0;
+    for (int i = 0, n = group.num_buffers(); i < n; ++i) {
+        buffer_group_t::buffer_t buf = group.get_buffer(i);
+        memcpy(data + off, buf.data, buf.size);
+        off += buf.size;
+    }
+
+    rassert(off == read_size);
+}
+
+void large_buf_t::fill_at(int64_t pos, const void *data, int64_t fill_size) {
+    buffer_group_t group;
+    bufs_at(pos, fill_size, false, &group);
+
+    const byte *dat = reinterpret_cast<const byte *>(data);
+    int64_t off = 0;
+    for (int i = 0, n = group.num_buffers(); i < n; ++i) {
+        buffer_group_t::buffer_t buf = group.get_buffer(i);
+        memcpy(buf.data, dat + off, buf.size);
+        off += buf.size;
+    }
+
+    rassert(off == fill_size);
 }
 
 void large_buf_t::removes_level(block_id_t *ids, int copyees) {
@@ -567,49 +604,23 @@ void large_buf_t::removes_level(block_id_t *ids, int copyees) {
     delete tr;
 }
 
-void large_buf_t::unappend(int64_t extra_size, int *refsize_adjustment_out) {
-    rassert(state == loaded);
-    rassert(extra_size < root_ref->size);
-
-    int original_refsize = root_ref->refsize(block_size(), root_ref_limit);
-
-    int64_t back = root_ref->offset + root_ref->size - extra_size;
-
-    int64_t delbeg = ceil_aligned(back, num_leaf_bytes());
-    int64_t delend = ceil_aligned(back + extra_size, num_leaf_bytes());
-    if (delbeg < delend) {
-        delete_tree_structures(&roots, delbeg, delend - delbeg, num_sublevels(root_ref->offset + root_ref->size));
-    }
-
-    for (int i = num_sublevels(root_ref->offset + root_ref->size), e = num_sublevels(back); i > e; --i) {
-        removes_level(root_ref->block_ids, ceil_divide(back, max_offset(i - 1)));
-    }
-
-    root_ref->size -= extra_size;
-
-    *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
-    rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-}
-
-void large_buf_t::walk_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *)) {
+void large_buf_t::walk_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels, void (*bufdoer)(large_buf_t *, buf_t *, bool, bool), buftree_t *(*buftree_cleaner)(buftree_t *, bool, bool)) {
     rassert(0 <= offset);
     rassert(0 < size);
 
-    int64_t step = max_offset(sublevels);
-    for (int k = offset / step, ke = ceil_divide(offset + size, step); k < ke; ++k) {
-        int64_t i = int64_t(k) * step;
-        int64_t beg = std::max(offset, i);
-        int64_t end = std::min(offset + size, i + step);
+    for (lb_indexer ixer(offset, size, max_offset(sublevels)); !ixer.done(); ixer.step()) {
+        int64_t k = ixer.index();
+        lb_interval in = ixer.subinterval();
 
         buftree_t *child = k < int(trs->size()) ? (*trs)[k] : NULL;
-        buftree_t *replacement = walk_tree_structure(child, beg - i, end - beg, sublevels, bufdoer, buftree_cleaner);
-        if (k < (int64_t)trs->size()) {
+        buftree_t *replacement = walk_tree_structure(child, in.offset, in.size, sublevels, bufdoer, buftree_cleaner);
+        if (k < int(trs->size())) {
             (*trs)[k] = replacement;
         }
     }
 }
 
-buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *)) {
+buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *, bool, bool), buftree_t *(*buftree_cleaner)(buftree_t *, bool, bool)) {
     rassert(0 <= offset);
     rassert(0 < size);
     rassert(offset + size <= max_offset(levels));
@@ -617,48 +628,85 @@ buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64
     if (tr != NULL) {
         rassert(tr->level == levels, "tr->level=%d, levels=%d, offset=%d, size=%d\n", tr->level, levels, offset, size);
 
-        if (levels == 1) {
-            bufdoer(this, tr->buf);
-            return buftree_cleaner(tr);
-        } else {
+        if (levels != 1) {
             walk_tree_structures(&tr->children, offset, size, levels - 1, bufdoer, buftree_cleaner);
-
-            if (offset == 0 && size == max_offset(levels)) {
-                bufdoer(this, tr->buf);
-                return buftree_cleaner(tr);
-            } else {
-                return tr;
-            }
         }
+
+        int64_t maxoff = max_offset(levels);
+        bufdoer(this, tr->buf, offset == 0, offset + size == maxoff);
+        return buftree_cleaner(tr, offset == 0, offset + size == maxoff);
     } else {
         return tr;
     }
 }
 
-void mark_deleted_and_release(large_buf_t *lb, buf_t *b) {
+void mark_deleted_and_release(UNUSED large_buf_t *lb, buf_t *b, bool left_edge_touches, bool right_edge_touches) {
+    if (left_edge_touches && right_edge_touches) {
+        b->mark_deleted(false);
+        b->release();
+#ifndef NDEBUG
+        lb->num_bufs--;
+#endif
+    }
+}
+
+void mark_deleted_and_release_for_unprepend(UNUSED large_buf_t *lb, buf_t *b, UNUSED bool left_edge_touches, bool right_edge_touches) {
+    if (right_edge_touches) {
+        b->mark_deleted(false);
+        b->release();
+#ifndef NDEBUG
+        lb->num_bufs--;
+#endif
+    }
+}
+
+void mark_deleted_and_release_for_unappend(UNUSED large_buf_t *lb, buf_t *b, bool left_edge_touches, UNUSED bool right_edge_touches) {
+    if (left_edge_touches) {
+        b->mark_deleted(false);
+        b->release();
+#ifndef NDEBUG
+        lb->num_bufs--;
+#endif
+    }
+}
+
+void mark_deleted_only(UNUSED large_buf_t *lb, buf_t *b, UNUSED bool left_edge_touches, UNUSED bool right_edge_touches) {
     b->mark_deleted(false);
+}
+void release_only(UNUSED large_buf_t *lb, buf_t *b, UNUSED bool left_edge_touches, UNUSED bool right_edge_touches) {
     b->release();
 #ifndef NDEBUG
     lb->num_bufs--;
 #endif
 }
 
-void mark_deleted_only(large_buf_t *lb, buf_t *b) {
-    b->mark_deleted(false);
-}
-void release_only(large_buf_t *lb, buf_t *b) {
-    b->release();
-#ifndef NDEBUG
-    lb->num_bufs--;
-#endif
-}
-
-buftree_t *buftree_delete(buftree_t *tr) {
+buftree_t *buftree_delete(buftree_t *tr, UNUSED bool left_edge_touches, UNUSED bool right_edge_touches) {
     delete tr;
     return NULL;
 }
 
-buftree_t *buftree_nothing(buftree_t *tr) {
+
+buftree_t *buftree_delete_for_unprepend(buftree_t *tr, UNUSED bool left_edge_touches, bool right_edge_touches) {
+    if (right_edge_touches) {
+        delete tr;
+        return NULL;
+    } else {
+        return tr;
+    }
+}
+
+
+buftree_t *buftree_delete_for_unappend(buftree_t *tr, bool left_edge_touches, UNUSED bool right_edge_touches) {
+    if (left_edge_touches) {
+        delete tr;
+        return NULL;
+    } else {
+        return tr;
+    }
+}
+
+
+buftree_t *buftree_nothing(buftree_t *tr, UNUSED bool left_edge_touches, UNUSED bool right_edge_touches) {
     return tr;
 }
 
@@ -690,19 +738,47 @@ int large_buf_t::try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_i
     return ret;
 }
 
+void large_buf_t::unappend(int64_t extra_size, int *refsize_adjustment_out) {
+    rassert(state == loaded);
+    rassert(extra_size < root_ref->size);
+
+    int original_refsize = root_ref->refsize(block_size(), root_ref_limit);
+
+    int64_t back = root_ref->offset + root_ref->size - extra_size;
+
+    int64_t delbeg = ceil_aligned(back, num_leaf_bytes());
+    int64_t delend = ceil_aligned(back + extra_size, num_leaf_bytes());
+    if (delbeg < delend) {
+        walk_tree_structures(&roots, delbeg, delend - delbeg, num_sublevels(root_ref->offset + root_ref->size), mark_deleted_and_release_for_unappend, buftree_delete_for_unappend);
+    }
+
+    for (int i = num_sublevels(root_ref->offset + root_ref->size), e = num_sublevels(back); i > e; --i) {
+        removes_level(root_ref->block_ids, ceil_divide(back, max_offset(i - 1)));
+    }
+
+    root_ref->size -= extra_size;
+
+    *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
+}
+
 void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
     rassert(state == loaded);
     rassert(extra_size < root_ref->size);
+
+    debugf("large_buf_t::unprepend beginning.  num_bufs = %ld\n", num_bufs);
 
     int original_refsize = root_ref->refsize(block_size(), root_ref_limit);
 
     int64_t sublevels = num_sublevels(root_ref->offset + root_ref->size);
     rassert(roots[0]->level == sublevels);
 
-    int64_t delbeg = floor_aligned(root_ref->offset, num_leaf_bytes());
-    int64_t delend = floor_aligned(root_ref->offset + extra_size, num_leaf_bytes());
-    if (delbeg < delend) {
-        delete_tree_structures(&roots, delbeg, delend - delbeg, sublevels);
+    {
+        int64_t delbeg = floor_aligned(root_ref->offset, num_leaf_bytes());
+        int64_t delend = floor_aligned(root_ref->offset + extra_size, num_leaf_bytes());
+        debugf("delbeg = %ld, delend = %ld, off+extra_size = %ld\n", delbeg, delend, root_ref->offset + extra_size);
+        if (delbeg < delend) {
+            walk_tree_structures(&roots, delbeg, delend - delbeg, sublevels, mark_deleted_and_release_for_unprepend, buftree_delete_for_unprepend);
+        }
     }
 
     root_ref->offset += extra_size;
@@ -714,8 +790,11 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
     root_ref->offset -= stepsize * try_shifting(&roots, root_ref->block_ids, root_ref->offset, root_ref->size, stepsize);
 
  tryagain:
+    debugf("large_buf_t::unprepend tryagain, num_bufs = %ld\n", num_bufs);
     if (ceil_divide(root_ref->offset + root_ref->size, stepsize) == 1) {
-        rassert(roots.size() == 1 && roots[0] != NULL);
+        debugf("roots.size() is %lu\n", roots.size());
+        rassert(roots.size() == 1);
+        rassert(roots[0] != NULL);
 
         // Now we've gotta shift the block _before_ considering whether to remove a level.
 
@@ -738,13 +817,18 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
             int num_copied = ceil_divide(root_ref->offset + root_ref->size, substepsize);
             if (num_copied <= int((root_ref_limit.value - sizeof(large_buf_ref)) / sizeof(block_id_t))) {
                 removes_level(root_ref->block_ids, num_copied);
+                sublevels --;
+                stepsize = max_offset(sublevels);
                 goto tryagain;
             }
         }
     }
+    debugf("large_buf_t::unprepend out of tryagain.\n");
 
     *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
     rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
+
+    debugf("large_buf_t::unprepend finished.  num_bufs = %ld\n", num_bufs);
 }
 
 
@@ -753,134 +837,31 @@ void large_buf_t::mark_deleted() {
     rassert(state == loaded);
 
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
-    only_mark_deleted_tree_structures(&roots, 0, max_offset(sublevels) * compute_large_buf_ref_num_inlined(block_size(), root_ref->offset + root_ref->size, root_ref_limit), sublevels);
+    only_mark_deleted_tree_structures(&roots, 0, max_offset(sublevels) * num_ref_inlined(), sublevels);
 
-#ifndef NDEBUG
-    state = deleted;
-#endif
+    DEBUG_ONLY(state = deleted);
 }
 
-void large_buf_t::release() {
+void large_buf_t::lv_release() {
     rassert(state == loaded || state == deleted);
 
-    txn->ensure_thread();
+    debugf("lv_release starting, num_bufs = %ld\n", num_bufs);
+
+    (*txor)->ensure_thread();
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
-    release_tree_structures(&roots, 0, max_offset(sublevels) * compute_large_buf_ref_num_inlined(block_size(), root_ref->offset + root_ref->size, root_ref_limit), sublevels);
+    release_tree_structures(&roots, 0, max_offset(sublevels) * num_ref_inlined(), sublevels);
+
+    debugf("lv_release finished, num_bufs = %ld\n", num_bufs);
 
 #ifndef NDEBUG
     for (int i = 0, n = roots.size(); i < n; ++i) {
         rassert(roots[i] == NULL, "roots[%d] == NULL", i);
     }
 #endif
-
-    root_ref = NULL;
-
-#ifndef NDEBUG
-    state = released;
-#endif
 }
-
-int64_t large_buf_t::get_num_segments() {
-    rassert(state == loaded || state == loading || state == deleted);
-    rassert(!roots[0] || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-
-    int64_t nlb = num_leaf_bytes();
-    return std::max(1L, ceil_divide(root_ref->offset + root_ref->size, nlb) - root_ref->offset / nlb);
-}
-
-uint16_t large_buf_t::segment_size(int64_t ix) {
-    rassert(state == loaded || state == loading);
-
-    // We pretend that the segments start at zero.
-
-    int64_t nlb = num_leaf_bytes();
-
-    int64_t min_seg_offset = floor_aligned(root_ref->offset, nlb);
-    int64_t end_seg_offset = ceil_aligned(root_ref->offset + root_ref->size, nlb);
-
-    int64_t num_segs = (end_seg_offset - min_seg_offset) / nlb;
-
-    if (num_segs == 1) {
-        rassert(ix == 0);
-        return root_ref->size;
-    }
-    if (ix == 0) {
-        return nlb - (root_ref->offset - min_seg_offset);
-    } else if (ix == num_segs - 1) {
-        return nlb - (end_seg_offset - (root_ref->offset + root_ref->size));
-    } else {
-        return nlb;
-    }
-}
-
-buf_t *large_buf_t::get_segment_buf(int64_t ix, uint16_t *seg_size, uint16_t *seg_offset) {
-    int64_t nlb = num_leaf_bytes();
-    int64_t pos = floor_aligned(root_ref->offset, nlb) + ix * nlb;
-
-    int levels = num_levels(root_ref->offset + root_ref->size);
-    buftree_t *tr = compute_large_buf_ref_num_inlined(block_size(), root_ref->offset + root_ref->size, root_ref_limit) == 1 ? roots[0] : NULL;
-    while (levels > 1) {
-        int64_t step = max_offset(levels - 1);
-        tr = (tr ? tr->children : roots)[pos / step];
-        pos = pos % step;
-        --levels;
-        rassert(tr->level == levels);
-    }
-
-    *seg_size = segment_size(ix);
-    *seg_offset = (ix == 0 ? root_ref->offset % nlb : 0);
-    rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-    return tr->buf;
-}
-
-const byte *large_buf_t::get_segment(int64_t ix, uint16_t *seg_size) {
-    rassert(state == loaded);
-    rassert(ix >= 0 && ix < get_num_segments());
-
-    // Again, we pretend that the segments start at zero
-
-    uint16_t seg_offset;
-    buf_t *buf = get_segment_buf(ix, seg_size, &seg_offset);
-
-    const large_buf_leaf *leaf = reinterpret_cast<const large_buf_leaf *>(buf->get_data_read());
-    rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-    return leaf->buf + seg_offset;
-}
-
-byte *large_buf_t::get_segment_write(int64_t ix, uint16_t *seg_size) {
-    rassert(state == loaded);
-    rassert(ix >= 0 && ix < get_num_segments(), "ix=%ld, get_num_segments()=%ld", ix, get_num_segments());
-
-    uint16_t seg_offset;
-    buf_t *buf = get_segment_buf(ix, seg_size, &seg_offset);
-
-    large_buf_leaf *leaf = reinterpret_cast<large_buf_leaf *>(buf->get_data_major_write());
-    rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-    return leaf->buf + seg_offset;
-}
-
-int64_t large_buf_t::pos_to_ix(int64_t pos) {
-    int64_t nlb = num_leaf_bytes();
-    int64_t base = floor_aligned(root_ref->offset, nlb);
-    int64_t ix = (pos + (root_ref->offset - base)) / nlb;
-    rassert(ix <= get_num_segments());
-    rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-    return ix;
-}
-
-uint16_t large_buf_t::pos_to_seg_pos(int64_t pos) {
-    int64_t nlb = num_leaf_bytes();
-    int64_t first = ceil_aligned(root_ref->offset, nlb) - root_ref->offset;
-    uint16_t seg_pos = (pos < first ? pos : (pos + root_ref->offset) % nlb);
-    rassert(seg_pos < nlb);
-    rassert(roots[0] == NULL || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-    return seg_pos;
-}
-
-
 
 large_buf_t::~large_buf_t() {
-    rassert(state == released);
+    lv_release();
     rassert(num_bufs == 0, "num_bufs == 0 failed.. num_bufs is %d", num_bufs);
 }
 

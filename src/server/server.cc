@@ -174,7 +174,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         /* Record information about disk drives to log file */
         log_disk_info(cmd_config->store_dynamic_config.serializer_private);
 
-        replication::master_t master;
+        replication::master_t master(thread_pool, cmd_config->replication_master_listen_port);
 
         /* Create store if necessary */
         if (cmd_config->create_store) {
@@ -189,8 +189,11 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             /* Start key-value store */
             logINF("Loading database...\n");
-            //store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config, NULL /* &master - commented out because master eats the data_provider */);
+
+            snag_ptr_t<replication::master_t> master_ptr(master);
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config, master_ptr);
+            master_ptr.reset();
+
             server.get_store = &store;   // Gets always go straight to the key-value store
 
             /* Are we a replication slave? */
@@ -233,7 +236,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                 interrupt_cond.wait();
 
-                logINF("Shutting down... this may take time if there is a lot of unsaved data.\n");
+                logINF("Waiting for running operations to complete...\n");
             } catch (conn_acceptor_t::address_in_use_exc_t) {
                 logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
             }
@@ -242,6 +245,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 delete slave_store;
 
             // store destructor called here
+            logINF("Waiting for changes to flush to disk...\n");
         } else {
             logINF("Shutting down...\n");
         }
@@ -268,7 +272,7 @@ struct shutdown_control_t : public control_t
     shutdown_control_t(std::string key)
         : control_t(key, "Shut down the server.")
     {}
-    std::string call(int argc, char **argv) {
+    std::string call(UNUSED int argc, UNUSED char **argv) {
         server_shutdown();
         // TODO: Only print this if there actually *is* a lot of unsaved data.
         return std::string("Shutting down... this may take time if there is a lot of unsaved data.\r\n");

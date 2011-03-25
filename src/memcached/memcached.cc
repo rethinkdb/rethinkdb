@@ -152,6 +152,11 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     }
 };
 
+perfmon_duration_sampler_t
+    pm_cmd_set("cmd_set", secs_to_ticks(1.0)),
+    pm_cmd_get("cmd_get", secs_to_ticks(1.0)),
+    pm_cmd_rget("cmd_rget", secs_to_ticks(1.0));
+
 /* do_get() is used for "get" and "gets" commands. */
 
 struct get_t {
@@ -187,6 +192,8 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
         rh->error();
         return;
     }
+
+    block_pm_duration get_timer(&pm_cmd_get);
 
     /* Now that we're sure they're all valid, send off the requests */
     pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1));
@@ -274,6 +281,8 @@ void do_rget(txt_memcached_handler_t *rh, int argc, char **argv) {
         rh->client_error_bad_command_line_format();
         return;
     }
+
+    block_pm_duration rget_timer(&pm_cmd_rget);
 
     rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key);
 
@@ -371,9 +380,9 @@ void run_storage_command(txt_memcached_handler_t *rh,
     memcached_data_provider_t unbuffered_data(rh, value_size, value_read_promise);
     maybe_buffered_data_provider_t data(&unbuffered_data, MAX_BUFFERED_SET_SIZE);
 
-    rh->begin_write_command();
+    block_pm_duration set_timer(&pm_cmd_set);
 
-    repli_timestamp timestamp = current_time();
+    rh->begin_write_command();
 
     if (sc != append_command && sc != prepend_command) {
         add_policy_t add_policy;
@@ -563,6 +572,9 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
 
 /* "incr" and "decr" commands */
 void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount, bool incr, bool noreply) {
+
+    block_pm_duration set_timer(&pm_cmd_set);
+
     rh->begin_write_command();
 
     incr_decr_result_t res = rh->set_store->incr_decr(
@@ -635,6 +647,9 @@ void do_incr_decr(txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
 /* "delete" commands */
 
 void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
+
+    block_pm_duration set_timer(&pm_cmd_set);
+
     rh->begin_write_command();
 
     delete_result_t res = rh->set_store->delete_key(key);

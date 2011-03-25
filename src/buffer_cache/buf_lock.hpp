@@ -11,14 +11,13 @@
 // release() as soon as it's feasible to do so.  The destructor will
 // release the buf_t, so don't worry!
 
-class buf_lock_t
-{
+class buf_lock_t {
 public:
     buf_lock_t() : buf_(NULL) { }
 
     // TODO: get rid of the transaction_t version.
-    buf_lock_t(transaction_t *tx, block_id_t block_id, access_t mode);
-    buf_lock_t(transactor_t& txor, block_id_t block_id, access_t mode);
+    buf_lock_t(transaction_t *tx, block_id_t block_id, access_t mode, cond_t *acquisition_cond = NULL);
+    buf_lock_t(transactor_t& txor, block_id_t block_id, access_t mode, cond_t *acquisition_cond = NULL);
     ~buf_lock_t();
 
     void allocate(transactor_t& txor);
@@ -30,9 +29,18 @@ public:
     // Releases the buf, if it was acquired.
     void release_if_acquired();
 
+    // Gives up ownership of the buf_t.
+    buf_t *give_up_ownership() {
+        buf_t *tmp = buf_;
+        buf_ = NULL;
+        return tmp;
+    }
+
     // Gets the buf_t that has been locked.  Don't call release() on it!
     // TODO: Remove buf_t::release, or make it private.
     buf_t *buf() { return buf_; }
+
+    buf_t *operator->() { return buf_; }
 
     // Swaps this buf_lock_t with another, thus obeying RAII since one
     // buf_lock_t owns a buf_t at a time.

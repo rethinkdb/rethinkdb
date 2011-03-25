@@ -76,14 +76,15 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
     pmap(n_files, boost::bind(&destroy_serializer, serializers, _1));
 }
 
+// TODO: Why are we _passing_ static_config if we aren't using it?
 void create_existing_btree(
         translator_serializer_t **pseudoserializers,
         btree_slice_t **btrees,
         btree_slice_dispatching_to_master_t **dispatchers,
         timestamping_set_store_interface_t **timestampers,
         mirrored_cache_config_t *dynamic_config,
-        mirrored_cache_static_config_t *static_config,
-        replication::master_t *master,
+        UNUSED mirrored_cache_static_config_t *static_config,
+        snag_ptr_t<replication::master_t> master,
         int i) {
 
     // TODO try to align slices with serializers so that when possible, a slice is on the
@@ -96,7 +97,7 @@ void create_existing_btree(
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                                                 replication::master_t *master)
+                                                 snag_ptr_t<replication::master_t> master)
     : hash_control(this) {
 
     /* Start serializers */
@@ -260,81 +261,32 @@ get_result_t btree_key_value_store_t::get(const store_key_t &key) {
 
 typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
 
-template<class T>
-struct pm_iterator_wrapper_t : one_way_iterator_t<T> {
-    pm_iterator_wrapper_t(one_way_iterator_t<T> * wrapped, perfmon_duration_sampler_t *pm) :
-        wrapped(wrapped), block_pm(pm) { }
-    ~pm_iterator_wrapper_t() {
-        delete wrapped;
-    }
-    typename boost::optional<T> next() {
-        return wrapped->next();
-    }
-    void prefetch() {
-        wrapped->prefetch();
-    }
-    one_way_iterator_t<T> *get_wrapped() {
-        return wrapped;
-    }
-private:
-    one_way_iterator_t<T> *wrapped;
-    block_pm_duration block_pm;
-};
-
 rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
     thread_saver_t thread_saver;
 
-    /* TODO: Wrapped iterators are weird and we shouldn't have them. Instead we should do all of the
-    perfmonning for different operations up at the memcached level. */
-    unique_ptr_t<pm_iterator_wrapper_t<key_with_data_provider_t> > wrapped_iterator(new pm_iterator_wrapper_t<key_with_data_provider_t>(new merged_results_iterator_t(), &pm_cmd_rget));
-
-    merged_results_iterator_t *merge_iterator = ptr_cast<merged_results_iterator_t>(wrapped_iterator->get_wrapped());
+    unique_ptr_t<merged_results_iterator_t> merge_iterator(new merged_results_iterator_t());
     for (int s = 0; s < btree_static_config.n_slices; s++) {
         merge_iterator->add_mergee(btrees[s]->rget(left_mode, left_key, right_mode, right_key).release());
     }
-    return wrapped_iterator;
+    return merge_iterator;
 }
 
 /* set_store_interface_t interface */
 
-get_result_t btree_key_value_store_t::get_cas(const store_key_t &key) {
-    return slice_for_key_set_interface(key)->get_cas(key);
-}
-
-set_result_t btree_key_value_store_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    return slice_for_key_set_interface(key)->sarc(key, data, flags, exptime, add_policy, replace_policy, old_cas);
-}
-
-incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount) {
-    return slice_for_key_set_interface(key)->incr_decr(kind, key, amount);
-}
-
-append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data) {
-    return slice_for_key_set_interface(key)->append_prepend(kind, key, data);
-}
-
-delete_result_t btree_key_value_store_t::delete_key(const store_key_t &key) {
-    return slice_for_key_set_interface(key)->delete_key(key);
+mutation_result_t btree_key_value_store_t::change(const mutation_t &m) {
+    return slice_for_key_set_interface(m.get_key())->change(m);
 }
 
 /* set_store_t interface */
 
-get_result_t btree_key_value_store_t::get_cas(const store_key_t &key, castime_t castime) {
-    return slice_for_key_set(key)->get_cas(key, castime);
+mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t ct) {
+    return slice_for_key_set(m.get_key())->change(m, ct);
 }
 
-set_result_t btree_key_value_store_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    return slice_for_key_set(key)->sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
+void btree_key_value_store_t::do_time_barrier_on_slice(repli_timestamp timestamp, int i) {
+    btrees[i]->time_barrier(timestamp);
 }
 
-incr_decr_result_t btree_key_value_store_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
-    return slice_for_key_set(key)->incr_decr(kind, key, amount, castime);
-}
-
-append_prepend_result_t btree_key_value_store_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
-    return slice_for_key_set(key)->append_prepend(kind, key, data, castime);
-}
-
-delete_result_t btree_key_value_store_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
-    return slice_for_key_set(key)->delete_key(key, timestamp);
+void btree_key_value_store_t::time_barrier(repli_timestamp lower_bound_on_future_timestamps) {
+    pmap(btree_static_config.n_slices, boost::bind(&btree_key_value_store_t::do_time_barrier_on_slice, this, lower_bound_on_future_timestamps, _1));
 }
