@@ -63,6 +63,8 @@ class mc_inner_buf_t : public home_thread_mixin_t {
 
     void *data;
     version_id_t version_id;
+    /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
+    boost::shared_ptr<block_token_t> data_token;
 
     rwi_lock_t lock;
     patch_counter_t next_patch_counter;
@@ -107,6 +109,11 @@ class mc_inner_buf_t : public home_thread_mixin_t {
 
     ser_block_sequence_id_t block_sequence_id;
 
+    // TODO! Make the snapshot info an abstract class with different implementations
+    // TODO! One for in-memory bufs
+    // TODO! One for serializer token snapshots
+    // TODO! One for serializer token writers (which are in memory but later turn into a serializer token snapshot)
+    // TODO! They should have a copy_buf(void*) virtual method
     struct buf_snapshot_info_t {
         void *data;
         version_id_t snapshotted_version;
