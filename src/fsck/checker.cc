@@ -24,8 +24,8 @@ struct block_knowledge {
     // The offset found in the LBA.
     flagged_off64_t offset;
 
-    // The serializer transaction id we saw when we've read the block.
-    // Or, NULL_SER_TRANSACTION_ID, if we have not read the block.
+    // The serializer block sequence id we saw when we've read the block.
+    // Or, NULL_SER_BLOCK_SEQUENCE_ID, if we have not read the block.
     ser_block_sequence_id_t block_sequence_id;
 
     static const block_knowledge unused;
@@ -197,10 +197,10 @@ private:
 // error-checking dirty work.
 class btree_block : public raw_block {
 public:
-    enum { no_block = raw_block_err_count, already_accessed, transaction_id_invalid, transaction_id_too_large, patch_transaction_id_mismatch };
+    enum { no_block = raw_block_err_count, already_accessed, block_sequence_id_invalid, block_sequence_id_too_large, patch_block_sequence_id_mismatch };
 
     static const char *error_name(error code) {
-        static const char *codes[] = {"already accessed", "bad transaction id", "transaction id too large", "patch applies to future revision of the block"};
+        static const char *codes[] = {"already accessed", "bad block sequence id", "block sequence id too large", "patch applies to future revision of the block"};
         return code >= raw_block_err_count ? codes[code - raw_block_err_count] : raw_block::error_name(code);
     }
 
@@ -239,17 +239,16 @@ public:
         }
 
         
-        // TODO! Broken...
-        /*
-        ser_transaction_id_t tx_id = realbuf->transaction_id;
-        if (tx_id < FIRST_SER_TRANSACTION_ID) {
-            err = transaction_id_invalid;
-            return false;
-        } else if (tx_id > knog->metablock->transaction_id) {
-            err = transaction_id_too_large;
-            return false;
-        }*/
+        
         ser_block_sequence_id_t bseq_id = realbuf->block_sequence_id;
+        if (bseq_id <= NULL_SER_BLOCK_SEQUENCE_ID) {
+            err = block_sequence_id_invalid;
+            return false;
+        } else if (bseq_id > knog->metablock->block_sequence_id) {
+            err = block_sequence_id_too_large;
+            return false;
+        }
+        
 
         if (patches_list) {
             // Replay patches
@@ -260,7 +259,7 @@ public:
                         first_matching_id = (*patch)->get_block_sequence_id();
                     }
                     else if (first_matching_id != (*patch)->get_block_sequence_id()) {
-                        err = patch_transaction_id_mismatch; // TODO! It's a block sequence id mismatch!
+                        err = patch_block_sequence_id_mismatch;
                         return false;
                     }
                     (*patch)->apply_to_buf((char*)buf);
