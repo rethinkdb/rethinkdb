@@ -415,16 +415,20 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
 
         if (!lbuf->needs_flush && lbuf->dirty && inner_buf->next_patch_counter > 1) {
             const ser_transaction_id_t transaction_id = inner_buf->transaction_id;
-            const std::vector<buf_patch_t*>* patches = parent->cache->patch_memory_storage.get_patches(inner_buf->block_id);
-            if (patches != NULL) {
+            if (parent->cache->patch_memory_storage.has_patches_for_block(inner_buf->block_id)) {
 #ifndef NDEBUG
                 patch_counter_t previous_patch_counter = 0;
 #endif
-                for (size_t patch_index = patches->size(); patch_index > 0; --patch_index) {
+                std::pair<patch_memory_storage_t::const_patch_iterator, patch_memory_storage_t::const_patch_iterator>
+                    range = parent->cache->patch_memory_storage.patches_for_block(inner_buf->block_id);
+
+                while (range.second != range.first) {
+                    --range.second;
+
                     rassert(transaction_id > NULL_SER_TRANSACTION_ID);
-                    rassert(previous_patch_counter == 0 || (*patches)[patch_index-1]->get_patch_counter() == previous_patch_counter - 1);
-                    if (lbuf->last_patch_materialized < (*patches)[patch_index-1]->get_patch_counter()) {
-                        if (!parent->cache->patch_disk_storage->store_patch(*(*patches)[patch_index-1], transaction_id)) {
+                    rassert(previous_patch_counter == 0 || (*range.second)->get_patch_counter() == previous_patch_counter - 1);
+                    if (lbuf->last_patch_materialized < (*range.second)->get_patch_counter()) {
+                        if (!parent->cache->patch_disk_storage->store_patch(*(*range.second), transaction_id)) {
                             patch_storage_failure = true;
                             //fprintf(stderr, "Patch storage failure\n");
                             lbuf->needs_flush = true;
@@ -439,11 +443,13 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                         break;
                     }
 #ifndef NDEBUG
-                    previous_patch_counter = (*patches)[patch_index-1]->get_patch_counter();
+                    previous_patch_counter = (*range.second)->get_patch_counter();
 #endif
                 }
-                if (!patch_storage_failure)
-                    lbuf->last_patch_materialized = (*patches)[patches->size()-1]->get_patch_counter();
+
+                if (!patch_storage_failure) {
+                    lbuf->last_patch_materialized = parent->cache->patch_memory_storage.last_patch_materialized_or_zero(inner_buf->block_id);
+                }
             }
         }
 

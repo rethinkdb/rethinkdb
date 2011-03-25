@@ -307,11 +307,10 @@ void patch_disk_storage_t::compress_block(const block_id_t log_block_id) {
         current_offset += patch->get_serialized_size();
 
         // We want to preserve this patch iff it is >= the oldest patch that we have in the in-core storage
-        const std::vector<buf_patch_t*>* patches = cache.patch_memory_storage.get_patches(patch->get_block_id());
-        rassert(!patches || patches->size() > 0);
-        if (patches && !(*patch < *patches->front()))
+        if (cache.patch_memory_storage.has_patches_for_block(patch->get_block_id())
+            && !(*patch < *cache.patch_memory_storage.first_patch(patch->get_block_id()))) {
             live_patches.push_back(patch);
-        else {
+        } else {
             delete patch;
             log_block_changed = true;
         }
@@ -369,13 +368,13 @@ void patch_disk_storage_t::clear_block(const block_id_t log_block_id, coro_t* no
         // For each patch, acquire the affected block and call ensure_flush()
         // We have to do this only if there is any potentially applicable patch in the in-core storage...
         // (Note: we rely on the fact that deleted blocks never show up in the in-core diff storage)
-        if (cache.patch_memory_storage.get_patches(patch->get_block_id())) {
+        if (cache.patch_memory_storage.has_patches_for_block(patch->get_block_id())) {
             // We never have to lock the buffer, as we neither really read nor write any data
             // We just have to make sure that the buffer cache loads the block into memory
             // and then make writeback write it back in the next flush
             mc_buf_t *data_buf = acquire_block_no_locking(patch->get_block_id());
             // Check in-core storage again, now that the block has been acquired (old patches might have been evicted from it by doing so)
-            if (cache.patch_memory_storage.get_patches(patch->get_block_id())) {
+            if (cache.patch_memory_storage.has_patches_for_block(patch->get_block_id())) {
                 data_buf->ensure_flush();
             }
 
@@ -383,7 +382,7 @@ void patch_disk_storage_t::clear_block(const block_id_t log_block_id, coro_t* no
         }
 
         delete patch;
-    } // 
+    }
 
     // Wipe the log block
     init_log_block(log_block_id);

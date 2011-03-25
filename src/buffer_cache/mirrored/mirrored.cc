@@ -178,28 +178,21 @@ mc_inner_buf_t::~mc_inner_buf_t() {
 }
 
 void mc_inner_buf_t::replay_patches() {
-    const std::vector<buf_patch_t*>* patches = cache->patch_memory_storage.get_patches(block_id);
     // Remove obsolete patches from diff storage
-    if (patches) {
+    if (cache->patch_memory_storage.has_patches_for_block(block_id)) {
+        // TODO: Perhaps there is a problem if the question of whether
+        // we can call filter_applied_patches depends on whether the
+        // block id is already in the patch_memory_storage.
         cache->patch_memory_storage.filter_applied_patches(block_id, transaction_id);
-        patches = cache->patch_memory_storage.get_patches(block_id);
     }
     // All patches that currently exist must have been materialized out of core...
-    if (patches) {
-        writeback_buf.last_patch_materialized = patches->back()->get_patch_counter();
-    } else {
-        writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
-    }
+    writeback_buf.last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id);
 
     // Apply outstanding patches
-    cache->patch_memory_storage.apply_patches(block_id, (char*)data);
+    cache->patch_memory_storage.apply_patches(block_id, reinterpret_cast<char *>(data));
 
     // Set next_patch_counter such that the next patches get values consistent with the existing patches
-    if (patches) {
-        next_patch_counter = patches->back()->get_patch_counter() + 1;
-    } else {
-        next_patch_counter = 1;
-    }
+    next_patch_counter = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id) + 1;
 }
 
 void mc_inner_buf_t::snapshot() {
