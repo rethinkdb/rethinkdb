@@ -102,8 +102,6 @@ large_buf_t::large_buf_t(const boost::shared_ptr<transactor_t>& _txor, large_buf
     , state(not_loaded), num_bufs(0)
 #endif
 {
-    debugf("Constructed large_buf_t, num_bufs = %ld\n", num_bufs);
-
     rassert(txor && txor->transaction());
     rassert(root_ref);
 }
@@ -354,7 +352,6 @@ void large_buf_t::on_available(buftree_t *tr, int index) {
     num_to_acquire --;
     if (num_to_acquire == 0) {
         DEBUG_ONLY(state = loaded);
-        debugf("Calling on_large_buf_available.. num_bufs = %ld\n", num_bufs);
         callback->on_large_buf_available(this);
     }
 }
@@ -433,8 +430,6 @@ void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {
 void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
     rassert(state == loaded);
 
-    debugf("large_buf_t::prepend, num_bufs originally = %ld\n", num_bufs);
-
     int original_refsize = root_ref->refsize(block_size(), root_ref_limit);
 
     const int64_t back = root_ref->offset + root_ref->size;
@@ -452,7 +447,6 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         int sublevels = num_sublevels(back);
     tryagain:
         int64_t shiftsize = max_offset(sublevels);
-        debugf("large_buf_t::prepend tryagain back=%ld sublevels=%d shiftsize=%ld\n", back, sublevels, shiftsize);
 
         // Find minimal k s.t. newoffset + k * shiftsize >= 0.
         // I.e. find min k s.t. newoffset >= -k * shiftsize.
@@ -473,7 +467,6 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
             goto tryagain;
         }
 
-        debugf("large_buf_t::prepend done tryagain loop\n");
         int64_t roots_back_k = roots.size();
         rassert(roots_back_k <= back_k);
         roots.resize(roots_back_k + k);
@@ -493,19 +486,13 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         root_ref->offset = newoffset + k * shiftsize;
         root_ref->size += extra_size;
 
-        debugf("large_buf_t::prepend about to call allocates_part_of_tree\n");
-
         allocates_part_of_tree(&roots, root_ref->block_ids, root_ref->offset, extra_size, num_sublevels(root_ref->offset + root_ref->size));
-
-        debugf("large_buf_t::prepend about called allocates_part_of_tree\n");
     }
 
     *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
     rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size),
            "roots[0]->level=%d num=%d offset=%ld size=%ld extra_size=%ld\n",
            roots[0]->level, num_sublevels(root_ref->offset + root_ref->size), root_ref->offset, root_ref->size, extra_size);
-
-    debugf("large_buf_t::prepend complete, num_bufs = %ld\n", num_bufs);
 }
 
 
@@ -765,8 +752,6 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
     rassert(state == loaded);
     rassert(extra_size < root_ref->size);
 
-    debugf("large_buf_t::unprepend beginning.  num_bufs = %ld\n", num_bufs);
-
     int original_refsize = root_ref->refsize(block_size(), root_ref_limit);
 
     int64_t sublevels = num_sublevels(root_ref->offset + root_ref->size);
@@ -775,7 +760,6 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
     {
         int64_t delbeg = floor_aligned(root_ref->offset, num_leaf_bytes());
         int64_t delend = floor_aligned(root_ref->offset + extra_size, num_leaf_bytes());
-        debugf("delbeg = %ld, delend = %ld, off+extra_size = %ld\n", delbeg, delend, root_ref->offset + extra_size);
         if (delbeg < delend) {
             walk_tree_structures(&roots, delbeg, delend - delbeg, sublevels, mark_deleted_and_release_for_unprepend, buftree_delete_for_unprepend);
         }
@@ -790,9 +774,7 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
     root_ref->offset -= stepsize * try_shifting(&roots, root_ref->block_ids, root_ref->offset, root_ref->size, stepsize);
 
  tryagain:
-    debugf("large_buf_t::unprepend tryagain, num_bufs = %ld\n", num_bufs);
     if (ceil_divide(root_ref->offset + root_ref->size, stepsize) == 1) {
-        debugf("roots.size() is %lu\n", roots.size());
         rassert(roots.size() == 1);
         rassert(roots[0] != NULL);
 
@@ -823,12 +805,9 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
             }
         }
     }
-    debugf("large_buf_t::unprepend out of tryagain.\n");
 
     *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
     rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-
-    debugf("large_buf_t::unprepend finished.  num_bufs = %ld\n", num_bufs);
 }
 
 
@@ -845,13 +824,9 @@ void large_buf_t::mark_deleted() {
 void large_buf_t::lv_release() {
     rassert(state == loaded || state == deleted);
 
-    debugf("lv_release starting, num_bufs = %ld\n", num_bufs);
-
     (*txor)->ensure_thread();
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
     release_tree_structures(&roots, 0, max_offset(sublevels) * num_ref_inlined(), sublevels);
-
-    debugf("lv_release finished, num_bufs = %ld\n", num_bufs);
 
 #ifndef NDEBUG
     for (int i = 0, n = roots.size(); i < n; ++i) {

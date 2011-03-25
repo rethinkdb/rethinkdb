@@ -57,11 +57,8 @@ template <> size_t objsize<net_backfill_delete_t>(const net_backfill_delete_t *b
 template <class T>
 void check_pass(message_callback_t *receiver, weak_buf_t buffer, size_t realoffset, size_t realsize) {
     if (sizeof(T) <= realsize && objsize<T>(buffer.get<T>(realoffset)) == realsize) {
-        int current_thread = get_thread_id();
         typename stream_type<T>::type buf(buffer, realoffset, realsize);
-        rassert(current_thread == get_thread_id(), "A");
         receiver->send(buf);
-        rassert(current_thread == get_thread_id(), "B");
     } else {
         debugf("realsize: %zu sizeof(T): %zu objsize: %zu\n", realsize, sizeof(T), objsize<T>(buffer.get<T>(realoffset)));
         throw protocol_exc_t("message wrong length for message code");
@@ -90,8 +87,6 @@ void check_first_size(message_callback_t *receiver, weak_buf_t& buffer, size_t r
 size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t buffer, size_t offset, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
-    int current_thread = get_thread_id();
-
     if (num_read < sizeof(net_multipart_header_t)) {
         return 0;
     }
@@ -111,7 +106,6 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         size_t realbegin = offset + sizeof(net_header_t);
         size_t realsize = msgsize - sizeof(net_header_t);
 
-        int very_current_thread = get_thread_id();
         switch (hdr->msgcode) {
         case BACKFILL: check_pass<net_backfill_t>(receiver, buffer, realbegin, realsize); break;
         case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, buffer, realbegin, realsize); break;
@@ -131,7 +125,6 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver, buffer, realbegin, realsize); break;
         default: throw protocol_exc_t("invalid message code");
         }
-        rassert(very_current_thread == get_thread_id());
     } else {
         const net_multipart_header_t *multipart_hdr = buffer.get<net_multipart_header_t>(offset);
         uint32_t ident = multipart_hdr->ident;
@@ -173,8 +166,6 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         }
     }
 
-    rassert(current_thread == get_thread_id());
-
     return msgsize;
 }
 
@@ -199,10 +190,7 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
 
     marker.p = &is_live;
 
-    int current_thread = get_thread_id();
-
     while (is_live) {
-        rassert(current_thread == get_thread_id());
         // Try handling the message.
         size_t handled = handle_message(receiver, weak_buf_t(shared_buf), offset, num_read, streams);
         if (handled > 0) {

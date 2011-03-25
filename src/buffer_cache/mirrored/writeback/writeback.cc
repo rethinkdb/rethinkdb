@@ -505,8 +505,6 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
 
         block_id_t id = parent->deleted_blocks[i].block_id;
         parent->cache->free_list.release_block_id(id);
-        debugf("Releasing block id %u\n", id);
-        print_backtrace();
     }
     parent->deleted_blocks.clear();
 

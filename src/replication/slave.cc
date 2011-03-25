@@ -235,14 +235,10 @@ void slave_t::send(buffed_data_t<net_backfill_delete_t>& msg) {
 }
 
 void slave_t::send(buffed_data_t<net_nop_t>& message) {
-    int current_thread = get_thread_id();
     net_ack_t ackreply;
     ackreply.timestamp = message->timestamp;
-    rassert(current_thread == get_thread_id(), "A");
     stream_->send(ackreply);
-    rassert(current_thread == get_thread_id(), "B");
     internal_store_->time_barrier(message->timestamp);
-    rassert(current_thread == get_thread_id(), "C");
     debugf("handled nop message %u\n", message->timestamp.time);
 }
 
