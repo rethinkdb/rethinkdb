@@ -33,7 +33,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
                 // The vaule_size setter only behaves correctly when we're
                 // setting a new large value.
-                value.value_size(new_size, slice->cache().get_block_size());
+                value.value_size(new_size, slice->cache()->get_block_size());
             }
 
             buffer_group_t buffer_group;
@@ -144,10 +144,11 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     }
 
     void actually_acquire_large_value(large_buf_t *lb) {
+        thread_saver_t saver;
         if (append) {
-            co_acquire_large_buf_rhs(lb);
+            co_acquire_large_buf_rhs(saver, lb);
         } else {
-            co_acquire_large_buf_lhs(lb);
+            co_acquire_large_buf_lhs(saver, lb);
         }
     }
 

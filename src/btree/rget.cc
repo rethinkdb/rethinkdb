@@ -35,7 +35,7 @@
  *   A     B    Now we can release the P lock.
  *  /|\   /.\   Next, we remove A, lock its children, and push them back to the deque: [B, c, d, e]
  * c d e .....  We release the A lock.
- * ..... ...... 
+ * ..... ......
  *              At this point we decide that we need to do a depth-first search (to limit the number
  * of locked nodes), and start to use deque as a stack. However since we want
  * an inorder traversal, not the reversed inorder, we can't pop from the end of
@@ -56,7 +56,8 @@
  */
 
 rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
-    boost::shared_ptr<transactor_t> transactor = boost::shared_ptr<transactor_t>(new transactor_t(&slice->cache(), rwi_read, repli_timestamp::invalid));
+    thread_saver_t saver;
+    boost::shared_ptr<transactor_t> transactor = boost::shared_ptr<transactor_t>(new transactor_t(saver, slice->cache(), rwi_read, repli_timestamp::invalid));
     transactor->transaction()->snapshot();
     return unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> >(
         new slice_keys_iterator_t(transactor, slice, left_mode, left_key, right_mode, right_key));

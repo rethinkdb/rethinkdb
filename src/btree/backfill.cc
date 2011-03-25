@@ -70,8 +70,8 @@ class backfill_state_t {
 public:
     enum acquisition_credit { no_response = 0, breadth_first_credit = 1, depth_first_credit = 2 };
 
-    backfill_state_t(btree_slice_t *_slice, repli_timestamp _since_when, backfill_callback_t *_callback)
-        : slice(_slice), since_when(_since_when), transactor_ptr(boost::make_shared<transactor_t>(&_slice->cache(), rwi_read, _since_when)),
+    backfill_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _since_when, backfill_callback_t *_callback)
+        : slice(_slice), since_when(_since_when), transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), rwi_read, _since_when)),
           callback(_callback), shutdown_mode(false), num_breadth_blocks(0) { }
 
     // The slice we're backfilling from.
@@ -182,10 +182,10 @@ private:
 };
 
 // Naive functions' declarations
-void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids);
-void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond);
+void subtrees_backfill(const thread_saver_t& saver, backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids);
+void do_subtree_backfill(const thread_saver_t& saver, backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond);
 void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock);
-void process_internal_node(backfill_state_t& state, buf_lock_t& buf_lock, int level);
+void process_internal_node(const thread_saver_t& saver, backfill_state_t& state, buf_lock_t& buf_lock, int level);
 
 // Less naive functions' declarations
 void get_recency_timestamps(backfill_state_t& state, block_id_t *block_ids, int num_block_ids, repli_timestamp *recencies_out);
@@ -194,9 +194,9 @@ void get_recency_timestamps(backfill_state_t& state, block_id_t *block_ids, int 
 class backfill_buf_lock_t {
 
 public:
-    backfill_buf_lock_t(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond)
+    backfill_buf_lock_t(const thread_saver_t& saver, backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond)
         : state_(state), level_(level), inner_lock_(), pulse_response_(backfill_state_t::no_response) {
-        acquire_node(block_id, acquisition_cond);
+        acquire_node(saver, block_id, acquisition_cond);
     }
 
     ~backfill_buf_lock_t() {
@@ -205,7 +205,7 @@ public:
         state_.consider_pulsing();
     }
 
-    void acquire_node(block_id_t block_id, cond_t *acquisition_cond) {
+    void acquire_node(const thread_saver_t& saver, block_id_t block_id, cond_t *acquisition_cond) {
         // There are two ways to get permission to acquire.  One way:
         // breadth-first: if your grandparent and above are all zero.
         // If we are out of breadth-first credits or you don't
@@ -223,7 +223,7 @@ public:
         pulse_response_ = waiter.wait();
 
         // Now actually acquire the node.
-        buf_lock_t tmp(state_.transactor_ptr->transaction(), block_id, rwi_read, acquisition_cond);
+        buf_lock_t tmp(saver, state_.transactor_ptr->transaction(), block_id, rwi_read, acquisition_cond);
         inner_lock_.swap(tmp);
     }
 
@@ -241,8 +241,9 @@ private:
 
 
 void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
-    backfill_state_t state(slice, since_when, callback);
-    buf_lock_t buf_lock(*state.transactor_ptr, SUPERBLOCK_ID, rwi_read);
+    thread_saver_t saver;
+    backfill_state_t state(saver, slice, since_when, callback);
+    buf_lock_t buf_lock(saver, *state.transactor_ptr, SUPERBLOCK_ID, rwi_read);
     block_id_t root_id = reinterpret_cast<const btree_superblock_t *>(buf_lock.buf()->get_data_read())->root_block;
     rassert(root_id != SUPERBLOCK_ID);
 
@@ -250,11 +251,11 @@ void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, back
         // No root, so no keys in this entire shard.
         callback->done();
     } else {
-        subtrees_backfill(state, buf_lock, 0, &root_id, 1);
+        subtrees_backfill(saver, state, buf_lock, 0, &root_id, 1);
     }
 }
 
-void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids) {
+void subtrees_backfill(const thread_saver_t& saver, backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids) {
     boost::scoped_array<repli_timestamp> recencies(new repli_timestamp[num_block_ids]);
     get_recency_timestamps(state, block_ids, num_block_ids, recencies.get());
 
@@ -264,7 +265,7 @@ void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, b
 
     for (int i = 0; i < num_block_ids; ++i) {
         if (recencies[i].time >= state.since_when.time) {
-            coro_t::spawn(boost::bind(do_subtree_backfill, boost::ref(state), level, block_ids[i], &acquisition_conds[i]));
+            coro_t::spawn(boost::bind(do_subtree_backfill, boost::ref(saver), boost::ref(state), level, block_ids[i], &acquisition_conds[i]));
         } else {
             acquisition_conds[i].pulse();
         }
@@ -279,8 +280,8 @@ void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, b
     parent.release();
 }
 
-void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond) {
-    backfill_buf_lock_t buf_lock(state, level, block_id, acquisition_cond);
+void do_subtree_backfill(const thread_saver_t& saver, backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond) {
+    backfill_buf_lock_t buf_lock(saver, state, level, block_id, acquisition_cond);
 
     const node_t *node = reinterpret_cast<const node_t *>(buf_lock->get_data_read());
 
@@ -289,18 +290,18 @@ void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id
     } else {
         rassert(node::is_internal(node));
 
-        process_internal_node(state, buf_lock.inner_lock(), level);
+        process_internal_node(saver, state, buf_lock.inner_lock(), level);
     }
 }
 
-void process_internal_node(backfill_state_t& state, buf_lock_t& buf_lock, int level) {
+void process_internal_node(const thread_saver_t& saver, backfill_state_t& state, buf_lock_t& buf_lock, int level) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(buf_lock->get_data_read());
 
     boost::scoped_array<block_id_t> children;
     size_t num_children;
     internal_node::get_children_ids(node, children, &num_children);
 
-    subtrees_backfill(state, buf_lock, level + 1, children.get(), num_children);
+    subtrees_backfill(saver, state, buf_lock, level + 1, children.get(), num_children);
 }
 
 void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {

@@ -57,6 +57,23 @@ a single thread. It just keeps track of the thread that the object was created o
 makes sure that it is destroyed from the same thread. It exposes the ID of that thread
 as the "home_thread" variable. */
 
+class thread_saver_t {
+public:
+    thread_saver_t() : thread_id_(get_thread_id()) {
+        assert_good_thread_id(thread_id_);
+    }
+    thread_saver_t(int thread_id) : thread_id_(thread_id) {
+        assert_good_thread_id(thread_id_);
+    }
+    ~thread_saver_t() {
+        coro_t::move_to_thread(thread_id_);
+    }
+
+private:
+    int thread_id_;
+    DISABLE_COPYING(thread_saver_t);
+};
+
 class home_thread_mixin_t {
 public:
     const int home_thread;
@@ -65,12 +82,21 @@ public:
         rassert(home_thread == get_thread_id());
     }
 
-    void ensure_thread() {
+    // We force callers to pass a thread_saver_t to ensure that they
+    // know exactly what they're doing.
+    void ensure_thread(UNUSED const thread_saver_t& saver) {
+        // TODO: make sure nobody is calling move_to_thread except us
+        // and thread_saver_t.
         coro_t::move_to_thread(home_thread);
     }
 protected:
     home_thread_mixin_t() : home_thread(get_thread_id()) { }
     ~home_thread_mixin_t() { assert_thread(); }
+
+private:
+    // Things with home threads should not be copyable, since we don't
+    // want to nonchalantly copy their home_thread variable.
+    DISABLE_COPYING(home_thread_mixin_t);
 };
 
 struct on_thread_t : public home_thread_mixin_t {
@@ -80,20 +106,6 @@ struct on_thread_t : public home_thread_mixin_t {
     ~on_thread_t() {
         coro_t::move_to_thread(home_thread);
     }
-};
-
-struct thread_saver_t {
-    thread_saver_t() : thread_id(get_thread_id()) {
-        assert_good_thread_id(thread_id);
-    }
-    thread_saver_t(int _thread_id) : thread_id(_thread_id) {
-        assert_good_thread_id(thread_id);
-    }
-    ~thread_saver_t() {
-        coro_t::move_to_thread(thread_id);
-    }
-
-    int thread_id;
 };
 
 template <class ForwardIterator, class StrictWeakOrdering>

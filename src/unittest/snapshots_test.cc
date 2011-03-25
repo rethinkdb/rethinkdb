@@ -51,7 +51,8 @@ private:
         txor.transaction()->snapshot();
     }
     static buf_t *acq(transactor_t& txor, block_id_t block_id, access_t mode = rwi_read) {
-        return co_acquire_block(txor.transaction(), block_id, mode);
+        thread_saver_t saver;
+        return co_acquire_block(saver, txor.transaction(), block_id, mode); // 
     }
 
     static void change_value(buf_t *buf, uint32_t value) {
@@ -93,7 +94,8 @@ private:
     }
 
     void snapshot_txn_runner(cache_t *cache, count_down_latch_t *stop_latch) {
-        transactor_t snap_txor(cache, rwi_read, repli_timestamp::invalid);
+        thread_saver_t saver;
+        transactor_t snap_txor(saver, cache, rwi_read, repli_timestamp::invalid);
         snap_txor.transaction()->snapshot();
         debugf("snapshot.done\n");
         stop_latch->count_down();
@@ -123,16 +125,18 @@ private:
             btree_slice_t::create(multiplexer.proxies[0], &config.store_static_config.cache);
             btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache);
 
-            cache_t *cache(&slice.cache());
+            cache_t *cache = slice.cache();
 
 
             int init_value = 0x12345678;
             int changed_value = 0x87654321;
 
+            thread_saver_t saver;
+
             // t0:create(A), t1:snap(), t1:acq(A) blocks, t0:release(A), t1 unblocks, t1 sees the block.
             {
-                transactor_t t0(cache, rwi_write, 0, current_time());
-                transactor_t t1(cache, rwi_read, 0, repli_timestamp::invalid);
+                transactor_t t0(saver, cache, rwi_write, 0, current_time());
+                transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
 
                 buf_t *buf0 = create(t0);
                 snap(t1);
@@ -147,9 +151,9 @@ private:
 
             // t0:create(A), t0:release(A), t1:snap(), t2:acqw(A), t2:change(A), t2:release(A), t1:acq(A), t1 sees the change
             {
-                transactor_t t0(cache, rwi_write, 0, current_time());
-                transactor_t t1(cache, rwi_read, 0, repli_timestamp::invalid);
-                transactor_t t2(cache, rwi_write, 0, current_time());
+                transactor_t t0(saver, cache, rwi_write, 0, current_time());
+                transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+                transactor_t t2(saver, cache, rwi_write, 0, current_time());
 
                 buf_t *buf0 = create(t0);
                 block_id_t block_A = buf0->get_block_id();
@@ -168,10 +172,10 @@ private:
             }
             // t0:create(A), t0:release(A), t1:snap(), t1:acq(A), t2:acqw(A), t2:change(A), t2:release(A), t3:snap(), t3:acq(A), t1 doesn't see the change, t3 does see the change
             {
-                transactor_t t0(cache, rwi_write, 0, current_time());
-                transactor_t t1(cache, rwi_read, 0, repli_timestamp::invalid);
-                transactor_t t2(cache, rwi_write, 0, current_time());
-                transactor_t t3(cache, rwi_read, 0, repli_timestamp::invalid);
+                transactor_t t0(saver, cache, rwi_write, 0, current_time());
+                transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+                transactor_t t2(saver, cache, rwi_write, 0, current_time());
+                transactor_t t3(saver, cache, rwi_read, 0, repli_timestamp::invalid);
 
                 buf_t *buf0 = create(t0);
                 block_id_t block_A = buf0->get_block_id();
@@ -199,9 +203,9 @@ private:
 
             // t0:create(A,B), t0:release(A,B), t1:snap(), t1:acq(A), t2:acqw(A) doesn't block, t2:acqw(B), t1:acq(B) doesn't block
             {
-                transactor_t t0(cache, rwi_write, 0, current_time());
-                transactor_t t1(cache, rwi_read, 0, repli_timestamp::invalid);
-                transactor_t t2(cache, rwi_write, 0, current_time());
+                transactor_t t0(saver, cache, rwi_write, 0, current_time());
+                transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+                transactor_t t2(saver, cache, rwi_write, 0, current_time());
 
                 buf_t *buf0_A = create(t0);
                 buf_t *buf0_B = create(t0);
@@ -232,9 +236,9 @@ private:
 
             // t0:create(A,B), t0:release(A,B), t1:acqw(A), t1:acqw(B), t1:release(A), t2:snap(), t2:acq(A), t2:release(A), t2:acq(B) blocks, t1:release(B), t2 unblocks
             {
-                transactor_t t0(cache, rwi_write, 0, current_time());
-                transactor_t t1(cache, rwi_write, 0, current_time());
-                transactor_t t2(cache, rwi_read, 0, repli_timestamp::invalid);
+                transactor_t t0(saver, cache, rwi_write, 0, current_time());
+                transactor_t t1(saver, cache, rwi_write, 0, current_time());
+                transactor_t t2(saver, cache, rwi_read, 0, repli_timestamp::invalid);
 
                 buf_t *buf0_A = create(t0);
                 buf_t *buf0_B = create(t0);

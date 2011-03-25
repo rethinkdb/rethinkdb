@@ -37,8 +37,10 @@ void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
 // Split the node if necessary. If the node is a leaf_node, provide the new
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
-void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                                                const btree_key_t *key, btree_value *new_value, block_size_t block_size) {
+void check_and_handle_split(const thread_saver_t& saver, transactor_t& txor, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
+                            const btree_key_t *key, btree_value *new_value, block_size_t block_size) {
+    txor->ensure_thread(saver);
+
     const node_t *node = ptr_cast<node_t>(buf->get_data_read());
 
     // If the node isn't full, we don't need to split, so we're done.
@@ -53,7 +55,7 @@ void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& las
     // Allocate a new node to split into, and some temporary memory to keep
     // track of the median key in the split; then actually split.
     buf_lock_t rbuf;
-    rbuf.allocate(txor);
+    rbuf.allocate(saver, txor);
     btree_key_buffer_t median_buffer;
     btree_key_t *median = median_buffer.key();
 
@@ -62,7 +64,7 @@ void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& las
     // Insert the key that sets the two nodes apart into the parent.
     if (!last_buf.is_acquired()) {
         // We're splitting what was previously the root, so create a new root to use as the parent.
-        last_buf.allocate(txor);
+        last_buf.allocate(saver, txor);
         internal_node::init(block_size, *last_buf.buf());
 
         insert_root(last_buf->get_block_id(), sb_buf);
@@ -85,8 +87,8 @@ void check_and_handle_split(transactor_t& txor, buf_lock_t& buf, buf_lock_t& las
 }
 
 // Merge or level the node if necessary.
-void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                                                    const btree_key_t *key, block_size_t block_size) {
+void check_and_handle_underfull(const thread_saver_t& saver, transactor_t& txor, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
+                                const btree_key_t *key, block_size_t block_size) {
     const node_t *node = ptr_cast<node_t>(buf->get_data_read());
     if (last_buf.is_acquired() && node::is_underfull(block_size, node)) { // The root node is never underfull.
 
@@ -97,7 +99,7 @@ void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t&
         int nodecmp_node_with_sib = internal_node::sibling(parent_node, key, &sib_node_id);
 
         // Now decide whether to merge or level.
-        buf_lock_t sib_buf(txor, sib_node_id, rwi_write);
+        buf_lock_t sib_buf(saver, txor, sib_node_id, rwi_write);
         const node_t *sib_node = ptr_cast<node_t>(sib_buf->get_data_read());
 
 #ifndef NDEBUG
@@ -146,16 +148,16 @@ void check_and_handle_underfull(transactor_t& txor, buf_lock_t& buf, buf_lock_t&
 }
 
 // Get a root block given a superblock, or make a new root if there isn't one.
-void get_root(transactor_t& txor, buf_lock_t& sb_buf, block_size_t block_size, buf_lock_t *buf_out, repli_timestamp timestamp) {
+void get_root(const thread_saver_t& saver, transactor_t& txor, buf_lock_t& sb_buf, block_size_t block_size, buf_lock_t *buf_out, repli_timestamp timestamp) {
     rassert(!buf_out->is_acquired());
 
     block_id_t node_id = reinterpret_cast<const btree_superblock_t*>(sb_buf->get_data_read())->root_block;
 
     if (node_id != NULL_BLOCK_ID) {
-        buf_lock_t tmp(txor, node_id, rwi_write);
+        buf_lock_t tmp(saver, txor, node_id, rwi_write);
         buf_out->swap(tmp);
     } else {
-        buf_out->allocate(txor);
+        buf_out->allocate(saver, txor);
         leaf::init(block_size, *buf_out->buf(), timestamp);
         insert_root(buf_out->buf()->get_block_id(), sb_buf);
         pm_btree_depth++;
@@ -174,27 +176,28 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
     btree_key_t *key = kbuffer.key();
 
     oper->slice = slice; // TODO: Figure out a way to do this more nicely -- it's only used for generating a CAS value.
-    block_size_t block_size = slice->cache().get_block_size();
+    block_size_t block_size = slice->cache()->get_block_size();
 
     {
         // temporary sanity-check
         rassert(get_thread_id() == slice->home_thread);
+        thread_saver_t saver;
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
 
         // TODO: why is this a shared_ptr?
-        boost::shared_ptr<transactor_t> txor(new transactor_t(&slice->cache(), rwi_write, oper->compute_expected_change_count(slice->cache().get_block_size().value()),  castime.timestamp));
+        boost::shared_ptr<transactor_t> txor(new transactor_t(saver, slice->cache(), rwi_write, oper->compute_expected_change_count(slice->cache()->get_block_size().value()),  castime.timestamp));
 
-        buf_lock_t sb_buf(*txor, SUPERBLOCK_ID, rwi_write);
+        buf_lock_t sb_buf(saver, *txor, SUPERBLOCK_ID, rwi_write);
         buf_lock_t last_buf;
         buf_lock_t buf;
-        get_root(*txor, sb_buf, block_size, &buf, castime.timestamp);
+        get_root(saver, *txor, sb_buf, block_size, &buf, castime.timestamp);
 
         // Walk down the tree to the leaf.
         while (node::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
             // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-            check_and_handle_split(*txor, buf, last_buf, sb_buf, key, NULL, block_size);
+            check_and_handle_split(saver, *txor, buf, last_buf, sb_buf, key, NULL, block_size);
             // Check if the node is underfull, and merge/level if it is.
-            check_and_handle_underfull(*txor, buf, last_buf, sb_buf, key, block_size);
+            check_and_handle_underfull(saver, *txor, buf, last_buf, sb_buf, key, block_size);
 
             // Release the superblock, if we've gone past the root (and haven't
             // already released it). If we're still at the root or at one of
@@ -211,7 +214,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             block_id_t node_id = internal_node::lookup(ptr_cast<internal_node_t>(buf->get_data_read()), key);
             rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
-            buf_lock_t tmp(*txor, node_id, rwi_write);
+            buf_lock_t tmp(saver, *txor, node_id, rwi_write);
             last_buf.swap(tmp);
             buf.swap(last_buf);
         }
@@ -271,7 +274,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
                 // Split the node if necessary, to make sure that we have room
                 // for the value; This isn't necessary when we're deleting,
                 // because the node isn't going to grow.
-                check_and_handle_split(*txor, buf, last_buf, sb_buf, key, new_value, block_size);
+                check_and_handle_split(saver, *txor, buf, last_buf, sb_buf, key, new_value, block_size);
 
                 // Add a CAS to the value if necessary (this won't change its size).
                 if (new_value->has_cas() && !oper->cas_already_set) {
@@ -298,7 +301,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
             // Check to see if the leaf is underfull (following a change in
             // size or a deletion), and merge/level if it is.
-            check_and_handle_underfull(*txor, buf, last_buf, sb_buf, key, block_size);
+            check_and_handle_underfull(saver, *txor, buf, last_buf, sb_buf, key, block_size);
         }
 
         // Release bufs as necessary.
