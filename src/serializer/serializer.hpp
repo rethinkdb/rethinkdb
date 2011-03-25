@@ -49,7 +49,7 @@ struct serializer_t :
 
     /* Reading a block from the serializer */
 
-    // TODO: Remove this compatiblity layer at some point
+    // TODO: Remove this legacy interface at some point
     struct read_callback_t {
         virtual void on_serializer_read() = 0;
         virtual ~read_callback_t() {}
@@ -75,11 +75,6 @@ public:
     /* Require coroutine context, block until data is available */
     virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf) = 0;
     virtual boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id) = 0;
-
-    /* 
-     * TODO! Consider how we can get extract work again. Problem: missing block_id in the block header
-     * TODO! On load: Maybe Initialize block_id in the buf with data from the LBA?
-     */
 
     /* The serializer uses RTTI to identify which operation is to be performed */
     struct index_write_op_t {
@@ -108,7 +103,8 @@ public:
     virtual void index_write(const std::vector<index_write_op_t*>& write_ops) = 0;
     /* Non-blocking variant */
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, iocallback_t *cb) = 0;
-    /* Blocking variant (use in coroutine context) */
+    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, ser_block_id_t block_id, iocallback_t *cb) = 0;
+    /* Blocking variant (use in coroutine context) with and without known block_id */
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf) {
         // Defaukt implementation: Wrap around non-blocking variant
         struct : public cond_t, public iocallback_t {
@@ -117,10 +113,22 @@ public:
         boost::shared_ptr<block_token_t> result = block_write(buf, &cb);
         return result;
     }
+    virtual boost::shared_ptr<block_token_t> block_write(const void *buf, ser_block_id_t block_id) {
+        // Defaukt implementation: Wrap around non-blocking variant
+        struct : public cond_t, public iocallback_t {
+            void on_io_complete() { pulse(); }
+        } cb;
+        boost::shared_ptr<block_token_t> result = block_write(buf, block_id, &cb);
+        return result;
+    }
 
 
     virtual ser_block_sequence_id_t get_block_sequence_id(ser_block_id_t block_id, const void* buf) = 0;
+
+    /* TODO: The following part is all just wrapper code. It should be removed eventually */
     
+    /* DEPRECATED wrapper code begins here! */
+
     /* do_write() updates or deletes a group of bufs.
     
     Each write_t passed to do_write() identifies an update or deletion. If 'buf' is NULL, then it
@@ -182,13 +190,18 @@ private:
 
         std::vector<index_write_op_t*> index_write_ops;
 
+        // Prepare a zero buf for deletions
+        void *zerobuf = serializer->malloc();
+        bzero(zerobuf, serializer->get_block_size().value());
+        memcpy(zerobuf, "zero", 4); // TODO: This constant should be part of the serializer implementation or something like that or we should get rid of zero blocks completely...
+
         // Step 1: Write buffers to disk and assemble index operations
         for (size_t i = 0; i < (size_t)num_writes; ++i) {
             // Buffer writes:
             if (writes[i].buf_specified) {
                 if (writes[i].buf) {
                     block_write_conds.push_back(new block_write_cond_t(writes[i].callback));
-                    boost::shared_ptr<block_token_t> token = serializer->block_write(writes[i].buf, block_write_conds.back());
+                    boost::shared_ptr<block_token_t> token = serializer->block_write(writes[i].buf, writes[i].block_id, block_write_conds.back());
 
                     // ... also generate the corresponding index ops
                     index_write_ops.push_back(new index_write_block_t(writes[i].block_id, token));
@@ -198,10 +211,10 @@ private:
                 } else {
                     // Deletion:
 
-                    // Writing a zero buf wouldn't make any sense, would it?
-                    /*if (writes[i].write_empty_deleted_block) {
-                        ...
-                    }*/
+                    if (writes[i].write_empty_deleted_block) {
+                        block_write_conds.push_back(new block_write_cond_t(writes[i].callback));
+                        serializer->block_write(zerobuf, writes[i].block_id, block_write_conds.back());
+                    }
 
                     // TODO: Do we even need to write the recency?
                     if (writes[i].recency_specified) {
@@ -226,6 +239,8 @@ private:
             block_write_conds[i]->wait();
             delete block_write_conds[i];
         }
+        // (free the zerobuf)
+        serializer->free(zerobuf);
 
         // Step 4: Commit the transaction to the serializer
         serializer->index_write(index_write_ops);
@@ -250,6 +265,7 @@ public:
         coro_t::spawn(boost::bind(&serializer_t::do_write_wrapper, this, writes, num_writes, callback, tid_callback));
         return false;
     }
+    /* DEPRECATED wrapper code ends here! */
     
     /* The size, in bytes, of each serializer block */
     

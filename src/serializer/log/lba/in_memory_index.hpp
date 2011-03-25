@@ -16,16 +16,8 @@ class in_memory_index_t
     segmented_vector_t<flagged_off64_t, MAX_BLOCK_ID> blocks;
     segmented_vector_t<repli_timestamp, MAX_BLOCK_ID> timestamps;
 
-    // TODO: Make the max size a constant in args.hpp or something?
-    // (on the other hand: 128 TB should be enough for everyone...)
-    // TODO! Test actual memory usage of this... (should be 16 MB initially and about 1 GB per TB database size with 4 KB blocks)
-    // We store only offsets which are block-size aligned, i.e. block_ids[5] contains the block_id for the offset 5 * block_size
-    segmented_vector_t<ser_block_id_t, TERABYTE / DEVICE_BLOCK_SIZE * 128ul> block_ids;
-
-    size_t block_size;
-
 public:
-    in_memory_index_t(size_t block_size);
+    in_memory_index_t();
 
     // end_block_id is one greater than the max block id.
     ser_block_id_t end_block_id();

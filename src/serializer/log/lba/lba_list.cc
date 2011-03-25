@@ -8,9 +8,9 @@
 
 perfmon_counter_t pm_serializer_lba_gcs("serializer_lba_gcs");
 
-lba_list_t::lba_list_t(extent_manager_t *em, size_t block_size)
+lba_list_t::lba_list_t(extent_manager_t *em)
     : shutdown_callback(NULL), gc_count(0), extent_manager(em),
-      state(state_unstarted), in_memory_index(block_size)
+      state(state_unstarted)
 {
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) disk_structures[i] = NULL;
 }
@@ -100,18 +100,6 @@ repli_timestamp lba_list_t::get_block_recency(ser_block_id_t block) {
     rassert(state == state_ready);
 
     return in_memory_index.get_block_info(block).recency;
-}
-
-bool lba_list_t::is_offset_indexed(off64_t offset) {
-    rassert(state == state_ready);
-
-    return in_memory_index.is_offset_indexed(offset);
-}
-
-ser_block_id_t lba_list_t::get_block_id(off64_t offset) {
-    rassert(state == state_ready);
-
-    return in_memory_index.get_block_id(offset);
 }
 
 void lba_list_t::set_block_info(ser_block_id_t block, repli_timestamp recency, flagged_off64_t offset) {

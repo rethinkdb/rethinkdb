@@ -248,16 +248,6 @@ struct reader_t
     }
 
     void done() {
-        /* We have to rebuild the reverse LBA at this point, as outdated entries might have corrupted it.
-         For example:
-           block id 1 -> offset 1 (most recent entry)
-           block id 2 -> offset 1 (outdated entry, overwrites offset 1 reverse entry though :-( )
-           block id 2 -> offset 2 (most recent entry)
-
-         After this offset 1 does not point to any block id, although it should point to block id 1.
-        */
-        index->rebuild_reverse_index();
-
         rcb->on_lba_read();
         delete this;
     }

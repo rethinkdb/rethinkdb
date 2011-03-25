@@ -42,11 +42,7 @@ struct log_serializer_metablock_t {
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
 struct ls_buf_data_t {
-    /* The following data is not generally available on block_write.
-    TODO: Consider alternatives for making extract work again
-    */
-    //ser_block_id_t block_id;
-    //ser_transaction_id_t transaction_id;
+    ser_block_id_t block_id;
     ser_block_sequence_id_t block_sequence_id;
 } __attribute__((__packed__));
 
@@ -128,6 +124,7 @@ public:
     boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id);
     void index_write(const std::vector<index_write_op_t*>& write_ops);
     boost::shared_ptr<block_token_t> block_write(const void *buf, iocallback_t *cb);
+    boost::shared_ptr<block_token_t> block_write(const void *buf, ser_block_id_t block_id, iocallback_t *cb);
     ser_block_sequence_id_t get_block_sequence_id(ser_block_id_t block_id, const void* buf);
     block_size_t get_block_size();
     ser_block_id_t max_block_id();
@@ -187,9 +184,6 @@ public:
     // gc will be enabled immediately.  Always returns 'true' for
     // do_on_thread.  TODO: who uses this return value?
     void enable_gc();
-
-    // The magic value used for "zero" buffers written upon deletion.
-    static const block_magic_t zerobuf_magic;
 
 private:
     typedef log_serializer_metablock_t metablock_t;

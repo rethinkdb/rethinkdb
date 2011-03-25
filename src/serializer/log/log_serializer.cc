@@ -11,8 +11,6 @@ uint64_t block_size_t::value() const {
     return ser_bs_ - sizeof(ls_buf_data_t);
 }
 
-const block_magic_t log_serializer_t::zerobuf_magic = { { 'z', 'e', 'r', 'o' } };
-
 void log_serializer_t::create(dynamic_config_t *dynamic_config, private_dynamic_config_t *private_dynamic_config, static_config_t *static_config) {
 
     direct_file_t df(private_dynamic_config->db_filename.c_str(), file_t::mode_read | file_t::mode_write | file_t::mode_create, dynamic_config->io_backend);
@@ -85,7 +83,7 @@ struct ls_start_existing_fsm_t :
             ser->extent_manager->reserve_extent(0);   /* For static header */
             
             ser->metablock_manager = new mb_manager_t(ser->extent_manager);
-            ser->lba_index = new lba_index_t(ser->extent_manager, ser->static_config.block_size().ser_value());
+            ser->lba_index = new lba_index_t(ser->extent_manager);
             ser->data_block_manager = new data_block_manager_t(ser->dynamic_config, ser->extent_manager, ser, &ser->static_config);
             
             if (ser->metablock_manager->start_existing(ser->dbfile, &metablock_found, &metablock_buffer, this)) {
@@ -114,11 +112,7 @@ struct ls_start_existing_fsm_t :
             ser->data_block_manager->start_reconstruct();
             for (ser_block_id_t::number_t id = 0; id < ser->lba_index->end_block_id().value; id++) {
                 flagged_off64_t offset = ser->lba_index->get_block_offset(ser_block_id_t::make(id));
-                if (flagged_off64_t::can_be_gced(offset)) {
-                    // (Ensure consistency of the reverse LBA)
-                    rassert(ser->lba_index->is_offset_indexed(offset.parts.value));
-                    rassert(ser->lba_index->get_block_id(offset.parts.value) == ser_block_id_t::make(id));
-                    
+                if (flagged_off64_t::can_be_gced(offset)) {                    
                     ser->data_block_manager->mark_live(offset.parts.value);
                 }
             }
@@ -346,7 +340,6 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
             /* mark the garbage */
             flagged_off64_t gc_offset = lba_index->get_block_offset(block_op.block_id);
             if (flagged_off64_t::can_be_gced(gc_offset)) {
-                rassert(lba_index->is_offset_indexed(gc_offset.parts.value));
                 data_block_manager->mark_garbage(gc_offset.parts.value);
             }
 
@@ -453,11 +446,15 @@ boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::generate_block_
 }
 
 boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::block_write(const void *buf, iocallback_t *cb) {
+    return block_write(buf, ser_block_id_t::null(), cb);
+}
+
+boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::block_write(const void *buf, ser_block_id_t block_id, iocallback_t *cb) {
     // TODO: Implement a duration sampler perfmon for this
     pm_serializer_block_writes++;
 
     extent_manager_t::transaction_t *em_trx = extent_manager->begin_transaction();
-    const off64_t offset = data_block_manager->write(buf, true, cb);
+    const off64_t offset = data_block_manager->write(buf, block_id, true, cb);
     extent_manager->end_transaction(em_trx);
     extent_manager->commit_transaction(em_trx);
 
@@ -528,6 +525,7 @@ void log_serializer_t::remap_block_to_new_offset(off64_t current_offset, off64_t
 ser_block_sequence_id_t log_serializer_t::get_block_sequence_id(UNUSED ser_block_id_t block_id, const void* buf) {
     ls_buf_data_t *ser_data = (ls_buf_data_t*)buf;
     ser_data--;
+    rassert(ser_data->block_id == block_id);
     return ser_data->block_sequence_id;
 }
 

@@ -15,6 +15,8 @@
 
 namespace fsck {
 
+static block_magic_t zerobuf_magic = { { 'z', 'e', 'r', 'o' } }; // TODO: Refactor
+
 static const char *state = NULL;
 
 // Knowledge that we contain for every block id.
@@ -1128,7 +1130,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
                     errs->allegedly_deleted_blocks.push_back(desc);
                 } else {
                     block_magic_t magic = *ptr_cast<block_magic_t>(zeroblock.buf);
-                    if (!(log_serializer_t::zerobuf_magic == magic)) {
+                    if (!(zerobuf_magic == magic)) {
                         desc.magic = magic;
                         errs->allegedly_deleted_blocks.push_back(desc);
                     }

@@ -161,18 +161,28 @@ struct dbm_read_ahead_fsm_t :
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
             } else {
-                if (parent->serializer->lba_index->is_offset_indexed(current_offset)) {
-                    const ser_block_id_t block_id = parent->serializer->lba_index->get_block_id(current_offset);
+                const ser_block_id_t block_id = ((ls_buf_data_t*)current_buf)->block_id;
 
-                    ls_buf_data_t *data = (ls_buf_data_t*)parent->serializer->malloc();
-                    --data;
-                    memcpy(data, current_buf, parent->static_config->block_size().ser_value());
-                    ++data;
-                    if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data)) {
-                        // If there is no interest anymore, delete the buffer again
-                        parent->serializer->free(data);
-                        continue;
-                    }
+                // Determine whether the block is live.
+                bool block_is_live = block_id.value != 0;
+                // Do this by checking the LBA
+                const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
+                block_is_live = block_is_live && !flagged_lba_offset.parts.is_delete && flagged_lba_offset.has_value(flagged_lba_offset);
+                // As a last sanity check, verify that the offsets match
+                block_is_live = block_is_live && (off64_t)current_offset == flagged_lba_offset.parts.value;
+
+                if (!block_is_live) {
+                    continue;
+                }
+
+                ls_buf_data_t *data = (ls_buf_data_t*)parent->serializer->malloc();
+                --data;
+                memcpy(data, current_buf, parent->static_config->block_size().ser_value());
+                ++data;
+                if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data)) {
+                    // If there is no interest anymore, delete the buffer
+                    parent->serializer->free(data);
+                    continue;
                 }
             }
         }
@@ -207,7 +217,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb)
  Also this makes stuff easier in other places, as we get the offset as well as a freshly
  set block_sequence_id immediately.
  */
-off64_t data_block_manager_t::write(const void *buf_in, bool assign_new_block_sequence_id, iocallback_t *cb) {
+off64_t data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, bool assign_new_block_sequence_id, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
@@ -219,6 +229,7 @@ off64_t data_block_manager_t::write(const void *buf_in, bool assign_new_block_se
 
     ls_buf_data_t *data = (ls_buf_data_t*)buf_in;
     data--;
+    data->block_id = block_id;
     if (assign_new_block_sequence_id) {
         data->block_sequence_id = ++serializer->latest_block_sequence_id;
     }
@@ -364,7 +375,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
     // Step 1: Write buffers to disk and assemble index operations
     for (size_t i = 0; i < (size_t)num_writes; ++i) {
         block_write_conds.push_back(new block_write_cond_t());
-        const off64_t offset = parent->write(writes[i].buf, false, block_write_conds.back()); // False -> don't assign new block sequence id
+        const off64_t offset = parent->write(writes[i].buf, writes[i].block_id, false, block_write_conds.back()); // False -> don't assign new block sequence id
         writes[i].new_offset = offset;
         boost::shared_ptr<serializer_t::block_token_t> token = parent->serializer->generate_block_token(offset);
 
@@ -483,9 +494,9 @@ void data_block_manager_t::run_gc() {
                     const off64_t block_offset = gc_state.current_entry->offset + (i * static_config->block_size().ser_value());
                     ser_block_id_t id;
                     // The block is either referenced by an index or by a token (or both)
-                    rassert(serializer->lba_index->is_offset_indexed(block_offset) == gc_state.current_entry->i_array[i]);
                     if (gc_state.current_entry->i_array[i]) {
-                        id = serializer->lba_index->get_block_id(block_offset);
+                        id = (reinterpret_cast<ls_buf_data_t *>(block))->block_id;;
+                        rassert(id != ser_block_id_t::null());
                     } else {
                         id = ser_block_id_t::null();
                     }

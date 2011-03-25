@@ -2,7 +2,7 @@
 #include "disk_format.hpp"
 #include "in_memory_index.hpp"
 
-in_memory_index_t::in_memory_index_t(size_t block_size) : block_size(block_size) { }
+in_memory_index_t::in_memory_index_t() { }
 
 
 ser_block_id_t in_memory_index_t::end_block_id() {
@@ -19,26 +19,6 @@ in_memory_index_t::info_t in_memory_index_t::get_block_info(ser_block_id_t id) {
     }
 }
 
-void in_memory_index_t::rebuild_reverse_index() {
-    // Wipe reverse LBA
-    for (size_t i = 0; i < block_ids.get_size(); ++i) {
-        block_ids[i] = ser_block_id_t::null();
-    }
-
-    // Rebuild it
-    for (size_t i = 0; i < blocks.get_size(); ++i) {
-        const flagged_off64_t offset = blocks[i];
-        if (flagged_off64_t::has_value(offset)) {
-            rassert(offset.parts.value % block_size == 0);
-            const size_t offset_block = offset.parts.value / block_size;
-            if (offset_block >= block_ids.get_size()) {
-                block_ids.set_size(offset_block + 1, ser_block_id_t::null());
-            }
-            block_ids[offset_block] = ser_block_id_t::make(i);
-        }
-    }
-}
-
 void in_memory_index_t::set_block_info(ser_block_id_t id, repli_timestamp recency,
                                      flagged_off64_t offset) {
     if (id.value >= blocks.get_size()) {
@@ -46,42 +26,8 @@ void in_memory_index_t::set_block_info(ser_block_id_t id, repli_timestamp recenc
         timestamps.set_size(id.value + 1, repli_timestamp::invalid);
     }
 
-    // If there is an old offset for this block id, we remove it from the reverse LBA first.
-    if (flagged_off64_t::has_value(blocks[id.value]) && block_ids[blocks[id.value].parts.value / block_size] == id) {
-        rassert(blocks[id.value].parts.value % block_size == 0);
-        rassert(block_ids.get_size() > blocks[id.value].parts.value / block_size);
-        block_ids[blocks[id.value].parts.value / block_size] = ser_block_id_t::null();
-    }
-
     blocks[id.value] = offset;
     timestamps[id.value] = recency;
-
-    // Store reverse entry
-    if (flagged_off64_t::has_value(offset)) {
-        rassert(offset.parts.value % block_size == 0);
-        const size_t offset_block = offset.parts.value / block_size;
-        if (offset_block >= block_ids.get_size()) {
-            block_ids.set_size(offset_block + 1, ser_block_id_t::null());
-        }
-        block_ids[offset_block] = id;
-    }
-}
-
-bool in_memory_index_t::is_offset_indexed(off64_t offset) {
-    rassert(offset % block_size == 0);
-    const size_t offset_block = offset / block_size;
-    return block_ids.get_size() > offset_block && block_ids[offset_block] != ser_block_id_t::null();
-}
-
-ser_block_id_t in_memory_index_t::get_block_id(off64_t offset) {
-    rassert(is_offset_indexed(offset));
-    rassert(offset % block_size == 0);
-    const size_t offset_block = offset / block_size;
-
-    rassert(get_block_info(block_ids[offset_block]).offset.parts.value == offset);
-    rassert(!get_block_info(block_ids[offset_block]).offset.parts.is_delete);
-
-    return block_ids[offset_block];
 }
 
 #ifndef NDEBUG

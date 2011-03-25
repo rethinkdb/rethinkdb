@@ -23,7 +23,7 @@ public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
     
 public:
-    explicit lba_list_t(extent_manager_t *em, size_t block_size);
+    explicit lba_list_t(extent_manager_t *em);
     ~lba_list_t();
 
 public:
@@ -38,9 +38,6 @@ public:
 public:
     flagged_off64_t get_block_offset(ser_block_id_t block);
     repli_timestamp get_block_recency(ser_block_id_t block);
-
-    bool is_offset_indexed(off64_t offset);
-    ser_block_id_t get_block_id(off64_t offset);
 
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
     that block ID. */

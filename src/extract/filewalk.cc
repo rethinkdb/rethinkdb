@@ -16,6 +16,8 @@
 
 namespace extract {
 
+static block_magic_t zerobuf_magic = { { 'z', 'e', 'r', 'o' } }; // TODO: Refactor
+
 typedef config_t::override_t cfg_t;
 
 class block : public fsck::raw_block {
@@ -179,7 +181,7 @@ bool check_all_known_magic(block_magic_t magic) {
         || check_magic<large_buf_internal>(magic)
         || check_magic<large_buf_leaf>(magic)
         || check_magic<multiplexer_config_block_t>(magic)
-        || magic == log_serializer_t::zerobuf_magic;
+        || magic == zerobuf_magic;
 }
 
 void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {

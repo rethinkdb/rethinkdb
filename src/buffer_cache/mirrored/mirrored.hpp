@@ -64,7 +64,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     void *data;
     version_id_t version_id;
     /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
-    boost::shared_ptr<block_token_t> data_token;
+    boost::shared_ptr<serializer_t::block_token_t> data_token;
 
     rwi_lock_t lock;
     patch_counter_t next_patch_counter;
