@@ -57,11 +57,8 @@ template <> size_t objsize<net_backfill_delete_t>(const net_backfill_delete_t *b
 template <class T>
 void check_pass(message_callback_t *receiver, weak_buf_t buffer, size_t realoffset, size_t realsize) {
     if (sizeof(T) <= realsize && objsize<T>(buffer.get<T>(realoffset)) == realsize) {
-        int current_thread = get_thread_id();
         typename stream_type<T>::type buf(buffer, realoffset, realsize);
-        rassert(current_thread == get_thread_id(), "A");
         receiver->send(buf);
-        rassert(current_thread == get_thread_id(), "B");
     } else {
         debugf("realsize: %zu sizeof(T): %zu objsize: %zu\n", realsize, sizeof(T), objsize<T>(buffer.get<T>(realoffset)));
         throw protocol_exc_t("message wrong length for message code");
@@ -90,8 +87,6 @@ void check_first_size(message_callback_t *receiver, weak_buf_t& buffer, size_t r
 size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t buffer, size_t offset, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
-    int current_thread = get_thread_id();
-
     if (num_read < sizeof(net_multipart_header_t)) {
         return 0;
     }
@@ -108,20 +103,19 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
     }
 
     if (hdr->message_multipart_aspect == SMALL) {
-        debugf("received SMALL message.\n");
         size_t realbegin = offset + sizeof(net_header_t);
         size_t realsize = msgsize - sizeof(net_header_t);
 
-        int very_current_thread = get_thread_id();
         switch (hdr->msgcode) {
         case BACKFILL: check_pass<net_backfill_t>(receiver, buffer, realbegin, realsize); break;
+        case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, buffer, realbegin, realsize); break;
         case ANNOUNCE: check_pass<net_announce_t>(receiver, buffer, realbegin, realsize); break;
         case NOP: check_pass<net_nop_t>(receiver, buffer, realbegin, realsize); break;
         case ACK: check_pass<net_ack_t>(receiver, buffer, realbegin, realsize); break;
         case SHUTTING_DOWN: check_pass<net_shutting_down_t>(receiver, buffer, realbegin, realsize); break;
         case GOODBYE: check_pass<net_goodbye_t>(receiver, buffer, realbegin, realsize); break;
         case GET_CAS: check_pass<net_get_cas_t>(receiver, buffer, realbegin, realsize); break;
-        case SARC: debugf("small msg has SARC code\n"); check_pass<net_sarc_t>(receiver, buffer, realbegin, realsize); break;
+        case SARC: check_pass<net_sarc_t>(receiver, buffer, realbegin, realsize); break;
         case INCR: check_pass<net_incr_t>(receiver, buffer, realbegin, realsize); break;
         case DECR: check_pass<net_decr_t>(receiver, buffer, realbegin, realsize); break;
         case APPEND: check_pass<net_append_t>(receiver, buffer, realbegin, realsize); break;
@@ -131,7 +125,6 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver, buffer, realbegin, realsize); break;
         default: throw protocol_exc_t("invalid message code");
         }
-        rassert(very_current_thread == get_thread_id());
     } else {
         const net_multipart_header_t *multipart_hdr = buffer.get<net_multipart_header_t>(offset);
         uint32_t ident = multipart_hdr->ident;
@@ -173,8 +166,6 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         }
     }
 
-    rassert(current_thread == get_thread_id());
-
     return msgsize;
 }
 
@@ -190,7 +181,6 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
     size_t offset = 0;
     size_t num_read = 0;
 
-    debugf("Setting is_live to true.\n");
     is_live = true;
 
     struct mark_unlive {
@@ -200,10 +190,7 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
 
     marker.p = &is_live;
 
-    int current_thread = get_thread_id();
-
     while (is_live) {
-        rassert(current_thread == get_thread_id());
         // Try handling the message.
         size_t handled = handle_message(receiver, weak_buf_t(shared_buf), offset, num_read, streams);
         if (handled > 0) {
@@ -218,9 +205,7 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
                 shared_buf.swap(new_shared_buf);
             }
 
-            debugf("reading... with num_read = %zu\n", num_read);
             num_read += conn->read_some(shared_buf.get() + offset + num_read, shbuf_size - (offset + num_read));
-            debugf("done read... with num_read = %zu\n", num_read);
         }
     }
 
@@ -254,24 +239,18 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
 }
 
 void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
-    debugf("in parse_messages. is_live is %d\n", is_live);
-
     rassert(!is_live);
 
     coro_t::spawn(boost::bind(&message_parser_t::do_parse_messages, this, conn, receiver));
-
-    debugf("spawned do_parse_messages coroutine\n");
 }
 
 void message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
-    debugf("Calling for shutdown!.. is_live is %s\n", is_live ? "true" : "false");
     if (!is_live) {
         cb->on_parser_shutdown();
     } else {
         shutdown_asked_for = true;
         _cb = cb;
 
-        debugf("Setting is_live to false.\n");
         is_live = false;
     }
 }
@@ -302,11 +281,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         hdr.msgcode = msgcode;
         hdr.msgsize = sizeof(net_header_t) + obsize;
 
-        debugf("writing.\n");
         mutex_acquisition_t ak(&outgoing_mutex_);
         conn_->write(&hdr, sizeof(net_header_t));
         conn_->write(msg, obsize);
-        debugf("wrote msg.\n");
     } else {
         net_multipart_header_t hdr;
         hdr.message_multipart_aspect = FIRST;
@@ -362,6 +339,10 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
 
 void repli_stream_t::send(net_backfill_t *msg) {
     sendobj(BACKFILL, msg);
+}
+
+void repli_stream_t::send(net_backfill_complete_t *msg) {
+    sendobj(BACKFILL_COMPLETE, msg);
 }
 
 void repli_stream_t::send(net_announce_t *msg) {

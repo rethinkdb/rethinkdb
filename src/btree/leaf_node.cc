@@ -171,7 +171,7 @@ void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key
     }
 
     uint16_t new_npairs = median_index;
-    node_buf.set_data(&node->npairs, &new_npairs, sizeof(new_npairs));
+    node_buf.set_data(const_cast<uint16_t *>(&node->npairs), &new_npairs, sizeof(new_npairs));
 
     // TODO: this could be less coarse (if we made leaf::init less coarse).
     impl::initialize_times(node_buf, node->times.last_modified);
@@ -202,14 +202,14 @@ void merge(block_size_t block_size, const leaf_node_t *node, buf_t &rnode_buf, b
     // TODO: this is coarser than it could be.
     impl::initialize_times(rnode_buf, repli_max(node->times.last_modified, rnode->times.last_modified));
 
-    rnode_buf.move_data(rnode->pair_offsets + node->npairs, rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
+    rnode_buf.move_data(const_cast<uint16_t *>(rnode->pair_offsets + node->npairs), rnode->pair_offsets, rnode->npairs * sizeof(*rnode->pair_offsets));
 
     for (int i = 0; i < node->npairs; i++) {
         uint16_t new_offset = impl::insert_pair(rnode_buf, get_pair_by_index(node, i));
-        rnode_buf.set_data(&rnode->pair_offsets[i], &new_offset, sizeof(new_offset));
+        rnode_buf.set_data(const_cast<uint16_t *>(&rnode->pair_offsets[i]), &new_offset, sizeof(new_offset));
     }
     uint16_t new_npairs = rnode->npairs + node->npairs;
-    rnode_buf.set_data(&rnode->npairs, &new_npairs, sizeof(new_npairs));
+    rnode_buf.set_data(const_cast<uint16_t *>(&rnode->npairs), &new_npairs, sizeof(new_npairs));
 
     keycpy(key_to_remove_out, &get_pair_by_index(rnode, 0)->key);
 
@@ -291,10 +291,10 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
         {
             int node_npairs = node->npairs;
             uint16_t new_npairs = node->npairs + index;
-            node_buf.set_data(&node->npairs, &new_npairs, sizeof(new_npairs));
+            node_buf.set_data(const_cast<uint16_t *>(&node->npairs), &new_npairs, sizeof(new_npairs));
             for (int i = 0; i < index; i++) {
                 uint16_t new_offset = impl::insert_pair(node_buf, get_pair_by_index(sibling, i));
-                node_buf.set_data(&node->pair_offsets[node_npairs + i], &new_offset, sizeof(new_offset));
+                node_buf.set_data(const_cast<uint16_t *>(&node->pair_offsets[node_npairs + i]), &new_offset, sizeof(new_offset));
             }
         }
 
@@ -348,12 +348,12 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
         // make sure that we aren't overfilling node.  This is very low priority.
 
         // Copy from the end of the sibling to the beginning of the node.
-        node_buf.move_data(node->pair_offsets + pairs_to_move, node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));
+        node_buf.move_data(const_cast<uint16_t *>(node->pair_offsets + pairs_to_move), node->pair_offsets, node->npairs * sizeof(*node->pair_offsets));
         uint16_t new_npairs = node->npairs + pairs_to_move;
-        node_buf.set_data(&node->npairs, &new_npairs, sizeof(new_npairs));
+        node_buf.set_data(const_cast<uint16_t *>(&node->npairs), &new_npairs, sizeof(new_npairs));
         for (int i = index; i < sibling->npairs; i++) {
             uint16_t new_offset = impl::insert_pair(node_buf, get_pair_by_index(sibling, i));
-            node_buf.set_data(&node->pair_offsets[i-index], &new_offset, sizeof(new_offset));
+            node_buf.set_data(const_cast<uint16_t *>(&node->pair_offsets[i-index]), &new_offset, sizeof(new_offset));
         }
 
         // This is ~(n^2) when it could be ~(n).  Profile.
@@ -582,15 +582,17 @@ int find_key(const leaf_node_t *node, const btree_key_t *key) {
 void delete_offset(buf_t &node_buf, int index) {
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
     const uint16_t *pair_offsets = node->pair_offsets;
-    if (node->npairs > 1)
-        node_buf.move_data(pair_offsets+index, pair_offsets+index+1, (node->npairs-index-1) * sizeof(uint16_t));
+    if (node->npairs > 1) {
+        node_buf.move_data(const_cast<uint16_t *>(pair_offsets+index), pair_offsets+index+1, (node->npairs-index-1) * sizeof(uint16_t));
+    }
     uint16_t npairs = node->npairs - 1;
-    node_buf.set_data(&node->npairs, &npairs, sizeof(npairs));
+    node_buf.set_data(const_cast<uint16_t *>(&node->npairs), &npairs, sizeof(npairs));
 }
 void delete_offset(leaf_node_t *node, int index) {
     uint16_t *pair_offsets = node->pair_offsets;
-    if (node->npairs > 1)
+    if (node->npairs > 1) {
         memmove(pair_offsets+index, pair_offsets+index+1, (node->npairs-index-1) * sizeof(uint16_t));
+    }
     node->npairs--;
 }
 
@@ -611,7 +613,7 @@ void initialize_times(buf_t &node_buf, repli_timestamp current_time) {
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
     leaf_timestamps_t new_times;
     initialize_times(&new_times, current_time);
-    node_buf.set_data(&node->times, &new_times, sizeof(leaf_timestamps_t));
+    node_buf.set_data(const_cast<leaf_timestamps_t *>(&node->times), &new_times, sizeof(leaf_timestamps_t));
 }
 void initialize_times(leaf_timestamps_t *times, repli_timestamp current_time) {
     times->last_modified = current_time;

@@ -102,10 +102,8 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
     cache->assert_thread();
 
     block_id_t block_id = cache->free_list.gen_block_id();
-    debugf("Generated block_id %u\n", block_id);
     mc_inner_buf_t *inner_buf = cache->page_map.find(block_id);
     if (!inner_buf) {
-        debugf("Creating brand spanking new inner_buf for id %u.\n", block_id);
         return new mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp);
     } else {
         // Block with block_id was logically deleted, but its inner_buf survived.
@@ -180,28 +178,21 @@ mc_inner_buf_t::~mc_inner_buf_t() {
 }
 
 void mc_inner_buf_t::replay_patches() {
-    const std::vector<buf_patch_t*>* patches = cache->patch_memory_storage.get_patches(block_id);
     // Remove obsolete patches from diff storage
-    if (patches) {
+    if (cache->patch_memory_storage.has_patches_for_block(block_id)) {
+        // TODO: Perhaps there is a problem if the question of whether
+        // we can call filter_applied_patches depends on whether the
+        // block id is already in the patch_memory_storage.
         cache->patch_memory_storage.filter_applied_patches(block_id, transaction_id);
-        patches = cache->patch_memory_storage.get_patches(block_id);
     }
     // All patches that currently exist must have been materialized out of core...
-    if (patches) {
-        writeback_buf.last_patch_materialized = patches->back()->get_patch_counter();
-    } else {
-        writeback_buf.last_patch_materialized = 0; // Nothing of relevance is materialized (only obsolete patches if any).
-    }
+    writeback_buf.last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id);
 
     // Apply outstanding patches
-    cache->patch_memory_storage.apply_patches(block_id, (char*)data);
+    cache->patch_memory_storage.apply_patches(block_id, reinterpret_cast<char *>(data));
 
     // Set next_patch_counter such that the next patches get values consistent with the existing patches
-    if (patches) {
-        next_patch_counter = patches->back()->get_patch_counter() + 1;
-    } else {
-        next_patch_counter = 1;
-    }
+    next_patch_counter = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id) + 1;
 }
 
 void mc_inner_buf_t::snapshot() {
@@ -252,23 +243,18 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
     patches_affected_data_size_at_start = -1;
 #endif
 
-    //    debugf("In mc_buf_t::mc_buf_t.\n");
 
     // If the top version is less or equal to version_to_access, then we need to acquire
     // a read lock first (otherwise we may get the data of the unfinished write on top).
     if (version_to_access != mc_inner_buf_t::faux_version_id && snapshotted  && version_to_access < inner_buf->version_id) {
-        //        debugf("In mc_buf_t::mc_buf_t (A).\n");
         rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
         inner_buf->refcount++;
         acquire_block(false);
     } else {
-        //        debugf("In mc_buf_t::mc_buf_t (B).\n");
         // the top version is the right one for us
         pm_bufs_acquiring.begin(&start_time);
         inner_buf->refcount++;
-        debugf("Inner buf with block_id %u has state %d\n", inner_buf->block_id, inner_buf->lock.state);
         if (inner_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, this)) {
-            //            debugf("In mc_buf_t::mc_buf_t (C).\n");
             on_lock_available();
         }
     }
@@ -384,6 +370,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
         const size_t MAX_PATCHES_SIZE = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
         if (patch->get_affected_data_size() + inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
             ensure_flush();
+            delete patch;
         } else {
             // Store the patch if the buffer does not have to be flushed anyway
             if (patch->get_patch_counter() == 1) {
@@ -391,12 +378,10 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
                 inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
             }
 
-            inner_buf->cache->patch_memory_storage.store_patch(*patch);
+            // Takes ownership of patch.
+            inner_buf->cache->patch_memory_storage.store_patch(patch);
         }
-    }
-
-
-    if (inner_buf->writeback_buf.needs_flush) {
+    } else {
         delete patch;
     }
 }
@@ -453,28 +438,33 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
     return inner_buf->next_patch_counter++;
 }
 
-void mc_buf_t::set_data(const void* dest, const void* src, const size_t n) {
+// Personally I'd be happier if these functions took offsets.  That's
+// a sort of long-term TODO, though.
+void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
     rassert(data == inner_buf->data);
-    if (n == 0)
+    if (n == 0) {
         return;
+    }
+    // TODO: stop this obnoxious unsigned type usage.
     rassert(dest >= data && (size_t)dest < (size_t)data + inner_buf->cache->get_block_size().value());
     rassert((size_t)dest + n <= (size_t)data + inner_buf->cache->get_block_size().value());
 
     if (inner_buf->writeback_buf.needs_flush) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
-        memcpy(const_cast<void*>(dest), src, n);
+        memcpy(dest, src, n);
     } else {
-        size_t offset = (const char*)dest - (const char*)data;
+        size_t offset = reinterpret_cast<const char *>(dest) - reinterpret_cast<const char *>(data);
         // transaction ID will be set later...
-        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, (const char*)src, n));
+        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, reinterpret_cast<const char *>(src), n));
     }
 }
 
-void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
+void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
     rassert(data == inner_buf->data);
-    if (n == 0)
+    if (n == 0) {
         return;
+    }
     rassert(dest >= data && (size_t)dest < (size_t)data + inner_buf->cache->get_block_size().value());
     rassert((size_t)dest + n <= (size_t)data + inner_buf->cache->get_block_size().value());
     rassert(src >= data && (size_t)src < (size_t)data + inner_buf->cache->get_block_size().value());
@@ -483,10 +473,10 @@ void mc_buf_t::move_data(const void* dest, const void* src, const size_t n) {
     if (inner_buf->writeback_buf.needs_flush) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
-        memmove(const_cast<void*>(dest), src, n);
+        memmove(dest, src, n);
     } else {
-        size_t dest_offset = (const char*)dest - (const char*)data;
-        size_t src_offset = (const char*)src - (const char*)data;
+        size_t dest_offset = reinterpret_cast<const char *>(dest) - reinterpret_cast<const char *>(data);
+        size_t src_offset = reinterpret_cast<const char *>(src) - reinterpret_cast<const char *>(data);
         // transaction ID will be set later...
         apply_patch(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
     }

@@ -48,6 +48,16 @@ typedef io_config_t::tcp_conn_t tcp_conn_t;
 
 typedef io_config_t::thread_message_t thread_message_t;
 
+#ifndef NDEBUG
+inline void assert_good_thread_id(int thread) {
+    rassert(thread >= 0, "(thread = %d)", thread);
+    rassert(thread < thread_pool_t::thread_pool->n_threads, "(thread = %d, n_threads = %d)", thread, thread_pool_t::thread_pool->n_threads);
+}
+#else
+#define assert_good_thread_id(thread) do { } while(0)
+#endif
+
+
 inline int get_thread_id() {
     return io_config_t::get_thread_id();
 }
@@ -60,6 +70,7 @@ inline int get_num_threads() {
 // thread that we are already on, then it returns 'true'; otherwise, it will cause the other
 // thread's event loop to call msg->on_thread_switch().
 inline bool continue_on_thread(int thread, thread_message_t *msg) {
+    assert_good_thread_id(thread);
     return io_config_t::continue_on_thread(thread, msg);
 }
 

@@ -61,6 +61,8 @@ void master_t::sarc(const store_key_t& key, data_provider_t *data, mcflags_t fla
 }
 
 void master_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+
     if (stream_) {
         consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
 
@@ -88,6 +90,8 @@ void master_t::incr_decr_like(UNUSED uint8_t msgcode, UNUSED const store_key_t &
 
 
 void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+
     if (stream_) {
         consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
 
@@ -115,6 +119,8 @@ void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key
 }
 
 void master_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+
     size_t n = sizeof(net_delete_t) + key.size;
     if (stream_) {
         consider_nop_dispatch_and_update_latest_timestamp(timestamp);
@@ -211,13 +217,22 @@ struct do_backfill_cb : public backfill_callback_t {
     void do_done() {
         rassert(get_thread_id() == master->home_thread);
 
-        if (0 == --count) {
+        count = count - 1;
+        debugf("do_done, decrementing count to %d\n", count);
+        if (0 == count) {
             for_when_done->pulse();
         }
     }
 };
 
 void master_t::do_backfill(repli_timestamp since_when) {
+    // TODO: Right now, this tmp_hold means that we will wait until we
+    // have finished backfilling before shutting down.  This is
+    // undesireable behavior.  (Of course, if we simply remove the
+    // tmp_hold, we have an unclean shutdown process.  So we need to
+    // properly implement the shutting down of master.)
+
+    snag_ptr_t<master_t> tmp_hold(*this);
     assert_thread();
     debugf("Somebody called do_backfill(%u)\n", since_when.time);
 
@@ -225,24 +240,30 @@ void master_t::do_backfill(repli_timestamp since_when) {
     cond_t done_cond;
 
     do_backfill_cb cb;
+    debugf("do_backfill_cb, count = %d\n", n);
     cb.count = n;
     cb.master = this;
     cb.for_when_done = &done_cond;
 
     for (int i = 0; i < n; ++i) {
-        debugf("Spawning backfill %d of %d\n", i, n);
         dispatchers_[i]->spawn_backfill(since_when, &cb);
-        debugf("Spawned... %d of %d\n", i, n);
     }
 
     debugf("Done spawning, now waiting for done_cond...\n");
     done_cond.wait();
     debugf("Done backfill.\n");
+    if (stream_) {
+        debugf("Sending backfill_complete...\n");
+        net_backfill_complete_t msg;
+        memset(msg.ignore, 0, sizeof(msg.ignore));
+        stream_->send(&msg);
+        debugf("Sent backfill_complete.\n");
+    } else {
+        debugf("Not sending backfill...\n");
+    }
 }
 
 void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
-    snag_ptr_t<master_t> tmp_hold(*this);
-
     data_provider_t *data = atom.value.release();
 
     if (stream_) {

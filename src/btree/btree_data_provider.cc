@@ -1,10 +1,14 @@
 #include "btree/btree_data_provider.hpp"
 #include "buffer_cache/co_functions.hpp"
 
-small_value_data_provider_t::small_value_data_provider_t(const btree_value *value) : value(), buffers() {
-    rassert(!value->is_large());
-    const byte *data = ptr_cast<byte>(value->value());
-    this->value.assign(data, data + value->value_size());
+// Pulses the acquisition_cond once we no longer use the btree_value pointer.
+small_value_data_provider_t::small_value_data_provider_t(const btree_value *_value, cond_t *acquisition_cond) : value(), buffers() {
+    rassert(!_value->is_large());
+    const byte *data = ptr_cast<byte>(_value->value());
+    value.assign(data, data + _value->value_size());
+    if (acquisition_cond) {
+        acquisition_cond->pulse();
+    }
 }
 
 size_t small_value_data_provider_t::get_size() const {
@@ -32,8 +36,9 @@ const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() t
     rassert(buffers.num_buffers() == 0);
     rassert(!large_value);
 
+    thread_saver_t saver;
     large_value.reset(new large_buf_t(transactor, &lb_ref, btree_value::lbref_limit, rwi_read));
-    co_acquire_large_buf(large_value.get(), acquisition_cond);
+    co_acquire_large_buf(saver, large_value.get(), acquisition_cond);
 
     rassert(large_value->state == large_buf_t::loaded);
 
@@ -42,10 +47,12 @@ const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() t
 }
 
 value_data_provider_t *value_data_provider_t::create(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor, cond_t *acquisition_cond) {
-    if (value->is_large())
+    if (value->is_large()) {
         return new large_value_data_provider_t(value, transactor, acquisition_cond);
-    else
-        return new small_value_data_provider_t(value);
+    }
+    else {
+        return new small_value_data_provider_t(value, acquisition_cond);
+    }
 }
 
 

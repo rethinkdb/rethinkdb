@@ -42,7 +42,7 @@ public:
     patch_disk_storage_t(mc_cache_t &cache, block_id_t start_id);
     ~patch_disk_storage_t();
 
-        void shutdown();
+    void shutdown();
 
     // Loads on-disk data into memory
     void load_patches(patch_memory_storage_t &in_memory_storage);
@@ -80,7 +80,8 @@ private:
 
     unsigned int waiting_for_clear;
 
-    mc_cache_t &cache;
+    // TODO: A reference?  This can confuse readers.
+    mc_cache_t& cache;
     block_id_t first_block;
     block_id_t number_of_blocks;
     std::vector<bool> block_is_empty;
