@@ -34,6 +34,9 @@ def test_function(opts, port, test_dir):
     
     start = time.time()
     print "Get time"
+
+    s.send("set foo 0 0 3\r\nbar\r\n")
+    s.recv(len("STORED\r\n"))
     
     #pipeline some gets
     command_string = ''
@@ -104,4 +107,4 @@ if __name__ == "__main__":
     op["chunk_size"] = IntFlag("--chunk-size", 10)
     op["num_ints"] = IntFlag("--num-ints", 1000)
     op["num_chunks"] = IntFlag("--num-chunks", 50)
-    auto_server_test_main(test_function, op.parse(sys.argv), timeout = 300)
+    auto_server_test_main(test_function, op.parse(sys.argv), timeout = op.parse(sys.argv)["num_ints"] * 0.03)

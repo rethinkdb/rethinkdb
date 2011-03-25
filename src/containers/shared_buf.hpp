@@ -128,6 +128,8 @@ public:
 
     T *get() { return buf_.get<T>(offset_); }
 
+    T *operator->() { return get(); }
+
     void release();
 
 private:

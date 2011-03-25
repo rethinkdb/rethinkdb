@@ -3,7 +3,7 @@
 
 #include "arch/arch.hpp"
 
-struct multi_wait_t {
+class multi_wait_t {
 
 private:
     coro_t *waiter;

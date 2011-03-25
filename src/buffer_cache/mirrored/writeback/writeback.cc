@@ -87,6 +87,9 @@ writeback_t::writeback_t(
       force_patch_storage_flush(false),
       cache(cache),
       start_next_sync_immediately(false) {
+
+    rassert(max_dirty_blocks >= 10); // sanity check: you really don't want to have less than this.
+                                     // 10 is rather arbitrary.
 }
 
 writeback_t::~writeback_t() {
@@ -314,8 +317,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     bool saved_shutting_down = parent->cache->shutting_down;
     parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
 
-    // TODO: Is repli_timestamp::invalid the right thing here?
-    // TODO: Put a rationale in the comments here.
+    // It's a read transaction, that's why we use repli_timestamp::invalid.
     transaction = parent->cache->begin_transaction(rwi_read, 0, repli_timestamp::invalid, NULL);
     parent->cache->shutting_down = saved_shutting_down;
     rassert(transaction != NULL); // Read txns always start immediately.
@@ -501,7 +503,10 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
             NULL
             ));
 
-        parent->cache->free_list.release_block_id(parent->deleted_blocks[i].block_id);
+        block_id_t id = parent->deleted_blocks[i].block_id;
+        parent->cache->free_list.release_block_id(id);
+        debugf("Releasing block id %u\n", id);
+        print_backtrace();
     }
     parent->deleted_blocks.clear();
 
@@ -557,8 +562,11 @@ bool writeback_t::concurrent_flush_t::do_write() {
             parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this, this);
 
     if (continue_instantly) {
-        // The order matters! We rely on the message hub to call stuff in the same order in which we submit it.
-        do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_block_sequence_ids, this));
+        // the tid_callback gets called even if do_write returns true...
+        if (serializer_writes.empty()) {
+            do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_block_sequence_ids, this));
+        }
+
         do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_cleanup, this));
     }
 

@@ -51,14 +51,17 @@ public:
 
 void co_lock_mutex(mutex_t *mutex);
 
-struct mutex_acquisition_t {
-    mutex_t *lock;
-    mutex_acquisition_t(mutex_t *lock) : lock(lock) {
-        co_lock_mutex(lock);
+class mutex_acquisition_t {
+public:
+    mutex_acquisition_t(mutex_t *lock) : lock_(lock) {
+        co_lock_mutex(lock_);
     }
     ~mutex_acquisition_t() {
-        lock->unlock();
+        lock_->unlock();
     }
+private:
+    mutex_t *lock_;
+    DISABLE_COPYING(mutex_acquisition_t);
 };
 
 

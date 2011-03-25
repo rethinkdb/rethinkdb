@@ -1,6 +1,8 @@
 
 LIBS = -lpthread -ldl 
-SRC = main.cc utils.cc random.cc sqlite3.c
+# Do not include main.cc or python_interface.cc in SRC
+SRC = utils.cc random.cc protocol.cc sqlite3.c
+HEADERS = $(wildcard *.hpp)
 
 MYSQL ?= 1
 LIBMEMCACHED ?= 1
@@ -24,13 +26,21 @@ ifeq ($(LIBGSL),1)
 endif
 
 EXEC_NAME = stress
+SO_NAME = libstress.so
 CXX = g++
-CXXFLAGS = -g $(INCLUDE) $(DEFINES) # -O3
+CFLAGS = -fPIC
+CXXFLAGS = -g $(INCLUDE) $(DEFINES) -fPIC # -O3
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
-build: $(OBJ)
-	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) -lm -lrt $(TLIB) $(LIBS)
+%.o: %.cc $(HEADERS)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(EXEC_NAME): $(OBJ) main.o $(HEADERS)
+	$(CXX) $(CXXFLAGS) -o $(EXEC_NAME) $(OBJ) main.o -lm -lrt $(TLIB) $(LIBS)
+
+$(SO_NAME): $(OBJ) python_interface.o $(HEADERS) python_interface.h
+	$(CXX) $(CXXFLAGS) -shared -o $(SO_NAME) $(OBJ) python_interface.o -lm -lrt $(TLIB) $(LIBS)
 
 clean:
 	rm -f *~

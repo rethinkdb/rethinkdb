@@ -259,12 +259,13 @@ class Server(object):
     # Server should not take more than %(server_start_time)d seconds to start up
     server_start_time = 60 * ec2
     
-    def __init__(self, opts, test_dir, name = "server", extra_flags = [], data_files = None):
+    def __init__(self, opts, test_dir, name = "server", extra_flags = [], data_files = None, replicate_from = None):
         self.running = False
         self.opts = opts
         self.base_name = name
         self.extra_flags = extra_flags
         self.test_dir = test_dir
+        self.replicate_from = replicate_from
         
         if self.opts["database"] == "rethinkdb":
             self.executable_path = get_executable_path(self.opts, "rethinkdb")
@@ -300,7 +301,7 @@ class Server(object):
         # Start the server
         assert self.server is None
         self.server = SubProcess(
-            command_line,
+            command_line + (["--slave-of", "%s:%d" % self.replicate_from] if self.replicate_from else []),
             "%s_output.txt" % self.name.replace(" ","_"),
             self.test_dir,
             valgrind_tool = (None if not self.opts["valgrind"] else self.opts["valgrind-tool"]),
@@ -365,6 +366,19 @@ class Server(object):
         if self.opts["netrecord"]: self.nrc.stop()
         print "Killed %s." % self.name
         if self.opts["fsck"]: self.data_files.fsck()
+
+#A forked memcache wrapper invisibly sends
+class ForkedMemcachedWrapper(object):
+    def __init__(self, opts, server, internal_mc_maker, replica_mc_maker, test_dir):
+        self.opts = opts
+        self.server = server
+        self.internal_mc_maker = internal_mc_maker
+        self.internal_mc = self.internal_mc_maker()
+        self.replica_mc_maker = replica_mc_maker
+        self.replica_mcs = replica_mc_maker() #should be a list of mcs
+        self.test_dir = test_dir
+    def __getattr__(self, name):
+        return getattr(random.choice([self.internal_mc] + replica_mcs), name)
 
 class MemcachedWrapperThatRestartsServer(object):
     def __init__(self, opts, server, internal_mc_maker, test_dir):
@@ -542,3 +556,43 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
     
     sys.exit(0)
 
+def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], test_dir=TestDir()):
+    import pdb
+    #pdb.set_trace()
+    try:
+        if opts["auto"]:
+            repli_port = find_unused_port()
+            server = Server(opts, extra_flags=extra_flags + ["--master-port", "%d" % repli_port], test_dir=test_dir)
+            server.start()
+            
+            repli_server = Server(opts, extra_flags=extra_flags, test_dir=test_dir, replicate_from = ('localhost', repli_port))
+            repli_server.start()
+
+            stat_checker = start_stats(opts, server.port)
+
+            mc = connect_to_server(opts, server, test_dir=test_dir)
+            repli_mc = connect_to_server(opts, server, test_dir=test_dir)
+            try:
+                run_with_timeout(test_function, args=(opts,mc,repli_mc), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
+            except Exception, e:
+                test_failure = e
+            else:
+                test_failure = None
+            mc.disconnect_all()
+            repli_mc.disconnect_all()
+            
+            if stat_checker:
+                stat_checker.stop()
+
+            if server.running: server.shutdown()
+            if repli_server.running: repli_server.shutdown()
+    
+            if test_failure: raise test_failure
+
+    except ValueError, e:
+        # Handle ValueError explicitly to give nicer error output
+        print ""
+        print "[FAILURE]Value Error: %s[/FAILURE]" % e
+        sys.exit(1)
+    
+    sys.exit(0)

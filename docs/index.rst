@@ -398,14 +398,16 @@ ignore the corrupted parts of the database file.
 Replication and Failover
 ------------------------
 
-RethinkDB can be run as a slave of another RethinkDB server. Slaves will
-be kept in a consistent state with the master and will only respond to read
-commands as long as the master remains up. On master failure the slave will
-switch to responding to all commands until the master is brought back up and
-caught up on the slave's changes. The following command runs starts a slave
-of a master listening for slaves at ``host:port``::
+RethinkDB servers can be run master-slave configuration. Slaves will be kept in
+a consistent state with the master and will only respond to read commands as
+long as the master remains up. On master failure the slave will switch to
+responding to all commands until the master is brought back up and caught up on
+the slave's changes. The following commands start a slave and a master.::
 
+  $ rethinkdb serve --master-port port
   $ rethinkdb serve --slave-of host:port
+
+RethinkDB can be configured to run a script on failure
 
 ``````````
 Amazon ELB

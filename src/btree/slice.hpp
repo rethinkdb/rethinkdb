@@ -39,10 +39,12 @@ public:
 
     mutation_result_t change(const mutation_t &m, castime_t castime);
 
+    void time_barrier(repli_timestamp lower_bound_on_future_timestamps);
+
     /* backfilling interface */
     void spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback);
 
-    /* For internal use */
+    // TODO: Why does this return by reference?
     cache_t& cache() { return cache_; }
 
 private:

@@ -10,6 +10,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         try {
+            debugf("append_prepend operate...\n");
             if (!old_value) {
                 result = apr_not_found;
                 return false;
@@ -52,7 +53,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
             } else {
                 // Prepare the large value if necessary.
                 if (!old_value->is_large()) { // small -> large; allocate a new large value and copy existing value into it.
-                    large_buflock.reset(new large_buf_t(txor->transaction(), value.lb_ref(), btree_value::lbref_limit, rwi_write));
+                    large_buflock.reset(new large_buf_t(txor, value.lb_ref(), btree_value::lbref_limit, rwi_write));
                     large_buflock->allocate(new_size);
                     if (append) large_buflock->fill_at(0, old_value->value(), old_value->value_size());
                     else        large_buflock->fill_at(data->get_size(), old_value->value(), old_value->value_size());
@@ -63,6 +64,9 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                     large_buflock->HACK_root_ref(value.lb_ref());
                     int refsize_adjustment;
 
+                    debugf("append_prepend operate about to do work...\n");
+
+
                     if (append) {
                         // TIED large_buflock TO value.
                         large_buflock->append(data->get_size(), &refsize_adjustment);
@@ -70,6 +74,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                     else {
                         large_buflock->prepend(data->get_size(), &refsize_adjustment);
                     }
+                    debugf("append_prepend operate did work.\n");
 
                     value.size += refsize_adjustment;
                     is_old_large_value = true;
@@ -102,8 +107,10 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                             large_buflock->unappend(data->get_size(), &refsize_adjustment);
                         }
                         else {
+                            debugf("Start unprepend...\n");
                             // TIED large_buflock TO value
                             large_buflock->unprepend(data->get_size(), &refsize_adjustment);
+                            debugf("Finish unprepend.\n");
                         }
                         value.size += refsize_adjustment;
                     } else {
