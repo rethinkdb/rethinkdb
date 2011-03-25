@@ -230,13 +230,13 @@ void *log_serializer_t::malloc() {
     // free). This is tough because serializer object may not be on
     // the same core as the cache that's using it, so we should expose
     // the malloc object in a different way.
-    char *data = (char *)malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE);
+    char *data = reinterpret_cast<char *>(malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE));
 
     // Initialize the transaction id...
-    ((buf_data_t*)data)->transaction_id = NULL_SER_TRANSACTION_ID;
+    reinterpret_cast<buf_data_t *>(data)->transaction_id = NULL_SER_TRANSACTION_ID;
 
     data += sizeof(buf_data_t);
-    return (void *)data;
+    return reinterpret_cast<void *>(data);
 }
 
 void *log_serializer_t::clone(void *_data) {
@@ -247,18 +247,18 @@ void *log_serializer_t::clone(void *_data) {
     // free). This is tough because serializer object may not be on
     // the same core as the cache that's using it, so we should expose
     // the malloc object in a different way.
-    char *data = (char *)malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE);
-    memcpy(data, (char *)_data - sizeof(buf_data_t), static_config.block_size().ser_value());
+    char *data = reinterpret_cast<char *>(malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE));
+    memcpy(data, reinterpret_cast<char *>(_data) - sizeof(buf_data_t), static_config.block_size().ser_value());
     data += sizeof(buf_data_t);
-    return (void *)data;
+    return data;
 }
 
 void log_serializer_t::free(void *ptr) {
     rassert(state == state_ready || state == state_shutting_down);
     
-    char *data = (char *)ptr;
+    char *data = reinterpret_cast<char *>(ptr);
     data -= sizeof(buf_data_t);
-    ::free((void *)data);
+    ::free(reinterpret_cast<void *>(data));
 }
 
 /* Each transaction written is handled by a new ls_write_fsm_t instance. This is so that
@@ -704,7 +704,7 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback
 // implementation. The interface should be ok even for serializers which don't
 // have a transaction id in buf.
 ser_transaction_id_t log_serializer_t::get_current_transaction_id(UNUSED ser_block_id_t block_id, const void* buf) {
-    buf_data_t *ser_data = (buf_data_t*)buf;
+    const buf_data_t *ser_data = reinterpret_cast<const buf_data_t *>(buf);
     ser_data--;
     rassert(block_id == ser_data->block_id);
     return ser_data->transaction_id;

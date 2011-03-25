@@ -184,7 +184,7 @@ void log_disk_info(std::vector<log_serializer_private_dynamic_config_t> const &s
     }
 
 
-    char *buf = (char *) calloc(1024, sizeof(char));
+    char *buf = reinterpret_cast<char *>(calloc(1024, sizeof(char)));
     FILE *stream;
     size_t total_bytes = 0;
     size_t nbytes = 0;
