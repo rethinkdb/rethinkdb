@@ -67,6 +67,7 @@ private:
     patch_counter_t next_patch_counter;
     bool dirty;
     std::vector<char> data;
+    DISABLE_COPYING(test_buf_t);
 };
 
 }  // namespace unittest
