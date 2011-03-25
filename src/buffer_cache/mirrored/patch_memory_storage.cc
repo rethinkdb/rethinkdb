@@ -14,7 +14,7 @@ void patch_memory_storage_t::load_block_patch_list(const block_id_t block_id, co
     // Verify patches list
     ser_transaction_id_t previous_transaction = 0;
     patch_counter_t previous_patch_counter = 0;
-    for(std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
+    for (std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
         if ((*p)->get_transaction_id() != previous_transaction) {
             rassert((*p)->get_transaction_id() > previous_transaction, "Non-sequential patch list: Transaction id %ll follows %ll", (*p)->get_transaction_id(), previous_transaction);
         }
@@ -29,7 +29,7 @@ void patch_memory_storage_t::load_block_patch_list(const block_id_t block_id, co
     patch_map[block_id].assign(patches.begin(), patches.end());
     patch_map[block_id].affected_data_size = 0;
 
-    for(std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
+    for (std::list<buf_patch_t*>::const_iterator p = patches.begin(); p != patches.end(); ++p) {
         patch_map[block_id].affected_data_size += (*p)->get_affected_data_size();
     }
 }

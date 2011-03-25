@@ -257,7 +257,7 @@ public:
                         err = patch_transaction_id_mismatch;
                         return false;
                     }
-                    (*patch)->apply_to_buf((char*)buf);
+                    (*patch)->apply_to_buf(reinterpret_cast<char *>(buf));
                 }
             }
         }
@@ -685,11 +685,12 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
 
             const void *buf_data = b.buf;
 
-            if (strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
+            if (strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
                 uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cx.block_size().value()) {
                     // TODO: Catch guarantees in load_patch instead of failing instantly
-                    buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
+                    buf_patch_t *patch;
+                    buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset, &patch);
                     if (!patch) {
                         break;
                     }

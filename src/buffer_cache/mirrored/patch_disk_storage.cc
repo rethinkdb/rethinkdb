@@ -114,7 +114,7 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
     if (number_of_blocks == 0)
         return;
 
-    std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
+    std::map<block_id_t, std::list<buf_patch_t *> > patch_map;
 
     // Scan through all log blocks, build a map block_id -> patch list
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
@@ -123,27 +123,31 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
         guarantee(strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
         uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
         while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
-            buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
-            if (!patch) {
+            buf_patch_t *patch_or_no_remaining_length;
+            buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset, &patch_or_no_remaining_length);
+            if (!patch_or_no_remaining_length) {
                 break;
             }
-            else {
-                current_offset += patch->get_serialized_size();
-                // Only store the patch if the corresponding block still exists
-                // (otherwise we'd get problems when flushing the log, as deleted blocks would cause an error)
-                rassert(get_thread_id() == cache.home_thread);
-                coro_t::move_to_thread(cache.serializer->home_thread);
-                bool block_in_use = cache.serializer->block_in_use(patch->get_block_id());
-                coro_t::move_to_thread(cache.home_thread);
-                if (block_in_use)
-                    patch_map[patch->get_block_id()].push_back(patch);
-                else
-                    delete patch;
+
+            buf_patch_t *patch = patch_or_no_remaining_length;
+
+            current_offset += patch->get_serialized_size();
+            // Only store the patch if the corresponding block still exists
+            // (otherwise we'd get problems when flushing the log, as deleted blocks would cause an error)
+            rassert(get_thread_id() == cache.home_thread);
+            coro_t::move_to_thread(cache.serializer->home_thread);
+            bool block_in_use = cache.serializer->block_in_use(patch->get_block_id());
+            coro_t::move_to_thread(cache.home_thread);
+            if (block_in_use) {
+                std::list<buf_patch_t *>& thelist = patch_map[patch->get_block_id()];
+                thelist.push_back(patch);
+            } else {
+                delete patch;
             }
         }
     }
 
-    for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = patch_map.begin(); patch_list != patch_map.end(); ++patch_list) {
+    for (std::map<block_id_t, std::list<buf_patch_t *> >::iterator patch_list = patch_map.begin(); patch_list != patch_map.end(); ++patch_list) {
         // Sort the list to get patches in the right order
         patch_list->second.sort(dereferencing_compare_t<buf_patch_t>());
 
@@ -292,22 +296,24 @@ void patch_disk_storage_t::compress_block(const block_id_t log_block_id) {
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
     bool log_block_changed = false;
     while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
-        buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<char *>(buf_data) + current_offset);
-        if (!patch) {
+        buf_patch_t *patch_or_no_remaining_length;
+        buf_patch_t::load_patch(reinterpret_cast<char *>(buf_data) + current_offset, &patch_or_no_remaining_length);
+        if (!patch_or_no_remaining_length) {
             break;
         }
-        else {
-            current_offset += patch->get_serialized_size();
 
-            // We want to preserve this patch iff it is >= the oldest patch that we have in the in-core storage
-            const std::vector<buf_patch_t*>* patches = cache.patch_memory_storage.get_patches(patch->get_block_id());
-            rassert(!patches || patches->size() > 0);
-            if (patches && !(*patch < *patches->front()))
-                live_patches.push_back(patch);
-            else {
-                delete patch;
-                log_block_changed = true;
-            }
+        buf_patch_t *patch = patch_or_no_remaining_length;
+
+        current_offset += patch->get_serialized_size();
+
+        // We want to preserve this patch iff it is >= the oldest patch that we have in the in-core storage
+        const std::vector<buf_patch_t*>* patches = cache.patch_memory_storage.get_patches(patch->get_block_id());
+        rassert(!patches || patches->size() > 0);
+        if (patches && !(*patch < *patches->front()))
+            live_patches.push_back(patch);
+        else {
+            delete patch;
+            log_block_changed = true;
         }
     }
 
@@ -350,32 +356,34 @@ void patch_disk_storage_t::clear_block(const block_id_t log_block_id, coro_t* no
     guarantee(strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
     while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
-        buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
-        if (!patch) {
+        buf_patch_t *patch_or_no_remaining_length;
+        buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset, &patch_or_no_remaining_length);
+        if (!patch_or_no_remaining_length) {
             break;
         }
-        else {
-            current_offset += patch->get_serialized_size();
 
-            // For each patch, acquire the affected block and call ensure_flush()
-            // We have to do this only if there is any potentially applicable patch in the in-core storage...
-            // (Note: we rely on the fact that deleted blocks never show up in the in-core diff storage)
+        buf_patch_t *patch = patch_or_no_remaining_length;
+
+        current_offset += patch->get_serialized_size();
+
+        // For each patch, acquire the affected block and call ensure_flush()
+        // We have to do this only if there is any potentially applicable patch in the in-core storage...
+        // (Note: we rely on the fact that deleted blocks never show up in the in-core diff storage)
+        if (cache.patch_memory_storage.get_patches(patch->get_block_id())) {
+            // We never have to lock the buffer, as we neither really read nor write any data
+            // We just have to make sure that the buffer cache loads the block into memory
+            // and then make writeback write it back in the next flush
+            mc_buf_t *data_buf = acquire_block_no_locking(patch->get_block_id());
+            // Check in-core storage again, now that the block has been acquired (old patches might have been evicted from it by doing so)
             if (cache.patch_memory_storage.get_patches(patch->get_block_id())) {
-                // We never have to lock the buffer, as we neither really read nor write any data
-                // We just have to make sure that the buffer cache loads the block into memory
-                // and then make writeback write it back in the next flush
-                mc_buf_t *data_buf = acquire_block_no_locking(patch->get_block_id());
-                // Check in-core storage again, now that the block has been acquired (old patches might have been evicted from it by doing so)
-                if (cache.patch_memory_storage.get_patches(patch->get_block_id())) {
-                    data_buf->ensure_flush();
-                }
-
-                data_buf->release();
+                data_buf->ensure_flush();
             }
 
-            delete patch;
+            data_buf->release();
         }
-    }
+
+        delete patch;
+    } // 
 
     // Wipe the log block
     init_log_block(log_block_id);

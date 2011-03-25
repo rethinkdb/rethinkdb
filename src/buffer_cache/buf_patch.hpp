@@ -32,11 +32,9 @@ class buf_patch_t {
 public:
     virtual ~buf_patch_t() { }
 
-    // Unserializes a patch an returns a buf_patch_t object
+    // Unserializes a patch and returns a buf_patch_t object
     // If *(uint16_t*)source is 0, it returns NULL
-    //
-    // TODO: This allocates a patch, which you have to manually delete it.  Fix it.
-    static buf_patch_t* load_patch(const char* source);
+    static void load_patch(const char* source, buf_patch_t **patch_out);
 
     // Serializes the patch to the given destination address
     void serialize(char* destination) const;

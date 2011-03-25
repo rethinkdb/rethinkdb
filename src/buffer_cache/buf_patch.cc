@@ -6,11 +6,11 @@
 #include <string.h>
 #include "errors.hpp"
 
-buf_patch_t* buf_patch_t::load_patch(const char* source) {
+void buf_patch_t::load_patch(const char* source, buf_patch_t **patch_out) {
     uint16_t remaining_length = *reinterpret_cast<const uint16_t *>(source);
     source += sizeof(remaining_length);
     if (remaining_length == 0) {
-        return NULL;
+        *patch_out = NULL;
     }
     remaining_length -= sizeof(remaining_length);
     guarantee(remaining_length >= sizeof(block_id) + sizeof(patch_counter) + sizeof(operation_code));
@@ -27,26 +27,33 @@ buf_patch_t* buf_patch_t::load_patch(const char* source) {
     source += sizeof(operation_code);
     remaining_length -= sizeof(operation_code);
 
-    buf_patch_t* result = NULL;
+    buf_patch_t *result = NULL;
     switch (operation_code) {
-        case (OPER_MEMCPY):
-            result = new memcpy_patch_t(block_id, patch_counter, source, remaining_length); break;
-        case (OPER_MEMMOVE):
-            result = new memmove_patch_t(block_id, patch_counter, source, remaining_length); break;
-        case (OPER_LEAF_SHIFT_PAIRS):
-            result = new leaf_shift_pairs_patch_t(block_id, patch_counter, source, remaining_length); break;
-        case (OPER_LEAF_INSERT_PAIR):
-            result = new leaf_insert_pair_patch_t(block_id, patch_counter, source, remaining_length); break;
-        case (OPER_LEAF_INSERT):
-            result = new leaf_insert_patch_t(block_id, patch_counter, source, remaining_length); break;
-        case (OPER_LEAF_REMOVE):
-            result = new leaf_remove_patch_t(block_id, patch_counter, source, remaining_length); break;
+        case OPER_MEMCPY:
+            result = new memcpy_patch_t(block_id, patch_counter, source, remaining_length);
+            break;
+        case OPER_MEMMOVE:
+            result = new memmove_patch_t(block_id, patch_counter, source, remaining_length);
+            break;
+        case OPER_LEAF_SHIFT_PAIRS:
+            result = new leaf_shift_pairs_patch_t(block_id, patch_counter, source, remaining_length);
+            break;
+        case OPER_LEAF_INSERT_PAIR:
+            result = new leaf_insert_pair_patch_t(block_id, patch_counter, source, remaining_length);
+            break;
+        case OPER_LEAF_INSERT:
+            result = new leaf_insert_patch_t(block_id, patch_counter, source, remaining_length);
+            break;
+        case OPER_LEAF_REMOVE:
+            result = new leaf_remove_patch_t(block_id, patch_counter, source, remaining_length);
+            break;
         default:
             guarantee(false, "Unsupported patch operation code");
-            return NULL;
+            return;
     }
     result->set_transaction_id(applies_to_transaction_id);
-    return result;
+
+    *patch_out = result;
 }
 
 void buf_patch_t::serialize(char* destination) const {

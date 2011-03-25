@@ -211,15 +211,16 @@ void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, non
                 int num_patches = 0;
                 uint16_t current_offset = 6; //sizeof(LOG_BLOCK_MAGIC);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(buf_data_t)) {
-                    buf_patch_t *patch = buf_patch_t::load_patch((char*)data + current_offset);
-                    if (!patch) {
+                    buf_patch_t *patch_or_no_remaining_length;
+                    buf_patch_t::load_patch((char*)data + current_offset, &patch_or_no_remaining_length);
+                    if (!patch_or_no_remaining_length) {
                         break;
                     }
-                    else {
-                        current_offset += patch->get_serialized_size();
-                        buf_patches[patch->get_block_id()].push_back(patch);
-                        ++num_patches;
-                    }
+                    buf_patch_t *patch = patch_or_no_remaining_length;
+
+                    current_offset += patch->get_serialized_size();
+                    buf_patches[patch->get_block_id()].push_back(patch);
+                    ++num_patches;
                 }
 
                 if (num_patches > 0) {
