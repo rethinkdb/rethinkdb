@@ -86,7 +86,7 @@ public:
     public:
         virtual ~read_ahead_callback_t() { }
         /* The callee must take care of freeing buf by calling free(buf) */
-        virtual void offer_read_ahead_buf(block_id_t block_id, void *buf) = 0;
+        virtual void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) = 0;
     };
     void register_read_ahead_cb(read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
@@ -160,7 +160,7 @@ public:
     repli_timestamp get_recency(block_id_t id);
 
 public:
-    bool offer_read_ahead_buf(ser_block_id_t block_id, void *buf);
+    bool offer_read_ahead_buf(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
 };
 
 #endif /* __SERIALIZER_TRANSLATOR_HPP__ */

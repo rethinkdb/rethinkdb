@@ -282,7 +282,9 @@ repli_timestamp translator_serializer_t::get_recency(block_id_t id) {
     return inner->get_recency(xlate(id));
 }
 
-bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void *buf) {
+bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+    inner->assert_thread();
+
     // Offer the buffer if we are the correct shard
     const int buf_mod_id = untranslate_block_id_to_mod_id(block_id, mod_count, cfgid);
     if (buf_mod_id != this->mod_id) {
@@ -292,7 +294,7 @@ bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void
 
     if (read_ahead_callback) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
-        read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf);
+        read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, recency_timestamp);
     } else {
         // Discard the buffer
         inner->free(buf);
@@ -301,11 +303,15 @@ bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void
 }
 
 void translator_serializer_t::register_read_ahead_cb(translator_serializer_t::read_ahead_callback_t *cb) {
+    on_thread_t t(inner->home_thread);
+
     rassert(!read_ahead_callback);
     inner->register_read_ahead_cb(this);
     read_ahead_callback = cb;
 }
 void translator_serializer_t::unregister_read_ahead_cb(UNUSED translator_serializer_t::read_ahead_callback_t *cb) {
+    on_thread_t t(inner->home_thread);
+
     rassert(read_ahead_callback == NULL || cb == read_ahead_callback);
     inner->unregister_read_ahead_cb(this);
     read_ahead_callback = NULL;

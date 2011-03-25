@@ -90,14 +90,6 @@ class mc_inner_buf_t : public home_thread_mixin_t {
 
     // Load an existing buf but use the provided data buffer (for read
     // ahead)
-    //
-    // TODO: Can we really pass the recency_timestamp here?  If
-    // we have the buf, we probably got it from the serializer, right?
-    // That means we could have gotten the recency_timestamp then, too
-    // (instead of doing a cross-thread message now).
-    //
-    // TODO: I don't know, it seems to me like this "for read ahead"
-    // rationale is fishy.
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
 
     // Create an entirely new buf
@@ -401,9 +393,9 @@ private:
     unsigned int max_patches_size_ratio;
 
 public:
-    void offer_read_ahead_buf(block_id_t block_id, void *buf);
+    void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
 private:
-    bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf);
+    bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
 
     typedef std::map<mc_inner_buf_t::version_id_t, mc_transaction_t*> snapshots_map_t;
     snapshots_map_t active_snapshots;

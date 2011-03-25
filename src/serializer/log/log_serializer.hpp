@@ -110,7 +110,7 @@ public:
 
 private:
     std::vector<read_ahead_callback_t*> read_ahead_callbacks;
-    bool offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf);
+    bool offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool should_perform_read_ahead();
 
     /* Called by the data block manager when it wants us to rewrite some blocks */
