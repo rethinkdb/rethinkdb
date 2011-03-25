@@ -377,7 +377,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
                 inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
             }
 
-            inner_buf->cache->patch_memory_storage.store_patch(*patch);
+            inner_buf->cache->patch_memory_storage.store_patch(patch);
         }
     }
 

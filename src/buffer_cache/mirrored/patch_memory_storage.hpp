@@ -68,10 +68,8 @@ public:
     // Returns true iff any changes have been made to the buf
     bool apply_patches(block_id_t block_id, char *buf_data) const;
 
-    // TODO: WTF IS THIS SHIT
-    inline void store_patch(buf_patch_t& patch) {
-        const block_id_t block_id = patch.get_block_id();
-        patch_map[block_id].add_patch(&patch);
+    inline void store_patch(buf_patch_t *patch) {
+        patch_map[patch->get_block_id()].add_patch(patch);
     }
 
     bool has_patches_for_block(block_id_t block_id) const;
