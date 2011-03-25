@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import optparse, time, sys
+import optparse, time, sys, random
 
 documentation = """
 The rget-mix workload cannot be expressed using the normal stress client, because it
@@ -12,6 +12,8 @@ the other parts of the workload are hard-coded."""
 parser = optparse.OptionParser(description = documentation)
 parser.add_option("-c", "--clients", dest="clients", type="int", default=64,
     help="How many concurrent connections to make.", metavar="N")
+parser.add_option("--client-suffix", dest="client_suffix", action="store_true", default=False,
+    help="For compatibility with the stress client. Ignored.")
 parser.add_option("-d", "--duration", dest="duration", default="10s",
     help="How long to run the test for. Should be a number with an 'i', 'q', or 's' after it "
     "to indicate that the duration is in inserts, queries, or seconds.", metavar="DURATION")
@@ -76,8 +78,12 @@ class RgetMixClient(object):
         self.client = stress.Client(i, options.clients, keys)
         self.connection = stress.Connection(options.servers[i % len(options.servers)])
         self.insert_op = stress.InsertOp(self.client, self.connection, insert_freq, values)
-        self.small_rget_op = stress.RangeReadOp(self.client, self.connection, small_rget_freq, small_rget_size)
-        self.large_rget_op = stress.RangeReadOp(self.client, self.connection, large_rget_freq, large_rget_size)
+        # Temporary workaround so we can test this script even though the server crashes on
+        # rgets.
+        # self.small_rget_op = stress.RangeReadOp(self.client, self.connection, small_rget_freq, small_rget_size)
+        # self.large_rget_op = stress.RangeReadOp(self.client, self.connection, large_rget_freq, large_rget_size)
+        self.small_rget_op = stress.InsertOp(self.client, self.connection, insert_freq, values)
+        self.large_rget_op = stress.InsertOp(self.client, self.connection, insert_freq, values)
     def poll_and_reset(self):
         self.client.lock()
         queries = 0
@@ -128,7 +134,7 @@ while True:
         qps_file.write("%d\t%d\n" % (total_time, round_queries))
     if latencies_file:
         # Choose 20 (or less) latency samples to write
-        sample = random.sample(round_latencies, max(20, len(round_latencies)))
+        samples = random.sample(round_latencies, min(20, len(round_latencies)))
         for sample in samples:
             latencies_file.write("%d\t%f\n" % (total_time, sample))
 

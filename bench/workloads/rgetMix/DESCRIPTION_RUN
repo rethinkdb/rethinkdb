@@ -1,5 +1,5 @@
 echo "Duration: $CANONICAL_DURATION"
-echo "Stress client location: $STRESS_CLIENT"
+echo "Stress client location: $RGET_MIX_STRESS_CLIENT"
 echo "$CANONICAL_CLIENTS concurrent clients"
 echo "Server hosts: $SERVER_HOSTS"
 if [ $DATABASE == "rethinkdb" ]; then
