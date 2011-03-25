@@ -37,7 +37,8 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
 
     void write(const thread_saver_t& saver, const char *buffer, size_t bytes) {
         try {
-            // TODO: This was once ensure_thread, so do some testing.
+            // TODO: Stop needing this ensure_thread thing, so we
+            // don't have to pass a thread_saver_t to everything.
             ensure_thread(saver);
             conn->write_buffered(buffer, bytes);
         } catch (tcp_conn_t::write_closed_exc_t) {
