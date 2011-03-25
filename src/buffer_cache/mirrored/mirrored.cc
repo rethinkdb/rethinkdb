@@ -370,6 +370,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
         const size_t MAX_PATCHES_SIZE = inner_buf->cache->serializer->get_block_size().value() / inner_buf->cache->max_patches_size_ratio;
         if (patch->get_affected_data_size() + inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > MAX_PATCHES_SIZE) {
             ensure_flush();
+            delete patch;
         } else {
             // Store the patch if the buffer does not have to be flushed anyway
             if (patch->get_patch_counter() == 1) {
@@ -377,12 +378,10 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
                 inner_buf->cache->patch_memory_storage.drop_patches(inner_buf->block_id);
             }
 
+            // Takes ownership of patch.
             inner_buf->cache->patch_memory_storage.store_patch(patch);
         }
-    }
-
-
-    if (inner_buf->writeback_buf.needs_flush) {
+    } else {
         delete patch;
     }
 }
