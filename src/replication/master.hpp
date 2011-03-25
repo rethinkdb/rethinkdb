@@ -66,8 +66,10 @@ public:
     // Listener callback functions
     void on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn);
 
+    // TODO: kill slave connection instead of crashing server when slave sends garbage.
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
     void send(UNUSED buffed_data_t<net_backfill_t>& message) { coro_t::spawn(boost::bind(&master_t::do_backfill, this, message->timestamp)); }
+    void send(UNUSED buffed_data_t<net_backfill_complete_t>& message) { guarantee(false, "slave sent backfill_complete"); }
     void send(UNUSED buffed_data_t<net_announce_t>& message) { guarantee(false, "slave sent announce"); }
     void send(UNUSED buffed_data_t<net_get_cas_t>& message) { guarantee(false, "slave sent get_cas"); }
     void send(UNUSED stream_pair<net_sarc_t>& message) { guarantee(false, "slave sent sarc"); }

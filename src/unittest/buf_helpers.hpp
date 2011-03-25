@@ -2,6 +2,7 @@
 #define	__BUF_HELPERS_HPP__
 
 #include <vector>
+#include <string.h>
 
 // This file contains a mock buffer implementation and can be used
 // in other tests which rely on buf_t
@@ -14,8 +15,8 @@ namespace unittest {
 class test_buf_t
 {
 public:
-    test_buf_t(const block_size_t bs, const block_id_t block_id) :
-            block_id(block_id) {
+    test_buf_t(block_size_t bs, block_id_t _block_id) :
+            block_id(_block_id) {
         data.resize(bs.value(), '\0');
         dirty = false;
         next_patch_counter = 1;
@@ -34,16 +35,16 @@ public:
         return &data[0];
     }
 
-    void set_data(const void* dest, const void* src, const size_t n) {
-        memcpy((char*)dest, (char*)src, n);
+    void set_data(void *dest, const void *src, size_t n) {
+        memcpy(dest, src, n);
     }
 
-    void move_data(const void* dest, const void* src, const size_t n) {
-        memmove((char*)dest, (char*)src, n);
+    void move_data(void *dest, const void *src, size_t n) {
+        memmove(dest, src, n);
     }
 
     void apply_patch(buf_patch_t *patch) {
-        patch->apply_to_buf((char*)get_data_major_write());
+        patch->apply_to_buf(reinterpret_cast<char *>(get_data_major_write()));
         delete patch;
     }
 
@@ -67,6 +68,7 @@ private:
     patch_counter_t next_patch_counter;
     bool dirty;
     std::vector<char> data;
+    DISABLE_COPYING(test_buf_t);
 };
 
 }  // namespace unittest

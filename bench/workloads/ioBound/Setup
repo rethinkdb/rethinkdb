@@ -1,5 +1,5 @@
 #!/bin/bash
 
 if [ $DATABASE == "rethinkdb" ]; then
-    ../../build/release/rethinkdb create $SSD_DRIVES --force
+    ../../build/release/rethinkdb create $SSD_DRIVES --force --diff-log-size 128
 fi

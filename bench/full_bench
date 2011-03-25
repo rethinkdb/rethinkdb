@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RETHINKDB_BRANCH="v_0.1.x"
+RETHINKDB_BRANCH="master"
 
 # Set up the directory
 BENCH_DIR="$HOME/bench/$(date +%Y-%m-%d-%H:%M)"

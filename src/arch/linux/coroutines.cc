@@ -209,6 +209,7 @@ coro_t::coro_t(const boost::function<void()>& deed, int thread) :
     notified_(false),
     waiting_(true)
 {
+    assert_good_thread_id(thread);
 
     pm_active_coroutines++;
 
@@ -323,6 +324,7 @@ void coro_t::notify() {
 }
 
 void coro_t::move_to_thread(int thread) {   /* class method */
+    assert_good_thread_id(thread);
     if (thread == self()->current_thread_) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;

@@ -67,7 +67,8 @@ void btree_slice_dispatching_to_master_t::nop_back_on_masters_thread(repli_times
         on_thread_t th(slice_->home_thread);
 
         t = current_time();
-        rassert(t.time >= timestamp.time);
+        // TODO: Don't crash just because the slave sent a bunch of crap to us.  Just disconnect the slave.
+        guarantee(t.time >= timestamp.time);
     }
 
     --*counter;

@@ -59,6 +59,7 @@ public:
     // These call .swap on their parameter, taking ownership of the pointee.
     void hello(net_hello_t message);
     void send(buffed_data_t<net_backfill_t>& message);
+    void send(buffed_data_t<net_backfill_complete_t>& message);
     void send(buffed_data_t<net_announce_t>& message);
     void send(buffed_data_t<net_get_cas_t>& message);
     void send(stream_pair<net_sarc_t>& message);

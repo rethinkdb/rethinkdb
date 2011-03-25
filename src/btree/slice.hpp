@@ -45,7 +45,7 @@ public:
     void spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback);
 
     // TODO: Why does this return by reference?
-    cache_t& cache() { return cache_; }
+    cache_t *cache() { return &cache_; }
 
 private:
     cache_t cache_;

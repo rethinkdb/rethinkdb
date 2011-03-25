@@ -34,12 +34,14 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     startup_dynamic_config.flush_waiting_threshold = INT_MAX;
     startup_dynamic_config.max_concurrent_flushes = 1;
 
+    thread_saver_t saver;
+
     /* Cache is in a scoped pointer because it may be too big to allocate on the coroutine stack */
     boost::scoped_ptr<cache_t> cache(new cache_t(serializer, &startup_dynamic_config));
 
     /* Initialize the root block */
-    transactor_t transactor(cache.get(), rwi_write, 1, current_time());
-    buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
+    transactor_t transactor(saver, cache.get(), rwi_write, 1, current_time());
+    buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     bzero((void*)sb, cache->get_block_size().value());
     sb->magic = btree_superblock_t::expected_magic;
@@ -96,12 +98,12 @@ void btree_slice_t::spawn_backfill(repli_timestamp since_when, backfill_callback
 }
 
 void btree_slice_t::time_barrier(UNUSED repli_timestamp lower_bound_on_future_timestamps) {
-    on_thread_t th(cache().home_thread);
-    int current_thread = get_thread_id();
-    transactor_t transactor(&cache(), rwi_write, 0, lower_bound_on_future_timestamps);
-    rassert(current_thread == get_thread_id(), "B");
-    buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
-    rassert(current_thread == get_thread_id(), "C");
+    // Having saver before an on_thread_t means the saver's destructor
+    // is a no-op, because the on_thread_t's destructor runs right
+    // before it.
+    thread_saver_t saver;
+    on_thread_t th(cache()->home_thread);
+    transactor_t transactor(saver, cache(), rwi_write, 0, lower_bound_on_future_timestamps);
+    buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
     superblock->touch_recency(lower_bound_on_future_timestamps);
-    rassert(current_thread == get_thread_id(), "D");
 }

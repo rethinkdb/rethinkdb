@@ -44,16 +44,16 @@ class mock_buf_t :
     public lock_available_callback_t
 {
     typedef mock_block_available_callback_t block_available_callback_t;
-    
+
 public:
     block_id_t get_block_id();
     const void *get_data_read();
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
     void *get_data_major_write();
     // Convenience function to set some address in the buffer acquired through get_data_read. (similar to memcpy)
-    void set_data(const void* dest, const void* src, const size_t n);
+    void set_data(void *dest, const void *src, const size_t n);
     // Convenience function to move data within the buffer acquired through get_data_read. (similar to memmove)
-    void move_data(const void* dest, const void* src, const size_t n);
+    void move_data(void *dest, const void *src, const size_t n);
     void apply_patch(buf_patch_t *patch); // This might delete the supplied patch, do not use patch after its application
     patch_counter_t get_next_patch_counter();
     void mark_deleted(bool write_null = true);
@@ -114,7 +114,7 @@ public:
     typedef mock_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mock_transaction_commit_callback_t transaction_commit_callback_t;
     typedef mock_block_available_callback_t block_available_callback_t;
-    
+
     static void create(
         translator_serializer_t *serializer,
         mirrored_cache_static_config_t *static_config);
@@ -130,7 +130,7 @@ private:
     friend class mock_transaction_t;
     friend class mock_buf_t;
     friend class internal_buf_t;
-    
+
     translator_serializer_t *serializer;
     drain_semaphore_t transaction_counter;
     block_size_t block_size;

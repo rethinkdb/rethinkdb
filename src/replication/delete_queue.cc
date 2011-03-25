@@ -40,9 +40,11 @@ struct t_and_o {
 }  // namespace delete_queue
 
 void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp timestamp, const store_key_t *key) {
+    thread_saver_t saver;
+
     // Beware: Right now, some aspects of correctness depend on the
     // fact that we hold the queue_root lock for the entire operation.
-    buf_lock_t queue_root(*txor, queue_root_id, rwi_write);
+    buf_lock_t queue_root(saver, *txor, queue_root_id, rwi_write);
 
     // TODO this could be a non-major write?
     void *queue_root_buf = queue_root->get_data_major_write();
@@ -59,7 +61,7 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
         boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
 
         // TODO: Allow upgrade of large buf intent.
-        co_acquire_large_buf(t_o_largebuf.get());
+        co_acquire_large_buf(saver, t_o_largebuf.get());
 
         if (t_o_ref->size == 0) {
             delete_queue::t_and_o tao;
@@ -98,7 +100,7 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
         boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txor, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size())), rwi_write));
 
         // TODO: acquire rhs, or lhs+rhs, something appropriate.
-        co_acquire_large_buf(keys_largebuf.get());
+        co_acquire_large_buf(saver, keys_largebuf.get());
 
         int refsize_adjustment_dontcare;
         keys_largebuf->append(1 + key->size, &refsize_adjustment_dontcare);
@@ -107,9 +109,11 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
 }
 
 void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_stream_receiver_t *recipient) {
+    thread_saver_t saver;
+
     // Beware: Right now, some aspects of correctness depend on the
     // fact that we hold the queue_root lock for the entire operation.
-    buf_lock_t queue_root(*txor, queue_root_id, rwi_read);
+    buf_lock_t queue_root(saver, *txor, queue_root_id, rwi_read);
 
     void *queue_root_buf = const_cast<void *>(queue_root->get_data_read());
 
@@ -125,7 +129,7 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
 
     {
         boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_read));
-        co_acquire_large_buf(t_o_largebuf.get());
+        co_acquire_large_buf(saver, t_o_largebuf.get());
 
         delete_queue::t_and_o tao;
         int64_t i = 0, ie = t_o_ref->size;
@@ -163,7 +167,7 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
         boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txor, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size())), rwi_read));
 
         // TODO: acquire subinterval.
-        co_acquire_large_buf(keys_largebuf.get());
+        co_acquire_large_buf(saver, keys_largebuf.get());
 
         int64_t n = end_offset - begin_offset;
 

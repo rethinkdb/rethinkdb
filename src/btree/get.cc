@@ -19,13 +19,15 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
     btree_key_t *key = kbuffer.key();
 
     /* In theory moving back might not be necessary, but not doing it causes problems right now. */
+    // This saver's destructor is a no-op because the mover's
+    // destructor runs right before it.
+    thread_saver_t saver;
     on_thread_t mover(slice->home_thread);
-
-    boost::shared_ptr<transactor_t> transactor(new transactor_t(&slice->cache(), rwi_read, repli_timestamp::invalid));
+    boost::shared_ptr<transactor_t> transactor(new transactor_t(saver, slice->cache(), rwi_read, repli_timestamp::invalid));
 
     // Acquire the superblock
 
-    buf_lock_t buf_lock(*transactor, SUPERBLOCK_ID, rwi_read);
+    buf_lock_t buf_lock(saver, *transactor, SUPERBLOCK_ID, rwi_read);
     block_id_t node_id = ptr_cast<btree_superblock_t>(buf_lock->get_data_read())->root_block;
     rassert(node_id != SUPERBLOCK_ID);
 
@@ -38,12 +40,12 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
 
     while (true) {
         {
-            buf_lock_t tmp(*transactor, node_id, rwi_read);
+            buf_lock_t tmp(saver, *transactor, node_id, rwi_read);
             buf_lock.swap(tmp);
         }
 
 #ifndef NDEBUG
-        node::validate(slice->cache().get_block_size(), ptr_cast<node_t>(buf_lock->get_data_read()));
+        node::validate(slice->cache()->get_block_size(), ptr_cast<node_t>(buf_lock->get_data_read()));
 #endif
 
         const node_t *node = ptr_cast<node_t>(buf_lock->get_data_read());
