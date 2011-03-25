@@ -131,6 +131,7 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
                 current_offset += patch->get_serialized_size();
                 // Only store the patch if the corresponding block still exists
                 // (otherwise we'd get problems when flushing the log, as deleted blocks would cause an error)
+                rassert(get_thread_id() == cache.home_thread);
                 coro_t::move_to_thread(cache.serializer->home_thread);
                 bool block_in_use = cache.serializer->block_in_use(patch->get_block_id());
                 coro_t::move_to_thread(cache.home_thread);
@@ -334,6 +335,7 @@ void patch_disk_storage_t::compress_block(const block_id_t log_block_id) {
 
 void patch_disk_storage_t::preload_block(const block_id_t log_block_id) {
     // Acquire the block but release it immediately...
+    rassert(get_thread_id() == cache.serializer->home_thread);
     coro_t::move_to_thread(cache.home_thread);
     acquire_block_no_locking(log_block_id)->release();
     coro_t::move_to_thread(cache.serializer->home_thread);

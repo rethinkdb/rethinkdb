@@ -52,7 +52,7 @@ private:
     }
     static buf_t *acq(transactor_t& txor, block_id_t block_id, access_t mode = rwi_read) {
         thread_saver_t saver;
-        return co_acquire_block(saver, txor.transaction(), block_id, mode); // 
+        return co_acquire_block(saver, txor.transaction(), block_id, mode);
     }
 
     static void change_value(buf_t *buf, uint32_t value) {

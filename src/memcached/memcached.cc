@@ -380,13 +380,14 @@ struct storage_metadata_t {
         : mcflags(_mcflags), exptime(_exptime), unique(_unique) { }
 };
 
-void run_storage_command(const thread_saver_t& saver,
-                         txt_memcached_handler_t *rh,
+void run_storage_command(txt_memcached_handler_t *rh,
                          storage_command_t sc,
                          store_key_t key,
                          size_t value_size, promise_t<bool> *value_read_promise,
                          storage_metadata_t metadata,
                          bool noreply) {
+
+    thread_saver_t saver;
 
     memcached_data_provider_t unbuffered_data(rh, value_size, value_read_promise);
     maybe_buffered_data_provider_t data(&unbuffered_data, MAX_BUFFERED_SET_SIZE);
@@ -568,9 +569,9 @@ void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storag
 
     storage_metadata_t metadata(mcflags, exptime, unique);
     if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_storage_command, boost::ref(saver), rh, sc, key, value_size, &value_read_promise, metadata, true));
+        coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, metadata, true));
     } else {
-        run_storage_command(saver, rh, sc, key, value_size, &value_read_promise, metadata, false);
+        run_storage_command(rh, sc, key, value_size, &value_read_promise, metadata, false);
     }
 
     /* We can't move on to the next command until the value has been read off the socket. */
@@ -582,7 +583,8 @@ void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storag
 }
 
 /* "incr" and "decr" commands */
-void run_incr_decr(const thread_saver_t& saver, txt_memcached_handler_t *rh, store_key_t key, uint64_t amount, bool incr, bool noreply) {
+void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount, bool incr, bool noreply) {
+    thread_saver_t saver;
 
     block_pm_duration set_timer(&pm_cmd_set);
 
@@ -649,15 +651,16 @@ void do_incr_decr(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool
     }
 
     if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_incr_decr, boost::ref(saver), rh, key, delta, i, true));
+        coro_t::spawn_now(boost::bind(&run_incr_decr, rh, key, delta, i, true));
     } else {
-        run_incr_decr(saver, rh, key, delta, i, false);
+        run_incr_decr(rh, key, delta, i, false);
     }
 }
 
 /* "delete" commands */
 
-void run_delete(const thread_saver_t& saver, txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
+void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
+    thread_saver_t saver;
 
     block_pm_duration set_timer(&pm_cmd_set);
 
@@ -719,9 +722,9 @@ void do_delete(const thread_saver_t& saver, txt_memcached_handler_t *rh, int arg
     }
 
     if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_delete, boost::ref(saver), rh, key, true));
+        coro_t::spawn_now(boost::bind(&run_delete, rh, key, true));
     } else {
-        run_delete(saver, rh, key, false);
+        run_delete(rh, key, false);
     }
 };
 

@@ -34,6 +34,8 @@ public:
 
     // Unserializes a patch an returns a buf_patch_t object
     // If *(uint16_t*)source is 0, it returns NULL
+    //
+    // TODO: This allocates a patch, which you have to manually delete it.  Fix it.
     static buf_patch_t* load_patch(char* source);
 
     // Serializes the patch to the given destination address
