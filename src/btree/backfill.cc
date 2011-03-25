@@ -149,6 +149,13 @@ public:
                 }
             }
         }
+
+        if (total_level_count() == 0) {
+            debugf("total_level_count() == 0, calling ->done().\n");
+            callback->done();
+        } else {
+            debugf("total_level_count() == %ld.\n", total_level_count());
+        }
     }
 
     int64_t total_level_count() {
@@ -192,10 +199,12 @@ class backfill_buf_lock_t {
 public:
     backfill_buf_lock_t(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond)
         : state_(state), level_(level), inner_lock_(), pulse_response_(backfill_state_t::no_response) {
+        debugf("backfill_buf_lock_t\n");
         acquire_node(block_id, acquisition_cond);
     }
 
     ~backfill_buf_lock_t() {
+        debugf("End backfill_buf_lock_t\n");
         state_.level_count(level_) -= 1;
         state_.num_breadth_blocks -= (pulse_response_ == backfill_state_t::breadth_first_credit);
         state_.consider_pulsing();
@@ -244,10 +253,11 @@ void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, back
 
     if (root_id == NULL_BLOCK_ID) {
         // No root, so no keys in this entire shard.
-        return;
+        callback->done();
+    } else {
+        debugf("spawn_btree_backfill for root_id = %u\n", root_id);
+        subtrees_backfill(state, buf_lock, 0, &root_id, 1);
     }
-
-    subtrees_backfill(state, buf_lock, 0, &root_id, 1);
 }
 
 void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids) {
