@@ -31,11 +31,11 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
 
     /* Wrappers around conn->write*() that ignore write errors, because we want to continue
     processing requests even if the client is no longer listening for replies */
-    void write(const std::string& buffer, const thread_saver_t& saver) {
-        write(buffer.c_str(), buffer.length(), saver);
+    void write(const thread_saver_t& saver, const std::string& buffer) {
+        write(saver, buffer.c_str(), buffer.length());
     }
 
-    void write(const char *buffer, size_t bytes, const thread_saver_t& saver) {
+    void write(const thread_saver_t& saver, const char *buffer, size_t bytes) {
         try {
             // TODO: This was once ensure_thread, so do some testing.
             ensure_thread(saver);
@@ -47,7 +47,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         char buffer[1000];
         size_t bytes = vsnprintf(buffer, sizeof(buffer), format, args);
         rassert(bytes < sizeof(buffer));
-        write(buffer, bytes, saver);
+        write(saver, buffer, bytes);
     }
     void writef(const thread_saver_t& saver, const char *format, ...)
         __attribute__ ((format (printf, 3, 4))) {
@@ -73,7 +73,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         for (size_t i = 0; i < bg->num_buffers(); i++) {
             const_buffer_group_t::buffer_t b = bg->get_buffer(i);
             if (dp->get_size() < MAX_BUFFERED_GET_SIZE) {
-                write(ptr_cast<const char>(b.data), b.size, saver);
+                write(saver, ptr_cast<const char>(b.data), b.size);
             } else {
                 write_unbuffered(ptr_cast<const char>(b.data), b.size);
             }
@@ -92,7 +92,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         writef(saver, "ERROR\r\n");
     }
     void write_crlf(const thread_saver_t& saver) {
-        write(crlf, 2, saver);
+        write(saver, crlf, 2);
     }
     void write_end(const thread_saver_t& saver) {
         writef(saver, "END\r\n");
@@ -797,7 +797,7 @@ void do_quickset(const thread_saver_t& saver, txt_memcached_handler_t *rh, std::
         // The connection will be closed if more than a megabyte or so is sent
         // over without a newline, so we don't really need to worry about large
         // values.
-        rh->write("CLIENT_ERROR Usage: .s k1 v1 [k2 v2...] (no whitespace in values)\r\n", saver);
+        rh->write(saver, "CLIENT_ERROR Usage: .s k1 v1 [k2 v2...] (no whitespace in values)\r\n");
         return;
     }
 
@@ -828,7 +828,7 @@ bool parse_debug_command(const thread_saver_t& saver, txt_memcached_handler_t *r
     if (!strcmp(args[0], ".h") && args.size() >= 2) {       // .h is an alias for "rdb hash"
         std::vector<char *> ctrl_args = args;               // It's ugly, but typing that command out in full is just stupid
         ctrl_args[0] = (char *) "hash"; // This should be const but it's just for debugging and it won't be modified anyway.
-        rh->write(control_t::exec(ctrl_args.size(), ctrl_args.data()), saver);
+        rh->write(saver, control_t::exec(ctrl_args.size(), ctrl_args.data()));
         return true;
     } else if (!strcmp(args[0], ".s")) { // There should be a better way of doing this, but it doesn't really matter.
         do_quickset(saver, rh, args);
@@ -923,7 +923,7 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
         } else if (!strcmp(args[0], "qset")) {
             // TODO: wtf is qset?
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
-            rh.write(control_t::exec(args.size() - 1, args.data() + 1), saver);
+            rh.write(saver, control_t::exec(args.size() - 1, args.data() + 1));
         } else if (!strcmp(args[0], "version")) {
             if (args.size() == 2) {
                 rh.writef(saver, "VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
