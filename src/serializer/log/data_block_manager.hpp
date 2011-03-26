@@ -198,7 +198,7 @@ private:
         bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
         // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i])
         void update_g_array(unsigned int block_id) {
-            g_array.set(block_id, (t_array[block_id] || i_array[block_id]) ? 0 : 1);
+            g_array.set(block_id, !(t_array[block_id] || i_array[block_id]));
         }
         microtime_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */

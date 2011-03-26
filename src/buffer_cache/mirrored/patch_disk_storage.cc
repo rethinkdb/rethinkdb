@@ -61,7 +61,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &cache, block_id_t start_i
     {
         on_thread_t switcher(cache.serializer->home_thread);
         for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
-            if (cache.serializer->index_read(current_block) && !cache.serializer->get_delete_bit(current_block)) {
+            if (!cache.serializer->get_delete_bit(current_block)) {
                 coro_t::spawn(boost::bind(&patch_disk_storage_t::preload_block, this, current_block));
             } else {
                 block_is_empty[current_block - first_block] = true;
@@ -127,7 +127,7 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
                 // Only store the patch if the corresponding block still exists
                 // (otherwise we'd get problems when flushing the log, as deleted blocks would cause an error)
                 coro_t::move_to_thread(cache.serializer->home_thread);
-                bool block_in_use = cache.serializer->index_read(patch->get_block_id()) && !cache.serializer->get_delete_bit(patch->get_block_id());
+                bool block_in_use = !cache.serializer->get_delete_bit(patch->get_block_id());
                 coro_t::move_to_thread(cache.home_thread);
                 if (block_in_use)
                     patch_map[patch->get_block_id()].push_back(patch);

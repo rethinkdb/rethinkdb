@@ -273,7 +273,7 @@ block_id_t translator_serializer_t::max_block_id() {
 
     while (x > 0) {
         --x;
-        if (index_read(x) && !get_delete_bit(x)) {
+        if (!get_delete_bit(x)) {
             ++x;
             break;
         }

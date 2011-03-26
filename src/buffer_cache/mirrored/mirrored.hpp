@@ -6,6 +6,7 @@
 #include "concurrency/access.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/mutex.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
@@ -64,6 +65,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     void *data;
     version_id_t version_id;
     /* As long as data has not been changed since the last serializer write, data_token contains a token to the on-serializer block */
+    // TODO! In order for this to be set, the current do_write() wrapper in serializer_t should be moved to writeback. Then writeback can preserve the tokens whenever the written data buffer is still the same as inner_buf->data (i.e. no COW was necessary)
     boost::shared_ptr<serializer_t::block_token_t> data_token;
 
     rwi_lock_t lock;
@@ -109,28 +111,68 @@ class mc_inner_buf_t : public home_thread_mixin_t {
 
     ser_block_sequence_id_t block_sequence_id;
 
-    // TODO! Make the snapshot info an abstract class with different implementations
-    // TODO! One for in-memory bufs
-    // TODO! One for serializer token snapshots
-    // TODO! One for serializer token writers (which are in memory but later turn into a serializer token snapshot)
-    // TODO! They should have a copy_buf(void*) virtual method
     struct buf_snapshot_info_t {
-        void *data;
+        buf_snapshot_info_t(version_id_t version, unsigned int initial_refcount) : snapshotted_version(version), refcount(initial_refcount) { }
+        virtual ~buf_snapshot_info_t() { }
+        virtual void *get_data_if_available() const = 0;
+        virtual void *get_data() = 0;
         version_id_t snapshotted_version;
         unsigned int refcount;
-
-        buf_snapshot_info_t(void *data, version_id_t snapshotted_version, unsigned int refcount) :
-            data(data), snapshotted_version(snapshotted_version), refcount(refcount) { }
+    };
+    // TODO: Move the implementations to the .cc file
+    struct in_memory_snapshot_t : public buf_snapshot_info_t {
+        // Takes ownership of data!
+        in_memory_snapshot_t(version_id_t version, unsigned int initial_refcount, translator_serializer_t *ser, void *data) :
+            buf_snapshot_info_t(version, initial_refcount), serializer(ser), data(data) { }
+        ~in_memory_snapshot_t() {
+            serializer->free(data);
+        }
+        void *get_data() { return data; }
+        void *get_data_if_available() const { return data; }
+    private:
+        translator_serializer_t *serializer;
+        void *data;
+    };
+    /* This snapshots writes an existing buffer to disk and as soon as the write has finished behaves exactly like an on_disk_snapshot_t*/
+    //struct write_to_disk_snapshot_t : public buf_snapshot_info_t, public iocallback_t {
+        // TODO! (there's some tricky stuff here)
+    //};
+    /* The on_disk_snapshot_t acquires the block the first time it gets accessed*/
+    struct on_disk_snapshot_t : public buf_snapshot_info_t {
+        on_disk_snapshot_t(version_id_t version, unsigned int initial_refcount, translator_serializer_t *ser, boost::shared_ptr<serializer_t::block_token_t> token) :
+            buf_snapshot_info_t(version, initial_refcount), serializer(ser), token(token), data(NULL) { }
+        // Be careful, this blocks (hope that's fine?)
+        void *get_data() {
+            mutex_acquisition_t m(&data_mutex);
+            if (data) {
+                return data;
+            }
+            data = serializer->malloc();
+            serializer->block_read(token, data);
+            token.reset(); // Free the block
+            return data;
+        }
+        void *get_data_if_available() const {
+            mutex_acquisition_t m(&data_mutex);
+            if (data) {
+                return data;
+            } else {
+                return NULL;
+            }
+        }
+    private:
+        translator_serializer_t *serializer;
+        boost::shared_ptr<serializer_t::block_token_t> token;
+        void *data;
+        mutable mutex_t data_mutex;
     };
 
-    typedef std::list<buf_snapshot_info_t> snapshot_data_list_t;
+    typedef std::list<buf_snapshot_info_t*> snapshot_data_list_t;
     snapshot_data_list_t snapshots;
 
     void snapshot();
     void *get_snapshot_data(version_id_t version_to_access);
     template<typename Predicate> void release_snapshot(Predicate p);
-
-    ser_transaction_id_t transaction_id;
 
 private:
     // Helper function for inner_buf construction from an existing block
@@ -148,7 +190,7 @@ private:
     struct data_predicate_t {
         data_predicate_t(void *data) : data(data) { }
         bool operator()(const buf_snapshot_info_t& i) const {
-            return i.data == data;
+            return i.get_data_if_available() == data;
         }
     private:
         void *data;

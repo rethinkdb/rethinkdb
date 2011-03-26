@@ -122,6 +122,14 @@ public:
     virtual void *clone(void*);
     void free(void *ptr);
 
+    void index_write(const std::vector<serializer_t::index_write_op_t*>& write_ops);
+    /* Non-blocking variant */
+    boost::shared_ptr<serializer_t::block_token_t> block_write(const void *buf, iocallback_t *cb);
+    boost::shared_ptr<serializer_t::block_token_t> block_write(const void *buf, ser_block_id_t block_id, iocallback_t *cb);
+    /* Blocking variant */
+    boost::shared_ptr<serializer_t::block_token_t> block_write(const void *buf);
+    boost::shared_ptr<serializer_t::block_token_t> block_write(const void *buf, ser_block_id_t block_id);
+
     struct write_t {
         block_id_t block_id;
         bool recency_specified;

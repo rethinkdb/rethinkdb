@@ -226,7 +226,7 @@ mock_cache_t::mock_cache_t(
     block_id_t end_block_id = serializer->max_block_id();
     bufs.set_size(end_block_id, NULL);
     for (block_id_t i = 0; i < end_block_id; i++) {
-        if (serializer->index_read(i) && !serializer->get_delete_bit(i)) {
+        if (!serializer->get_delete_bit(i)) {
             internal_buf_t *internal_buf = new internal_buf_t(this, i, serializer->get_recency(i));
             bufs[i] = internal_buf;
             if (!serializer->do_read(i, internal_buf->data, &read_cb)) read_cb.acquire();

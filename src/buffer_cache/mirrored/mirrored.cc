@@ -1,3 +1,5 @@
+#include <boost/smart_ptr/shared_ptr.hpp>
+
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/stats.hpp"
 #include "callbacks.hpp"
@@ -21,6 +23,8 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     void on_thread_switch() {
         if (!have_loaded) {
             inner_buf->subtree_recency = inner_buf->cache->serializer->get_recency(inner_buf->block_id);
+            // TODO! Actually setting data_token currently makes stuff crash :-(
+            //inner_buf->data_token = inner_buf->cache->serializer->index_read(inner_buf->block_id); // TODO: Merge this initialization with the read itself eventually
             if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this))
                 on_serializer_read();
         } else {
@@ -96,6 +100,8 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
     block_sequence_id = cache->serializer->get_block_sequence_id(block_id, data);
     
     replay_patches();
+
+    // TODO: This should initialize data_token at some point. That however requires switching to the serializer thread and we cannot afford that here, except if we lock. Maybe read ahead should pass the token through to here.
 }
 
 mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp recency_timestamp) {
@@ -118,7 +124,8 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
         inner_buf->next_patch_counter = 1;
         inner_buf->write_empty_deleted_block = false;
         inner_buf->cow_will_be_needed = false;
-        inner_buf->transaction_id = NULL_SER_TRANSACTION_ID;
+        inner_buf->block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
+        inner_buf->data_token.reset();
 
         return inner_buf;
     }
@@ -204,20 +211,28 @@ void mc_inner_buf_t::replay_patches() {
 
 void mc_inner_buf_t::snapshot() {
     cache->assert_thread();
-    rassert(snapshots.size() == 0 || snapshots.front().snapshotted_version < version_id);
+    rassert(snapshots.size() == 0 || snapshots.front()->snapshotted_version < version_id);
 
     size_t num_snapshots_affected = cache->register_snapshotted_block(this, version_id);
     rassert(cow_will_be_needed || num_snapshots_affected > 0);
 
-    snapshots.push_front(buf_snapshot_info_t(data, version_id, num_snapshots_affected));
+    // Pick a snapshotting strategy
+    if (data_token) {
+        // We have an up-to-date token, so we can later read the snapshot from disk
+        snapshots.push_front(new on_disk_snapshot_t(version_id, num_snapshots_affected, cache->serializer, data_token));
+    } else {
+        // Ok, let's just keep it in memory for now
+        // TODO: Maybe write it to disk instead and then delete the old in-memory buffer?
+        snapshots.push_front(new in_memory_snapshot_t(version_id, num_snapshots_affected, cache->serializer, data));
+    }
 }
 
 template<typename Predicate> void mc_inner_buf_t::release_snapshot(Predicate p) {
     for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
-        buf_snapshot_info_t& snap = *it;
-        if (p(snap)) {
-            if (--snap.refcount == 0) {
-                cache->serializer->free(snap.data);
+        buf_snapshot_info_t* snap = *it;
+        if (p(*snap)) {
+            if (--snap->refcount == 0) {
+                delete snap;
                 snapshots.erase(it);
             }
             return;
@@ -270,8 +285,8 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
 void *mc_inner_buf_t::get_snapshot_data(version_id_t version_to_access) {
     rassert(version_to_access != mc_inner_buf_t::faux_version_id);
     for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); it++) {
-        if ((*it).snapshotted_version <= version_to_access) {
-            return (*it).data;
+        if ((*it)->snapshotted_version <= version_to_access) {
+            return (*it)->get_data();
         }
     }
     return NULL;
@@ -314,7 +329,7 @@ void mc_buf_t::acquire_block(bool locked) {
                     inner_buf->snapshot();
 
                     if (inner_buf->cow_will_be_needed)
-                        ++inner_buf->snapshots.front().refcount;
+                        ++inner_buf->snapshots.front()->refcount;
                 }
 
                 inner_buf->version_id = version_to_access == mc_inner_buf_t::faux_version_id ? inner_buf->cache->get_current_version_id() : version_to_access;
@@ -366,6 +381,8 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
 
     patch->apply_to_buf((char*)data);
     inner_buf->writeback_buf.set_dirty();
+    // Invalidate the token
+    inner_buf->data_token.reset();
 
     // We cannot accept patches for blocks without a valid block sequence id (namely newly allocated blocks, they have to be written to disk at least once)
     if (inner_buf->block_sequence_id == NULL_SER_BLOCK_SEQUENCE_ID) {
@@ -402,6 +419,9 @@ void *mc_buf_t::get_data_major_write() {
     rassert(data == inner_buf->data);
 
     inner_buf->assert_thread();
+
+    // Invalidate the token
+    inner_buf->data_token.reset();
 
     ensure_flush();
 

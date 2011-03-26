@@ -539,6 +539,10 @@ boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::index_read(ser_
     assert_thread();
     rassert(state == state_ready);
 
+    if (block_id.value >= lba_index->end_block_id().value) {
+        return boost::shared_ptr<serializer_t::block_token_t>();
+    }
+
     flagged_off64_t offset = lba_index->get_block_offset(block_id);
     if (offset.has_value()) {
         return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset.get_value()));

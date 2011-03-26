@@ -8,7 +8,7 @@ array_free_list_t::array_free_list_t(translator_serializer_t *serializer)
     num_blocks_in_use = 0;
     next_new_block_id = serializer->max_block_id();
     for (block_id_t i = 0; i < next_new_block_id; i++) {
-        if (!serializer->index_read(i) || serializer->get_delete_bit(i)) {
+        if (serializer->get_delete_bit(i)) {
             free_ids.push_back(i);
         } else {
             pm_n_blocks_total++;
