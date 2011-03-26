@@ -41,6 +41,7 @@ struct log_serializer_metablock_t {
 };
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
+// TODO: This header data should maybe go to the cache
 struct ls_buf_data_t {
     ser_block_id_t block_id;
     ser_block_sequence_id_t block_sequence_id;
@@ -119,18 +120,24 @@ public:
     void free(void*);
 
     void register_read_ahead_cb(read_ahead_callback_t *cb);
-    void unregister_read_ahead_cb(read_ahead_callback_t *cb);virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf);
-    void index_read(boost::shared_ptr<block_token_t> token, void *buf);
+    void unregister_read_ahead_cb(read_ahead_callback_t *cb);
+
+    virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf);
+    
+    ser_block_id_t max_block_id();
+    repli_timestamp get_recency(ser_block_id_t id);
+    bool get_delete_bit(ser_block_id_t id);
     boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id);
+
     void index_write(const std::vector<index_write_op_t*>& write_ops);
+
     boost::shared_ptr<block_token_t> block_write(const void *buf, iocallback_t *cb);
     boost::shared_ptr<block_token_t> block_write(const void *buf, ser_block_id_t block_id, iocallback_t *cb);
-    ser_block_sequence_id_t get_block_sequence_id(ser_block_id_t block_id, const void* buf);
-    block_size_t get_block_size();
-    ser_block_id_t max_block_id();
-    bool block_in_use(ser_block_id_t id);
-    repli_timestamp get_recency(ser_block_id_t id);
 
+    ser_block_sequence_id_t get_block_sequence_id(ser_block_id_t block_id, const void* buf);
+
+    block_size_t get_block_size();
+    
 private:
     std::map<ls_block_token_t*, off64_t> token_offsets;
     std::multimap<off64_t, ls_block_token_t*> offset_tokens;

@@ -273,7 +273,7 @@ block_id_t translator_serializer_t::max_block_id() {
 
     while (x > 0) {
         --x;
-        if (block_in_use(x)) {
+        if (index_read(x) && !get_delete_bit(x)) {
             ++x;
             break;
         }
@@ -281,13 +281,12 @@ block_id_t translator_serializer_t::max_block_id() {
     return x;
 }
 
-
-bool translator_serializer_t::block_in_use(block_id_t id) {
-    return inner->block_in_use(xlate(id));
-}
-
 repli_timestamp translator_serializer_t::get_recency(block_id_t id) {
     return inner->get_recency(xlate(id));
+}
+
+bool translator_serializer_t::get_delete_bit(block_id_t id) {
+    return inner->get_delete_bit(xlate(id));
 }
 
 bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void *buf) {

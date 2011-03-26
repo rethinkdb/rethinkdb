@@ -10,35 +10,33 @@ TEST(DiskFormatTest, FlaggedOff64T) {
 
     for (size_t i = 0; i < sizeof(offs) / sizeof(*offs); ++i) {
         off64_t off = offs[i];
-        flagged_off64_t real = flagged_off64_t::real(off);
-        flagged_off64_t deleteblock = flagged_off64_t::deleteblock(off);
-        EXPECT_TRUE(flagged_off64_t::has_value(real));
-        EXPECT_TRUE(flagged_off64_t::has_value(deleteblock));
-        EXPECT_TRUE(flagged_off64_t::can_be_gced(real));
-        EXPECT_TRUE(flagged_off64_t::can_be_gced(deleteblock));
-        EXPECT_FALSE(flagged_off64_t::is_padding(real));
-        EXPECT_FALSE(flagged_off64_t::is_padding(deleteblock));
+        flagged_off64_t real = flagged_off64_t::unused();
+        real.set_value(off);
+        real.set_delete_bit(false);
+        flagged_off64_t deleteblock = flagged_off64_t::unused();
+        deleteblock.set_value(off);
+        deleteblock.set_delete_bit(true);
+        EXPECT_TRUE(real.has_value());
+        EXPECT_TRUE(deleteblock.has_value());
+        EXPECT_FALSE(real.is_padding());
+        EXPECT_FALSE(deleteblock.is_padding());
         EXPECT_FALSE(real.parts.is_delete);
         EXPECT_TRUE(deleteblock.parts.is_delete);
 
         real.parts.value = 73;
         deleteblock.parts.value = 95;
 
-        EXPECT_TRUE(flagged_off64_t::has_value(real));
-        EXPECT_TRUE(flagged_off64_t::has_value(deleteblock));
-        EXPECT_TRUE(flagged_off64_t::can_be_gced(real));
-        EXPECT_TRUE(flagged_off64_t::can_be_gced(deleteblock));
-        EXPECT_FALSE(flagged_off64_t::is_padding(real));
-        EXPECT_FALSE(flagged_off64_t::is_padding(deleteblock));
+        EXPECT_TRUE(real.has_value());
+        EXPECT_TRUE(deleteblock.has_value());
+        EXPECT_FALSE(real.is_padding());
+        EXPECT_FALSE(deleteblock.is_padding());
         EXPECT_FALSE(real.parts.is_delete);
         EXPECT_TRUE(deleteblock.parts.is_delete);
     }
 
 
-    EXPECT_FALSE(flagged_off64_t::has_value(flagged_off64_t::unused()));
-    EXPECT_FALSE(flagged_off64_t::has_value(flagged_off64_t::padding()));
-    EXPECT_FALSE(flagged_off64_t::can_be_gced(flagged_off64_t::unused()));
-    EXPECT_FALSE(flagged_off64_t::can_be_gced(flagged_off64_t::padding()));
+    EXPECT_FALSE(flagged_off64_t::unused().has_value());
+    EXPECT_FALSE(flagged_off64_t::padding().has_value());
 
     EXPECT_EQ(8, sizeof(flagged_off64_t));
 }
@@ -65,9 +63,15 @@ TEST(DiskFormatTest, LbaEntryT) {
 
     lba_entry_t ent = lba_entry_t::make_padding_entry();
     ASSERT_TRUE(lba_entry_t::is_padding(&ent));
-    ent = lba_entry_t::make(ser_block_id_t::make(1), repli_timestamp::invalid, flagged_off64_t::real(1));
+    flagged_off64_t real = flagged_off64_t::unused();
+    real.set_value(1);
+    real.set_delete_bit(false);
+    ent = lba_entry_t::make(ser_block_id_t::make(1), repli_timestamp::invalid, real);
     ASSERT_FALSE(lba_entry_t::is_padding(&ent));
-    ent = lba_entry_t::make(ser_block_id_t::make(1), repli_timestamp::invalid, flagged_off64_t::deleteblock(1));
+    flagged_off64_t deleteblock = flagged_off64_t::unused();
+    deleteblock.set_value(1);
+    deleteblock.set_delete_bit(true);
+    ent = lba_entry_t::make(ser_block_id_t::make(1), repli_timestamp::invalid, deleteblock);
     ASSERT_FALSE(lba_entry_t::is_padding(&ent));
 }
 

@@ -225,7 +225,7 @@ public:
             }
             info = locker.block_info()[ser_block_id.value];
         }
-        if (!flagged_off64_t::has_value(info.offset)) {
+        if (!info.offset.has_value()) {
             err = no_block;
             return false;
         }
@@ -437,7 +437,7 @@ bool is_valid_extent(file_knowledge *knog, off64_t offset) {
 
 bool is_valid_btree_offset(file_knowledge *knog, flagged_off64_t offset) {
     return is_valid_offset(knog, offset.parts.value, knog->static_config->block_size().ser_value())
-        || flagged_off64_t::is_delete_id(offset);
+        || offset.get_delete_bit();
 }
 
 bool is_valid_device_block(file_knowledge *knog, off64_t offset) {
@@ -1094,9 +1094,9 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
             read_locker locker(cx.knog);
             info = locker.block_info()[id];
         }
-        if (flagged_off64_t::is_delete_id(info.offset)) {
+        if (info.offset.get_delete_bit()) {
             // Do nothing.
-        } else if (!flagged_off64_t::has_value(info.offset)) {
+        } else if (!info.offset.has_value()) {
             if (first_valueless_block == ser_block_id_t::null()) {
                 first_valueless_block = ser_block_id_t::make(id);
             }

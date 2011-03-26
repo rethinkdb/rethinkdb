@@ -47,6 +47,7 @@ private:
         gc_writer_t(gc_write_t *writes, int num_writes, data_block_manager_t *parent);
         bool done;
     private:
+        /* TODO: This should go into log_serializer_t */
         void write_gcs(gc_write_t *writes, int num_writes);
         data_block_manager_t *parent;
     };
@@ -158,6 +159,7 @@ private:
     const log_serializer_static_config_t* const static_config;
 
     extent_manager_t* const extent_manager;
+    /* TODO: This pointer should not be required */
     log_serializer_t *serializer;
 
     direct_file_t* dbfile;
@@ -190,10 +192,11 @@ private:
         data_block_manager_t *parent;
         
         off64_t offset; /* !< the offset that this extent starts at */
+        
         bitset_t g_array; /* !< bit array for whether or not each block is garbage */
         bitset_t t_array; /* !< bit array for whether or not each block is referenced by some token */
         bitset_t i_array; /* !< bit array for whether or not each block is referenced by the current lba (*i*ndex) */
-        // Recalculates g_array[block_id] based on t_array[block_id] and i_array[block_id]
+        // g_array is redundant. g_array[i] = !(t_array[i] || i_array[i])
         void update_g_array(unsigned int block_id) {
             g_array.set(block_id, (t_array[block_id] || i_array[block_id]) ? 0 : 1);
         }

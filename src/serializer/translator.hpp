@@ -122,10 +122,6 @@ public:
     virtual void *clone(void*);
     void free(void *ptr);
 
-    void block_read(boost::shared_ptr<serializer_t::block_token_t> token, void *buf);
-    boost::shared_ptr<serializer_t::block_token_t> index_read(block_id_t block_id);
-    bool do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback);
-    ser_block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
     struct write_t {
         block_id_t block_id;
         bool recency_specified;
@@ -157,8 +153,13 @@ public:
     // created.  As long as you don't skip ahead past max_block_id,
     // block id contiguity will be ensured.
     block_id_t max_block_id();
-    bool block_in_use(block_id_t id);
+
     repli_timestamp get_recency(block_id_t id);
+    bool get_delete_bit(block_id_t id);
+    void block_read(boost::shared_ptr<serializer_t::block_token_t> token, void *buf);
+    boost::shared_ptr<serializer_t::block_token_t> index_read(block_id_t block_id);
+    bool do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback); // TODO: DEPRECATED
+    ser_block_sequence_id_t get_block_sequence_id(block_id_t block_id, const void* buf);
 
 public:
     bool offer_read_ahead_buf(ser_block_id_t block_id, void *buf);

@@ -196,7 +196,7 @@ struct gc_fsm_t :
              id += LBA_SHARD_FACTOR) {
             ser_block_id_t block_id = ser_block_id_t::make(id);
             flagged_off64_t off = owner->get_block_offset(block_id);
-            if (flagged_off64_t::has_value(off)) {
+            if (off.has_value()) {
                 owner->disk_structures[i]->add_entry(block_id, owner->get_block_recency(block_id), off);
             }
         }

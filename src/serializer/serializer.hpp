@@ -49,31 +49,30 @@ struct serializer_t :
 
     /* Reading a block from the serializer */
 
-    // TODO: Remove this legacy interface at some point
-    struct read_callback_t {
-        virtual void on_serializer_read() = 0;
-        virtual ~read_callback_t() {}
-    };
-private:
-    static void do_read_wrapper(serializer_t *serializer, ser_block_id_t block_id, void *buf, read_callback_t *callback) {
-        serializer->block_read(serializer->index_read(block_id), buf);
-        callback->on_serializer_read();
-    }
-public:
-
-    /*
-    do_read() is DEPRECATED.
-    Please use block_read(index_read(...), ...) to get the same functionality
-    in a coroutine aware manner
-    */
-    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
-        // Just a wrapper around the new interface. TODO: Get rid of this eventually
-        coro_t::spawn(boost::bind(&serializer_t::do_read_wrapper, this, block_id, buf, callback));
-        return false;
-    }
-
     /* Require coroutine context, block until data is available */
     virtual void block_read(boost::shared_ptr<block_token_t> token, void *buf) = 0;
+
+    /* The index stores three pieces of information for each ID:
+     * 1. A pointer to a data block on disk (which may be NULL)
+     * 2. A repli_timestamp_t, called the "recency"
+     * 3. A boolean, called the "delete bit" */
+
+    /* max_block_id() and get_delete_bit() are used by the buffer cache to reconstruct
+    the free list of unused block IDs. */
+    
+    /* Returns a block ID such that every existing block has an ID
+    less than that ID. Note that index_read(max_block_id() - 1) is
+    not guaranteed to be non-NULL.  Note that for k > 0, max_block_id() - k
+    might have never been created. */
+    virtual ser_block_id_t max_block_id() = 0;
+
+    /* Gets a block's timestamp.  This may return repli_timestamp::invalid. */
+    virtual repli_timestamp get_recency(ser_block_id_t id) = 0;
+ 
+    /* Reads the block's delete bit. */
+    virtual bool get_delete_bit(ser_block_id_t id) = 0;
+    
+    /* Reads the block's actual data */
     virtual boost::shared_ptr<block_token_t> index_read(ser_block_id_t block_id) = 0;
 
     /* The serializer uses RTTI to identify which operation is to be performed */
@@ -85,8 +84,10 @@ public:
         index_write_op_t(const ser_block_id_t &block_id) : block_id(block_id) { }
     };
 
-    struct index_write_delete_t : public index_write_op_t {
-        index_write_delete_t(const ser_block_id_t &block_id) : index_write_op_t(block_id) { }
+    struct index_write_delete_bit_t : public index_write_op_t {
+        index_write_delete_bit_t(const ser_block_id_t &block_id, bool delete_bit) : index_write_op_t(block_id), delete_bit(delete_bit) { }
+        // Data
+        bool delete_bit;
     };
     struct index_write_recency_t : public index_write_op_t {
         index_write_recency_t(const ser_block_id_t &block_id, const repli_timestamp &recency) : index_write_op_t(block_id), recency(recency) { }
@@ -94,6 +95,11 @@ public:
         repli_timestamp recency;
     };
     struct index_write_block_t : public index_write_op_t {
+        /* TODO: Right now, Bad Things happen if the token that you pass to
+         index_write_block_t() has not been completely flushed to disk at the
+         time that you call index_write(). In the future, index_write() should
+         work properly and just wait for the block write to finish before it
+         writes the metablock. */
         index_write_block_t(const ser_block_id_t &block_id, const boost::shared_ptr<block_token_t> &token) : index_write_op_t(block_id), token(token) { }
         // Data
         boost::shared_ptr<block_token_t> token;
@@ -101,6 +107,7 @@ public:
 
     /* index_write() applies all given index operations in an atomic way */
     virtual void index_write(const std::vector<index_write_op_t*>& write_ops) = 0;
+
     /* Non-blocking variant */
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, iocallback_t *cb) = 0;
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, ser_block_id_t block_id, iocallback_t *cb) = 0;
@@ -128,6 +135,29 @@ public:
     /* TODO: The following part is all just wrapper code. It should be removed eventually */
     
     /* DEPRECATED wrapper code begins here! */
+
+    // TODO: Remove this legacy interface at some point
+    struct read_callback_t {
+        virtual void on_serializer_read() = 0;
+        virtual ~read_callback_t() {}
+    };
+private:
+    static void do_read_wrapper(serializer_t *serializer, ser_block_id_t block_id, void *buf, read_callback_t *callback) {
+        serializer->block_read(serializer->index_read(block_id), buf);
+        callback->on_serializer_read();
+    }
+public:
+
+    /*
+    do_read() is DEPRECATED.
+    Please use block_read(index_read(...), ...) to get the same functionality
+    in a coroutine aware manner
+    */
+    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
+        // Just a wrapper around the new interface. TODO: Get rid of this eventually
+        coro_t::spawn(boost::bind(&serializer_t::do_read_wrapper, this, block_id, buf, callback));
+        return false;
+    }
 
     /* do_write() updates or deletes a group of bufs.
     
@@ -205,22 +235,29 @@ private:
 
                     // ... also generate the corresponding index ops
                     index_write_ops.push_back(new index_write_block_t(writes[i].block_id, token));
+                    index_write_ops.push_back(new index_write_delete_bit_t(writes[i].block_id, false));
                     if (writes[i].recency_specified) {
                         index_write_ops.push_back(new index_write_recency_t(writes[i].block_id, writes[i].recency));
                     }
                 } else {
                     // Deletion:
 
+                    boost::shared_ptr<block_token_t> token;
                     if (writes[i].write_empty_deleted_block) {
+                        /* Extract might get confused if we delete a block, because
+                         it doesn't search the LBA for deletion entries. We clear
+                         things up for extract by writing a block with the block ID
+                         of the block to be deleted but zero contents. All that
+                         matters is that this block is on disk somewhere. */
                         block_write_conds.push_back(new block_write_cond_t(writes[i].callback));
-                        serializer->block_write(zerobuf, writes[i].block_id, block_write_conds.back());
+                        token = serializer->block_write(zerobuf, writes[i].block_id, block_write_conds.back());
                     }
 
-                    // TODO: Do we even need to write the recency?
                     if (writes[i].recency_specified) {
                         index_write_ops.push_back(new index_write_recency_t(writes[i].block_id, writes[i].recency));
                     }
-                    index_write_ops.push_back(new index_write_delete_t(writes[i].block_id));
+                    index_write_ops.push_back(new index_write_block_t(writes[i].block_id, token));
+                    index_write_ops.push_back(new index_write_delete_bit_t(writes[i].block_id, true));
                 }
             } else {
                 // Recency update:
@@ -270,21 +307,6 @@ public:
     /* The size, in bytes, of each serializer block */
     
     virtual block_size_t get_block_size() = 0;
-    
-    /* max_block_id() and block_in_use() are used by the buffer cache to reconstruct
-    the free list of unused block IDs. */
-    
-    /* Returns a block ID such that every existing block has an ID
-    less than that ID. Note that block_in_use(max_block_id() - 1) is
-    not guaranteed.  Note that for k > 0, max_block_id() - k might have
-    never been created. */
-    virtual ser_block_id_t max_block_id() = 0;
-    
-    /* Checks whether a given block ID exists */
-    virtual bool block_in_use(ser_block_id_t id) = 0;
-
-    /* Gets a block's timestamp.  This may return repli_timestamp::invalid. */
-    virtual repli_timestamp get_recency(ser_block_id_t id) = 0;
 
 private:
     DISABLE_COPYING(serializer_t);

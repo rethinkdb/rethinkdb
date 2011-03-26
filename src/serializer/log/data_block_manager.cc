@@ -115,6 +115,7 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     state = state_ready;
 }
 
+/* TODO: Read ahead should be refactored such that it becomes less dependent on the serializer implementation  */
 struct dbm_read_ahead_fsm_t :
     public iocallback_t
 {
@@ -131,10 +132,6 @@ struct dbm_read_ahead_fsm_t :
         : parent(p), callback(cb), read_ahead_buf(NULL), off_in(off_in), buf_out(buf_out)
     {
         extent = floor_aligned(off_in, parent->static_config->extent_size());
-
-        // TODO: Now that we have a reverse LBA available, we can check whether
-        // there is a significant amount of useful data in the read-ahead part
-        // before actually perfoming the read ahead. We might consider using that information
 
         // Read up to MAX_READ_AHEAD_BLOCKS blocks
         read_ahead_size = std::min(parent->static_config->extent_size(), MAX_READ_AHEAD_BLOCKS * parent->static_config->block_size().ser_value());
@@ -167,7 +164,7 @@ struct dbm_read_ahead_fsm_t :
                 bool block_is_live = block_id.value != 0;
                 // Do this by checking the LBA
                 const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
-                block_is_live = block_is_live && !flagged_lba_offset.parts.is_delete && flagged_lba_offset.has_value(flagged_lba_offset);
+                block_is_live = block_is_live && !flagged_lba_offset.get_delete_bit() && flagged_lba_offset.has_value();
                 // As a last sanity check, verify that the offsets match
                 block_is_live = block_is_live && (off64_t)current_offset == flagged_lba_offset.parts.value;
 
@@ -304,6 +301,7 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
     
     gc_entry *entry = entries.get(extent_id);
     rassert(entry->g_array[block_id] == 0);
+    rassert(entry->i_array[block_id] == 1);
     entry->i_array.set(block_id, 0);
     entry->update_g_array(block_id);
     

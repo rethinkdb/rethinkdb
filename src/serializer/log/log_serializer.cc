@@ -112,8 +112,8 @@ struct ls_start_existing_fsm_t :
             ser->data_block_manager->start_reconstruct();
             for (ser_block_id_t::number_t id = 0; id < ser->lba_index->end_block_id().value; id++) {
                 flagged_off64_t offset = ser->lba_index->get_block_offset(ser_block_id_t::make(id));
-                if (flagged_off64_t::can_be_gced(offset)) {                    
-                    ser->data_block_manager->mark_live(offset.parts.value);
+                if (offset.has_value()) {
+                    ser->data_block_manager->mark_live(offset.get_value());
                 }
             }
             ser->data_block_manager->end_reconstruct();
@@ -283,18 +283,6 @@ void log_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *
     pm_serializer_block_reads.end(&pm_time);
 }
 
-boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::index_read(ser_block_id_t block_id) {
-    pm_serializer_index_reads++;
-
-    assert_thread();
-    rassert(state == state_ready);
-
-    flagged_off64_t offset = lba_index->get_block_offset(block_id);
-    rassert(!offset.parts.is_delete);   // Make sure the block actually exists
-
-    return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset.parts.value));
-}
-
 void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_ops) {
     ticks_t pm_time;
     pm_serializer_index_writes.begin(&pm_time);
@@ -312,17 +300,18 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
           struct index_write_block_t : public index_write_op_t
          */
         // Use RTTI to find out what we have... (we don't have many options, so performance should be fine)
-        if (dynamic_cast<const index_write_delete_t*>(*write_op_it)) {
+        if (dynamic_cast<const index_write_delete_bit_t*>(*write_op_it)) {
             // deletion
-            const index_write_delete_t &delete_op = dynamic_cast<const index_write_delete_t&>(**write_op_it);
+            const index_write_delete_bit_t &delete_op = dynamic_cast<const index_write_delete_bit_t&>(**write_op_it);
 
-            /* mark the garbage */
-            flagged_off64_t gc_offset = lba_index->get_block_offset(delete_op.block_id);
-            if (flagged_off64_t::can_be_gced(gc_offset)) {
-                data_block_manager->mark_garbage(gc_offset.parts.value);
-            }
+            flagged_off64_t offset = lba_index->get_block_offset(delete_op.block_id);
+            /* Keep recency intact. If a new recency should be set, a separate write_recency_op is required */
+            const repli_timestamp recency = lba_index->get_block_recency(delete_op.block_id);
 
-            lba_index->set_block_info(delete_op.block_id, repli_timestamp::invalid, flagged_off64_t::delete_id());
+            // Update the delete bit according to the op
+            offset.set_delete_bit(delete_op.delete_bit);
+
+            lba_index->set_block_info(delete_op.block_id, recency, offset);
 
         } else if (dynamic_cast<const index_write_recency_t*>(*write_op_it)) {
             // write recency
@@ -338,20 +327,23 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
             const repli_timestamp recency = lba_index->get_block_recency(block_op.block_id);
 
             /* mark the garbage */
-            flagged_off64_t gc_offset = lba_index->get_block_offset(block_op.block_id);
-            if (flagged_off64_t::can_be_gced(gc_offset)) {
-                data_block_manager->mark_garbage(gc_offset.parts.value);
+            flagged_off64_t offset = lba_index->get_block_offset(block_op.block_id);
+            if (offset.has_value()) {
+                data_block_manager->mark_garbage(offset.get_value());
             }
 
-            ls_block_token_t *ls_token = dynamic_cast<ls_block_token_t*>(block_op.token.get());
-            rassert(ls_token);
-            rassert(token_offsets.find(ls_token) != token_offsets.end());
-            const off64_t offset = token_offsets[ls_token];
+            if (block_op.token) {
+                ls_block_token_t *ls_token = dynamic_cast<ls_block_token_t*>(block_op.token.get());
+                rassert(ls_token);
+                rassert(token_offsets.find(ls_token) != token_offsets.end());
+                offset.set_value(token_offsets[ls_token]);
 
-            /* mark the life */
-            data_block_manager->mark_live(offset);
-
-            lba_index->set_block_info(block_op.block_id, recency, flagged_off64_t::real(offset));
+                /* mark the life */
+                data_block_manager->mark_live(offset.get_value());
+            } else {
+                offset.remove_value();
+            }
+            lba_index->set_block_info(block_op.block_id, recency, offset);
 
         } else {
             unreachable("Unhandled write operation supplied to index_write()");
@@ -541,15 +533,26 @@ ser_block_id_t log_serializer_t::max_block_id() {
     return lba_index->end_block_id();
 }
 
-bool log_serializer_t::block_in_use(ser_block_id_t id) {
-    
-    // State is state_shutting_down if we're called from the data block manager during a GC
-    // during shutdown.
-    rassert(state == state_ready || state == state_shutting_down);
-    
+boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::index_read(ser_block_id_t block_id) {
+    pm_serializer_index_reads++;
+
     assert_thread();
-    
-    return !(lba_index->get_block_offset(id).parts.is_delete);
+    rassert(state == state_ready);
+
+    flagged_off64_t offset = lba_index->get_block_offset(block_id);
+    if (offset.has_value()) {
+        return boost::shared_ptr<block_token_t>(new ls_block_token_t(this, offset.get_value()));
+    } else {
+        return boost::shared_ptr<serializer_t::block_token_t>();
+    }
+}
+
+bool log_serializer_t::get_delete_bit(ser_block_id_t id) {
+    assert_thread();
+    rassert(state == state_ready);
+
+    flagged_off64_t offset = lba_index->get_block_offset(id);
+    return offset.get_delete_bit();
 }
 
 repli_timestamp log_serializer_t::get_recency(ser_block_id_t id) {
