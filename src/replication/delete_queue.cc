@@ -10,11 +10,13 @@ namespace replication {
 
 namespace delete_queue {
 
-const int TIMESTAMPS_AND_OFFSETS_OFFSET = sizeof(off64_t);
+// The offset of the primal offset.
+const int PRIMAL_OFFSET_OFFSET = sizeof(block_magic_t);
+const int TIMESTAMPS_AND_OFFSETS_OFFSET = PRIMAL_OFFSET_OFFSET + sizeof(off64_t);
 const int TIMESTAMPS_AND_OFFSETS_SIZE = sizeof(large_buf_ref) + 3 * sizeof(block_id_t);
 
-off64_t primal_offset(void *root_buffer) {
-    return *reinterpret_cast<off64_t *>(root_buffer);
+off64_t *primal_offset(void *root_buffer) {
+    return reinterpret_cast<off64_t *>(reinterpret_cast<char *>(root_buffer) + PRIMAL_OFFSET_OFFSET);
 }
 
 large_buf_ref *timestamps_and_offsets_largebuf(void *root_buffer) {
@@ -49,7 +51,7 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
     // TODO this could be a non-major write?
     void *queue_root_buf = queue_root->get_data_major_write();
 
-    off64_t primal_offset = delete_queue::primal_offset(queue_root_buf);
+    off64_t primal_offset = *delete_queue::primal_offset(queue_root_buf);
     large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);
     large_buf_ref *keys_ref = delete_queue::keys_largebuf(queue_root_buf);
 
@@ -117,7 +119,7 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
 
     void *queue_root_buf = const_cast<void *>(queue_root->get_data_read());
 
-    off64_t primal_offset = delete_queue::primal_offset(queue_root_buf);
+    off64_t primal_offset = *delete_queue::primal_offset(queue_root_buf);
     large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);
     large_buf_ref *keys_ref = delete_queue::keys_largebuf(queue_root_buf);
 
@@ -184,6 +186,31 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
         recipient->receive_keys(buf.get() + half_n, n - half_n);
     }
 }
+
+// TODO: maybe this function should be somewhere else.  Well, certainly.
+void initialize_large_buf_ref(large_buf_ref *ref, int size_in_bytes) {
+    int ids_bytes = size_in_bytes - offsetof(large_buf_ref, block_ids);
+    rassert(ids_bytes > 0);
+
+    ref->offset = 0;
+    ref->size = 0;
+    for (int i = 0, e = ids_bytes / sizeof(block_id_t); i < e; ++i) {
+        ref->block_ids[i] = NULL_BLOCK_ID;
+    }
+}
+
+void initialize_empty_delete_queue(delete_queue_block_t *dqb, block_size_t block_size) {
+    dqb->magic = delete_queue_block_t::expected_magic;
+    *delete_queue::primal_offset(dqb) = 0;
+    large_buf_ref *t_and_o = delete_queue::timestamps_and_offsets_largebuf(dqb);
+    initialize_large_buf_ref(t_and_o, delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE);
+    large_buf_ref *k = delete_queue::keys_largebuf(dqb);
+    initialize_large_buf_ref(k, delete_queue::keys_largebuf_ref_size(block_size));
+}
+
+
+
+const block_magic_t delete_queue_block_t::expected_magic = { { 'D', 'e', 'l', 'Q' } };
 
 
 
