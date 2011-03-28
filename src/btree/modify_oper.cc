@@ -188,6 +188,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         boost::shared_ptr<transactor_t> txor(new transactor_t(saver, slice->cache(), rwi_write, oper->compute_expected_change_count(slice->cache()->get_block_size().value()),  castime.timestamp));
 
         buf_lock_t sb_buf(saver, *txor, SUPERBLOCK_ID, rwi_write);
+        oper->do_superblock_sidequest(txor, sb_buf, castime.timestamp, &store_key);
+
         buf_lock_t last_buf;
         buf_lock_t buf;
         get_root(saver, *txor, sb_buf, block_size, &buf, castime.timestamp);
