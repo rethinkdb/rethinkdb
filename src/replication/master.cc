@@ -10,6 +10,7 @@
 namespace replication {
 
 void master_t::register_dispatcher(btree_slice_dispatching_to_master_t *dispatcher) {
+    on_thread_t th(home_thread);
     dispatchers_.push_back(dispatcher);
 }
 
