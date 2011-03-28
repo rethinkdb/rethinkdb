@@ -202,12 +202,15 @@ void master_t::do_nop_rebound(repli_timestamp t) {
     stream_->send(msg);
 }
 
-struct do_backfill_cb : public backfill_callback_t {
+class do_backfill_cb : public backfill_callback_t {
     int count;
     master_t *master;
-    cond_t *for_when_done;
+    cond_t for_when_done;
 
-    void deletion_key(UNUSED const store_key_t *key) {
+public:
+    do_backfill_cb(int num_dispatchers, master_t *_master) : count(2 * num_dispatchers), master(_master) { }
+
+    void deletion_key(const store_key_t *key) {
         coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_deletion_key_to_slave, master, *key));
     }
     void done_deletion_keys() {
@@ -225,10 +228,13 @@ struct do_backfill_cb : public backfill_callback_t {
         rassert(get_thread_id() == master->home_thread);
 
         count = count - 1;
-        debugf("do_done, decrementing count to %d\n", count);
         if (0 == count) {
-            for_when_done->pulse();
+            for_when_done.pulse();
         }
+    }
+
+    void wait() {
+        for_when_done.wait();
     }
 };
 
@@ -241,32 +247,20 @@ void master_t::do_backfill(repli_timestamp since_when) {
 
     snag_ptr_t<master_t> tmp_hold(*this);
     assert_thread();
-    debugf("Somebody called do_backfill(%u)\n", since_when.time);
 
     int n = dispatchers_.size();
-    cond_t done_cond;
 
-    do_backfill_cb cb;
-    debugf("do_backfill_cb, count = %d\n", n);
-    cb.count = 2*n;
-    cb.master = this;
-    cb.for_when_done = &done_cond;
+    do_backfill_cb cb(n, this);
 
     for (int i = 0; i < n; ++i) {
         dispatchers_[i]->spawn_backfill(since_when, &cb);
     }
 
-    debugf("Done spawning, now waiting for done_cond...\n");
-    done_cond.wait();
-    debugf("Done backfill.\n");
+    cb.wait();
     if (stream_) {
-        debugf("Sending backfill_complete...\n");
         net_backfill_complete_t msg;
         memset(msg.ignore, 0, sizeof(msg.ignore));
         stream_->send(&msg);
-        debugf("Sent backfill_complete.\n");
-    } else {
-        debugf("Not sending backfill...\n");
     }
 }
 
