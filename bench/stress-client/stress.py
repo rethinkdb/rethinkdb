@@ -120,7 +120,7 @@ class Op(object):
         self.locked = False
 
     def on_add(self, client):
-        assert self.client is None
+        assert self.client is None, "Can't add the same op to two clients."
         self.client = client
 
     def lock(self):
@@ -138,7 +138,8 @@ class Op(object):
             you can compute the average or various percentiles from this
             information.
         """
-        assert self.locked or not self.client or not self.client.running
+        assert self.locked or not self.client or not self.client.running, \
+            "It's not safe to poll() an Op attached to a running client without lock()ing it first."
 
         queries = ctypes.c_int()
         worst_latency = ctypes.c_float()
@@ -159,7 +160,8 @@ class Op(object):
             }
 
     def reset(self):
-        assert self.locked or not self.client or not self.client.running
+        assert self.locked or not self.client or not self.client.running, \
+            "It's not safe to reset() an Op attached to a running client without lock()ing it first."
         libstress_op_reset(self._op)
 
     def unlock(self):
@@ -169,7 +171,7 @@ class Op(object):
 
     def __del__(self):
         if hasattr(self, "locked"):
-            assert not self.locked
+            assert not self.locked, "Op.unlock() was never called."
         if hasattr(self, "_op"):
             libstress.op_destroy(self._op)
 
@@ -207,7 +209,7 @@ class Client(object):
 
     def __del__(self):
         if hasattr(self, "running"):
-            assert not self.running
+            assert not self.running, "Client.stop() was never called."
         if hasattr(self, "_client"):
             libstress_client_destroy(self._client)
 
@@ -288,7 +290,9 @@ class SingleConnectionOp(Op):
         Op.__init__(self, _op)
 
     def on_add(self, client):
-        assert self.connection.client is None or self.connection.client is client
+        assert self.connection.client is None or self.connection.client is client, \
+            "Can't use the same connection with ops that are associated with two " + \
+            "different clients."
         if self.connection.client is None: self.connection.client = client
         Op.on_add(self, client)
 

@@ -7,16 +7,11 @@ The rget-mix workload cannot be expressed using the normal stress client, becaus
 contains range-gets of two different sizes. This script mimics the stress client enough
 to be compatible with dbench. It accepts a subset of the parameters that the stress client
 accepts, but its "workload" parameter must always be "-w special_rget_mix_workload" and
-the other parts of the workload are hard-coded."""
+the workload itself is hard-coded."""
 
 parser = optparse.OptionParser(description = documentation)
-parser.add_option("-c", "--clients", dest="clients", type="int", default=64,
-    help="How many concurrent connections to make.", metavar="N")
 parser.add_option("--client-suffix", dest="client_suffix", action="store_true", default=False,
     help="For compatibility with the stress client. Ignored.")
-parser.add_option("-d", "--duration", dest="duration", default="10s",
-    help="How long to run the test for. Should be a number with an 'i', 'q', or 's' after it "
-    "to indicate that the duration is in inserts, queries, or seconds.", metavar="DURATION")
 parser.add_option("-q", "--qps", dest="qps", default=None,
     help="Filename to put QPS output in. Each line will have a time and a QPS count.",
     metavar="FILENAME")
@@ -35,11 +30,11 @@ parser.add_option("-w", "--workload", dest="workload",
 
 assert options.servers is not None
 assert options.workload == "special_rget_mix_workload"
-assert options.duration[-1] in "qis"
-int(options.duration[:-1])   # Make sure it's a valid integer
 
-# The rest of the workload parameters are hard-coded.
+# The workload parameters are hard-coded.
 
+duration = (20, "seconds")
+num_clients = 64
 keys = (8,16)
 values = (8,128)
 insert_freq = 8
@@ -75,30 +70,33 @@ else: latencies_file = file(options.latencies, "w")
 
 class RgetMixClient(object):
     def __init__(self, i):
-        self.client = stress.Client(i, options.clients, keys)
+        self.key_generator = stress.SeedKeyGenerator((i, num_clients), keysize=keys)
+        self.model = stress.ConsecutiveSeedModel()
         self.connection = stress.Connection(options.servers[i % len(options.servers)])
-        self.insert_op = stress.InsertOp(self.client, self.connection, insert_freq, values)
+        self.client = stress.Client()
+        self.insert_op = stress.InsertOp(self.key_generator, self.model.insert_chooser(), self.model, self.connection, values)
+        self.client.add_op(insert_freq, self.insert_op)
         # Temporary workaround so we can test this script even though the server crashes on
         # rgets.
-        # self.small_rget_op = stress.RangeReadOp(self.client, self.connection, small_rget_freq, small_rget_size)
-        # self.large_rget_op = stress.RangeReadOp(self.client, self.connection, large_rget_freq, large_rget_size)
-        self.small_rget_op = stress.InsertOp(self.client, self.connection, insert_freq, values)
-        self.large_rget_op = stress.InsertOp(self.client, self.connection, insert_freq, values)
+        self.small_rget_op = stress.InsertOp(self.key_generator, self.model.insert_chooser(), self.model, self.connection, values)
+        self.client.add_op(small_rget_freq, self.small_rget_op)
+        self.large_rget_op = stress.InsertOp(self.key_generator, self.model.insert_chooser(), self.model, self.connection, values)
+        self.client.add_op(large_rget_freq, self.large_rget_op)
     def poll_and_reset(self):
-        self.client.lock()
         queries = 0
         latencies = []
         for op in [self.insert_op, self.small_rget_op, self.large_rget_op]:
+            op.lock()
             stats = op.poll()
             op.reset()
+            op.unlock()
             queries += stats["queries"]
             # TODO: Differentiate between latencies from different operations
             latencies.extend(stats["latency_samples"])
             if op is self.insert_op: inserts = stats["queries"]
-        self.client.unlock()
         return {"queries": queries, "latency_samples": latencies, "inserts": inserts}
 
-clients = [RgetMixClient(i) for i in xrange(options.clients)]
+clients = [RgetMixClient(i) for i in xrange(num_clients)]
 
 # Start the clients
 
@@ -144,5 +142,6 @@ while True:
     total_time += round_time
 
     # Determine if we should stop
-    if {"q": total_queries, "i": total_inserts, "s": total_time}[options.duration[-1]] > int(options.duration[:-1]):
+    if {"queries": total_queries, "inserts": total_inserts, "seconds": total_time}[duration[1]] > duration[0]:
         break
+
