@@ -36,8 +36,6 @@ typedef array_map_t page_map_t;
 // into a coherent whole. This allows easily experimenting with
 // various components of the cache to improve performance.
 
-#define MC_CONFIGBLOCK_ID (SUPERBLOCK_ID + 1)
-
 class mc_inner_buf_t : public home_thread_mixin_t {
     friend class load_buf_fsm_t;
     friend class mc_cache_t;

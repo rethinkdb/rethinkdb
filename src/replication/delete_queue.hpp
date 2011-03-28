@@ -64,6 +64,14 @@ struct store_key_t;
 
 namespace replication {
 
+struct delete_queue_block_t {
+    block_magic_t magic;
+
+    static const block_magic_t expected_magic;
+};
+
+void initialize_empty_delete_queue(delete_queue_block_t *dqb, block_size_t block_size);
+
 // Instead of passing keys one by one, we just pass the buffers that
 // contain all the keys.  These can then get passed in the same manner
 // to the slave, without so much needless processing and reprocessing,

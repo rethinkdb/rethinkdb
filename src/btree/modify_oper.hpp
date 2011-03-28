@@ -6,6 +6,7 @@
 #include "utils.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/large_buf.hpp"
 #include "buffer_cache/transactor.hpp"
 #include "buffer_cache/co_functions.hpp"
@@ -50,6 +51,15 @@ public:
         thread_saver_t saver;
         co_acquire_large_buf(saver, lb);
     }
+
+    // This is a dorky name.  This function shall be called
+    // immediately after the superblock has been acquired.  The delete
+    // queue is a child of the superblock, when it comes to
+    // transactional ordering.
+    virtual void do_superblock_sidequest(UNUSED boost::shared_ptr<transactor_t>& txor,
+                                         UNUSED buf_lock_t& superblock,
+                                         UNUSED repli_timestamp recency,
+                                         UNUSED const store_key_t *key) { }
 };
 
 // Runs a btree_modify_oper_t.
