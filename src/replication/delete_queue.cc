@@ -195,18 +195,25 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
         // implementation, make something that actually streams later.
         scoped_malloc<byte> buf(n);
 
-        keys_largebuf->fill_at(begin_offset, buf.get(), n);
+        keys_largebuf->read_at(begin_offset, buf.get(), n);
 
-        // To force deletion_key_stream_receiver_t to be designed to
-        // accept multiple calls, we send two calls.
-        int64_t half_n = n / 2;
-        recipient->deletion_chunk(buf.get(), half_n);
-        recipient->deletion_chunk(buf.get() + half_n, n - half_n);
+        byte *p = buf.get();
+        byte *e = p + n;
+        while (p < e) {
+            store_key_t *k = reinterpret_cast<store_key_t *>(p);
+            rassert(k->size + 1 <= e - p);
+
+            recipient->deletion_key(k);
+            p += k->size + 1;
+        }
     }
-    recipient->done_deletion_chunks();
+    recipient->done_deletion_keys();
 }
 
-// TODO: maybe this function should be somewhere else.  Well, certainly.
+// TODO: maybe this function should be somewhere else.  Well,
+// certainly.  Right now we don't have a notion of an "empty"
+// largebuf, so we'll know that we have to ->allocate the largebuf
+// when we see a size of 0 in the large_buf_ref.
 void initialize_large_buf_ref(large_buf_ref *ref, int size_in_bytes) {
     int ids_bytes = size_in_bytes - offsetof(large_buf_ref, block_ids);
     rassert(ids_bytes > 0);

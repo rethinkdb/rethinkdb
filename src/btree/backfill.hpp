@@ -16,8 +16,8 @@ struct backfill_atom_t {
     cas_t cas_or_zero;
 };
 
-// How to use this class: Send deletion_chunks first, then call
-// done_deletion_chunks, then send on_keyvalues, then send done().
+// How to use this class: Send deletion_key calls first, then call
+// done_deletion_keys, then send on_keyvalues, then send done().
 class backfill_callback_t : public replication::deletion_key_stream_receiver_t {
 public:
     virtual void on_keyvalue(backfill_atom_t atom) = 0;

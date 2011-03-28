@@ -207,10 +207,10 @@ struct do_backfill_cb : public backfill_callback_t {
     master_t *master;
     cond_t *for_when_done;
 
-    void deletion_chunk(UNUSED const void *data, UNUSED size_t size) {
-        debugf("deletion_chunk not sent to slave.\n");
+    void deletion_key(UNUSED const store_key_t *key) {
+        debugf("deletion_key '%.*s' not sent to slave.\n", int(key->size), key->contents);
     }
-    void done_deletion_chunks() {
+    void done_deletion_keys() {
         debugf("done_deletion_chunks, but nothing sent to slave.\n");
     }
 
