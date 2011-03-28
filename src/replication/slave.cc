@@ -227,11 +227,11 @@ void slave_t::send(buffed_data_t<net_delete_t>& msg) {
 void slave_t::send(buffed_data_t<net_backfill_delete_t>& msg) {
     delete_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
-    // NO_CAS_SUPPLIED is not used in any way for deletions, and
-    // msg->timestamp is part of the "->change" interface in a way not
+    // NO_CAS_SUPPLIED is not used in any way for deletions, and the
+    // timestamp is part of the "->change" interface in a way not
     // relevant to slaves -- it's used when putting deletions into the
     // delete queue.
-    internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED, msg->timestamp));
+    internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid));
 }
 
 void slave_t::send(buffed_data_t<net_nop_t>& message) {

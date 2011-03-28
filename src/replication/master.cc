@@ -208,10 +208,10 @@ struct do_backfill_cb : public backfill_callback_t {
     cond_t *for_when_done;
 
     void deletion_key(UNUSED const store_key_t *key) {
-        debugf("deletion_key '%.*s' not sent to slave.\n", int(key->size), key->contents);
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_deletion_key_to_slave, master, *key));
     }
     void done_deletion_keys() {
-        debugf("done_deletion_chunks, but nothing sent to slave.\n");
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this));
     }
 
     void on_keyvalue(backfill_atom_t atom) {
@@ -248,7 +248,7 @@ void master_t::do_backfill(repli_timestamp since_when) {
 
     do_backfill_cb cb;
     debugf("do_backfill_cb, count = %d\n", n);
-    cb.count = n;
+    cb.count = 2*n;
     cb.master = this;
     cb.for_when_done = &done_cond;
 
@@ -271,6 +271,8 @@ void master_t::do_backfill(repli_timestamp since_when) {
 }
 
 void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+
     data_provider_t *data = atom.value.release();
 
     if (stream_) {
@@ -286,6 +288,19 @@ void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
 
     // TODO: do we delete data or does repli_stream_t delete it?
     delete data;
+}
+
+void master_t::send_deletion_key_to_slave(store_key_t key) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+
+    size_t n = sizeof(net_backfill_delete_t) + key.size;
+    if (stream_) {
+        scoped_malloc<net_backfill_delete_t> msg(n);
+        msg->key_size = key.size;
+        memcpy(msg->key, key.contents, key.size);
+
+        stream_->send(msg.get());
+    }
 }
 
 

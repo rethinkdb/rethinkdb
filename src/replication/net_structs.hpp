@@ -155,7 +155,6 @@ struct net_delete_t {
 } __attribute__((__packed__));
 
 struct net_backfill_delete_t {
-    repli_timestamp timestamp;
     uint16_t key_size;
     char key[];
 } __attribute__((__packed__));
