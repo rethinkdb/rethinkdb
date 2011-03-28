@@ -200,9 +200,10 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
         // To force deletion_key_stream_receiver_t to be designed to
         // accept multiple calls, we send two calls.
         int64_t half_n = n / 2;
-        recipient->receive_keys(buf.get(), half_n);
-        recipient->receive_keys(buf.get() + half_n, n - half_n);
+        recipient->deletion_chunk(buf.get(), half_n);
+        recipient->deletion_chunk(buf.get() + half_n, n - half_n);
     }
+    recipient->done_deletion_chunks();
 }
 
 // TODO: maybe this function should be somewhere else.  Well, certainly.

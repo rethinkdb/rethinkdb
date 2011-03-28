@@ -207,6 +207,13 @@ struct do_backfill_cb : public backfill_callback_t {
     master_t *master;
     cond_t *for_when_done;
 
+    void deletion_chunk(UNUSED const void *data, UNUSED size_t size) {
+        debugf("deletion_chunk not sent to slave.\n");
+    }
+    void done_deletion_chunks() {
+        debugf("done_deletion_chunks, but nothing sent to slave.\n");
+    }
+
     void on_keyvalue(backfill_atom_t atom) {
         coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_backfill_atom_to_slave, master, atom));
     }

@@ -181,13 +181,14 @@ private:
     DISABLE_COPYING(backfill_state_t);
 };
 
-// Naive functions' declarations
+
+
 void subtrees_backfill(const thread_saver_t& saver, backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids);
 void do_subtree_backfill(const thread_saver_t& saver, backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond);
 void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock);
 void process_internal_node(const thread_saver_t& saver, backfill_state_t& state, buf_lock_t& buf_lock, int level);
 
-// Less naive functions' declarations
+
 void get_recency_timestamps(backfill_state_t& state, block_id_t *block_ids, int num_block_ids, repli_timestamp *recencies_out);
 
 // The main purpose of this type is to incr/decr state.level_counts.
@@ -243,15 +244,29 @@ private:
 void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
     thread_saver_t saver;
     backfill_state_t state(saver, slice, since_when, callback);
-    buf_lock_t buf_lock(saver, *state.transactor_ptr, SUPERBLOCK_ID, rwi_read);
-    block_id_t root_id = reinterpret_cast<const btree_superblock_t *>(buf_lock.buf()->get_data_read())->root_block;
+    buf_lock_t superblock_buf(saver, *state.transactor_ptr, SUPERBLOCK_ID, rwi_read);
+
+    const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
+
+    // TODO: The slave could sort the deletes and newer sets out, but
+    // there are fairly few deletes.  We could (and should) release
+    // the superblock lock much sooner than we do right now.
+
+    // The deletes have to go first (since they get overridden by
+    // newer sets) TODO: This is probably not the right time to call
+    // current_time() and pass current_time() + 1, if that parameter
+    // should exist at all.
+    repli_timestamp t = { current_time().time + 1 };
+    dump_keys_from_delete_queue(state.transactor_ptr, superblock->delete_queue_block, since_when, t, callback);
+
+    block_id_t root_id = superblock->root_block;
     rassert(root_id != SUPERBLOCK_ID);
 
     if (root_id == NULL_BLOCK_ID) {
         // No root, so no keys in this entire shard.
         callback->done();
     } else {
-        subtrees_backfill(saver, state, buf_lock, 0, &root_id, 1);
+        subtrees_backfill(saver, state, superblock_buf, 0, &root_id, 1);
     }
 }
 
