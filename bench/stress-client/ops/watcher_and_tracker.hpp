@@ -1,7 +1,7 @@
 #ifndef __WATCHER_AND_TRACKER_HPP__
 #define __WATCHER_AND_TRACKER_HPP__
 
-#include "seed_key_generator.hpp"
+#include "ops/seed_key_generator.hpp"
 
 /* A value_watcher_t is something that wants to be notified when a value is changed. */
 

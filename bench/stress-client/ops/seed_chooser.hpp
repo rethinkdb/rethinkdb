@@ -1,7 +1,7 @@
 #ifndef __KEY_CHOOSER_HPP__
 #define __KEY_CHOOSER_HPP__
 
-#include "seed_key_generator.hpp"
+#include "ops/seed_key_generator.hpp"
 
 /* Since there are so many different ways to choose which keys to operate on, we have
 an abstract class to do it. */
@@ -15,6 +15,8 @@ struct seed_chooser_t {
     Suppose that only three keys are in the database, but "nseeds" is ten. The return
     value will be three. */
     virtual int choose_seeds(seed_t *seeds, int nseeds) = 0;
+
+    virtual ~seed_chooser_t() { }
 };
 
 #endif /* __KEY_CHOOSER_HPP__ */

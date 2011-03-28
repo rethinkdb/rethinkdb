@@ -1,8 +1,8 @@
 #ifndef __RANGE_READ_OPS_HPP__
 #define __RANGE_READ_OPS_HPP__
 
-#include "seed_key_generator.hpp"
-#include "watcher_and_tracker.hpp"
+#include "ops/seed_key_generator.hpp"
+#include "ops/watcher_and_tracker.hpp"
 #include "op.hpp"
 
 /* There are two kinds of range read operations offered. percentage_range_read_op_t

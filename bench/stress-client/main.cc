@@ -8,12 +8,12 @@
 #include <sys/stat.h>
 #include "args.hpp"
 #include "client.hpp"
-#include "consecutive_seed_model.hpp"
-#include "simple_ops.hpp"
-#include "range_read_ops.hpp"
-#include "sqlite_mirror.hpp"
+#include "ops/consecutive_seed_model.hpp"
+#include "ops/simple_ops.hpp"
+#include "ops/range_read_ops.hpp"
+#include "ops/sqlite_mirror.hpp"
 #ifdef USE_MYSQL
-#include "mysql_protocol.hpp"   // For initialize_mysql_table()
+#include "protocols/mysql_protocol.hpp"   // For initialize_mysql_table()
 #endif
 
 using namespace std;

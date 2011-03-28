@@ -1,8 +1,8 @@
 #ifndef __SIMPLE_OPS_HPP__
 #define __SIMPLE_OPS_HPP__
 
-#include "key_chooser.hpp"
-#include "watcher_and_tracker.hpp"
+#include "ops/seed_chooser.hpp"
+#include "ops/watcher_and_tracker.hpp"
 #include "protocol.hpp"
 #include "op.hpp"
 

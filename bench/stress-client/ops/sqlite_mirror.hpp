@@ -1,9 +1,9 @@
 #ifndef __SQLITE_MIRROR_HPP__
 #define __SQLITE_MIRROR_HPP__
 
-#include "seed_key_generator.hpp"
-#include "watcher_and_tracker.hpp"
-#include "sqlite_protocol.hpp"
+#include "ops/seed_key_generator.hpp"
+#include "ops/watcher_and_tracker.hpp"
+#include "protocols/sqlite_protocol.hpp"
 #include "op.hpp"
 
 /* sqlite_mirror_t keeps key-value pairs in a SQLite database on the side,

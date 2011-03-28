@@ -3,8 +3,12 @@ import stress, os, time
 
 client = stress.Client()
 conn = stress.Connection("localhost:%d" % int(os.environ["RUN_PORT"]))
-read_op = stress.ReadOp(client, conn, 1)
-insert_op = stress.InsertOp(client, conn, 10)
+key_generator = stress.SeedKeyGenerator()
+model = stress.ConsecutiveSeedModel()
+read_op = stress.ReadOp(key_generator, model.live_chooser(), conn)
+client.add_op(1, read_op)
+insert_op = stress.InsertOp(key_generator, model.insert_chooser(), model, conn)
+client.add_op(1, insert_op)
 
 def avg(x):
     if len(x) == 0: return "N/A"
@@ -13,11 +17,13 @@ def avg(x):
 client.start()
 for i in xrange(10):
     time.sleep(1)
-    client.lock()
+    read_op.lock()
+    insert_op.lock()
     read_lats = read_op.poll()["latency_samples"]
     insert_lats = insert_op.poll()["latency_samples"]
     print i, avg(insert_lats), avg(read_lats)
     read_op.reset()
     insert_op.reset()
-    client.unlock()
+    read_op.unlock()
+    insert_op.unlock()
 client.stop()

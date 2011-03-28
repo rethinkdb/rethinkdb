@@ -1,12 +1,12 @@
 #include "protocol.hpp"
-#include "memcached_sock_protocol.hpp"
+#include "protocols/memcached_sock_protocol.hpp"
 #ifdef USE_LIBMEMCACHED
-#  include "memcached_protocol.hpp"
+#  include "protocols/memcached_protocol.hpp"
 #endif
 #ifdef USE_MYSQL
-#  include "mysql_protocol.hpp"
+#  include "protocols/mysql_protocol.hpp"
 #endif
-#include "sqlite_protocol.hpp"
+#include "protocols/sqlite_protocol.hpp"
 
 protocol_t *server_t::connect() {
     switch (protocol) {

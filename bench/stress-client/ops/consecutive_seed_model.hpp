@@ -1,9 +1,9 @@
 #ifndef __CONSECUTIVE_SEED_MODEL_HPP__
 #define __CONSECUTIVE_SEED_MODEL_HPP__
 
-#include "seed_key_generator.hpp"
-#include "watcher_and_tracker.hpp"
-#include "key_chooser.hpp"
+#include "ops/seed_key_generator.hpp"
+#include "ops/watcher_and_tracker.hpp"
+#include "ops/seed_chooser.hpp"
 
 /* The consecutive-seed model keeps track of the keys in the database by making sure
 that the keys that exist occupy a consecutive range of seeds. To ensure this, if you

@@ -2,6 +2,7 @@
 #define __SEED_KEY_GENERATOR_HPP__
 
 #include "distr.hpp"
+#include "utils.hpp"
 #include <stdint.h>
 
 /* To avoid having to pass around potentially-large keys, most of the code talks in
