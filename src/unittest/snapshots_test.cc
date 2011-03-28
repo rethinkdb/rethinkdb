@@ -34,6 +34,9 @@ public:
     }
 };
 
+static const int init_value = 0x12345678;
+static const int changed_value = 0x87654321;
+
 struct tester_t : public thread_message_t {
     thread_pool_t thread_pool;
 
@@ -93,13 +96,179 @@ private:
         return acq_coro.result;
     }
 
-    void snapshot_txn_runner(cache_t *cache, count_down_latch_t *stop_latch) {
-        thread_saver_t saver;
-        transactor_t snap_txor(saver, cache, rwi_read, repli_timestamp::invalid);
-        snap_txor.transaction()->snapshot();
-        debugf("snapshot.done\n");
-        stop_latch->count_down();
+    static void create_two_blocks(transactor_t &txor, block_id_t &block_A, block_id_t &block_B) {
+        buf_t *buf_A = create(txor);
+        buf_t *buf_B = create(txor);
+        block_A = buf_A->get_block_id();
+        block_B = buf_B->get_block_id();
+        change_value(buf_A, init_value);
+        change_value(buf_B, init_value);
+        buf_A->release();
+        buf_B->release();
     }
+
+    static void test_snapshot_acq_blocks_on_older_write_txns(thread_saver_t &saver, cache_t *cache) {
+        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+        transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+    }
+
+    static void test1(thread_saver_t &saver, cache_t *cache) {
+        // t0:create(A), t1:snap(), t1:acq(A) blocks, t0:release(A), t1 unblocks, t1 sees the block.
+        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+        transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+
+        buf_t *buf0 = create(t0);
+        snap(t1);
+        bool blocked = false;
+        buf_t *buf1 = acq_check_if_blocks_until_buf_released(t1, buf0, rwi_read, true, blocked);
+        EXPECT_TRUE(blocked);
+        EXPECT_TRUE(buf1 != NULL);
+        if (buf1)
+            buf1->release();
+    }
+
+    static void test2(thread_saver_t &saver, cache_t *cache) {
+        // t0:create(A), t0:release(A), t1:snap(), t2:acqw(A), t2:change(A), t2:release(A), t1:acq(A), t1 sees the change
+        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+
+        block_id_t block_A, block_B;
+        create_two_blocks(t0, block_A, block_B);
+
+        transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+        transactor_t t2(saver, cache, rwi_write, 0, current_time());
+
+        snap(t1);
+
+        buf_t *buf2 = acq(t2, block_A, rwi_write);
+        change_value(buf2, changed_value);
+        buf2->release();
+
+        buf_t *buf1 = acq(t1, block_A, rwi_read);
+        EXPECT_EQ(changed_value, get_value(buf1));
+        buf1->release();
+    }
+
+    static void test3(thread_saver_t &saver, cache_t *cache) {
+        // t0:create(A), t0:release(A), t1:snap(), t1:acq(A), t2:acqw(A) doesn't block, t2:change(A), t2:release(A), t3:snap(), t3:acq(A), t1 doesn't see the change, t3 does see the change
+        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+
+        block_id_t block_A, block_B;
+        create_two_blocks(t0, block_A, block_B);
+
+        transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+        transactor_t t2(saver, cache, rwi_write, 0, current_time());
+        transactor_t t3(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+
+        snap(t1);
+        buf_t *buf1 = acq(t1, block_A, rwi_read);
+
+        bool blocked = true;
+        buf_t *buf2 = acq_check_if_blocks_until_buf_released(t2, buf1, rwi_write, false, blocked);
+        EXPECT_FALSE(blocked);
+
+        change_value(buf2, changed_value);
+
+        snap(t3);
+        buf_t *buf3 = acq_check_if_blocks_until_buf_released(t2, buf2, rwi_read, true, blocked);
+        EXPECT_TRUE(blocked);
+
+        EXPECT_EQ(init_value, get_value(buf1));
+        EXPECT_EQ(changed_value, get_value(buf3));
+        buf1->release();
+        buf3->release();
+    }
+
+    static void test4(thread_saver_t &saver, cache_t *cache) {
+        // t0:create(A,B), t0:release(A,B), t1:snap(), t1:acq(A), t2:acqw(A) doesn't block, t2:acqw(B), t1:acq(B) doesn't block
+        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+
+        block_id_t block_A, UNUSED block_B;
+        create_two_blocks(t0, block_A, block_B);
+
+        transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+        transactor_t t2(saver, cache, rwi_write, 0, current_time());
+
+        snap(t1);
+        buf_t *buf1_A = acq(t1, block_A, rwi_read);
+
+        bool blocked = true;
+        buf_t *buf2_A = acq_check_if_blocks_until_buf_released(t2, buf1_A, rwi_write, false, blocked);
+        EXPECT_FALSE(blocked);
+
+        buf_t *buf2_B = acq(t2, block_B, rwi_write);
+
+        buf_t *buf1_B = acq_check_if_blocks_until_buf_released(t1, buf2_B, rwi_read, false, blocked);
+        EXPECT_FALSE(blocked);
+
+        buf1_A->release();
+        buf2_A->release();
+        buf1_B->release();
+        buf2_B->release();
+    }
+
+    static void test5(thread_saver_t &saver, cache_t *cache) {
+        // t0:create(A,B), t0:release(A,B), t1:acqw(A), t1:acqw(B), t1:release(A), t2:snap(), t2:acq(A), t2:release(A), t2:acq(B) blocks, t1:release(B), t2 unblocks
+        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+
+        block_id_t block_A, block_B;
+        create_two_blocks(t0, block_A, block_B);
+
+        transactor_t t1(saver, cache, rwi_write, 0, current_time());
+        transactor_t t2(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+
+        buf_t *buf1_A = acq(t1, block_A, rwi_write);
+        buf_t *buf1_B = acq(t1, block_B, rwi_write);
+        change_value(buf1_A, changed_value);
+        change_value(buf1_B, changed_value);
+        buf1_A->release();
+
+        snap(t2);
+        buf_t *buf2_A = acq(t1, block_A, rwi_read);
+        EXPECT_EQ(changed_value, get_value(buf2_A));
+
+        buf2_A->release();
+        bool blocked = false;
+        buf_t *buf2_B = acq_check_if_blocks_until_buf_released(t2, buf1_B, rwi_read, true, blocked);
+        EXPECT_TRUE(blocked);
+        EXPECT_EQ(changed_value, get_value(buf2_B));
+        buf2_B->release();
+    }
+
+    static void test_issue_194(thread_saver_t &saver, cache_t *cache) {
+        // issue 194 unit-test
+        // t0:create(A,B), t0:release(A,B), t1:acqw(A), t1:release(A), t2:acqw(A), t3:snap(), t3:acq(A) blocks, t2:release(A), t1:acqw(B), t1:release(B), t2:acqw(B) (fails with assertion if issue 194 is not fixed)
+        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+
+        block_id_t block_A, block_B;
+        create_two_blocks(t0, block_A, block_B);
+
+        transactor_t t1(saver, cache, rwi_write, 0, current_time());
+        transactor_t t2(saver, cache, rwi_write, 0, current_time());
+        transactor_t t3(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+
+        buf_t *buf0_A = acq(t1, block_A, rwi_write);
+        buf0_A->release();
+
+        buf_t *buf1_A = acq(t2, block_A, rwi_write);
+        snap(t3);
+
+        bool blocked = false;
+        buf_t *buf2_A = acq_check_if_blocks_until_buf_released(t3, buf1_A, rwi_read, true, blocked);
+        EXPECT_TRUE(blocked);
+
+        buf_t *buf0_B = acq(t1, block_B, rwi_write);
+        buf0_B->release();
+
+        buf_t *buf1_B = acq(t2, block_B, rwi_write);    // if issue 194 is not fixed, expect assertion failure here
+
+        buf2_A->release();
+
+        buf_t *buf2_B = acq_check_if_blocks_until_buf_released(t3, buf1_B, rwi_read, false, blocked);
+        EXPECT_FALSE(blocked);
+        buf1_B->release();
+        buf2_B->release();
+    }
+
     void main() {
         temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
@@ -127,190 +296,18 @@ private:
 
             cache_t *cache = slice.cache();
 
-
-            int init_value = 0x12345678;
-            int changed_value = 0x87654321;
-
             thread_saver_t saver;
 
-            // t0:create(A), t1:snap(), t1:acq(A) blocks, t0:release(A), t1 unblocks, t1 sees the block.
-            {
-                transactor_t t0(saver, cache, rwi_write, 0, current_time());
-                transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-
-                buf_t *buf0 = create(t0);
-                snap(t1);
-                bool blocked = false;
-                buf_t *buf1 = acq_check_if_blocks_until_buf_released(t1, buf0, rwi_read, true, blocked);
-                EXPECT_TRUE(blocked);
-                EXPECT_TRUE(buf1 != NULL);
-                if (buf1)
-                    buf1->release();
-
-            }
-
-            // t0:create(A), t0:release(A), t1:snap(), t2:acqw(A), t2:change(A), t2:release(A), t1:acq(A), t1 sees the change
-            {
-                transactor_t t0(saver, cache, rwi_write, 0, current_time());
-                transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-                transactor_t t2(saver, cache, rwi_write, 0, current_time());
-
-                buf_t *buf0 = create(t0);
-                block_id_t block_A = buf0->get_block_id();
-                change_value(buf0, init_value);
-                buf0->release();
-
-                snap(t1);
-
-                buf_t *buf2 = acq(t2, block_A, rwi_write);
-                change_value(buf2, changed_value);
-                buf2->release();
-
-                buf_t *buf1 = acq(t1, block_A, rwi_read);
-                EXPECT_EQ(changed_value, get_value(buf1));
-                buf1->release();
-            }
-            // t0:create(A), t0:release(A), t1:snap(), t1:acq(A), t2:acqw(A), t2:change(A), t2:release(A), t3:snap(), t3:acq(A), t1 doesn't see the change, t3 does see the change
-            {
-                transactor_t t0(saver, cache, rwi_write, 0, current_time());
-                transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-                transactor_t t2(saver, cache, rwi_write, 0, current_time());
-                transactor_t t3(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-
-                buf_t *buf0 = create(t0);
-                block_id_t block_A = buf0->get_block_id();
-                change_value(buf0, init_value);
-                buf0->release();
-
-                snap(t1);
-                buf_t *buf1 = acq(t1, block_A, rwi_read);
-
-                bool blocked = true;
-                buf_t *buf2 = acq_check_if_blocks_until_buf_released(t2, buf1, rwi_write, false, blocked);
-                EXPECT_FALSE(blocked);
-
-                change_value(buf2, changed_value);
-
-                snap(t3);
-                buf_t *buf3 = acq_check_if_blocks_until_buf_released(t2, buf2, rwi_read, true, blocked);
-                EXPECT_TRUE(blocked);
-
-                EXPECT_EQ(init_value, get_value(buf1));
-                EXPECT_EQ(changed_value, get_value(buf3));
-                buf1->release();
-                buf3->release();
-            }
-
-            // t0:create(A,B), t0:release(A,B), t1:snap(), t1:acq(A), t2:acqw(A) doesn't block, t2:acqw(B), t1:acq(B) doesn't block
-            {
-                transactor_t t0(saver, cache, rwi_write, 0, current_time());
-                transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-                transactor_t t2(saver, cache, rwi_write, 0, current_time());
-
-                buf_t *buf0_A = create(t0);
-                buf_t *buf0_B = create(t0);
-                block_id_t block_A = buf0_A->get_block_id();
-                block_id_t block_B = buf0_B->get_block_id();
-                change_value(buf0_A, init_value);
-                change_value(buf0_B, init_value);
-                buf0_A->release();
-                buf0_B->release();
-
-                snap(t1);
-                buf_t *buf1_A = acq(t1, block_A, rwi_read);
-
-                bool blocked = true;
-                buf_t *buf2_A = acq_check_if_blocks_until_buf_released(t2, buf1_A, rwi_write, false, blocked);
-                EXPECT_FALSE(blocked);
-
-                buf_t *buf2_B = acq(t2, block_B, rwi_write);
-
-                buf_t *buf1_B = acq_check_if_blocks_until_buf_released(t1, buf2_B, rwi_read, false, blocked);
-                EXPECT_FALSE(blocked);
-
-                buf1_A->release();
-                buf2_A->release();
-                buf1_B->release();
-                buf2_B->release();
-            }
-
-            // t0:create(A,B), t0:release(A,B), t1:acqw(A), t1:acqw(B), t1:release(A), t2:snap(), t2:acq(A), t2:release(A), t2:acq(B) blocks, t1:release(B), t2 unblocks
-            {
-                transactor_t t0(saver, cache, rwi_write, 0, current_time());
-                transactor_t t1(saver, cache, rwi_write, 0, current_time());
-                transactor_t t2(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-
-                buf_t *buf0_A = create(t0);
-                buf_t *buf0_B = create(t0);
-                block_id_t block_A = buf0_A->get_block_id();
-                block_id_t block_B = buf0_B->get_block_id();
-                change_value(buf0_A, init_value);
-                change_value(buf0_B, init_value);
-                buf0_A->release();
-                buf0_B->release();
-
-                buf_t *buf1_A = acq(t1, block_A, rwi_write);
-                buf_t *buf1_B = acq(t1, block_B, rwi_write);
-                change_value(buf1_A, changed_value);
-                change_value(buf1_B, changed_value);
-                buf1_A->release();
-
-                snap(t2);
-                buf_t *buf2_A = acq(t1, block_A, rwi_read);
-                EXPECT_EQ(changed_value, get_value(buf2_A));
-
-                buf2_A->release();
-                bool blocked = false;
-                buf_t *buf2_B = acq_check_if_blocks_until_buf_released(t2, buf1_B, rwi_read, true, blocked);
-                EXPECT_TRUE(blocked);
-                EXPECT_EQ(changed_value, get_value(buf2_B));
-                buf2_B->release();
-
-            }
-
-            // issue 194 unit-test
-            // t0:create(A,B), t0:acqw(A), t0:release(A), t1:acqw(A), t2:snap(), t2:acq(A) blocks, t1:release(A), t0:acqw(B), t0:release(B), t1:acqw(B) (fails with assertion if issue 194 is not fixed)
-            {
-                transactor_t t0(saver, cache, rwi_write, 0, current_time());
-                transactor_t t1(saver, cache, rwi_write, 0, current_time());
-                transactor_t t2(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-
-                buf_t *buf0_A = create(t0);
-                buf_t *buf0_B = create(t0);
-                block_id_t block_A = buf0_A->get_block_id();
-                block_id_t block_B = buf0_B->get_block_id();
-                change_value(buf0_A, init_value);
-                change_value(buf0_B, init_value);
-                buf0_A->release();
-                buf0_B->release();
-
-                buf0_A = acq(t0, block_A, rwi_write);
-                buf0_A->release();
-
-                buf_t *buf1_A = acq(t1, block_A, rwi_write);
-                snap(t2);
-
-                bool blocked = false;
-                buf_t *buf2_A = acq_check_if_blocks_until_buf_released(t2, buf1_A, rwi_read, true, blocked);
-                EXPECT_TRUE(blocked);
-
-                buf0_B = acq(t0, block_B, rwi_write);
-                buf0_B->release();
-
-                buf_t *buf1_B = acq(t1, block_B, rwi_write);    // if issue 194 is not fixed, expect assertion failure here
-
-                buf2_A->release();
-
-                buf_t *buf2_B = acq_check_if_blocks_until_buf_released(t2, buf1_B, rwi_read, false, blocked);
-                EXPECT_FALSE(blocked);
-                buf1_B->release();
-                buf2_B->release();
-            }
-
-            debugf("tests finished\n");
+            // It's nice to see the progress of these tests, so we use log_call
+            log_call(test_snapshot_acq_blocks_on_older_write_txns, saver, cache);
+            log_call(test1, saver, cache);
+            log_call(test2, saver, cache);
+            log_call(test3, saver, cache);
+            log_call(test4, saver, cache);
+            log_call(test5, saver, cache);
+            //log_call(test_issue_194, saver, cache);
         }
-        debugf("thread_pool.shutdown()\n");
-        thread_pool.shutdown();
+        log_call(thread_pool.shutdown);
     }
 
     void on_thread_switch() {
