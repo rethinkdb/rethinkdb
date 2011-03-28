@@ -94,7 +94,7 @@ public:
     int64_t& level_count(int level) {
         rassert(level >= 0);
         if (level >= int(level_counts.size())) {
-            rassert(level == int(level_counts.size()), "Somehow we skipped a level!");
+            rassert(level == int(level_counts.size()), "Somehow we skipped a level! (level = %d)", level);
             level_counts.resize(level + 1, 0);
         }
         return level_counts[level];
@@ -172,7 +172,7 @@ public:
     std::vector<flat_promise_t<acquisition_credit> *>& acquisition_waiter_stack(int level) {
         rassert(level >= 0);
         if (level >= int(acquisition_waiter_stacks.size())) {
-            rassert(level == int(acquisition_waiter_stacks.size()), "Somehow we skipped a level!");
+            rassert(level == int(acquisition_waiter_stacks.size()), "Somehow we skipped a level! (level = %d)", level);
             acquisition_waiter_stacks.resize(level + 1);
         }
         return acquisition_waiter_stacks[level];

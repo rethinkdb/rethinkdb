@@ -19,7 +19,7 @@ struct store_key_t {
     char contents[MAX_KEY_SIZE];
 
     store_key_t() { }
-    store_key_t(int sz, char *buf) {
+    store_key_t(int sz, const char *buf) {
         assign(sz, buf);
     }
 

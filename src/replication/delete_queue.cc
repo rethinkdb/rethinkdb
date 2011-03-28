@@ -44,12 +44,10 @@ struct t_and_o {
 void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp timestamp, const store_key_t *key) {
     thread_saver_t saver;
 
-    debugf("add_key_to_delete_queue.\n");
     // Beware: Right now, some aspects of correctness depend on the
     // fact that we hold the queue_root lock for the entire operation.
     buf_lock_t queue_root(saver, *txor, queue_root_id, rwi_write);
 
-    debugf("add_key_to_delete_queue queue_root acquired.\n");
     // TODO this could be a non-major write?
     void *queue_root_buf = queue_root->get_data_major_write();
 
@@ -78,8 +76,6 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             // TODO: Allow upgrade of large buf intent.
             co_acquire_large_buf(saver, t_o_largebuf.get());
 
-            debugf("t_o_largebuf acquired\n");
-
             delete_queue::t_and_o last_tao;
             t_o_largebuf->read_at(t_o_ref->size - sizeof(last_tao), &last_tao, sizeof(last_tao));
 
@@ -100,11 +96,8 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             }
         }
 
-        debugf("t_o_largebuf operation completed.\n");
-
         // TODO: Remove old items from the front of t_o_largebuf.
     }
-    debugf("t_o_largebuf deallocated.\n");
 
     // 2. Update the keys list.
 
@@ -118,14 +111,11 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             // TODO: acquire rhs, or lhs+rhs, something appropriate.
             co_acquire_large_buf(saver, keys_largebuf.get());
 
-            debugf("keys_largebuf acquired.\n");
             int refsize_adjustment_dontcare;
             keys_largebuf->append(1 + key->size, &refsize_adjustment_dontcare);
             keys_largebuf->fill_at(keys_ref->size - (1 + key->size), key, 1 + key->size);
         }
-        debugf("keys_largebuf operation completed.\n");
     }
-    debugf("keys_largebuf deallocated.\n");
 }
 
 void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_stream_receiver_t *recipient) {

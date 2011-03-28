@@ -212,8 +212,10 @@ class do_backfill_cb : public backfill_callback_t {
 public:
     do_backfill_cb(int num_dispatchers, master_t *_master) : count(2 * num_dispatchers), master(_master), minimum_timestamp(repli_timestamp::invalid /* this is greater than all other timestamps. */) { }
 
+    // TODO: Make this take a btree_key which is more accurate a description of the interface.
     void deletion_key(const store_key_t *key) {
-        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_deletion_key_to_slave, master, *key));
+        store_key_t tmp(key->size, key->contents);
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_deletion_key_to_slave, master, tmp));
     }
     void done_deletion_keys() {
         coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this, repli_timestamp::invalid));
