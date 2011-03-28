@@ -70,11 +70,15 @@ struct sqlite_protocol_t : public protocol_t {
         if (step() != SQLITE_ROW) {
             return false;
         } else {
+            int key_len = strlen(column_text(0));
+            key->grow_to(key_len);
             strcpy(key->first, column_text(0));
-            key->second = strlen(column_text(0));
+            key->second = key_len;
 
+            int value_len = strlen(column_text(1));
+            val->grow_to(value_len);
             strcpy(val->first, column_text(1));
-            val->second = strlen(column_text(1));
+            val->second = value_len;
             return true;
         }
     }
