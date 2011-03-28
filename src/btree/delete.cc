@@ -1,6 +1,7 @@
 #include "btree/delete.hpp"
-
 #include "btree/modify_oper.hpp"
+
+#include "replication/delete_queue.hpp"
 
 struct btree_delete_oper_t : public btree_modify_oper_t {
 
@@ -19,6 +20,17 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
 
     int compute_expected_change_count(UNUSED const size_t block_size) {
         return 1;
+    }
+
+    void do_superblock_sidequest(boost::shared_ptr<transactor_t>& txor,
+                                 buf_lock_t& superblock,
+                                 repli_timestamp recency,
+                                 const store_key_t *key) {
+        slice->assert_thread();
+        const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
+
+        debugf("Adding key to delete queue.\n");
+        replication::add_key_to_delete_queue(txor, sb->delete_queue_block, recency, key);
     }
 };
 

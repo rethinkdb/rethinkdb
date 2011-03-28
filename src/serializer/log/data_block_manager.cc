@@ -171,11 +171,13 @@ struct dbm_read_ahead_fsm_t :
                     continue;
                 }
 
+                const repli_timestamp recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
+
                 buf_data_t *data = (buf_data_t*)parent->serializer->malloc();
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
-                if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data)) {
+                if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data, recency_timestamp)) {
                     // If there is no interest anymore, delete the buffer again
                     parent->serializer->free(data);
                     continue;

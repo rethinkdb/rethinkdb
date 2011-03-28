@@ -267,6 +267,46 @@ private:
                 buf2_B->release();
 
             }
+
+            // issue 194 unit-test
+            // t0:create(A,B), t0:acqw(A), t0:release(A), t1:acqw(A), t2:snap(), t2:acq(A) blocks, t1:release(A), t0:acqw(B), t0:release(B), t1:acqw(B) (fails with assertion if issue 194 is not fixed)
+            {
+                transactor_t t0(saver, cache, rwi_write, 0, current_time());
+                transactor_t t1(saver, cache, rwi_write, 0, current_time());
+                transactor_t t2(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+
+                buf_t *buf0_A = create(t0);
+                buf_t *buf0_B = create(t0);
+                block_id_t block_A = buf0_A->get_block_id();
+                block_id_t block_B = buf0_B->get_block_id();
+                change_value(buf0_A, init_value);
+                change_value(buf0_B, init_value);
+                buf0_A->release();
+                buf0_B->release();
+
+                buf0_A = acq(t0, block_A, rwi_write);
+                buf0_A->release();
+
+                buf_t *buf1_A = acq(t1, block_A, rwi_write);
+                snap(t2);
+
+                bool blocked = false;
+                buf_t *buf2_A = acq_check_if_blocks_until_buf_released(t2, buf1_A, rwi_read, true, blocked);
+                EXPECT_TRUE(blocked);
+
+                buf0_B = acq(t0, block_B, rwi_write);
+                buf0_B->release();
+
+                buf_t *buf1_B = acq(t1, block_B, rwi_write);    // if issue 194 is not fixed, expect assertion failure here
+
+                buf2_A->release();
+
+                buf_t *buf2_B = acq_check_if_blocks_until_buf_released(t2, buf1_B, rwi_read, false, blocked);
+                EXPECT_FALSE(blocked);
+                buf1_B->release();
+                buf2_B->release();
+            }
+
             debugf("tests finished\n");
         }
         debugf("thread_pool.shutdown()\n");
