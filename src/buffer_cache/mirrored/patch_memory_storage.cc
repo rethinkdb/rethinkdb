@@ -132,6 +132,7 @@ void patch_memory_storage_t::block_patch_list_t::filter_before_transaction(const
     patches_.erase(patches_.begin(), first_patch_to_keep);
 }
 
+#ifndef NDEBUG
 void patch_memory_storage_t::block_patch_list_t::verify_patches_list(ser_transaction_id_t transaction_id) const {
     // Verify patches list (with strict start patch counter)
     ser_transaction_id_t previous_transaction = 0;
@@ -149,3 +150,4 @@ void patch_memory_storage_t::block_patch_list_t::verify_patches_list(ser_transac
         previous_transaction = (*p)->get_transaction_id();
     }
 }
+#endif
