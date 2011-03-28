@@ -22,17 +22,15 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
         return 1;
     }
 
-    // You must have the btree superblock acquired when calling this
-    // function.
     void do_superblock_sidequest(boost::shared_ptr<transactor_t>& txor,
-                                 UNUSED buf_lock_t& superblock,
+                                 buf_lock_t& superblock,
                                  repli_timestamp recency,
                                  const store_key_t *key) {
         slice->assert_thread();
-        // TODO: Consider just making the superblock store the delete
-        // queue block -- the treatment of transactional behavior is
-        // less error-prone that way.
-        replication::add_key_to_delete_queue(txor, DELETE_QUEUE_ID, recency, key);
+        const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
+
+        debugf("Adding key to delete queue.\n");
+        replication::add_key_to_delete_queue(txor, sb->delete_queue_block, recency, key);
     }
 };
 

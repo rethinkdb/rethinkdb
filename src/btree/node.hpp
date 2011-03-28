@@ -13,6 +13,7 @@
 struct btree_superblock_t {
     block_magic_t magic;
     block_id_t root_block;
+    block_id_t delete_queue_block;
 
     static const block_magic_t expected_magic;
 };

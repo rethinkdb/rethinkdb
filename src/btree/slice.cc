@@ -42,19 +42,20 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 
     /* Initialize the btree superblock and the delete queue */
     transactor_t transactor(saver, cache.get(), rwi_write, 1, current_time());
-    {
-        buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
-        btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
-        bzero(sb, cache->get_block_size().value());
-        sb->magic = btree_superblock_t::expected_magic;
-        sb->root_block = NULL_BLOCK_ID;
-    }
 
-    {
-        buf_lock_t delete_queue_block(saver, transactor, DELETE_QUEUE_ID, rwi_write);
-        replication::delete_queue_block_t *dqb = reinterpret_cast<replication::delete_queue_block_t *>(delete_queue_block->get_data_major_write());
-        initialize_empty_delete_queue(dqb, serializer->get_block_size());
-    }
+    buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
+    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
+    bzero(sb, cache->get_block_size().value());
+    sb->magic = btree_superblock_t::expected_magic;
+    sb->root_block = NULL_BLOCK_ID;
+    // sb->delete_queue_block initialized below.
+
+    // Allocate this like an ordinary block.
+    buf_lock_t delete_queue_block;
+    delete_queue_block.allocate(saver, transactor);
+    replication::delete_queue_block_t *dqb = reinterpret_cast<replication::delete_queue_block_t *>(delete_queue_block->get_data_major_write());
+    initialize_empty_delete_queue(dqb, serializer->get_block_size());
+    sb->delete_queue_block = delete_queue_block->get_block_id();
 }
 
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,

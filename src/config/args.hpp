@@ -196,12 +196,15 @@
 // The btree superblock, which has a reference to the root node block
 // id.
 #define SUPERBLOCK_ID                             0
-// The delete queue block.  Holds the delete queue.
-#define DELETE_QUEUE_ID                           (SUPERBLOCK_ID + 1)
-// The mirrored cache config block.
-#define MC_CONFIGBLOCK_ID                         (DELETE_QUEUE_ID + 1)
+// The delete queue block.  Holds the delete queue.  HEY: This is
+// kind of fragile because some patch disk storage code expects this
+// value to be 1 (since the free list returns 1 the first time a block
+// id is generated, or something).
+#define MC_CONFIGBLOCK_ID                         (SUPERBLOCK_ID + 1)
 
-// The ratio at which we should start GCing.
+// The ratio at which we should start GCing.  (HEY: What's the extra
+// 0.000001 in MAX_GC_HIGH_RATIO for?  Is it because we told the user
+// that 0.99 was too high?)
 #define DEFAULT_GC_HIGH_RATIO                     0.65
 #define MAX_GC_HIGH_RATIO                         0.990001
 
