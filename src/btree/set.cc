@@ -16,6 +16,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         try {
+            debugf("set.cc operate\n");
 
             /* We may be instructed to abort depending on the old value */
             if (old_value) {

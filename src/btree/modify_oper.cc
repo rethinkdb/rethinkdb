@@ -192,7 +192,9 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         // to be, but when you fix this, make sure the superblock
         // sidequest is done using the superblock before the
         // superblock gets released.
+        debugf("About to do_superblock_sidequest.\n");
         oper->do_superblock_sidequest(txor, sb_buf, castime.timestamp, &store_key);
+        debugf("Done do_superblock_sidequest.\n");
 
         buf_lock_t last_buf;
         buf_lock_t buf;

@@ -296,6 +296,7 @@ void master_t::send_deletion_key_to_slave(store_key_t key) {
     size_t n = sizeof(net_backfill_delete_t) + key.size;
     if (stream_) {
         scoped_malloc<net_backfill_delete_t> msg(n);
+        msg->padding = 0;
         msg->key_size = key.size;
         memcpy(msg->key, key.contents, key.size);
 

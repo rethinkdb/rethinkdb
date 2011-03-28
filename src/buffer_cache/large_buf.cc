@@ -500,7 +500,7 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
 void large_buf_t::bufs_at(int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out) {
     rassert(state == loaded);
     rassert(0 <= pos && pos <= root_ref->size);
-    rassert(read_size <= root_ref->size - pos);
+    rassert(read_size <= root_ref->size - pos, "read_size+pos too big: read_size = %ld\n, root_ref->size = %ld, pos = %ld\n", read_size, root_ref->size, pos);
 
     if (read_size == 0) {
         // We need a special case for read_size, otherwise we'll
