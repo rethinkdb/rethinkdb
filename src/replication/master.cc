@@ -207,26 +207,31 @@ class do_backfill_cb : public backfill_callback_t {
     int count;
     master_t *master;
     cond_t for_when_done;
+    repli_timestamp minimum_timestamp;
 
 public:
-    do_backfill_cb(int num_dispatchers, master_t *_master) : count(2 * num_dispatchers), master(_master) { }
+    do_backfill_cb(int num_dispatchers, master_t *_master) : count(2 * num_dispatchers), master(_master), minimum_timestamp(repli_timestamp::invalid /* this is greater than all other timestamps. */) { }
 
     void deletion_key(const store_key_t *key) {
         coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_deletion_key_to_slave, master, *key));
     }
     void done_deletion_keys() {
-        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this));
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this, repli_timestamp::invalid));
     }
 
     void on_keyvalue(backfill_atom_t atom) {
         coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_backfill_atom_to_slave, master, atom));
     }
-    void done() {
-        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this));
+    void done(repli_timestamp oper_start_timestamp) {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this, oper_start_timestamp));
     }
 
-    void do_done() {
+    void do_done(repli_timestamp oper_start_timestamp) {
         rassert(get_thread_id() == master->home_thread);
+
+        if (minimum_timestamp.time > oper_start_timestamp.time) {
+            minimum_timestamp = oper_start_timestamp;
+        }
 
         count = count - 1;
         if (0 == count) {
@@ -234,8 +239,9 @@ public:
         }
     }
 
-    void wait() {
+    repli_timestamp wait() {
         for_when_done.wait();
+        return minimum_timestamp;
     }
 };
 
@@ -257,10 +263,10 @@ void master_t::do_backfill(repli_timestamp since_when) {
         dispatchers_[i]->spawn_backfill(since_when, &cb);
     }
 
-    cb.wait();
+    repli_timestamp minimum_timestamp = cb.wait();
     if (stream_) {
         net_backfill_complete_t msg;
-        memset(msg.ignore, 0, sizeof(msg.ignore));
+        msg.time_barrier_timestamp = minimum_timestamp;
         stream_->send(&msg);
     }
 }

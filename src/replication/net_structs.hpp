@@ -51,9 +51,7 @@ struct net_backfill_t {
 } __attribute__((__packed__));
 
 struct net_backfill_complete_t {
-    // Unfortunately messages must be at least 4 bytes because of
-    // stupid.
-    char ignore[4];
+    repli_timestamp time_barrier_timestamp;
 } __attribute__((__packed__));
 
 struct net_announce_t {

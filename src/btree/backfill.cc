@@ -70,9 +70,12 @@ class backfill_state_t {
 public:
     enum acquisition_credit { no_response = 0, breadth_first_credit = 1, depth_first_credit = 2 };
 
-    backfill_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _since_when, backfill_callback_t *_callback)
-        : slice(_slice), since_when(_since_when), transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), rwi_read, _since_when)),
+    backfill_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _since_when, backfill_callback_t *_callback, repli_timestamp _oper_start_timestamp)
+        : oper_start_timestamp(_oper_start_timestamp), slice(_slice), since_when(_since_when),
+          transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), rwi_read, _since_when)),
           callback(_callback), shutdown_mode(false), num_breadth_blocks(0) { }
+
+    repli_timestamp oper_start_timestamp;
 
     // The slice we're backfilling from.
     btree_slice_t *const slice;
@@ -151,7 +154,7 @@ public:
         }
 
         if (total_level_count() == 0) {
-            callback->done();
+            callback->done(oper_start_timestamp);
         }
     }
 
@@ -243,7 +246,7 @@ private:
 
 void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
     thread_saver_t saver;
-    backfill_state_t state(saver, slice, since_when, callback);
+    backfill_state_t state(saver, slice, since_when, callback, current_time());
     buf_lock_t superblock_buf(saver, *state.transactor_ptr, SUPERBLOCK_ID, rwi_read);
 
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
@@ -253,10 +256,8 @@ void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, back
     // the superblock lock much sooner than we do right now.
 
     // The deletes have to go first (since they get overridden by
-    // newer sets) TODO: This is probably not the right time to call
-    // current_time() and pass current_time() + 1, if that parameter
-    // should exist at all.
-    repli_timestamp t = { current_time().time + 1 };
+    // newer sets) TODO: Why do we pass the later timestamp at all?
+    repli_timestamp t = { state.oper_start_timestamp.time + 1 };
     dump_keys_from_delete_queue(state.transactor_ptr, superblock->delete_queue_block, since_when, t, callback);
 
     block_id_t root_id = superblock->root_block;
@@ -264,7 +265,7 @@ void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, back
 
     if (root_id == NULL_BLOCK_ID) {
         // No root, so no keys in this entire shard.
-        callback->done();
+        callback->done(state.oper_start_timestamp);
     } else {
         subtrees_backfill(saver, state, superblock_buf, 0, &root_id, 1);
     }

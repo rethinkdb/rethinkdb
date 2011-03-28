@@ -21,7 +21,7 @@ struct backfill_atom_t {
 class backfill_callback_t : public replication::deletion_key_stream_receiver_t {
 public:
     virtual void on_keyvalue(backfill_atom_t atom) = 0;
-    virtual void done() = 0;
+    virtual void done(repli_timestamp oper_start_timestamp) = 0;
 protected:
     ~backfill_callback_t() { }
 };

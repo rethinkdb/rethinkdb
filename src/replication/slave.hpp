@@ -2,6 +2,7 @@
 #define __REPLICATION_SLAVE_HPP__
 
 #include "replication/protocol.hpp"
+#include "replication/queueing_store.hpp"
 #include "server/cmd_args.hpp"
 #include "store.hpp"
 #include "failover.hpp"
@@ -152,7 +153,7 @@ private:
 
     coro_t *coro_;
 
-    btree_key_value_store_t *internal_store_;
+    boost::scoped_ptr<queueing_store_t> internal_store_;
     replication_config_t replication_config_;
     failover_config_t failover_config_;
 
