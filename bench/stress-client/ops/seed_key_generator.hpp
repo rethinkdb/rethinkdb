@@ -50,7 +50,7 @@ struct seed_key_generator_t {
             }
             int suffix_length = count_decimal_digits(shard_count);
             char buf[100];
-            snprintf(buf, sizeof(buf), "%.*d", suffix_length, shard_count);
+            snprintf(buf, sizeof(buf), "%.*d", suffix_length, shard_id);
             if (strlen(buf) != suffix_length) {
                 fprintf(stderr, "Apparently I don't understand how the '%%d' format specifier "
                     "works.\n");
