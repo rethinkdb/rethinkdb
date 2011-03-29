@@ -1,103 +1,38 @@
 #include "python_interface.h"
+#include "protocol.hpp"
+#include "protocols/mysql_protocol.hpp"
+#include "op.hpp"
+#include "ops/consecutive_seed_model.hpp"
+#include "ops/fuzzy_model.hpp"
+#include "ops/range_read_ops.hpp"
+#include "ops/seed_chooser.hpp"
+#include "ops/seed_key_generator.hpp"
+#include "ops/simple_ops.hpp"
+#include "ops/watcher_and_tracker.hpp"
 #include "client.hpp"
-#include "read_ops.hpp"
-#include "write_ops.hpp"
-#include "mysql_protocol.hpp"
 
-void *protocol_create(const char *server_str) {
-    server_t server;
-    server.parse(server_str);
-    return static_cast<void*>(server.connect());
+/* protocol_t */
+
+protocol_t *protocol_create(const char *server_str) {
+    server_t s;
+    s.parse(server_str);
+    return s.connect();
+}
+void protocol_destroy(protocol_t *p) {
+    delete p;
 }
 
-void protocol_destroy(void *vprotocol) {
-    delete static_cast<protocol_t*>(vprotocol);
-}
+/* op_t */
 
-void *client_create(int id, int num_clients, int keysize_min, int keysize_max) {
-    return static_cast<void*>(new client_t(
-        id, num_clients,
-        distr_t(keysize_min, keysize_max),
-        rnd_uniform_t, 1, NULL));
+void op_destroy(op_t *op) {
+    delete op;
 }
-
-void client_start(void *vclient) {
-    static_cast<client_t*>(vclient)->start();
+void op_lock(op_t *op) {
+    op->stats_spinlock.lock();
 }
-
-void client_lock(void *vclient) {
-    static_cast<client_t*>(vclient)->spinlock.lock();
-}
-
-void client_unlock(void *vclient) {
-    static_cast<client_t*>(vclient)->spinlock.unlock();
-}
-
-void client_stop(void *vclient) {
-    static_cast<client_t*>(vclient)->stop();
-}
-
-void client_destroy(void *vclient) {
-    delete static_cast<client_t*>(vclient);
-}
-
-void *op_create_read(void *vclient, void *vprotocol, int freq, int batchfactor_min, int batchfactor_max) {
-    return static_cast<void*>(new read_op_t(
-        static_cast<client_t*>(vclient),
-        freq,
-        static_cast<protocol_t*>(vprotocol),
-        distr_t(batchfactor_min, batchfactor_max)
-        ));
-}
-
-void *op_create_insert(void *vclient, void *vprotocol, int freq, int size_min, int size_max) {
-    return static_cast<void*>(new insert_op_t(
-        static_cast<client_t*>(vclient),
-        freq,
-        static_cast<protocol_t*>(vprotocol),
-        distr_t(size_min, size_max)
-        ));
-}
-
-void *op_create_update(void *vclient, void *vprotocol, int freq, int size_min, int size_max) {
-    return static_cast<void*>(new update_op_t(
-        static_cast<client_t*>(vclient),
-        freq,
-        static_cast<protocol_t*>(vprotocol),
-        distr_t(size_min, size_max)
-        ));
-}
-
-void *op_create_delete(void *vclient, void *vprotocol, int freq) {
-    return static_cast<void*>(new delete_op_t(
-        static_cast<client_t*>(vclient),
-        freq,
-        static_cast<protocol_t*>(vprotocol)
-        ));
-}
-
-void *op_create_appendprepend(void *vclient, void *vprotocol, int freq, int is_append, int size_min, int size_max) {
-    return static_cast<void*>(new append_prepend_op_t(
-        static_cast<client_t*>(vclient),
-        freq,
-        static_cast<protocol_t*>(vprotocol),
-        is_append != 0,
-        distr_t(size_min, size_max)
-        ));
-}
-
-void *op_create_rangeread(void *vclient, void *vprotocol, int freq, int rangesize_min, int rangesize_max) {
-    return static_cast<void*>(new range_read_op_t(
-        static_cast<client_t*>(vclient),
-        freq,
-        static_cast<protocol_t*>(vprotocol),
-        distr_t(rangesize_min, rangesize_max)
-        ));
-}
-
-void op_poll(void *vop, int *queries_out, float *worstlatency_out, int *samples_count_inout, float *samples_out) {
-    // Assume that the Python script already locked the spinlock
-    query_stats_t *stats = &static_cast<op_t*>(vop)->stats;
+void op_poll(op_t *op, int *queries_out, float *worstlatency_out, int *samples_count_inout, float *samples_out) {
+    // Assume that the Python script already called op_lock()
+    query_stats_t *stats = &op->stats;
 
     if (queries_out) {
         *queries_out = stats->queries;
@@ -129,13 +64,117 @@ void op_poll(void *vop, int *queries_out, float *worstlatency_out, int *samples_
         }
     }
 }
-
-void op_reset(void *vop) {
-    static_cast<op_t*>(vop)->stats = query_stats_t();
+void op_reset(op_t *op) {
+    op->stats = query_stats_t();
+}
+void op_unlock(op_t *op) {
+    op->stats_spinlock.unlock();
 }
 
-void op_destroy(void *vop) {
-    delete static_cast<op_t*>(vop);
+/* client_t */
+
+client_t *client_create() {
+    return new client_t;
+}
+void client_destroy(client_t *client) {
+    delete client;
+}
+void client_add_op(client_t *client, int freq, op_t *op) {
+    client->add_op(freq, op);
+}
+void client_start(client_t *client) {
+    client->start();
+}
+void client_stop(client_t *client) {
+    client->stop();
+}
+
+/* seed_key_generator_t */
+
+seed_key_generator_t *seed_key_generator_create(int shard_id, int shard_count, const char *prefix, int size_min, int size_max) {
+    return new seed_key_generator_t(shard_id, shard_count, prefix, distr_t(size_min, size_max));
+}
+void seed_key_generator_destroy(seed_key_generator_t *skgen) {
+    delete skgen;
+}
+
+/* existence_watcher_t and value_watcher_t */
+
+value_watcher_t *existence_watcher_as_value_watcher(existence_watcher_t *ew) {
+    return ew;
+}
+
+/* existence_tracker_t and value_tracker_t */
+
+existence_tracker_t *value_tracker_as_existence_tracker(value_tracker_t *vt) {
+    return vt;
+}
+
+/* seed_chooser_t */
+
+void seed_chooser_destroy(seed_chooser_t *sch) {
+    delete sch;
+}
+
+/* simple op_t's */
+
+op_t *op_create_read(seed_key_generator_t *skgen, seed_chooser_t *sch, protocol_t *proto, int batchfactor_min, int batchfactor_max) {
+    return new read_op_t(skgen, sch, proto, distr_t(batchfactor_min, batchfactor_max));
+}
+op_t *op_create_insert(seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto, int size_min, int size_max) {
+    return new insert_op_t(skgen, sch, vw, proto, distr_t(size_min, size_max));
+}
+op_t *op_create_update(seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto, int size_min, int size_max) {
+    return new update_op_t(skgen, sch, vw, proto, distr_t(size_min, size_max));
+}
+op_t *op_create_delete(seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto) {
+    return new delete_op_t(skgen, sch, vw, proto);
+}
+op_t *op_create_append_prepend(seed_key_generator_t *skgen, seed_chooser_t *sch, value_watcher_t *vw, protocol_t *proto, int is_append, int size_min, int size_max) {
+    return new append_prepend_op_t(skgen, sch, vw, proto, is_append != 0, distr_t(size_min, size_max));
+}
+
+/* range-read op_t's */
+
+op_t *op_create_percentage_range_read(protocol_t *protocol, int percentage_min, int percentage_max, int limit_min, int limit_max, const char *prefix) {
+    return new percentage_range_read_op_t(protocol, distr_t(percentage_min, percentage_max), distr_t(limit_min, limit_max), prefix);
+}
+op_t *op_create_calibrated_range_read(existence_tracker_t *et, int model_factor, protocol_t *protocol, int rangesize_min, int rangesize_max, int limit_min, int limit_max, const char *prefix) {
+    return new calibrated_range_read_op_t(et, model_factor, protocol, distr_t(rangesize_min, rangesize_max), distr_t(limit_min, limit_max), prefix);
+}
+
+consecutive_seed_model_t *consecutive_seed_model_create() {
+    return new consecutive_seed_model_t;
+}
+void consecutive_seed_model_destroy(consecutive_seed_model_t *csm) {
+    delete csm;
+}
+existence_watcher_t *consecutive_seed_model_as_existence_watcher(consecutive_seed_model_t *csm) {
+    return csm;
+}
+existence_tracker_t *consecutive_seed_model_as_existence_tracker(consecutive_seed_model_t *csm) {
+    return csm;
+}
+seed_chooser_t *consecutive_seed_model_make_insert_chooser(consecutive_seed_model_t *csm) {
+    return new consecutive_seed_model_t::insert_chooser_t(csm);
+}
+seed_chooser_t *consecutive_seed_model_make_delete_chooser(consecutive_seed_model_t *csm) {
+    return new consecutive_seed_model_t::delete_chooser_t(csm);
+}
+seed_chooser_t *consecutive_seed_model_make_live_chooser(consecutive_seed_model_t *csm, const char *distr_name, int mu) {
+    return new consecutive_seed_model_t::live_chooser_t(csm, distr_with_name(distr_name), mu);
+}
+
+/* fuzzy_model_t */
+
+fuzzy_model_t *fuzzy_model_create(int nkeys) {
+    return new fuzzy_model_t(nkeys);
+}
+void fuzzy_model_destroy(fuzzy_model_t *fm) {
+    delete fm;
+}
+seed_chooser_t *fuzzy_model_make_random_chooser(fuzzy_model_t *fm, const char *distr_name, int mu) {
+    return new fuzzy_model_t::random_chooser_t(fm, distr_with_name(distr_name), mu);
 }
 
 void py_initialize_mysql_table(const char *server_str, int max_key, int max_value) {

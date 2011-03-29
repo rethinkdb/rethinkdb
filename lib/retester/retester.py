@@ -390,6 +390,15 @@ def process_output_dir(result):
     output_dir = os.path.join(retest_output_dir, str(i))
     shutil.move(result.output_dir.take_dir(), output_dir)
     
+    # Recursively make permissions friendly
+    for root, dirs, files in os.walk(output_dir):
+        os.chmod(root, 0755)
+        for file in files:
+            if os.access(os.path.join(root, file), os.X_OK):
+                os.chmod(os.path.join(root, file), 0755)
+            else:
+                os.chmod(os.path.join(root, file), 0644)
+    
     # Make a generator that scans all the files in the directory
     def walker():
         for filename in sorted(os.listdir(output_dir)):

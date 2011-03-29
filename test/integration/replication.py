@@ -52,7 +52,7 @@ def random_action(opts, mc, repli_mc, clone, deleted):
             # We check thoroughly after every test anyway
             return
         if not clone: return
-        verify(opts, mc, clone, deleted, random.choice(clone.keys()))
+        verify(opts, repli_mc, clone, deleted, random.choice(clone.keys()))
         
     elif what_to_do < 0.25:
         # Check a deleted or nonexistent key
@@ -78,7 +78,7 @@ def random_action(opts, mc, repli_mc, clone, deleted):
         ok = mc.set(key, value)
         if ok == 0:
             raise ValueError("Could not set %r to %r." % (key, value))
-        verify(opts, mc, clone, deleted, key)
+        verify(opts, repli_mc, clone, deleted, key)
     
     elif what_to_do < 0.95:
         # Append/prepend
@@ -97,7 +97,7 @@ def random_action(opts, mc, repli_mc, clone, deleted):
             ok = mc.prepend(key, value_to_pend)
         if ok == 0:
             raise ValueError("Could not append/prepend %r to key %r" % (value_to_pend, key))
-        verify(opts, mc, clone, deleted, key)
+        verify(opts, repli_mc, clone, deleted, key)
     
     elif what_to_do < 0.99:
         # Delete
@@ -108,7 +108,7 @@ def random_action(opts, mc, repli_mc, clone, deleted):
         ok = mc.delete(key)
         if ok == 0:
             raise ValueError("Could not delete %r." % key)
-        verify(opts, mc, clone, deleted, key)
+        verify(opts, repli_mc, clone, deleted, key)
     
     else:
         # TODO: We can't perform a really long operation here because
@@ -143,4 +143,4 @@ if __name__ == "__main__":
     op["thorough"] = BoolFlag("--thorough")
     op["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
     op = op.parse(sys.argv)
-    replication_test_main(test, op, timeout = 100)
+    replication_test_main(test, op, timeout = (100 if not op.has_key("duration") else op["duration"] + 60))

@@ -6,12 +6,14 @@
 #include <vector>
 #include <stdio.h>
 #include <sys/stat.h>
-#include "client.hpp"
 #include "args.hpp"
-#include "read_ops.hpp"
-#include "write_ops.hpp"
+#include "client.hpp"
+#include "ops/consecutive_seed_model.hpp"
+#include "ops/simple_ops.hpp"
+#include "ops/range_read_ops.hpp"
+#include "ops/sqlite_mirror.hpp"
 #ifdef USE_MYSQL
-#include "mysql_protocol.hpp"   // For initialize_mysql_table()
+#include "protocols/mysql_protocol.hpp"   // For initialize_mysql_table()
 #endif
 
 using namespace std;
@@ -41,10 +43,6 @@ int main(int argc, char *argv[])
     // Parse the arguments
     config_t config;
     parse(&config, argc, argv);
-    if (config.op_ratios.verifies > 0 && config.clients > 1) {
-        printf("Automatically enabled per-client key suffixes\n");
-        config.keys.append_client_suffix = true;
-    }
     config.print();
 
     /* Open output files */
@@ -72,16 +70,31 @@ int main(int argc, char *argv[])
     struct client_stuff_t {
 
         protocol_t *protocol;
+
+        seed_key_generator_t kg;
+
+        consecutive_seed_model_t model;
+
         sqlite_protocol_t *sqlite;
-        client_t client;
-        read_op_t read_op;
-        delete_op_t delete_op;
-        update_op_t update_op;
+        sqlite_mirror_t sqlite_mirror;
+
+        consecutive_seed_model_t::insert_chooser_t insert_chooser;
         insert_op_t insert_op;
+
+        consecutive_seed_model_t::delete_chooser_t delete_chooser;
+        delete_op_t delete_op;
+
+        consecutive_seed_model_t::live_chooser_t live_chooser;
+        read_op_t read_op;
+        update_op_t update_op;
         append_prepend_op_t append_op;
         append_prepend_op_t prepend_op;
-        verify_op_t verify_op;
-        range_read_op_t range_read_op;
+
+        sqlite_mirror_verify_op_t verify_op;
+
+        percentage_range_read_op_t range_read_op;
+
+        client_t client;
 
         static sqlite_protocol_t *make_sqlite_if_necessary(config_t *config, int i) {
             if (config->db_file[0]) {
@@ -97,24 +110,50 @@ int main(int argc, char *argv[])
 
             /* Connect to the server */
             protocol(config->servers[i % config->servers.size()].connect()),
+
+            /* Make a key-generator so we can translate from seeds to keys */
+            kg(i, config->clients, config->key_prefix, config->keys),
+
+            /* Set up the consecutive-seed model, which keeps track of which keys exist */
+            model(),
+
+            /* Set up the mirroring to a SQLite database for verification */
             sqlite(make_sqlite_if_necessary(config, i)),
+            sqlite_mirror(&kg, &model, &model, sqlite),
+
+            /* Set up the various operations */
+            insert_chooser(&model),
+            insert_op(&kg, &insert_chooser, &sqlite_mirror, protocol, config->values),
+
+            delete_chooser(&model),
+            delete_op(&kg, &delete_chooser, &sqlite_mirror, protocol),
+
+            live_chooser(&model, config->distr, config->mu),
+            read_op(&kg, &live_chooser, protocol, config->batch_factor),
+            update_op(&kg, &live_chooser, &sqlite_mirror, protocol, config->values),
+            append_op(&kg, &live_chooser, &sqlite_mirror, protocol, true, config->values),
+            prepend_op(&kg, &live_chooser, &sqlite_mirror, protocol, false, config->values),
+
+            verify_op(&sqlite_mirror, protocol),
+
+            range_read_op(protocol, distr_t(50, 50), config->range_size, config->key_prefix),
 
             /* Construct the client object */
-            client(i, config->clients, config->keys, config->distr, config->mu, sqlite),
-
-            /* Set up some operations for the client to perform */
-            read_op(&client,
-                // Scale the read-ratio to take into account the batch factor for reads
-                config->op_ratios.reads / ((config->batch_factor.min + config->batch_factor.max) / 2),
-                protocol, config->batch_factor),
-            delete_op(&client, config->op_ratios.deletes, protocol),
-            update_op(&client, config->op_ratios.updates, protocol, config->values),
-            insert_op(&client, config->op_ratios.inserts, protocol, config->values),
-            append_op(&client, config->op_ratios.appends, protocol, true, config->values),
-            prepend_op(&client, config->op_ratios.prepends, protocol, false, config->values),
-            verify_op(&client, config->op_ratios.verifies, protocol),
-            range_read_op(&client, config->op_ratios.range_reads, protocol, config->range_size)
+            client()
         {
+            client.add_op(config->op_ratios.inserts, &insert_op);
+
+            client.add_op(config->op_ratios.deletes, &delete_op);
+
+            int expected_batch_factor = (config->batch_factor.min + config->batch_factor.max) / 2;
+            client.add_op(config->op_ratios.reads / expected_batch_factor, &read_op);
+            client.add_op(config->op_ratios.updates, &update_op);
+            client.add_op(config->op_ratios.appends, &append_op);
+            client.add_op(config->op_ratios.prepends, &prepend_op);
+
+            client.add_op(config->op_ratios.verifies, &verify_op);
+
+            client.add_op(config->op_ratios.range_reads, &range_read_op);
         }
 
         ~client_stuff_t() {
@@ -161,8 +200,8 @@ int main(int argc, char *argv[])
             res = fread(&min_seed, sizeof(min_seed), 1, in_file);
             res = fread(&max_seed, sizeof(max_seed), 1, in_file);
 
-            clients[id]->client.min_seed = min_seed;
-            clients[id]->client.max_seed = max_seed;
+            clients[id]->model.min_seed = min_seed;
+            clients[id]->model.max_seed = max_seed;
         }
 
         fclose(in_file);
@@ -202,7 +241,10 @@ int main(int argc, char *argv[])
         int round_inserts_minus_deletes = 0;
         for(int i = 0; i < config.clients; i++) {
             client_stuff_t *c = clients[i];
-            c->client.spinlock.lock();
+
+            for (int j = 0; j < (int)c->client.ops.size(); j++) {
+                c->client.ops[j]->stats_spinlock.lock();
+            }
 
             /* We pool all the stats from different operations together into one pool for
             reporting. If you want to get stats for individual operations separately, use
@@ -221,7 +263,9 @@ int main(int argc, char *argv[])
                 c->client.ops[j]->stats = query_stats_t();
             }
 
-            c->client.spinlock.unlock();
+            for (int j = 0; j < (int)c->client.ops.size(); j++) {
+                c->client.ops[j]->stats_spinlock.unlock();
+            }
         }
 
         /* Report the stats we got from the clients */
@@ -293,8 +337,8 @@ int main(int argc, char *argv[])
         // Dump the keys
         for(int i = 0; i < config.clients; i++) {
             fwrite(&i, sizeof(i), 1, out_file);
-            fwrite(&clients[i]->client.min_seed, sizeof(clients[i]->client.min_seed), 1, out_file);
-            fwrite(&clients[i]->client.max_seed, sizeof(clients[i]->client.max_seed), 1, out_file);
+            fwrite(&clients[i]->model.min_seed, sizeof(clients[i]->model.min_seed), 1, out_file);
+            fwrite(&clients[i]->model.max_seed, sizeof(clients[i]->model.max_seed), 1, out_file);
         }
 
         fclose(out_file);

@@ -51,7 +51,7 @@ int count_decimal_digits(int n) {
         exit(-1);
     }
     int digits = 1;
-    while (n > 10) {
+    while (n >= 10) {
         n /= 10;
         digits++;
     }
