@@ -276,10 +276,9 @@ void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, back
         callback->done(state.oper_start_timestamp);
     } else {
         subtrees_backfill(state, superblock_buf, 0, &root_id, 1);
+        state.wait();
+        callback->done(state.oper_start_timestamp);
     }
-
-    state.wait();
-    callback->done(state.oper_start_timestamp);
     pm_backfill_coros--;
 }
 
