@@ -441,18 +441,16 @@ void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
     if (n == 0) {
         return;
     }
-    // TODO: stop this obnoxious unsigned type usage.
-    rassert(dest >= data && (size_t)dest < (size_t)data + inner_buf->cache->get_block_size().value());
-    rassert((size_t)dest + n <= (size_t)data + inner_buf->cache->get_block_size().value());
+    rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
     if (inner_buf->writeback_buf.needs_flush) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
         memcpy(dest, src, n);
     } else {
-        size_t offset = reinterpret_cast<const char *>(dest) - reinterpret_cast<const char *>(data);
+        size_t offset = ptr_cast<uint8_t>(dest) - ptr_cast<uint8_t>(data);
         // transaction ID will be set later...
-        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, reinterpret_cast<const char *>(src), n));
+        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, ptr_cast<const char>(src), n));
     }
 }
 
@@ -461,18 +459,17 @@ void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
     if (n == 0) {
         return;
     }
-    rassert(dest >= data && (size_t)dest < (size_t)data + inner_buf->cache->get_block_size().value());
-    rassert((size_t)dest + n <= (size_t)data + inner_buf->cache->get_block_size().value());
-    rassert(src >= data && (size_t)src < (size_t)data + inner_buf->cache->get_block_size().value());
-    rassert((size_t)src + n <= (size_t)data + inner_buf->cache->get_block_size().value());
+
+    rassert(range_inside_of_byte_range(src, n, data, inner_buf->cache->get_block_size().value()));
+    rassert(range_inside_of_byte_range(dest, n, data, inner_buf->cache->get_block_size().value()));
 
     if (inner_buf->writeback_buf.needs_flush) {
         // Save the allocation / construction of a patch object
         get_data_major_write();
         memmove(dest, src, n);
     } else {
-        size_t dest_offset = reinterpret_cast<const char *>(dest) - reinterpret_cast<const char *>(data);
-        size_t src_offset = reinterpret_cast<const char *>(src) - reinterpret_cast<const char *>(data);
+        size_t dest_offset = ptr_cast<uint8_t>(dest) - ptr_cast<uint8_t>(data);
+        size_t src_offset = ptr_cast<uint8_t>(src) - ptr_cast<uint8_t>(data);
         // transaction ID will be set later...
         apply_patch(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
     }
