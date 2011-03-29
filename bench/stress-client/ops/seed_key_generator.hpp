@@ -57,7 +57,7 @@ struct seed_key_generator_t {
                 exit(-1);
             }
             suffix = buf;
-            id_salt = id_salt + uint64_t(id_salt) << 32;
+            id_salt = shard_id + uint64_t(shard_id) << 32;
         }
 
         if (suffix.length() + prefix.length() >= key_sizes.min) {

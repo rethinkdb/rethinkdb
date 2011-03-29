@@ -154,8 +154,8 @@ coro_globals_t::~coro_globals_t() {
 coro_context_t::coro_context_t() {
     pm_allocated_coroutines++;
     coro_context_count++;
-    guarantee(coro_context_count < MAX_COROS_PER_THREAD, "Too many coroutines"
-            "allocated on this thread. This is problem due to a misuse of the"
+    guarantee(coro_context_count < MAX_COROS_PER_THREAD, "Too many coroutines "
+            "allocated on this thread. This is problem due to a misuse of the "
             "coroutines\n");
 
     stack = malloc_aligned(coro_stack_size, getpagesize());
