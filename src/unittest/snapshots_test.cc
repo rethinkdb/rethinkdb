@@ -128,7 +128,7 @@ private:
     }
 
     static void test_snapshot_sees_changes_started_before_its_first_block_acq(thread_saver_t &saver, cache_t *cache) {
-        // t0:create+release(A), t1:snap(), t2:acqw(A), t2:change+release(A), t1:acq(A), t1 sees the change
+        // t0:create+release(A,B), t1:snap(), t2:acqw(A), t2:change+release(A), t1:acq(A), t1 sees the A change, t1:release(A), t2:acqw(B), t2:change(B), t1:acq(B) blocks, t2:release(B), t1 unblocks, t1 sees the B change
         transactor_t t0(saver, cache, rwi_write, 0, current_time());
 
         block_id_t block_A, block_B;
@@ -139,13 +139,22 @@ private:
 
         snap(t1);
 
-        buf_t *buf2 = acq(t2, block_A, rwi_write);
-        change_value(buf2, changed_value);
-        buf2->release();
+        buf_t *buf2_A = acq(t2, block_A, rwi_write);
+        change_value(buf2_A, changed_value);
+        buf2_A->release();
 
-        buf_t *buf1 = acq(t1, block_A, rwi_read);
-        EXPECT_EQ(changed_value, get_value(buf1));
-        buf1->release();
+        buf_t *buf1_A = acq(t1, block_A, rwi_read);
+        EXPECT_EQ(changed_value, get_value(buf1_A));
+        buf1_A->release();
+
+        buf_t *buf2_B = acq(t2, block_B, rwi_write);
+        change_value(buf2_B, changed_value);
+
+        bool blocked = false;
+        buf_t *buf1_B = acq_check_if_blocks_until_buf_released(t2, buf2_B, rwi_read, true, blocked);
+        EXPECT_TRUE(blocked);
+        EXPECT_EQ(changed_value, get_value(buf1_B));
+        buf1_B->release();
     }
 
     static void test_snapshot_doesnt_see_later_changes_and_doesnt_block_them(thread_saver_t &saver, cache_t *cache) {
@@ -236,7 +245,8 @@ private:
 
     static void test_issue_194(thread_saver_t &saver, cache_t *cache) {
         // issue 194 unit-test
-        // t0:create+release(A,B), t1:acqw+release(A), t2:acqw(A), t3:snap(), t3:acq(A) blocks, t2:release(A), t1:acqw+release(B), t2:acqw(B) (fails with assertion if issue 194 is not fixed)
+        // t0:create+release(A,B), t1:acqw+release(A), t2:acqw(A), t3:snap(), t3:acq(A) blocks, t2:release(A), t1:acqw+release(B), t2:acqw(B), t2:change(B), t3:acq(B) blocks, t2:release(B), t3 unblocks and sees B change
+        // (fails on t2:acqw(B) with assertion if issue 194 is not fixed)
         transactor_t t0(saver, cache, rwi_write, 0, current_time());
 
         block_id_t block_A, block_B;
@@ -246,27 +256,28 @@ private:
         transactor_t t2(saver, cache, rwi_write, 0, current_time());
         transactor_t t3(saver, cache, rwi_read, 0, repli_timestamp::invalid);
 
-        buf_t *buf0_A = acq(t1, block_A, rwi_write);
-        buf0_A->release();
+        buf_t *buf1_A = acq(t1, block_A, rwi_write);
+        buf1_A->release();
 
-        buf_t *buf1_A = acq(t2, block_A, rwi_write);
+        buf_t *buf2_A = acq(t2, block_A, rwi_write);
         snap(t3);
 
         bool blocked = false;
-        buf_t *buf2_A = acq_check_if_blocks_until_buf_released(t3, buf1_A, rwi_read, true, blocked);
+        buf_t *buf3_A = acq_check_if_blocks_until_buf_released(t3, buf2_A, rwi_read, true, blocked);
         EXPECT_TRUE(blocked);
 
-        buf_t *buf0_B = acq(t1, block_B, rwi_write);
-        buf0_B->release();
-
-        buf_t *buf1_B = acq(t2, block_B, rwi_write);    // if issue 194 is not fixed, expect assertion failure here
-
-        buf2_A->release();
-
-        buf_t *buf2_B = acq_check_if_blocks_until_buf_released(t3, buf1_B, rwi_read, false, blocked);
-        EXPECT_FALSE(blocked);
+        buf_t *buf1_B = acq(t1, block_B, rwi_write);
         buf1_B->release();
-        buf2_B->release();
+
+        buf_t *buf2_B = acq(t2, block_B, rwi_write);    // if issue 194 is not fixed, expect assertion failure here
+
+        buf3_A->release();
+
+        change_value(buf2_B, changed_value);
+
+        buf_t *buf3_B = acq_check_if_blocks_until_buf_released(t3, buf2_B, rwi_read, true, blocked);
+        EXPECT_TRUE(blocked);
+        buf3_B->release();
     }
 
     void main() {
@@ -305,7 +316,7 @@ private:
             log_call(test_snapshot_doesnt_see_later_changes_and_doesnt_block_them, saver, cache);
             log_call(test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later, saver, cache);
             log_call(test_snapshot_blocks_on_txns_that_acq_first_block_earlier, saver, cache);
-            //log_call(test_issue_194, saver, cache);
+            log_call(test_issue_194, saver, cache);
         }
         log_call(thread_pool.shutdown);
     }
@@ -315,7 +326,7 @@ private:
     }
 };
 
-TEST(SnapshotsTest, server_start) {
+TEST(SnapshotsTest, all_tests) {
     tester_t test;
     test.run();
 }
