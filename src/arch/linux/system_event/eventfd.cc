@@ -7,7 +7,7 @@
 #include "utils.hpp"
 #include <sys/syscall.h>
 
-int eventfd(int count, int flags) {
+int eventfd(int count, UNUSED int flags) {
     rassert(flags == 0); // Legacy kernel doesn't have eventfd2.
     return syscall(SYS_eventfd, count);
 }
