@@ -31,13 +31,7 @@ public:
     };
 
     /* The constructor can throw this exception */
-    struct address_in_use_exc_t :
-        public std::exception
-    {
-        const char *what() throw () {
-            return "The requested port is already in use.";
-        }
-    };
+    typedef tcp_listener_t::address_in_use_exc_t address_in_use_exc_t;
 
     conn_acceptor_t(int port, handler_t *handler);
 

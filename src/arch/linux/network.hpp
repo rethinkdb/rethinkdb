@@ -115,8 +115,7 @@ private:
     write end of the connection is closed, throws write_closed_exc_t. */
     void write_internal(const void *buffer, size_t size);
 
-
-    fd_t sock;
+    scoped_fd_t sock;
 
     /* Before we are being watched by any event loop, registration_thread is -1. Once an
     event loop is watching us, registration_thread is its ID. */
@@ -153,11 +152,18 @@ public:
     explicit linux_tcp_listener_t(int port);
     void set_callback(linux_tcp_listener_callback_t *cb);
     ~linux_tcp_listener_t();
-    
-    bool defunct;
+
+    // The constructor can throw this exception
+    struct address_in_use_exc_t :
+        public std::exception
+    {
+        const char *what() throw () {
+            return "The requested port is already in use.";
+        }
+    };
 
 private:
-    fd_t sock;
+    scoped_fd_t sock;
     linux_tcp_listener_callback_t *callback;
     void on_event(int events);
     void handle(fd_t sock);

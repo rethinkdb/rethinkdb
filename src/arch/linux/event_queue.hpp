@@ -3,6 +3,7 @@
 #define __EVENT_QUEUE_HPP__
 
 #include "perfmon.hpp"
+#include "linux_utils.hpp"
 
 // Event queue callback
 struct linux_event_callback_t {
@@ -19,10 +20,6 @@ public:
 private:
     static void signal_handler(int signum, siginfo_t *siginfo, void *uctx);
 };
-
-// Some other stuff
-typedef int fd_t;
-#define INVALID_FD fd_t(-1)
 
 struct linux_queue_parent_t {
     virtual void pump() = 0;

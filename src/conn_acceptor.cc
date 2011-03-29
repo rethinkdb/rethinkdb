@@ -7,7 +7,6 @@ conn_acceptor_t::conn_acceptor_t(int port, handler_t *handler)
     : handler(handler), listener(new tcp_listener_t(port)), next_thread(0)
 {
     listener->set_callback(this);
-    if (listener->defunct) throw address_in_use_exc_t();
 }
 
 void conn_acceptor_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t>& conn) {
