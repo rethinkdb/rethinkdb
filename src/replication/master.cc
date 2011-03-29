@@ -22,7 +22,7 @@ void master_t::get_cas(const store_key_t& key, castime_t castime) {
     // anything before.
 
     // TODO Is grabbing a tmp_hold really necessary?  I wish it wasn't.
-    snag_ptr_t<master_t> tmp_hold(*this);
+    snag_ptr_t<master_t> tmp_hold(this);
 
     if (stream_) {
         consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
@@ -40,7 +40,7 @@ void master_t::get_cas(const store_key_t& key, castime_t castime) {
 }
 
 void master_t::sarc(const store_key_t& key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    snag_ptr_t<master_t> tmp_hold(*this);
+    snag_ptr_t<master_t> tmp_hold(this);
 
     if (stream_) {
         consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
@@ -62,7 +62,7 @@ void master_t::sarc(const store_key_t& key, data_provider_t *data, mcflags_t fla
 }
 
 void master_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
-    snag_ptr_t<master_t> tmp_hold(*this);
+    snag_ptr_t<master_t> tmp_hold(this);
 
     if (stream_) {
         consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
@@ -91,7 +91,7 @@ void master_t::incr_decr_like(UNUSED uint8_t msgcode, UNUSED const store_key_t &
 
 
 void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
-    snag_ptr_t<master_t> tmp_hold(*this);
+    snag_ptr_t<master_t> tmp_hold(this);
 
     if (stream_) {
         consider_nop_dispatch_and_update_latest_timestamp(castime.timestamp);
@@ -120,7 +120,7 @@ void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key
 }
 
 void master_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
-    snag_ptr_t<master_t> tmp_hold(*this);
+    snag_ptr_t<master_t> tmp_hold(this);
 
     size_t n = sizeof(net_delete_t) + key.size;
     if (stream_) {
@@ -254,7 +254,7 @@ void master_t::do_backfill(repli_timestamp since_when) {
     // tmp_hold, we have an unclean shutdown process.  So we need to
     // properly implement the shutting down of master.)
 
-    snag_ptr_t<master_t> tmp_hold(*this);
+    snag_ptr_t<master_t> tmp_hold(this);
     assert_thread();
 
     int n = dispatchers_.size();
@@ -274,7 +274,7 @@ void master_t::do_backfill(repli_timestamp since_when) {
 }
 
 void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
-    snag_ptr_t<master_t> tmp_hold(*this);
+    snag_ptr_t<master_t> tmp_hold(this);
 
     data_provider_t *data = atom.value.release();
 
@@ -294,7 +294,7 @@ void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
 }
 
 void master_t::send_deletion_key_to_slave(store_key_t key) {
-    snag_ptr_t<master_t> tmp_hold(*this);
+    snag_ptr_t<master_t> tmp_hold(this);
 
     size_t n = sizeof(net_backfill_delete_t) + key.size;
     if (stream_) {

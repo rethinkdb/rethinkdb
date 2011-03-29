@@ -48,7 +48,7 @@ struct change_visitor_t : public boost::static_visitor<mutation_result_t> {
 mutation_result_t btree_slice_dispatching_to_master_t::change(const mutation_t &m, castime_t castime) {
 
     on_thread_t th(slice_->home_thread);
-    if (master_) {
+    if (master_.get() != NULL) {
         change_visitor_t functor;
         functor.master = master_.get();
         functor.slice = slice_;
