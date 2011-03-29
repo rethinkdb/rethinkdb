@@ -176,7 +176,7 @@ std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1
 template<typename value_t>
 struct cache_line_padded_t {
     value_t value;
-    byte padding[CACHE_LINE_SIZE - sizeof value_t];
+    byte padding[CACHE_LINE_SIZE - sizeof(value_t)];
 };
 
 #include "utils2.tcc"
