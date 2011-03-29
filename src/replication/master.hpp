@@ -93,6 +93,7 @@ public:
     void do_backfill(repli_timestamp since_when);
 
     void send_backfill_atom_to_slave(backfill_atom_t atom);
+    void send_deletion_key_to_slave(store_key_t key);
 
 private:
     // Spawns a coroutine.

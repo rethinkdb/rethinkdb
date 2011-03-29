@@ -1,8 +1,8 @@
 
 LIBS = -lpthread -ldl 
 # Do not include main.cc or python_interface.cc in SRC
-SRC = utils.cc random.cc protocol.cc sqlite3.c
-HEADERS = $(wildcard *.hpp)
+SRC = utils.cc random.cc protocol.cc protocols/sqlite3.c
+HEADERS = $(wildcard *.hpp) $(wildcard */*.hpp)
 
 MYSQL ?= 1
 LIBMEMCACHED ?= 1
@@ -29,7 +29,7 @@ EXEC_NAME = stress
 SO_NAME = libstress.so
 CXX = g++
 CFLAGS = -fPIC
-CXXFLAGS = -g $(INCLUDE) $(DEFINES) -fPIC # -O3
+CXXFLAGS = -g $(INCLUDE) -I . $(DEFINES) -fPIC # -O3
 
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 

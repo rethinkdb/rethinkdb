@@ -16,7 +16,7 @@ struct co_block_available_callback_t : public block_available_callback_t {
     }
 };
 
-buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction, block_id_t block_id, access_t mode, cond_t *acquisition_cond) {
+buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) {
     transaction->ensure_thread(saver);
     co_block_available_callback_t cb;
     buf_t *value = transaction->acquire(block_id, mode, &cb);
@@ -44,7 +44,7 @@ void co_acquire_large_buf_for_unprepend(const thread_saver_t& saver, large_buf_t
     coro_t::wait();
 }
 
-void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, int64_t offset, int64_t size, cond_t *acquisition_cond) {
+void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, int64_t offset, int64_t size, threadsafe_cond_t *acquisition_cond) {
     large_value_acquired_t acquired;
     lb->ensure_thread(saver);
     lb->acquire_slice(offset, size, &acquired);
@@ -54,7 +54,7 @@ void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, in
     coro_t::wait();
 }
 
-void co_acquire_large_buf(const thread_saver_t& saver, large_buf_t *lb, cond_t *acquisition_cond) {
+void co_acquire_large_buf(const thread_saver_t& saver, large_buf_t *lb, threadsafe_cond_t *acquisition_cond) {
     co_acquire_large_buf_slice(saver, lb, 0, lb->root_ref->size, acquisition_cond);
 }
 

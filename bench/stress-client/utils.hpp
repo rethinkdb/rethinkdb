@@ -18,6 +18,7 @@ struct rnd_gen_t
     rnd_distr_t rnd_distr;
     int mu;
 };
+rnd_distr_t distr_with_name(const char *name);
 rnd_gen_t xrandom_create(rnd_distr_t rnd_distr, int mu);
 size_t xrandom(size_t min, size_t max);
 size_t xrandom(rnd_gen_t rnd, size_t min, size_t max);

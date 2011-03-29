@@ -208,6 +208,7 @@ public:
     duration_t duration;
     op_ratios_t op_ratios;
     distr_t keys;
+    std::string key_prefix;
     distr_t values;
     distr_t batch_factor;
     distr_t range_size;
@@ -268,7 +269,7 @@ void usage(const char *name) {
     _d.keys.print();
     printf("].\n");
     printf("\t-K, --keys-prefix\n\t\tPrefix every key with the following string. Defaults to [");
-    printf("%s", _d.keys.prefix.c_str());
+    printf("%s", _d.key_prefix.c_str());
     printf("].\n");
     printf("\t-v, --values\n\t\tValue distribution in DISTR format (see below). Maximum possible\n");
     printf("\t\tvalue size is [%d]. Defaults to [", MAX_VALUE_SIZE);
@@ -379,7 +380,7 @@ void parse(config_t *config, int argc, char *argv[]) {
             config->keys.parse(optarg);
             break;
         case 'K':
-            config->keys.prefix = optarg;
+            config->key_prefix = optarg;
             break;
         case 'v':
             config->values.parse(optarg);
@@ -416,7 +417,8 @@ void parse(config_t *config, int argc, char *argv[]) {
             strncpy(config->db_file, optarg, MAX_FILE);
             break;
         case 'a':
-            config->keys.append_client_suffix = true;
+            fprintf(stderr, "Warning: The \"--client-suffix\" (alias \"-a\") flag is deprecated. "
+                "Per-client suffixes are always enabled now.\n");
             break;
         case 'r':
             if(strcmp(optarg, "uniform") == 0) {

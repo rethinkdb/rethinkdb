@@ -44,12 +44,10 @@ struct t_and_o {
 void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp timestamp, const store_key_t *key) {
     thread_saver_t saver;
 
-    debugf("add_key_to_delete_queue.\n");
     // Beware: Right now, some aspects of correctness depend on the
     // fact that we hold the queue_root lock for the entire operation.
     buf_lock_t queue_root(saver, *txor, queue_root_id, rwi_write);
 
-    debugf("add_key_to_delete_queue queue_root acquired.\n");
     // TODO this could be a non-major write?
     void *queue_root_buf = queue_root->get_data_major_write();
 
@@ -78,8 +76,6 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             // TODO: Allow upgrade of large buf intent.
             co_acquire_large_buf(saver, t_o_largebuf.get());
 
-            debugf("t_o_largebuf acquired\n");
-
             delete_queue::t_and_o last_tao;
             t_o_largebuf->read_at(t_o_ref->size - sizeof(last_tao), &last_tao, sizeof(last_tao));
 
@@ -100,11 +96,8 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             }
         }
 
-        debugf("t_o_largebuf operation completed.\n");
-
         // TODO: Remove old items from the front of t_o_largebuf.
     }
-    debugf("t_o_largebuf deallocated.\n");
 
     // 2. Update the keys list.
 
@@ -118,14 +111,11 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             // TODO: acquire rhs, or lhs+rhs, something appropriate.
             co_acquire_large_buf(saver, keys_largebuf.get());
 
-            debugf("keys_largebuf acquired.\n");
             int refsize_adjustment_dontcare;
             keys_largebuf->append(1 + key->size, &refsize_adjustment_dontcare);
             keys_largebuf->fill_at(keys_ref->size - (1 + key->size), key, 1 + key->size);
         }
-        debugf("keys_largebuf operation completed.\n");
     }
-    debugf("keys_largebuf deallocated.\n");
 }
 
 void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_stream_receiver_t *recipient) {
@@ -141,71 +131,84 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
     large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);
     large_buf_ref *keys_ref = delete_queue::keys_largebuf(queue_root_buf);
 
-    rassert(t_o_ref->size % sizeof(delete_queue::t_and_o) == 0);
+    if (t_o_ref->size != 0 && keys_ref->size != 0) {
 
-    // TODO: DON'T hold the queue_root lock for the entire operation.  Sheesh.
+        rassert(t_o_ref->size % sizeof(delete_queue::t_and_o) == 0);
 
-    int64_t begin_offset = 0, end_offset = 0;
+        // TODO: DON'T hold the queue_root lock for the entire operation.  Sheesh.
 
-    {
-        boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_read));
-        co_acquire_large_buf(saver, t_o_largebuf.get());
+        int64_t begin_offset = 0, end_offset = 0;
 
-        delete_queue::t_and_o tao;
-        int64_t i = 0, ie = t_o_ref->size;
-        bool begin_found = false, end_found = false;
-        while (i < ie) {
-            t_o_largebuf->read_at(i, &tao, sizeof(tao));
-            if (!begin_found && begin_timestamp.time <= tao.timestamp.time) {
-                begin_offset = tao.offset - primal_offset;
-                begin_found = true;
+        {
+            boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_read));
+            co_acquire_large_buf(saver, t_o_largebuf.get());
+
+            delete_queue::t_and_o tao;
+            int64_t i = 0, ie = t_o_ref->size;
+            bool begin_found = false, end_found = false;
+            while (i < ie) {
+                t_o_largebuf->read_at(i, &tao, sizeof(tao));
+                if (!begin_found && begin_timestamp.time <= tao.timestamp.time) {
+                    begin_offset = tao.offset - primal_offset;
+                    begin_found = true;
+                }
+                if (end_timestamp.time <= tao.timestamp.time) {
+                    rassert(begin_found);
+                    end_offset = tao.offset - primal_offset;
+                    end_found = true;
+                    break;
+                }
+                i += sizeof(tao);
             }
-            if (end_timestamp.time <= tao.timestamp.time) {
-                rassert(begin_found);
-                end_offset = tao.offset - primal_offset;
-                end_found = true;
-                break;
+
+            if (!begin_found) {
+                goto done;
+                // Nothing to do!
             }
-            i += sizeof(tao);
+
+            if (!end_found) {
+                end_offset = keys_ref->size;
+            }
+
+            // So we have a begin_offset and an end_offset;
         }
 
-        if (!begin_found) {
-            return;
-            // Nothing to do!
-        }
+        rassert(begin_offset <= end_offset);
 
-        if (!end_found) {
-            end_offset = t_o_ref->size;
-        }
+        if (begin_offset < end_offset) {
+            boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txor, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size())), rwi_read));
 
-        // So we have a begin_offset and an end_offset;
+            // TODO: acquire subinterval.
+            co_acquire_large_buf(saver, keys_largebuf.get());
+
+            int64_t n = end_offset - begin_offset;
+
+            // TODO: don't copy needlessly... sheesh.  This is a fake
+            // implementation, make something that actually streams later.
+            scoped_malloc<byte> buf(n);
+
+            keys_largebuf->read_at(begin_offset, buf.get(), n);
+
+            byte *p = buf.get();
+            byte *e = p + n;
+            while (p < e) {
+                store_key_t *k = reinterpret_cast<store_key_t *>(p);
+                rassert(k->size + 1 <= e - p);
+
+                recipient->deletion_key(k);
+                p += k->size + 1;
+            }
+        }
     }
 
-    rassert(begin_offset <= end_offset);
-
-    if (begin_offset < end_offset) {
-        boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txor, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size())), rwi_read));
-
-        // TODO: acquire subinterval.
-        co_acquire_large_buf(saver, keys_largebuf.get());
-
-        int64_t n = end_offset - begin_offset;
-
-        // TODO: don't copy needlessly... sheesh.  This is a fake
-        // implementation, make something that actually streams later.
-        scoped_malloc<byte> buf(n);
-
-        keys_largebuf->fill_at(begin_offset, buf.get(), n);
-
-        // To force deletion_key_stream_receiver_t to be designed to
-        // accept multiple calls, we send two calls.
-        int64_t half_n = n / 2;
-        recipient->receive_keys(buf.get(), half_n);
-        recipient->receive_keys(buf.get() + half_n, n - half_n);
-    }
+ done:
+    recipient->done_deletion_keys();
 }
 
-// TODO: maybe this function should be somewhere else.  Well, certainly.
+// TODO: maybe this function should be somewhere else.  Well,
+// certainly.  Right now we don't have a notion of an "empty"
+// largebuf, so we'll know that we have to ->allocate the largebuf
+// when we see a size of 0 in the large_buf_ref.
 void initialize_large_buf_ref(large_buf_ref *ref, int size_in_bytes) {
     int ids_bytes = size_in_bytes - offsetof(large_buf_ref, block_ids);
     rassert(ids_bytes > 0);

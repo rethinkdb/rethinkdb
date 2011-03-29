@@ -51,9 +51,7 @@ struct net_backfill_t {
 } __attribute__((__packed__));
 
 struct net_backfill_complete_t {
-    // Unfortunately messages must be at least 4 bytes because of
-    // stupid.
-    char ignore[4];
+    repli_timestamp time_barrier_timestamp;
 } __attribute__((__packed__));
 
 struct net_announce_t {
@@ -155,7 +153,9 @@ struct net_delete_t {
 } __attribute__((__packed__));
 
 struct net_backfill_delete_t {
-    repli_timestamp timestamp;
+    // We need at least 4 bytes so that we do not get a msgsize
+    // smaller than sizeof(net_multipart_header_t).
+    uint16_t padding;
     uint16_t key_size;
     char key[];
 } __attribute__((__packed__));

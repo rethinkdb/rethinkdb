@@ -6,6 +6,7 @@
 #include <gsl/gsl_randist.h>
 #endif
 #include "utils.hpp"
+#include "string.h"
 
 /* Really fast random function */
 static unsigned long x=123456789, y=362436069, z=521288629;
@@ -47,6 +48,18 @@ size_t random(size_t min, size_t max) {
 
 size_t seeded_random(size_t min, size_t max, unsigned long seed) {
     return seeded_xorshf96(seed) % (max - min + 1) + min;
+}
+
+rnd_distr_t distr_with_name(const char *distr_name) {
+    if (strcmp(distr_name, "uniform") == 0) {
+        return rnd_uniform_t;
+    } else if (strcmp(distr_name, "normal") == 0) {
+        return rnd_normal_t;
+    } else {
+        fprintf(stderr, "There is no such thing as a \"%s\" distribution. At least, I don't know "
+            "what that means. I only know about \"uniform\" and \"normal\".\n", distr_name);
+        exit(-1);
+    }
 }
 
 /* Returns random number between [min, max] using various distributions */

@@ -19,7 +19,7 @@ slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t r
       reconnection_timer_token_(NULL),
       failover_reset_control_(std::string("failover reset"), this),
       new_master_control_(std::string("new master"), this),
-      internal_store_(internal_store),
+      internal_store_(new queueing_store_t(internal_store)),
       replication_config_(replication_config),
       failover_config_(failover_config),
       stream_(NULL),
@@ -93,7 +93,7 @@ struct not_allowed_visitor_t : public boost::static_visitor<mutation_result_t> {
 mutation_result_t slave_t::change(const mutation_t &m) {
 
     if (respond_to_queries_) {
-        return internal_store_->change(m);
+        return internal_store_->bypass_change(m);
     } else {
         /* Construct a "failure" response of the right sort */
         return boost::apply_visitor(not_allowed_visitor_t(), m.mutation);
@@ -136,6 +136,8 @@ void slave_t::send(UNUSED buffed_data_t<net_backfill_complete_t>& message) {
     // TODO: Make the parameter not UNUSED and implement this.  The
     // slave should queue non-backfilling messages until backfilling
     // is complete.
+    internal_store_->time_barrier(message->time_barrier_timestamp);
+    internal_store_->backfilling_complete();
     debugf("Received a BACKFILL_COMPLETE message.\n");
 }
 
@@ -148,8 +150,7 @@ void slave_t::send(buffed_data_t<net_get_cas_t>& msg) {
     // and we don't really care for that.
     get_cas_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
-    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("get_cas message received and applied.\n");
+    internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
 }
 
 void slave_t::send(stream_pair<net_sarc_t>& msg) {
@@ -162,8 +163,7 @@ void slave_t::send(stream_pair<net_sarc_t>& msg) {
     mut.replace_policy = replace_policy_t(msg->replace_policy);
     mut.old_cas = msg->old_cas;
 
-    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("sarc message received and applied.\n");
+    internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
 }
 
 void slave_t::send(stream_pair<net_backfill_set_t>& msg) {
@@ -177,7 +177,7 @@ void slave_t::send(stream_pair<net_backfill_set_t>& msg) {
     mut.old_cas = NO_CAS_SUPPLIED;
 
     // TODO: We need this operation to force the cas to be set.
-    internal_store_->change(mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
+    internal_store_->backfilling_handover(new mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
 }
 
 void slave_t::send(buffed_data_t<net_incr_t>& msg) {
@@ -185,8 +185,7 @@ void slave_t::send(buffed_data_t<net_incr_t>& msg) {
     mut.key.assign(msg->key_size, msg->key);
     mut.kind = incr_decr_INCR;
     mut.amount = msg->amount;
-    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("incr message received and applied.\n");
+    internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
 }
 
 void slave_t::send(buffed_data_t<net_decr_t>& msg) {
@@ -194,8 +193,7 @@ void slave_t::send(buffed_data_t<net_decr_t>& msg) {
     mut.key.assign(msg->key_size, msg->key);
     mut.kind = incr_decr_DECR;
     mut.amount = msg->amount;
-    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("decr message received and applied.\n");
+    internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
 }
 
 void slave_t::send(stream_pair<net_append_t>& msg) {
@@ -203,8 +201,7 @@ void slave_t::send(stream_pair<net_append_t>& msg) {
     mut.key.assign(msg->key_size, msg->keyvalue);
     mut.data = msg.stream;
     mut.kind = append_prepend_APPEND;
-    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("append message received and applied.\n");
+    internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
 }
 
 void slave_t::send(stream_pair<net_prepend_t>& msg) {
@@ -212,26 +209,24 @@ void slave_t::send(stream_pair<net_prepend_t>& msg) {
     mut.key.assign(msg->key_size, msg->keyvalue);
     mut.data = msg.stream;
     mut.kind = append_prepend_PREPEND;
-    internal_store_->change(mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("prepend message received and applied.\n");
+    internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
 }
 
 void slave_t::send(buffed_data_t<net_delete_t>& msg) {
     delete_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
     // TODO: where does msg->timestamp go???  IS THIS RIGHT?? WHO KNOWS.
-    internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, msg->timestamp));
-    debugf("delete message received.\n");
+    internal_store_->handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, msg->timestamp));
 }
 
 void slave_t::send(buffed_data_t<net_backfill_delete_t>& msg) {
     delete_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
-    // NO_CAS_SUPPLIED is not used in any way for deletions, and
-    // msg->timestamp is part of the "->change" interface in a way not
+    // NO_CAS_SUPPLIED is not used in any way for deletions, and the
+    // timestamp is part of the "->change" interface in a way not
     // relevant to slaves -- it's used when putting deletions into the
     // delete queue.
-    internal_store_->change(mutation_t(mut), castime_t(NO_CAS_SUPPLIED, msg->timestamp));
+    internal_store_->backfilling_handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid));
 }
 
 void slave_t::send(buffed_data_t<net_nop_t>& message) {
@@ -239,7 +234,6 @@ void slave_t::send(buffed_data_t<net_nop_t>& message) {
     ackreply.timestamp = message->timestamp;
     stream_->send(ackreply);
     internal_store_->time_barrier(message->timestamp);
-    debugf("handled nop message %u\n", message->timestamp.time);
 }
 
 void slave_t::send(UNUSED buffed_data_t<net_ack_t>& message) {
