@@ -75,8 +75,8 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
 
     // Open the file
 
-    fd = open(path, flags, 0644);
-    if (fd == INVALID_FD)
+    fd.reset(open(path, flags, 0644));
+    if (fd.get() == INVALID_FD)
         fail_due_to_user_error("Inaccessible database file: \"%s\": %s", path, strerror(errno));
 
     file_exists = true;
@@ -84,12 +84,12 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
     // Determine the file size
 
     if (is_block) {
-        res = ioctl(fd, BLKGETSIZE64, &file_size);
+        res = ioctl(fd.get(), BLKGETSIZE64, &file_size);
         guarantee_err(res != -1, "Could not determine block device size");
     } else {
-        off64_t size = lseek64(fd, 0, SEEK_END);
+        off64_t size = lseek64(fd.get(), 0, SEEK_END);
         guarantee_err(size != -1, "Could not determine file size");
-        res = lseek64(fd, 0, SEEK_SET);
+        res = lseek64(fd.get(), 0, SEEK_SET);
         guarantee_err(res != -1, "Could not reset file position");
 
         file_size = size;
@@ -116,7 +116,7 @@ size_t linux_file_t::get_size() {
 
 void linux_file_t::set_size(size_t size) {
     rassert(!is_block);
-    int res = ftruncate(fd, size);
+    int res = ftruncate(fd.get(), size);
     guarantee_err(res == 0, "Could not ftruncate()");
     file_size = size;
 }
@@ -137,7 +137,7 @@ void linux_file_t::set_size_at_least(size_t size) {
 bool linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
 
     verify(offset, length, buf);
-    diskmgr->pread(fd, buf, length, offset, new linux_disk_op_t(false, callback));
+    diskmgr->pread(fd.get(), buf, length, offset, new linux_disk_op_t(false, callback));
 
     return false;
 }
@@ -153,7 +153,7 @@ bool linux_file_t::write_async(size_t offset, size_t length, void *buf, linux_io
 #endif
 
     verify(offset, length, buf);
-    diskmgr->pwrite(fd, buf, length, offset, new linux_disk_op_t(true, callback));
+    diskmgr->pwrite(fd.get(), buf, length, offset, new linux_disk_op_t(true, callback));
 
     return false;
 }
@@ -161,7 +161,7 @@ bool linux_file_t::write_async(size_t offset, size_t length, void *buf, linux_io
 void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
  tryagain:
-    ssize_t res = pread(fd, buf, length, offset);
+    ssize_t res = pread(fd.get(), buf, length, offset);
     if (res == -1 && errno == EINTR) {
         goto tryagain;
     }
@@ -172,7 +172,7 @@ void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
 void linux_file_t::write_blocking(size_t offset, size_t length, void *buf) {
     verify(offset, length, buf);
  tryagain:
-    ssize_t res = pwrite(fd, buf, length, offset);
+    ssize_t res = pwrite(fd.get(), buf, length, offset);
     if (res == -1 && errno == EINTR) {
         goto tryagain;
     }
@@ -181,7 +181,7 @@ void linux_file_t::write_blocking(size_t offset, size_t length, void *buf) {
 }
 
 linux_file_t::~linux_file_t() {
-    if (fd != INVALID_FD) close(fd);
+    // scoped_fd_t's destructor takes care of close()ing the file
 }
 
 void linux_file_t::verify(UNUSED size_t offset, UNUSED size_t length, UNUSED void *buf) {

@@ -3,7 +3,7 @@
 #include "memcached/memcached.hpp"
 #include "concurrency/task.hpp"
 #include "concurrency/semaphore.hpp"
-#include "concurrency/rwi_lock.hpp"
+#include "concurrency/drain_semaphore.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/unique_ptr.hpp"
@@ -136,20 +136,18 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
 
     /* If a client sends a bunch of noreply requests and then a 'quit', we cannot delete ourself
     immediately because the noreply requests still hold the 'requests_out' semaphore. We use this
-    lock to figure out when we can delete ourself. Each request acquires this lock in non-exclusive
-    (read) mode, and when we want to shut down we acquire it in exclusive (write) mode. That way
-    we don't shut down until everything that holds a reference to the semaphore is gone. */
-    rwi_lock_t prevent_shutdown_lock;
+    semaphore to figure out when we can delete ourself. */
+    drain_semaphore_t drain_semaphore;
 
     // Used to implement throttling. Write requests should call begin_write_command() and
     // end_write_command() to make sure that not too many write requests are sent
     // concurrently.
     void begin_write_command() {
-        prevent_shutdown_lock.co_lock(rwi_read);
+        drain_semaphore.acquire();
         requests_out_sem.co_lock();
     }
     void end_write_command() {
-        prevent_shutdown_lock.unlock();
+        drain_semaphore.release();
         requests_out_sem.unlock();
     }
 };
@@ -924,8 +922,6 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
             }
         } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
             do_stats(saver, &rh, args.size(), args.data());
-        } else if (!strcmp(args[0], "qset")) {
-            // TODO: wtf is qset?
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
             rh.write(saver, control_t::exec(args.size() - 1, args.data() + 1));
         } else if (!strcmp(args[0], "version")) {
@@ -945,9 +941,9 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
         action_timer.end();
     }
 
-    /* Acquire the prevent-shutdown lock to make sure that anything that might refer to us is
+    /* Acquire the drain semaphore to make sure that anything that might refer to us is
     done by now */
-    rh.prevent_shutdown_lock.co_lock(rwi_write);
+    rh.drain_semaphore.drain();
 
     logDBG("Closed connection %p\n", coro_t::self());
 }

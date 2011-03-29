@@ -13,13 +13,6 @@ enum linux_io_backend_t {
     aio_native, aio_pool
 };
 
-/* The "direct" in linux_direct_file_t refers to the fact that the
-file is opened in O_DIRECT mode, and there are restrictions on the
-alignment of the chunks being written and read to and from the file.
-Sometimes, the file is _not_ actually opened in direct mode. See the
-is_really_direct parameter. There are still the same restrictions on
-chunk alignment. */
-
 struct linux_iocallback_t {
     virtual ~linux_iocallback_t() {}
     virtual void on_io_complete() = 0;
@@ -67,7 +60,7 @@ is for consistency with other asynchronous-callback methods */
     ~linux_file_t();
 
 private:
-    fd_t fd;
+    scoped_fd_t fd;
     bool is_block;
     bool file_exists;
     uint64_t file_size;
@@ -77,6 +70,9 @@ private:
     DISABLE_COPYING(linux_file_t);
 };
 
+/* The "direct" in linux_direct_file_t refers to the fact that the
+file is opened in O_DIRECT mode, and there are restrictions on the
+alignment of the chunks being written and read to and from the file. */
 class linux_direct_file_t : private linux_file_t {
 public:
     using linux_file_t::exists;
