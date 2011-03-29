@@ -155,7 +155,8 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "ninserts"    : 1,
                     "nreads"      : 0,
                     "fsck"        : False,
-                    "min-qps"     : 20}, # a very reasonable limit
+                    #"min-qps"     : 20 # a very reasonable limit #this is temporarily disabled because cmd_set_persec isn't available on servers
+                    },
                   repeat=3, timeout=2400)
 
     do_test_cloud("integration/serial_mix.py",

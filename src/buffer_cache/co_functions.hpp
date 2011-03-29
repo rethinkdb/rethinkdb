@@ -5,7 +5,7 @@
 #include "buffer_cache/large_buf.hpp"
 
 // Avoid using this!  Use buf_lock_t instead.
-buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction, block_id_t block_id, access_t mode, cond_t *acquisition_cond = NULL);
+buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond = NULL);
 
 // TODO: Make acquisition_cond not take a default value, because I bet
 // we should use it everywhere.  And put it on all of these functions.
@@ -17,8 +17,8 @@ buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction,
 // improper).
 
 void co_acquire_large_buf_for_unprepend(const thread_saver_t& saver, large_buf_t *lb, int64_t length);
-void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, int64_t offset, int64_t size, cond_t *acquisition_cond = NULL);
-void co_acquire_large_buf(const thread_saver_t& saver, large_buf_t *large_value, cond_t *acquisition_cond = NULL);
+void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, int64_t offset, int64_t size, threadsafe_cond_t *acquisition_cond = NULL);
+void co_acquire_large_buf(const thread_saver_t& saver, large_buf_t *large_value, threadsafe_cond_t *acquisition_cond = NULL);
 void co_acquire_large_buf_lhs(const thread_saver_t& saver, large_buf_t *large_value);
 void co_acquire_large_buf_rhs(const thread_saver_t& saver, large_buf_t *large_value);
 void co_acquire_large_buf_for_delete(large_buf_t *large_value);

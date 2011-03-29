@@ -184,10 +184,8 @@ private:
     DISABLE_COPYING(backfill_state_t);
 };
 
-
-
 void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids);
-void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond);
+void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, threadsafe_cond_t *acquisition_cond);
 void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock);
 void process_internal_node(backfill_state_t& state, buf_lock_t& buf_lock, int level);
 
@@ -198,7 +196,7 @@ void get_recency_timestamps(backfill_state_t& state, block_id_t *block_ids, int 
 class backfill_buf_lock_t {
 
 public:
-    backfill_buf_lock_t(const thread_saver_t& saver, backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond)
+    backfill_buf_lock_t(const thread_saver_t& saver, backfill_state_t& state, int level, block_id_t block_id, threadsafe_cond_t *acquisition_cond)
         : state_(state), level_(level), inner_lock_(), pulse_response_(backfill_state_t::no_response) {
         acquire_node(saver, block_id, acquisition_cond);
     }
@@ -209,7 +207,7 @@ public:
         state_.consider_pulsing();
     }
 
-    void acquire_node(const thread_saver_t& saver, block_id_t block_id, cond_t *acquisition_cond) {
+    void acquire_node(const thread_saver_t& saver, block_id_t block_id, threadsafe_cond_t *acquisition_cond) {
         // There are two ways to get permission to acquire.  One way:
         // breadth-first: if your grandparent and above are all zero.
         // If we are out of breadth-first credits or you don't
@@ -282,7 +280,7 @@ void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, b
 
     // Conds activated when we first try to acquire the children.
     // TODO: Replace acquisition_conds with a counter that counts down to zero.
-    boost::scoped_array<cond_t> acquisition_conds(new cond_t[num_block_ids]);
+    boost::scoped_array<threadsafe_cond_t> acquisition_conds(new threadsafe_cond_t[num_block_ids]);
 
     for (int i = 0; i < num_block_ids; ++i) {
         if (recencies[i].time >= state.since_when.time) {
@@ -301,7 +299,7 @@ void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, b
     parent.release();
 }
 
-void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, cond_t *acquisition_cond) {
+void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, threadsafe_cond_t *acquisition_cond) {
     pm_backfill_coros++;
     thread_saver_t saver;
     backfill_buf_lock_t buf_lock(saver, state, level, block_id, acquisition_cond);
@@ -335,9 +333,6 @@ void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
 
     int npairs = node->npairs;
 
-    // TODO: Replace large_buf_acquisition_conds with an object that counts down to zero.
-    boost::scoped_array<cond_t> large_buf_acquisition_conds(new cond_t[npairs]);
-
     for (int i = 0; i < npairs; ++i) {
         uint16_t offset = node->pair_offsets[i];
         repli_timestamp recency = leaf::get_timestamp_value(node, offset);
@@ -346,7 +341,7 @@ void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
             // The value is sufficiently recent.  But is it a small value or a large value?
             const btree_leaf_pair *pair = leaf::get_pair(node, offset);
             const btree_value *value = pair->value();
-            value_data_provider_t *data_provider = value_data_provider_t::create(value, state.transactor_ptr, &large_buf_acquisition_conds[i]);
+            value_data_provider_t *data_provider = value_data_provider_t::create(value, state.transactor_ptr);
             backfill_atom_t atom;
             // We'd like to use keycpy but nooo we have store_key_t and btree_key as different types.
             atom.key.size = pair->key.size;
@@ -357,13 +352,7 @@ void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
             atom.recency = recency;
             atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
             state.callback->on_keyvalue(atom);
-        } else {
-            large_buf_acquisition_conds[i].pulse();
         }
-    }
-
-    for (int i = 0; i < npairs; ++i) {
-        large_buf_acquisition_conds[i].wait();
     }
 }
 

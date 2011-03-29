@@ -484,7 +484,7 @@ class FuzzyModel(object):
 
     def random_chooser(self, distr="uniform", mu=1):
         assert distr in ["uniform", "normal"]
-        return SeedChooser(lisbtress_fuzzy_model_make_random_chooser(self._fm, distr, mu))
+        return SeedChooser(libstress_fuzzy_model_make_random_chooser(self._fm, distr, mu))
 
 def initialize_mysql_table(string, max_key, max_value):
     """If you intend to run the stress client against a MySQL server, you must set up a

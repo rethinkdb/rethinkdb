@@ -520,20 +520,7 @@ void linux_tcp_listener_t::on_event(int events) {
                 }
             }
         } else {
-            /* TODO: What if a user writes code like this:
-            {
-                some_callback_t callback;
-                linux_tcp_listener_t listener(some_port);
-                listener.set_callback(&callback);
-
-                wait_for_some_event();
-            }
-            If we get a network connection during wait_for_some_event() but wait_for_some_event()
-            finishes between when we get the connection and handle() is actually called, then our
-            destructor will be called before handle(). One solution would be to acquire a
-            lock in the destructor, which would delay until after handle() starts. Another solution
-            would be to make spawn() guaranteed to run immediately. */
-            coro_t::spawn(boost::bind(&linux_tcp_listener_t::handle, this, new_sock));
+            coro_t::spawn_now(boost::bind(&linux_tcp_listener_t::handle, this, new_sock));
         }
     }
 }

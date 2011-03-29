@@ -124,6 +124,9 @@ static __thread coro_t *prev_coro = NULL;
 /* A list of coro_context_t objects that are not in use. */
 static __thread intrusive_list_t<coro_context_t> *free_contexts = NULL;
 
+/* An array of ints counting the number of coros on each thread */
+static __thread int coro_context_count = 0;
+
 /* coro_globals_t */
 
 coro_globals_t::coro_globals_t() {
@@ -150,6 +153,10 @@ coro_globals_t::~coro_globals_t() {
 
 coro_context_t::coro_context_t() {
     pm_allocated_coroutines++;
+    coro_context_count++;
+    guarantee(coro_context_count < MAX_COROS_PER_THREAD, "Too many coroutines"
+            "allocated on this thread. This is problem due to a misuse of the"
+            "coroutines\n");
 
     stack = malloc_aligned(coro_stack_size, getpagesize());
 
@@ -198,6 +205,7 @@ coro_context_t::~coro_context_t() {
     free(stack);
 
     pm_allocated_coroutines--;
+    coro_context_count--;
 }
 
 /* coro_t */
