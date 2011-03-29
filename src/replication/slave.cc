@@ -151,7 +151,6 @@ void slave_t::send(buffed_data_t<net_get_cas_t>& msg) {
     get_cas_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
     internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("get_cas message received and applied.\n");
 }
 
 void slave_t::send(stream_pair<net_sarc_t>& msg) {
@@ -165,7 +164,6 @@ void slave_t::send(stream_pair<net_sarc_t>& msg) {
     mut.old_cas = msg->old_cas;
 
     internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("sarc message received and applied.\n");
 }
 
 void slave_t::send(stream_pair<net_backfill_set_t>& msg) {
@@ -188,7 +186,6 @@ void slave_t::send(buffed_data_t<net_incr_t>& msg) {
     mut.kind = incr_decr_INCR;
     mut.amount = msg->amount;
     internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("incr message received and applied.\n");
 }
 
 void slave_t::send(buffed_data_t<net_decr_t>& msg) {
@@ -197,7 +194,6 @@ void slave_t::send(buffed_data_t<net_decr_t>& msg) {
     mut.kind = incr_decr_DECR;
     mut.amount = msg->amount;
     internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("decr message received and applied.\n");
 }
 
 void slave_t::send(stream_pair<net_append_t>& msg) {
@@ -206,7 +202,6 @@ void slave_t::send(stream_pair<net_append_t>& msg) {
     mut.data = msg.stream;
     mut.kind = append_prepend_APPEND;
     internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("append message received and applied.\n");
 }
 
 void slave_t::send(stream_pair<net_prepend_t>& msg) {
@@ -215,7 +210,6 @@ void slave_t::send(stream_pair<net_prepend_t>& msg) {
     mut.data = msg.stream;
     mut.kind = append_prepend_PREPEND;
     internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
-    debugf("prepend message received and applied.\n");
 }
 
 void slave_t::send(buffed_data_t<net_delete_t>& msg) {
@@ -223,7 +217,6 @@ void slave_t::send(buffed_data_t<net_delete_t>& msg) {
     mut.key.assign(msg->key_size, msg->key);
     // TODO: where does msg->timestamp go???  IS THIS RIGHT?? WHO KNOWS.
     internal_store_->handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, msg->timestamp));
-    debugf("delete message received.\n");
 }
 
 void slave_t::send(buffed_data_t<net_backfill_delete_t>& msg) {
@@ -241,7 +234,6 @@ void slave_t::send(buffed_data_t<net_nop_t>& message) {
     ackreply.timestamp = message->timestamp;
     stream_->send(ackreply);
     internal_store_->time_barrier(message->timestamp);
-    debugf("handled nop message %u\n", message->timestamp.time);
 }
 
 void slave_t::send(UNUSED buffed_data_t<net_ack_t>& message) {
