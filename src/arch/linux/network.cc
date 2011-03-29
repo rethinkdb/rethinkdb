@@ -36,17 +36,17 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
         logERR("Failed to look up address %s:%d.\n", host, port);
         goto ERROR_BREAKOUT;
     }
-    if((sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
+    if (sock.reset(socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
         logERR("Failed to create a socket\n");
         goto ERROR_BREAKOUT;
     }
-    if (connect(sock, res->ai_addr, res->ai_addrlen) != 0) {
+    if (connect(sock.get(), res->ai_addr, res->ai_addrlen) != 0) {
         /* for some reason the connection failed */
         logERR("Failed to make a connection with error: %s\n", strerror(errno));
         goto ERROR_BREAKOUT;
     }
 
-    guarantee_err(fcntl(sock, F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
+    guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 
     freeaddrinfo(res);
     return;
@@ -60,7 +60,10 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
     : registration_thread(-1),
       read_cond(NULL), write_cond(NULL),
       read_was_shut_down(false), write_was_shut_down(false) {
-    sock = socket(AF_INET, SOCK_STREAM, 0);
+
+    // TODO: This version of linux_tcp_conn_t() should go away
+
+    sock.reset(socket(AF_INET, SOCK_STREAM, 0));
 
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
@@ -68,24 +71,24 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
     addr.sin_addr = host.addr;
     bzero(addr.sin_zero, sizeof(addr.sin_zero));
 
-    if (connect(sock, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0) {
+    if (connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0) {
         /* for some reason the connection failed */
         logINF("Failed to make a connection with error: %s\n", strerror(errno));
         throw connect_failed_exc_t();
     }
 
-    guarantee_err(fcntl(sock, F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
+    guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
 }
 
-linux_tcp_conn_t::linux_tcp_conn_t(fd_t sock) :
-    sock(sock),
+linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
+    sock(s),
     registration_thread(-1),
     read_cond(NULL), write_cond(NULL),
     read_was_shut_down(false), write_was_shut_down(false)
 {
-    rassert(sock != INVALID_FD);
+    rassert(sock.get() != INVALID_FD);
 
-    int res = fcntl(sock, F_SETFL, O_NONBLOCK);
+    int res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make socket non-blocking");
 }
 
@@ -100,7 +103,7 @@ void linux_tcp_conn_t::register_with_event_loop() {
 
     if (registration_thread == -1) {
         registration_thread = linux_thread_pool_t::thread_id;
-        linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
+        linux_thread_pool_t::thread->queue.watch_resource(sock.get(), poll_event_in, this);
 
     } else if (registration_thread != linux_thread_pool_t::thread_id) {
         guarantee(registration_thread == linux_thread_pool_t::thread_id,
@@ -112,7 +115,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
     rassert(!read_was_shut_down);
 
     while (true) {
-        ssize_t res = ::read(sock, buffer, size);
+        ssize_t res = ::read(sock.get(), buffer, size);
         if (read_was_shut_down) {
             throw read_closed_exc_t();
         } else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
@@ -211,7 +214,7 @@ void linux_tcp_conn_t::pop(size_t len) {
 }
 
 void linux_tcp_conn_t::shutdown_read() {
-    int res = ::shutdown(sock, SHUT_RD);
+    int res = ::shutdown(sock.get(), SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
         logERR("Could not shutdown socket for reading: %s\n", strerror(errno));
     }
@@ -228,9 +231,9 @@ void linux_tcp_conn_t::on_shutdown_read() {
     if (registration_thread != -1) {
         rassert(registration_thread == linux_thread_pool_t::thread_id);
         if (write_was_shut_down) {
-            linux_thread_pool_t::thread->queue.forget_resource(sock, this);
+            linux_thread_pool_t::thread->queue.forget_resource(sock.get(), this);
         } else {
-            linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_out, this);
+            linux_thread_pool_t::thread->queue.adjust_resource(sock.get(), poll_event_out, this);
         }
     }
 
@@ -249,7 +252,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
     rassert(!write_was_shut_down);
 
     while (size > 0) {
-        int res = ::write(sock, buf, size);
+        int res = ::write(sock.get(), buf, size);
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             /* There's no space for our data right now, so we must
              * wait for a notification from the epoll queue. We need
@@ -261,13 +264,13 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
              * work this weekend to fix this because whoever
              * refactored this last time fucked over customers with
              * legacy systems. Please don't do this again. */
-            linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in|poll_event_out, this);
+            linux_thread_pool_t::thread->queue.adjust_resource(sock.get(), poll_event_in|poll_event_out, this);
             bool_promise_t cond;
             write_cond = &cond;
             bool ok = cond.wait();
             write_cond = NULL;
             if (ok) {
-                linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in, this);
+                linux_thread_pool_t::thread->queue.adjust_resource(sock.get(), poll_event_in, this);
                 /* We got a notification from the epoll queue; go around the loop again and try to
                    write again */
             } else {
@@ -333,7 +336,7 @@ void linux_tcp_conn_t::flush_buffer() {
 }
 
 void linux_tcp_conn_t::shutdown_write() {
-    int res = ::shutdown(sock, SHUT_WR);
+    int res = ::shutdown(sock.get(), SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
         logERR("Could not shutdown socket for writing: %s\n", strerror(errno));
     }
@@ -350,9 +353,9 @@ void linux_tcp_conn_t::on_shutdown_write() {
     if (registration_thread != -1) {
         rassert(registration_thread == linux_thread_pool_t::thread_id);
         if (read_was_shut_down) {
-            linux_thread_pool_t::thread->queue.forget_resource(sock, this);
+            linux_thread_pool_t::thread->queue.forget_resource(sock.get(), this);
         } else {
-            linux_thread_pool_t::thread->queue.adjust_resource(sock, poll_event_in, this);
+            linux_thread_pool_t::thread->queue.adjust_resource(sock.get(), poll_event_in, this);
         }
     }
 
@@ -371,10 +374,7 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
     if (is_read_open()) shutdown_read();
     if (is_write_open()) shutdown_write();
 
-    int res = ::close(sock);
-    if (res != 0) {
-        logERR("close() failed: %s\n", strerror(errno));
-    }
+    /* scoped_fd_t's destructor will take care of close()ing the socket. */
 }
 
 void linux_tcp_conn_t::on_event(int events) {
@@ -420,15 +420,13 @@ void linux_tcp_conn_t::on_event(int events) {
 linux_tcp_listener_t::linux_tcp_listener_t(int port)
     : callback(NULL)
 {
-    defunct = false;
-
     int res;
 
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    guarantee_err(sock != INVALID_FD, "Couldn't create socket");
+    sock.reset(socket(AF_INET, SOCK_STREAM, 0));
+    guarantee_err(sock.get() != INVALID_FD, "Couldn't create socket");
 
     int sockoptval = 1;
-    res = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval));
+    res = setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &sockoptval, sizeof(sockoptval));
     guarantee_err(res != -1, "Could not set REUSEADDR option");
 
     /* XXX Making our socket NODELAY prevents the problem where responses to
@@ -444,7 +442,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(int port)
      *
      * - Jordan 12/22/10
      */
-    res = setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
+    res = setsockopt(sock.get(), IPPROTO_TCP, TCP_NODELAY, &sockoptval, sizeof(sockoptval));
     guarantee_err(res != -1, "Could not set TCP_NODELAY option");
 
     // Bind the socket
@@ -453,32 +451,29 @@ linux_tcp_listener_t::linux_tcp_listener_t(int port)
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    res = bind(sock, (sockaddr*)&serv_addr, sizeof(serv_addr));
+    res = bind(sock.get(), (sockaddr*)&serv_addr, sizeof(serv_addr));
     if (res != 0) {
-        logERR("Couldn't bind socket: %s\n", strerror(errno));
-        // We cannot simply terminate here, since this may lead to corrupted database files.
-        // defunct myself and rely on server to handle this condition and shutdown gracefully...
-        defunct = true;
-        return;
+        if (errno == EADDRINUSE) {
+            throw address_in_use_exc_t();
+        } else {
+            crash("Could not bind socket: %s\n", strerror(errno));
+        }
     }
 
     // Start listening to connections
-    res = listen(sock, 5);
+    res = listen(sock.get(), 5);
     guarantee_err(res == 0, "Couldn't listen to the socket");
 
-    res = fcntl(sock, F_SETFL, O_NONBLOCK);
+    res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make socket non-blocking");
 }
 
 void linux_tcp_listener_t::set_callback(linux_tcp_listener_callback_t *cb) {
-    if (defunct)
-        return;
-
     rassert(!callback);
     rassert(cb);
     callback = cb;
 
-    linux_thread_pool_t::thread->queue.watch_resource(sock, poll_event_in, this);
+    linux_thread_pool_t::thread->queue.watch_resource(sock.get(), poll_event_in, this);
 }
 
 void linux_tcp_listener_t::handle(fd_t socket) {
@@ -487,9 +482,6 @@ void linux_tcp_listener_t::handle(fd_t socket) {
 }
 
 void linux_tcp_listener_t::on_event(int events) {
-    if (defunct)
-        return;
-
     if (events != poll_event_in) {
         logERR("Unexpected event mask: %d\n", events);
     }
@@ -497,7 +489,7 @@ void linux_tcp_listener_t::on_event(int events) {
     while (true) {
         sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
-        int new_sock = accept(sock, (sockaddr*)&client_addr, &client_addr_len);
+        int new_sock = accept(sock.get(), (sockaddr*)&client_addr, &client_addr_len);
 
         if (new_sock == INVALID_FD) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) break;
@@ -526,17 +518,13 @@ void linux_tcp_listener_t::on_event(int events) {
 }
 
 linux_tcp_listener_t::~linux_tcp_listener_t() {
-    if (defunct)
-        return;
-
     int res;
 
-    if (callback) linux_thread_pool_t::thread->queue.forget_resource(sock, this);
+    if (callback) linux_thread_pool_t::thread->queue.forget_resource(sock.get(), this);
 
-    res = shutdown(sock, SHUT_RDWR);
+    res = shutdown(sock.get(), SHUT_RDWR);
     guarantee_err(res == 0, "Could not shutdown main socket");
 
-    res = close(sock);
-    guarantee_err(res == 0, "Could not close main socket");
+    // scoped_fd_t destructor will close() the socket
 }
 

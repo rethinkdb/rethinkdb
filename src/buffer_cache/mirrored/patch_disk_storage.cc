@@ -77,7 +77,6 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
 
     // Load all log blocks into memory
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
-        
         if (block_is_empty[current_block - first_block]) {
             // Initialize a new log block here (we rely on the properties of block_id assignment)
             mc_inner_buf_t *new_ibuf = mc_inner_buf_t::allocate(&cache, mc_inner_buf_t::faux_version_id, repli_timestamp::invalid);

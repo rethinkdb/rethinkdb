@@ -14,8 +14,7 @@
 #include "btree/slice.hpp"
 
 // TODO make this user-configurable.
-#define BACKFILLING_MAX_BREADTH_FIRST_BLOCKS 50000
-#define BACKFILLING_REMAINING_BLOCKS_LIMIT 40000
+#define BACKFILLING_MAX_BREADTH_FIRST_BLOCKS 1
 
 // Backfilling
 
@@ -102,8 +101,8 @@ public:
     }
 
     static int64_t level_max(UNUSED int level) {
-        // This is probably sub-optimal.
-        return 1000;
+        // TODO: Make this much bigger, this is for testing.  Temporary.
+        return 2;
     }
 
     void consider_pulsing() {
@@ -136,21 +135,16 @@ public:
     done_breadth:
         // We're out of breadth-first slots, so let's consider depth-first slots.
 
-        if (total_level_count() - num_breadth_blocks < BACKFILLING_REMAINING_BLOCKS_LIMIT) {
-            int max_depth_pulses = BACKFILLING_REMAINING_BLOCKS_LIMIT - (total_level_count() - num_breadth_blocks);
+        for (int i = level_counts.size() - 1; i >= 0; --i) {
+            if (level_counts[i] < level_max(i)) {
+                int diff = level_max(i) - level_counts[i];
 
-            for (int i = level_counts.size() - 1; i >= 0; --i) {
-                if (level_counts[i] < level_max(i)) {
-                    int diff = level_max(i) - level_counts[i];
+                while (diff > 0 && !acquisition_waiter_stacks[i].empty()) {
+                    flat_promise_t<acquisition_credit> *promise = acquisition_waiter_stacks[i].back();
+                    acquisition_waiter_stacks[i].pop_back();
 
-                    while (diff > 0 && max_depth_pulses > 0 && !acquisition_waiter_stacks[i].empty()) {
-                        flat_promise_t<acquisition_credit> *promise = acquisition_waiter_stacks[i].back();
-                        acquisition_waiter_stacks[i].pop_back();
-
-                        promise->pulse(depth_first_credit);
-                        max_depth_pulses -= 1;
-                        diff -= 1;
-                    }
+                    promise->pulse(depth_first_credit);
+                    diff -= 1;
                 }
             }
         }

@@ -107,7 +107,8 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     typedef std::list<buf_snapshot_info_t> snapshot_data_list_t;
     snapshot_data_list_t snapshots;
 
-    void snapshot();
+    // If required, make a snapshot of the data before being overwritten with new_version
+    void snapshot_if_needed(version_id_t new_version, bool create_copy_if_snapshotted);
     void *get_snapshot_data(version_id_t version_to_access);
     template<typename Predicate> void release_snapshot(Predicate p);
 
@@ -138,7 +139,7 @@ private:
 };
 
 /* This class represents a hold on a mc_inner_buf_t. */
-class mc_buf_t : public lock_available_callback_t {
+class mc_buf_t {
     typedef mc_cache_t cache_t;
     typedef mc_block_available_callback_t block_available_callback_t;
 
@@ -149,7 +150,7 @@ class mc_buf_t : public lock_available_callback_t {
 private:
     mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted);
     void on_lock_available();
-    void acquire_block(bool locked);
+    void acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted);
 
     bool ready;
     block_available_callback_t *callback;
@@ -158,8 +159,6 @@ private:
 
     access_t mode;
     bool non_locking_access;
-    mc_inner_buf_t::version_id_t version_to_access; // internal version id used while acquiring the block. Do not use for buf_t version identification.
-    bool snapshotted;
     mc_inner_buf_t *inner_buf;
     void *data; /* Usually the same as inner_buf->data. If a COW happens or this mc_buf_t is part of a snapshotted transaction, it reference a different buffer however. */
 
@@ -370,7 +369,7 @@ public:
     void register_snapshot(mc_transaction_t *txn);
     void unregister_snapshot(mc_transaction_t *txn);
 
-    size_t register_snapshotted_block(mc_inner_buf_t *inner_buf, mc_inner_buf_t::version_id_t snapshotted_version);
+    size_t register_snapshotted_block(mc_inner_buf_t *inner_buf, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
 
 private:
     void on_transaction_commit(transaction_t *txn);

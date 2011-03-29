@@ -30,6 +30,16 @@ void _logf(const char *src_file, int src_line, log_level_t level, const char *fo
 #define logWRN(fmt, args...) _logf(__FILE__, __LINE__, WRN, (fmt), ##args)
 #define logERR(fmt, args...) _logf(__FILE__, __LINE__, ERR, (fmt), ##args)
 
+#ifndef NDEBUG
+#define log_call(fn, args...) do {                                          \
+        debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
+        fn(args);                                                           \
+        debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
+    } while (0)
+#else
+#define log_call(fn, args...) fn(args)
+#endif
+
 // Log a message in pieces.
 
 void _mlog_start(const char *src_file, int src_line, log_level_t level);
