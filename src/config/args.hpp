@@ -243,7 +243,7 @@
 // XXX: I increased this from 65536; make sure it's actually needed.
 #define COROUTINE_STACK_SIZE                      131072
 
-#define MAX_COROS_PER_THREAD                      1000
+#define MAX_COROS_PER_THREAD                      10000
 
 
 // TODO: It would be nice if we didn't need MAX_HOSTNAME_LEN and
