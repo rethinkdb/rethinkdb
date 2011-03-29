@@ -10,6 +10,7 @@
 namespace replication {
 
 void master_t::register_dispatcher(btree_slice_dispatching_to_master_t *dispatcher) {
+    on_thread_t th(home_thread);
     dispatchers_.push_back(dispatcher);
 }
 
@@ -202,26 +203,47 @@ void master_t::do_nop_rebound(repli_timestamp t) {
     stream_->send(msg);
 }
 
-struct do_backfill_cb : public backfill_callback_t {
+class do_backfill_cb : public backfill_callback_t {
     int count;
     master_t *master;
-    cond_t *for_when_done;
+    cond_t for_when_done;
+    repli_timestamp minimum_timestamp;
+
+public:
+    do_backfill_cb(int num_dispatchers, master_t *_master) : count(2 * num_dispatchers), master(_master), minimum_timestamp(repli_timestamp::invalid /* this is greater than all other timestamps. */) { }
+
+    // TODO: Make this take a btree_key which is more accurate a description of the interface.
+    void deletion_key(const store_key_t *key) {
+        store_key_t tmp(key->size, key->contents);
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_deletion_key_to_slave, master, tmp));
+    }
+    void done_deletion_keys() {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this, repli_timestamp::invalid));
+    }
 
     void on_keyvalue(backfill_atom_t atom) {
         coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_backfill_atom_to_slave, master, atom));
     }
-    void done() {
-        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this));
+    void done(repli_timestamp oper_start_timestamp) {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this, oper_start_timestamp));
     }
 
-    void do_done() {
+    void do_done(repli_timestamp oper_start_timestamp) {
         rassert(get_thread_id() == master->home_thread);
 
-        count = count - 1;
-        debugf("do_done, decrementing count to %d\n", count);
-        if (0 == count) {
-            for_when_done->pulse();
+        if (minimum_timestamp.time > oper_start_timestamp.time) {
+            minimum_timestamp = oper_start_timestamp;
         }
+
+        count = count - 1;
+        if (0 == count) {
+            for_when_done.pulse();
+        }
+    }
+
+    repli_timestamp wait() {
+        for_when_done.wait();
+        return minimum_timestamp;
     }
 };
 
@@ -234,36 +256,26 @@ void master_t::do_backfill(repli_timestamp since_when) {
 
     snag_ptr_t<master_t> tmp_hold(*this);
     assert_thread();
-    debugf("Somebody called do_backfill(%u)\n", since_when.time);
 
     int n = dispatchers_.size();
-    cond_t done_cond;
 
-    do_backfill_cb cb;
-    debugf("do_backfill_cb, count = %d\n", n);
-    cb.count = n;
-    cb.master = this;
-    cb.for_when_done = &done_cond;
+    do_backfill_cb cb(n, this);
 
     for (int i = 0; i < n; ++i) {
         dispatchers_[i]->spawn_backfill(since_when, &cb);
     }
 
-    debugf("Done spawning, now waiting for done_cond...\n");
-    done_cond.wait();
-    debugf("Done backfill.\n");
+    repli_timestamp minimum_timestamp = cb.wait();
     if (stream_) {
-        debugf("Sending backfill_complete...\n");
         net_backfill_complete_t msg;
-        memset(msg.ignore, 0, sizeof(msg.ignore));
+        msg.time_barrier_timestamp = minimum_timestamp;
         stream_->send(&msg);
-        debugf("Sent backfill_complete.\n");
-    } else {
-        debugf("Not sending backfill...\n");
     }
 }
 
 void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+
     data_provider_t *data = atom.value.release();
 
     if (stream_) {
@@ -279,6 +291,20 @@ void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
 
     // TODO: do we delete data or does repli_stream_t delete it?
     delete data;
+}
+
+void master_t::send_deletion_key_to_slave(store_key_t key) {
+    snag_ptr_t<master_t> tmp_hold(*this);
+
+    size_t n = sizeof(net_backfill_delete_t) + key.size;
+    if (stream_) {
+        scoped_malloc<net_backfill_delete_t> msg(n);
+        msg->padding = 0;
+        msg->key_size = key.size;
+        memcpy(msg->key, key.contents, key.size);
+
+        stream_->send(msg.get());
+    }
 }
 
 
