@@ -81,12 +81,16 @@ void master_t::incr_decr_like(UNUSED uint8_t msgcode, UNUSED const store_key_t &
     // TODO: We aren't using the parameter key.  How did we do this?
     // TODO: We aren't using the parameter msgcode.  This is obviously broken!
 
-    net_struct_type msg;
-    msg.timestamp = castime.timestamp;
-    msg.proposed_cas = castime.proposed_cas;
-    msg.amount = amount;
+    size_t n = sizeof(net_struct_type) + key.size;
 
-    stream_->send(&msg);
+    scoped_malloc<net_struct_type> msg(n);
+    msg->timestamp = castime.timestamp;
+    msg->proposed_cas = castime.proposed_cas;
+    msg->amount = amount;
+    msg->key_size = key.size;
+    memcpy(msg->key, key.contents, key.size);
+
+    stream_->send(msg.get());
 }
 
 
