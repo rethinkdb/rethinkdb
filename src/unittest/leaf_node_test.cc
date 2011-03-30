@@ -188,7 +188,7 @@ public:
 
 private:
     union {
-        byte keyval_padding[sizeof(btree_key_t) + MAX_KEY_SIZE];
+        char keyval_padding[sizeof(btree_key_t) + MAX_KEY_SIZE];
         btree_key_t keyval;
     };
 };
