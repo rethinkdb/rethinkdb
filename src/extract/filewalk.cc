@@ -31,8 +31,8 @@ public:
 };
 
 
-struct byteslice {
-    const byte *buf;
+struct charslice {
+    const char *buf;
     size_t len;
 };
 
@@ -52,7 +52,7 @@ public:
         }
     }
     void dump(const btree_key_t *key, mcflags_t flags, exptime_t exptime,
-              byteslice *slices, size_t num_slices) {
+              charslice *slices, size_t num_slices) {
         int len = 0;
         for (size_t i = 0; i < num_slices; ++i) {
             len += slices[i].len;
@@ -421,10 +421,10 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
     exptime_t exptime = value->exptime();
     // We can't save the cas right now.
 
-    const byte *valuebuf = value->value();
+    const char *valuebuf = value->value();
 
     // We're going to write the value, split into pieces, into this set of pieces.
-    std::vector<byteslice> pieces;
+    std::vector<charslice> pieces;
     blocks segblocks;
 
 
