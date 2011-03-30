@@ -550,7 +550,7 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
         if opts["auto"]:
             if (opts["failover"]):
                 repli_port = find_unused_port()
-                master = Server(opts, extra_flags=extra_flags + ["--master-port", "%d" % repli_port], test_dir=test_dir)
+                master = Server(opts, extra_flags=extra_flags + ["--master", "%d" % repli_port], test_dir=test_dir)
                 master.start()
                 
                 slave = Server(opts, extra_flags=extra_flags + ["--slave-of", "localhost:%d" % repli_port], test_dir=test_dir)
