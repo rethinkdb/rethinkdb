@@ -138,9 +138,9 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     server_t server(cmd_config, thread_pool);
 
     {
-        /* Pointers to our stores 
-           these are allocated dynamically so that we have explicit control of when and where their destructors get called*/
-        //btree_key_value_store_t *store = NULL;
+        /* Pointers to our stores these are allocated dynamically so
+           that we have explicit control of when and where their
+           destructors get called*/
         replication::slave_t *slave_store = NULL;
 
         /* Start logger */
