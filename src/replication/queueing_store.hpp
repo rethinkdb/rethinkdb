@@ -21,8 +21,8 @@ public:
     void handover(mutation_t *m, castime_t castime);
     void time_barrier(repli_timestamp timestamp);
 
-    void backfilling_handover(mutation_t *m, castime_t castime);
-    void backfilling_complete();
+    void backfill_handover(mutation_t *m, castime_t castime);
+    void backfill_complete();
 
 private:
     void perhaps_flush();

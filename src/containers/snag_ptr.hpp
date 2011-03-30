@@ -59,10 +59,10 @@ public:
         }
     }
 
-    snag_ptr_t() : ptr_(NULL) { }
-
-    explicit snag_ptr_t(T *ptr) : ptr_(ptr) {
-        do_on_thread(ptr_->home_thread, boost::bind(&T::incr_reference_count, ptr_));
+    explicit snag_ptr_t(T *ptr = NULL) : ptr_(ptr) {
+        if (ptr_) {
+            do_on_thread(ptr_->home_thread, boost::bind(&T::incr_reference_count, ptr_));
+        }
     }
 
     ~snag_ptr_t() {

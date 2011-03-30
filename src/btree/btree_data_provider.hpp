@@ -27,8 +27,8 @@ public:
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
 
 private:
-    // TODO: just use byte[MAX_IN_NODE_VALUE_SIZE], thanks.
-    typedef std::vector<byte> buffer_t;
+    // TODO: just use char[MAX_IN_NODE_VALUE_SIZE], thanks.
+    typedef std::vector<char> buffer_t;
     buffer_t value;
     boost::scoped_ptr<const_buffer_group_t> buffers;
 
@@ -42,6 +42,7 @@ private:
 public:
     size_t get_size() const;
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+    ~large_value_data_provider_t();
 
 private:
     /* We hold a shared pointer to the transactor so the transaction does not end while
@@ -63,6 +64,7 @@ private:
     large_buf_ref_buffer_t lb_ref;
     large_buf_t large_value;
     cond_t large_value_cond;
+    bool have_value;
     void acquire_in_background(threadsafe_cond_t *acquisition_cond);
 
     friend class value_data_provider_t;

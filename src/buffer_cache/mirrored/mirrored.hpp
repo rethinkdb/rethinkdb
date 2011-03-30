@@ -110,7 +110,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     // If required, make a snapshot of the data before being overwritten with new_version
     void snapshot_if_needed(version_id_t new_version, bool create_copy_if_snapshotted);
     void *get_snapshot_data(version_id_t version_to_access);
-    template<typename Predicate> void release_snapshot(Predicate p);
+    void release_snapshot(void *data);
 
     ser_transaction_id_t transaction_id;
 
@@ -118,23 +118,6 @@ private:
     // Helper function for inner_buf construction from an existing block
     void replay_patches();
 
-    // Helper predicates for use with release_snapshot (convenience specializations available)
-    struct version_predicate_t {
-        version_predicate_t(version_id_t version) : version(version) { }
-        bool operator()(const buf_snapshot_info_t& i) const {
-            return i.snapshotted_version == version;
-        }
-    private:
-        version_id_t version;
-    };
-    struct data_predicate_t {
-        data_predicate_t(void *data) : data(data) { }
-        bool operator()(const buf_snapshot_info_t& i) const {
-            return i.data == data;
-        }
-    private:
-        void *data;
-    };
     DISABLE_COPYING(mc_inner_buf_t);
 };
 
@@ -267,8 +250,8 @@ private:
     explicit mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
     ~mc_transaction_t();
 
-    void register_snapshotted_block(mc_inner_buf_t *inner_buf, mc_inner_buf_t::version_id_t snapshotted_version) {
-        owned_buf_snapshots.push_back(std::make_pair(inner_buf, snapshotted_version));
+    void register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data) {
+        owned_buf_snapshots.push_back(std::make_pair(inner_buf, data));
     }
     void green_light();   // Called by the writeback when it's OK for us to start
     virtual void on_sync();
@@ -293,7 +276,7 @@ private:
         virtual void on_block_available(mc_buf_t *block);
     };
 
-    typedef std::vector<std::pair<mc_inner_buf_t*, mc_inner_buf_t::version_id_t> > owned_snapshots_list_t;
+    typedef std::vector<std::pair<mc_inner_buf_t*, void*> > owned_snapshots_list_t;
     owned_snapshots_list_t owned_buf_snapshots;
 
     DISABLE_COPYING(mc_transaction_t);
@@ -369,7 +352,7 @@ public:
     void register_snapshot(mc_transaction_t *txn);
     void unregister_snapshot(mc_transaction_t *txn);
 
-    size_t register_snapshotted_block(mc_inner_buf_t *inner_buf, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
+    size_t register_snapshotted_block(mc_inner_buf_t *inner_buf, void * data, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
 
 private:
     void on_transaction_commit(transaction_t *txn);

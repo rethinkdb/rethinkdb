@@ -4,7 +4,7 @@ struct extent_block_t :
     public extent_t::sync_callback_t,
     public iocallback_t
 {
-    byte *data;
+    char *data;
     extent_t *parent;
     size_t offset;
     std::vector< extent_t::sync_callback_t* > sync_cbs;
@@ -13,7 +13,7 @@ struct extent_block_t :
     extent_block_t(extent_t *parent, size_t offset)
         : parent(parent), offset(offset)
     {
-        data = (byte *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+        data = reinterpret_cast<char *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     }
     ~extent_block_t() {
         free(data);
@@ -117,7 +117,7 @@ void extent_t::append(void *buffer, size_t length) {
         }
         
         length -= chunk;
-        buffer = (void*)((byte *)buffer + chunk);
+        buffer = reinterpret_cast<char *>(buffer) + chunk;
     }
 }
 

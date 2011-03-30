@@ -5,7 +5,7 @@
 
 small_value_data_provider_t::small_value_data_provider_t(const btree_value *_value) : value(), buffers() {
     rassert(!_value->is_large());
-    const byte *data = ptr_cast<byte>(_value->value());
+    const char *data = ptr_cast<char>(_value->value());
     value.assign(data, data + _value->value_size());
 }
 
@@ -26,7 +26,8 @@ const const_buffer_group_t *small_value_data_provider_t::get_data_as_buffers() t
 large_value_data_provider_t::large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& _transactor) :
     transactor(_transactor),
     lb_ref((*transactor)->cache->get_block_size(), value),
-    large_value(transactor, lb_ref.ptr(), btree_value::lbref_limit, rwi_read)
+    large_value(transactor, lb_ref.ptr(), btree_value::lbref_limit, rwi_read),
+    have_value(false)
 {
     /* We must have gotten into the queue for the first level of the large buf before this
     function returns. acquire_in_background() will cause acquisition_cond to be pulsed when
@@ -52,11 +53,20 @@ void large_value_data_provider_t::acquire_in_background(threadsafe_cond_t *acqui
 const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
     rassert(buffers.num_buffers() == 0);   // This should be the first time this function was called
 
-    large_value_cond.wait();
+    if (!have_value) {
+        large_value_cond.wait();
+        have_value = true;
+    }
     rassert(large_value.state == large_buf_t::loaded);
 
     large_value.bufs_at(0, get_size(), true, &buffers);
     return const_view(&buffers);
+}
+
+large_value_data_provider_t::~large_value_data_provider_t() {
+    /* acquire_in_background() must finish before we are destroyed, or else it will
+    try to access us after we are destroyed. */
+    if (!have_value) large_value_cond.wait();
 }
 
 /* Choose the appropriate specialization */

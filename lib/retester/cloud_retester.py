@@ -566,7 +566,8 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         # Prepare for test...
         copy_per_test_data_to_testing_node(node, test_reference)
         # Store test_command and test_timeout into files on the remote node for the wrapper script to pick it up
-        command_result = node.run_command("echo -n %s > cloud_retest/%s/test/test_command" % (test_command, test_reference))
+        command_result = node.run_command("echo -n %s > cloud_retest/%s/test/test_command" % \
+            (retester.shell_escape(test_command), test_reference))
         if command_result[0] != 0:
             print "Unable to store command"
             # TODO: Throw an exception
@@ -754,7 +755,7 @@ def do_test_cloud(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
                 if cmd_args[arg]:
                     command += "--%s" % arg
             else:
-                command += "--%s \"%s\"" % (arg, str(cmd_args[arg]).replace("\\", "\\\\").replace("\"", "\\\""))
+                command += "--%s \"%s\"" % (arg, retester.shell_escape(str(cmd_args[arg])))
         # Make cmd line builder
         elif cmd_format == "make":
             command += "%s=%s" % (arg, str(cmd_args[arg]))

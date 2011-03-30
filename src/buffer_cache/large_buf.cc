@@ -560,7 +560,7 @@ void large_buf_t::fill_at(int64_t pos, const void *data, int64_t fill_size) {
     buffer_group_t group;
     bufs_at(pos, fill_size, false, &group);
 
-    const byte *dat = reinterpret_cast<const byte *>(data);
+    const char *dat = reinterpret_cast<const char *>(data);
     int64_t off = 0;
     for (int i = 0, n = group.num_buffers(); i < n; ++i) {
         buffer_group_t::buffer_t buf = group.get_buffer(i);

@@ -246,7 +246,7 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
     int sibling_size = block_size.value() - sibling->frontmost_offset;
 
     if (sibling_size < node_size + 2) {
-        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<const buf_data_t *>(reinterpret_cast<const byte *>(node) - sizeof(buf_data_t))->block_id.value);
+        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<const buf_data_t *>(reinterpret_cast<const char *>(node) - sizeof(buf_data_t))->block_id.value);
         return false;
     }
 
@@ -410,7 +410,7 @@ bool is_full(const leaf_node_t *node, const btree_key_t *key, const btree_value 
 
 void validate(UNUSED block_size_t block_size, UNUSED const leaf_node_t *node) {
 #ifndef NDEBUG
-    rassert(ptr_cast<byte>(&(node->pair_offsets[node->npairs])) <= ptr_cast<byte>(get_pair(node, node->frontmost_offset)));
+    rassert(ptr_cast<char>(&(node->pair_offsets[node->npairs])) <= ptr_cast<char>(get_pair(node, node->frontmost_offset)));
     rassert(node->frontmost_offset > 0);
     rassert(node->frontmost_offset <= block_size.value());
     for (int i = 0; i < node->npairs; i++) {
@@ -454,11 +454,11 @@ size_t pair_size(const btree_leaf_pair *pair) {
 }
 
 const btree_leaf_pair *get_pair(const leaf_node_t *node, uint16_t offset) {
-    return ptr_cast<btree_leaf_pair>(ptr_cast<byte>(node) + offset);
+    return ptr_cast<btree_leaf_pair>(ptr_cast<char>(node) + offset);
 }
 
 btree_leaf_pair *get_pair(leaf_node_t *node, uint16_t offset) {
-    return ptr_cast<btree_leaf_pair>(ptr_cast<byte>(node) + offset);
+    return ptr_cast<btree_leaf_pair>(ptr_cast<char>(node) + offset);
 }
 
 const btree_leaf_pair *get_pair_by_index(const leaf_node_t *node, int index) {
@@ -510,7 +510,7 @@ repli_timestamp get_timestamp_value(const leaf_node_t *node, uint16_t offset) {
 namespace impl {
 
 void shift_pairs(leaf_node_t *node, uint16_t offset, long shift) {
-    byte *front = ptr_cast<byte>(get_pair(node, node->frontmost_offset));
+    char *front = ptr_cast<char>(get_pair(node, node->frontmost_offset));
 
     memmove(front + shift, front, offset - node->frontmost_offset);
     node->frontmost_offset += shift;
@@ -660,9 +660,9 @@ void remove_time(leaf_timestamps_t *times, int offset) {
 // NUM_LEAF_NODE_EARLIER_TIMES) for the key-value pair at the
 // given offset.
 int get_timestamp_offset(const leaf_node_t *node, uint16_t offset) {
-    const byte *target = ptr_cast<byte>(get_pair(node, offset));
+    const char *target = ptr_cast<char>(get_pair(node, offset));
 
-    const byte *p = ptr_cast<byte>(get_pair(node, node->frontmost_offset));
+    const char *p = ptr_cast<char>(get_pair(node, node->frontmost_offset));
     int npairs = node->npairs;
 
     int i = 0;

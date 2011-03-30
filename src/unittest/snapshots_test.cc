@@ -280,6 +280,33 @@ private:
         buf3_B->release();
     }
 
+    static void test_cow_snapshots(thread_saver_t &saver, cache_t *cache) {
+        // t0:create+release(A,B), t3:acq_outdated_ok(A), t1:acqw(A) doesn't block, t1:change(A), t1:release(A), t2:acqw(A) doesn't block, t2:release(A), t3 doesn't see the change, t3:release(A)
+        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+
+        block_id_t block_A, block_B;
+        create_two_blocks(t0, block_A, block_B);
+
+        transactor_t t1(saver, cache, rwi_write, 0, current_time());
+        transactor_t t2(saver, cache, rwi_write, 0, current_time());
+        transactor_t t3(saver, cache, rwi_read, 0, repli_timestamp::invalid);
+
+        buf_t *buf3_A = acq(t3, block_A, rwi_read_outdated_ok);
+        uint32_t old_value = get_value(buf3_A);
+
+        bool blocked = true;
+        buf_t *buf1_A = acq_check_if_blocks_until_buf_released(t1, buf3_A, rwi_write, false, blocked);
+        EXPECT_FALSE(blocked);
+        change_value(buf1_A, changed_value);
+        buf1_A->release();
+
+        acq_check_if_blocks_until_buf_released(t2, buf3_A, rwi_write, false, blocked)->release();
+        EXPECT_FALSE(blocked);
+
+        EXPECT_EQ(old_value, get_value(buf3_A));
+        buf3_A->release();
+    }
+
     void main() {
         temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
 
@@ -317,6 +344,7 @@ private:
             log_call(test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later, saver, cache);
             log_call(test_snapshot_blocks_on_txns_that_acq_first_block_earlier, saver, cache);
             log_call(test_issue_194, saver, cache);
+            log_call(test_cow_snapshots, saver, cache);
         }
         log_call(thread_pool.shutdown);
     }
