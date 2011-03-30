@@ -33,12 +33,12 @@ void queueing_store_t::time_barrier(repli_timestamp timestamp) {
     queued_time_barrier_ = timestamp;
 }
 
-void queueing_store_t::backfilling_handover(mutation_t *m, castime_t castime) {
+void queueing_store_t::backfill_handover(mutation_t *m, castime_t castime) {
     inner_->change(*m, castime);
     delete m;
 }
 
-void queueing_store_t::backfilling_complete() {
+void queueing_store_t::backfill_complete() {
     start_flush();
 }
 

@@ -89,6 +89,5 @@ void btree_slice_dispatching_to_master_t::nop_back_on_masters_thread(repli_times
 }
 
 void btree_slice_dispatching_to_master_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
-    // TODO: Rename btree_slice_t::spawn_backfill to spawnee_backfill or just backfill.
-    coro_t::spawn_on_thread(slice_->home_thread, boost::bind(&btree_slice_t::spawn_backfill, slice_, since_when, callback));
+    coro_t::spawn_on_thread(slice_->home_thread, boost::bind(&btree_slice_t::backfill, slice_, since_when, callback));
 }
