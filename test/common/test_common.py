@@ -562,7 +562,7 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
     try:
         if opts["auto"]:
             repli_port = find_unused_port()
-            server = Server(opts, extra_flags=extra_flags + ["--master-port", "%d" % repli_port], test_dir=test_dir)
+            server = Server(opts, extra_flags=extra_flags + ["--master", "%d" % repli_port], test_dir=test_dir)
             server.start()
             
             repli_server = Server(opts, extra_flags=extra_flags, test_dir=test_dir, replicate_from = ('localhost', repli_port))
