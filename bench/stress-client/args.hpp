@@ -7,7 +7,7 @@
 
 #define MAX_FILE    255
 #define MAX_KEY_SIZE (250)
-#define MAX_VALUE_SIZE (1024*1024)
+#define MAX_VALUE_SIZE (10*1024*1024)
 
 struct duration_t {
 public:
