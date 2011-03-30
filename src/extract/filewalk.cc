@@ -40,6 +40,7 @@ struct byteslice {
 class dumper_t {
 public:
     explicit dumper_t(const char *path) {
+        logINF("Opening `%s' for extraction output...\n", path);
         fp = fopen(path, "wbx");
         if (fp == NULL) {
             fail_due_to_user_error("Could not open `%s' for writing: %s", path, strerror(errno));
@@ -506,7 +507,6 @@ void dumpfile(const config_t& config) {
     for (unsigned i = 0; i < config.input_files.size(); ++i) {
         walkfile(dumper, config.input_files[i], config.overrides);
     }
-
 }
 
 }  // namespace extract
