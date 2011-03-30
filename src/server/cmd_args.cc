@@ -89,9 +89,9 @@ void usage_serve() {
                 "                        Defaults to %d\n", COROUTINE_STACK_SIZE); */ 
     help->pagef("\n"
                 "Replication & Failover options:\n"
-                "      --master-port port\n"
-                "                        The port on which to listen for a slave.\n"
-                "                        Defaults to %d\n", DEFAULT_REPLICATION_PORT);
+                "      --master [port]\n"
+                "                        The port on which to listen for a slave, or OFF or ON.\n"
+                "                        If ON, defaults to %d.\n", DEFAULT_REPLICATION_PORT);
     help->pagef("      --slave-of host:port\n"
                 "                        Run this server as a slave of a master server. As a\n"
                 "                        slave it will be replica of the master and will respond\n"
@@ -229,7 +229,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
                 {"help",                 no_argument, &do_help, 1},
-                {"master-port",          required_argument, 0, master_port},
+                {"master",               required_argument, 0, master_port},
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO @sam push this through to where you want it
@@ -641,11 +641,19 @@ void parsing_cmd_config_t::set_coroutine_stack_size(const char* value) {
     coro_t::set_coroutine_stack_size(target);
 }
 
-void parsing_cmd_config_t::set_master_listen_port(char *value) {
-    replication_master_listen_port = parse_int(value);
-    const int minimum_value = 1, maximum_value = 65535;
-    if (parsing_failed || !is_in_range(replication_master_listen_port, minimum_value, maximum_value)) {
-        fail_due_to_user_error("Master listen port must be between %d and %d.", minimum_value, maximum_value);
+void parsing_cmd_config_t::set_master_listen_port(const char *value) {
+    if (!strcmp("ON", value)) {
+        replication_master_active = true;
+    } else if (!strcmp("OFF", value)) {
+        replication_master_active = false;
+    } else {
+        replication_master_listen_port = parse_int(value);
+        const int minimum_value = 1, maximum_value = 65535;
+        if (parsing_failed || !is_in_range(replication_master_listen_port, minimum_value, maximum_value)) {
+            fail_due_to_user_error("Master listen port must be between %d and %d.", minimum_value, maximum_value);
+        }
+
+        replication_master_active = true;
     }
 }
 
@@ -848,6 +856,7 @@ cmd_config_t::cmd_config_t() {
     memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
     replication_config.active = false;
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;
+    replication_master_active = false;
 
     store_static_config.serializer.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
     store_static_config.serializer.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;

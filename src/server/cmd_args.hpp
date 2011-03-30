@@ -185,6 +185,7 @@ struct cmd_config_t {
     //replication configuration
     replication_config_t replication_config;
     int replication_master_listen_port;
+    bool replication_master_active;
 
     // Configuration for failover
     failover_config_t failover_config;
@@ -217,7 +218,7 @@ public:
 #ifdef SEMANTIC_SERIALIZER_CHECK
     void set_last_semantic_file(const char* value);
 #endif
-    void set_master_listen_port(char *value);
+    void set_master_listen_port(const char *value);
     void set_master_addr(char *value);
     void set_failover_file(const char* value);
     void set_heartbeat_timeout(const char* value);

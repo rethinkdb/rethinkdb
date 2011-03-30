@@ -86,8 +86,7 @@
 #define DEFAULT_LISTEN_PORT                       11211
 
 // Default port to do replication on
-// TODO: fix this thx
-#define DEFAULT_REPLICATION_PORT                  (11319 + randint(10000))
+#define DEFAULT_REPLICATION_PORT                  11319
 
 // Default extension for the semantic file which is appended to the database name
 #define DEFAULT_SEMANTIC_EXTENSION                ".semantic"
