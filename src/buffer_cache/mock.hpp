@@ -60,6 +60,7 @@ public:
     void touch_recency(repli_timestamp timestamp);
     void release();
     bool is_dirty();
+    bool is_deleted();
 
 private:
     void on_lock_available();
