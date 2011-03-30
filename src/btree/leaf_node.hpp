@@ -19,10 +19,10 @@ struct btree_leaf_pair {
     // key is of variable size and there's a btree_value that follows
     // it that is of variable size.
     btree_value *value() {
-        return ptr_cast<btree_value>(ptr_cast<byte>(&key) + sizeof(btree_key_t) + key.size);
+        return ptr_cast<btree_value>(ptr_cast<char>(&key) + sizeof(btree_key_t) + key.size);
     }
     const btree_value *value() const {
-        return ptr_cast<btree_value>(ptr_cast<byte>(&key) + sizeof(btree_key_t) + key.size);
+        return ptr_cast<btree_value>(ptr_cast<char>(&key) + sizeof(btree_key_t) + key.size);
     }
 };
 

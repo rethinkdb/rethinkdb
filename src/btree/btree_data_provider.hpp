@@ -27,8 +27,8 @@ public:
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
 
 private:
-    // TODO: just use byte[MAX_IN_NODE_VALUE_SIZE], thanks.
-    typedef std::vector<byte> buffer_t;
+    // TODO: just use char[MAX_IN_NODE_VALUE_SIZE], thanks.
+    typedef std::vector<char> buffer_t;
     buffer_t value;
     boost::scoped_ptr<const_buffer_group_t> buffers;
 

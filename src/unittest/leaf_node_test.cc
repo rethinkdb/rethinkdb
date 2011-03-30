@@ -88,7 +88,7 @@ TEST(LeafNodeTest, Offsets) {
 
     btree_leaf_pair p;
     p.key.size = 173;
-    EXPECT_EQ(174, reinterpret_cast<byte *>(p.value()) - reinterpret_cast<byte *>(&p));
+    EXPECT_EQ(174, reinterpret_cast<char *>(p.value()) - reinterpret_cast<char *>(&p));
 
     EXPECT_EQ(1, sizeof(btree_key_t));
     EXPECT_EQ(1, offsetof(btree_key_t, contents));
@@ -188,7 +188,7 @@ public:
 
 private:
     union {
-        byte keyval_padding[sizeof(btree_key_t) + MAX_KEY_SIZE];
+        char keyval_padding[sizeof(btree_key_t) + MAX_KEY_SIZE];
         btree_key_t keyval;
     };
 };
@@ -209,7 +209,7 @@ public:
     }
 private:
     union {
-        byte val_padding[MAX_BTREE_VALUE_SIZE];
+        char val_padding[MAX_BTREE_VALUE_SIZE];
         btree_value val;
     };
 };

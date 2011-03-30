@@ -132,12 +132,9 @@ void slave_t::send(UNUSED buffed_data_t<net_backfill_t>& message) {
     rassert(false, "backfill message?  what?\n");
 }
 
-void slave_t::send(UNUSED buffed_data_t<net_backfill_complete_t>& message) {
-    // TODO: Make the parameter not UNUSED and implement this.  The
-    // slave should queue non-backfilling messages until backfilling
-    // is complete.
+void slave_t::send(buffed_data_t<net_backfill_complete_t>& message) {
     internal_store_->time_barrier(message->time_barrier_timestamp);
-    internal_store_->backfilling_complete();
+    internal_store_->backfill_complete();
     debugf("Received a BACKFILL_COMPLETE message.\n");
 }
 
@@ -177,7 +174,7 @@ void slave_t::send(stream_pair<net_backfill_set_t>& msg) {
     mut.old_cas = NO_CAS_SUPPLIED;
 
     // TODO: We need this operation to force the cas to be set.
-    internal_store_->backfilling_handover(new mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
+    internal_store_->backfill_handover(new mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
 }
 
 void slave_t::send(buffed_data_t<net_incr_t>& msg) {
@@ -226,7 +223,7 @@ void slave_t::send(buffed_data_t<net_backfill_delete_t>& msg) {
     // timestamp is part of the "->change" interface in a way not
     // relevant to slaves -- it's used when putting deletions into the
     // delete queue.
-    internal_store_->backfilling_handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid));
+    internal_store_->backfill_handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid));
 }
 
 void slave_t::send(buffed_data_t<net_nop_t>& message) {

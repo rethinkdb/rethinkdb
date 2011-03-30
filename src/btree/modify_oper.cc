@@ -167,7 +167,7 @@ void get_root(const thread_saver_t& saver, transactor_t& txor, buf_lock_t& sb_bu
 // Runs a btree_modify_oper_t.
 void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime) {
     union {
-        byte old_value_memory[MAX_BTREE_VALUE_SIZE];
+        char old_value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value old_value;
     };
     (void) old_value_memory;

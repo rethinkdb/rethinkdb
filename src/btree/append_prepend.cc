@@ -152,7 +152,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     bool append;   // true = append, false = prepend
 
     union {
-        byte value_memory[MAX_BTREE_VALUE_SIZE];
+        char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
     boost::scoped_ptr<large_buf_t> large_buflock;

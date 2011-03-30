@@ -338,7 +338,7 @@ bool change_unsafe(const internal_node_t *node) {
 
 void validate(UNUSED block_size_t block_size, UNUSED const internal_node_t *node) {
 #ifndef NDEBUG
-    rassert(ptr_cast<byte>(&(node->pair_offsets[node->npairs])) <= ptr_cast<byte>(get_pair(node, node->frontmost_offset)));
+    rassert(ptr_cast<char>(&(node->pair_offsets[node->npairs])) <= ptr_cast<char>(get_pair(node, node->frontmost_offset)));
     rassert(node->frontmost_offset > 0);
     rassert(node->frontmost_offset <= block_size.value());
     for (int i = 0; i < node->npairs; i++) {
@@ -392,11 +392,11 @@ size_t pair_size(const btree_internal_pair *pair) {
 }
 
 const btree_internal_pair *get_pair(const internal_node_t *node, uint16_t offset) {
-    return ptr_cast<btree_internal_pair>(ptr_cast<byte>(node) + offset);
+    return ptr_cast<btree_internal_pair>(ptr_cast<char>(node) + offset);
 }
 
 btree_internal_pair *get_pair(internal_node_t *node, uint16_t offset) {
-    return ptr_cast<btree_internal_pair>(ptr_cast<byte>(node) + offset);
+    return ptr_cast<btree_internal_pair>(ptr_cast<char>(node) + offset);
 }
 
 const btree_internal_pair *get_pair_by_index(const internal_node_t *node, int index) {
@@ -449,7 +449,7 @@ void delete_pair(buf_t &node_buf, uint16_t offset) {
     size_t size = offset - node->frontmost_offset;
 
     rassert(check_magic<node_t>(node->magic));
-    node_buf.move_data(const_cast<byte *>(ptr_cast<byte>(front_pair)+shift), front_pair, size);
+    node_buf.move_data(const_cast<char *>(ptr_cast<char>(front_pair)+shift), front_pair, size);
     rassert(check_magic<node_t>(node->magic));
 
 
@@ -482,7 +482,7 @@ uint16_t insert_pair(buf_t &node_buf, block_id_t lnode, const btree_key_t *key) 
     const btree_internal_pair *new_pair = get_pair(node, frontmost_offset);
 
     // Use a buffer to prepare the key/value pair which we can then use to generate a patch
-    byte *pair_buf = new byte[pair_size_with_key(key)];
+    char *pair_buf = new char[pair_size_with_key(key)];
     btree_internal_pair *new_buf_pair = reinterpret_cast<btree_internal_pair *>(pair_buf);
 
     // insert contents

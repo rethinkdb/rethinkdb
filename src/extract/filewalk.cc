@@ -31,8 +31,8 @@ public:
 };
 
 
-struct byteslice {
-    const byte *buf;
+struct charslice {
+    const char *buf;
     size_t len;
 };
 
@@ -40,6 +40,7 @@ struct byteslice {
 class dumper_t {
 public:
     explicit dumper_t(const char *path) {
+        logINF("Opening `%s' for extraction output...\n", path);
         fp = fopen(path, "wbx");
         if (fp == NULL) {
             fail_due_to_user_error("Could not open `%s' for writing: %s", path, strerror(errno));
@@ -51,7 +52,7 @@ public:
         }
     }
     void dump(const btree_key_t *key, mcflags_t flags, exptime_t exptime,
-              byteslice *slices, size_t num_slices) {
+              charslice *slices, size_t num_slices) {
         int len = 0;
         for (size_t i = 0; i < num_slices; ++i) {
             len += slices[i].len;
@@ -420,10 +421,10 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
     exptime_t exptime = value->exptime();
     // We can't save the cas right now.
 
-    const byte *valuebuf = value->value();
+    const char *valuebuf = value->value();
 
     // We're going to write the value, split into pieces, into this set of pieces.
-    std::vector<byteslice> pieces;
+    std::vector<charslice> pieces;
     blocks segblocks;
 
 
@@ -506,7 +507,6 @@ void dumpfile(const config_t& config) {
     for (unsigned i = 0; i < config.input_files.size(); ++i) {
         walkfile(dumper, config.input_files[i], config.overrides);
     }
-
 }
 
 }  // namespace extract

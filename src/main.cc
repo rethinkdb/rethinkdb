@@ -33,10 +33,6 @@ void usage() {
 }
 
 int main(int argc, char *argv[]) {
-    // Before we do anything, we look at the first argument and
-    // consider running a different executable (such as
-    // ./rethinkdb-extract).
-
     initialize_precise_time();
     install_generic_crash_handler();
 

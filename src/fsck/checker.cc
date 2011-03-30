@@ -396,7 +396,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge *knog, metablock_err
             // There can be bad CRCs for metablocks that haven't been
             // used yet, if the database is very young.
             bool all_zero = true;
-            byte *buf = ptr_cast<byte>(b.realbuf);
+            char *buf = ptr_cast<char>(b.realbuf);
             for (int i = 0; i < DEVICE_BLOCK_SIZE; ++i) {
                 all_zero &= (buf[i] == 0);
             }
@@ -908,7 +908,7 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
         && offset >= buf->frontmost_offset) {
         const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
         const btree_value *value = pair->value();
-        uint32_t value_offset = (ptr_cast<byte>(value) - ptr_cast<byte>(pair)) + offset;
+        uint32_t value_offset = (ptr_cast<char>(value) - ptr_cast<char>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
         if (value_offset <= cx.block_size().value() - 2) {
             uint32_t tot_offset = value_offset + value->full_size();
@@ -960,7 +960,7 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
 }
 
 bool internal_node_begin_offset_in_range(const slicecx& cx, const internal_node_t *buf, uint16_t offset) {
-    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<byte>(buf) + offset)->key.size <= cx.block_size().value();
+    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<char>(buf) + offset)->key.size <= cx.block_size().value();
 }
 
 void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs);

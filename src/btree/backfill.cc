@@ -243,7 +243,7 @@ private:
 perfmon_counter_t pm_backfill_coros("backfill_coros");
 
 
-void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
+void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
     pm_backfill_coros++;
     thread_saver_t saver;
     backfill_state_t state(saver, slice, since_when, callback, current_time());

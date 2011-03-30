@@ -26,7 +26,7 @@ protected:
     ~backfill_callback_t() { }
 };
 
-void spawn_btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback);
+void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback);
 
 
 
