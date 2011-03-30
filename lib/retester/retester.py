@@ -72,6 +72,9 @@ class SmartTemporaryDirectory(object):
                 # temp directory, but alas
                 pass
 
+def shell_escape(string):
+    return string.replace("\\", "\\\\").replace("\"", "\\\"")
+
 class Result(object):
     """The Result class represents the result of a test. It is either a pass or a fail; if it is a
     fail, then it includes a string description."""
@@ -254,7 +257,7 @@ def do_test(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
                 if cmd_args[arg]:
                     command += "--%s" % arg
             else:
-                command += "--%s \"%s\"" % (arg, str(cmd_args[arg]).replace("\\", "\\\\").replace("\"", "\\\""))
+                command += "--%s \"%s\"" % (arg, shell_escape(str(cmd_args[arg])))
         # Make cmd line builder
         elif cmd_format == "make":
             command += "%s=%s" % (arg, str(cmd_args[arg]))
