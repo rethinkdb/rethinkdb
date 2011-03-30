@@ -206,12 +206,12 @@ void mc_inner_buf_t::replay_patches() {
 
 void mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool create_copy_if_snapshotted) {
     cache->assert_thread();
-    rassert(snapshots.size() == 0 || snapshots.front().snapshotted_version < version_id);
+    rassert(snapshots.size() == 0 || snapshots.front().snapshotted_version <= version_id);  // you can get snapshotted_version == version_id due to copy-on-write doing the snapshotting
 
     // all snapshot txns such that
     //   inner_version <= snapshot_txn->version_id < new_version
     // can see the current version of inner_buf->data, so we need to make some snapshots for them
-    size_t num_snapshots_affected = cache->register_snapshotted_block(this, version_id, new_version);
+    size_t num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
     size_t refcount = num_snapshots_affected + static_cast<size_t>(cow_will_be_needed);
     if (refcount > 0) {
         snapshots.push_front(buf_snapshot_info_t(data, version_id, refcount));
@@ -220,26 +220,18 @@ void mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool create_co
     }
 }
 
-template<typename Predicate> void mc_inner_buf_t::release_snapshot(Predicate p) {
+void mc_inner_buf_t::release_snapshot(void *data) {
     for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
         buf_snapshot_info_t& snap = *it;
-        if (p(snap)) {
+        if (snap.data == data) {
             if (--snap.refcount == 0) {
-                cache->serializer->free(snap.data);
+                cache->serializer->free(data);
                 snapshots.erase(it);
             }
             return;
         }
     }
     unreachable("Tried to release block snapshot that doesn't exist");
-}
-
-template<> void mc_inner_buf_t::release_snapshot(version_id_t version) {
-    release_snapshot(version_predicate_t(version));
-}
-
-template<> void mc_inner_buf_t::release_snapshot(void *data) {
-    release_snapshot(data_predicate_t(data));
 }
 
 bool mc_inner_buf_t::safe_to_unload() {
@@ -853,11 +845,11 @@ void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
     }
 }
 
-size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
+size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
     rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
     size_t num_snapshots_affected = 0;
     for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version); it != active_snapshots.lower_bound(new_version); it++) {
-        (*it).second->register_snapshotted_block(inner_buf, snapshotted_version);
+        (*it).second->register_snapshotted_block(inner_buf, data);
         num_snapshots_affected++;
     }
     return num_snapshots_affected;
