@@ -13,19 +13,19 @@ buf_patch_t* buf_patch_t::load_patch(const char* source) {
         return NULL;
     }
     remaining_length -= sizeof(remaining_length);
-    guarantee(remaining_length >= sizeof(block_id) + sizeof(patch_counter) + sizeof(operation_code));
+    guarantee(remaining_length >= sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(patch_operation_code_t));
     block_id_t block_id = *reinterpret_cast<const block_id_t *>(source);
-    source += sizeof(block_id);
-    remaining_length -= sizeof(block_id);
+    source += sizeof(block_id_t);
+    remaining_length -= sizeof(block_id_t);
     patch_counter_t patch_counter = *reinterpret_cast<const patch_counter_t *>(source);
-    source += sizeof(patch_counter);
-    remaining_length -= sizeof(block_id);
+    source += sizeof(patch_counter_t);
+    remaining_length -= sizeof(block_id_t);
     ser_transaction_id_t applies_to_transaction_id = *reinterpret_cast<const ser_transaction_id_t *>(source);
-    source += sizeof(applies_to_transaction_id);
-    remaining_length -= sizeof(applies_to_transaction_id);
+    source += sizeof(ser_transaction_id_t);
+    remaining_length -= sizeof(ser_transaction_id_t);
     patch_operation_code_t operation_code = *reinterpret_cast<const patch_operation_code_t *>(source);
-    source += sizeof(operation_code);
-    remaining_length -= sizeof(operation_code);
+    source += sizeof(patch_operation_code_t);
+    remaining_length -= sizeof(patch_operation_code_t);
 
     buf_patch_t* result = NULL;
     switch (operation_code) {
