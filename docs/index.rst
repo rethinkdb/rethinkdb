@@ -212,6 +212,7 @@ protocol:
   the protocol. Some of the statistics that do not make sense in the
   context of a persistent engine are removed, and new statistics are
   added.
+- Value size limit is increased to 10MB from 1MB specified by Memcached.
 
 -----------
 Performance

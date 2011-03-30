@@ -60,14 +60,13 @@ def test_value_of_size(size, port):
 
 def test_values_near_size(size, port):
 
-    max_legal_value_size = 1024 * 1024
+    max_legal_value_size = 10 * 1024 * 1024
 
     for s in xrange(size - 5, size + 5):
         too_big = test_value_of_size(s, port)
         assert too_big == (s > max_legal_value_size)
 
 def test(opts, port, test_dir):
-
     # threshold for storing in node vs. storing in large bug
     test_values_near_size(250, port)
 
@@ -82,11 +81,17 @@ def test(opts, port, test_dir):
 
     test_values_near_size(500000, port)
 
-    # test values that are close to the limit
+    # test values that are close to the old limit
     test_values_near_size(1024 * 1024, port)
 
-    # test values that are way too big
+    # test values that are larger than the old limit
     test_values_near_size(1024 * 1024 + 100, port)
+
+    # test values that are close to the limit
+    test_values_near_size(10 * 1024 * 1024, port)
+
+    # test values that are larger than the limit
+    test_values_near_size(10 * 1024 * 1024 + 100, port)
 
 if __name__ == "__main__":
     op = make_option_parser()
