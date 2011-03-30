@@ -61,7 +61,7 @@ void scc_buf_t<inner_cache_t>::touch_recency(repli_timestamp timestamp) {
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::release() {
     rassert(inner_buf);
-    if (!snapshotted) {
+    if (!snapshotted && !inner_buf->is_deleted()) {
         if (!inner_buf->is_dirty() && cache->crc_map.get(inner_buf->get_block_id())) {
             rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
         } else {

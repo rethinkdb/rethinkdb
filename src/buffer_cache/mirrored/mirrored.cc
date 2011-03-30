@@ -292,6 +292,7 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
         switch (mode) {
             case rwi_read: {
                 data = inner_buf->data;
+                rassert(data != NULL);
                 break;
             }
             case rwi_read_outdated_ok: {
@@ -299,6 +300,7 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
                     data = inner_buf->cache->serializer->clone(inner_buf->data);
                 } else {
                     data = inner_buf->data;
+                    rassert(data != NULL);
                     inner_buf->cow_will_be_needed = true;
                 }
                 inner_buf->lock.unlock();
@@ -313,6 +315,7 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
                 inner_buf->snapshot_if_needed(version_to_access, true);
                 inner_buf->version_id = version_to_access;
                 data = inner_buf->data;
+                rassert(data != NULL);
 
 #ifndef FAST_PERFMON
                 if (!inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start == -1) {
