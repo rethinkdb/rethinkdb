@@ -185,12 +185,12 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
 
             // TODO: don't copy needlessly... sheesh.  This is a fake
             // implementation, make something that actually streams later.
-            scoped_malloc<byte> buf(n);
+            scoped_malloc<char> buf(n);
 
             keys_largebuf->read_at(begin_offset, buf.get(), n);
 
-            byte *p = buf.get();
-            byte *e = p + n;
+            char *p = buf.get();
+            char *e = p + n;
             while (p < e) {
                 store_key_t *k = reinterpret_cast<store_key_t *>(p);
                 rassert(k->size + 1 <= e - p);

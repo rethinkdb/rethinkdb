@@ -32,7 +32,7 @@ struct large_buf_internal {
 // Disk format struct.
 struct large_buf_leaf {
     block_magic_t magic;
-    byte buf[];
+    char buf[];
 
     static const block_magic_t expected_magic;
 };

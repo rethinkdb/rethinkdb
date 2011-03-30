@@ -5,7 +5,7 @@
 
 small_value_data_provider_t::small_value_data_provider_t(const btree_value *_value) : value(), buffers() {
     rassert(!_value->is_large());
-    const byte *data = ptr_cast<byte>(_value->value());
+    const char *data = ptr_cast<char>(_value->value());
     value.assign(data, data + _value->value_size());
 }
 

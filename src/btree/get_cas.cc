@@ -63,7 +63,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     promise_t<get_result_t, threadsafe_cond_t> *res;
 
     union {
-        byte value_memory[MAX_BTREE_VALUE_SIZE];
+        char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
 };
