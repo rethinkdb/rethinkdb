@@ -42,10 +42,10 @@ public:
     void serialize(char* destination) const;
 
     inline uint16_t get_serialized_size() const {
-        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_transaction_id) + sizeof(operation_code) + get_data_size();
+        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter_t) + sizeof(ser_transaction_id_t) + sizeof(patch_operation_code_t) + get_data_size();
     }
     inline static uint16_t get_min_serialized_size() {
-        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_transaction_id) + sizeof(operation_code);
+        return sizeof(uint16_t) + sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(ser_transaction_id_t) + sizeof(patch_operation_code_t);
     }
 
     inline patch_counter_t get_patch_counter() const {

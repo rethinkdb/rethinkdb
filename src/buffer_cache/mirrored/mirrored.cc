@@ -175,7 +175,8 @@ mc_inner_buf_t::~mc_inner_buf_t() {
     // We're about to free the data, let's set it to a recognizable
     // value to make sure we don't depend on accessing things that may
     // be flushed out of the cache.
-    memset(data, 0xDD, cache->serializer->get_block_size().value());
+    if (data)
+        memset(data, 0xDD, cache->serializer->get_block_size().value());
 #endif
 
     rassert(safe_to_unload());
