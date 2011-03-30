@@ -289,6 +289,13 @@ void slave_t::on_resume() {
     respond_to_queries_ = false;
 }
 
+void slave_side_backfill(UNUSED slave_t *slave) {
+    // TODO: unimplemented
+
+
+
+}
+
 void run(slave_t *slave) {
     slave->coro_ = coro_t::self();
     slave->failover.add_callback(slave);
@@ -313,6 +320,9 @@ void run(slave_t *slave) {
             first_connect = false;
             logINF("Connected as slave to: %s:%d\n", slave->replication_config_.hostname, slave->replication_config_.port);
 
+            slave_side_backfill(slave);
+
+            // TODO: this is a fake timestamp!!! You _must_ fix this.
             repli_timestamp fake = { 0 };
             net_backfill_t bf;
             bf.timestamp = fake;
