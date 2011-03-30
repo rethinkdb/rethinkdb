@@ -429,10 +429,9 @@ class FailoverMemcachedWrapper(object):
         if random.random() < self.opts["resurrect_failover_server_prob"]:
             self.resurrect_server()
 
-        if (self.down['master']): 
-            mc_to_use = self.mc['slave']
-        else:
-            mc_to_use = self.mc['master']
+        target = "master" if not self.down["master"] else "slave"
+        print "Sending query to %s." % target
+        mc_to_use = self.mc[target]
 
         return getattr(mc_to_use, name)
 
@@ -440,7 +439,7 @@ class FailoverMemcachedWrapper(object):
         assert(not (self.down['master'] and self.down['slave']))
         if not (self.down['master'] or self.down['slave']):
             victim = random.choice(['master', 'slave'])
-            print "Killing %s" % victim
+            print "Killing %s..." % victim
             self.mc[victim].disconnect_all()
             self.server[victim].kill()
             self.down[victim] = True
@@ -450,7 +449,11 @@ class FailoverMemcachedWrapper(object):
 
         if (self.down['master'] or self.down['slave']):
             victim = 'master' if self.down['master'] else 'slave'
-            print "Resurrecting %s" % victim
+            if victim == "master":
+                # At the moment we don't support bringing the master back up. Test this
+                # once Sam figures out how we are bringing the master back up.
+                return
+            print "Resurrecting %s..." % victim
             self.server[victim].start()
             self.mc[victim] = self.mc_maker[victim]()
             self.down[victim] = False
