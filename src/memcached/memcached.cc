@@ -392,8 +392,6 @@ void run_storage_command(txt_memcached_handler_t *rh,
 
     block_pm_duration set_timer(&pm_cmd_set);
 
-    rh->begin_write_command();
-
     if (sc != append_command && sc != prepend_command) {
         add_policy_t add_policy;
         replace_policy_t replace_policy;
@@ -564,8 +562,12 @@ void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storag
 
     /* run_storage_command() will signal this when it's done reading the value off the socket. */
     promise_t<bool> value_read_promise;
-
     storage_metadata_t metadata(mcflags, exptime, unique);
+
+    /* We must do this out here instead of in run_storage_command() so that we stop reading off
+    the socket if it blocks */
+    rh->begin_write_command();
+
     if (noreply) {
         coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, metadata, true));
     } else {
@@ -585,8 +587,6 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount
     thread_saver_t saver;
 
     block_pm_duration set_timer(&pm_cmd_set);
-
-    rh->begin_write_command();
 
     incr_decr_result_t res = rh->set_store->incr_decr(
         incr ? incr_decr_INCR : incr_decr_DECR,
@@ -648,6 +648,8 @@ void do_incr_decr(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool
         noreply = false;
     }
 
+    rh->begin_write_command();
+
     if (noreply) {
         coro_t::spawn_now(boost::bind(&run_incr_decr, rh, key, delta, i, true));
     } else {
@@ -661,8 +663,6 @@ void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
     thread_saver_t saver;
 
     block_pm_duration set_timer(&pm_cmd_set);
-
-    rh->begin_write_command();
 
     delete_result_t res = rh->set_store->delete_key(key);
 
@@ -718,6 +718,8 @@ void do_delete(const thread_saver_t& saver, txt_memcached_handler_t *rh, int arg
     } else {
         noreply = false;
     }
+
+    rh->begin_write_command();
 
     if (noreply) {
         coro_t::spawn_now(boost::bind(&run_delete, rh, key, true));
