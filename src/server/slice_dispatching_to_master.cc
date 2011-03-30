@@ -5,7 +5,9 @@
 using replication::master_t;
 
 btree_slice_dispatching_to_master_t::btree_slice_dispatching_to_master_t(btree_slice_t *slice, snag_ptr_t<replication::master_t>& master) : slice_(slice), master_(master) {
-    master_->register_dispatcher(this);
+    if (master_.get() != NULL) {
+        master_->register_dispatcher(this);
+    }
 }
 
 
