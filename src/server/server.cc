@@ -141,7 +141,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         /* Pointers to our stores these are allocated dynamically so
            that we have explicit control of when and where their
            destructors get called*/
-        replication::slave_t *slave_store = NULL;
+        boost::scoped_ptr<replication::slave_t> slave_store;
 
         /* Start logger */
         log_controller_t log_controller;
@@ -207,8 +207,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* Are we a replication slave? */
             if (cmd_config->replication_config.active) {
                 logINF("Starting up as a slave...\n");
-                slave_store = new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config);
-                server.set_store = slave_store;
+                slave_store.reset(new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config));
+                server.set_store = slave_store.get();
             } else {
                 server.set_store = &store;   /* So things can access it */
             }
@@ -248,9 +248,6 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             } catch (conn_acceptor_t::address_in_use_exc_t) {
                 logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
             }
-
-            if (slave_store)
-                delete slave_store;
 
             // store destructor called here
             logINF("Waiting for changes to flush to disk...\n");
