@@ -1,3 +1,5 @@
+#ifndef NO_EVENTFD
+
 #include <algorithm>
 #include <fcntl.h>
 #include <linux/fs.h>
@@ -79,4 +81,6 @@ void linux_io_calls_eventfd_t::on_event(int event_mask) {
 
     } while (nevents_total > 0);
 }
+
+#endif // NO_EVENTFD
 
