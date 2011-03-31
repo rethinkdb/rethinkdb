@@ -361,7 +361,7 @@ deb: all prepare_deb_package_dirs
 	@echo
 	@echo "$(ANSI_BOLD_ON)Your DEB packages are here (with lintian output following each package):$(ANSI_BOLD_OFF)"
 	$(QUIET) for f in $(PACKAGES_DIR)/*.deb; do \
-			deb_name=$(realpath $(PACKAGES_DIR))/$$(basename $$f); \
+			deb_name=`readlink -f $(PACKAGES_DIR)`/$$(basename $$f); \
 			echo "  $(ANSI_UL_ON)$${deb_name}$(ANSI_UL_OFF)"; \
 			lintian --color auto --suppress-tags "$(subst $(space),$(comma),$(SUPPRESSED_LINTIAN_TAGS))" $${deb_name} || true; \
 		done
@@ -375,7 +375,7 @@ build-rpm: all prepare_rpm_package_dirs
 # Replace version/topdir fields in the spec file
 	$(QUIET) m4																											\
 				-D "SOLO=$(SOLO)"																					\
-				-D "RPM_PACKAGE_DIR=$(realpath $(RPM_PACKAGE_DIR))"				\
+				-D "RPM_PACKAGE_DIR=`readlink -f $(RPM_PACKAGE_DIR)`"				\
 				-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)"									\
 				-D "PACKAGE_NAME=$(PACKAGE_NAME)"													\
 				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"					\
@@ -390,7 +390,8 @@ build-rpm: all prepare_rpm_package_dirs
 
 # Produce RPM package
 # FIXME: write rpmbuild output out to stderr if there's an error
-	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot $(realpath $(RPM_BUILD_ROOT)) $(RPM_SPEC_FILE) > /tmp/rpmbuild.stdout
+	
+	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot `readlink -f $(RPM_BUILD_ROOT)` $(RPM_SPEC_FILE) > /tmp/rpmbuild.stdout
 
 rpm: all prepare_rpm_package_dirs
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_VERSION=$(RETHINKDB_VERSION)-unstripped build-rpm
@@ -400,7 +401,7 @@ rpm: all prepare_rpm_package_dirs
 	@echo
 	@echo "$(ANSI_BOLD_ON)Your RPM packages are here:$(ANSI_BOLD_OFF)"
 	$(QUIET) for f in $(RPM_PACKAGE_DIR)/RPMS/x86_64/*.rpm; do	\
-			rpm_name=$(realpath $(PACKAGES_DIR))/$$(basename $$f);	\
+			rpm_name=`readlink -f $(PACKAGES_DIR)`/$$(basename $$f);	\
 			mv $$f $$rpm_name;																			\
 			echo "  $(ANSI_UL_ON)$${rpm_name}$(ANSI_UL_OFF)";				\
 		done
