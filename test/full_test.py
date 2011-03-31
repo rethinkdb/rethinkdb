@@ -23,7 +23,7 @@ for mode in ["debug", "release"]:
                             cmd_format="make")
 
 # Make sure auxillary tools compile
-do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0 LIBGSL=0",
+do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0 LIBGSL=0 stress libstress.so",
         {},
         cmd_format="make")
 do_test("cd ../bench/serializer-bench/; make clean; make -j",

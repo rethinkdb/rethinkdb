@@ -20,7 +20,7 @@ for special in ["NO_EPOLL", "MOCK_IO_LAYER", "MOCK_CACHE_CHECK", "VALGRIND"]:
             cmd_format="make")
 
 # Make sure auxillary tools compile
-do_test("cd ../bench/stress-client/; make clean; make",
+do_test("cd ../bench/stress-client/; make clean; make stress libstress.so",
         {},
         cmd_format="make")
 do_test("cd ../bench/serializer-bench/; make clean; make",

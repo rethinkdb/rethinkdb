@@ -53,7 +53,7 @@ def main():
         do_test("cd ../src && make -j DEBUG=0 SYMBOLS=1 FAST_PERFMON=0", cmd_format="make")
 
         # Make sure auxillary tools compile
-        do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0", cmd_format="make")
+        do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0 stress libstress.so", cmd_format="make")
 
     ts = datetime.now().replace(microsecond=0)
     dir_name = "%s-%s" % (ts.isoformat(), repo_version())
