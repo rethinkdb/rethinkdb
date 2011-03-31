@@ -377,7 +377,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(int port) :
     event_watcher(sock.get(), this),
     callback(NULL),
     shutdown_signal(NULL), accept_loop_cond(NULL),
-    have_logged_any_errors(false)
+    log_next_error(true)
 {
     int res;
 
@@ -456,6 +456,10 @@ void linux_tcp_listener_t::accept_loop() {
             resolved. */
             if (backoff_delay_ms > initial_backoff_delay_ms) backoff_delay_ms /= 2;
 
+            /* Assume that if there was a problem before, it's gone now because accept()
+            is working. */
+            log_next_error = true;
+
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
             /* Wait for a notification from the event loop, or for a command to shut down,
             before continuing */
@@ -470,10 +474,10 @@ void linux_tcp_listener_t::accept_loop() {
 
         } else {
             /* Unexpected error. Log it if it's the first time. */
-            if (!have_logged_any_errors) {
-                logERR("accept() failed: %s. (Further errors from this source will be suppressed.)\n",
+            if (log_next_error) {
+                logERR("accept() failed: %s.\n",
                     strerror(errno));
-                have_logged_any_errors = true;
+                log_next_error = false;
             }
 
             /* Delay before retrying. We use pulse_after_time() instead of nap() so that we will
@@ -522,9 +526,9 @@ void linux_tcp_listener_t::on_event(int events) {
     /* This is only called in cases of error; normal input events are recieved
     via event_listener.watch(). */
 
-    if (!have_logged_any_errors) {
+    if (log_next_error) {
         logERR("poll()/epoll() sent linux_tcp_listener_t errors: %d.\n", events);
-        have_logged_any_errors = true;
+        log_next_error = false;
     }
 }
 

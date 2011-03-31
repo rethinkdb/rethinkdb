@@ -185,7 +185,7 @@ private:
 
     /* event_watcher sends any error conditions to here */
     void on_event(int events);
-    bool have_logged_any_errors;
+    bool log_next_error;
 };
 
 #endif // __ARCH_LINUX_NETWORK_HPP__
