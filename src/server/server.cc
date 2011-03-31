@@ -141,7 +141,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         /* Pointers to our stores these are allocated dynamically so
            that we have explicit control of when and where their
            destructors get called*/
-        replication::slave_t *slave_store = NULL;
+        boost::scoped_ptr<replication::slave_t> slave_store;
 
         /* Start logger */
         log_controller_t log_controller;
@@ -198,13 +198,17 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             btree_key_value_store_t store(&cmd_config->store_dynamic_config, master_ptr);
             master_ptr.reset();
 
+            if (master) {
+                master->register_key_value_store(&store);
+            }
+
             server.get_store = &store;   // Gets always go straight to the key-value store
 
             /* Are we a replication slave? */
             if (cmd_config->replication_config.active) {
                 logINF("Starting up as a slave...\n");
-                slave_store = new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config);
-                server.set_store = slave_store;
+                slave_store.reset(new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config));
+                server.set_store = slave_store.get();
             } else {
                 server.set_store = &store;   /* So things can access it */
             }
@@ -245,9 +249,6 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
             }
 
-            if (slave_store)
-                delete slave_store;
-
             // store destructor called here
             logINF("Waiting for changes to flush to disk...\n");
         } else {
@@ -285,3 +286,29 @@ struct shutdown_control_t : public control_t
 
 shutdown_control_t shutdown_control(std::string("shutdown"));
 
+struct malloc_control_t : public control_t {
+    malloc_control_t(std::string key)
+        : control_t(key, "tcmalloc-testing control.") { }
+
+    std::string call(UNUSED int argc, UNUSED char **argv) {
+        std::vector<void *> ptrs;
+        ptrs.reserve(100000);
+        std::string ret("HundredThousandComplete\r\n");
+        for (int i = 0; i < 100000; ++i) {
+            void *ptr;
+            int res = posix_memalign(&ptr, 4096, 131072);
+            if (res != 0) {
+                ret = strprintf("Failed at i = %d\r\n", i);
+                break;
+            }
+        }
+
+        for (int j = 0; j < int(ptrs.size()); ++j) {
+            free(ptrs[j]);
+        }
+
+        return ret;
+    }
+};
+
+malloc_control_t malloc_control("malloc_control");

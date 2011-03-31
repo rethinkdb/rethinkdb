@@ -15,6 +15,7 @@
 
 namespace replication {
 class master_t;
+class do_backfill_cb;
 }  // namespace replication
 
 
@@ -65,6 +66,8 @@ public:
     // No particular interface.
 
     void time_barrier(repli_timestamp lower_bound_on_future_timestamps);
+
+    void spawn_backfill(repli_timestamp since_when, replication::do_backfill_cb *callback);
 
 public:
     int n_files;

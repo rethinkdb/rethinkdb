@@ -13,19 +13,17 @@ failover_callback_t::~failover_callback_t() {
 }
 
 /* failover script implementation */
-failover_script_callback_t::failover_script_callback_t(const char *script_path) 
-    :script_path(strdup(script_path))
+failover_script_callback_t::failover_script_callback_t(const char *_script_path) 
+    :script_path(_script_path)
 {}
 
-failover_script_callback_t::~failover_script_callback_t() {
-    delete script_path;
-}
+failover_script_callback_t::~failover_script_callback_t() { }
 
 void failover_script_callback_t::on_failure() {
     pid_t pid = fork();
 
     if (pid == 0) {
-        execl(script_path, script_path, "down", NULL); //This works right @jdoliner, yes joe from 2 weeks ago it does - jdoliner
+        execl(script_path.c_str(), script_path.c_str(), "down", NULL); //This works right @jdoliner, yes joe from 2 weeks ago it does - jdoliner
         exit(0);
     }
 }
@@ -34,7 +32,7 @@ void failover_script_callback_t::on_resume() {
      pid_t pid = fork();
 
     if (pid == 0) {
-        execl(script_path, script_path, "up", NULL); //This works right @jdoliner
+        execl(script_path.c_str(), script_path.c_str(), "up", NULL); //This works right @jdoliner
         exit(0);
     }
 }

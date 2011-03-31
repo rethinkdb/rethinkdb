@@ -49,8 +49,6 @@ public:
     virtual void send(buffed_data_t<net_backfill_delete_t>& message) = 0;
     virtual void send(buffed_data_t<net_nop_t>& message) = 0;
     virtual void send(buffed_data_t<net_ack_t>& message) = 0;
-    virtual void send(buffed_data_t<net_shutting_down_t>& message) = 0;
-    virtual void send(buffed_data_t<net_goodbye_t>& message) = 0;
     virtual void conn_closed() = 0;
 };
 
@@ -124,14 +122,13 @@ public:
     void send(net_delete_t *msg);
     void send(net_backfill_delete_t *msg);
 
-    // TODO remove this
+    // TODO: Remove these methods?  Should these be an internal detail
+    // of the repli_stream_t?  (Have the repli_stream_t be responsible
+    // for sending the appropriate response.)
     void send(net_nop_t msg);
-    // TODO remove this
     void send(net_ack_t msg);
 
 
-    void send(net_shutting_down_t *msg);
-    void send(net_goodbye_t *msg);
     void close();
 
 private:
