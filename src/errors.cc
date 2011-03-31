@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#ifndef NDEBUG
-
 #include <execinfo.h>
 
 static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
@@ -121,8 +119,6 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     }
 }
 
-#endif
-
 void report_user_error(const char *msg, ...) {
     flockfile(stderr);
 
@@ -148,7 +144,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
     /* Don't print backtraces in valgrind mode because valgrind issues lots of spurious
     warnings when print_backtrace() is run. */
-#if !defined(NDEBUG) && !defined(VALGRIND)
+#if !defined(VALGRIND)
     fprintf(stderr, "\nBacktrace:\n");
     print_backtrace();
 #endif
@@ -157,8 +153,6 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
 
     funlockfile(stderr);
 }
-
-#ifndef NDEBUG
 
 /* There has been some trouble with abi::__cxa_demangle.
 
@@ -195,5 +189,3 @@ char *demangle_cpp_name(const char *mangled_name) {
         return NULL;
     }
 }
-
-#endif

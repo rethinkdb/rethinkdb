@@ -38,10 +38,11 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
     linux_event_watcher_guts_t(fd_t fd, linux_event_callback_t *eh) :
         fd(fd), error_handler(eh),
         read_handler(this), write_handler(this),
-        old_mask(0), registration_thread(-1)
+        old_mask(0), registration_thread(-1), dont_destroy_yet(false), should_destroy(false)
         { }
 
     ~linux_event_watcher_guts_t() {
+        rassert(registration_thread == -1);
         rassert(!read_handler.mc);
         rassert(!write_handler.mc);
     }

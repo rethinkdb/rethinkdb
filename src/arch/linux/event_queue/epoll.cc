@@ -138,6 +138,7 @@ void epoll_event_queue_t::watch_resource(fd_t resource, int watch_mode, linux_ev
 }
 
 void epoll_event_queue_t::adjust_resource(fd_t resource, int watch_mode, linux_event_callback_t *cb) {
+    rassert(cb);
     epoll_event event;
     
     event.events = EPOLLET | user_to_epoll(watch_mode);
