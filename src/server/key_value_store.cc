@@ -275,14 +275,12 @@ rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const s
 /* set_store_interface_t interface */
 
 mutation_result_t btree_key_value_store_t::change(const mutation_t &m) {
-    debugf("set_store_interface_t change\n");
     return slice_for_key_set_interface(m.get_key())->change(m);
 }
 
 /* set_store_t interface */
 
 mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t ct) {
-    debugf("set_store_t change\n");
     const mutation_result_t& res = slice_for_key_set(m.get_key())->change(m, ct);
     return res;
 }

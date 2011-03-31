@@ -61,12 +61,6 @@ repli_timestamp repli_max(repli_timestamp x, repli_timestamp y) {
 
 
 void *malloc_aligned(size_t size, size_t alignment) {
-    static int i = 0;
-    if (size == 131072) {
-        ++i;
-        debugf("Malloced a big one the %d-th time\n", i);
-    }
-
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);
     if (res != 0) {
