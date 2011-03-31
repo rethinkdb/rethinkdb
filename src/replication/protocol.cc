@@ -40,30 +40,36 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
     receiver->hello(buf);
 }
 
+// TODO: Get rid of these functions, put static functions on each of
+// the types, even if it's redundant, because that way it's safer.
 template <class T> struct stream_type { typedef buffed_data_t<T> type; };
 template <> struct stream_type<net_sarc_t> { typedef stream_pair<net_sarc_t> type; };
 template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t> type; };
 template <> struct stream_type<net_prepend_t> { typedef stream_pair<net_prepend_t> type; };
 template <> struct stream_type<net_backfill_set_t> { typedef stream_pair<net_backfill_set_t> type; };
 
-template <class T> size_t objsize(UNUSED const T *buf) { return sizeof(T); }
-template <> size_t objsize<net_get_cas_t>(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
-template <> size_t objsize<net_incr_t>(const net_incr_t *buf) { return sizeof(net_incr_t) + buf->key_size; }
-template <> size_t objsize<net_decr_t>(const net_decr_t *buf) { return sizeof(net_decr_t) + buf->key_size; }
-template <> size_t objsize<net_delete_t>(const net_delete_t *buf) { return sizeof(net_delete_t) + buf->key_size; }
-template <> size_t objsize<net_sarc_t>(const net_sarc_t *buf) { return sizeof(net_sarc_t) + buf->key_size + buf->value_size; }
-template <> size_t objsize<net_append_t>(const net_append_t *buf) { return sizeof(net_append_t) + buf->key_size + buf->value_size; }
-template <> size_t objsize<net_prepend_t>(const net_prepend_t *buf) { return sizeof(net_prepend_t) + buf->key_size + buf->value_size; }
-template <> size_t objsize<net_backfill_set_t>(const net_backfill_set_t *buf) { return sizeof(net_backfill_set_t) + buf->key_size + buf->value_size; }
-template <> size_t objsize<net_backfill_delete_t>(const net_backfill_delete_t *buf) { return sizeof(net_backfill_delete_t) + buf->key_size; }
+size_t objsize(UNUSED const net_backfill_t *buf) { return sizeof(net_backfill_t); }
+size_t objsize(UNUSED const net_backfill_complete_t *buf) { return sizeof(net_backfill_complete_t); }
+size_t objsize(UNUSED const net_ack_t *buf) { return sizeof(net_ack_t); }
+size_t objsize(UNUSED const net_nop_t *buf) { return sizeof(net_nop_t); }
+size_t objsize(UNUSED const net_announce_t *buf) { return sizeof(net_announce_t); }
+size_t objsize(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
+size_t objsize(const net_incr_t *buf) { return sizeof(net_incr_t) + buf->key_size; }
+size_t objsize(const net_decr_t *buf) { return sizeof(net_decr_t) + buf->key_size; }
+size_t objsize(const net_delete_t *buf) { return sizeof(net_delete_t) + buf->key_size; }
+size_t objsize(const net_sarc_t *buf) { return sizeof(net_sarc_t) + buf->key_size + buf->value_size; }
+size_t objsize(const net_append_t *buf) { return sizeof(net_append_t) + buf->key_size + buf->value_size; }
+size_t objsize(const net_prepend_t *buf) { return sizeof(net_prepend_t) + buf->key_size + buf->value_size; }
+size_t objsize(const net_backfill_set_t *buf) { return sizeof(net_backfill_set_t) + buf->key_size + buf->value_size; }
+size_t objsize(const net_backfill_delete_t *buf) { return sizeof(net_backfill_delete_t) + buf->key_size; }
 
 template <class T>
 void check_pass(message_callback_t *receiver, weak_buf_t buffer, size_t realoffset, size_t realsize) {
-    if (sizeof(T) <= realsize && objsize<T>(buffer.get<T>(realoffset)) == realsize) {
+    if (sizeof(T) <= realsize && objsize(buffer.get<T>(realoffset)) == realsize) {
         typename stream_type<T>::type buf(buffer, realoffset, realsize);
         receiver->send(buf);
     } else {
-        debugf("realsize: %zu sizeof(T): %zu objsize: %zu\n", realsize, sizeof(T), objsize<T>(buffer.get<T>(realoffset)));
+        debugf("realsize: %zu sizeof(T): %zu objsize: %zu\n", realsize, sizeof(T), objsize(buffer.get<T>(realoffset)));
         throw protocol_exc_t("message wrong length for message code");
     }
 }
@@ -115,8 +121,6 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
         case ANNOUNCE: check_pass<net_announce_t>(receiver, buffer, realbegin, realsize); break;
         case NOP: check_pass<net_nop_t>(receiver, buffer, realbegin, realsize); break;
         case ACK: check_pass<net_ack_t>(receiver, buffer, realbegin, realsize); break;
-        case SHUTTING_DOWN: check_pass<net_shutting_down_t>(receiver, buffer, realbegin, realsize); break;
-        case GOODBYE: check_pass<net_goodbye_t>(receiver, buffer, realbegin, realsize); break;
         case GET_CAS: check_pass<net_get_cas_t>(receiver, buffer, realbegin, realsize); break;
         case SARC: check_pass<net_sarc_t>(receiver, buffer, realbegin, realsize); break;
         case INCR: check_pass<net_incr_t>(receiver, buffer, realbegin, realsize); break;

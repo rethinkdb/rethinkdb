@@ -239,14 +239,6 @@ void slave_t::send(UNUSED buffed_data_t<net_ack_t>& message) {
     rassert("ack message received.. as slave?\n");
 }
 
-void slave_t::send(UNUSED buffed_data_t<net_shutting_down_t>& message) {
-    debugf("shutting_down message received.\n");
-}
-
-void slave_t::send(UNUSED buffed_data_t<net_goodbye_t>& message) {
-    debugf("goodbye message received.\n");
-}
-
 void slave_t::conn_closed() {
     debugf("conn_closed.\n");
     coro_->notify();

@@ -116,8 +116,6 @@ public:
     }
     void send(UNUSED buffed_data_t<net_nop_t>& message) { guarantee(false, "slave sent nop"); }
     void send(UNUSED buffed_data_t<net_ack_t>& message) { }
-    void send(UNUSED buffed_data_t<net_shutting_down_t>& message) { }
-    void send(UNUSED buffed_data_t<net_goodbye_t>& message) { }
     void conn_closed() { destroy_existing_slave_conn_if_it_exists(); }
 
     void do_nop_rebound(repli_timestamp t);
