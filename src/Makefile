@@ -322,22 +322,22 @@ build-deb: all prepare_deb_package_dirs
 	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | grep '^/etc/' > $(DEB_CONTROL_ROOT)/conffiles
 
 # Copy {pre,post}{inst,rm} scripts
-	$(QUIET) for script in preinst postinst prerm postrm; do		\
-			cp ../packaging/$(DEBIAN_PKG_DIR)/$${script} $(DEB_CONTROL_ROOT);	\
-			chmod 0755 $(DEB_CONTROL_ROOT)/$${script};							\
+	$(QUIET) for script in preinst postinst prerm postrm; do		                                \
+			cp ../packaging/$(DEBIAN_PKG_DIR)/$${script} $(DEB_CONTROL_ROOT);	                \
+			chmod 0755 $(DEB_CONTROL_ROOT)/$${script};						\
 		done
 
 # Replace version/size fields in the deb control file
-	$(QUIET) disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1);		\
-		m4																														\
-				-D "SOLO=$(SOLO)"																					\
-				-D "PACKAGE_NAME=$(PACKAGE_NAME)"													\
-				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"					\
-				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"							\
-				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"							\
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)"													\
-				-D "TRIAL=$(TRIAL)"																				\
-				-D "DISK_SIZE=$${disk_size}"															\
+	$(QUIET) disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1);		                                \
+		m4												\
+				-D "SOLO=$(SOLO)"								\
+				-D "PACKAGE_NAME=$(PACKAGE_NAME)"						\
+				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"				\
+				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"					\
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"					\
+				-D "LEGACY_LINUX=$(LEGACY_LINUX)"						\
+				-D "TRIAL=$(TRIAL)"								\
+				-D "DISK_SIZE=$${disk_size}"							\
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
 # Finally, produce a debian package
@@ -363,24 +363,23 @@ build-rpm: all prepare_rpm_package_dirs
 	@echo
 
 # Replace version/topdir fields in the spec file
-	$(QUIET) m4																											\
-				-D "SOLO=$(SOLO)"																					\
+	$(QUIET) m4												\
+				-D "SOLO=$(SOLO)"								\
 				-D "RPM_PACKAGE_DIR=`readlink -f $(RPM_PACKAGE_DIR)`"				\
-				-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)"									\
-				-D "PACKAGE_NAME=$(PACKAGE_NAME)"													\
-				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"					\
-				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"							\
-				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"							\
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)"													\
-				-D "TRIAL=$(TRIAL)"																				\
-			../packaging/rpm.spec >$(RPM_SPEC_FILE)
+				-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)"					\
+				-D "PACKAGE_NAME=$(PACKAGE_NAME)"						\
+				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"				\
+				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"					\
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"					\
+				-D "LEGACY_LINUX=$(LEGACY_LINUX)"						\
+				-D "TRIAL=$(TRIAL)"								\
+			$(RPM_SPEC_INPUT) >$(RPM_SPEC_FILE)
 
 # Copy files to their correct places
 	$(QUIET) $(MAKE) DESTDIR=$(RPM_BUILD_ROOT) install-rpm
 
 # Produce RPM package
 # FIXME: write rpmbuild output out to stderr if there's an error
-	
 	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot `readlink -f $(RPM_BUILD_ROOT)` $(RPM_SPEC_FILE) > /tmp/rpmbuild.stdout
 
 rpm: all prepare_rpm_package_dirs
@@ -390,16 +389,24 @@ rpm: all prepare_rpm_package_dirs
 # Print a nice message with the location of the created package
 	@echo
 	@echo "$(ANSI_BOLD_ON)Your RPM packages are here:$(ANSI_BOLD_OFF)"
-	$(QUIET) for f in $(RPM_PACKAGE_DIR)/RPMS/x86_64/*.rpm; do	\
+	$(QUIET) for f in $(RPM_PACKAGE_DIR)/RPMS/x86_64/*.rpm; do	                \
 			rpm_name=`readlink -f $(PACKAGES_DIR)`/$$(basename $$f);	\
-			mv $$f $$rpm_name;																			\
-			echo "  $(ANSI_UL_ON)$${rpm_name}$(ANSI_UL_OFF)";				\
+			mv $$f $$rpm_name;						\
+			echo "  $(ANSI_UL_ON)$${rpm_name}$(ANSI_UL_OFF)";		\
 		done
 	$(QUIET) echo
 else
 deb: clean
 	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 deb
+
+# RPM for redhat and centos
+rpm: RPM_SPEC_INPUT?=../packaging/rpm.spec
 rpm: clean
+	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 rpm
+
+# RPM for suse 10
+rpm-suse10: RPM_SPEC_INPUT?=../packaging/rpm-suse10.spec
+rpm-suse10: clean
 	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 rpm
 endif
 
