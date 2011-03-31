@@ -91,7 +91,11 @@ struct lba_metablock_mixin_t {
 // PADDING_BLOCK_ID and flagged_off64_t::padding() indicate that an entry in the LBA list only exists to fill
 // out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
 
-static const ser_block_id_t PADDING_BLOCK_ID = ser_block_id_t::null();
+/* XXX Having PADDING_BLOCK_ID be a static const breaks things on SuSe. We don't
+ * really know why, for some reason if you use it instead of the define your
+ * block_ids start showing up as 0 instead of -1. */
+//static const ser_block_id_t PADDING_BLOCK_ID = ser_block_id_t::null();
+#define PADDING_BLOCK_ID ser_block_id_t::null()
 
 struct lba_entry_t {
     ser_block_id_t block_id;
