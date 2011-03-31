@@ -110,7 +110,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "num-keys"    : 50000},
-                  repeat=3, timeout=720)
+                  repeat=3, timeout=1200)
     
     # Run a canonical workload for half hour
     do_test_cloud("integration/stress_load.py",
