@@ -9,8 +9,10 @@
 #include "containers/thick_list.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
+#include "replication/queueing_store.hpp"
 
 class btree_slice_dispatching_to_master_t;
+class btree_key_value_store_t;
 
 namespace replication {
 
@@ -33,9 +35,8 @@ class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_
 public:
     master_t(thread_pool_t *thread_pool, int port)
         : timer_handler_(&thread_pool->threads[get_thread_id()]->timer_handler),
-          stream_(NULL), listener_(port),
+          stream_(NULL), listener_port_(port),
           next_timestamp_nop_timer_(NULL), latest_timestamp_(current_time()) {
-        listener_.set_callback(this);
     }
 
     ~master_t() {
@@ -49,6 +50,9 @@ public:
     // worry about slices registering themselves while other slices
     // send operations.
     void register_dispatcher(btree_slice_dispatching_to_master_t *dispatcher);
+
+    // The master does not turn on its listener until this function is called.
+    void register_key_value_store(btree_key_value_store_t *kv_store);
 
     bool has_slave() { return stream_ != NULL; }
 
@@ -69,17 +73,47 @@ public:
     // TODO: kill slave connection instead of crashing server when slave sends garbage.
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
     void send(UNUSED buffed_data_t<net_backfill_t>& message) { coro_t::spawn(boost::bind(&master_t::do_backfill, this, message->timestamp)); }
-    void send(UNUSED buffed_data_t<net_backfill_complete_t>& message) { guarantee(false, "slave sent backfill_complete"); }
+    void send(UNUSED buffed_data_t<net_backfill_complete_t>& message) {
+        // TODO: What about time_barrier, which the slave side does?
+
+        queue_store_->backfill_complete();
+        debugf("Slave sent BACKFILL_COMPLETE.\n");
+    }
     void send(UNUSED buffed_data_t<net_announce_t>& message) { guarantee(false, "slave sent announce"); }
     void send(UNUSED buffed_data_t<net_get_cas_t>& message) { guarantee(false, "slave sent get_cas"); }
     void send(UNUSED stream_pair<net_sarc_t>& message) { guarantee(false, "slave sent sarc"); }
-    void send(UNUSED stream_pair<net_backfill_set_t>& message) { guarantee(false, "slave sent backfill_set"); }
+    void send(stream_pair<net_backfill_set_t>& msg) {
+        // TODO: this is duplicate code.
+
+        set_mutation_t mut;
+        mut.key.assign(msg->key_size, msg->keyvalue);
+        mut.data = msg.stream;
+        mut.flags = msg->flags;
+        mut.exptime = msg->exptime;
+        mut.add_policy = add_policy_yes;
+        mut.replace_policy = replace_policy_yes;
+        mut.old_cas = NO_CAS_SUPPLIED;
+
+        // TODO: We need this operation to force the cas to be set.
+        queue_store_->backfill_handover(new mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
+    }
+
     void send(UNUSED buffed_data_t<net_incr_t>& message) { guarantee(false, "slave sent incr"); }
     void send(UNUSED buffed_data_t<net_decr_t>& message) { guarantee(false, "slave sent decr"); }
     void send(UNUSED stream_pair<net_append_t>& message) { guarantee(false, "slave sent append"); }
     void send(UNUSED stream_pair<net_prepend_t>& message) { guarantee(false, "slave sent prepend"); }
     void send(UNUSED buffed_data_t<net_delete_t>& message) { guarantee(false, "slave sent delete"); }
-    void send(UNUSED buffed_data_t<net_backfill_delete_t>& message) { guarantee(false, "slave sent backfill_delete"); }
+    void send(buffed_data_t<net_backfill_delete_t>& msg) {
+        // TODO: this is duplicate code.
+
+        delete_mutation_t mut;
+        mut.key.assign(msg->key_size, msg->key);
+        // NO_CAS_SUPPLIED is not used in any way for deletions, and the
+        // timestamp is part of the "->change" interface in a way not
+        // relevant to slaves -- it's used when putting deletions into the
+        // delete queue.
+        queue_store_->backfill_handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid));
+    }
     void send(UNUSED buffed_data_t<net_nop_t>& message) { guarantee(false, "slave sent nop"); }
     void send(UNUSED buffed_data_t<net_ack_t>& message) { }
     void send(UNUSED buffed_data_t<net_shutting_down_t>& message) { }
@@ -110,8 +144,9 @@ private:
     // The stream to the slave, or NULL if there is no slave connected.
     repli_stream_t *stream_;
 
+    int listener_port_;
     // Listens for incoming slave connections.
-    tcp_listener_t listener_;
+    boost::scoped_ptr<tcp_listener_t> listener_;
 
     // If no actions come in, we periodically send nops to the slave
     // anyway, to keep up a heartbeat.  This is the timer token for
@@ -127,6 +162,9 @@ private:
 
     // All the slices.
     std::vector<btree_slice_dispatching_to_master_t *> dispatchers_;
+
+    // The key value store.
+    boost::scoped_ptr<queueing_store_t> queue_store_;
 
     DISABLE_COPYING(master_t);
 };

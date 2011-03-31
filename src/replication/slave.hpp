@@ -81,6 +81,8 @@ public:
      * of contact with the master */
     failover_t failover;
 
+    void reverse_side_backfill(repli_timestamp since_when);
+
 private:
     friend class failover_t;
 

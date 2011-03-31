@@ -24,6 +24,8 @@ public:
     void backfill_handover(mutation_t *m, castime_t castime);
     void backfill_complete();
 
+    btree_key_value_store_t *inner() { return inner_; }
+
 private:
     void perhaps_flush();
     void start_flush();
