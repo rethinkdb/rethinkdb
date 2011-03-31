@@ -450,6 +450,7 @@ void linux_tcp_listener_t::accept_loop() {
         fd_t new_sock = accept(sock.get(), NULL, NULL);
 
         if (new_sock != INVALID_FD) {
+            accept_loop_cond = NULL;   // In case handle() destroys us
             coro_t::spawn_now(boost::bind(&linux_tcp_listener_t::handle, this, new_sock));
 
             /* If we backed off before, un-backoff now that the problem seems to be
@@ -467,7 +468,7 @@ void linux_tcp_listener_t::accept_loop() {
             accept_loop_cond = &c;
             event_watcher.watch(poll_event_in, &c);
             c.wait();
-            accept_loop_cond = NULL;
+            // At this point we might have been destroyed, so we cannot access member variables
 
         } else if (errno == EINTR) {
             /* Harmless error; just try again. */ 
@@ -486,7 +487,7 @@ void linux_tcp_listener_t::accept_loop() {
             accept_loop_cond = &c;
             pulse_after_time(&c, backoff_delay_ms);
             c.wait();
-            accept_loop_cond = NULL;
+            // At this point we might have been destroyed, so we cannot access member variables
 
             /* Exponentially increase backoff time */
             if (backoff_delay_ms < max_backoff_delay_ms) backoff_delay_ms *= 2;
