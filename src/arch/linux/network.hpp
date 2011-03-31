@@ -10,7 +10,7 @@
 
 /* Forward declaration to avoid circular header dependency */
 
-struct cond_t;
+struct multicond_t;
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
@@ -100,6 +100,8 @@ public:
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
 
+    /* Note that this only gets called to handle error-events. Read and write
+    events are handled through the linux_event_watcher_t. */
     void on_event(int events);
 
     void on_shutdown_read();
@@ -117,9 +119,10 @@ private:
 
     linux_event_watcher_t event_watcher;
 
-    /* If read_cond is non-NULL, it will be signalled when either there is data to be read
-    or the pipe is closed for read. Same for write_cond and writing. */
-    cond_t *read_cond, *write_cond;
+    /* These condition variables are non-NULL if there is a pending read or write.
+    on_shutdown_read() and on_shutdown_write() pulse() them to interrupt an active read
+    or write. */
+    multicond_t *read_cond, *write_cond;
 
     // True when the half of the connection has been shut down but the linux_tcp_conn_t has not
     // been deleted yet
@@ -159,10 +162,30 @@ public:
     };
 
 private:
+    // The socket to listen for connections on
     scoped_fd_t sock;
+
+    // Sentry representing our registration with event loop
+    linux_event_watcher_t event_watcher;
+
+    // The callback to call when we get a connection
     linux_tcp_listener_callback_t *callback;
-    void on_event(int events);
+
+    /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
+    new connections; when accept() blocks, then it waits for on_event() to signal
+    accept_loop_cond.
+
+    When it's time to stop accept_loop(), ~linux_tcp_listener_t() sets 
+    *shutdown_signal and then signals accept_loop_cond. */ 
+
+    void accept_loop();
+    bool *shutdown_signal;
+    multicond_t *accept_loop_cond;
     void handle(fd_t sock);
+
+    /* event_watcher sends any error conditions to here */
+    void on_event(int events);
+    bool have_logged_any_errors;
 };
 
 #endif // __ARCH_LINUX_NETWORK_HPP__

@@ -1,6 +1,6 @@
 #include "arch/linux/network.hpp"
 #include "arch/linux/thread_pool.hpp"
-#include "concurrency/cond_var.hpp"   // For promise_t
+#include "arch/timing.hpp"
 #include "logger.hpp"
 #include <fcntl.h>
 #include <errno.h>
@@ -108,14 +108,14 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 
             /* There's no data available right now, so we must wait for a notification from the
-            epoll queue */
-            cond_t cond;
+            epoll queue. The reason why this is complicated is that it can also be interrupted
+            if we get an error or shut down for some reason before the read completes. */
+            multicond_t cond;
             read_cond = &cond;
-            event_watcher.adjust(poll_event_in, poll_event_in);
+            event_watcher.watch(poll_event_in, &cond);
             cond.wait();
-
-            /* The thing that signalled us set read_cond to NULL and also deregistered
-            us for read events */
+            rassert(read_cond == &cond);
+            read_cond = NULL;
 
             if (read_was_shut_down) {
                 /* We were closed for whatever reason. Something else has already called
@@ -226,15 +226,8 @@ void linux_tcp_conn_t::on_shutdown_read() {
     rassert(!read_was_shut_down);
     read_was_shut_down = true;
 
-    // Stop watching for read events on the event loop.
-    event_watcher.adjust(poll_event_in, 0);
-
-    // Inform any readers that were waiting that the socket has been closed.
-    if (read_cond) {
-        cond_t *rc = read_cond;
-        read_cond = NULL;
-        rc->pulse();
-    }
+    // Interrupt any pending reads
+    if (read_cond) read_cond->pulse();
 }
 
 bool linux_tcp_conn_t::is_read_open() {
@@ -250,13 +243,12 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 
             /* Wait for a notification from the event queue */
-            cond_t cond;
+            multicond_t cond;
             write_cond = &cond;
-            event_watcher.adjust(poll_event_out, poll_event_out);
+            event_watcher.watch(poll_event_out, &cond);
             cond.wait();
-
-            /* The thing that signalled us set write_cond to NULL and also deregistered
-            us for write events */
+            rassert(write_cond == &cond);
+            write_cond = NULL;
 
             if (write_was_shut_down) {
                 /* We were closed for whatever reason. Whatever signalled us has already called
@@ -339,15 +331,8 @@ void linux_tcp_conn_t::on_shutdown_write() {
     rassert(!write_was_shut_down);
     write_was_shut_down = true;
 
-    // Stop listening for write events on the event loop
-    event_watcher.adjust(poll_event_out, 0);
-
-    // Inform any writers that were waiting that the socket has been closed.
-    if (write_cond) {
-        cond_t *wc = write_cond;
-        write_cond = NULL;
-        wc->pulse();
-    }
+    // Interrupt any writes that were waiting
+    if (write_cond) write_cond->pulse();
 }
 
 bool linux_tcp_conn_t::is_write_open() {
@@ -362,6 +347,9 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
 }
 
 void linux_tcp_conn_t::on_event(int events) {
+    /* This is called by linux_event_watcher_t when error events occur. Ordinary
+    poll_event_in/poll_event_out events are not sent through this function. */
+
     if ((events & poll_event_err) && (events & poll_event_hup)) {
         /* We get this when the socket is closed but there is still data we are trying to send.
         For example, it can sometimes be reproduced by sending "nonsense\r\n" and then sending
@@ -379,49 +367,20 @@ void linux_tcp_conn_t::on_event(int events) {
         logERR("Unexpected poll_event_err. Events: %d\n", events);
         if (!read_was_shut_down) shutdown_read();
         if (!write_was_shut_down) shutdown_write();
-        return;
-    }
-
-    if (events & poll_event_in) {
-
-        rassert(!read_was_shut_down);
-
-        /* Deregister for further read events */
-        event_watcher.adjust(poll_event_in, 0);
-
-        if (read_cond) {
-            cond_t *rc = read_cond;
-            read_cond = NULL;
-            rc->pulse();
-        }
-    }
-
-    if (events & poll_event_out) {
-
-        rassert(!write_was_shut_down);
-
-        /* Deregister ourself for further write events in case we're on a level-triggered system.
-        If we are on a level-triggered system and we remain registered for write events,
-        we will get a flood of write events, the CPU will spin, signals will be starved out,
-        and Bad Things will happen. */
-        event_watcher.adjust(poll_event_out, 0);
-
-        if (write_cond) {
-            cond_t *wc = write_cond;
-            write_cond = NULL;
-            wc->pulse();
-        }
     }
 }
 
 /* Network listener object */
 
-linux_tcp_listener_t::linux_tcp_listener_t(int port)
-    : callback(NULL)
+linux_tcp_listener_t::linux_tcp_listener_t(int port) :
+    sock(socket(AF_INET, SOCK_STREAM, 0)),
+    event_watcher(sock.get(), this),
+    callback(NULL),
+    shutdown_signal(NULL), accept_loop_cond(NULL),
+    have_logged_any_errors(false)
 {
     int res;
 
-    sock.reset(socket(AF_INET, SOCK_STREAM, 0));
     guarantee_err(sock.get() != INVALID_FD, "Couldn't create socket");
 
     int sockoptval = 1;
@@ -472,7 +431,63 @@ void linux_tcp_listener_t::set_callback(linux_tcp_listener_callback_t *cb) {
     rassert(cb);
     callback = cb;
 
-    linux_thread_pool_t::thread->queue.watch_resource(sock.get(), poll_event_in, this);
+    // Spawn a coroutine to wait for connections
+    coro_t::spawn_now(boost::bind(&linux_tcp_listener_t::accept_loop, this));
+}
+
+void linux_tcp_listener_t::accept_loop() {
+
+    static const int initial_backoff_delay_ms = 10;   // Milliseconds
+    static const int max_backoff_delay_ms = 640;
+    int backoff_delay_ms = initial_backoff_delay_ms;
+
+    /* linux_tcp_listener_t's destructor sets *shutdown_signal to true and pulses
+    accept_loop_cond when it wants us to break out of our loop. */
+    bool do_shutdown = false;
+    shutdown_signal = &do_shutdown;
+    while (!do_shutdown) {
+
+        fd_t new_sock = accept(sock.get(), NULL, NULL);
+
+        if (new_sock != INVALID_FD) {
+            coro_t::spawn_now(boost::bind(&linux_tcp_listener_t::handle, this, new_sock));
+
+            /* If we backed off before, un-backoff now that the problem seems to be
+            resolved. */
+            if (backoff_delay_ms > initial_backoff_delay_ms) backoff_delay_ms /= 2;
+
+        } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            /* Wait for a notification from the event loop, or for a command to shut down,
+            before continuing */
+            multicond_t c;
+            accept_loop_cond = &c;
+            event_watcher.watch(poll_event_in, &c);
+            c.wait();
+            accept_loop_cond = NULL;
+
+        } else if (errno == EINTR) {
+            /* Harmless error; just try again. */ 
+
+        } else {
+            /* Unexpected error. Log it if it's the first time. */
+            if (!have_logged_any_errors) {
+                logERR("accept() failed: %s. (Further errors from this source will be suppressed.)\n",
+                    strerror(errno));
+                have_logged_any_errors = true;
+            }
+
+            /* Delay before retrying. We use pulse_after_time() instead of nap() so that we will
+            be interrupted immediately if something wants to shut us down. */
+            multicond_t c;
+            accept_loop_cond = &c;
+            pulse_after_time(&c, backoff_delay_ms);
+            c.wait();
+            accept_loop_cond = NULL;
+
+            /* Exponentially increase backoff time */
+            if (backoff_delay_ms < max_backoff_delay_ms) backoff_delay_ms *= 2;
+        }
+    }
 }
 
 void linux_tcp_listener_t::handle(fd_t socket) {
@@ -480,50 +495,36 @@ void linux_tcp_listener_t::handle(fd_t socket) {
     callback->on_tcp_listener_accept(conn);
 }
 
-void linux_tcp_listener_t::on_event(int events) {
-    if (events != poll_event_in) {
-        logERR("Unexpected event mask: %d\n", events);
-    }
-
-    while (true) {
-        sockaddr_in client_addr;
-        socklen_t client_addr_len = sizeof(client_addr);
-        int new_sock = accept(sock.get(), (sockaddr*)&client_addr, &client_addr_len);
-
-        if (new_sock == INVALID_FD) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) break;
-            else {
-                switch (errno) {
-                    case EPROTO:
-                    case ENOPROTOOPT:
-                    case ENETDOWN:
-                    case ENONET:
-                    case ENETUNREACH:
-                    case EINTR:
-                    case EMFILE:
-                    default:
-                        // We can't do anything about failing accept, but we still
-                        // must continue processing current connections' request.
-                        // Thus, we can't bring down the server, and must ignore
-                        // the error.
-                        logERR("Cannot accept new connection: %s\n", strerror(errno));
-                        break;
-                }
-            }
-        } else {
-            coro_t::spawn_now(boost::bind(&linux_tcp_listener_t::handle, this, new_sock));
-        }
-    }
-}
-
 linux_tcp_listener_t::~linux_tcp_listener_t() {
-    int res;
 
-    if (callback) linux_thread_pool_t::thread->queue.forget_resource(sock.get(), this);
+    /* Interrupt the accept loop and wait for it to shut down */
+    if (callback) {
+        *shutdown_signal = true;
+        if (accept_loop_cond) {
+            accept_loop_cond->pulse();   // Interrupt whatever the accept loop is waiting for
+        } else {
+            /* We are being called from within the accept loop itself */
+        }
+    } else {
+        /* We never started an accept loop */
+    }
+
+    int res;
 
     res = shutdown(sock.get(), SHUT_RDWR);
     guarantee_err(res == 0, "Could not shutdown main socket");
 
     // scoped_fd_t destructor will close() the socket
+}
+
+void linux_tcp_listener_t::on_event(int events) {
+
+    /* This is only called in cases of error; normal input events are recieved
+    via event_listener.watch(). */
+
+    if (!have_logged_any_errors) {
+        logERR("poll()/epoll() sent linux_tcp_listener_t errors: %d.\n", events);
+        have_logged_any_errors = true;
+    }
 }
 

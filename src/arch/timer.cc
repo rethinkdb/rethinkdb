@@ -4,6 +4,8 @@
 #include "arch/linux/event_queue.hpp"
 #include "arch/timer.hpp"
 #include "logger.hpp"
+#include "arch/arch.hpp"
+#include "concurrency/cond_var.hpp"
 
 /* Timer token */
 struct timer_token_t :
@@ -96,4 +98,3 @@ timer_token_t *timer_handler_t::add_timer_internal(long ms, void (*callback)(voi
 void timer_handler_t::cancel_timer(timer_token_t *timer) {
     timer->deleted = true;
 }
-

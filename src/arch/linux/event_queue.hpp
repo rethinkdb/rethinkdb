@@ -51,38 +51,36 @@ typedef epoll_event_queue_t linux_event_queue_t;
 
 #endif
 
-/*
-linux_event_watcher_t is a sentry object representing registration with the
-event queue.
+/* linux_event_watcher_t can be used to wait for read and write events in the
+event queue. Construct one with an FD. Then call wait() with a multicond_t
+to cause the multicond_t to be pulsed when some event happens.
 
-At any time it may or may not be watching writes and may or may not be
-watching reads. This is represented by its "mask", which is some bitwise
-combination of poll_event_in and poll_event_out.
+If the event loop produces a poll_event_{err,hup,rdhup}, then the provided
+error handler will be called. The provided error handler must cancel any
+outstanding 
 
-If it is registered for either one of writes and reads, then you also may get
-poll_event_err, poll_event_hup, and poll_event_rdhup.
+You can wait for read and write events concurrently, but not on two separate
+threads. */
 
-The callback will be called on the thread that you last called adjust() on.
-It is illegal to call adjust() on a thread other than the one you last called
-adjust() on unless you are registered for neither writes nor reads.
-*/
+struct linux_event_watcher_guts_t;   // Forward declared due to circular dependency with multicond_t
+struct multicond_t;
 
 struct linux_event_watcher_t {
 
-    linux_event_watcher_t(fd_t, linux_event_callback_t*);   // Constructor initially sets mask to 0
+    linux_event_watcher_t(fd_t, linux_event_callback_t *error_handler);
     ~linux_event_watcher_t();
 
-    // new_mask = (old_mask & ~what_to_change) | what_to_change_it_to;
-    // (what_to_change_it_to & ~what_to_change) must be 0
-    void adjust(int what_to_change, int what_to_change_it_to);
-
-    void assert_thread();
+    /* watch()'s first parameter should be poll_event_in or poll_event_out. The
+    second parameter is a multicond_t that will be signalled when that type of
+    event is recieved. If the multicond_t is signalled before that type of event
+    is recieved, then the linux_event_watcher_t will stop waiting for that
+    type of event. */
+    void watch(int event, multicond_t *mc);
 
 private:
-    fd_t fd;
-    linux_event_callback_t *cb;
-    int mask;
-    int registration_thread;
+    /* The guts are a separate object so that if one of the callbacks we call destroys us,
+    we don't have to destroy the guts immediately. */
+    linux_event_watcher_guts_t *guts;
     DISABLE_COPYING(linux_event_watcher_t);
 };
 

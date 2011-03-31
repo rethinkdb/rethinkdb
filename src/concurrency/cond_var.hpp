@@ -76,6 +76,59 @@ private:
     DISABLE_COPYING(cond_t);
 };
 
+/* A multicond_t is a condition variable that more than one thing can wait for. */
+
+struct multicond_t {
+    multicond_t() : ready(false) { }
+
+    struct waiter_t : public intrusive_list_node_t<waiter_t> {
+        virtual void on_multicond_pulsed() = 0;
+    };
+
+    /* pulse() and wait() act just like they do in cond_t */
+    void pulse() {
+        rassert(!ready);
+        ready = true;
+        while (waiter_t *w = waiters.head()) {
+            waiters.remove(w);
+            w->on_multicond_pulsed();
+        }
+    }
+    void wait() {
+        if (!ready) {
+            struct coro_waiter_t : public waiter_t {
+                coro_t *to_wake;
+                void on_multicond_pulsed() { to_wake->notify(); }
+            } waiter;
+            waiter.to_wake = coro_t::self();
+            add_waiter(&waiter);
+            coro_t::wait();
+        }
+    }
+
+    /* One major use case for a multicond_t is to wait for one of several different
+    events, where all but the event that actually happened need to be cancelled. For example,
+    you might wait for some event, but also have a timeout. If the event happens before the
+    timeout happens, then the timeout timer must be cancelled. waiter_t is an alternative
+    to wait() that is designed to be used by things that will signal a multicond_t, but also
+    need to be notified if something else signals the multicond first. */
+    void add_waiter(waiter_t *w) {
+        if (ready) {
+            w->on_multicond_pulsed();
+        } else {
+            waiters.push_back(w);
+        }
+    }
+    void remove_waiter(waiter_t *w) {
+        rassert(!ready);
+        waiters.remove(w);
+    }
+
+private:
+    bool ready;
+    intrusive_list_t<waiter_t> waiters;
+};
+
 /* A threadsafe_cond_t is a thread-safe condition variable. It's like cond_t except it can be
 used with multiple coroutines on different threads. */
 

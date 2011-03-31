@@ -82,13 +82,13 @@ private:
         acquiring_coro_t acq_coro(acquiring_txor, already_acquired_block->get_block_id(), acquire_mode);
 
         coro_t::spawn(boost::bind(&acquiring_coro_t::run, &acq_coro));
-        coro_t::nap(500);
+        nap(500);
         blocked = !acq_coro.signaled;
 
         if (do_release) {
             already_acquired_block->release();
             if (blocked) {
-                coro_t::nap(500);
+                nap(500);
                 rassert(acq_coro.signaled, "Buf release must have unblocked the coroutine trying to acquire the buf. May be a bug in the test.");
             }
         }
