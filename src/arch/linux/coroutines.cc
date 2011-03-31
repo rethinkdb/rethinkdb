@@ -8,6 +8,8 @@
 #include <ucontext.h>
 #include <arch/arch.hpp>
 
+#include "utils.hpp"
+
 #ifdef VALGRIND
 #include <valgrind/valgrind.h>
 #endif
@@ -214,6 +216,7 @@ coro_context_t::~coro_context_t() {
 coro_t::coro_t(const boost::function<void()>& deed, int thread) :
     deed_(deed),
     current_thread_(thread),
+    original_free_contexts_thread_(thread),
     notified_(false),
     waiting_(true)
 {
@@ -230,9 +233,13 @@ coro_t::coro_t(const boost::function<void()>& deed, int thread) :
     }
 }
 
-coro_t::~coro_t() {
-    /* Return the context to the free-contexts list */
+void return_context_to_free_contexts(coro_context_t *context) {
     free_contexts->push_back(context);
+}
+
+coro_t::~coro_t() {
+    /* Return the context to the free-contexts list we took it from. */
+    do_on_thread(original_free_contexts_thread_, boost::bind(return_context_to_free_contexts, context));
 
     pm_active_coroutines--;
 }

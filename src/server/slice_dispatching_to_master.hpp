@@ -11,7 +11,9 @@ class backfill_callback_t;
 class btree_slice_dispatching_to_master_t : public set_store_t {
 public:
     btree_slice_dispatching_to_master_t(btree_slice_t *slice, snag_ptr_t<replication::master_t>& master);
-    ~btree_slice_dispatching_to_master_t() { }
+    ~btree_slice_dispatching_to_master_t() {
+        debugf("Destroying a btree_slice_dispatching_to_master_t.\n");
+    }
 
     /* set_store_t interface. */
 

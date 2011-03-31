@@ -48,6 +48,9 @@ template <> struct stream_type<net_backfill_set_t> { typedef stream_pair<net_bac
 
 template <class T> size_t objsize(UNUSED const T *buf) { return sizeof(T); }
 template <> size_t objsize<net_get_cas_t>(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
+template <> size_t objsize<net_incr_t>(const net_incr_t *buf) { return sizeof(net_incr_t) + buf->key_size; }
+template <> size_t objsize<net_decr_t>(const net_decr_t *buf) { return sizeof(net_decr_t) + buf->key_size; }
+template <> size_t objsize<net_delete_t>(const net_delete_t *buf) { return sizeof(net_delete_t) + buf->key_size; }
 template <> size_t objsize<net_sarc_t>(const net_sarc_t *buf) { return sizeof(net_sarc_t) + buf->key_size + buf->value_size; }
 template <> size_t objsize<net_append_t>(const net_append_t *buf) { return sizeof(net_append_t) + buf->key_size + buf->value_size; }
 template <> size_t objsize<net_prepend_t>(const net_prepend_t *buf) { return sizeof(net_prepend_t) + buf->key_size + buf->value_size; }

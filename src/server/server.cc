@@ -289,3 +289,29 @@ struct shutdown_control_t : public control_t
 
 shutdown_control_t shutdown_control(std::string("shutdown"));
 
+struct malloc_control_t : public control_t {
+    malloc_control_t(std::string key)
+        : control_t(key, "tcmalloc-testing control.") { }
+
+    std::string call(UNUSED int argc, UNUSED char **argv) {
+        std::vector<void *> ptrs;
+        ptrs.reserve(100000);
+        std::string ret("HundredThousandComplete\r\n");
+        for (int i = 0; i < 100000; ++i) {
+            void *ptr;
+            int res = posix_memalign(&ptr, 4096, 131072);
+            if (res != 0) {
+                ret = strprintf("Failed at i = %d\r\n", i);
+                break;
+            }
+        }
+
+        for (int j = 0; j < int(ptrs.size()); ++j) {
+            free(ptrs[j]);
+        }
+
+        return ret;
+    }
+};
+
+malloc_control_t malloc_control("malloc_control");

@@ -66,6 +66,7 @@ private:
     virtual void on_thread_switch();
 
     int current_thread_;
+    int original_free_contexts_thread_;
 
     // Sanity check variables
     bool notified_;
