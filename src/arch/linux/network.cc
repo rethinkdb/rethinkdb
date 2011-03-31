@@ -438,7 +438,7 @@ void linux_tcp_listener_t::set_callback(linux_tcp_listener_callback_t *cb) {
 void linux_tcp_listener_t::accept_loop() {
 
     static const int initial_backoff_delay_ms = 10;   // Milliseconds
-    static const int max_backoff_delay_ms = 640;
+    static const int max_backoff_delay_ms = 160;
     int backoff_delay_ms = initial_backoff_delay_ms;
 
     /* linux_tcp_listener_t's destructor sets *shutdown_signal to true and pulses
