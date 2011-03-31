@@ -37,7 +37,7 @@ TAGS:=.tags
 CSCOPE_XREF:=.cscope
 RUN_PORT?=11211
 RUN_FLAGS?=-s 3 -c 2 -m 10
-VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes
+VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes --suppressions=../scripts/rethinkdb-valgrind-suppressions.supp
 CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
 
 # Set SYMBOLS to 1 to enable symbols, even in release mode
