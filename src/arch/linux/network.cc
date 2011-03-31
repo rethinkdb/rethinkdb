@@ -11,17 +11,10 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-/* Actual definition of bool_promise_t */
-
-struct bool_promise_t : public promise_t<bool> {
-};
-
 /* Network connection object */
 
-linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
-    : registration_thread(-1),
-      read_cond(NULL), write_cond(NULL),
-      read_was_shut_down(false), write_was_shut_down(false) {
+static fd_t connect_to(const char *host, int port) {
+
     struct addrinfo *res;
 
     /* make a sacrifice to the elders honor by converting port to a string, why
@@ -36,33 +29,39 @@ linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
         logERR("Failed to look up address %s:%d.\n", host, port);
         goto ERROR_BREAKOUT;
     }
-    if (sock.reset(socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
-        logERR("Failed to create a socket\n");
-        goto ERROR_BREAKOUT;
-    }
-    if (connect(sock.get(), res->ai_addr, res->ai_addrlen) != 0) {
-        /* for some reason the connection failed */
-        logERR("Failed to make a connection with error: %s\n", strerror(errno));
-        goto ERROR_BREAKOUT;
-    }
 
-    guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
+    {
+        scoped_fd_t sock(socket(res->ai_family, res->ai_socktype, res->ai_protocol));
+        if (sock.get() == INVALID_FD) {
+            logERR("Failed to create a socket\n");
+            goto ERROR_BREAKOUT;
+        }
+        if (connect(sock.get(), res->ai_addr, res->ai_addrlen) != 0) {
+            /* for some reason the connection failed */
+            logERR("Failed to make a connection with error: %s\n", strerror(errno));
+            goto ERROR_BREAKOUT;
+        }
 
-    freeaddrinfo(res);
-    return;
+        guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
+
+        freeaddrinfo(res);
+        return sock.release();
+    }
 
 ERROR_BREAKOUT:
     freeaddrinfo(res);
-    throw connect_failed_exc_t();
+    throw linux_tcp_conn_t::connect_failed_exc_t();
 }
 
-linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
-    : registration_thread(-1),
+linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
+    : sock(connect_to(host, port)), event_watcher(sock.get(), this),
       read_cond(NULL), write_cond(NULL),
-      read_was_shut_down(false), write_was_shut_down(false) {
+      read_was_shut_down(false), write_was_shut_down(false)
+    { }
 
-    // TODO: This version of linux_tcp_conn_t() should go away
+static fd_t connect_to(const ip_address_t &host, int port) {
 
+    scoped_fd_t sock;
     sock.reset(socket(AF_INET, SOCK_STREAM, 0));
 
     struct sockaddr_in addr;
@@ -74,15 +73,22 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
     if (connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0) {
         /* for some reason the connection failed */
         logINF("Failed to make a connection with error: %s\n", strerror(errno));
-        throw connect_failed_exc_t();
+        throw linux_tcp_conn_t::connect_failed_exc_t();
     }
 
     guarantee_err(fcntl(sock.get(), F_SETFL, O_NONBLOCK) == 0, "Could not make socket non-blocking");
+
+    return sock.release();
 }
 
+linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
+    : sock(connect_to(host, port)), event_watcher(sock.get(), this),
+      read_cond(NULL), write_cond(NULL),
+      read_was_shut_down(false), write_was_shut_down(false)
+    { }
+
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
-    sock(s),
-    registration_thread(-1),
+    sock(s), event_watcher(sock.get(), this),
     read_cond(NULL), write_cond(NULL),
     read_was_shut_down(false), write_was_shut_down(false)
 {
@@ -92,58 +98,46 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     guarantee_err(res == 0, "Could not make socket non-blocking");
 }
 
-void linux_tcp_conn_t::register_with_event_loop() {
-    /* Register ourself to receive notifications from the event loop if we have not
-    already done so. We won't get any calls to on_event() until we do this. We can't
-    do this at startup because once we're registered on one thread we can't re-register
-    on a different thread, but the thread that the user wants to use us on might not be
-    the thread we were created on. So we call register_with_event_loop() before every
-    read_* or write_* function, and that locks us in to the thread that the first call
-    to read_* or write_* was on. */
-
-    if (registration_thread == -1) {
-        registration_thread = linux_thread_pool_t::thread_id;
-        linux_thread_pool_t::thread->queue.watch_resource(sock.get(), poll_event_in, this);
-
-    } else if (registration_thread != linux_thread_pool_t::thread_id) {
-        guarantee(registration_thread == linux_thread_pool_t::thread_id,
-            "Must always use a tcp_conn_t on the same thread.");
-    }
-}
-
 size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
     rassert(!read_was_shut_down);
+    rassert(!read_cond);   // Is there a read already in progress?
 
     while (true) {
         ssize_t res = ::read(sock.get(), buffer, size);
-        if (read_was_shut_down) {
-            throw read_closed_exc_t();
-        } else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+
+        if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+
             /* There's no data available right now, so we must wait for a notification from the
             epoll queue */
-            bool_promise_t cond;
+            cond_t cond;
             read_cond = &cond;
-            bool ok = cond.wait();
-            read_cond = NULL;
-            if (ok) {
-                /* We got a notification from the epoll queue; go around the loop again and try to
-                read again */
-            } else {
-                /* We were closed for whatever reason. Whatever signalled us has already called
-                on_shutdown_read(). */
+            event_watcher.adjust(poll_event_in, poll_event_in);
+            cond.wait();
+
+            /* The thing that signalled us set read_cond to NULL and also deregistered
+            us for read events */
+
+            if (read_was_shut_down) {
+                /* We were closed for whatever reason. Something else has already called
+                on_shutdown_read(). In fact, we were probably signalled by on_shutdown_read(). */
                 throw read_closed_exc_t();
             }
+
+            /* Go around the loop and try to read again */
+
         } else if (res == 0 || (res == -1 && (errno == ECONNRESET || errno == ENOTCONN))) {
             /* We were closed. This is the first notification that the kernel has given us, so we
             must call on_shutdown_read(). */
             on_shutdown_read();
             throw read_closed_exc_t();
+
         } else if (res == -1) {
             /* Unknown error. This is not expected, but it will probably happen sometime so we
             shouldn't crash. */
             logERR("Could not read from socket: %s\n", strerror(errno));
             on_shutdown_read();
             throw read_closed_exc_t();
+
         } else {
             /* We read some data, whooo */
             return res;
@@ -152,24 +146,25 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 }
 
 size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
-    // First, consume any data in the peek buffer.
-    size_t read_buffer_bytes = std::min(read_buffer.size(), size);
-    memcpy(buf, read_buffer.data(), read_buffer_bytes);
-    read_buffer.erase(read_buffer.begin(), read_buffer.begin() + read_buffer_bytes);
 
-    // Now go to the kernel _once_.
-    char *remaining_buf = reinterpret_cast<char *>(buf) + read_buffer_bytes;
-    size_t remaining_size = size - read_buffer_bytes;
-    if (remaining_size > 0) {
-        size_t delta = read_internal(remaining_buf, remaining_size);
-        return read_buffer_bytes + delta;
-    } else {
+    rassert(size > 0);
+    rassert(!read_cond);
+    if (read_was_shut_down) throw read_closed_exc_t();
+
+    if (read_buffer.size()) {
+        /* Return the data from the peek buffer */
+        size_t read_buffer_bytes = std::min(read_buffer.size(), size);
+        memcpy(buf, read_buffer.data(), read_buffer_bytes);
+        read_buffer.erase(read_buffer.begin(), read_buffer.begin() + read_buffer_bytes);
         return read_buffer_bytes;
+    } else {
+        /* Go to the kernel _once_. */
+        return read_internal(buf, size);
     }
 }
 
 void linux_tcp_conn_t::read(void *buf, size_t size) {
-    register_with_event_loop();
+
     rassert(!read_cond);   // Is there a read already in progress?
     if (read_was_shut_down) throw read_closed_exc_t();
 
@@ -190,9 +185,7 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::read_more_buffered() {
-    /* Put ourselves into the epoll object so that we will receive notifications when we need them.
-    See the note in register_with_event_loop() if this doesn't make sense. */
-    register_with_event_loop();
+
     rassert(!read_cond);
     if (read_was_shut_down) throw read_closed_exc_t();
 
@@ -204,11 +197,18 @@ void linux_tcp_conn_t::read_more_buffered() {
 }
 
 const_charslice linux_tcp_conn_t::peek() const {
+
+    rassert(!read_cond);   // Is there a read already in progress?
+    if (read_was_shut_down) throw read_closed_exc_t();
+
     return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
 }
 
 void linux_tcp_conn_t::pop(size_t len) {
+
     rassert(!read_cond);
+    if (read_was_shut_down) throw read_closed_exc_t();
+
     rassert(len <= read_buffer.size());
     read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
 }
@@ -226,21 +226,14 @@ void linux_tcp_conn_t::on_shutdown_read() {
     rassert(!read_was_shut_down);
     read_was_shut_down = true;
 
-    // Deregister ourself with the event loop. If the write half of the connection
-    // is still open, the make sure we stay registered for write.
-    if (registration_thread != -1) {
-        rassert(registration_thread == linux_thread_pool_t::thread_id);
-        if (write_was_shut_down) {
-            linux_thread_pool_t::thread->queue.forget_resource(sock.get(), this);
-        } else {
-            linux_thread_pool_t::thread->queue.adjust_resource(sock.get(), poll_event_out, this);
-        }
-    }
+    // Stop watching for read events on the event loop.
+    event_watcher.adjust(poll_event_in, 0);
 
     // Inform any readers that were waiting that the socket has been closed.
     if (read_cond) {
-        read_cond->pulse(false);
+        cond_t *rc = read_cond;
         read_cond = NULL;
+        rc->pulse();
     }
 }
 
@@ -253,48 +246,46 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
 
     while (size > 0) {
         int res = ::write(sock.get(), buf, size);
+
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            /* There's no space for our data right now, so we must
-             * wait for a notification from the epoll queue. We need
-             * to register ourselves so we'll get called on_event()
-             * when we're readable again. We can't do this during
-             * construction because on level-triggered systems
-             * on_event will spin the cpu, and starve out
-             * signals. Plenty of legacy systems do this, and I had to
-             * work this weekend to fix this because whoever
-             * refactored this last time fucked over customers with
-             * legacy systems. Please don't do this again. */
-            linux_thread_pool_t::thread->queue.adjust_resource(sock.get(), poll_event_in|poll_event_out, this);
-            bool_promise_t cond;
+
+            /* Wait for a notification from the event queue */
+            cond_t cond;
             write_cond = &cond;
-            bool ok = cond.wait();
-            write_cond = NULL;
-            if (ok) {
-                linux_thread_pool_t::thread->queue.adjust_resource(sock.get(), poll_event_in, this);
-                /* We got a notification from the epoll queue; go around the loop again and try to
-                   write again */
-            } else {
+            event_watcher.adjust(poll_event_out, poll_event_out);
+            cond.wait();
+
+            /* The thing that signalled us set write_cond to NULL and also deregistered
+            us for write events */
+
+            if (write_was_shut_down) {
                 /* We were closed for whatever reason. Whatever signalled us has already called
                    on_shutdown_write(). */
                 throw write_closed_exc_t();
             }
+
+            /* Go around the loop and try to read again */
+
         } else if (res == -1 && (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
                                  errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
             /* These errors are expected to happen at some point in practice */
             on_shutdown_write();
             throw write_closed_exc_t();
+
         } else if (res == -1) {
             /* In theory this should never happen, but it probably will. So we write a log message
                and then shut down normally. */
             logERR("Could not write to socket: %s\n", strerror(errno));
             on_shutdown_write();
             throw write_closed_exc_t();
+
         } else if (res == 0) {
             /* This should never happen either, but it's better to write an error message than to
                crash completely. */
             logERR("Didn't expect write() to return 0.\n");
             on_shutdown_write();
             throw write_closed_exc_t();
+
         } else {
             rassert(res <= (int)size);
             buf = reinterpret_cast<const void *>(reinterpret_cast<const char *>(buf) + res);
@@ -304,7 +295,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::write(const void *buf, size_t size) {
-    register_with_event_loop();
+
     rassert(!write_cond);
     if (write_was_shut_down) throw write_closed_exc_t();
 
@@ -316,7 +307,7 @@ void linux_tcp_conn_t::write(const void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
-    register_with_event_loop();
+
     rassert(!write_cond);
     if (write_was_shut_down) throw write_closed_exc_t();
 
@@ -327,7 +318,7 @@ void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
 }
 
 void linux_tcp_conn_t::flush_buffer() {
-    register_with_event_loop();
+
     rassert(!write_cond);
     if (write_was_shut_down) throw write_closed_exc_t();
 
@@ -348,21 +339,14 @@ void linux_tcp_conn_t::on_shutdown_write() {
     rassert(!write_was_shut_down);
     write_was_shut_down = true;
 
-    // Deregister ourself with the event loop. If the read half of the connection
-    // is still open, the make sure we stay registered for read.
-    if (registration_thread != -1) {
-        rassert(registration_thread == linux_thread_pool_t::thread_id);
-        if (read_was_shut_down) {
-            linux_thread_pool_t::thread->queue.forget_resource(sock.get(), this);
-        } else {
-            linux_thread_pool_t::thread->queue.adjust_resource(sock.get(), poll_event_in, this);
-        }
-    }
+    // Stop listening for write events on the event loop
+    event_watcher.adjust(poll_event_out, 0);
 
     // Inform any writers that were waiting that the socket has been closed.
     if (write_cond) {
-        write_cond->pulse(false);
+        cond_t *wc = write_cond;
         write_cond = NULL;
+        wc->pulse();
     }
 }
 
@@ -399,18 +383,33 @@ void linux_tcp_conn_t::on_event(int events) {
     }
 
     if (events & poll_event_in) {
+
         rassert(!read_was_shut_down);
+
+        /* Deregister for further read events */
+        event_watcher.adjust(poll_event_in, 0);
+
         if (read_cond) {
-            read_cond->pulse(true);
+            cond_t *rc = read_cond;
             read_cond = NULL;
+            rc->pulse();
         }
     }
 
     if (events & poll_event_out) {
+
         rassert(!write_was_shut_down);
+
+        /* Deregister ourself for further write events in case we're on a level-triggered system.
+        If we are on a level-triggered system and we remain registered for write events,
+        we will get a flood of write events, the CPU will spin, signals will be starved out,
+        and Bad Things will happen. */
+        event_watcher.adjust(poll_event_out, 0);
+
         if (write_cond) {
-            write_cond->pulse(true);
+            cond_t *wc = write_cond;
             write_cond = NULL;
+            wc->pulse();
         }
     }
 }

@@ -8,12 +8,9 @@
 #include "arch/linux/event_queue.hpp"
 #include "arch/address.hpp"
 
-/* This is a pretty terrible hack; bool_promise_t is basically equivalent to promise_t<bool>, but
-we do it this way so we don't have to #include "concurrency/cond_var.hpp" (which would create an
-include loop) or forward-declare promise_t (which sucks because it's a template with an optional
-parameter.) */
+/* Forward declaration to avoid circular header dependency */
 
-struct bool_promise_t;
+struct cond_t;
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
@@ -29,6 +26,7 @@ public:
         }
     };
 
+    /* TODO: One of these forms should be replaced by the other. */
     linux_tcp_conn_t(const char *host, int port);
     linux_tcp_conn_t(const ip_address_t &host, int port);
 
@@ -47,7 +45,8 @@ public:
     // If you don't know how many bytes you want to read, but still
     // masochistically want to handle buffering yourself.  Makes at
     // most one call to ::read(), reads some data or throws
-    // read_closed_exc_t.
+    // read_closed_exc_t. read_some() is guaranteed to return at least
+    // one byte of data unless it throws read_closed_exc_t.
     size_t read_some(void *buf, size_t size);
 
     // If you don't know how many bytes you want to read, use peek()
@@ -100,7 +99,6 @@ public:
 
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
-    void register_with_event_loop();
 
     void on_event(int events);
 
@@ -117,13 +115,11 @@ private:
 
     scoped_fd_t sock;
 
-    /* Before we are being watched by any event loop, registration_thread is -1. Once an
-    event loop is watching us, registration_thread is its ID. */
-    int registration_thread;
+    linux_event_watcher_t event_watcher;
 
-    /* If read_cond is non-NULL, it will be signalled with true if there is data on the read end
-    and with false if the read end is closed. Same with write_cond and writing. */
-    bool_promise_t *read_cond, *write_cond;
+    /* If read_cond is non-NULL, it will be signalled when either there is data to be read
+    or the pipe is closed for read. Same for write_cond and writing. */
+    cond_t *read_cond, *write_cond;
 
     // True when the half of the connection has been shut down but the linux_tcp_conn_t has not
     // been deleted yet

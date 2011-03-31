@@ -25,6 +25,13 @@ private:
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     int nevents;
 
+#ifndef NDEBUG
+    /* In debug mode, check to make sure epoll() doesn't give us events that
+    we didn't ask for. The ints stored here are combinations of poll_event_in
+    and poll_event_out. */
+    std::map<linux_event_callback_t*, int> events_requested;
+#endif
+
 public:
     // These should only be called by the event queue itself or by the
     // linux_* classes
