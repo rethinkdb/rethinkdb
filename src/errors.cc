@@ -146,7 +146,9 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
     fprintf(stderr, "\n");
     va_end(args);
 
-#ifndef NDEBUG
+    /* Don't print backtraces in valgrind mode because valgrind issues lots of spurious
+    warnings when print_backtrace() is run. */
+#if !defined(NDEBUG) && !defined(VALGRIND)
     fprintf(stderr, "\nBacktrace:\n");
     print_backtrace();
 #endif
