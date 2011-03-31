@@ -1,4 +1,4 @@
-#ifdef LEGACY_LINUX
+#if defined(LEGACY_LINUX) && !defined(NO_EVENTFD)
 
 // Wrappers for eventfd(), since CentOS backported the system
 // calls but not the libc wrappers.
