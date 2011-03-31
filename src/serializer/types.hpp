@@ -21,7 +21,7 @@ struct ser_block_id_t {
     inline bool operator<(ser_block_id_t other) const { return value < other.value; }
 
     static inline ser_block_id_t make(number_t num) {
-        assert(num != number_t(-1));
+        assert(num != ser_block_id_t::null().value);
         ser_block_id_t ret;
         ret.value = num;
         return ret;
@@ -29,7 +29,7 @@ struct ser_block_id_t {
 
     static inline ser_block_id_t null() {
         ser_block_id_t ret;
-        ret.value = uint32_t(-1);
+        ret.value = 0xFFFFFFFF;
         return ret;
     }
 };
