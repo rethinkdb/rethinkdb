@@ -212,7 +212,7 @@ void mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool create_co
     //   inner_version <= snapshot_txn->version_id < new_version
     // can see the current version of inner_buf->data, so we need to make some snapshots for them
     size_t num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
-    size_t refcount = num_snapshots_affected + static_cast<size_t>(cow_will_be_needed);
+    size_t refcount = num_snapshots_affected + (cow_will_be_needed ? 1 : 0);
     if (refcount > 0) {
         snapshots.push_front(buf_snapshot_info_t(data, version_id, refcount));
         cow_will_be_needed = false;
