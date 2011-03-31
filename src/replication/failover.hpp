@@ -1,16 +1,18 @@
 #ifndef __FAILOVER_HPP__
 #define __FAILOVER_HPP__
 
+#include <string>
+
 #include "containers/intrusive_list.hpp"
 #include "utils.hpp"
 
 class failover_t;
 
-/* base class for failover callbacks: 
+/* base class for failover callbacks:
  * To make something react to failover derive from this class and then add it
  * to a failover_t with failover_t::add_callback.
  */
-class failover_callback_t : 
+class failover_callback_t :
     public intrusive_list_node_t<failover_callback_t>
 {
 public:
@@ -23,7 +25,7 @@ private:
      * of one another in some sense of the word */
     virtual void on_failure() = 0;
     virtual void on_resume() = 0;
-private:
+
     failover_t *parent;
 };
 
@@ -37,7 +39,7 @@ public:
     void on_failure();
     void on_resume();
 private:
-    char *script_path;
+    std::string script_path;
 };
 
 /* Failover module:
