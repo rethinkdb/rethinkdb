@@ -628,7 +628,7 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
             server = Server(opts, extra_flags=extra_flags + ["--master", "%d" % repli_port], test_dir=test_dir)
             server.start()
             
-            repli_server = Server(opts, extra_flags=extra_flags + ["--slave-of", "%d" % repli_port], test_dir=test_dir)
+            repli_server = Server(opts, extra_flags=extra_flags + ["--slave-of", "localhost:%d" % repli_port], test_dir=test_dir)
             repli_server.start()
 
             stat_checker = start_stats(opts, server.port)
