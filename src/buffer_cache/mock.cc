@@ -98,6 +98,10 @@ bool mock_buf_t::is_dirty() {
     return dirty;
 }
 
+bool mock_buf_t::is_deleted() {
+    return deleted;
+}
+
 mock_buf_t::mock_buf_t(internal_buf_t *internal_buf, access_t access)
     : internal_buf(internal_buf), access(access), dirty(false), deleted(false) {
 }

@@ -36,8 +36,10 @@ void _logf(const char *src_file, int src_line, log_level_t level, const char *fo
         fn(args);                                                           \
         debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
     } while (0)
+#define TRACEPOINT debugf("%s:%u reached\n", __FILE__, __LINE__)
 #else
 #define log_call(fn, args...) fn(args)
+// TRACEPOINT is not defined in release, so that TRACEPOINTS do not linger in the code unnecessarily
 #endif
 
 // Log a message in pieces.

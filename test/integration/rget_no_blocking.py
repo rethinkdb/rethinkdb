@@ -103,7 +103,6 @@ def test_function(opts, port, test_dir):
     res = get_results(s)
     if len(res) != rget_keys:
         raise ValueError("received unexpected number of results from rget (expected %d, got %d)" % (rget_keys, len(res)))
-    print res[updated_key_id]
     if res[updated_key_id]['value'] != orig_value:
         raise ValueError("rget results are not consistent (update changed the contents of a part of running rget query)")
     s.close()
@@ -117,5 +116,8 @@ def test_function(opts, port, test_dir):
 
 if __name__ == "__main__":
     op = make_option_parser()
-    auto_server_test_main(test_function, op.parse(sys.argv), timeout = 90)
+    opts = op.parse(sys.argv)
+    if opts["auto"]:
+        opts["mode"] = 'debug-mockcache'
+    auto_server_test_main(test_function, opts, timeout = 90)
 
