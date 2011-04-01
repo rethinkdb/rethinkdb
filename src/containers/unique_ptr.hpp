@@ -6,7 +6,7 @@
 /* We can't use C++0x's real unique pointer because we have to support GCC 4.1, so instead we have
 this hack. It's like an auto_ptr, but with two differences:
  - Instead of NULLing itself when it loses ownership, it sets a bit that indicates it's no longer
-   valid. That makes it impossible to accidentally use it after losing ownership.
+   valid. That makes it impossible to accidentally use it after losing ownership (in debug mode).
  - It cheats on const-ness. It has a copy constructor that takes a (const unique_ptr_t &) but then
    modifies it.
 */
