@@ -230,18 +230,16 @@ void master_t::do_backfill(repli_timestamp since_when) {
     // properly implement the shutting down of master.)
 
     snag_ptr_t<master_t> tmp_hold(this);
-    assert_thread();
-
-    int n = dispatchers_.size();
-
-    do_backfill_cb cb(n, home_thread, &stream_);
-
-    for (int i = 0; i < n; ++i) {
-        dispatchers_[i]->spawn_backfill(since_when, &cb);
-    }
-
-    repli_timestamp minimum_timestamp = cb.wait();
     if (stream_) {
+        assert_thread();
+
+        do_backfill_cb cb(home_thread, &stream_);
+
+        for (int i = 0, n = dispatchers_.size(); i < n; ++i) {
+            dispatchers_[i]->spawn_backfill(since_when, &cb);
+        }
+
+        repli_timestamp minimum_timestamp = cb.wait();
         net_backfill_complete_t msg;
         msg.time_barrier_timestamp = minimum_timestamp;
         stream_->send(&msg);

@@ -20,6 +20,7 @@ struct backfill_atom_t {
 // done_deletion_keys, then send on_keyvalues, then send done().
 class backfill_callback_t : public replication::deletion_key_stream_receiver_t {
 public:
+    virtual void add_dual_backfiller_hold() = 0;
     virtual void on_keyvalue(backfill_atom_t atom) = 0;
     virtual void done(repli_timestamp oper_start_timestamp) = 0;
 protected:

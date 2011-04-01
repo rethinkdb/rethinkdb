@@ -89,5 +89,7 @@ void btree_slice_dispatching_to_master_t::nop_back_on_masters_thread(repli_times
 }
 
 void btree_slice_dispatching_to_master_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+    // TODO: Maybe create some kind of token system instead of calling done(), idk.
+    callback->add_dual_backfiller_hold();
     coro_t::spawn_on_thread(slice_->home_thread, boost::bind(&btree_slice_t::backfill, slice_, since_when, callback));
 }

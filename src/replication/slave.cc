@@ -289,8 +289,7 @@ void slave_t::reverse_side_backfill(repli_timestamp since_when) {
 
     debugf("Doing reverse_side_backfill.\n");
 
-    // TODO: Have it pass n_slices gradually, implicitly.
-    do_backfill_cb cb(internal_store_->inner()->btree_static_config.n_slices, home_thread, &stream_);
+    do_backfill_cb cb(home_thread, &stream_);
 
     internal_store_->inner()->spawn_backfill(since_when, &cb);
 

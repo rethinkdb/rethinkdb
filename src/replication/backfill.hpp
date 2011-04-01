@@ -14,7 +14,14 @@ class do_backfill_cb : public backfill_callback_t {
     repli_timestamp minimum_timestamp;
 
 public:
-    do_backfill_cb(int num_dispatchers, int _home_thread, repli_stream_t **_stream) : count(2 * num_dispatchers), home_thread(_home_thread), stream(_stream), minimum_timestamp(repli_timestamp::invalid /* this is greater than all other timestamps. */) { }
+    // We start count at 1, and correspondingly decrement it in wait().
+    do_backfill_cb(int _home_thread, repli_stream_t **_stream) : count(1), home_thread(_home_thread), stream(_stream), minimum_timestamp(repli_timestamp::invalid /* this is greater than all other timestamps. */) { }
+
+    void add_dual_backfiller_hold() {
+        rassert(get_thread_id() == home_thread);
+        // We decrement count twice: once upon done_deletion_keys and once upon done.
+        count += 2;
+    }
 
     // TODO: Make this take a btree_key which is more accurate a description of the interface.
     void deletion_key(const store_key_t *key) {
@@ -36,7 +43,7 @@ public:
 
 
     void done_deletion_keys() {
-        coro_t::spawn_on_thread(home_thread, boost::bind(&do_backfill_cb::do_done, this, repli_timestamp::invalid));
+        coro_t::spawn_on_thread(home_thread, boost::bind(&do_backfill_cb::decr_count, this));
     }
 
     void on_keyvalue(backfill_atom_t atom) {
@@ -72,6 +79,12 @@ public:
             minimum_timestamp = oper_start_timestamp;
         }
 
+        decr_count();
+    }
+
+    void decr_count() {
+        rassert(get_thread_id() == home_thread);
+
         count = count - 1;
         if (0 == count) {
             for_when_done.pulse();
@@ -79,6 +92,7 @@ public:
     }
 
     repli_timestamp wait() {
+        decr_count();
         for_when_done.wait();
         return minimum_timestamp;
     }
