@@ -73,13 +73,13 @@ public:
     void send(buffed_data_t<net_backfill_delete_t>& message);
     void send(buffed_data_t<net_nop_t>& message);
     void send(buffed_data_t<net_ack_t>& message);
-    void send(buffed_data_t<net_shutting_down_t>& message);
-    void send(buffed_data_t<net_goodbye_t>& message);
     void conn_closed();
 
     /* failover module which is alerted by an on_failure() call when we go out
      * of contact with the master */
     failover_t failover;
+
+    void reverse_side_backfill(repli_timestamp since_when);
 
 private:
     friend class failover_t;

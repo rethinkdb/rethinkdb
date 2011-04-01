@@ -4,6 +4,7 @@
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "db_thread_info.hpp"
+#include "replication/backfill.hpp"
 
 void prep_for_serializer(
         btree_key_value_store_dynamic_config_t *dynamic_config,
@@ -280,7 +281,8 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m) {
 /* set_store_t interface */
 
 mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t ct) {
-    return slice_for_key_set(m.get_key())->change(m, ct);
+    const mutation_result_t& res = slice_for_key_set(m.get_key())->change(m, ct);
+    return res;
 }
 
 void btree_key_value_store_t::do_time_barrier_on_slice(repli_timestamp timestamp, int i) {
@@ -289,4 +291,11 @@ void btree_key_value_store_t::do_time_barrier_on_slice(repli_timestamp timestamp
 
 void btree_key_value_store_t::time_barrier(repli_timestamp lower_bound_on_future_timestamps) {
     pmap(btree_static_config.n_slices, boost::bind(&btree_key_value_store_t::do_time_barrier_on_slice, this, lower_bound_on_future_timestamps, _1));
+}
+
+
+void btree_key_value_store_t::spawn_backfill(repli_timestamp since_when, replication::do_backfill_cb *callback) {
+    for (int i = 0; i < btree_static_config.n_slices; ++i) {
+        dispatchers[i]->spawn_backfill(since_when, callback);
+    }
 }

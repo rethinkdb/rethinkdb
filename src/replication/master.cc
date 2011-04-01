@@ -3,6 +3,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include "logger.hpp"
+#include "replication/backfill.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
 #include "server/slice_dispatching_to_master.hpp"
@@ -11,7 +12,17 @@ namespace replication {
 
 void master_t::register_dispatcher(btree_slice_dispatching_to_master_t *dispatcher) {
     on_thread_t th(home_thread);
+    rassert(!listener_, "We should have registered all the dispatchers before we created and enabled the listener.");
     dispatchers_.push_back(dispatcher);
+}
+
+void master_t::register_key_value_store(btree_key_value_store_t *store) {
+    on_thread_t th(home_thread);
+    rassert(queue_store_ == NULL);
+    queue_store_.reset(new queueing_store_t(store));
+    rassert(!listener_);
+    listener_.reset(new tcp_listener_t(listener_port_));
+    listener_->set_callback(this);
 }
 
 void master_t::get_cas(const store_key_t& key, castime_t castime) {
@@ -128,7 +139,10 @@ void master_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
 
     size_t n = sizeof(net_delete_t) + key.size;
     if (stream_) {
-        consider_nop_dispatch_and_update_latest_timestamp(timestamp);
+        // TODO: THIS IS A COMPLETE HACK, figure out when we're passing repli_timestamp::invalid.
+        if (timestamp.time != repli_timestamp::invalid.time) {
+            consider_nop_dispatch_and_update_latest_timestamp(timestamp);
+        }
 
         scoped_malloc<net_delete_t> msg(n);
         msg->timestamp = timestamp;
@@ -207,49 +221,6 @@ void master_t::do_nop_rebound(repli_timestamp t) {
     stream_->send(msg);
 }
 
-class do_backfill_cb : public backfill_callback_t {
-    int count;
-    master_t *master;
-    cond_t for_when_done;
-    repli_timestamp minimum_timestamp;
-
-public:
-    do_backfill_cb(int num_dispatchers, master_t *_master) : count(2 * num_dispatchers), master(_master), minimum_timestamp(repli_timestamp::invalid /* this is greater than all other timestamps. */) { }
-
-    // TODO: Make this take a btree_key which is more accurate a description of the interface.
-    void deletion_key(const store_key_t *key) {
-        store_key_t tmp(key->size, key->contents);
-        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_deletion_key_to_slave, master, tmp));
-    }
-    void done_deletion_keys() {
-        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this, repli_timestamp::invalid));
-    }
-
-    void on_keyvalue(backfill_atom_t atom) {
-        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::send_backfill_atom_to_slave, master, atom));
-    }
-    void done(repli_timestamp oper_start_timestamp) {
-        coro_t::spawn_on_thread(master->home_thread, boost::bind(&do_backfill_cb::do_done, this, oper_start_timestamp));
-    }
-
-    void do_done(repli_timestamp oper_start_timestamp) {
-        rassert(get_thread_id() == master->home_thread);
-
-        if (minimum_timestamp.time > oper_start_timestamp.time) {
-            minimum_timestamp = oper_start_timestamp;
-        }
-
-        count = count - 1;
-        if (0 == count) {
-            for_when_done.pulse();
-        }
-    }
-
-    repli_timestamp wait() {
-        for_when_done.wait();
-        return minimum_timestamp;
-    }
-};
 
 void master_t::do_backfill(repli_timestamp since_when) {
     // TODO: Right now, this tmp_hold means that we will wait until we
@@ -263,7 +234,7 @@ void master_t::do_backfill(repli_timestamp since_when) {
 
     int n = dispatchers_.size();
 
-    do_backfill_cb cb(n, this);
+    do_backfill_cb cb(n, home_thread, &stream_);
 
     for (int i = 0; i < n; ++i) {
         dispatchers_[i]->spawn_backfill(since_when, &cb);
@@ -274,40 +245,6 @@ void master_t::do_backfill(repli_timestamp since_when) {
         net_backfill_complete_t msg;
         msg.time_barrier_timestamp = minimum_timestamp;
         stream_->send(&msg);
-    }
-}
-
-void master_t::send_backfill_atom_to_slave(backfill_atom_t atom) {
-    snag_ptr_t<master_t> tmp_hold(this);
-
-    data_provider_t *data = atom.value.release();
-
-    if (stream_) {
-        net_backfill_set_t msg;
-        msg.timestamp = atom.recency;
-        msg.flags = atom.flags;
-        msg.exptime = atom.exptime;
-        msg.cas_or_zero = atom.cas_or_zero;
-        msg.key_size = atom.key.size;
-        msg.value_size = data->get_size();
-        stream_->send(&msg, atom.key.contents, data);
-    }
-
-    // TODO: do we delete data or does repli_stream_t delete it?
-    delete data;
-}
-
-void master_t::send_deletion_key_to_slave(store_key_t key) {
-    snag_ptr_t<master_t> tmp_hold(this);
-
-    size_t n = sizeof(net_backfill_delete_t) + key.size;
-    if (stream_) {
-        scoped_malloc<net_backfill_delete_t> msg(n);
-        msg->padding = 0;
-        msg->key_size = key.size;
-        memcpy(msg->key, key.contents, key.size);
-
-        stream_->send(msg.get());
     }
 }
 

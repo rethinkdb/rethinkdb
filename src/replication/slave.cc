@@ -6,6 +6,7 @@
 #include "logger.hpp"
 #include "net_structs.hpp"
 #include "server/key_value_store.hpp"
+#include "replication/backfill.hpp"
 
 namespace replication {
 
@@ -238,14 +239,6 @@ void slave_t::send(UNUSED buffed_data_t<net_ack_t>& message) {
     rassert("ack message received.. as slave?\n");
 }
 
-void slave_t::send(UNUSED buffed_data_t<net_shutting_down_t>& message) {
-    debugf("shutting_down message received.\n");
-}
-
-void slave_t::send(UNUSED buffed_data_t<net_goodbye_t>& message) {
-    debugf("goodbye message received.\n");
-}
-
 void slave_t::conn_closed() {
     debugf("conn_closed.\n");
     coro_->notify();
@@ -289,6 +282,28 @@ void slave_t::on_resume() {
     respond_to_queries_ = false;
 }
 
+void slave_t::reverse_side_backfill(repli_timestamp since_when) {
+    // TODO: This rather duplicates some code in master_t::do_backfill.
+
+    assert_thread();
+
+    debugf("Doing reverse_side_backfill.\n");
+
+    // TODO: Have it pass n_slices gradually, implicitly.
+    do_backfill_cb cb(internal_store_->inner()->btree_static_config.n_slices, home_thread, &stream_);
+
+    internal_store_->inner()->spawn_backfill(since_when, &cb);
+
+    debugf("reverse_side_backfill waiting...\n");
+    repli_timestamp minimum_timestamp = cb.wait();
+    debugf("reverse_side_backfill done waiting.\n");
+    if (stream_) {
+        net_backfill_complete_t msg;
+        msg.time_barrier_timestamp = minimum_timestamp;
+        stream_->send(&msg);
+    }
+}
+
 void run(slave_t *slave) {
     slave->coro_ = coro_t::self();
     slave->failover.add_callback(slave);
@@ -313,13 +328,21 @@ void run(slave_t *slave) {
             first_connect = false;
             logINF("Connected as slave to: %s:%d\n", slave->replication_config_.hostname, slave->replication_config_.port);
 
-            repli_timestamp fake = { 0 };
+
+            // TODO: this is a fake timestamp!!! You _must_ fix this.
+            repli_timestamp fake1 = { 0 };
+            slave->reverse_side_backfill(fake1);
+
+            // TODO: another fake timestamp!!! You _must_ fix this.
+            repli_timestamp fake2 = { 0 };
             net_backfill_t bf;
-            bf.timestamp = fake;
+            bf.timestamp = fake2;
             slave->stream_->send(&bf);
 
+            debugf("slave_t: Waiting for things to fail...\n");
             // wait for things to fail
             coro_t::wait();
+            debugf("slave_t: Things failed.\n");
 
             slave->failover.on_failure();
 
