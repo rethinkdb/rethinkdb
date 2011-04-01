@@ -39,8 +39,6 @@ void init(block_size_t block_size, buf_t& node_buf, const leaf_node_t *lnode, co
 
 
 bool insert(block_size_t block_size, buf_t& node_buf, const btree_key_t *key, const btree_value* value, repli_timestamp insertion_time) {
-    debugf("Inserting key '%.*s' value '%.*s' into leaf node.\n", key->size, key->contents, value->size, value->value());
-
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
 
     if (is_full(node, key, value)) {
@@ -54,8 +52,6 @@ bool insert(block_size_t block_size, buf_t& node_buf, const btree_key_t *key, co
 }
 
 void insert(UNUSED block_size_t block_size, leaf_node_t *node, const btree_key_t *key, const btree_value* value, repli_timestamp insertion_time) {
-    debugf("Weird inserting key '%.*s' value '%.*s' into leaf node.\n", key->size, key->contents, value->size, value->value());
-
     int index = impl::get_offset_index(node, key);
 
     uint16_t prev_offset;
@@ -94,7 +90,6 @@ void insert(UNUSED block_size_t block_size, leaf_node_t *node, const btree_key_t
 // already sure the key is in the node.  This means we're doing an
 // unnecessary binary search.
 void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
-    debugf("Removing key '%.*s' (surely)\n", key->size, key->contents);
     print_backtrace();
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
 #ifdef BTREE_DEBUG
@@ -119,7 +114,6 @@ void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
 
 // TODO: We don't use the block_size parameter, so get rid of it.
 void remove(UNUSED block_size_t block_size, leaf_node_t *node, const btree_key_t *key) {
-    debugf("Removing key '%.*s'\n", key->size, key->contents);
     print_backtrace();
     int index = impl::find_key(node, key);
     rassert(index != impl::key_not_found);
@@ -138,10 +132,8 @@ bool lookup(const leaf_node_t *node, const btree_key_t *key, btree_value *value)
         const btree_leaf_pair *pair = get_pair_by_index(node, index);
         const btree_value *stored_value = pair->value();
         memcpy(value, stored_value, stored_value->full_size());
-        debugf("Looked up value '%.*s' for key '%.*s'\n", value->size, value->value(), key->size, key->contents);
         return true;
     } else {
-        debugf("Failed to find value for key '%.*s'\n", key->size, key->contents);
         return false;
     }
 }
