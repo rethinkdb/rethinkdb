@@ -2,6 +2,7 @@
 
 #include <boost/scoped_ptr.hpp>
 
+#include "db_thread_info.hpp"
 #include "logger.hpp"
 #include "replication/backfill.hpp"
 #include "replication/net_structs.hpp"
@@ -201,14 +202,32 @@ void master_t::consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp
     next_timestamp_nop_timer_ = timer_handler_->add_timer_internal(1100, nop_timer_trigger, this, true);
 }
 
+void roundtrip_to_db_thread(int slice_thread, repli_timestamp timestamp, cond_t *cond, int *counter) {
+    {
+        on_thread_t th(slice_thread);
+
+        repli_timestamp t = current_time();
+
+        // TODO: Don't crash just because the slave sent a bunch of
+        // crap to us.  Just disconnect the slave.
+        guarantee(t.time >= timestamp.time);
+    }
+
+    --*counter;
+    rassert(*counter >= 0);
+    if (*counter == 0) {
+        cond->pulse();
+    }
+}
+
 void master_t::do_nop_rebound(repli_timestamp t) {
     assert_thread();
+
     cond_t cond;
-    int counter = dispatchers_.size();
-    for (std::vector<btree_slice_dispatching_to_master_t *>::iterator p = dispatchers_.begin(), e = dispatchers_.end();
-         p != e;
-         ++p) {
-        coro_t::spawn(boost::bind(&btree_slice_dispatching_to_master_t::nop_back_on_masters_thread, *p, t, &cond, &counter));
+    int n = get_num_db_threads();
+    int counter = n;
+    for (int i = 0; i < n; ++i) {
+        coro_t::spawn(boost::bind(roundtrip_to_db_thread, i, t, &cond, &counter));
     }
 
     cond.wait();

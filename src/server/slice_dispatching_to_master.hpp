@@ -47,7 +47,6 @@ public:
 
     mutation_result_t change(const mutation_t& m, castime_t castime);
     void spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback);
-    void nop_back_on_masters_thread(repli_timestamp timestamp, cond_t *cond, int *counter);
 
 private:
     btree_slice_t *slice_;

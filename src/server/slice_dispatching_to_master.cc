@@ -81,25 +81,6 @@ mutation_result_t btree_slice_dispatching_to_master_t::change(const mutation_t& 
     return slice_->change(m2, castime);
 }
 
-void btree_slice_dispatching_to_master_t::nop_back_on_masters_thread(repli_timestamp timestamp, cond_t *cond, int *counter) {
-    rassert(get_thread_id() == master_->home_thread);
-
-    repli_timestamp t;
-    {
-        on_thread_t th(slice_->home_thread);
-
-        t = current_time();
-        // TODO: Don't crash just because the slave sent a bunch of crap to us.  Just disconnect the slave.
-        guarantee(t.time >= timestamp.time);
-    }
-
-    --*counter;
-    rassert(*counter >= 0);
-    if (*counter == 0) {
-        cond->pulse();
-    }
-}
-
 void btree_slice_dispatching_to_master_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
     callback->add_dual_backfiller_hold();
     coro_t::spawn_on_thread(slice_->home_thread, boost::bind(&btree_slice_t::backfill, slice_, since_when, callback));
