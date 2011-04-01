@@ -53,10 +53,11 @@ ERROR_BREAKOUT:
     throw linux_tcp_conn_t::connect_failed_exc_t();
 }
 
-linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port)
-    : sock(connect_to(host, port)), event_watcher(sock.get(), this),
-      read_cond(NULL), write_cond(NULL),
-      read_was_shut_down(false), write_was_shut_down(false)
+linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
+    sock(connect_to(host, port)), event_watcher(sock.get(), this),
+    read_in_progress(false), write_in_progress(false),
+    read_cond_watcher(new multicond_weak_ptr_t), write_cond_watcher(new multicond_weak_ptr_t),
+    read_was_shut_down(false), write_was_shut_down(false)
     { }
 
 static fd_t connect_to(const ip_address_t &host, int port) {
@@ -81,15 +82,17 @@ static fd_t connect_to(const ip_address_t &host, int port) {
     return sock.release();
 }
 
-linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port)
-    : sock(connect_to(host, port)), event_watcher(sock.get(), this),
-      read_cond(NULL), write_cond(NULL),
-      read_was_shut_down(false), write_was_shut_down(false)
+linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
+    sock(connect_to(host, port)), event_watcher(sock.get(), this),
+    read_in_progress(false), write_in_progress(false),
+    read_cond_watcher(new multicond_weak_ptr_t), write_cond_watcher(new multicond_weak_ptr_t),
+    read_was_shut_down(false), write_was_shut_down(false)
     { }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     sock(s), event_watcher(sock.get(), this),
-    read_cond(NULL), write_cond(NULL),
+    read_in_progress(false), write_in_progress(false),
+    read_cond_watcher(new multicond_weak_ptr_t), write_cond_watcher(new multicond_weak_ptr_t),
     read_was_shut_down(false), write_was_shut_down(false)
 {
     rassert(sock.get() != INVALID_FD);
@@ -100,22 +103,24 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
 
 size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
     rassert(!read_was_shut_down);
-    rassert(!read_cond);   // Is there a read already in progress?
+    rassert(!read_in_progress);
 
     while (true) {
         ssize_t res = ::read(sock.get(), buffer, size);
 
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 
+            read_in_progress = true;
+
             /* There's no data available right now, so we must wait for a notification from the
-            epoll queue. The reason why this is complicated is that it can also be interrupted
-            if we get an error or shut down for some reason before the read completes. */
+            epoll queue. We use a multicond_t because we can either be interrupted by a
+            notification from the event loop or by on_shutdown_read(). */
             multicond_t cond;
-            read_cond = &cond;
+            read_cond_watcher->watch(&cond);
             event_watcher.watch(poll_event_in, &cond);
             cond.wait();
-            rassert(read_cond == &cond);
-            read_cond = NULL;
+
+            read_in_progress = false;
 
             if (read_was_shut_down) {
                 /* We were closed for whatever reason. Something else has already called
@@ -148,7 +153,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
 
     rassert(size > 0);
-    rassert(!read_cond);
+    rassert(!read_in_progress);
     if (read_was_shut_down) throw read_closed_exc_t();
 
     if (read_buffer.size()) {
@@ -165,7 +170,7 @@ size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
 
 void linux_tcp_conn_t::read(void *buf, size_t size) {
 
-    rassert(!read_cond);   // Is there a read already in progress?
+    rassert(!read_in_progress);   // Is there a read already in progress?
     if (read_was_shut_down) throw read_closed_exc_t();
 
     /* First, consume any data in the peek buffer */
@@ -186,7 +191,7 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
 
 void linux_tcp_conn_t::read_more_buffered() {
 
-    rassert(!read_cond);
+    rassert(!read_in_progress);
     if (read_was_shut_down) throw read_closed_exc_t();
 
     size_t old_size = read_buffer.size();
@@ -198,7 +203,7 @@ void linux_tcp_conn_t::read_more_buffered() {
 
 const_charslice linux_tcp_conn_t::peek() const {
 
-    rassert(!read_cond);   // Is there a read already in progress?
+    rassert(!read_in_progress);   // Is there a read already in progress?
     if (read_was_shut_down) throw read_closed_exc_t();
 
     return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
@@ -206,7 +211,7 @@ const_charslice linux_tcp_conn_t::peek() const {
 
 void linux_tcp_conn_t::pop(size_t len) {
 
-    rassert(!read_cond);
+    rassert(!read_in_progress);
     if (read_was_shut_down) throw read_closed_exc_t();
 
     rassert(len <= read_buffer.size());
@@ -227,7 +232,7 @@ void linux_tcp_conn_t::on_shutdown_read() {
     read_was_shut_down = true;
 
     // Interrupt any pending reads
-    if (read_cond) read_cond->pulse();
+    read_cond_watcher->pulse_if_non_null();
 }
 
 bool linux_tcp_conn_t::is_read_open() {
@@ -242,13 +247,15 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
 
         if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 
+            write_in_progress = true;
+
             /* Wait for a notification from the event queue */
             multicond_t cond;
-            write_cond = &cond;
+            write_cond_watcher->watch(&cond);
             event_watcher.watch(poll_event_out, &cond);
             cond.wait();
-            rassert(write_cond == &cond);
-            write_cond = NULL;
+
+            write_in_progress = false;
 
             if (write_was_shut_down) {
                 /* We were closed for whatever reason. Whatever signalled us has already called
@@ -288,7 +295,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
 
 void linux_tcp_conn_t::write(const void *buf, size_t size) {
 
-    rassert(!write_cond);
+    rassert(!write_in_progress);
     if (write_was_shut_down) throw write_closed_exc_t();
 
     /* To preserve ordering, all buffered data must be sent before this chunk of data is sent */
@@ -300,7 +307,7 @@ void linux_tcp_conn_t::write(const void *buf, size_t size) {
 
 void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
 
-    rassert(!write_cond);
+    rassert(!write_in_progress);
     if (write_was_shut_down) throw write_closed_exc_t();
 
     /* Append data to write_buffer */
@@ -311,7 +318,7 @@ void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
 
 void linux_tcp_conn_t::flush_buffer() {
 
-    rassert(!write_cond);
+    rassert(!write_in_progress);
     if (write_was_shut_down) throw write_closed_exc_t();
 
     write_internal(write_buffer.data(), write_buffer.size());
@@ -332,7 +339,7 @@ void linux_tcp_conn_t::on_shutdown_write() {
     write_was_shut_down = true;
 
     // Interrupt any writes that were waiting
-    if (write_cond) write_cond->pulse();
+    write_cond_watcher->pulse_if_non_null();
 }
 
 bool linux_tcp_conn_t::is_write_open() {
@@ -376,7 +383,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(int port) :
     sock(socket(AF_INET, SOCK_STREAM, 0)),
     event_watcher(sock.get(), this),
     callback(NULL),
-    shutdown_signal(NULL), accept_loop_cond(NULL),
+    shutdown_signal(NULL), accept_loop_cond_watcher(new multicond_weak_ptr_t),
     log_next_error(true)
 {
     int res;
@@ -442,7 +449,9 @@ void linux_tcp_listener_t::accept_loop() {
     int backoff_delay_ms = initial_backoff_delay_ms;
 
     /* linux_tcp_listener_t's destructor sets *shutdown_signal to true and pulses
-    accept_loop_cond when it wants us to break out of our loop. */
+    accept_loop_cond when it wants us to break out of our loop. We do this instead
+    of just watching a boolean member variable because we will still be able to
+    access do_shutdown if "this" is freed. */
     bool do_shutdown = false;
     shutdown_signal = &do_shutdown;
     while (!do_shutdown) {
@@ -450,7 +459,6 @@ void linux_tcp_listener_t::accept_loop() {
         fd_t new_sock = accept(sock.get(), NULL, NULL);
 
         if (new_sock != INVALID_FD) {
-            accept_loop_cond = NULL;   // In case handle() destroys us
             coro_t::spawn_now(boost::bind(&linux_tcp_listener_t::handle, this, new_sock));
 
             /* If we backed off before, un-backoff now that the problem seems to be
@@ -465,7 +473,7 @@ void linux_tcp_listener_t::accept_loop() {
             /* Wait for a notification from the event loop, or for a command to shut down,
             before continuing */
             multicond_t c;
-            accept_loop_cond = &c;
+            accept_loop_cond_watcher->watch(&c);   // So we can be interrupted
             event_watcher.watch(poll_event_in, &c);
             c.wait();
             // At this point we might have been destroyed, so we cannot access member variables
@@ -474,7 +482,7 @@ void linux_tcp_listener_t::accept_loop() {
             /* Harmless error; just try again. */ 
 
         } else {
-            /* Unexpected error. Log it if it's the first time. */
+            /* Unexpected error. Log it unless it's a repeat error. */
             if (log_next_error) {
                 logERR("accept() failed: %s.\n",
                     strerror(errno));
@@ -484,7 +492,7 @@ void linux_tcp_listener_t::accept_loop() {
             /* Delay before retrying. We use pulse_after_time() instead of nap() so that we will
             be interrupted immediately if something wants to shut us down. */
             multicond_t c;
-            accept_loop_cond = &c;
+            accept_loop_cond_watcher->watch(&c);   // So we can be interrupted
             pulse_after_time(&c, backoff_delay_ms);
             c.wait();
             // At this point we might have been destroyed, so we cannot access member variables
@@ -502,14 +510,10 @@ void linux_tcp_listener_t::handle(fd_t socket) {
 
 linux_tcp_listener_t::~linux_tcp_listener_t() {
 
-    /* Interrupt the accept loop and wait for it to shut down */
+    /* Interrupt the accept loop */
     if (callback) {
         *shutdown_signal = true;
-        if (accept_loop_cond) {
-            accept_loop_cond->pulse();   // Interrupt whatever the accept loop is waiting for
-        } else {
-            /* We are being called from within the accept loop itself */
-        }
+        accept_loop_cond_watcher->pulse_if_non_null();
     } else {
         /* We never started an accept loop */
     }
