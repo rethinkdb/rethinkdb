@@ -453,10 +453,10 @@ rerun: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
 gdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) rm -f rethinkdb_data*
-	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	cgdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 regdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	cgdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 sembuild: clean
 	make SEMANTIC_SERIALIZER_CHECK=1 all
