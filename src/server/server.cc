@@ -202,12 +202,18 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 master->register_key_value_store(&store);
             }
 
+            debugf("server: Registered with master..\n");
+
             server.get_store = &store;   // Gets always go straight to the key-value store
 
             /* Are we a replication slave? */
             if (cmd_config->replication_config.active) {
+                debugf("server: Starting up as a slave..\n");
+
                 logINF("Starting up as a slave...\n");
                 slave_store.reset(new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config));
+                debugf("server: Constructed slave_t..\n");
+
                 server.set_store = slave_store.get();
             } else {
                 server.set_store = &store;   /* So things can access it */
@@ -222,10 +228,14 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             } handler;
             handler.parent = &server;
 
+            debugf("Adding failover callback...\n");
+
             if (cmd_config->replication_config.active && cmd_config->failover_config.elb_port != -1) {
                 elb_t elb(elb_t::slave, cmd_config->port);
                 slave_store->failover.add_callback(&elb);
             }
+
+            debugf("Starting conn_acceptor....\n");
 
             try {
                 conn_acceptor_t conn_acceptor(cmd_config->port, &handler);
@@ -242,10 +252,15 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 timebomb::periodic_checker_t timebomb_checker(store.multiplexer->creation_timestamp);
 #endif
 
+                debugf("Waiting for interrupt....\n");
+
                 interrupt_cond.wait();
+
+                debugf("Received interrupt.\n");
 
                 logINF("Waiting for running operations to complete...\n");
             } catch (conn_acceptor_t::address_in_use_exc_t) {
+                debugf("Port %d is already in use -- aborting (debugf msg)...\n", cmd_config->port);
                 logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
             }
 
