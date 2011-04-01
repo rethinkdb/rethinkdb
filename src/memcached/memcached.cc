@@ -360,8 +360,6 @@ public:
             if (to_signal) to_signal->pulse(false);
             throw data_provider_failed_exc_t();
         }
-        // Crazy wizardry happens here: cross-thread exception throw. As stack is unwound,
-        // thread_switcher's destructor causes us to switch threads.
     }
 };
 
