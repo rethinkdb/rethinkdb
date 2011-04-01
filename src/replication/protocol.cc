@@ -231,10 +231,12 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
         tracker_t streams;
         do_parse_normal_messages(conn, receiver, streams);
 
+        // Ugh I
         if (shutdown_cb_) {
             shutdown_cb_->on_parser_shutdown();
         }
     } catch (tcp_conn_t::read_closed_exc_t& e) {
+        // Ugh II
         if (shutdown_cb_) {
             shutdown_cb_->on_parser_shutdown();
         }
