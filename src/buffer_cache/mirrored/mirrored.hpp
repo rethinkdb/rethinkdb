@@ -108,7 +108,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     snapshot_data_list_t snapshots;
 
     // If required, make a snapshot of the data before being overwritten with new_version
-    void snapshot_if_needed(version_id_t new_version, bool create_copy_if_snapshotted);
+    bool snapshot_if_needed(version_id_t new_version);
     void *get_snapshot_data(version_id_t version_to_access);
     void release_snapshot(void *data);
 

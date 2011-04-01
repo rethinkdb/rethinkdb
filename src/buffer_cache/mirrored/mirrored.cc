@@ -204,7 +204,7 @@ void mc_inner_buf_t::replay_patches() {
     next_patch_counter = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id) + 1;
 }
 
-void mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool create_copy_if_snapshotted) {
+bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     cache->assert_thread();
     rassert(snapshots.size() == 0 || snapshots.front().snapshotted_version <= version_id);  // you can get snapshotted_version == version_id due to copy-on-write doing the snapshotting
 
@@ -214,9 +214,12 @@ void mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool create_co
     size_t num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
     size_t refcount = num_snapshots_affected + (cow_will_be_needed ? 1 : 0);
     if (refcount > 0) {
+        // RSI: logDBG("snapshot(%p, %zu, %u)\n", data, refcount, unsigned(cow_will_be_needed));
         snapshots.push_front(buf_snapshot_info_t(data, version_id, refcount));
         cow_will_be_needed = false;
-        data = create_copy_if_snapshotted ? cache->serializer->clone(data) : NULL;
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -298,6 +301,7 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
             case rwi_read_outdated_ok: {
                 if (inner_buf->cow_will_be_needed) {
                     data = inner_buf->cache->serializer->clone(inner_buf->data);
+                    // RSI: logDBG("cow_clone(%p)\n", data, refcount, unsigned(cow_will_be_needed));
                 } else {
                     data = inner_buf->data;
                     rassert(data != NULL);
@@ -312,7 +316,10 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
 
                 rassert(inner_version <= version_to_access);
 
-                inner_buf->snapshot_if_needed(version_to_access, true);
+                bool snapshotted = inner_buf->snapshot_if_needed(version_to_access);
+                if (snapshotted)
+                    inner_buf->data = inner_buf->cache->serializer->clone(inner_buf->data);
+
                 inner_buf->version_id = version_to_access;
                 data = inner_buf->data;
                 rassert(data != NULL);
@@ -414,7 +421,10 @@ void mc_buf_t::mark_deleted(bool write_null) {
     rassert(!inner_buf->safe_to_unload());
     rassert(data == inner_buf->data);
 
-    inner_buf->snapshot_if_needed(inner_buf->version_id, false);
+    bool snapshotted = inner_buf->snapshot_if_needed(inner_buf->version_id);
+    if (!snapshotted)
+        inner_buf->cache->serializer->free(data);
+
     data = inner_buf->data = NULL;
 
     inner_buf->do_delete = true;
