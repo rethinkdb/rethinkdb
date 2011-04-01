@@ -3,8 +3,6 @@
 #include "errors.hpp"
 #include "concurrency/multi_wait.hpp"
 
-using std::string;
-
 control_map_t &get_control_map() {
     /* Getter function so that we can be sure that control_list is initialized before it is needed,
     as advised by the C++ FAQ. Otherwise, a control_t  might be initialized before the control list
@@ -21,9 +19,9 @@ spinlock_t &get_control_lock() {
     return lock;
 }
 
-string control_t::exec(int argc, char **argv) {
+std::string control_t::exec(int argc, char **argv) {
     if (argc == 0) return help();
-    string command = string(argv[0]);
+    std::string command = argv[0];
 
     control_map_t::iterator it = get_control_map().find(command);
     if (it == get_control_map().end()) {
@@ -33,17 +31,17 @@ string control_t::exec(int argc, char **argv) {
     }
 }
 
-string control_t::help() {
-    string res;
+std::string control_t::help() {
+    std::string res;
     for (control_map_t::iterator it = get_control_map().begin(); it != get_control_map().end(); it++) {
         if ((*it).second->help_string.size() == 0) continue;
-        res += ((*it).first + string(": ") + (*it).second->help_string + string("\r\n"));
+        res += ((*it).first + ": " + (*it).second->help_string + "\r\n");
     }
     return res;
 }
 
-control_t::control_t(string key, string help_string) 
-    : key(key), help_string(help_string)
+control_t::control_t(std::string _key, std::string _help_string)
+    : key(_key), help_string(_help_string)
 {
     rassert(key.size() > 0);
     get_control_lock().lock();
@@ -67,18 +65,18 @@ struct hi_t : public control_t
 private:
     int counter;
 public:
-    hi_t(string key)
-        : control_t(key, string("")), counter(0)
+    hi_t(std::string key)
+        : control_t(key, ""), counter(0)
     {}
-    string call(UNUSED int argc, UNUSED char **argv) {
+    std::string call(UNUSED int argc, UNUSED char **argv) {
         counter++;
         if (counter < 3)
-            return string("Salutations, user.\r\n");
+            return "Salutations, user.\r\n";
         else if (counter < 4)
-            return string("Say hi again, I dare you.\r\n");
+            return "Say hi again, I dare you.\r\n";
         else
-            return string("Base QPS decreased by 100,000.\r\n");
+            return "Base QPS decreased by 100,000.\r\n";
     }
 };
 
-hi_t hi(string("hi"));
+hi_t hi("hi");

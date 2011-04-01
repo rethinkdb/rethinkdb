@@ -4,24 +4,22 @@
 #include <string>
 #include <map>
 
-using std::string;
-
 class control_t {
 public:
-    control_t(string, string);
+    control_t(std::string, std::string);
     ~control_t();
 
-    virtual string call(int argc, char **argv) = 0;
+    virtual std::string call(int argc, char **argv) = 0;
 
-    static string exec(int argc, char **argv);
-    static string help();
+    static std::string exec(int argc, char **argv);
+    static std::string help();
 
 
 private:
-    string key;
-    string help_string;
+    std::string key;
+    std::string help_string;
 };
 
-typedef std::map<string, control_t*> control_map_t;
+typedef std::map<std::string, control_t *> control_map_t;
 
 #endif /*__CONTROL_HPP__*/
