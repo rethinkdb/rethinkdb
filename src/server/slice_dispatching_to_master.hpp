@@ -10,15 +10,16 @@ public:
     mutation_dispatcher_t() { }
     // Dispatches a change, and returns a modified mutation_t.
     virtual mutation_t dispatch_change(const mutation_t& m, castime_t castime) = 0;
-protected:
-    ~mutation_dispatcher_t();
+    virtual ~mutation_dispatcher_t() { }
 private:
     DISABLE_COPYING(mutation_dispatcher_t);
 };
 
 class null_dispatcher_t : public mutation_dispatcher_t {
 public:
+    null_dispatcher_t() { }
     mutation_t dispatch_change(const mutation_t& m, UNUSED castime_t castime) { return m; }
+private:
     DISABLE_COPYING(null_dispatcher_t);
 };
 
@@ -51,6 +52,7 @@ public:
 private:
     btree_slice_t *slice_;
     snag_ptr_t<replication::master_t> master_;
+    boost::scoped_ptr<mutation_dispatcher_t> mutation_dispatcher_;
     DISABLE_COPYING(btree_slice_dispatching_to_master_t);
 };
 
