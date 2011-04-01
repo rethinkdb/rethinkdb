@@ -132,8 +132,8 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
 }
 
 // This form of the buf constructor is used when a completely new block is being created.
-// Internal use from mc_inner_buf_t::allocate only!
-// If you update this constructor, please don't forget to update mc_inner_buf_tallocate
+// Used by mc_inner_buf_t::allocate() and by the patch log.
+// If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp recency_timestamp)
     : cache(cache),
