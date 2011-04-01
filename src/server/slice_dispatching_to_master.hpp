@@ -5,6 +5,33 @@
 #include "store.hpp"
 #include "replication/master.hpp"
 
+class slice_dispatcher_t {
+public:
+    slice_dispatcher_t() { }
+    // Dispatches a change, and returns a modified mutation_t.
+    virtual mutation_t dispatch_change(const mutation_t& m, castime_t castime) = 0;
+protected:
+    ~slice_dispatcher_t();
+private:
+    DISABLE_COPYING(slice_dispatcher_t);
+};
+
+class null_dispatcher_t : public slice_dispatcher_t {
+public:
+    mutation_t dispatch_change(const mutation_t& m, UNUSED castime_t castime) { return m; }
+    DISABLE_COPYING(null_dispatcher_t);
+};
+
+class master_dispatcher_t : public slice_dispatcher_t {
+public:
+    master_dispatcher_t(int slice_home_thread, replication::master_t *master);
+    mutation_t dispatch_change(const mutation_t& m, castime_t castime);
+private:
+    int slice_home_thread_;
+    replication::master_t *master_;
+    DISABLE_COPYING(master_dispatcher_t);
+};
+
 
 class backfill_callback_t;
 
@@ -24,7 +51,6 @@ public:
 private:
     btree_slice_t *slice_;
     snag_ptr_t<replication::master_t> master_;
-
     DISABLE_COPYING(btree_slice_dispatching_to_master_t);
 };
 
