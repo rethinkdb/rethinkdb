@@ -418,6 +418,9 @@ void validate(block_size_t block_size, const leaf_node_t *node) {
         rassert(node->pair_offsets[i] < block_size.value());
         rassert(node->pair_offsets[i] >= node->frontmost_offset);
     }
+#else
+    (void)block_size;
+    (void)node;
 #endif
 }
 
