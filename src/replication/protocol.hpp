@@ -129,8 +129,6 @@ public:
     void send(net_ack_t msg);
 
 
-    void close();
-
 private:
 
     template <class net_struct_type>
