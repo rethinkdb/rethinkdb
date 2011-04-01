@@ -78,7 +78,7 @@ public:
     void co_shutdown();
 
 private:
-    size_t handle_message(message_callback_t *receiver, weak_buf_t buffer, size_t offset, size_t num_read, tracker_t& streams);
+    size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams);
     void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
     void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams);
 

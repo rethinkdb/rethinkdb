@@ -107,37 +107,6 @@ private:
 };
 
 
-// TODO: Do we still use buffed_data_t anywhere?
-
-// A pointer to data sitting amid a shared buffer.
-template <class T>
-class buffed_data_t {
-public:
-    buffed_data_t() : buf_(), offset_(0) { }
-
-    // HACK, the third parameter gives us the same interface as
-    // streampair, which is used in replication::check_pass.
-    buffed_data_t(weak_buf_t buf, size_t offset, UNUSED size_t end = 0)
-        : buf_(buf), offset_(offset) { }
-
-    void swap(buffed_data_t<T>& other) {
-        size_t tmp = other.offset_;
-        other.offset_ = offset_;
-        offset_ = tmp;
-        buf_.swap(other.buf_);
-    }
-
-    T *get() { return buf_.get<T>(offset_); }
-
-    T *operator->() { return get(); }
-
-    void release();
-
-private:
-    shared_buf_t buf_;
-    size_t offset_;
-};
-
 
 
 #endif  // __CONTAINERS_SHARED_BUF_HPP__
