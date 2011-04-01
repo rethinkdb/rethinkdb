@@ -83,7 +83,8 @@ if __name__ == "__main__":
             [get_executable_path(opts, "rethinkdb"), "extract", "-o", dump_path] + insertion_server.data_files.rethinkdb_flags(),
             "extractor_output.txt",
             valgrind_tool = opts["valgrind-tool"] if opts["valgrind"] else None,
-            test_dir = test_dir)
+            test_dir = test_dir,
+            timeout = opts["verify_timeout"])
 
         dumpfile = open(dump_path, "r")
         dumplines = dumpfile.readlines()
