@@ -80,7 +80,7 @@ provides the data from. */
 
 class buffered_data_provider_t : public auto_copying_data_provider_t {
 public:
-    explicit buffered_data_provider_t(data_provider_t *dp);   // Create with contents of another
+    explicit buffered_data_provider_t(unique_ptr_t<data_provider_t> dp);   // Create with contents of another
     buffered_data_provider_t(const void *, size_t);   // Create by copying out of a buffer
     buffered_data_provider_t(size_t, void **);    // Allocate buffer, let creator fill it
     size_t get_size() const;
@@ -112,7 +112,6 @@ private:
     // constructor and then set this variable to true, then throw data_provider_failed_exc_t()
     // when our data is requested. This way we behave exactly the same whether or not we buffer.
     bool exception_was_thrown;
-    boost::scoped_ptr<data_provider_t> buffers_original;
     boost::scoped_ptr<buffered_data_provider_t> buffer;   // NULL if we decide not to buffer
 };
 

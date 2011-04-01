@@ -67,7 +67,7 @@ void auto_copying_data_provider_t::get_data_into_buffers(const buffer_group_t *d
 
 /* buffered_data_provider_t */
 
-buffered_data_provider_t::buffered_data_provider_t(data_provider_t *dp) :
+buffered_data_provider_t::buffered_data_provider_t(unique_ptr_t<data_provider_t> dp) :
     size(dp->get_size()), buffer(new char[size])
 {
     buffer_group_t writable_bg;
@@ -100,15 +100,14 @@ const const_buffer_group_t *buffered_data_provider_t::get_data_as_buffers() thro
 /* maybe_buffered_data_provider_t */
 
 maybe_buffered_data_provider_t::maybe_buffered_data_provider_t(unique_ptr_t<data_provider_t> dp, int threshold) :
-    size(dp->get_size()), original(), exception_was_thrown(false), buffers_original(), buffer()
+    size(dp->get_size()), original(), exception_was_thrown(false), buffer()
 {
     if (size >= threshold) {
         original = dp;
     } else {
         /* Catch the exception here so we can re-throw it at the appropriate moment */
         try {
-            buffers_original.reset(dp.release());
-            buffer.reset(new buffered_data_provider_t(buffers_original.get()));
+            buffer.reset(new buffered_data_provider_t(dp));
             exception_was_thrown = false;
         } catch (data_provider_failed_exc_t) {
             exception_was_thrown = true;
