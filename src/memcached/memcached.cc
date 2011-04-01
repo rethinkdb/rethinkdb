@@ -331,6 +331,10 @@ public:
             /* We have to clear the data out of the socket, even if we have nowhere to put it. */
             get_data_as_buffers();
         }
+        // This is a harmless hack to get ~home_thread_mixin_t to not fail its assertion.
+#ifndef NDEBUG
+        const_cast<int&>(home_thread) = get_thread_id();
+#endif
     }
 
     size_t get_size() const {
