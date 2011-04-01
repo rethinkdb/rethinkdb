@@ -41,11 +41,11 @@ bool lookup(const leaf_node_t *node, const btree_key_t *key, btree_value *value)
 // Returns true if insertion was successful.  Returns false if the
 // node was full.  TODO: make sure we always check return value.
 bool insert(block_size_t block_size, buf_t &node_buf, const btree_key_t *key, const btree_value *value, repli_timestamp insertion_time);
-void insert(block_size_t block_size, leaf_node_t *node, const btree_key_t *key, const btree_value *value, repli_timestamp insertion_time); // For use by the corresponding patch
+void insert(leaf_node_t *node, const btree_key_t *key, const btree_value *value, repli_timestamp insertion_time); // For use by the corresponding patch
 
 // Assumes key is contained inside the node.
 void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key);
-void remove(block_size_t block_size, leaf_node_t *node, const btree_key_t *key); // For use by the corresponding patch
+void remove(leaf_node_t *node, const btree_key_t *key); // For use by the corresponding patch
 
 // Initializes rnode with the greater half of node, copying the
 // new greatest key of node to median_out.

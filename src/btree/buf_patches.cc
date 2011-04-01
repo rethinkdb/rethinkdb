@@ -201,7 +201,7 @@ size_t leaf_insert_patch_t::get_affected_data_size() const {
 }
 
 void leaf_insert_patch_t::apply_to_buf(char* buf_data) {
-    leaf::insert(block_size, ptr_cast<leaf_node_t>(buf_data), ptr_cast<btree_key_t>(key_buf), ptr_cast<btree_value>(value_buf), insertion_time);
+    leaf::insert(ptr_cast<leaf_node_t>(buf_data), ptr_cast<btree_key_t>(key_buf), ptr_cast<btree_value>(value_buf), insertion_time);
 }
 
 
@@ -259,6 +259,6 @@ size_t leaf_remove_patch_t::get_affected_data_size() const {
 }
 
 void leaf_remove_patch_t::apply_to_buf(char* buf_data) {
-    leaf::remove(block_size, ptr_cast<leaf_node_t>(buf_data), ptr_cast<btree_key_t>(key_buf));
+    leaf::remove(ptr_cast<leaf_node_t>(buf_data), ptr_cast<btree_key_t>(key_buf));
 }
 
