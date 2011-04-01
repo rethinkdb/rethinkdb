@@ -125,10 +125,9 @@ enum replace_policy_t {
 
 #define NO_CAS_SUPPLIED 0
 
-// TODO: freaking rename this to sarc_mutation_t.
-struct set_mutation_t {
+struct sarc_mutation_t {
     store_key_t key;
-    data_provider_t *data;
+    unique_ptr_t<data_provider_t> data;
     mcflags_t flags;
     exptime_t exptime;
     add_policy_t add_policy;
@@ -190,7 +189,7 @@ enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
 struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
     store_key_t key;
-    data_provider_t *data;
+    unique_ptr_t<data_provider_t> data;
 };
 
 enum append_prepend_result_t {
@@ -203,7 +202,7 @@ enum append_prepend_result_t {
 
 struct mutation_t {
 
-    boost::variant<get_cas_mutation_t, set_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation;
+    boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation;
 
     // implicit
     template<class T>
@@ -227,9 +226,9 @@ class set_store_interface_t {
 public:
     /* These NON-VIRTUAL methods all construct a mutation_t and then call change(). */
     get_result_t get_cas(const store_key_t &key);
-    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    set_result_t sarc(const store_key_t &key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
     incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data);
     delete_result_t delete_key(const store_key_t &key);
 
     virtual mutation_result_t change(const mutation_t&) = 0;

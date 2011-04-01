@@ -138,11 +138,6 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     server_t server(cmd_config, thread_pool);
 
     {
-        /* Pointers to our stores these are allocated dynamically so
-           that we have explicit control of when and where their
-           destructors get called*/
-        boost::scoped_ptr<replication::slave_t> slave_store;
-
         /* Start logger */
         log_controller_t log_controller;
     
@@ -174,12 +169,6 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         /* Record information about disk drives to log file */
         log_disk_info(cmd_config->store_dynamic_config.serializer_private);
 
-        boost::scoped_ptr<replication::master_t> master;
-
-        if (cmd_config->replication_master_active) {
-            master.reset(new replication::master_t(thread_pool, cmd_config->replication_master_listen_port));
-        }
-
         /* Create store if necessary */
         if (cmd_config->create_store) {
             logINF("Creating database...\n");
@@ -191,8 +180,19 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
         if (!cmd_config->shutdown_after_creation) {
 
+            /* Pointers to our stores these are allocated dynamically so
+               that we have explicit control of when and where their
+               destructors get called*/
+            boost::scoped_ptr<replication::slave_t> slave_store;
+
             /* Start key-value store */
             logINF("Loading database...\n");
+
+            boost::scoped_ptr<replication::master_t> master;
+
+            if (cmd_config->replication_master_active) {
+                master.reset(new replication::master_t(thread_pool, cmd_config->replication_master_listen_port));
+            }
 
             snag_ptr_t<replication::master_t> master_ptr(master.get());
             btree_key_value_store_t store(&cmd_config->store_dynamic_config, master_ptr);

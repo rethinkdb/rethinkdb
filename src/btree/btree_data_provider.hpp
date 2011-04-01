@@ -15,6 +15,7 @@ public:
 
     /* When create() returns, it is safe for the caller to invalidate "value" and it is
     safe for the caller to release the leaf node that "value" came from. */
+    // TODO: Make this return a unique_ptr_t.
     static value_data_provider_t *create(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
 };
 

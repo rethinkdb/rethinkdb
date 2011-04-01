@@ -4,7 +4,7 @@
 #include "buffer_cache/co_functions.hpp"
 
 struct btree_set_oper_t : public btree_modify_oper_t {
-    explicit btree_set_oper_t(data_provider_t *data, mcflags_t mcflags, exptime_t exptime,
+    explicit btree_set_oper_t(unique_ptr_t<data_provider_t> data, mcflags_t mcflags, exptime_t exptime,
             add_policy_t ap, replace_policy_t rp, cas_t req_cas)
         : btree_modify_oper_t(), data(data), mcflags(mcflags), exptime(exptime),
             add_policy(ap), replace_policy(rp), req_cas(req_cas)
@@ -112,7 +112,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 
     ticks_t start_time;
 
-    data_provider_t *data;
+    unique_ptr_t<data_provider_t> data;
     mcflags_t mcflags;
     exptime_t exptime;
     add_policy_t add_policy;
@@ -128,9 +128,9 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 };
 
 set_result_t btree_set(const store_key_t &key, btree_slice_t *slice,
-        data_provider_t *data, mcflags_t mcflags, exptime_t exptime,
-        add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
-        castime_t castime) {
+                       unique_ptr_t<data_provider_t> data, mcflags_t mcflags, exptime_t exptime,
+                       add_policy_t add_policy, replace_policy_t replace_policy, cas_t req_cas,
+                       castime_t castime) {
     btree_set_oper_t oper(data, mcflags, exptime, add_policy, replace_policy, req_cas);
     run_btree_modify_oper(&oper, slice, key, castime);
     return oper.result;

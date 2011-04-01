@@ -141,7 +141,6 @@ void destroy_btree(
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {
-
     /* Shut down btrees */
     pmap(btree_static_config.n_slices, boost::bind(&destroy_btree, btrees, dispatchers, timestampers, _1));
 

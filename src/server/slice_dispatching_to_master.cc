@@ -25,13 +25,13 @@ struct change_visitor_t : public boost::static_visitor<mutation_result_t> {
         coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::get_cas, master, m.key, castime));
         return slice->change(m, castime);
     }
-    mutation_result_t operator()(const set_mutation_t& m) {
+    mutation_result_t operator()(const sarc_mutation_t& m) {
         rassert(master != NULL);
-        buffer_borrowing_data_provider_t borrower(master->home_thread, m.data);
+        unique_ptr_t<buffer_borrowing_data_provider_t> borrower(new buffer_borrowing_data_provider_t(master->home_thread, m.data));
         coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::sarc, master,
-            m.key, borrower.side_provider(), m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
-        set_mutation_t m2(m);
-        m2.data = &borrower;
+            m.key, borrower->side_provider(), m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
+        sarc_mutation_t m2(m);
+        m2.data = borrower;
         return slice->change(m2, castime);
     }
     mutation_result_t operator()(const incr_decr_mutation_t& m) {
@@ -41,11 +41,11 @@ struct change_visitor_t : public boost::static_visitor<mutation_result_t> {
     }
     mutation_result_t operator()(const append_prepend_mutation_t &m) {
         rassert(master != NULL);
-        buffer_borrowing_data_provider_t borrower(master->home_thread, m.data);
+        unique_ptr_t<buffer_borrowing_data_provider_t> borrower(new buffer_borrowing_data_provider_t(master->home_thread, m.data));
         coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::append_prepend, master,
-            m.kind, m.key, borrower.side_provider(), castime));
+            m.kind, m.key, borrower->side_provider(), castime));
         append_prepend_mutation_t m2(m);
-        m2.data = &borrower;
+        m2.data = borrower;
         return slice->change(m2, castime);
     }
     mutation_result_t operator()(const delete_mutation_t& m) {
@@ -89,5 +89,6 @@ void btree_slice_dispatching_to_master_t::nop_back_on_masters_thread(repli_times
 }
 
 void btree_slice_dispatching_to_master_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+    callback->add_dual_backfiller_hold();
     coro_t::spawn_on_thread(slice_->home_thread, boost::bind(&btree_slice_t::backfill, slice_, since_when, callback));
 }

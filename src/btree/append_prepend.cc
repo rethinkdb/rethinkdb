@@ -4,7 +4,7 @@
 
 struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
-    btree_append_prepend_oper_t(data_provider_t *_data, bool _append)
+    btree_append_prepend_oper_t(unique_ptr_t<data_provider_t> _data, bool _append)
         : data(_data), append(_append)
     { }
 
@@ -148,7 +148,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
     append_prepend_result_t result;
 
-    data_provider_t *data;
+    unique_ptr_t<data_provider_t> data;
     bool append;   // true = append, false = prepend
 
     union {
@@ -158,7 +158,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     boost::scoped_ptr<large_buf_t> large_buflock;
 };
 
-append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, data_provider_t *data, bool append, castime_t castime) {
+append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, unique_ptr_t<data_provider_t> data, bool append, castime_t castime) {
     btree_append_prepend_oper_t oper(data, append);
     run_btree_modify_oper(&oper, slice, key, castime);
     return oper.result;
