@@ -282,8 +282,8 @@ int main(int argc, char *argv[])
             fflush(latencies_fd);
         }
         if (worst_latencies_fd) {
-            fprintf(worst_latencies_fd, "worst-latency\t%d\t%.2f\n",
-                total_time, ticks_to_us(round_stats.worst_latency));
+            fprintf(worst_latencies_fd, "worst-latency\t%d\t%.6f\n",
+                total_time, ticks_to_secs(round_stats.worst_latency));
             fflush(worst_latencies_fd);
         }
 
