@@ -5,7 +5,7 @@ echo "THIS SCRIPT IS UNFINISHED!!!"
 exit 1
 
 NAME=rethinkdb
-SUMMARY="RethinkDB - the database for solid drives"
+SUMMARY="RethinkDB - the database for solid-state drives"
 COMPANY_NAME="Hexagram 49, Inc."
 DESCRIPTION="$SUMMARY" # TODO
 RELEASE=1

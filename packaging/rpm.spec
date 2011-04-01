@@ -19,7 +19,7 @@ dnl
 %define buildroot %{_topdir}/BUILD
 
 BuildRoot: %{buildroot}
-Summary:   RethinkDB - the database for solid drives
+Summary:   RethinkDB - the database for solid-state drives
 Name:      %{packagename}
 Version:   %{version}
 Release:   1
