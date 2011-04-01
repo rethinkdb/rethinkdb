@@ -51,7 +51,7 @@ bool insert(block_size_t block_size, buf_t& node_buf, const btree_key_t *key, co
     return true;
 }
 
-void insert(UNUSED block_size_t block_size, leaf_node_t *node, const btree_key_t *key, const btree_value* value, repli_timestamp insertion_time) {
+void insert(leaf_node_t *node, const btree_key_t *key, const btree_value* value, repli_timestamp insertion_time) {
     int index = impl::get_offset_index(node, key);
 
     uint16_t prev_offset;
@@ -90,6 +90,7 @@ void insert(UNUSED block_size_t block_size, leaf_node_t *node, const btree_key_t
 // already sure the key is in the node.  This means we're doing an
 // unnecessary binary search.
 void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
+    print_backtrace();
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
 #ifdef BTREE_DEBUG
     printf("removing key: ");
@@ -111,8 +112,8 @@ void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
     validate(block_size, node);
 }
 
-// TODO: We don't use the block_size parameter, so get rid of it.
-void remove(UNUSED block_size_t block_size, leaf_node_t *node, const btree_key_t *key) {
+void remove(leaf_node_t *node, const btree_key_t *key) {
+    print_backtrace();
     int index = impl::find_key(node, key);
     rassert(index != impl::key_not_found);
     rassert(index != node->npairs);
@@ -408,7 +409,7 @@ bool is_full(const leaf_node_t *node, const btree_key_t *key, const btree_value 
         node->frontmost_offset;
 }
 
-void validate(UNUSED block_size_t block_size, UNUSED const leaf_node_t *node) {
+void validate(block_size_t block_size, const leaf_node_t *node) {
 #ifndef NDEBUG
     rassert(ptr_cast<char>(&(node->pair_offsets[node->npairs])) <= ptr_cast<char>(get_pair(node, node->frontmost_offset)));
     rassert(node->frontmost_offset > 0);

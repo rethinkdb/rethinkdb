@@ -2,8 +2,8 @@
 
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/co_functions.hpp"
+#include "containers/scoped_malloc.hpp"
 #include "logger.hpp"
-#include "scoped_malloc.hpp"
 #include "store.hpp"
 
 namespace replication {

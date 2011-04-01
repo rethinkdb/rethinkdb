@@ -379,9 +379,9 @@ void run(slave_t *slave) {
 
 std::string slave_t::new_master(int argc, char **argv) {
     guarantee(argc == 3); // TODO: Handle argc = 0.
-    string host = string(argv[1]);
+    std::string host = argv[1];
     if (host.length() >  MAX_HOSTNAME_LEN - 1)
-        return std::string("That hostname is too long; use a shorter one.\n");
+        return "That hostname is too long; use a shorter one.\n";
 
     /* redo the replication_config info */
     strcpy(replication_config_.hostname, host.c_str());
@@ -389,7 +389,7 @@ std::string slave_t::new_master(int argc, char **argv) {
 
     failover_reset();
 
-    return std::string("New master set\n");
+    return "New master set\n";
 }
 
 // TODO: instead of UNUSED, ensure that these parameters are empty.

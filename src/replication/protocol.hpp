@@ -5,10 +5,10 @@
 
 #include "arch/arch.hpp"
 #include "concurrency/mutex.hpp"
+#include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
 #include "data_provider.hpp"
 #include "replication/net_structs.hpp"
-#include "scoped_malloc.hpp"
 
 
 namespace replication {
