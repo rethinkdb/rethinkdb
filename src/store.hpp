@@ -125,8 +125,7 @@ enum replace_policy_t {
 
 #define NO_CAS_SUPPLIED 0
 
-// TODO: freaking rename this to sarc_mutation_t.
-struct set_mutation_t {
+struct sarc_mutation_t {
     store_key_t key;
     data_provider_t *data;
     mcflags_t flags;
@@ -203,7 +202,7 @@ enum append_prepend_result_t {
 
 struct mutation_t {
 
-    boost::variant<get_cas_mutation_t, set_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation;
+    boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation;
 
     // implicit
     template<class T>

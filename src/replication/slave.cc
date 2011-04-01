@@ -77,7 +77,7 @@ struct not_allowed_visitor_t : public boost::static_visitor<mutation_result_t> {
         it. */
         return get_result_t();
     }
-    mutation_result_t operator()(UNUSED const set_mutation_t& m) const {
+    mutation_result_t operator()(UNUSED const sarc_mutation_t& m) const {
         return sr_not_allowed;
     }
     mutation_result_t operator()(UNUSED const incr_decr_mutation_t& m) const {
@@ -152,7 +152,7 @@ void slave_t::send(scoped_malloc<net_get_cas_t>& msg) {
 }
 
 void slave_t::send(stream_pair<net_sarc_t>& msg) {
-    set_mutation_t mut;
+    sarc_mutation_t mut;
     mut.key.assign(msg->key_size, msg->keyvalue);
     mut.data = msg.stream;
     mut.flags = msg->flags;
@@ -165,7 +165,7 @@ void slave_t::send(stream_pair<net_sarc_t>& msg) {
 }
 
 void slave_t::send(stream_pair<net_backfill_set_t>& msg) {
-    set_mutation_t mut;
+    sarc_mutation_t mut;
     mut.key.assign(msg->key_size, msg->keyvalue);
     mut.data = msg.stream;
     mut.flags = msg->flags;

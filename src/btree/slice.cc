@@ -78,7 +78,7 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
     mutation_result_t operator()(const get_cas_mutation_t &m) {
         return btree_get_cas(m.key, parent, ct);
     }
-    mutation_result_t operator()(const set_mutation_t &m) {
+    mutation_result_t operator()(const sarc_mutation_t &m) {
         return btree_set(m.key, parent, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, ct);
     }
     mutation_result_t operator()(const incr_decr_mutation_t &m) {

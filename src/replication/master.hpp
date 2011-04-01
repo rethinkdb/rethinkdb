@@ -85,7 +85,7 @@ public:
     void send(stream_pair<net_backfill_set_t>& msg) {
         // TODO: this is duplicate code.
 
-        set_mutation_t mut;
+        sarc_mutation_t mut;
         mut.key.assign(msg->key_size, msg->keyvalue);
         mut.data = msg.stream;
         mut.flags = msg->flags;
