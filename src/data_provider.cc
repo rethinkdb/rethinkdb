@@ -181,7 +181,7 @@ void buffer_borrowing_data_provider_t::side_data_provider_t::supply_no_buffers()
 
 buffer_borrowing_data_provider_t::buffer_borrowing_data_provider_t(int side_reader_thread, unique_ptr_t<data_provider_t> inner)
     : inner_(inner), done_cond_(),
-      side_(new side_data_provider_t(side_reader_thread, inner->get_size(), &done_cond_)),
+      side_(new side_data_provider_t(side_reader_thread, inner_->get_size(), &done_cond_)),
       side_owned_(true), supplied_buffers_(false) {
 #ifndef NDEBUG
     in_get_data_into_buffers_ = false;
