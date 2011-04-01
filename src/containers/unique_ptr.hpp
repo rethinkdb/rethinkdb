@@ -22,7 +22,7 @@ class unique_ptr_t {
 #endif
 
 public:
-    unique_ptr_t(T *p) : ptr(p) {
+    explicit unique_ptr_t(T *p) : ptr(p) {
         DEBUG_ONLY(ok = true);
     }
 

@@ -99,17 +99,16 @@ const const_buffer_group_t *buffered_data_provider_t::get_data_as_buffers() thro
 
 /* maybe_buffered_data_provider_t */
 
-maybe_buffered_data_provider_t::maybe_buffered_data_provider_t(data_provider_t *dp, int threshold) :
-    buffer(NULL)
+maybe_buffered_data_provider_t::maybe_buffered_data_provider_t(unique_ptr_t<data_provider_t> dp, int threshold) :
+    size(dp->get_size()), original(), exception_was_thrown(false), buffers_original(), buffer()
 {
-    size = dp->get_size();
     if (size >= threshold) {
         original = dp;
     } else {
-        original = NULL;
         /* Catch the exception here so we can re-throw it at the appropriate moment */
         try {
-            buffer.reset(new buffered_data_provider_t(dp));
+            buffers_original.reset(dp.release());
+            buffer.reset(new buffered_data_provider_t(buffers_original.get()));
             exception_was_thrown = false;
         } catch (data_provider_failed_exc_t) {
             exception_was_thrown = true;
@@ -181,7 +180,7 @@ void buffer_borrowing_data_provider_t::side_data_provider_t::supply_no_buffers()
     done_cond_ = NULL;
 }
 
-buffer_borrowing_data_provider_t::buffer_borrowing_data_provider_t(int side_reader_thread, data_provider_t *inner)
+buffer_borrowing_data_provider_t::buffer_borrowing_data_provider_t(int side_reader_thread, unique_ptr_t<data_provider_t> inner)
     : inner_(inner), done_cond_(),
       side_(new side_data_provider_t(side_reader_thread, inner->get_size(), &done_cond_)),
       side_owned_(true), supplied_buffers_(false) {

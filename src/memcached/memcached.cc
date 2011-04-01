@@ -387,8 +387,8 @@ void run_storage_command(txt_memcached_handler_t *rh,
 
     thread_saver_t saver;
 
-    memcached_data_provider_t unbuffered_data(rh, value_size, value_read_promise);
-    maybe_buffered_data_provider_t data(&unbuffered_data, MAX_BUFFERED_SET_SIZE);
+    unique_ptr_t<memcached_data_provider_t> unbuffered_data(new memcached_data_provider_t(rh, value_size, value_read_promise));
+    unique_ptr_t<maybe_buffered_data_provider_t> data(new maybe_buffered_data_provider_t(unbuffered_data, MAX_BUFFERED_SET_SIZE));
 
     block_pm_duration set_timer(&pm_cmd_set);
 
@@ -419,7 +419,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
             unreachable();
         }
 
-        set_result_t res = rh->set_store->sarc(key, &data, metadata.mcflags, metadata.exptime,
+        set_result_t res = rh->set_store->sarc(key, data, metadata.mcflags, metadata.exptime,
                                                add_policy, replace_policy, metadata.unique);
         
         if (!noreply) {
@@ -454,7 +454,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
         append_prepend_result_t res =
             rh->set_store->append_prepend(
                 sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
-                key, &data);
+                key, data);
 
         if (!noreply) {
             switch (res) {
@@ -811,9 +811,9 @@ void do_quickset(const thread_saver_t& saver, txt_memcached_handler_t *rh, std::
             rh->writef(saver, "CLIENT_ERROR Invalid key %s\r\n", args[i]);
             return;
         }
-        buffered_data_provider_t value(args[i + 1], strlen(args[i + 1]));
+        unique_ptr_t<buffered_data_provider_t> value(new buffered_data_provider_t(args[i + 1], strlen(args[i + 1])));
 
-        set_result_t res = rh->set_store->sarc(key, &value, 0, 0, add_policy_yes, replace_policy_yes, 0);
+        set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0);
 
         if (res == sr_stored) {
             rh->writef(saver, "STORED key %s\r\n", args[i]);

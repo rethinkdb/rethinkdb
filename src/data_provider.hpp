@@ -6,6 +6,7 @@
 #include <vector>
 #include <exception>
 #include "containers/buffer_group.hpp"
+#include "containers/unique_ptr.hpp"
 #include "errors.hpp"
 
 #include "concurrency/cond_var.hpp"
@@ -98,7 +99,7 @@ it buffers the other data_provider_t if it is sufficiently small, improving perf
 
 class maybe_buffered_data_provider_t : public data_provider_t {
 public:
-    maybe_buffered_data_provider_t(data_provider_t *dp, int threshold);
+    maybe_buffered_data_provider_t(unique_ptr_t<data_provider_t> dp, int threshold);
 
     size_t get_size() const;
     void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
@@ -106,11 +107,12 @@ public:
 
 private:
     int size;
-    data_provider_t *original;
+    unique_ptr_t<data_provider_t> original;
     // true if we decide to buffer but there is an exception. We catch the exception in the
     // constructor and then set this variable to true, then throw data_provider_failed_exc_t()
     // when our data is requested. This way we behave exactly the same whether or not we buffer.
     bool exception_was_thrown;
+    boost::scoped_ptr<data_provider_t> buffers_original;
     boost::scoped_ptr<buffered_data_provider_t> buffer;   // NULL if we decide not to buffer
 };
 
@@ -141,16 +143,18 @@ public:
     };
 
 
-    buffer_borrowing_data_provider_t(int side_reader_thread, data_provider_t *inner);
+    buffer_borrowing_data_provider_t(int side_reader_thread, unique_ptr_t<data_provider_t> inner);
     ~buffer_borrowing_data_provider_t();
     size_t get_size() const;
 
     void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
 
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+
+    // TODO: Probably have this return a unique_ptr_t.
     side_data_provider_t *side_provider();
 private:
-    data_provider_t *inner_;
+    unique_ptr_t<data_provider_t> inner_;
     cond_t done_cond_;  // Lives on the side_reader_thread.
     side_data_provider_t *side_;
     bool side_owned_;
