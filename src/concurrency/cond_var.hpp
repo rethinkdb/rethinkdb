@@ -129,6 +129,30 @@ private:
     intrusive_list_t<waiter_t> waiters;
 };
 
+/* multicond_weak_ptr_t is a pointer to a multicond_t, but it NULLs itself when the
+multicond_t is pulsed. */
+
+struct multicond_weak_ptr_t : private multicond_t::waiter_t {
+    multicond_weak_ptr_t(multicond_t *mc = NULL) : mc(mc) { }
+    void watch(multicond_t *m) {
+        rassert(!mc);
+        mc = m;
+        mc->add_waiter(this);
+    }
+    void pulse_if_non_null() {
+        if (mc) {
+            mc->pulse();   // Calls on_multicond_pulsed()
+        }
+        rassert(!mc);
+    }
+private:
+    multicond_t *mc;
+    void on_multicond_pulsed() {
+        rassert(mc);
+        mc = NULL;
+    }
+};
+
 /* A threadsafe_cond_t is a thread-safe condition variable. It's like cond_t except it can be
 used with multiple coroutines on different threads. */
 

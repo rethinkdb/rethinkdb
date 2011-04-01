@@ -10,7 +10,7 @@
 
 /* Forward declaration to avoid circular header dependency */
 
-struct multicond_t;
+struct multicond_weak_ptr_t;
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
@@ -119,10 +119,15 @@ private:
 
     linux_event_watcher_t event_watcher;
 
-    /* These condition variables are non-NULL if there is a pending read or write.
-    on_shutdown_read() and on_shutdown_write() pulse() them to interrupt an active read
-    or write. */
-    multicond_t *read_cond, *write_cond;
+    /* True if there is a pending read or write */
+    bool read_in_progress, write_in_progress;
+
+    /* If there is a pending read or write, these point to the multicond_t that can be
+    pulsed to interrupt the pending read or write.
+
+    The reason for the boost::scoped_ptr<> is to avoid a circular dependency with
+    multicond_weak_ptr_t. */
+    boost::scoped_ptr<multicond_weak_ptr_t> read_cond_watcher, write_cond_watcher;
 
     // True when the half of the connection has been shut down but the linux_tcp_conn_t has not
     // been deleted yet
@@ -172,15 +177,15 @@ private:
     linux_tcp_listener_callback_t *callback;
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
-    new connections; when accept() blocks, then it waits for on_event() to signal
-    accept_loop_cond.
-
-    When it's time to stop accept_loop(), ~linux_tcp_listener_t() sets 
-    *shutdown_signal and then signals accept_loop_cond. */ 
+    new connections; when accept() blocks, then it waits for events from the
+    event loop. To shut down accept_loop(), ~linux_tcp_listener_t() sets
+    *shutdown_signal to true and then signals accept_loop_cond. */
 
     void accept_loop();
     bool *shutdown_signal;
-    multicond_t *accept_loop_cond;
+
+    // The boost::scoped_ptr<> is to avoid a circular header dependency
+    boost::scoped_ptr<multicond_weak_ptr_t> accept_loop_cond_watcher;
     void handle(fd_t sock);
 
     /* event_watcher sends any error conditions to here */
