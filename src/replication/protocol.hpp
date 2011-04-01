@@ -5,7 +5,6 @@
 
 #include "arch/arch.hpp"
 #include "concurrency/mutex.hpp"
-#include "containers/shared_buf.hpp"
 #include "containers/thick_list.hpp"
 #include "data_provider.hpp"
 #include "replication/net_structs.hpp"
