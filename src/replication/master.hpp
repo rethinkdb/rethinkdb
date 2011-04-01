@@ -59,11 +59,12 @@ public:
     void get_cas(const store_key_t &key, castime_t castime);
 
     // Takes ownership of the data_provider_t *data parameter, and deletes it.
-    void sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    void sarc(const store_key_t &key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
 
     void incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime);
 
-    void append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime);
+    // TODO: do we ever call this
+    void append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data, castime_t castime);
 
     void delete_key(const store_key_t &key, repli_timestamp timestamp);
 

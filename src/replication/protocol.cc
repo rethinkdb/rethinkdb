@@ -334,7 +334,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 }
 
 template <class net_struct_type>
-void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, data_provider_t *data) {
+void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, unique_ptr_t<data_provider_t> data) {
     rassert(msg->value_size == data->get_size());
 
     size_t bufsize = objsize(msg);
@@ -365,11 +365,11 @@ void repli_stream_t::send(net_get_cas_t *msg) {
     sendobj(GET_CAS, msg);
 }
 
-void repli_stream_t::send(net_sarc_t *msg, const char *key, data_provider_t *value) {
+void repli_stream_t::send(net_sarc_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
     sendobj(SARC, msg, key, value);
 }
 
-void repli_stream_t::send(net_backfill_set_t *msg, const char *key, data_provider_t *value) {
+void repli_stream_t::send(net_backfill_set_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
     sendobj(BACKFILL_SET, msg, key, value);
 }
 
@@ -381,11 +381,11 @@ void repli_stream_t::send(net_decr_t *msg) {
     sendobj(DECR, msg);
 }
 
-void repli_stream_t::send(net_append_t *msg, const char *key, data_provider_t *value) {
+void repli_stream_t::send(net_append_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
     sendobj(APPEND, msg, key, value);
 }
 
-void repli_stream_t::send(net_prepend_t *msg, const char *key, data_provider_t *value) {
+void repli_stream_t::send(net_prepend_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
     sendobj(PREPEND, msg, key, value);
 }
 

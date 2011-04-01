@@ -151,8 +151,8 @@ public:
 
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
 
-    // TODO: Probably have this return a unique_ptr_t.
-    side_data_provider_t *side_provider();
+    // You can only call this once.
+    unique_ptr_t<side_data_provider_t> side_provider();
 private:
     unique_ptr_t<data_provider_t> inner_;
     cond_t done_cond_;  // Lives on the side_reader_thread.

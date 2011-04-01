@@ -51,8 +51,6 @@ public:
     }
 
     void send_backfill_atom_to_slave(backfill_atom_t atom) {
-        data_provider_t *data = atom.value.release();
-
         if (*stream) {
             net_backfill_set_t msg;
             msg.timestamp = atom.recency;
@@ -60,12 +58,9 @@ public:
             msg.exptime = atom.exptime;
             msg.cas_or_zero = atom.cas_or_zero;
             msg.key_size = atom.key.size;
-            msg.value_size = data->get_size();
-            (*stream)->send(&msg, atom.key.contents, data);
+            msg.value_size = atom.value->get_size();
+            (*stream)->send(&msg, atom.key.contents, atom.value);
         }
-
-        // TODO: Does repli_stream_t delete data or should we do it as we do here?
-        delete data;
     }
 
     void done(repli_timestamp oper_start_timestamp) {

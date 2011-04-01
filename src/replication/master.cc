@@ -50,7 +50,7 @@ void master_t::get_cas(const store_key_t& key, castime_t castime) {
     }
 }
 
-void master_t::sarc(const store_key_t& key, data_provider_t *data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+void master_t::sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     snag_ptr_t<master_t> tmp_hold(this);
 
     if (stream_) {
@@ -68,8 +68,6 @@ void master_t::sarc(const store_key_t& key, data_provider_t *data, mcflags_t fla
         stru.old_cas = old_cas;
         stream_->send(&stru, key.contents, data);
     }
-    // TODO: do we delete data or does repli_stream_t delete it?
-    delete data;
 }
 
 void master_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
@@ -105,7 +103,7 @@ void master_t::incr_decr_like(UNUSED uint8_t msgcode, UNUSED const store_key_t &
 }
 
 
-void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data, castime_t castime) {
+void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data, castime_t castime) {
     snag_ptr_t<master_t> tmp_hold(this);
 
     if (stream_) {
@@ -131,7 +129,6 @@ void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key
             stream_->send(&prependstruct, key.contents, data);
         }
     }
-    delete data;
 }
 
 void master_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {

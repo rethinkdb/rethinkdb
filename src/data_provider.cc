@@ -229,8 +229,12 @@ const const_buffer_group_t *buffer_borrowing_data_provider_t::get_data_as_buffer
     return group;
 }
 
-buffer_borrowing_data_provider_t::side_data_provider_t *buffer_borrowing_data_provider_t::side_provider() {
-    side_owned_ = false;
-    return side_;
+unique_ptr_t<buffer_borrowing_data_provider_t::side_data_provider_t> buffer_borrowing_data_provider_t::side_provider() {
+    if (side_owned_) {
+        side_owned_ = false;
+        return unique_ptr_t<side_data_provider_t>(side_);
+    } else {
+        return unique_ptr_t<side_data_provider_t>();
+    }
 }
 

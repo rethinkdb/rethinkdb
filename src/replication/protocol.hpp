@@ -118,12 +118,12 @@ public:
     void send(net_backfill_complete_t *msg);
     void send(net_announce_t *msg);
     void send(net_get_cas_t *msg);
-    void send(net_sarc_t *msg, const char *key, data_provider_t *value);
-    void send(net_backfill_set_t *msg, const char *key, data_provider_t *value);
+    void send(net_sarc_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
+    void send(net_backfill_set_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
     void send(net_incr_t *msg);
     void send(net_decr_t *msg);
-    void send(net_append_t *msg, const char *key, data_provider_t *value);
-    void send(net_prepend_t *msg, const char *key, data_provider_t *value);
+    void send(net_append_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
+    void send(net_prepend_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
     void send(net_delete_t *msg);
     void send(net_backfill_delete_t *msg);
 
@@ -140,7 +140,7 @@ private:
     void sendobj(uint8_t msgcode, net_struct_type *msg);
 
     template <class net_struct_type>
-    void sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, data_provider_t *data);
+    void sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, unique_ptr_t<data_provider_t> data);
 
     void send_hello(const mutex_acquisition_t& proof_of_acquisition);
 
