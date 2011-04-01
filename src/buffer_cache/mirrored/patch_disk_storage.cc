@@ -36,55 +36,60 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
     active_log_block = 0;
     next_patch_offset = 0;
 
-    // Read the existing config block
-    mc_config_block_t *config_block = reinterpret_cast<mc_config_block_t *>(cache.serializer->malloc());
+    // Read the existing config block & determine which blocks are alive
     {
         on_thread_t switcher(cache.serializer->home_thread);
+
+        // Load and parse config block
+        mc_config_block_t *config_block = reinterpret_cast<mc_config_block_t *>(cache.serializer->malloc());
         struct : public serializer_t::read_callback_t, public cond_t {
             void on_serializer_read() { pulse(); }
         } cb;
         if (!cache.serializer->do_read(start_id, config_block, &cb)) cb.wait();
-    }
-    guarantee(check_magic<mc_config_block_t>(config_block->magic), "Invalid mirrored cache config block magic");
-    number_of_blocks = config_block->cache.n_patch_log_blocks;
-    cache.serializer->free(config_block);
+        guarantee(check_magic<mc_config_block_t>(config_block->magic), "Invalid mirrored cache config block magic");
+        number_of_blocks = config_block->cache.n_patch_log_blocks;
+        cache.serializer->free(config_block);
 
-    if ((long long)number_of_blocks > (long long)cache.dynamic_config->max_size / cache.get_block_size().ser_value()) {
-        fail_due_to_user_error("The cache of size %d blocks is too small to hold this database's diff log of %d blocks.",
-            (int)(cache.dynamic_config->max_size / cache.get_block_size().ser_value()),
-            (int)(number_of_blocks));
-    }
+        if ((long long)number_of_blocks > (long long)cache.dynamic_config->max_size / cache.get_block_size().ser_value()) {
+            fail_due_to_user_error("The cache of size %d blocks is too small to hold this database's diff log of %d blocks.",
+                (int)(cache.dynamic_config->max_size / cache.get_block_size().ser_value()),
+                (int)(number_of_blocks));
+        }
 
-    block_is_empty.resize(number_of_blocks, false);
+        if (number_of_blocks == 0)
+            return;
 
-    if (number_of_blocks == 0)
-        return;
-
-    // Preload blocks into memory
-    {
-        on_thread_t switcher(cache.serializer->home_thread);
+        // Determine which blocks are alive
+        block_is_empty.resize(number_of_blocks);
         for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
-            if (cache.serializer->block_in_use(current_block)) {
-                coro_t::spawn(boost::bind(&patch_disk_storage_t::preload_block, this, current_block));
-            } else {
-                block_is_empty[current_block - first_block] = true;
-            }
+            block_is_empty[current_block - first_block] = !cache.serializer->block_in_use(current_block);
         }
     }
 
-    // Yield to let the preloading become effective before we go on calling acquire_block_no_locking
-    coro_t::yield();
+    // We manage our block IDs separately from the normal mechanism, but they are still in the same
+    // ID-space. So we have to reserve the block IDs. TODO: We should use a separate ID-space.
+    cache.free_list.reserve_block_id(start_id);
+    for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
+        cache.free_list.reserve_block_id(current_block);
+    }
+
+    // Preload log blocks so that they get read from disk in parallel
+    // TODO: This doesn't synergize very well with read-ahead. The blocks are likely to all be
+    // close together on disk, but no read-ahead callback has been installed. It's bad that we
+    // now have two different ways to preload blocks from disk, and we should fix that.
+    for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
+        if (!block_is_empty[current_block - first_block]) {
+            /* This automatically starts reading the block from disk and registers it with the
+            cache. */
+            new mc_inner_buf_t(&cache, current_block, true);
+        }
+    }
 
     // Load all log blocks into memory
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
         if (block_is_empty[current_block - first_block]) {
-            // Initialize a new log block here (we rely on the properties of block_id assignment)
-            mc_inner_buf_t *new_ibuf = mc_inner_buf_t::allocate(&cache, mc_inner_buf_t::faux_version_id, repli_timestamp::invalid);
-
-            // HEY: This is kind of fragile (in a non-devious way)
-            // because it only works if MC_CONFIG_BLOCK is 1, and not,
-            // say, 2.
-            guarantee(new_ibuf->block_id == current_block);
+            // Initialize a new log block here
+            new mc_inner_buf_t(&cache, current_block, cache.get_current_version_id(), repli_timestamp::invalid);
 
             log_block_bufs.push_back(acquire_block_no_locking(current_block));
 
@@ -92,7 +97,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
 
         } else {
             log_block_bufs.push_back(acquire_block_no_locking(current_block));
-    
+
             // Check that this is a valid log block
             mc_buf_t *log_buf = log_block_bufs[current_block - first_block];
             void *buf_data = log_buf->get_data_major_write();
@@ -102,6 +107,10 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
     rassert(log_block_bufs.size() == number_of_blocks);
 
     set_active_log_block(first_block);
+
+    /* We may have made a lot of blocks dirty by initializing the patch log. We need to start
+    a sync explicitly because we bypassed transaction_t. */
+    cache.writeback.sync(NULL);
 }
 
 patch_disk_storage_t::~patch_disk_storage_t() {
@@ -334,19 +343,11 @@ void patch_disk_storage_t::compress_block(const block_id_t log_block_id) {
     }
 }
 
-void patch_disk_storage_t::preload_block(const block_id_t log_block_id) {
-    // Acquire the block but release it immediately...
-    rassert(get_thread_id() == cache.serializer->home_thread);
-    coro_t::move_to_thread(cache.home_thread);
-    acquire_block_no_locking(log_block_id)->release();
-    coro_t::move_to_thread(cache.serializer->home_thread);
-}
-
 void patch_disk_storage_t::clear_block(const block_id_t log_block_id, coro_t* notify_coro) {
     cache.assert_thread();
 
     // Scan over the block
-    mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];;
+    mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];
     const void *buf_data = log_buf->get_data_read();
     guarantee(strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
@@ -416,7 +417,7 @@ void patch_disk_storage_t::set_active_log_block(const block_id_t log_block_id) {
 }
 
 void patch_disk_storage_t::init_log_block(const block_id_t log_block_id) {
-    mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];;
+    mc_buf_t *log_buf = log_block_bufs[log_block_id - first_block];
     void *buf_data = log_buf->get_data_major_write();
 
     memcpy(buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC));
