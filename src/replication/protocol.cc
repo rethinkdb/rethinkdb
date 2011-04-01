@@ -42,7 +42,7 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
 
 // TODO: Get rid of these functions, put static functions on each of
 // the types, even if it's redundant, because that way it's safer.
-template <class T> struct stream_type { typedef buffed_data_t<T> type; };
+template <class T> struct stream_type { typedef scoped_malloc<T> type; };
 template <> struct stream_type<net_sarc_t> { typedef stream_pair<net_sarc_t> type; };
 template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t> type; };
 template <> struct stream_type<net_prepend_t> { typedef stream_pair<net_prepend_t> type; };
@@ -66,7 +66,7 @@ size_t objsize(const net_backfill_delete_t *buf) { return sizeof(net_backfill_de
 template <class T>
 void check_pass(message_callback_t *receiver, weak_buf_t buffer, size_t realoffset, size_t realsize) {
     if (sizeof(T) <= realsize && objsize(buffer.get<T>(realoffset)) == realsize) {
-        typename stream_type<T>::type buf(buffer, realoffset, realsize);
+        typename stream_type<T>::type buf(buffer.get<char>(realoffset), buffer.get<char>(realoffset) + realsize);
         receiver->send(buf);
     } else {
         debugf("realsize: %zu sizeof(T): %zu objsize: %zu\n", realsize, sizeof(T), objsize(buffer.get<T>(realoffset)));
@@ -79,7 +79,7 @@ void check_first_size(message_callback_t *receiver, weak_buf_t& buffer, size_t r
     if (sizeof(T) >= realsize
         && sizeof(T) + buffer.get<T>(realbegin)->key_size <= realsize) {
 
-        stream_pair<T> spair(buffer, realbegin, realsize, buffer.get<T>(realbegin)->value_size);
+        stream_pair<T> spair(buffer.get<char>(realbegin), buffer.get<char>(realbegin) + realsize, buffer.get<T>(realbegin)->value_size);
         size_t m = realsize - sizeof(T) - buffer.get<T>(realbegin)->key_size;
 
         void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
@@ -218,7 +218,7 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
 
     /* we only get out of this loop when we've been shutdown, if the connection
      * closes then we catch an exception and never reach here */
-    _cb->on_parser_shutdown();
+    shutdown_cb_->on_parser_shutdown();
 
     // marker destructor sets is_live to false
 }
@@ -230,9 +230,13 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
 
         tracker_t streams;
         do_parse_normal_messages(conn, receiver, streams);
+
+        if (shutdown_cb_) {
+            shutdown_cb_->on_parser_shutdown();
+        }
     } catch (tcp_conn_t::read_closed_exc_t& e) {
-        if (shutdown_asked_for) {
-            _cb->on_parser_shutdown();
+        if (shutdown_cb_) {
+            shutdown_cb_->on_parser_shutdown();
         }
         else {
             receiver->conn_closed();
@@ -255,8 +259,7 @@ void message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
     if (!is_live) {
         cb->on_parser_shutdown();
     } else {
-        shutdown_asked_for = true;
-        _cb = cb;
+        shutdown_cb_ = cb;
 
         is_live = false;
     }

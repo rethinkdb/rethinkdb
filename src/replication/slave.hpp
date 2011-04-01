@@ -59,20 +59,20 @@ public:
     /* message_callback_t interface */
     // These call .swap on their parameter, taking ownership of the pointee.
     void hello(net_hello_t message);
-    void send(buffed_data_t<net_backfill_t>& message);
-    void send(buffed_data_t<net_backfill_complete_t>& message);
-    void send(buffed_data_t<net_announce_t>& message);
-    void send(buffed_data_t<net_get_cas_t>& message);
+    void send(scoped_malloc<net_backfill_t>& message);
+    void send(scoped_malloc<net_backfill_complete_t>& message);
+    void send(scoped_malloc<net_announce_t>& message);
+    void send(scoped_malloc<net_get_cas_t>& message);
     void send(stream_pair<net_sarc_t>& message);
     void send(stream_pair<net_backfill_set_t>& message);
-    void send(buffed_data_t<net_incr_t>& message);
-    void send(buffed_data_t<net_decr_t>& message);
+    void send(scoped_malloc<net_incr_t>& message);
+    void send(scoped_malloc<net_decr_t>& message);
     void send(stream_pair<net_append_t>& message);
     void send(stream_pair<net_prepend_t>& message);
-    void send(buffed_data_t<net_delete_t>& message);
-    void send(buffed_data_t<net_backfill_delete_t>& message);
-    void send(buffed_data_t<net_nop_t>& message);
-    void send(buffed_data_t<net_ack_t>& message);
+    void send(scoped_malloc<net_delete_t>& message);
+    void send(scoped_malloc<net_backfill_delete_t>& message);
+    void send(scoped_malloc<net_nop_t>& message);
+    void send(scoped_malloc<net_ack_t>& message);
     void conn_closed();
 
     /* failover module which is alerted by an on_failure() call when we go out

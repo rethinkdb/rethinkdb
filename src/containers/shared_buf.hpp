@@ -106,6 +106,7 @@ private:
     char *buffer_;
 };
 
+
 // TODO: Do we still use buffed_data_t anywhere?
 
 // A pointer to data sitting amid a shared buffer.

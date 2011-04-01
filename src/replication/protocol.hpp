@@ -17,15 +17,22 @@ namespace replication {
 template <class T>
 struct stream_pair {
     buffered_data_provider_t *stream;
-    buffed_data_t<T> data;
+    scoped_malloc<T> data;
 
     // This uses key_size, which is completely crap.
-    stream_pair(weak_buf_t buffer, size_t beg, size_t n, size_t size = 0) : data(buffer, beg) {
-        char *p;
-        size_t m = sizeof(T) + buffer.get<T>(beg)->key_size;
-        stream = new buffered_data_provider_t(size == 0 ? n - m : size, (void **)&p);
+    stream_pair(const char *beg, const char *end, size_t size = 0) : stream(NULL), data() {
+        void *p;
+        size_t m = sizeof(T) + reinterpret_cast<const T *>(beg)->key_size;
 
-        memcpy(p, buffer.get<char>(beg + m), n - m);
+        const char *cutpoint = beg + m;
+        {
+            scoped_malloc<T> tmp(beg, cutpoint);
+            data.swap(tmp);
+        }
+
+        stream = new buffered_data_provider_t(size == 0 ? end - cutpoint : size, &p);
+
+        memcpy(p, cutpoint, end - cutpoint);
     }
 
     T *operator->() { return data.get(); }
@@ -35,20 +42,20 @@ class message_callback_t {
 public:
     // These could call .swap on their parameter, taking ownership of the pointee.
     virtual void hello(net_hello_t message) = 0;
-    virtual void send(buffed_data_t<net_backfill_t>& message) = 0;
-    virtual void send(buffed_data_t<net_backfill_complete_t>& message) = 0;
-    virtual void send(buffed_data_t<net_announce_t>& message) = 0;
-    virtual void send(buffed_data_t<net_get_cas_t>& message) = 0;
+    virtual void send(scoped_malloc<net_backfill_t>& message) = 0;
+    virtual void send(scoped_malloc<net_backfill_complete_t>& message) = 0;
+    virtual void send(scoped_malloc<net_announce_t>& message) = 0;
+    virtual void send(scoped_malloc<net_get_cas_t>& message) = 0;
     virtual void send(stream_pair<net_sarc_t>& message) = 0;
     virtual void send(stream_pair<net_backfill_set_t>& message) = 0;
-    virtual void send(buffed_data_t<net_incr_t>& message) = 0;
-    virtual void send(buffed_data_t<net_decr_t>& message) = 0;
+    virtual void send(scoped_malloc<net_incr_t>& message) = 0;
+    virtual void send(scoped_malloc<net_decr_t>& message) = 0;
     virtual void send(stream_pair<net_append_t>& message) = 0;
     virtual void send(stream_pair<net_prepend_t>& message) = 0;
-    virtual void send(buffed_data_t<net_delete_t>& message) = 0;
-    virtual void send(buffed_data_t<net_backfill_delete_t>& message) = 0;
-    virtual void send(buffed_data_t<net_nop_t>& message) = 0;
-    virtual void send(buffed_data_t<net_ack_t>& message) = 0;
+    virtual void send(scoped_malloc<net_delete_t>& message) = 0;
+    virtual void send(scoped_malloc<net_backfill_delete_t>& message) = 0;
+    virtual void send(scoped_malloc<net_nop_t>& message) = 0;
+    virtual void send(scoped_malloc<net_ack_t>& message) = 0;
     virtual void conn_closed() = 0;
 };
 
@@ -56,7 +63,7 @@ typedef thick_list<std::pair<boost::function<void ()>, std::pair<char *, size_t>
 
 class message_parser_t {
 public:
-    message_parser_t() : shutdown_asked_for(false), is_live(false) {}
+    message_parser_t() : is_live(false), shutdown_cb_(NULL) {}
     ~message_parser_t() {}
 
     void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
@@ -75,10 +82,9 @@ private:
     void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
     void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams);
 
-    bool shutdown_asked_for; /* were we asked to shutdown (used to ignore connection exceptions */
     bool is_live; /* used to signal the parser when to stop, tells whether it needs to shut down */
 
-    message_parser_shutdown_callback_t *_cb;
+    message_parser_shutdown_callback_t *shutdown_cb_;
 
     DISABLE_COPYING(message_parser_t);
 };

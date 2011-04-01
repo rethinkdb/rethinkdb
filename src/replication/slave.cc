@@ -127,23 +127,23 @@ void slave_t::hello(UNUSED net_hello_t message) {
     debugf("hello message received.\n");
 }
 
-void slave_t::send(UNUSED buffed_data_t<net_backfill_t>& message) {
+void slave_t::send(UNUSED scoped_malloc<net_backfill_t>& message) {
     // TODO: Kill connection instead of crashing server, when master
     // sends garbage.
     rassert(false, "backfill message?  what?\n");
 }
 
-void slave_t::send(buffed_data_t<net_backfill_complete_t>& message) {
+void slave_t::send(scoped_malloc<net_backfill_complete_t>& message) {
     internal_store_->time_barrier(message->time_barrier_timestamp);
     internal_store_->backfill_complete();
     debugf("Received a BACKFILL_COMPLETE message.\n");
 }
 
-void slave_t::send(UNUSED buffed_data_t<net_announce_t>& message) {
+void slave_t::send(UNUSED scoped_malloc<net_announce_t>& message) {
     debugf("announce message received.\n");
 }
 
-void slave_t::send(buffed_data_t<net_get_cas_t>& msg) {
+void slave_t::send(scoped_malloc<net_get_cas_t>& msg) {
     // TODO this returns a get_result_t (with cross-thread messaging),
     // and we don't really care for that.
     get_cas_mutation_t mut;
@@ -178,7 +178,7 @@ void slave_t::send(stream_pair<net_backfill_set_t>& msg) {
     internal_store_->backfill_handover(new mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
 }
 
-void slave_t::send(buffed_data_t<net_incr_t>& msg) {
+void slave_t::send(scoped_malloc<net_incr_t>& msg) {
     incr_decr_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
     mut.kind = incr_decr_INCR;
@@ -186,7 +186,7 @@ void slave_t::send(buffed_data_t<net_incr_t>& msg) {
     internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
 }
 
-void slave_t::send(buffed_data_t<net_decr_t>& msg) {
+void slave_t::send(scoped_malloc<net_decr_t>& msg) {
     incr_decr_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
     mut.kind = incr_decr_DECR;
@@ -210,14 +210,14 @@ void slave_t::send(stream_pair<net_prepend_t>& msg) {
     internal_store_->handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
 }
 
-void slave_t::send(buffed_data_t<net_delete_t>& msg) {
+void slave_t::send(scoped_malloc<net_delete_t>& msg) {
     delete_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
     // TODO: where does msg->timestamp go???  IS THIS RIGHT?? WHO KNOWS.
     internal_store_->handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, msg->timestamp));
 }
 
-void slave_t::send(buffed_data_t<net_backfill_delete_t>& msg) {
+void slave_t::send(scoped_malloc<net_backfill_delete_t>& msg) {
     delete_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
     // NO_CAS_SUPPLIED is not used in any way for deletions, and the
@@ -227,14 +227,14 @@ void slave_t::send(buffed_data_t<net_backfill_delete_t>& msg) {
     internal_store_->backfill_handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid));
 }
 
-void slave_t::send(buffed_data_t<net_nop_t>& message) {
+void slave_t::send(scoped_malloc<net_nop_t>& message) {
     net_ack_t ackreply;
     ackreply.timestamp = message->timestamp;
     stream_->send(ackreply);
     internal_store_->time_barrier(message->timestamp);
 }
 
-void slave_t::send(UNUSED buffed_data_t<net_ack_t>& message) {
+void slave_t::send(UNUSED scoped_malloc<net_ack_t>& message) {
     // TODO: Kill connection when master sends garbage.
     rassert("ack message received.. as slave?\n");
 }

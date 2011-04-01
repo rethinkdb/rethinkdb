@@ -72,15 +72,15 @@ public:
 
     // TODO: kill slave connection instead of crashing server when slave sends garbage.
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
-    void send(UNUSED buffed_data_t<net_backfill_t>& message) { coro_t::spawn(boost::bind(&master_t::do_backfill, this, message->timestamp)); }
-    void send(UNUSED buffed_data_t<net_backfill_complete_t>& message) {
+    void send(UNUSED scoped_malloc<net_backfill_t>& message) { coro_t::spawn(boost::bind(&master_t::do_backfill, this, message->timestamp)); }
+    void send(UNUSED scoped_malloc<net_backfill_complete_t>& message) {
         // TODO: What about time_barrier, which the slave side does?
 
         queue_store_->backfill_complete();
         debugf("Slave sent BACKFILL_COMPLETE.\n");
     }
-    void send(UNUSED buffed_data_t<net_announce_t>& message) { guarantee(false, "slave sent announce"); }
-    void send(UNUSED buffed_data_t<net_get_cas_t>& message) { guarantee(false, "slave sent get_cas"); }
+    void send(UNUSED scoped_malloc<net_announce_t>& message) { guarantee(false, "slave sent announce"); }
+    void send(UNUSED scoped_malloc<net_get_cas_t>& message) { guarantee(false, "slave sent get_cas"); }
     void send(UNUSED stream_pair<net_sarc_t>& message) { guarantee(false, "slave sent sarc"); }
     void send(stream_pair<net_backfill_set_t>& msg) {
         // TODO: this is duplicate code.
@@ -98,12 +98,12 @@ public:
         queue_store_->backfill_handover(new mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
     }
 
-    void send(UNUSED buffed_data_t<net_incr_t>& message) { guarantee(false, "slave sent incr"); }
-    void send(UNUSED buffed_data_t<net_decr_t>& message) { guarantee(false, "slave sent decr"); }
+    void send(UNUSED scoped_malloc<net_incr_t>& message) { guarantee(false, "slave sent incr"); }
+    void send(UNUSED scoped_malloc<net_decr_t>& message) { guarantee(false, "slave sent decr"); }
     void send(UNUSED stream_pair<net_append_t>& message) { guarantee(false, "slave sent append"); }
     void send(UNUSED stream_pair<net_prepend_t>& message) { guarantee(false, "slave sent prepend"); }
-    void send(UNUSED buffed_data_t<net_delete_t>& message) { guarantee(false, "slave sent delete"); }
-    void send(buffed_data_t<net_backfill_delete_t>& msg) {
+    void send(UNUSED scoped_malloc<net_delete_t>& message) { guarantee(false, "slave sent delete"); }
+    void send(scoped_malloc<net_backfill_delete_t>& msg) {
         // TODO: this is duplicate code.
 
         delete_mutation_t mut;
@@ -114,8 +114,8 @@ public:
         // delete queue.
         queue_store_->backfill_handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid));
     }
-    void send(UNUSED buffed_data_t<net_nop_t>& message) { guarantee(false, "slave sent nop"); }
-    void send(UNUSED buffed_data_t<net_ack_t>& message) { }
+    void send(UNUSED scoped_malloc<net_nop_t>& message) { guarantee(false, "slave sent nop"); }
+    void send(UNUSED scoped_malloc<net_ack_t>& message) { }
     void conn_closed() { destroy_existing_slave_conn_if_it_exists(); }
 
     void do_nop_rebound(repli_timestamp t);
