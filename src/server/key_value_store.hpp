@@ -69,7 +69,9 @@ public:
 
     void spawn_backfill(repli_timestamp since_when, replication::do_backfill_cb *callback);
 
-public:
+    static uint32_t hash(const store_key_t &key);
+
+private:
     int n_files;
     btree_config_t btree_static_config;
     mirrored_cache_static_config_t cache_static_config;
@@ -100,12 +102,10 @@ public:
     set_store_t *slice_for_key_set(const store_key_t &key);
     get_store_t *slice_for_key_get(const store_key_t &key);
 
-    static uint32_t hash(const store_key_t &key);
+    void do_time_barrier_on_slice(repli_timestamp timestamp, int i);
 
-private:
-    DISABLE_COPYING(btree_key_value_store_t);
 
-private:
+
     /* slice debug control_t which allows us to see slice and hash for a key */
     class hash_control_t :
         public control_t
@@ -145,8 +145,9 @@ private:
 
     hash_control_t hash_control;
 
-private:
-    void do_time_barrier_on_slice(repli_timestamp timestamp, int i);
+
+
+    DISABLE_COPYING(btree_key_value_store_t);
 };
 
 #endif /* __BTREE_KEY_VALUE_STORE_HPP__ */
