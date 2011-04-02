@@ -5,6 +5,7 @@
 #include <string>
 #include <functional>
 #include "server/cmd_args.hpp"
+#include "server/slice_dispatching_to_master.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/translator.hpp"
 #include "btree/slice.hpp"
@@ -379,7 +380,8 @@ private:
             serializer_multiplexer_t multiplexer(serializers);
 
             btree_slice_t::create(multiplexer.proxies[0], &config.store_static_config.cache);
-            btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache);
+            boost::scoped_ptr<mutation_dispatcher_t> dispatcher(new null_dispatcher_t());
+            btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache, dispatcher.get());
 
             cache_t *cache = slice.cache();
 

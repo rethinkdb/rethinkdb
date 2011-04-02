@@ -80,24 +80,28 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
 void create_existing_btree(
         translator_serializer_t **pseudoserializers,
         btree_slice_t **btrees,
-        btree_slice_dispatching_to_master_t **dispatchers,
         timestamping_set_store_interface_t **timestampers,
         mirrored_cache_config_t *dynamic_config,
-        snag_ptr_t<replication::master_t>& master,
+        mutation_dispatcher_t *dispatcher,
         int i) {
 
     // TODO try to align slices with serializers so that when possible, a slice is on the
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    btrees[i] = new btree_slice_t(pseudoserializers[i], dynamic_config);
-    dispatchers[i] = new btree_slice_dispatching_to_master_t(btrees[i], master);
-    timestampers[i] = new timestamping_set_store_interface_t(dispatchers[i]);
+    btrees[i] = new btree_slice_t(pseudoserializers[i], dynamic_config, dispatcher);
+    timestampers[i] = new timestamping_set_store_interface_t(btrees[i]);
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                                                 snag_ptr_t<replication::master_t>& master)
+                                                 replication::master_t *master)
     : hash_control(this) {
+
+    if (master) {
+        dispatcher = new master_dispatcher_t(master);
+    } else {
+        dispatcher = new null_dispatcher_t();
+    }
 
     /* Start serializers */
     n_files = dynamic_config->serializer_private.size();
@@ -123,26 +127,27 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     per_slice_config.flush_dirty_size /= btree_static_config.n_slices;
     pmap(btree_static_config.n_slices,
          boost::bind(&create_existing_btree,
-                     multiplexer->proxies.data(), btrees, dispatchers, timestampers,
-                     &per_slice_config, boost::ref(master), _1));
+                     multiplexer->proxies.data(), btrees, timestampers,
+                     &per_slice_config, dispatcher, _1));
 }
 
 void destroy_btree(
         btree_slice_t **btrees,
-        btree_slice_dispatching_to_master_t **dispatchers,
         timestamping_set_store_interface_t **timestampers,
         int i) {
 
     on_thread_t thread_switcher(btrees[i]->home_thread);
 
     delete timestampers[i];
-    delete dispatchers[i];
     delete btrees[i];
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {
     /* Shut down btrees */
-    pmap(btree_static_config.n_slices, boost::bind(&destroy_btree, btrees, dispatchers, timestampers, _1));
+    pmap(btree_static_config.n_slices, boost::bind(&destroy_btree, btrees, timestampers, _1));
+
+    /* Gee I wonder what this destroys. */
+    delete dispatcher;
 
     /* Destroy proxy-serializers */
     delete multiplexer;
@@ -246,7 +251,7 @@ set_store_interface_t *btree_key_value_store_t::slice_for_key_set_interface(cons
 }
 
 set_store_t *btree_key_value_store_t::slice_for_key_set(const store_key_t &key) {
-    return dispatchers[slice_num(key)];
+    return btrees[slice_num(key)];
 }
 
 get_store_t *btree_key_value_store_t::slice_for_key_get(const store_key_t &key) {

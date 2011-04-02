@@ -4,8 +4,8 @@
 
 using replication::master_t;
 
-master_dispatcher_t::master_dispatcher_t(int slice_home_thread, master_t *master)
-    : slice_home_thread_(slice_home_thread), master_(master) {
+master_dispatcher_t::master_dispatcher_t(master_t *master)
+    : master_(master) {
     rassert(master_);
 }
 
@@ -44,7 +44,6 @@ struct change_visitor_t : public boost::static_visitor<mutation_t> {
 
 
 mutation_t master_dispatcher_t::dispatch_change(const mutation_t& m, castime_t castime) {
-    rassert(get_thread_id() == slice_home_thread_);
     if (master_ != NULL) {
         change_visitor_t functor;
         functor.master = master_;
@@ -53,27 +52,4 @@ mutation_t master_dispatcher_t::dispatch_change(const mutation_t& m, castime_t c
     } else {
         return m;
     }
-}
-
-
-
-
-
-
-
-
-
-btree_slice_dispatching_to_master_t::btree_slice_dispatching_to_master_t(btree_slice_t *slice, snag_ptr_t<replication::master_t>& master)
-    : slice_(slice), master_(master),
-      mutation_dispatcher_(master_.get() ? static_cast<mutation_dispatcher_t *>(new master_dispatcher_t(slice->home_thread, master_.get()))
-                           : static_cast<mutation_dispatcher_t *>(new null_dispatcher_t())) {
-}
-
-
-
-mutation_result_t btree_slice_dispatching_to_master_t::change(const mutation_t& m, castime_t castime) {
-    // TODO: Get rid of this function entirely, of course.
-    on_thread_t th(slice_->home_thread);
-    mutation_t m2 = mutation_dispatcher_->dispatch_change(m, castime);
-    return slice_->change(m2, castime);
 }

@@ -5,6 +5,7 @@
 #include "store.hpp"
 #include "replication/master.hpp"
 
+// TODO: This belongs in the btree directory.
 class mutation_dispatcher_t {
 public:
     mutation_dispatcher_t() { }
@@ -15,6 +16,7 @@ private:
     DISABLE_COPYING(mutation_dispatcher_t);
 };
 
+// TODO: I suppose this belongs in the btree directory.
 class null_dispatcher_t : public mutation_dispatcher_t {
 public:
     null_dispatcher_t() { }
@@ -23,35 +25,15 @@ private:
     DISABLE_COPYING(null_dispatcher_t);
 };
 
+// TODO: I suppose this belongs in the replication directory, or the server directory.
 class master_dispatcher_t : public mutation_dispatcher_t {
 public:
-    master_dispatcher_t(int slice_home_thread, replication::master_t *master);
+    master_dispatcher_t(replication::master_t *master);
     mutation_t dispatch_change(const mutation_t& m, castime_t castime);
 private:
-    int slice_home_thread_;
     replication::master_t *master_;
     DISABLE_COPYING(master_dispatcher_t);
 };
 
-
-class backfill_callback_t;
-
-class btree_slice_dispatching_to_master_t : public set_store_t {
-public:
-    btree_slice_dispatching_to_master_t(btree_slice_t *slice, snag_ptr_t<replication::master_t>& master);
-    ~btree_slice_dispatching_to_master_t() {
-        debugf("Destroying a btree_slice_dispatching_to_master_t.\n");
-    }
-
-    /* set_store_t interface. */
-
-    mutation_result_t change(const mutation_t& m, castime_t castime);
-
-private:
-    btree_slice_t *slice_;
-    snag_ptr_t<replication::master_t> master_;
-    boost::scoped_ptr<mutation_dispatcher_t> mutation_dispatcher_;
-    DISABLE_COPYING(btree_slice_dispatching_to_master_t);
-};
 
 #endif  // __BTREE_SLICE_DISPATCHING_TO_MASTERSTORE_HPP__

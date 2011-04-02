@@ -5,6 +5,8 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "serializer/translator.hpp"
 
+class mutation_dispatcher_t;
+
 class initialize_superblock_fsm_t;
 struct btree_replicant_t;
 class backfill_callback_t;
@@ -25,7 +27,8 @@ public:
 
     // Blocks
     btree_slice_t(translator_serializer_t *serializer,
-                  mirrored_cache_config_t *dynamic_config);
+                  mirrored_cache_config_t *dynamic_config,
+                  mutation_dispatcher_t *dispatcher);
 
     // Blocks
     ~btree_slice_t();
@@ -49,6 +52,7 @@ public:
 
 private:
     cache_t cache_;
+    mutation_dispatcher_t *const dispatcher_;
 
     DISABLE_COPYING(btree_slice_t);
 };
