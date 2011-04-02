@@ -72,9 +72,8 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     bool do_delete;
     bool write_empty_deleted_block;
 
-    /* true if there is a mc_buf_t that holds a pointer to the data in read-only outdated-OK
-    mode. */
-    bool cow_will_be_needed;
+    // number of references from mc_buf_t buffers, which hold a pointer to the data in read_outdated_ok mode
+    size_t cow_refcount;
 
     // Each of these local buf types holds a redundant pointer to the inner_buf that they are a part of
     writeback_t::local_buf_t writeback_buf;
@@ -86,8 +85,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     // Load an existing buf from disk
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load);
 
-    // Load an existing buf but use the provided data buffer (for read
-    // ahead)
+    // Load an existing buf but use the provided data buffer (for read ahead)
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
 
     // Create an entirely new buf
