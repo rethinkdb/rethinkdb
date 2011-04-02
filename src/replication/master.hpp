@@ -44,13 +44,6 @@ public:
         destroy_existing_slave_conn_if_it_exists();
     }
 
-    // TODO: get rid of this, have master_t take a list of slices in
-    // the constructor?  Or register them all in a single registration
-    // function?  Tie the knot more cleanly, so that we don't have to
-    // worry about slices registering themselves while other slices
-    // send operations.
-    void register_dispatcher(btree_slice_dispatching_to_master_t *dispatcher);
-
     // The master does not turn on its listener until this function is called.
     void register_key_value_store(btree_key_value_store_t *kv_store);
 
@@ -158,9 +151,6 @@ private:
     // consider_nop_dispatch_and_update_latest_timestamp(the_new_timestamp),
     // which tells the slices to check in.
     repli_timestamp latest_timestamp_;
-
-    // All the slices.
-    std::vector<btree_slice_dispatching_to_master_t *> dispatchers_;
 
     // The key value store.
     boost::scoped_ptr<queueing_store_t> queue_store_;

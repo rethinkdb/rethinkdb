@@ -8,14 +8,9 @@
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
 #include "server/slice_dispatching_to_master.hpp"
+#include "server/key_value_store.hpp"
 
 namespace replication {
-
-void master_t::register_dispatcher(btree_slice_dispatching_to_master_t *dispatcher) {
-    on_thread_t th(home_thread);
-    rassert(!listener_, "We should have registered all the dispatchers before we created and enabled the listener.");
-    dispatchers_.push_back(dispatcher);
-}
 
 void master_t::register_key_value_store(btree_key_value_store_t *store) {
     on_thread_t th(home_thread);
@@ -251,9 +246,7 @@ void master_t::do_backfill(repli_timestamp since_when) {
 
         do_backfill_cb cb(home_thread, &stream_);
 
-        for (int i = 0, n = dispatchers_.size(); i < n; ++i) {
-            dispatchers_[i]->spawn_backfill(since_when, &cb);
-        }
+        queue_store_->inner()->spawn_backfill(since_when, &cb);
 
         repli_timestamp minimum_timestamp = cb.wait();
         net_backfill_complete_t msg;

@@ -67,9 +67,6 @@ btree_slice_dispatching_to_master_t::btree_slice_dispatching_to_master_t(btree_s
     : slice_(slice), master_(master),
       mutation_dispatcher_(master_.get() ? static_cast<mutation_dispatcher_t *>(new master_dispatcher_t(slice->home_thread, master_.get()))
                            : static_cast<mutation_dispatcher_t *>(new null_dispatcher_t())) {
-    if (master_.get() != NULL) {
-        master_->register_dispatcher(this);
-    }
 }
 
 
