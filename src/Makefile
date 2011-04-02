@@ -500,12 +500,12 @@ clean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM *~"
 	@echo "    RM -r $(BUILD_ROOT_DIR)"
-	@echo "    RM $(TAGS)"
-	@echo "    RM $(CSCOPE_XREF)"
+#	@echo "    RM $(TAGS)"
+#	@echo "    RM $(CSCOPE_XREF)"
 endif
 	$(QUIET) find -name '*~' -exec rm {} \;
 	$(QUIET) rm -rf $(BUILD_ROOT_DIR)
-	$(QUIET) rm -f $(TAGS) $(CSCOPE_XREF)
+#	$(QUIET) rm -f $(TAGS) $(CSCOPE_XREF)
 
 # Directories
 $(BUILD_DIR):
