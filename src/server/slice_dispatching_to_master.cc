@@ -77,8 +77,3 @@ mutation_result_t btree_slice_dispatching_to_master_t::change(const mutation_t& 
     mutation_t m2 = mutation_dispatcher_->dispatch_change(m, castime);
     return slice_->change(m2, castime);
 }
-
-void btree_slice_dispatching_to_master_t::spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback) {
-    callback->add_dual_backfiller_hold();
-    coro_t::spawn_on_thread(slice_->home_thread, boost::bind(&btree_slice_t::backfill, slice_, since_when, callback));
-}

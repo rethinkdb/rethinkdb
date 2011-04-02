@@ -295,6 +295,7 @@ void btree_key_value_store_t::time_barrier(repli_timestamp lower_bound_on_future
 
 void btree_key_value_store_t::spawn_backfill(repli_timestamp since_when, replication::do_backfill_cb *callback) {
     for (int i = 0; i < btree_static_config.n_slices; ++i) {
-        dispatchers[i]->spawn_backfill(since_when, callback);
+        callback->add_dual_backfiller_hold();  // Yuck.
+        coro_t::spawn_on_thread(btrees[i]->home_thread, boost::bind(&btree_slice_t::backfill, btrees[i], since_when, callback));
     }
 }

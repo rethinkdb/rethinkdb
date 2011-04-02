@@ -46,7 +46,6 @@ public:
     /* set_store_t interface. */
 
     mutation_result_t change(const mutation_t& m, castime_t castime);
-    void spawn_backfill(repli_timestamp since_when, backfill_callback_t *callback);
 
 private:
     btree_slice_t *slice_;
