@@ -302,6 +302,7 @@ class Server(object):
 
         # Start the server
         assert self.server is None
+        print "Server command line:", cmd_join(command_line)
         self.server = SubProcess(
             command_line,
             "%s_output.txt" % self.name.replace(" ","_"),
