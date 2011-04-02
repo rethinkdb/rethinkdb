@@ -75,12 +75,14 @@
 // more cores without migrating the database file).
 #define DEFAULT_BTREE_SHARD_FACTOR                64
 
-// The size allocated to the on-disk diff log for newly created databases
+// If --diff-log-size is not specified, then the patch log size will default to the
+// smaller of DEFAULT_PATCH_LOG_SIZE and (DEFAULT_PATCH_LOG_FRACTION * cache size).
 #ifdef NDEBUG
 #define DEFAULT_PATCH_LOG_SIZE                     (512 * MEGABYTE)
 #else
 #define DEFAULT_PATCH_LOG_SIZE                     (4 * MEGABYTE)
 #endif
+#define DEFAULT_PATCH_LOG_FRACTION                 0.2
 
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       11211
