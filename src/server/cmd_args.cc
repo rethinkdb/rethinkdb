@@ -403,12 +403,17 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     }
 
     /* Convert values which depends on others to be set first */
+    int patch_log_memory;
     if (override_diff_log_size >= 0) {
-        config.store_static_config.cache.n_patch_log_blocks = override_diff_log_size / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
+        patch_log_memory = override_diff_log_size;
     } else {
-        config.store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
+        patch_log_memory = std::min(
+            DEFAULT_PATCH_LOG_SIZE,
+            (long)(DEFAULT_PATCH_LOG_FRACTION * config.store_dynamic_config.cache.max_dirty_size)
+            );
     }
-    
+    config.store_static_config.cache.n_patch_log_blocks = patch_log_memory / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
+
     return config;
 }
 

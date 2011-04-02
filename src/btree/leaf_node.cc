@@ -90,7 +90,6 @@ void insert(leaf_node_t *node, const btree_key_t *key, const btree_value* value,
 // already sure the key is in the node.  This means we're doing an
 // unnecessary binary search.
 void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
-    print_backtrace();
     const leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_read());
 #ifdef BTREE_DEBUG
     printf("removing key: ");
@@ -113,7 +112,6 @@ void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
 }
 
 void remove(leaf_node_t *node, const btree_key_t *key) {
-    print_backtrace();
     int index = impl::find_key(node, key);
     rassert(index != impl::key_not_found);
     rassert(index != node->npairs);
