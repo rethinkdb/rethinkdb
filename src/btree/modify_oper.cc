@@ -283,7 +283,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
                 check_and_handle_split(saver, *txor, buf, last_buf, sb_buf, key, new_value, block_size);
 
                 // Add a CAS to the value if necessary (this won't change its size).
-                if (new_value->has_cas() && !oper->cas_already_set) {
+                if (new_value->has_cas()) {
                     rassert(castime.proposed_cas != BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
                     new_value->set_cas(castime.proposed_cas);
                 }
