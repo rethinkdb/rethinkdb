@@ -1,10 +1,11 @@
 #include "server/key_value_store.hpp"
+
 #include "btree/rget.hpp"
-#include "server/slice_dispatching_to_master.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "db_thread_info.hpp"
 #include "replication/backfill.hpp"
+#include "replication/master.hpp"
 
 void prep_for_serializer(
         btree_key_value_store_dynamic_config_t *dynamic_config,
@@ -98,7 +99,7 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     : hash_control(this) {
 
     if (master) {
-        dispatcher = new master_dispatcher_t(master);
+        dispatcher = new replication::master_dispatcher_t(master);
     } else {
         dispatcher = new null_dispatcher_t();
     }

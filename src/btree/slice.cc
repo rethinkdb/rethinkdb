@@ -15,7 +15,6 @@
 #include "btree/get_cas.hpp"
 #include "replication/delete_queue.hpp"
 #include "replication/master.hpp"
-#include "server/slice_dispatching_to_master.hpp"
 
 void btree_slice_t::create(translator_serializer_t *serializer,
                            mirrored_cache_static_config_t *static_config) {

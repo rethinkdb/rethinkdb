@@ -5,7 +5,6 @@
 #include <string>
 #include <functional>
 #include "server/cmd_args.hpp"
-#include "server/slice_dispatching_to_master.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/translator.hpp"
 #include "btree/slice.hpp"

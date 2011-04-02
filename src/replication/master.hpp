@@ -4,6 +4,7 @@
 #include "store.hpp"
 #include "arch/arch.hpp"
 #include "btree/backfill.hpp"
+#include "btree/slice.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/snag_ptr.hpp"
 #include "containers/thick_list.hpp"
@@ -11,7 +12,6 @@
 #include "replication/protocol.hpp"
 #include "replication/queueing_store.hpp"
 
-class btree_slice_dispatching_to_master_t;
 class btree_key_value_store_t;
 
 namespace replication {
@@ -156,6 +156,16 @@ private:
     boost::scoped_ptr<queueing_store_t> queue_store_;
 
     DISABLE_COPYING(master_t);
+};
+
+
+class master_dispatcher_t : public mutation_dispatcher_t {
+public:
+    master_dispatcher_t(master_t *master);
+    mutation_t dispatch_change(const mutation_t& m, castime_t castime);
+private:
+    master_t *master_;
+    DISABLE_COPYING(master_dispatcher_t);
 };
 
 

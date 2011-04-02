@@ -11,6 +11,25 @@ class initialize_superblock_fsm_t;
 struct btree_replicant_t;
 class backfill_callback_t;
 
+class mutation_dispatcher_t {
+public:
+    mutation_dispatcher_t() { }
+    // Dispatches a change, and returns a modified mutation_t.
+    virtual mutation_t dispatch_change(const mutation_t& m, castime_t castime) = 0;
+    virtual ~mutation_dispatcher_t() { }
+private:
+    DISABLE_COPYING(mutation_dispatcher_t);
+};
+
+class null_dispatcher_t : public mutation_dispatcher_t {
+public:
+    null_dispatcher_t() { }
+    mutation_t dispatch_change(const mutation_t& m, UNUSED castime_t castime) { return m; }
+private:
+    DISABLE_COPYING(null_dispatcher_t);
+};
+
+
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
 btree_key_value_store_t. */

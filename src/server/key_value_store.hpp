@@ -2,7 +2,6 @@
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
 #include "btree/slice.hpp"
-#include "server/slice_dispatching_to_master.hpp"
 #include "btree/node.hpp"
 #include "utils.hpp"
 #include "concurrency/access.hpp"
