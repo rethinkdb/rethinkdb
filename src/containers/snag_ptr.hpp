@@ -76,7 +76,7 @@ public:
         // when ptr_ == ptr or some case where ptr_ holds a reference
         // to ptr.
         if (ptr) {
-            do_on_thread(ptr_->home_thread, boost::bind(&T::incr_reference_count, ptr));
+            do_on_thread(ptr->home_thread, boost::bind(&T::incr_reference_count, ptr));
         }
         if (ptr_) {
             do_on_thread(ptr_->home_thread, boost::bind(&T::decr_reference_count, ptr_));

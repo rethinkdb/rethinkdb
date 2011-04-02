@@ -2,7 +2,6 @@
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
 #include "btree/slice.hpp"
-#include "server/slice_dispatching_to_master.hpp"
 #include "btree/node.hpp"
 #include "utils.hpp"
 #include "concurrency/access.hpp"
@@ -38,7 +37,7 @@ public:
 
     // Blocks
     btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                            snag_ptr_t<replication::master_t>& master);
+                            replication::master_t *master);
 
     // Blocks
     ~btree_key_value_store_t();
@@ -94,7 +93,7 @@ private:
     standard_serializer_t *serializers[MAX_SERIALIZERS];
     serializer_multiplexer_t *multiplexer;   // Helps us split the serializers among the slices
     btree_slice_t *btrees[MAX_SLICES];
-    btree_slice_dispatching_to_master_t *dispatchers[MAX_SLICES];
+    mutation_dispatcher_t *dispatcher;
     timestamping_set_store_interface_t *timestampers[MAX_SLICES];
 
     uint32_t slice_num(const store_key_t &key);

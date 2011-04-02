@@ -2,19 +2,14 @@
 
 #include <boost/scoped_ptr.hpp>
 
+#include "db_thread_info.hpp"
 #include "logger.hpp"
 #include "replication/backfill.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
-#include "server/slice_dispatching_to_master.hpp"
+#include "server/key_value_store.hpp"
 
 namespace replication {
-
-void master_t::register_dispatcher(btree_slice_dispatching_to_master_t *dispatcher) {
-    on_thread_t th(home_thread);
-    rassert(!listener_, "We should have registered all the dispatchers before we created and enabled the listener.");
-    dispatchers_.push_back(dispatcher);
-}
 
 void master_t::register_key_value_store(btree_key_value_store_t *store) {
     on_thread_t th(home_thread);
@@ -201,14 +196,32 @@ void master_t::consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp
     next_timestamp_nop_timer_ = timer_handler_->add_timer_internal(1100, nop_timer_trigger, this, true);
 }
 
+void roundtrip_to_db_thread(int slice_thread, repli_timestamp timestamp, cond_t *cond, int *counter) {
+    {
+        on_thread_t th(slice_thread);
+
+        repli_timestamp t = current_time();
+
+        // TODO: Don't crash just because the slave sent a bunch of
+        // crap to us.  Just disconnect the slave.
+        guarantee(t.time >= timestamp.time);
+    }
+
+    --*counter;
+    rassert(*counter >= 0);
+    if (*counter == 0) {
+        cond->pulse();
+    }
+}
+
 void master_t::do_nop_rebound(repli_timestamp t) {
     assert_thread();
+
     cond_t cond;
-    int counter = dispatchers_.size();
-    for (std::vector<btree_slice_dispatching_to_master_t *>::iterator p = dispatchers_.begin(), e = dispatchers_.end();
-         p != e;
-         ++p) {
-        coro_t::spawn(boost::bind(&btree_slice_dispatching_to_master_t::nop_back_on_masters_thread, *p, t, &cond, &counter));
+    int n = get_num_db_threads();
+    int counter = n;
+    for (int i = 0; i < n; ++i) {
+        coro_t::spawn(boost::bind(roundtrip_to_db_thread, i, t, &cond, &counter));
     }
 
     cond.wait();
@@ -232,14 +245,63 @@ void master_t::do_backfill(repli_timestamp since_when) {
 
         do_backfill_cb cb(home_thread, &stream_);
 
-        for (int i = 0, n = dispatchers_.size(); i < n; ++i) {
-            dispatchers_[i]->spawn_backfill(since_when, &cb);
-        }
+        queue_store_->inner()->spawn_backfill(since_when, &cb);
 
         repli_timestamp minimum_timestamp = cb.wait();
         net_backfill_complete_t msg;
         msg.time_barrier_timestamp = minimum_timestamp;
         stream_->send(&msg);
+    }
+}
+
+
+master_dispatcher_t::master_dispatcher_t(master_t *master)
+    : master_(master) {
+    rassert(master_);
+}
+
+struct change_visitor_t : public boost::static_visitor<mutation_t> {
+    master_t *master;
+    castime_t castime;
+    mutation_t operator()(const get_cas_mutation_t& m) {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::get_cas, master, m.key, castime));
+        return m;
+    }
+    mutation_t operator()(const sarc_mutation_t& m) {
+        unique_ptr_t<buffer_borrowing_data_provider_t> borrower(new buffer_borrowing_data_provider_t(master->home_thread, m.data));
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::sarc, master,
+            m.key, borrower->side_provider(), m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
+        sarc_mutation_t m2(m);
+        m2.data = borrower;
+        return m2;
+    }
+    mutation_t operator()(const incr_decr_mutation_t& m) {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::incr_decr, master, m.kind, m.key, m.amount, castime));
+        return m;
+    }
+    mutation_t operator()(const append_prepend_mutation_t &m) {
+        unique_ptr_t<buffer_borrowing_data_provider_t> borrower(new buffer_borrowing_data_provider_t(master->home_thread, m.data));
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::append_prepend, master,
+            m.kind, m.key, borrower->side_provider(), castime));
+        append_prepend_mutation_t m2(m);
+        m2.data = borrower;
+        return m2;
+    }
+    mutation_t operator()(const delete_mutation_t& m) {
+        coro_t::spawn_on_thread(master->home_thread, boost::bind(&master_t::delete_key, master, m.key, castime.timestamp));
+        return m;
+    }
+};
+
+
+mutation_t master_dispatcher_t::dispatch_change(const mutation_t& m, castime_t castime) {
+    if (master_ != NULL) {
+        change_visitor_t functor;
+        functor.master = master_;
+        functor.castime = castime;
+        return boost::apply_visitor(functor, m.mutation);
+    } else {
+        return m;
     }
 }
 

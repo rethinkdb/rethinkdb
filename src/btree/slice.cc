@@ -18,7 +18,6 @@
 
 void btree_slice_t::create(translator_serializer_t *serializer,
                            mirrored_cache_static_config_t *static_config) {
-
     cache_t::create(serializer, static_config);
 
     /* Construct a cache so we can write the superblock */
@@ -59,18 +58,21 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 }
 
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
-                             mirrored_cache_config_t *dynamic_config)
-    : cache_(serializer, dynamic_config) { }
+                             mirrored_cache_config_t *dynamic_config,
+                             mutation_dispatcher_t *dispatcher)
+    : cache_(serializer, dynamic_config), dispatcher_(dispatcher) { }
 
 btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff
 }
 
 get_result_t btree_slice_t::get(const store_key_t &key) {
+    on_thread_t th(home_thread);
     return btree_get(key, this);
 }
 
 rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
+    on_thread_t th(home_thread);
     return btree_rget_slice(this, left_mode, left_key, right_mode, right_key);
 }
 
@@ -95,13 +97,16 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
 };
 
 mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) {
+    on_thread_t th(home_thread);
+    mutation_t m2 = dispatcher_->dispatch_change(m, castime);
     btree_slice_change_visitor_t functor;
     functor.parent = this;
     functor.ct = castime;
-    return boost::apply_visitor(functor, m.mutation);
+    return boost::apply_visitor(functor, m2.mutation);
 }
 
 void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+    on_thread_t th(home_thread);
     btree_backfill(this, since_when, callback);
 }
 

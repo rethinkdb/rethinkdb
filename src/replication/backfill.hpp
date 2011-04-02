@@ -1,6 +1,9 @@
 #ifndef __REPLICATION_BACKFILLING_HPP__
 #define __REPLICATION_BACKFILLING_HPP__
 
+#include "btree/backfill.hpp"
+#include "replication/protocol.hpp"
+
 namespace replication {
 
 class do_backfill_cb : public backfill_callback_t {

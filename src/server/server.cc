@@ -188,17 +188,15 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* Start key-value store */
             logINF("Loading database...\n");
 
-            boost::scoped_ptr<replication::master_t> master;
+            snag_ptr_t<replication::master_t> master;
 
             if (cmd_config->replication_master_active) {
                 master.reset(new replication::master_t(thread_pool, cmd_config->replication_master_listen_port));
             }
 
-            snag_ptr_t<replication::master_t> master_ptr(master.get());
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config, master_ptr);
-            master_ptr.reset();
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config, master.get());
 
-            if (master) {
+            if (master.get() != NULL) {
                 master->register_key_value_store(&store);
             }
 

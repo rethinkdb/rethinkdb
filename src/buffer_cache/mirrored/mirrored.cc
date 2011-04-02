@@ -50,7 +50,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
-      cow_will_be_needed(false),
+      cow_refcount(0),
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
@@ -83,7 +83,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
-      cow_will_be_needed(false),
+      cow_refcount(0),
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
@@ -124,7 +124,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
         inner_buf->do_delete = false;
         inner_buf->next_patch_counter = 1;
         inner_buf->write_empty_deleted_block = false;
-        inner_buf->cow_will_be_needed = false;
+        inner_buf->cow_refcount = 0;
         inner_buf->transaction_id = NULL_SER_TRANSACTION_ID;
 
         return inner_buf;
@@ -145,7 +145,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
-      cow_will_be_needed(false),
+      cow_refcount(0),
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
@@ -212,11 +212,10 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     //   inner_version <= snapshot_txn->version_id < new_version
     // can see the current version of inner_buf->data, so we need to make some snapshots for them
     size_t num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
-    size_t refcount = num_snapshots_affected + (cow_will_be_needed ? 1 : 0);
+    size_t refcount = num_snapshots_affected + cow_refcount;
     if (refcount > 0) {
-        // RSI: logDBG("snapshot(%p, %zu, %u)\n", data, refcount, unsigned(cow_will_be_needed));
         snapshots.push_front(buf_snapshot_info_t(data, version_id, refcount));
-        cow_will_be_needed = false;
+        cow_refcount = 0;
         return true;
     } else {
         return false;
@@ -238,7 +237,7 @@ void mc_inner_buf_t::release_snapshot(void *data) {
 }
 
 bool mc_inner_buf_t::safe_to_unload() {
-    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && !cow_will_be_needed && snapshots.size() == 0;
+    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.size() == 0;
 }
 
 perfmon_duration_sampler_t
@@ -299,14 +298,8 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
                 break;
             }
             case rwi_read_outdated_ok: {
-                if (inner_buf->cow_will_be_needed) {
-                    data = inner_buf->cache->serializer->clone(inner_buf->data);
-                    // RSI: logDBG("cow_clone(%p)\n", data, refcount, unsigned(cow_will_be_needed));
-                } else {
-                    data = inner_buf->data;
-                    rassert(data != NULL);
-                    inner_buf->cow_will_be_needed = true;
-                }
+                ++inner_buf->cow_refcount;
+                data = inner_buf->data;
                 inner_buf->lock.unlock();
                 break;
             }
@@ -498,7 +491,7 @@ void mc_buf_t::release() {
 
     inner_buf->cache->assert_thread();
 
-    inner_buf->refcount--;
+    --inner_buf->refcount;
 
     if (!non_locking_access) {
         switch (mode) {
@@ -509,10 +502,10 @@ void mc_buf_t::release() {
             }
             case rwi_read_outdated_ok: {
                 if (data == inner_buf->data) {
-                    inner_buf->cow_will_be_needed = false;
+                    rassert(inner_buf->cow_refcount > 0);
+                    --inner_buf->cow_refcount;
                 } else {
                     inner_buf->release_snapshot(data);
-                    //inner_buf->cache->serializer->free(data);
                 }
                 break;
             }
