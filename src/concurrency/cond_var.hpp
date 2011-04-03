@@ -159,20 +159,22 @@ used with multiple coroutines on different threads. */
 struct threadsafe_cond_t {
     threadsafe_cond_t() : ready(false), waiter(NULL) { }
     void pulse() {
-        lock.lock();
+        spinlock_acq_t acq(&lock);
         rassert(!ready);
         ready = true;
         if (waiter) waiter->notify();
-        lock.unlock();
     }
     void wait() {
-        lock.lock();
-        if (!ready) {
-            waiter = coro_t::self();
-            lock.unlock();
+        bool local_ready;
+        {
+            spinlock_acq_t acq(&lock);
+            local_ready = ready;
+            if (!local_ready) {
+                waiter = coro_t::self();
+            }
+        }
+        if (!local_ready) {
             coro_t::wait();
-        } else {
-            lock.unlock();
         }
         rassert(ready);
     }

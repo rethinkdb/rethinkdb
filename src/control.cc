@@ -3,7 +3,7 @@
 #include "errors.hpp"
 #include "concurrency/multi_wait.hpp"
 
-control_map_t &get_control_map() {
+control_map_t& get_control_map() {
     /* Getter function so that we can be sure that control_list is initialized before it is needed,
     as advised by the C++ FAQ. Otherwise, a control_t  might be initialized before the control list
     was initialized. */
@@ -12,7 +12,7 @@ control_map_t &get_control_map() {
     return control_map;
 }
 
-spinlock_t &get_control_lock() {
+spinlock_t& get_control_lock() {
     /* To avoid static initialization fiasco */
     
     static spinlock_t lock;
@@ -44,20 +44,17 @@ control_t::control_t(const std::string& _key, const std::string& _help_string)
     : key(_key), help_string(_help_string)
 {
     rassert(key.size() > 0);
-    // TODO: What is this .lock() and .unlock() pair, use RAII.
-    get_control_lock().lock();
+    spinlock_acq_t control_acq(&get_control_lock());
     rassert(get_control_map().find(key) == get_control_map().end());
     get_control_map()[key] = this;
-    get_control_lock().unlock();
 }
 
 control_t::~control_t() {
-    get_control_lock().lock();
+    spinlock_acq_t control_acq(&get_control_lock());
     control_map_t &map = get_control_map();
     control_map_t::iterator it = map.find(key);
     rassert(it != map.end());
     map.erase(it);
-    get_control_lock().unlock();
 }
 
 /* Example of how to add a control */

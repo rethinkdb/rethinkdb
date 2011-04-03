@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <signal.h>
 #include <stdexcept>
+#include <string.h>
 
 #include "debug.hpp"
 

@@ -64,15 +64,13 @@ void perfmon_get_stats(perfmon_stats_t *dest) {
 
 perfmon_t::perfmon_t()
 {
-    get_var_lock().lock();
+    spinlock_acq_t acq(&get_var_lock());
     get_var_list().push_back(this);
-    get_var_lock().unlock();
 }
 
 perfmon_t::~perfmon_t() {
-    get_var_lock().lock();
+    spinlock_acq_t acq(&get_var_lock());
     get_var_list().remove(this);
-    get_var_lock().unlock();
 }
 
 /* perfmon_counter_t */
