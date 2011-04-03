@@ -442,7 +442,7 @@ class FailoverMemcachedWrapper(object):
             victim = random.choice(['master', 'slave'])
             print "Killing %s..." % victim
             self.mc[victim].disconnect_all()
-            self.server[victim].kill()
+            self.server[victim].shutdown()
             self.down[victim] = True
 
     def resurrect_server(self):
