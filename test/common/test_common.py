@@ -421,7 +421,7 @@ class FailoverMemcachedWrapper(object):
         self.server = {'master' : master, 'slave' : slave}
         self.down = {'master' : False, 'slave' : False}
         self.mc_maker = {'master' : master_mc_maker, 'slave' : slave_mc_maker}
-        self.mc = {'master' : master_mc_maker(), 'slave' : master_mc_maker()}
+        self.mc = {'master' : master_mc_maker(), 'slave' : slave_mc_maker()}
         self.test_dir = test_dir
 
     def __getattr__(self, name):
