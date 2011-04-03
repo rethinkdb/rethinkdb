@@ -6,11 +6,11 @@
 #include "utils.hpp"
 #include "concurrency/access.hpp"
 #include "server/cmd_args.hpp"
+#include "server/control.hpp"
 #include "arch/arch.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "store.hpp"
-#include "control.hpp"
 
 namespace replication {
 class master_t;

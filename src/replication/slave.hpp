@@ -1,13 +1,14 @@
 #ifndef __REPLICATION_SLAVE_HPP__
 #define __REPLICATION_SLAVE_HPP__
 
+#include <queue>
+
 #include "replication/protocol.hpp"
 #include "replication/queueing_store.hpp"
 #include "server/cmd_args.hpp"
+#include "server/control.hpp"
 #include "store.hpp"
 #include "failover.hpp"
-#include <queue>
-#include "control.hpp"
 
 // The initial time we wait to reconnect to the master, upon failure.  In ms.
 #define INITIAL_TIMEOUT  (100)

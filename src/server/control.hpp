@@ -1,5 +1,5 @@
-#ifndef __CONTROL_HPP__
-#define __CONTROL_HPP__
+#ifndef __SERVER_CONTROL_HPP__
+#define __SERVER_CONTROL_HPP__
 
 #include <string>
 #include <map>
@@ -22,4 +22,4 @@ private:
 
 typedef std::map<std::string, control_t *> control_map_t;
 
-#endif /*__CONTROL_HPP__*/
+#endif  // __SERVER_CONTROL_HPP__

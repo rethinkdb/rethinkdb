@@ -1,16 +1,18 @@
+#include "memcached/memcached.hpp"
+
 #include <stdexcept>
 #include <stdarg.h>
-#include "memcached/memcached.hpp"
+
+#include "arch/arch.hpp"
 #include "concurrency/task.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/unique_ptr.hpp"
-#include "arch/arch.hpp"
+#include "server/control.hpp"
 #include "store.hpp"
 #include "logger.hpp"
-#include "control.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
