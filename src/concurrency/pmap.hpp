@@ -3,6 +3,7 @@
 #define __CONCURRENCY_PMAP_HPP__
 
 #include "concurrency/cond_var.hpp"
+#include "errors.hpp"
 #include <boost/function.hpp>
 
 template<typename callable_t>

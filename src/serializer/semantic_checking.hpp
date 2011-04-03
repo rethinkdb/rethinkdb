@@ -1,6 +1,7 @@
 #ifndef __SERIALIZER_SEMANTIC_CHECKING_HPP__
 #define __SERIALIZER_SEMANTIC_CHECKING_HPP__
 
+#include "errors.hpp"
 #include <string>
 #include <sys/types.h>
 #include <sys/stat.h>

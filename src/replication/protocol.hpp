@@ -1,6 +1,7 @@
 #ifndef __REPLICATION_PROTOCOL_HPP__
 #define __REPLICATION_PROTOCOL_HPP__
 
+#include "errors.hpp"
 #include <boost/function.hpp>
 
 #include "arch/arch.hpp"

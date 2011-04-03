@@ -1,5 +1,5 @@
+#include "errors.hpp" 
 #include <boost/scoped_ptr.hpp>
-
 #include "btree/backfill.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"

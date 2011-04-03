@@ -1,9 +1,9 @@
 #ifndef __BTREE_MODIFY_OPER_HPP__
 #define __BTREE_MODIFY_OPER_HPP__
 
+#include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 #include "btree/node.hpp"
-#include "utils.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/buf_lock.hpp"

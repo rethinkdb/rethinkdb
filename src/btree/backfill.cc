@@ -1,5 +1,6 @@
 #include "btree/backfill.hpp"
 
+#include "errors.hpp"
 #include <algorithm>
 #include <vector>
 #include <boost/make_shared.hpp>

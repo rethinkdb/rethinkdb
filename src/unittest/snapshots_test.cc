@@ -1,5 +1,5 @@
 #include "unittest/gtest.hpp"
-
+#include "errors.hpp"
 #include <boost/bind.hpp>
 #include <cstdlib>
 #include <string>

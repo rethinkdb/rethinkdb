@@ -1,6 +1,7 @@
 #ifndef __BTREE_BTREE_DATA_PROVIDER_HPP__
 #define __BTREE_BTREE_DATA_PROVIDER_HPP__
 
+#include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include "btree/value.hpp"

@@ -2,9 +2,8 @@
 #ifndef __ARCH_LINUX_NETWORK_HPP__
 #define __ARCH_LINUX_NETWORK_HPP__
 
-#include <boost/scoped_ptr.hpp>
-
 #include "utils2.hpp"
+#include <boost/scoped_ptr.hpp>
 #include "arch/linux/event_queue.hpp"
 #include "arch/address.hpp"
 

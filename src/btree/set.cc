@@ -1,3 +1,4 @@
+#include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include "set.hpp"
 #include "btree/modify_oper.hpp"

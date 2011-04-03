@@ -1,7 +1,6 @@
 #include "btree/get.hpp"
-
-#include <boost/shared_ptr.hpp>
 #include "utils.hpp"
+#include <boost/shared_ptr.hpp>
 #include "btree/delete_expired.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"

@@ -1,6 +1,7 @@
 #ifndef __LARGE_BUF_HPP__
 #define __LARGE_BUF_HPP__
 
+#include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
 #include "buffer_cache/buffer_cache.hpp"

@@ -1,13 +1,13 @@
 #ifndef __DATA_PROVIDER_HPP__
 #define __DATA_PROVIDER_HPP__
 
+#include "errors.hpp"
 #include <boost/scoped_array.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <vector>
 #include <exception>
 #include "containers/buffer_group.hpp"
 #include "containers/unique_ptr.hpp"
-#include "errors.hpp"
 
 #include "concurrency/cond_var.hpp"
 
