@@ -40,10 +40,11 @@ std::string control_t::help() {
     return res;
 }
 
-control_t::control_t(std::string _key, std::string _help_string)
+control_t::control_t(const std::string& _key, const std::string& _help_string)
     : key(_key), help_string(_help_string)
 {
     rassert(key.size() > 0);
+    // TODO: What is this .lock() and .unlock() pair, use RAII.
     get_control_lock().lock();
     rassert(get_control_map().find(key) == get_control_map().end());
     get_control_map()[key] = this;
