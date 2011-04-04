@@ -189,7 +189,7 @@ void master_t::consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp
 
     if (timestamp.time > latest_timestamp_.time) {
         latest_timestamp_ = timestamp;
-        coro_t::spawn(boost::bind(&master_t::do_nop_rebound, this, timestamp));
+        coro_t::spawn_now(boost::bind(&master_t::do_nop_rebound, this, timestamp));
     }
 
     timer_handler_->cancel_timer(next_timestamp_nop_timer_);
@@ -215,6 +215,8 @@ void roundtrip_to_db_thread(int slice_thread, repli_timestamp timestamp, cond_t 
 }
 
 void master_t::do_nop_rebound(repli_timestamp t) {
+
+    snag_ptr_t<master_t> temp_hold(this);
     assert_thread();
 
     cond_t cond;

@@ -473,6 +473,10 @@ class FailoverMemcachedWrapper(object):
 
         if (self.down['master'] or self.down['slave']):
             victim = 'master' if self.down['master'] else 'slave'
+            
+            # Reverse backfilling is temporarily disabled, so we can't bring back up master
+            if victim == "master": return
+            
             print "Resurrecting %s..." % victim
             self.server[victim].start()
             self.mc[victim] = self.mc_maker[victim]()
