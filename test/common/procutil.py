@@ -50,6 +50,7 @@ class SubProcess(object):
             if valgrind_tool == "memcheck":
                 cmd_line.append("--leak-check=full")
                 cmd_line.append("--track-origins=yes")
+                cmd_line.append("--show-reachable=yes")
             if valgrind_tool == "drd":
                 cmd_line.append("--read-var-info=yes")
             if interactive: cmd_line.append("--db-attach=yes")

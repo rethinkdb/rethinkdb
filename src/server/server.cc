@@ -188,7 +188,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* Start key-value store */
             logINF("Loading database...\n");
 
-            snag_ptr_t<replication::master_t> master;
+            boost::scoped_ptr<replication::master_t> master;
 
             if (cmd_config->replication_master_active) {
                 master.reset(new replication::master_t(thread_pool, cmd_config->replication_master_listen_port));

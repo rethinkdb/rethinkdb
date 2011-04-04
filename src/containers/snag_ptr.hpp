@@ -6,7 +6,7 @@
 // A snag_pointee must call wait_until_ready_to_delete.
 class snag_pointee_mixin_t {
 public:
-    snag_pointee_mixin_t() : reference_count_(0), lost_all_references_cond_(), ready_to_delete_(false) { }
+    snag_pointee_mixin_t() : reference_count_(0), lost_all_references_cond_(NULL), ready_to_delete_(false) { }
 
     template <class T>
     friend class snag_ptr_t;
@@ -14,7 +14,9 @@ public:
 protected:
     void wait_until_ready_to_delete() {
         if (reference_count_ > 0) {
-            lost_all_references_cond_.wait();
+            cond_t c;
+            lost_all_references_cond_ = &c;
+            c.wait();
         }
         ready_to_delete_ = true;
     }
@@ -28,14 +30,13 @@ private:
 
     void decr_reference_count() {
         -- reference_count_;
-        if (reference_count_ == 0) {
-            lost_all_references_cond_.pulse();
+        if (reference_count_ == 0 && lost_all_references_cond_) {
+            lost_all_references_cond_->pulse();
         }
     }
 
-
     int64_t reference_count_;
-    cond_t lost_all_references_cond_;
+    cond_t *lost_all_references_cond_;
 
     // Used by the destructor to ensure that the subclass has called
     // wait_until_ready_to_delete.
