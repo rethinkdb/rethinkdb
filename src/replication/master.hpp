@@ -37,6 +37,8 @@ public:
         : timer_handler_(&thread_pool->threads[get_thread_id()]->timer_handler),
           stream_(NULL), listener_port_(port),
           next_timestamp_nop_timer_(NULL), latest_timestamp_(current_time()) {
+        // Because stream_ is initially NULL
+        shutdown_cond_.pulse();
     }
 
     ~master_t() {
@@ -66,7 +68,9 @@ public:
 
     // TODO: kill slave connection instead of crashing server when slave sends garbage.
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
-    void send(UNUSED scoped_malloc<net_backfill_t>& message) { coro_t::spawn(boost::bind(&master_t::do_backfill, this, message->timestamp)); }
+    void send(UNUSED scoped_malloc<net_backfill_t>& message) {
+        coro_t::spawn_now(boost::bind(&master_t::do_backfill, this, message->timestamp));
+    }
     void send(UNUSED scoped_malloc<net_backfill_complete_t>& message) {
         // TODO: What about time_barrier, which the slave side does?
 
@@ -110,7 +114,12 @@ public:
     }
     void send(UNUSED scoped_malloc<net_nop_t>& message) { guarantee(false, "slave sent nop"); }
     void send(UNUSED scoped_malloc<net_ack_t>& message) { }
-    void conn_closed() { destroy_existing_slave_conn_if_it_exists(); }
+    void conn_closed() {
+        rassert(stream_);
+        delete stream_;
+        stream_ = NULL;
+        shutdown_cond_.pulse();
+    }
 
     void do_nop_rebound(repli_timestamp t);
 
@@ -154,6 +163,9 @@ private:
 
     // The key value store.
     boost::scoped_ptr<queueing_store_t> queue_store_;
+
+    // This is unpulsed iff stream_ is non-NULL.
+    cond_t shutdown_cond_; 
 
     DISABLE_COPYING(master_t);
 };

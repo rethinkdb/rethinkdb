@@ -93,7 +93,7 @@ void master_t::incr_decr_like(UNUSED uint8_t msgcode, const store_key_t &key, ui
     msg->key_size = key.size;
     memcpy(msg->key, key.contents, key.size);
 
-    stream_->send(msg.get());
+    if (stream_) stream_->send(msg.get());
 }
 
 
@@ -163,6 +163,7 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
         debugf("making new repli_stream..\n");
         stream_ = new repli_stream_t(conn, this);
         next_timestamp_nop_timer_ = timer_handler_->add_timer_internal(1100, nop_timer_trigger, this, true);
+        shutdown_cond_.reset();
         debugf("made repli_stream.\n");
     }
     // TODO when sending/receiving hello handshake, use database magic
@@ -174,12 +175,12 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
 void master_t::destroy_existing_slave_conn_if_it_exists() {
     assert_thread();
     if (stream_) {
-        stream_->co_shutdown();
+        stream_->shutdown();   // Will cause conn_closed() to happen
         cancel_timer(next_timestamp_nop_timer_);
         next_timestamp_nop_timer_ = NULL;
+        shutdown_cond_.wait();
     }
-
-    stream_ = NULL;
+    rassert(stream_ == NULL);
 }
 
 void master_t::consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp timestamp) {
@@ -227,7 +228,7 @@ void master_t::do_nop_rebound(repli_timestamp t) {
 
     net_nop_t msg;
     msg.timestamp = t;
-    stream_->send(msg);
+    if (stream_) stream_->send(msg);
 }
 
 

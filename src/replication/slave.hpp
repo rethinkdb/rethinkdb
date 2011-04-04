@@ -30,32 +30,28 @@ struct btree_key_value_store_t;
 
 namespace replication {
 
-/* The slave_t class is responsible for connecting to another RethinkDB process
- * and pushing the values that it receives in to its internal store. It also
- * handles the failover module if failover is enabled. Currently the slave_t
- * also is itself a failover callback and derives from the store_t class, thus
- * allowing it to modify the behaviour of the store. */
+/* slave_stream_manager_t manages the connection to the master. Here's how it works:
+The run() function constructs a slave_stream_manager_t and attaches it to a multicond_t.
+It also attaches a multicond_weak_ptr_t to the multicond_t. Then it waits on the
+multicond_t. If the connection to the master dies, the multicond_t will be pulsed. If
+it needs to shut down the connection for some other reason (like if the slave got a
+SIGINT) then it pulses the multicond, and the slave_stream_manager_t automatically closes
+the connection to the master. */
 
-/* It has been suggested that the failover callback and replication
- * functionality of the slave_t class be separated. I don't think this is such
- * a bad idea but it doesn't seem particularly urgent to me right now. */
-
-class slave_t :
+struct slave_stream_manager_t :
+    public message_callback_t,
     public home_thread_mixin_t,
-    public set_store_interface_t,
-    public failover_callback_t,
-    public message_callback_t
+    public multicond_t::waiter_t
 {
-public:
-    friend void run(slave_t *);
+    // Give it a connection to the master, a pointer to the store to forward changes to, and a
+    // multicond. If the multicond is pulsed, it will kill the connection. If the connection dies,
+    // it will pulse the multicond.
+    slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn, queueing_store_t *is, multicond_t *multicond);
 
-    slave_t(btree_key_value_store_t *, replication_config_t, failover_config_t);
-    ~slave_t();
+    ~slave_stream_manager_t();
 
-    /* set_store_interface_t interface. This interface will not work properly for anything until
-    we fail over. */
-
-    mutation_result_t change(const mutation_t &m);
+    // Called by run() after the slave_stream_manager_t is created. Fold into constructor?
+    void reverse_side_backfill(repli_timestamp since_when);
 
     /* message_callback_t interface */
     // These call .swap on their parameter, taking ownership of the pointee.
@@ -76,11 +72,48 @@ public:
     void send(scoped_malloc<net_ack_t>& message);
     void conn_closed();
 
+    // Called when the multicond is pulsed for some other reason
+    void on_multicond_pulsed();
+
+    // Our connection to the master
+    repli_stream_t *stream_;
+
+    // What to forward queries to
+    queueing_store_t *internal_store_;
+
+    // If multicond_ is pulsed, we drop our connection to the master. If the connection
+    // to the master drops on its own, we pulse multicond_.
+    multicond_t *multicond_;
+
+    // When conn_closed() is called, we consult interrupted_by_external_event_ to determine
+    // if this is a spontaneous loss of connectivity or if it's due to an intentional
+    // shutdown.
+    bool interrupted_by_external_event_;
+
+    // In our destructor, we block on shutdown_cond_ to make sure that the repli_stream_t
+    // has actually completed its shutdown process.
+    cond_t shutdown_cond_;
+};
+
+class slave_t :
+    public home_thread_mixin_t,
+    public set_store_interface_t,
+    public failover_callback_t
+{
+public:
+    friend void run(slave_t *);
+
+    slave_t(btree_key_value_store_t *, replication_config_t, failover_config_t);
+    ~slave_t();
+
+    /* set_store_interface_t interface. This interface will not work properly for anything until
+    we fail over. */
+
+    mutation_result_t change(const mutation_t &m);
+
     /* failover module which is alerted by an on_failure() call when we go out
      * of contact with the master */
     failover_t failover;
-
-    void reverse_side_backfill(repli_timestamp since_when);
 
 private:
     friend class failover_t;
@@ -89,8 +122,6 @@ private:
     void on_failure();
     void on_resume();
 
-
-    static void reconnect_timer_callback(void *ctx);
 
     /* structure to tell us when to give up on the master */
     class give_up_t {
@@ -131,9 +162,6 @@ private:
         slave_t *slave;
     };
 
-    void kill_conn();
-
-
     // This is too complicated.
 
     give_up_t give_up_;
@@ -145,21 +173,22 @@ private:
     bool respond_to_queries_; /* are we responding to queries */
     long timeout_; /* ms to wait before trying to reconnect */
 
-    timer_token_t *reconnection_timer_token_;
-
     failover_reset_control_t failover_reset_control_;
 
-
     new_master_control_t new_master_control_;
-
-    coro_t *coro_;
 
     boost::scoped_ptr<queueing_store_t> internal_store_;
     replication_config_t replication_config_;
     failover_config_t failover_config_;
 
-    repli_stream_t *stream_;
-    bool shutting_down_;
+    /* shutting_down_ points to a local variable within the run() coroutine; the
+    destructor sets *shutting_down_ to true and pulse pulse_to_interrupt_run_loop_
+    to shut down the slave. */
+    bool *shutting_down_;
+
+    /* pulse_to_interrupt_run_loop_ holds a pointer to whatever multicond_t the run
+    loop is blocking on at the moment. */
+    multicond_weak_ptr_t pulse_to_interrupt_run_loop_;
 };
 
 void run(slave_t *); //TODO make this static and private

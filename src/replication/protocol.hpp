@@ -63,28 +63,15 @@ typedef thick_list<std::pair<boost::function<void ()>, std::pair<char *, size_t>
 
 class message_parser_t {
 public:
-    message_parser_t() : is_live(false), shutdown_cb_(NULL) {}
+    message_parser_t() {}
     ~message_parser_t() {}
 
     void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
-
-    struct message_parser_shutdown_callback_t {
-        virtual void on_parser_shutdown() = 0;
-    protected:
-        ~message_parser_shutdown_callback_t() { }
-    };
-    void shutdown(message_parser_shutdown_callback_t *cb);
-
-    void co_shutdown();
 
 private:
     size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams);
     void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
     void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams);
-
-    bool is_live; /* used to signal the parser when to stop, tells whether it needs to shut down */
-
-    message_parser_shutdown_callback_t *shutdown_cb_;
 
     DISABLE_COPYING(message_parser_t);
 };
@@ -99,20 +86,14 @@ public:
     }
 
     ~repli_stream_t() {
-        if (conn_) {
-            co_shutdown();
-        }
+        rassert(!conn_->is_read_open());
     }
 
-    // TODO make this protocol-wise (as in street-wise).
-    void co_shutdown() {
-        rassert(conn_);
-        debugf("repli_stream doing conn_.reset()\n");
-        conn_.reset();
-
-        debugf("repli_stream doing parser_.co_shutdown\n");
-        parser_.co_shutdown();
-        debugf("repli_stream done co_shutdown\n");
+    // Call shutdown() when you want the repli_stream to stop. shutdown() will return
+    // immediately but cause the connection to be closed and cause conn_closed() to
+    // be called.
+    void shutdown() {
+        conn_->shutdown_read();
     }
 
     void send(net_backfill_t *msg);
@@ -133,7 +114,6 @@ public:
     // for sending the appropriate response.)
     void send(net_nop_t msg);
     void send(net_ack_t msg);
-
 
 private:
 

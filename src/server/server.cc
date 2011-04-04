@@ -183,10 +183,6 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* Pointers to our stores these are allocated dynamically so
                that we have explicit control of when and where their
                destructors get called*/
-            boost::scoped_ptr<replication::slave_t> slave_store;
-
-            /* Start key-value store */
-            logINF("Loading database...\n");
 
             boost::scoped_ptr<replication::master_t> master;
 
@@ -194,61 +190,75 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 master.reset(new replication::master_t(thread_pool, cmd_config->replication_master_listen_port));
             }
 
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config, master.get());
+            {
+                /* Start key-value store */
+                logINF("Loading database...\n");
+                btree_key_value_store_t store(&cmd_config->store_dynamic_config, master.get());
 
-            if (master.get() != NULL) {
-                master->register_key_value_store(&store);
-            }
-
-            server.get_store = &store;   // Gets always go straight to the key-value store
-
-            /* Are we a replication slave? */
-            if (cmd_config->replication_config.active) {
-                logINF("Starting up as a slave...\n");
-                slave_store.reset(new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config));
-                server.set_store = slave_store.get();
-            } else {
-                server.set_store = &store;   /* So things can access it */
-            }
-
-            /* Start connection acceptor */
-            struct : public conn_acceptor_t::handler_t {
-                server_t *parent;
-                void handle(tcp_conn_t *conn) {
-                    serve_memcache(conn, parent->get_store, parent->set_store);
+                if (master.get() != NULL) {
+                    master->register_key_value_store(&store);
                 }
-            } handler;
-            handler.parent = &server;
 
-            if (cmd_config->replication_config.active && cmd_config->failover_config.elb_port != -1) {
-                elb_t elb(elb_t::slave, cmd_config->port);
-                slave_store->failover.add_callback(&elb);
-            }
+                server.get_store = &store;   // Gets always go straight to the key-value store
 
-            try {
-                conn_acceptor_t conn_acceptor(cmd_config->port, &handler);
+                {
+                    /* Are we a replication slave? */
+                    boost::scoped_ptr<replication::slave_t> slave_store;
+                    if (cmd_config->replication_config.active) {
+                        logINF("Starting up as a slave...\n");
+                        slave_store.reset(new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config));
+                        server.set_store = slave_store.get();
+                    } else {
+                        server.set_store = &store;   /* So things can access it */
+                    }
 
-                logINF("Server is now accepting memcache connections on port %d.\n", cmd_config->port);
+                    /* Start connection acceptor */
+                    struct : public conn_acceptor_t::handler_t {
+                        server_t *parent;
+                        void handle(tcp_conn_t *conn) {
+                            serve_memcache(conn, parent->get_store, parent->set_store);
+                        }
+                    } handler;
+                    handler.parent = &server;
 
-                /* Wait for an order to shut down */
-                struct : public thread_message_t, public cond_t {
-                    void on_thread_switch() { pulse(); }
-                } interrupt_cond;
-                thread_pool_t::set_interrupt_message(&interrupt_cond);
+                    if (cmd_config->replication_config.active && cmd_config->failover_config.elb_port != -1) {
+                        elb_t elb(elb_t::slave, cmd_config->port);
+                        slave_store->failover.add_callback(&elb);
+                    }
+
+                    try {
+                        conn_acceptor_t conn_acceptor(cmd_config->port, &handler);
+
+                        logINF("Server is now accepting memcache connections on port %d.\n", cmd_config->port);
+
+                        /* Wait for an order to shut down */
+                        struct : public thread_message_t, public cond_t {
+                            void on_thread_switch() { pulse(); }
+                        } interrupt_cond;
+                        thread_pool_t::set_interrupt_message(&interrupt_cond);
 
 #ifdef TIMEBOMB_DAYS
-                timebomb::periodic_checker_t timebomb_checker(store.multiplexer->creation_timestamp);
+                        timebomb::periodic_checker_t timebomb_checker(store.multiplexer->creation_timestamp);
 #endif
 
-                interrupt_cond.wait();
+                        interrupt_cond.wait();
 
-                logINF("Waiting for running operations to complete...\n");
-            } catch (conn_acceptor_t::address_in_use_exc_t) {
-                logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
+                        logINF("Waiting for running operations to complete...\n");
+                        // conn_acceptor_t destructor called here
+
+                    } catch (conn_acceptor_t::address_in_use_exc_t) {
+                        logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
+                    }
+
+                // Slave destructor called here
+                }
+
+                logINF("Waiting for changes to flush to disk...\n");
+                // store destructor called here
             }
 
-            // store destructor called here
-            logINF("Waiting for changes to flush to disk...\n");
+            // master_t destructor called here
+
         } else {
             logINF("Shutting down...\n");
         }

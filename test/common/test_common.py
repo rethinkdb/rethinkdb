@@ -445,6 +445,29 @@ class FailoverMemcachedWrapper(object):
             self.server[victim].shutdown()
             self.down[victim] = True
 
+            if victim == "master":
+                print "Waiting for slave to assume masterhood..."
+                if self.opts["mclib"] == "pylibmc":
+                    import pylibmc
+                    exc_class = pylibmc.ClientError
+                else:
+                    # What kind of exception does python-memcache throw in this situation?
+                    raise NotImplementedError()
+                n_tries = 30
+                try_interval = 1
+                for i in xrange(n_tries):
+                    time.sleep(try_interval)
+                    try:
+                        self.mc["slave"].set("are_you_accepting_sets", "yes")
+                    except exc_class:
+                        pass
+                    else:
+                        break
+                else:
+                    raise ValueError("Slave hasn't realized master is down after %d seconds." % \
+                        n_tries * try_interval)
+                print "Slave has assumed role of master."
+
     def resurrect_server(self):
         assert(not (self.down['master'] and self.down['slave']))
 

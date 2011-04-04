@@ -188,16 +188,8 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
     size_t offset = 0;
     size_t num_read = 0;
 
-    is_live = true;
-
-    struct mark_unlive {
-        bool *p;
-        ~mark_unlive() { *p = false; }
-    } marker;
-
-    marker.p = &is_live;
-
-    while (is_live) {
+    // We break out of this loop when we get a tcp_conn_t::read_closed_exc_t.
+    while (true) {
         // Try handling the message.
         size_t handled = handle_message(receiver, buffer.get() + offset, num_read, streams);
         if (handled > 0) {
@@ -215,12 +207,6 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
             num_read += conn->read_some(buffer.get() + offset + num_read, shbuf_size - (offset + num_read));
         }
     }
-
-    /* we only get out of this loop when we've been shutdown, if the connection
-     * closes then we catch an exception and never reach here */
-    shutdown_cb_->on_parser_shutdown();
-
-    // marker destructor sets is_live to false
 }
 
 
@@ -231,18 +217,8 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
         tracker_t streams;
         do_parse_normal_messages(conn, receiver, streams);
 
-        // Ugh I
-        if (shutdown_cb_) {
-            shutdown_cb_->on_parser_shutdown();
-        }
     } catch (tcp_conn_t::read_closed_exc_t& e) {
-        // Ugh II
-        if (shutdown_cb_) {
-            shutdown_cb_->on_parser_shutdown();
-        }
-        else {
-            receiver->conn_closed();
-        }
+        receiver->conn_closed();
 #ifndef NDEBUG
     } catch (protocol_exc_t& e) {
         debugf("catch 'n throwing protocol_exc_t: %s\n", e.what());
@@ -252,34 +228,9 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
 }
 
 void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
-    rassert(!is_live);
 
     coro_t::spawn(boost::bind(&message_parser_t::do_parse_messages, this, conn, receiver));
 }
-
-void message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
-    if (!is_live) {
-        cb->on_parser_shutdown();
-    } else {
-        shutdown_cb_ = cb;
-
-        is_live = false;
-    }
-}
-
-
-void message_parser_t::co_shutdown() {
-    struct : public message_parser_shutdown_callback_t {
-        cond_t cond;
-        void on_parser_shutdown() {
-            cond.pulse();
-        }
-    } cb;
-
-    shutdown(&cb);
-    cb.cond.wait();
-}
-
 
 // REPLI_STREAM_T
 

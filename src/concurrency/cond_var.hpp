@@ -68,6 +68,11 @@ struct cond_t {
         }
         rassert(ready);
     }
+    void reset() {
+        rassert(ready);
+        ready = false;
+        waiter = NULL;
+    }
 
 private:
     bool ready;
@@ -80,6 +85,10 @@ private:
 
 struct multicond_t {
     multicond_t() : ready(false) { }
+    ~multicond_t() {
+        // Make sure nothing was left hanging
+        rassert(waiters.empty());
+    }
 
     struct waiter_t : public intrusive_list_node_t<waiter_t> {
         virtual void on_multicond_pulsed() = 0;
@@ -159,8 +168,9 @@ struct multicond_weak_ptr_t : private multicond_t::waiter_t {
     void pulse_if_non_null() {
         if (mc) {
             mc->pulse();   // Calls on_multicond_pulsed()
+            // It's not safe to access local variables at this point; we might have
+            // been deleted.
         }
-        rassert(!mc);
     }
 private:
     multicond_t *mc;
