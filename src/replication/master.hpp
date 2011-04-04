@@ -133,6 +133,8 @@ public:
         rassert(stream_);
         delete stream_;
         stream_ = NULL;
+        cancel_timer(next_timestamp_nop_timer_);
+        next_timestamp_nop_timer_ = NULL;
         shutdown_cond_.pulse();
     }
 

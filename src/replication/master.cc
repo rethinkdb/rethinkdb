@@ -176,8 +176,6 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
     assert_thread();
     if (stream_) {
         stream_->shutdown();   // Will cause conn_closed() to happen
-        cancel_timer(next_timestamp_nop_timer_);
-        next_timestamp_nop_timer_ = NULL;
         shutdown_cond_.wait();
     }
     rassert(stream_ == NULL);

@@ -175,6 +175,12 @@ void slave_stream_manager_t::send(UNUSED scoped_malloc<net_ack_t>& message) {
 void slave_stream_manager_t::conn_closed() {
 
     if (backfilling_) {
+        logWRN("%s The data on this slave is now in an inconsistent state. To put the data "
+            "into a consistent state again, start the server again as a slave of the same "
+            "master and allow the backfill operation to run to completion.\n",
+            interrupted_by_external_event_ ?
+                "You are interrupting the slave in the middle of a backfill operation." :
+                "Lost connection to the master in the middle of a backfill operation.");
         internal_store_->backfill_complete();
     }
 
