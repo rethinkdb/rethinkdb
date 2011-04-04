@@ -294,6 +294,12 @@ void coro_t::notify_now() {
     rassert(!notified_);
     rassert(current_thread_ == linux_thread_pool_t::thread_id);
 
+#ifndef NDEBUG
+    /* It's not safe to notify_now() in the catch-clause of an exception handler for the same
+    reason we can't wait(). */
+    rassert(!abi::__cxa_current_exception_type());
+#endif
+
     coro_t *prev_prev_coro = prev_coro;
     prev_coro = current_coro;
     current_coro = this;

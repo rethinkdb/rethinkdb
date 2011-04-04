@@ -211,6 +211,7 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
 
 
 void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+
     try {
         do_parse_hello_message(conn, receiver);
 
@@ -218,13 +219,15 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
         do_parse_normal_messages(conn, receiver, streams);
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
-        receiver->conn_closed();
+        // Do nothing; this was to be expected.
 #ifndef NDEBUG
     } catch (protocol_exc_t& e) {
         debugf("catch 'n throwing protocol_exc_t: %s\n", e.what());
         throw;
 #endif
     }
+
+    receiver->conn_closed();
 }
 
 void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
