@@ -89,8 +89,11 @@ struct multicond_t {
     void pulse() {
         rassert(!ready);
         ready = true;
-        while (waiter_t *w = waiters.head()) {
-            waiters.remove(w);
+        /* Make a copy of 'waiters' in case of destruction */
+        intrusive_list_t<waiter_t> w2;
+        w2.append_and_clear(&waiters);
+        while (waiter_t *w = w2.head()) {
+            w2.remove(w);
             w->on_multicond_pulsed();
         }
     }
@@ -99,6 +102,20 @@ struct multicond_t {
             struct coro_waiter_t : public waiter_t {
                 coro_t *to_wake;
                 void on_multicond_pulsed() { to_wake->notify(); }
+            } waiter;
+            waiter.to_wake = coro_t::self();
+            add_waiter(&waiter);
+            coro_t::wait();
+        }
+    }
+
+    /* wait_eagerly() is like wait() except that the waiter gets signalled even before
+    pulse() returns. */
+    void wait_eagerly() {
+        if (!ready) {
+            struct coro_waiter_t : public waiter_t {
+                coro_t *to_wake;
+                void on_multicond_pulsed() { to_wake->notify_now(); }
             } waiter;
             waiter.to_wake = coro_t::self();
             add_waiter(&waiter);

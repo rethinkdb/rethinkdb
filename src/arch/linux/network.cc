@@ -13,6 +13,9 @@
 
 /* Network connection object */
 
+/* Warning: It is very easy to accidentally introduce race conditions to linux_tcp_conn_t.
+Think carefully before changing read_internal(), write_internal(), or on_shutdown_*(). */
+
 static fd_t connect_to(const char *host, int port) {
 
     struct addrinfo *res;
@@ -118,7 +121,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
             multicond_t cond;
             read_cond_watcher->watch(&cond);
             event_watcher.watch(poll_event_in, &cond);
-            cond.wait();
+            cond.wait_eagerly();
 
             read_in_progress = false;
 
@@ -253,7 +256,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
             multicond_t cond;
             write_cond_watcher->watch(&cond);
             event_watcher.watch(poll_event_out, &cond);
-            cond.wait();
+            cond.wait_eagerly();
 
             write_in_progress = false;
 
