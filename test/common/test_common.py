@@ -577,10 +577,10 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
         if opts["auto"]:
             if (opts["failover"]):
                 repli_port = find_unused_port()
-                master = Server(opts, extra_flags=extra_flags + ["--master", "%d" % repli_port], test_dir=test_dir)
+                master = Server(opts, extra_flags=extra_flags + ["--master", "%d" % repli_port], name="master", test_dir=test_dir)
                 master.start()
                 
-                slave = Server(opts, extra_flags=extra_flags + ["--slave-of", "localhost:%d" % repli_port], test_dir=test_dir)
+                slave = Server(opts, extra_flags=extra_flags + ["--slave-of", "localhost:%d" % repli_port], name="slave", test_dir=test_dir)
                 slave.start()
                 
                 servers = [master, slave]
@@ -649,10 +649,10 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
     try:
         if opts["auto"]:
             repli_port = find_unused_port()
-            server = Server(opts, extra_flags=extra_flags + ["--master", "%d" % repli_port], test_dir=test_dir)
+            server = Server(opts, extra_flags=extra_flags + ["--master", "%d" % repli_port], name="master", test_dir=test_dir)
             server.start()
             
-            repli_server = Server(opts, extra_flags=extra_flags + ["--slave-of", "localhost:%d" % repli_port], test_dir=test_dir)
+            repli_server = Server(opts, extra_flags=extra_flags + ["--slave-of", "localhost:%d" % repli_port], name="slave", test_dir=test_dir)
             repli_server.start()
 
             stat_checker = start_stats(opts, server.port)
