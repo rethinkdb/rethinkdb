@@ -6,13 +6,22 @@ slave_stream_manager_t::slave_stream_manager_t(
         boost::scoped_ptr<tcp_conn_t> *conn,
         queueing_store_t *is,
         multicond_t *multicond) :
-    stream_(new repli_stream_t(*conn, this)),
+    stream_(NULL),
     internal_store_(is),
-    multicond_(multicond),
+    multicond_(NULL),
     backfilling_(false),
     interrupted_by_external_event_(false) {
 
     debugf("internal_store_ = %p\n", internal_store_);
+
+    /* This is complicated. "new repli_stream_t()" could call our conn_closed() method.
+    "multicond_->add_waiter()" could call our on_multicond_pulsed() method. on_multicond_pulsed()
+    accesses stream_ and conn_closed() accesses multicond_. Solution is to set multicond_ to NULL,
+    call "new repli_stream_t()", then set multicond_ to its final value, then call add_waiter(). */
+
+    stream_ = new repli_stream_t(*conn, this);
+
+    multicond_ = multicond;
     multicond_->add_waiter(this);
 }
 
@@ -164,7 +173,7 @@ void slave_stream_manager_t::send(scoped_malloc<net_backfill_delete_t>& msg) {
 void slave_stream_manager_t::send(scoped_malloc<net_nop_t>& message) {
     net_ack_t ackreply;
     ackreply.timestamp = message->timestamp;
-    stream_->send(ackreply);
+    if (stream_) stream_->send(ackreply);
     internal_store_->time_barrier(message->timestamp);
 }
 
@@ -186,8 +195,9 @@ void slave_stream_manager_t::conn_closed() {
     }
 
     // If the connection closed spontaneously, then notify the multicond_t so that
-    // the run loop gets unstuck.
-    if (!interrupted_by_external_event_) {
+    // the run loop gets unstuck. multicond_ could be NULL if we didn't finish our
+    // constructor yet.
+    if (!interrupted_by_external_event_ && multicond_) {
         multicond_->remove_waiter(this);   // So on_multicond_pulsed() doesn't get called
         multicond_->pulse();
     }
