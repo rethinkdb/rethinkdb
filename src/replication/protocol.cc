@@ -211,6 +211,7 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
 
 
 void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+
     try {
         do_parse_hello_message(conn, receiver);
 
@@ -218,13 +219,15 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
         do_parse_normal_messages(conn, receiver, streams);
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
-        receiver->conn_closed();
+        // Do nothing; this was to be expected.
 #ifndef NDEBUG
     } catch (protocol_exc_t& e) {
         debugf("catch 'n throwing protocol_exc_t: %s\n", e.what());
         throw;
 #endif
     }
+
+    receiver->conn_closed();
 }
 
 void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
@@ -245,8 +248,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         hdr.msgsize = sizeof(net_header_t) + obsize;
 
         mutex_acquisition_t ak(&outgoing_mutex_);
-        conn_->write(&hdr, sizeof(net_header_t));
-        conn_->write(msg, obsize);
+
+        try_write(&hdr, sizeof(net_header_t));
+        try_write(msg, obsize);
     } else {
         net_multipart_header_t hdr;
         hdr.message_multipart_aspect = FIRST;
@@ -259,8 +263,8 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
         {
             mutex_acquisition_t ak(&outgoing_mutex_);
-            conn_->write(&hdr, sizeof(net_multipart_header_t));
-            conn_->write(msg, offset);
+            try_write(&hdr, sizeof(net_multipart_header_t));
+            try_write(msg, offset);
         }
 
         char *buf = reinterpret_cast<char *>(msg);
@@ -268,9 +272,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         while (offset + 0xFFFF < obsize) {
             mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = MIDDLE;
-            conn_->write(&hdr, sizeof(net_multipart_header_t));
+            try_write(&hdr, sizeof(net_multipart_header_t));
             // TODO change protocol so that 0 means 0x10000 mmkay?
-            conn_->write(buf + offset, 0xFFFF);
+            try_write(buf + offset, 0xFFFF);
             offset += 0xFFFF;
         }
 
@@ -278,8 +282,8 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
             rassert(obsize - offset <= 0xFFFF);
             mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = LAST;
-            conn_->write(&hdr, sizeof(net_multipart_header_t));
-            conn_->write(buf + offset, obsize - offset);
+            try_write(&hdr, sizeof(net_multipart_header_t));
+            try_write(buf + offset, obsize - offset);
         }
     }
 }
@@ -370,8 +374,17 @@ void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_ac
     char informal_name[32] = "master";
     memcpy(msg.informal_name, informal_name, 32);
 
-    conn_->write(&msg, sizeof(msg));
+    try_write(&msg, sizeof(msg));
 }
 
+void repli_stream_t::try_write(const void *data, size_t size) {
+    try {
+        conn_->write(data, size);
+    } catch (tcp_conn_t::write_closed_exc_t &e) {
+        /* Master died; we happened to be mid-write at the time. A tcp_conn_t::read_closed_exc_t
+        will be thrown somewhere and that will cause us to shut down. So we can ignore this
+        exception. */
+    }
+}
 
 }  // namespace replication

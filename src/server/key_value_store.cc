@@ -95,14 +95,8 @@ void create_existing_btree(
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                                                 replication::master_t *master)
+                                                 mutation_dispatcher_t *dispatcher)
     : hash_control(this) {
-
-    if (master) {
-        dispatcher = new replication::master_dispatcher_t(master);
-    } else {
-        dispatcher = new null_dispatcher_t();
-    }
 
     /* Start serializers */
     n_files = dynamic_config->serializer_private.size();
@@ -146,9 +140,6 @@ void destroy_btree(
 btree_key_value_store_t::~btree_key_value_store_t() {
     /* Shut down btrees */
     pmap(btree_static_config.n_slices, boost::bind(&destroy_btree, btrees, timestampers, _1));
-
-    /* Gee I wonder what this destroys. */
-    delete dispatcher;
 
     /* Destroy proxy-serializers */
     delete multiplexer;

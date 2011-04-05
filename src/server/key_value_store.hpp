@@ -37,7 +37,7 @@ public:
 
     // Blocks
     btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                            replication::master_t *master);
+        mutation_dispatcher_t *dispatcher);
 
     // Blocks
     ~btree_key_value_store_t();
@@ -71,6 +71,7 @@ public:
     static uint32_t hash(const store_key_t &key);
 
 private:
+
     int n_files;
     btree_config_t btree_static_config;
     mirrored_cache_static_config_t cache_static_config;
@@ -93,7 +94,6 @@ private:
     standard_serializer_t *serializers[MAX_SERIALIZERS];
     serializer_multiplexer_t *multiplexer;   // Helps us split the serializers among the slices
     btree_slice_t *btrees[MAX_SLICES];
-    mutation_dispatcher_t *dispatcher;
     timestamping_set_store_interface_t *timestampers[MAX_SLICES];
 
     uint32_t slice_num(const store_key_t &key);

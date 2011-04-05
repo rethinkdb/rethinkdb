@@ -41,7 +41,7 @@ void master_t::get_cas(const store_key_t& key, castime_t castime) {
 
         memcpy(msg->key, key.contents, key.size);
 
-        stream_->send(msg.get());
+        if (stream_) stream_->send(msg.get());
     }
 }
 
@@ -61,7 +61,7 @@ void master_t::sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data, 
         stru.add_policy = add_policy;
         stru.replace_policy = replace_policy;
         stru.old_cas = old_cas;
-        stream_->send(&stru, key.contents, data);
+        if (stream_) stream_->send(&stru, key.contents, data);
     }
 }
 
@@ -110,7 +110,7 @@ void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key
             appendstruct.key_size = key.size;
             appendstruct.value_size = data->get_size();
 
-            stream_->send(&appendstruct, key.contents, data);
+            if (stream_) stream_->send(&appendstruct, key.contents, data);
         } else {
             rassert(kind == append_prepend_PREPEND);
 
@@ -120,7 +120,7 @@ void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key
             prependstruct.key_size = key.size;
             prependstruct.value_size = data->get_size();
 
-            stream_->send(&prependstruct, key.contents, data);
+            if (stream_) stream_->send(&prependstruct, key.contents, data);
         }
     }
 }
@@ -140,7 +140,7 @@ void master_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
         msg->key_size = key.size;
         memcpy(msg->key, key.contents, key.size);
 
-        stream_->send(msg.get());
+        if (stream_) stream_->send(msg.get());
     }
 }
 
@@ -176,8 +176,6 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
     assert_thread();
     if (stream_) {
         stream_->shutdown();   // Will cause conn_closed() to happen
-        cancel_timer(next_timestamp_nop_timer_);
-        next_timestamp_nop_timer_ = NULL;
         shutdown_cond_.wait();
     }
     rassert(stream_ == NULL);
@@ -189,7 +187,7 @@ void master_t::consider_nop_dispatch_and_update_latest_timestamp(repli_timestamp
 
     if (timestamp.time > latest_timestamp_.time) {
         latest_timestamp_ = timestamp;
-        coro_t::spawn(boost::bind(&master_t::do_nop_rebound, this, timestamp));
+        coro_t::spawn_now(boost::bind(&master_t::do_nop_rebound, this, timestamp));
     }
 
     timer_handler_->cancel_timer(next_timestamp_nop_timer_);
@@ -215,6 +213,8 @@ void roundtrip_to_db_thread(int slice_thread, repli_timestamp timestamp, cond_t 
 }
 
 void master_t::do_nop_rebound(repli_timestamp t) {
+
+    snag_ptr_t<master_t> temp_hold(this);
     assert_thread();
 
     cond_t cond;
@@ -250,14 +250,13 @@ void master_t::do_backfill(repli_timestamp since_when) {
         repli_timestamp minimum_timestamp = cb.wait();
         net_backfill_complete_t msg;
         msg.time_barrier_timestamp = minimum_timestamp;
-        stream_->send(&msg);
+        if (stream_) stream_->send(&msg);
     }
 }
 
 
 master_dispatcher_t::master_dispatcher_t(master_t *master)
     : master_(master) {
-    rassert(master_);
 }
 
 struct change_visitor_t : public boost::static_visitor<mutation_t> {

@@ -40,6 +40,7 @@ public:
             msg->key_size = key.size;
             memcpy(msg->key, key.contents, key.size);
 
+            debugf("send_deletion_key_to_slave stream=%p *stream=%p\n", stream, *stream);
             (*stream)->send(msg.get());
         }
     }
@@ -82,6 +83,8 @@ public:
 
     void decr_count() {
         rassert(get_thread_id() == home_thread);
+
+        debugf("decr_count() %d -> %d\n", count, count-1);
 
         count = count - 1;
         if (0 == count) {
