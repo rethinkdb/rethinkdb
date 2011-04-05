@@ -87,12 +87,15 @@ def test_function(opts, port, test_dir):
 
     try:
         us.setblocking(1)
+        print "  Sending concurrent set"
         us.send('set %s 0 0 %d\r\n%s\r\n' % (updated_key, len(updated_value), updated_value))
         uf = us.makefile()
         us.settimeout(10.0)
+        print "  Waiting for set result"
         set_res = sock_readline(uf).rstrip()
         if set_res != 'STORED':
             raise ValueError("update failed: %s" % set_res)
+        print "  Concurrent set finished"
     finally:
         us.close()
 
@@ -112,12 +115,14 @@ def test_function(opts, port, test_dir):
         raise ValueError("update didn't take effect")
 
     mc.disconnect_all()
+    print "Done"
 
 
 if __name__ == "__main__":
     op = make_option_parser()
     opts = op.parse(sys.argv)
     if opts["auto"]:
-        opts["mode"] = 'debug-mockcache'
+        if 'mockcache' not in opts['mode']:
+            opts['mode'] = opts['mode'] + '-mockcache'
     auto_server_test_main(test_function, opts, timeout = 90)
 
