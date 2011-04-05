@@ -18,28 +18,24 @@ class conn_acceptor_t :
 {
 public:
 
-    /* Whenever a connection is received, the conn_acceptor_t calls handler_t::handle() in a
-    new coroutine. When handle() returns the connection is destroyed. handle() will be called on an
-    arbitrary thread, and the connection should not be accessed from any thread other than the one
-    that handle() was called on.
-    
-    If the conn_acceptor_t's destructor is called while handle() is running, the conn_acceptor_t
-    will close the read end of the socket and then continue waiting for handle() to return. This
-    behavior may not be flexible enough in the future. */
-    struct handler_t {
-        virtual void handle(tcp_conn_t *) = 0;
-    };
-
     /* The constructor can throw this exception */
     typedef tcp_listener_t::address_in_use_exc_t address_in_use_exc_t;
 
-    conn_acceptor_t(int port, handler_t *handler);
+    conn_acceptor_t(int port, const boost::function<void(tcp_conn_t *)> &handler);
 
     /* Will make sure all connections are closed before it returns. May block. */
     ~conn_acceptor_t();
 
 private:
-    handler_t *handler;
+    /* Whenever a connection is received, the conn_acceptor_t calls the handler in a
+    new coroutine. When handler returns the connection is destroyed. handler will be called on an
+    arbitrary thread, and the connection should not be accessed from any thread other than the one
+    that handler was called on.
+
+    If the conn_acceptor_t's destructor is called while handler is running, the conn_acceptor_t
+    will close the read end of the socket and then continue waiting for handler to return. This
+    behavior may not be flexible enough in the future. */
+    boost::function<void(tcp_conn_t *)> handler;
 
     boost::scoped_ptr<tcp_listener_t> listener;
     void on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t>& conn);
