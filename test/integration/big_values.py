@@ -92,4 +92,4 @@ def test(opts, port, test_dir):
 if __name__ == "__main__":
     op = make_option_parser()
     opts = op.parse(sys.argv)
-    auto_server_test_main(test, opts, timeout = 24000)
+    auto_server_test_main(test, opts, timeout = 600)
