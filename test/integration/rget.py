@@ -146,6 +146,7 @@ def test_function(opts, port, test_dir):
     check_results(res, 0)
 
     print "Checking that expired values are not returned"
+    time.sleep(1)
     s.send('rget z0 z2 1 1 100\r\n')
     res = get_results(s)
     check_results(res, 0)
