@@ -15,8 +15,11 @@ const int PRIMAL_OFFSET_OFFSET = sizeof(block_magic_t);
 const int TIMESTAMPS_AND_OFFSETS_OFFSET = PRIMAL_OFFSET_OFFSET + sizeof(off64_t);
 const int TIMESTAMPS_AND_OFFSETS_SIZE = sizeof(large_buf_ref) + 3 * sizeof(block_id_t);
 
-// TODO: Figure out what we want this value to be.  Right now it's absurdly low.
-const int64_t MAX_DELETE_QUEUE_KEYS_SIZE = 2 * MEGABYTE;
+// TODO: Figure out what we want this value to be.  Right now it's
+// absurdly low.  Probably you want it to change dynamically relative
+// to database size based on how long the average last timestamp value
+// in a leaf node is expected to be.
+const int64_t MAX_DELETE_QUEUE_KEYS_SIZE = 30 * KILOBYTE;
 
 off64_t *primal_offset(void *root_buffer) {
     return reinterpret_cast<off64_t *>(reinterpret_cast<char *>(root_buffer) + PRIMAL_OFFSET_OFFSET);
@@ -54,13 +57,9 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
     // TODO this could be a non-major write?
     void *queue_root_buf = queue_root->get_data_major_write();
 
-    off64_t primal_offset = *delete_queue::primal_offset(queue_root_buf);
+    off64_t *primal_offset = delete_queue::primal_offset(queue_root_buf);
     large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);
     large_buf_ref *keys_ref = delete_queue::keys_largebuf(queue_root_buf);
-
-#ifndef NDEBUG
-    debugf("Delete queue size = t_o %ld keys %ld\n", t_o_ref->size, keys_ref->size);
-#endif
 
 
     rassert(t_o_ref->size % sizeof(delete_queue::t_and_o) == 0);
@@ -82,7 +81,7 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             // the large buf shrink to that size.)
             delete_queue::t_and_o tao;
             tao.timestamp = timestamp;
-            tao.offset = primal_offset + keys_ref->size;
+            tao.offset = *primal_offset + keys_ref->size;
             t_o_largebuf->allocate(sizeof(tao));
             t_o_largebuf->fill_at(0, &tao, sizeof(tao));
             rassert(keys_ref->size == 0);
@@ -102,15 +101,19 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             }
 
             if (last_tao.timestamp.time != timestamp.time) {
+#ifndef NDEBUG
+                debugf("Delete queue size = t_o %ld keys %ld\n", t_o_ref->size, keys_ref->size);
+#endif
+
                 delete_queue::t_and_o tao;
                 tao.timestamp = timestamp;
-                tao.offset = primal_offset + keys_ref->size;
+                tao.offset = *primal_offset + keys_ref->size;
                 int refsize_adjustment_dontcare;
                 t_o_largebuf->append(sizeof(tao), &refsize_adjustment_dontcare);
                 t_o_largebuf->fill_at(t_o_ref->size - sizeof(tao), &tao, sizeof(tao));
             }
 
-            if (t_o_ref->size >= int64_t(2 * sizeof(second_tao))) {
+            if (will_want_to_dequeue && t_o_ref->size >= int64_t(2 * sizeof(second_tao))) {
                 t_o_largebuf->read_at(sizeof(second_tao), &second_tao, sizeof(second_tao));
                 will_actually_dequeue = true;
                 int refsize_adjustment_dontcare;
@@ -136,9 +139,9 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             keys_largebuf->fill_at(keys_ref->size - (1 + key->size), key, 1 + key->size);
 
             if (will_actually_dequeue) {
-                int64_t amount_to_unprepend = second_tao.offset - primal_offset;
+                int64_t amount_to_unprepend = second_tao.offset - *primal_offset;
                 keys_largebuf->unprepend(amount_to_unprepend, &refsize_adjustment_dontcare);
-                primal_offset += amount_to_unprepend;
+                *primal_offset += amount_to_unprepend;
             }
         }
     }
@@ -154,7 +157,7 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
 
     void *queue_root_buf = const_cast<void *>(queue_root->get_data_read());
 
-    off64_t primal_offset = *delete_queue::primal_offset(queue_root_buf);
+    off64_t *primal_offset = delete_queue::primal_offset(queue_root_buf);
     large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);
     large_buf_ref *keys_ref = delete_queue::keys_largebuf(queue_root_buf);
 
@@ -176,12 +179,12 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
             while (i < ie) {
                 t_o_largebuf->read_at(i, &tao, sizeof(tao));
                 if (!begin_found && begin_timestamp.time <= tao.timestamp.time) {
-                    begin_offset = tao.offset - primal_offset;
+                    begin_offset = tao.offset - *primal_offset;
                     begin_found = true;
                 }
                 if (end_timestamp.time <= tao.timestamp.time) {
                     rassert(begin_found);
-                    end_offset = tao.offset - primal_offset;
+                    end_offset = tao.offset - *primal_offset;
                     end_found = true;
                     break;
                 }
