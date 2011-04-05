@@ -369,9 +369,8 @@ void large_buf_t::adds_level(block_id_t *ids
     ret->level = nextlevels;
 #endif
 
-    block_id_t new_id;
     ret->buf = (*txor)->allocate();
-    new_id = ret->buf->get_block_id();
+    block_id_t new_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
     num_bufs++;
@@ -399,7 +398,9 @@ void large_buf_t::adds_level(block_id_t *ids
 
     // Make sure that our .swap logic works the way we expect it to.
     rassert(roots.size() == 0);
+
     roots.push_back(ret);
+    ids[0] = new_id;
 }
 
 void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {

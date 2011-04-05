@@ -61,7 +61,7 @@ def test_sizes(x, y, s):
 
 def test(opts, port, test_dir):
 
-    sizes = range(249, 252) + range(4083, 4086) + range(8167, 8170) + range(65534, 65538) + range(73709, 73712) + range((234 / 4) * 4084 - 2, (234 / 4) * 4084 + 2) + range(1048575, 1048578)
+    sizes = range(249, 252) + range(4083, 4086) + range(8167, 8170) + range(65534, 65538) + range(73709, 73712) + range((234 / 4) * 4080 - 2, (234 / 4) * 4080 + 2) + range(1048575, 1048578)
 
     s = socket.socket()
     s.connect(("localhost", port))
