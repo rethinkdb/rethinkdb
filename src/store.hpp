@@ -70,19 +70,26 @@ struct key_with_data_provider_t {
     };
 };
 
+// A NULL unique pointer means not allowed
 typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
 struct get_result_t {
     get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
-        value(v), flags(f), cas(c), to_signal_when_done(s) { }
+        is_not_allowed(false), value(v), flags(f), cas(c), to_signal_when_done(s) { }
     get_result_t() :
-        value(), flags(0), cas(0), to_signal_when_done(NULL) { }
+        is_not_allowed(false), value(), flags(0), cas(0), to_signal_when_done(NULL) { }
+
+    /* If true, then all other fields should be ignored. */
+    bool is_not_allowed;
 
     // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
     // so don't hold on to it forever.
     unique_ptr_t<data_provider_t> value;
+
     mcflags_t flags;
     cas_t cas;
+
+    /* Signal this when you're done with the data_provider_t. TODO: Get rid of this. */
     threadsafe_cond_t *to_signal_when_done;
 };
 
