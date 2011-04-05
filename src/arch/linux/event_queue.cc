@@ -158,3 +158,4 @@ linux_event_watcher_t::~linux_event_watcher_t() {
 void linux_event_watcher_t::watch(int event, multicond_t *to_signal) {
     guts->watch(event, to_signal);
 }
+
