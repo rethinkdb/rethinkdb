@@ -178,7 +178,7 @@ private:
     void trees_bufs_at(const std::vector<buftree_t *>& trees, int sublevels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);
     void tree_bufs_at(buftree_t *tr, int levels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);
 
-    void adds_level(block_id_t *ids
+    void adds_level(block_id_t *ids, int num_roots
 #ifndef NDEBUG
                     , int nextlevels
 #endif

@@ -357,7 +357,7 @@ void large_buf_t::on_available(buftree_t *tr, int index) {
     }
 }
 
-void large_buf_t::adds_level(block_id_t *ids
+void large_buf_t::adds_level(block_id_t *ids, int num_roots
 #ifndef NDEBUG
                              , int nextlevels
 #endif
@@ -369,9 +369,8 @@ void large_buf_t::adds_level(block_id_t *ids
     ret->level = nextlevels;
 #endif
 
-    block_id_t new_id;
     ret->buf = (*txor)->allocate();
-    new_id = ret->buf->get_block_id();
+    block_id_t new_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
     num_bufs++;
@@ -388,7 +387,7 @@ void large_buf_t::adds_level(block_id_t *ids
     }
 #endif
 
-    for (int i = 0, ie = roots.size(); i < ie; i++) {
+    for (int i = 0, ie = num_roots; i < ie; i++) {
         node->kids[i] = ids[i];
 #ifndef NDEBUG
         ids[i] = NULL_BLOCK_ID;
@@ -399,7 +398,9 @@ void large_buf_t::adds_level(block_id_t *ids
 
     // Make sure that our .swap logic works the way we expect it to.
     rassert(roots.size() == 0);
+
     roots.push_back(ret);
+    ids[0] = new_id;
 }
 
 void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {
@@ -413,7 +414,7 @@ void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {
     int new_sublevels = num_sublevels(back + extra_size);
 
     for (int i = prev_sublevels; i < new_sublevels; ++i) {
-        adds_level(root_ref->block_ids
+        adds_level(root_ref->block_ids, ceil_divide(back, max_offset(i))
 #ifndef NDEBUG
                    , i + 1
 #endif
@@ -459,9 +460,9 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         int64_t max_k = (root_ref_limit.value - sizeof(large_buf_ref)) / sizeof(block_id_t);
 
         if (k + back_k > max_k) {
-            adds_level(root_ref->block_ids
+            adds_level(root_ref->block_ids, back_k
 #ifndef NDEBUG
-                       , num_sublevels(back) + 1
+                       , sublevels + 1
 #endif
                        );
             sublevels++;

@@ -30,7 +30,7 @@ def expect_get_response(s, value):
     expect(s, "END\r\n")
     print " ok."
 
-def test_sizes(x, y, s):
+def test_sizes_one_way(ap, x, y, s):
     print "Sending a %d-byte value..." % x,
     s.send(("set x 0 0 %d\r\n" % x) + ("a" * x) + "\r\n")
 
@@ -43,15 +43,15 @@ def test_sizes(x, y, s):
         print " sent get...",
         expect_get_response(s, "a" * x)
 
-        print "Appending upto length %d..." % y,
-        s.send(("append x 0 0 %d\r\n" % (y - x)) + ("b" * (y - x)) + "\r\n")
+        print "Now %sing upto length %d..." % (ap, y),
+        s.send(("%s x 0 0 %d\r\n" % (ap, y - x)) + ("b" * (y - x)) + "\r\n")
 
         if y <= max_legal_value_size:
             expect(s, "STORED\r\n")
             print " getting...",
             s.send("get x\r\n")
             print " sent get...",
-            expect_get_response(s, "a" * x + "b" * (y - x))
+            expect_get_response(s, ("a" * x + "b" * (y - x) if ap == "append" else "b" * (y - x) + "a" * x))
         else:
             expect(s, "SERVER_ERROR object too large for cache\r\n")
             print " too big... ok."
@@ -59,9 +59,25 @@ def test_sizes(x, y, s):
         expect(s, "SERVER_ERROR object too large for cache\r\n")
         print " too big... ok."
 
+def test_sizes_another_way(ap, x, y, s):
+    test_sizes_one_way(ap, x, y, s)
+
+def test_sizes(x, y, s):
+    test_sizes_one_way("append", x, y, s)
+    test_sizes_another_way("prepend", x, y, s)
+
 def test(opts, port, test_dir):
 
-    sizes = range(249, 252) + range(4083, 4086) + range(8167, 8170) + range(65534, 65538) + range(73709, 73712) + range((234 / 4) * 4084 - 2, (234 / 4) * 4084 + 2) + range(1048575, 1048578)
+    # 250 - the maximum small value
+    # 251 - the minimum large buf (in a leaf node)
+    # 4080 - the size of a large buf block (the largest large buf that uses a single block)
+    # 8160 - twice the size of a large buf block
+    # 65536 - 16-bit rollover
+    # 73710 - netrecord causes some kind of weird failure at this point sometimes
+    # (234 / 4) * 4080 - the biggest large value that uses one level
+    # 1048576 - the maximum legal value size
+
+    sizes = range(250, 252) + range(4079, 4082) + range(8159, 8162) + range(65535, 65538) + range(73709, 73711) + range((234 / 4) * 4080 - 2, (234 / 4) * 4080 + 2) + range(1048575, 1048578)
 
     s = socket.socket()
     s.connect(("localhost", port))
@@ -76,4 +92,4 @@ def test(opts, port, test_dir):
 if __name__ == "__main__":
     op = make_option_parser()
     opts = op.parse(sys.argv)
-    auto_server_test_main(test, opts, timeout = 240)
+    auto_server_test_main(test, opts, timeout = 600)
