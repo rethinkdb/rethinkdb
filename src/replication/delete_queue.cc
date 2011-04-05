@@ -15,7 +15,8 @@ const int PRIMAL_OFFSET_OFFSET = sizeof(block_magic_t);
 const int TIMESTAMPS_AND_OFFSETS_OFFSET = PRIMAL_OFFSET_OFFSET + sizeof(off64_t);
 const int TIMESTAMPS_AND_OFFSETS_SIZE = sizeof(large_buf_ref) + 3 * sizeof(block_id_t);
 
-const int64_t MAX_DELETE_QUEUE_KEYS_SIZE = 100 * MEGABYTE;
+// TODO: Figure out what we want this value to be.  Right now it's absurdly low.
+const int64_t MAX_DELETE_QUEUE_KEYS_SIZE = 2 * MEGABYTE;
 
 off64_t *primal_offset(void *root_buffer) {
     return reinterpret_cast<off64_t *>(reinterpret_cast<char *>(root_buffer) + PRIMAL_OFFSET_OFFSET);
@@ -56,6 +57,11 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
     off64_t primal_offset = *delete_queue::primal_offset(queue_root_buf);
     large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);
     large_buf_ref *keys_ref = delete_queue::keys_largebuf(queue_root_buf);
+
+#ifndef NDEBUG
+    debugf("Delete queue size = t_o %ld keys %ld\n", t_o_ref->size, keys_ref->size);
+#endif
+
 
     rassert(t_o_ref->size % sizeof(delete_queue::t_and_o) == 0);
 
