@@ -40,6 +40,7 @@ public:
             msg->key_size = key.size;
             memcpy(msg->key, key.contents, key.size);
 
+            debugf("send_deletion_key_to_slave stream=%p *stream=%p\n", stream, *stream);
             (*stream)->send(msg.get());
         }
     }

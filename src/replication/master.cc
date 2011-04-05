@@ -41,7 +41,7 @@ void master_t::get_cas(const store_key_t& key, castime_t castime) {
 
         memcpy(msg->key, key.contents, key.size);
 
-        stream_->send(msg.get());
+        if (stream_) stream_->send(msg.get());
     }
 }
 
@@ -61,7 +61,7 @@ void master_t::sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data, 
         stru.add_policy = add_policy;
         stru.replace_policy = replace_policy;
         stru.old_cas = old_cas;
-        stream_->send(&stru, key.contents, data);
+        if (stream_) stream_->send(&stru, key.contents, data);
     }
 }
 
@@ -110,7 +110,7 @@ void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key
             appendstruct.key_size = key.size;
             appendstruct.value_size = data->get_size();
 
-            stream_->send(&appendstruct, key.contents, data);
+            if (stream_) stream_->send(&appendstruct, key.contents, data);
         } else {
             rassert(kind == append_prepend_PREPEND);
 
@@ -120,7 +120,7 @@ void master_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key
             prependstruct.key_size = key.size;
             prependstruct.value_size = data->get_size();
 
-            stream_->send(&prependstruct, key.contents, data);
+            if (stream_) stream_->send(&prependstruct, key.contents, data);
         }
     }
 }
@@ -140,7 +140,7 @@ void master_t::delete_key(const store_key_t &key, repli_timestamp timestamp) {
         msg->key_size = key.size;
         memcpy(msg->key, key.contents, key.size);
 
-        stream_->send(msg.get());
+        if (stream_) stream_->send(msg.get());
     }
 }
 

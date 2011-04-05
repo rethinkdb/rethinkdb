@@ -12,6 +12,7 @@ slave_stream_manager_t::slave_stream_manager_t(
     backfilling_(false),
     interrupted_by_external_event_(false) {
 
+    debugf("internal_store_ = %p\n", internal_store_);
     multicond_->add_waiter(this);
 }
 

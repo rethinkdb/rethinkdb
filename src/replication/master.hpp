@@ -130,8 +130,10 @@ public:
     void send(UNUSED scoped_malloc<net_nop_t>& message) { guarantee(false, "slave sent nop"); }
     void send(UNUSED scoped_malloc<net_ack_t>& message) { }
     void conn_closed() {
+        debugf("conn_closed &stream_=%p stream_=%p\n", &stream_, stream_);
         rassert(stream_);
         delete stream_;
+        debugf("conn_closed finished delete\n");
         stream_ = NULL;
         cancel_timer(next_timestamp_nop_timer_);
         next_timestamp_nop_timer_ = NULL;

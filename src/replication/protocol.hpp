@@ -125,6 +125,8 @@ private:
 
     void send_hello(const mutex_acquisition_t& proof_of_acquisition);
 
+    void try_write(const void *data, size_t size);
+
     message_callback_t *recv_cb_;
     mutex_t outgoing_mutex_;
     boost::scoped_ptr<tcp_conn_t> conn_;
