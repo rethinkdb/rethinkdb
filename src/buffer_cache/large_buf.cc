@@ -462,7 +462,7 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         if (k + back_k > max_k) {
             adds_level(root_ref->block_ids
 #ifndef NDEBUG
-                       , num_sublevels(back) + 1
+                       , sublevels + 1
 #endif
                        );
             sublevels++;
