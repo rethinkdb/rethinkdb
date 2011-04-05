@@ -83,6 +83,8 @@ public:
     void decr_count() {
         rassert(get_thread_id() == home_thread);
 
+        debugf("decr_count() %d -> %d\n", count, count-1);
+
         count = count - 1;
         if (0 == count) {
             for_when_done.pulse();

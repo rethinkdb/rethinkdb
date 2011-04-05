@@ -250,7 +250,7 @@ void master_t::do_backfill(repli_timestamp since_when) {
         repli_timestamp minimum_timestamp = cb.wait();
         net_backfill_complete_t msg;
         msg.time_barrier_timestamp = minimum_timestamp;
-        stream_->send(&msg);
+        if (stream_) stream_->send(&msg);
     }
 }
 
