@@ -419,16 +419,22 @@ class FailoverMemcachedWrapper(object):
     def __init__(self, opts, master, slave, master_mc_maker, slave_mc_maker, test_dir):
         self.opts = opts
         self.server = {'master' : master, 'slave' : slave}
-        self.down = {'master' : False, 'slave' : False}
+        self.down = {'master' : True, 'slave' : True}
         self.mc_maker = {'master' : master_mc_maker, 'slave' : slave_mc_maker}
-        self.mc = {'master' : master_mc_maker(), 'slave' : slave_mc_maker()}
+        self.mc = {'master' : None, 'slave' : None}
         self.test_dir = test_dir
 
+        # Decide which servers should be up at startup
+        ups = random.choice(["master only", "master & slave"])
+        print "The following servers will be up initially:", ups
+        if "master" in ups: self.resurrect_server("master")
+        if "slave" in ups: self.resurrect_server("slave")
+
     def __getattr__(self, name):
-        if random.random() < self.opts["kill_failover_server_prob"]:
-            self.kill_server()
-        if random.random() < self.opts["resurrect_failover_server_prob"]:
-            self.resurrect_server()
+        if (random.random() < self.opts["kill_failover_server_prob"]) and not self.down["master"] and not self.down["slave"]:
+            self.kill_server(random.choice(["master", "slave"]))
+        if (random.random() < self.opts["resurrect_failover_server_prob"]) and (self.down["master"] or self.down["slave"]):
+            self.resurrect_server("slave" if not self.down["master"] else "master")
 
         target = "master" if not self.down["master"] else "slave"
         print "Sending query to %s." % target
@@ -436,51 +442,51 @@ class FailoverMemcachedWrapper(object):
 
         return getattr(mc_to_use, name)
 
-    def kill_server(self):
-        assert(not (self.down['master'] and self.down['slave']))
-        if not (self.down['master'] or self.down['slave']):
-            victim = random.choice(['master', 'slave'])
-            print "Killing %s..." % victim
-            self.mc[victim].disconnect_all()
-            self.server[victim].shutdown()
-            self.down[victim] = True
+    def wait_for_slave_to_assume_masterhood(self):
+        print "Waiting for slave to assume masterhood..."
+        if self.opts["mclib"] == "pylibmc":
+            import pylibmc
+            exc_class = pylibmc.ClientError
+        else:
+            # What kind of exception does python-memcache throw in this situation?
+            raise NotImplementedError()
+        n_tries = 30
+        try_interval = 1
+        for i in xrange(n_tries):
+            time.sleep(try_interval)
+            try:
+                self.mc["slave"].set("are_you_accepting_sets", "yes")
+            except exc_class:
+                pass
+            else:
+                break
+        else:
+            raise ValueError("Slave hasn't realized master is down after %d seconds." % \
+                n_tries * try_interval)
+        print "Slave has assumed role of master."
 
-            if victim == "master":
-                print "Waiting for slave to assume masterhood..."
-                if self.opts["mclib"] == "pylibmc":
-                    import pylibmc
-                    exc_class = pylibmc.ClientError
-                else:
-                    # What kind of exception does python-memcache throw in this situation?
-                    raise NotImplementedError()
-                n_tries = 30
-                try_interval = 1
-                for i in xrange(n_tries):
-                    time.sleep(try_interval)
-                    try:
-                        self.mc["slave"].set("are_you_accepting_sets", "yes")
-                    except exc_class:
-                        pass
-                    else:
-                        break
-                else:
-                    raise ValueError("Slave hasn't realized master is down after %d seconds." % \
-                        n_tries * try_interval)
-                print "Slave has assumed role of master."
+    def kill_server(self, victim):
 
-    def resurrect_server(self):
-        assert(not (self.down['master'] and self.down['slave']))
+        assert not self.down[victim]
+        print "Stopping %s..." % victim
+        self.mc[victim].disconnect_all()
+        self.mc[victim] = None
+        self.server[victim].shutdown()
+        self.down[victim] = True
 
-        if (self.down['master'] or self.down['slave']):
-            victim = 'master' if self.down['master'] else 'slave'
-            
-            # Reverse backfilling is temporarily disabled, so we can't bring back up master
-            if victim == "master": return
-            
-            print "Resurrecting %s..." % victim
-            self.server[victim].start()
-            self.mc[victim] = self.mc_maker[victim]()
-            self.down[victim] = False
+        if victim == "master": self.wait_for_slave_to_assume_masterhood()
+
+    def resurrect_server(self, jesus):
+
+        # Reverse backfilling is temporarily disabled, so we can't bring back up master
+        # if slave is up
+        if jesus == "master" and not self.down["slave"]: return
+
+        assert self.down[jesus]
+        print "Resurrecting %s..." % jesus
+        self.server[jesus].start()
+        self.mc[jesus] = self.mc_maker[jesus]()
+        self.down[jesus] = False
 
 def connect_to_port(opts, port):
     if opts["mclib"] == "pylibmc":
@@ -578,16 +584,10 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
             if (opts["failover"]):
                 repli_port = find_unused_port()
                 master = Server(opts, extra_flags=extra_flags + ["--master", "%d" % repli_port], name="master", test_dir=test_dir)
-                master.start()
-                
                 slave = Server(opts, extra_flags=extra_flags + ["--slave-of", "localhost:%d" % repli_port], name="slave", test_dir=test_dir)
-                slave.start()
-                
                 servers = [master, slave]
-
                 mc = FailoverMemcachedWrapper(opts, master, slave, lambda: (connect_to_server(opts, master, test_dir=test_dir)), lambda: (connect_to_server(opts, slave, test_dir=test_dir)), test_dir=test_dir)
-
-                stat_checkers = [start_stats(opts, master.port), start_stats(opts, slave.port)]
+                stat_checkers = []   # Stat checking doesn't play nicely with server restarting
 
             else:
                 server = Server(opts, extra_flags=extra_flags, test_dir=test_dir)
