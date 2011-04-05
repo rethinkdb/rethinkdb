@@ -180,26 +180,19 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
         if (!cmd_config->shutdown_after_creation) {
 
-            /* Pointers to our stores these are allocated dynamically so
-               that we have explicit control of when and where their
-               destructors get called*/
-
-            boost::scoped_ptr<replication::master_t> master;
-
-            if (cmd_config->replication_master_active) {
-                master.reset(new replication::master_t(thread_pool, cmd_config->replication_master_listen_port));
-            }
+            /* Start key-value store */
+            logINF("Loading database...\n");
+            replication::master_dispatcher_t master_dispatcher(NULL);
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config, &master_dispatcher);
 
             {
-                /* Start key-value store */
-                logINF("Loading database...\n");
-                btree_key_value_store_t store(&cmd_config->store_dynamic_config, master.get());
-
-                if (master.get() != NULL) {
+                /* Are we a replication master? */
+                boost::scoped_ptr<replication::master_t> master;
+                if (cmd_config->replication_master_active) {
+                    master.reset(new replication::master_t(thread_pool, cmd_config->replication_master_listen_port));
+                    master_dispatcher.set_master(master.get());
                     master->register_key_value_store(&store);
                 }
-
-                server.get_store = &store;   // Gets always go straight to the key-value store
 
                 {
                     /* Are we a replication slave? */
@@ -211,15 +204,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     } else {
                         server.set_store = &store;   /* So things can access it */
                     }
-
-                    /* Start connection acceptor */
-                    struct : public conn_acceptor_t::handler_t {
-                        server_t *parent;
-                        void handle(tcp_conn_t *conn) {
-                            serve_memcache(conn, parent->get_store, parent->set_store);
-                        }
-                    } handler;
-                    handler.parent = &server;
+                    server.get_store = &store;   // Gets always go straight to the key-value store
 
                     if (cmd_config->replication_config.active && cmd_config->failover_config.elb_port != -1) {
                         elb_t elb(elb_t::slave, cmd_config->port);
@@ -227,6 +212,15 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     }
 
                     try {
+                        /* Start connection acceptor */
+                        struct : public conn_acceptor_t::handler_t {
+                            server_t *parent;
+                            void handle(tcp_conn_t *conn) {
+                                serve_memcache(conn, parent->get_store, parent->set_store);
+                            }
+                        } handler;
+                        handler.parent = &server;
+
                         conn_acceptor_t conn_acceptor(cmd_config->port, &handler);
 
                         logINF("Server is now accepting memcache connections on port %d.\n", cmd_config->port);
@@ -250,14 +244,14 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                         logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
                     }
 
-                // Slave destructor called here
+                    // Slave destructor called here
                 }
 
-                logINF("Waiting for changes to flush to disk...\n");
-                // store destructor called here
+                // Master destructor called here
             }
 
-            // master_t destructor called here
+            logINF("Waiting for changes to flush to disk...\n");
+            // Store destructor called here
 
         } else {
             logINF("Shutting down...\n");

@@ -257,7 +257,6 @@ void master_t::do_backfill(repli_timestamp since_when) {
 
 master_dispatcher_t::master_dispatcher_t(master_t *master)
     : master_(master) {
-    rassert(master_);
 }
 
 struct change_visitor_t : public boost::static_visitor<mutation_t> {

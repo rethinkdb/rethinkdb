@@ -192,6 +192,9 @@ class master_dispatcher_t : public mutation_dispatcher_t {
 public:
     master_dispatcher_t(master_t *master);
     mutation_t dispatch_change(const mutation_t& m, castime_t castime);
+    void set_master(master_t *m) {
+        master_ = m;
+    }
 private:
     master_t *master_;
     DISABLE_COPYING(master_dispatcher_t);
