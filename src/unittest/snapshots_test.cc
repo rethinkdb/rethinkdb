@@ -1,9 +1,12 @@
 #include "unittest/gtest.hpp"
-#include "errors.hpp"
-#include <boost/bind.hpp>
+
 #include <cstdlib>
 #include <string>
 #include <functional>
+
+#include <boost/bind.hpp>
+
+#include "errors.hpp"
 #include "server/cmd_args.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/translator.hpp"
@@ -411,4 +414,4 @@ TEST(SnapshotsTest, all_tests) {
     test.run();
 }
 
-}
+}  // namespace unittest
