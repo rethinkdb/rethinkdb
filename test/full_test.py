@@ -227,7 +227,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340,
                     "failover"    : True},
-                          repeat=5, timeout=400)
+                          repeat=10, timeout=400)
     
     do_test_cloud("integration/append_prepend.py",
                   { "auto"        : True,
