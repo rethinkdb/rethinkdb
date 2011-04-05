@@ -81,3 +81,5 @@ struct slave_stream_manager_t :
 }
 
 #endif /* __REPLICATION_SLAVE_STREAM_MANAGER_HPP__ */
+
+
