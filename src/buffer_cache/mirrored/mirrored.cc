@@ -116,7 +116,8 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
         // Block with block_id was logically deleted, but its inner_buf survived.
         // That can happen when there are active snapshots that holding older versions
         // of the block. It's safe to update the top version of the block though.
-        rassert(inner_buf->data == NULL && inner_buf->do_delete);
+        rassert(inner_buf->do_delete);
+        rassert(inner_buf->data == NULL);
 
         inner_buf->subtree_recency = recency_timestamp;
         inner_buf->data = cache->serializer->malloc();
@@ -643,7 +644,6 @@ void mc_transaction_t::on_sync() {
 mc_buf_t *mc_transaction_t::allocate() {
     /* Make a completely new block, complete with a shiny new block_id. */
     rassert(access == rwi_write);
-    //rassert(this->snapshot_version != mc_inner_buf_t::faux_version_id);
     rassert(!snapshotted);
     assert_thread();
 
