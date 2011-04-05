@@ -77,13 +77,15 @@ rnd_gen_t xrandom_create(rnd_distr_t rnd_distr, int mu) {
 size_t xrandom(size_t min, size_t max) {
     rnd_gen_t rnd;
     rnd.rnd_distr = rnd_uniform_t;
-    xrandom(rnd, min, max);
+    return xrandom(rnd, min, max);
 }
 
 size_t xrandom(rnd_gen_t rnd, size_t min, size_t max) {
     double tmp;
+#ifdef USE_LIBGSL
     int len = (min + max) / 2;
-    
+#endif
+
     switch(rnd.rnd_distr) {
     case rnd_uniform_t:
         tmp = random(min, max);
@@ -98,26 +100,30 @@ size_t xrandom(rnd_gen_t rnd, size_t min, size_t max) {
         exit(-1);
         break;
 #endif
-    };
-    
-    if(tmp < min)
+    }
+
+    if(tmp < min) {
         tmp = min;
-    if(tmp > max)
+    }
+    if (tmp > max) {
         tmp = max;
-    //printf("%lu\n", (size_t)tmp);
+    }
+
     return tmp;
 }
 
 size_t seeded_xrandom(size_t min, size_t max, unsigned long seed) {
     rnd_gen_t rnd;
     rnd.rnd_distr = rnd_uniform_t;
-    seeded_xrandom(rnd, min, max, seed);
+    return seeded_xrandom(rnd, min, max, seed);
 }
 
 size_t seeded_xrandom(rnd_gen_t rnd, size_t min, size_t max, unsigned long seed) {
     double tmp;
+#ifdef USE_LIBGSL
     int len = (min + max) / 2;
-    
+#endif
+
     switch(rnd.rnd_distr) {
     case rnd_uniform_t:
         tmp = seeded_random(min, max, seed);
@@ -132,8 +138,8 @@ size_t seeded_xrandom(rnd_gen_t rnd, size_t min, size_t max, unsigned long seed)
         exit(-1);
         break;
 #endif
-    };
-    
+    }
+
     if(tmp < min)
         tmp = min;
     if(tmp > max)
