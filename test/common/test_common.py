@@ -442,6 +442,12 @@ class FailoverMemcachedWrapper(object):
 
         return getattr(mc_to_use, name)
 
+    def disconnect_all(self):
+        if self.mc["master"]:
+            self.mc["master"].disconnect_all()
+        if self.mc["slave"]:
+            self.mc["slave"].disconnect_all()
+
     def wait_for_slave_to_assume_masterhood(self):
         print "Waiting for slave to assume masterhood..."
         if self.opts["mclib"] == "pylibmc":
@@ -604,7 +610,6 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
                 test_failure = e
             else:
                 test_failure = None
-            mc.disconnect_all()
 
             for stat_checker in stat_checkers:
                 if stat_checker: stat_checker.stop()
