@@ -64,6 +64,15 @@ struct store_key_t;
 
 namespace replication {
 
+namespace delete_queue {
+
+struct t_and_o {
+    repli_timestamp timestamp;
+    off64_t offset;
+} __attribute__((__packed__));
+
+}  // namespace delete_queue
+
 struct delete_queue_block_t {
     block_magic_t magic;
 

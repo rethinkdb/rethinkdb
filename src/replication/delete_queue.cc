@@ -39,12 +39,6 @@ int keys_largebuf_ref_size(block_size_t block_size) {
     return block_size.value() - (TIMESTAMPS_AND_OFFSETS_OFFSET + TIMESTAMPS_AND_OFFSETS_SIZE);
 }
 
-// TODO: Add test doublechecking that sizeof(t_and_o) == 12.
-struct t_and_o {
-    repli_timestamp timestamp;
-    off64_t offset;
-} __attribute__((__packed__));
-
 }  // namespace delete_queue
 
 void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp timestamp, const store_key_t *key) {
