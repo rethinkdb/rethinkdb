@@ -189,3 +189,19 @@ char *demangle_cpp_name(const char *mangled_name) {
         return NULL;
     }
 }
+
+/* Boost will call this function when an assertion fails. */
+
+namespace boost {
+
+void assertion_failed(char const * expr, char const * function, char const * file, long line) {
+    report_fatal_error(file, line, "BOOST_ASSERT failure in '%s': %s", function, expr); 
+    BREAKPOINT;
+}
+
+void assertion_failed_msg(char const * expr, char const * msg, char const * function, char const * file, long line) {
+    report_fatal_error(file, line, "BOOST_ASSERT_MSG failure in '%s': %s (%s)", function, expr, msg);
+    BREAKPOINT;
+}
+
+}

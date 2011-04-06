@@ -36,6 +36,11 @@ struct mc_config_block_t {
 
 /* WARNING: Most of the functions in here are *not* reentrant-safe and rely on concurrency control happening
  *  elsewhere (specifically in mc_cache_t and writeback_t) */
+
+// TODO: This is a huge mess because it goes through the same mc_inner_buf_t / mc_buf_t interface
+// that the cache client goes through, except that it cheats on some things. Instead it should just
+// directly manage its own buffers in a different block-id-space than the public buffers.
+
 class patch_disk_storage_t {
 public:
     static void create(translator_serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config);
@@ -67,7 +72,6 @@ private:
     void clear_block(const block_id_t log_block_id, coro_t* notify_coro);
     void set_active_log_block(const block_id_t log_block_id);
 
-    void preload_block(const block_id_t log_block_id);
     void init_log_block(const block_id_t log_block_id);
 
     // We use our own acquire function which does not care about locks

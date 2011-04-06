@@ -1,3 +1,4 @@
+#include "errors.hpp"
 #include "arch/arch.hpp"
 #include <sys/types.h>
 #include <sys/stat.h>

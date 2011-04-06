@@ -6,6 +6,7 @@
 template <class T>
 class scoped_malloc {
 public:
+    scoped_malloc() : ptr_(NULL) { }
     scoped_malloc(size_t n) : ptr_(reinterpret_cast<T *>(malloc(n))) { }
     scoped_malloc(const char *beg, const char *end) {
         rassert(beg <= end);
@@ -26,6 +27,10 @@ public:
 
 private:
     T *ptr_;
+
+    // DISABLE_COPYING
+    scoped_malloc(const scoped_malloc&);
+    void operator=(const scoped_malloc&);
 };
 
 

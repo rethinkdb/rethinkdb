@@ -23,9 +23,6 @@ public:
     ~elb_t();
 
 private:
-    struct : public conn_acceptor_t::handler_t {
-        void handle(tcp_conn_t *) {} //our handler just needs to accept connections and
-    } handler;
     int port;
     boost::scoped_ptr<conn_acceptor_t> conn_acceptor;
 

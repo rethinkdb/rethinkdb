@@ -70,19 +70,26 @@ struct key_with_data_provider_t {
     };
 };
 
+// A NULL unique pointer means not allowed
 typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
 struct get_result_t {
     get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
-        value(v), flags(f), cas(c), to_signal_when_done(s) { }
+        is_not_allowed(false), value(v), flags(f), cas(c), to_signal_when_done(s) { }
     get_result_t() :
-        value(), flags(0), cas(0), to_signal_when_done(NULL) { }
+        is_not_allowed(false), value(), flags(0), cas(0), to_signal_when_done(NULL) { }
+
+    /* If true, then all other fields should be ignored. */
+    bool is_not_allowed;
 
     // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
     // so don't hold on to it forever.
     unique_ptr_t<data_provider_t> value;
+
     mcflags_t flags;
     cas_t cas;
+
+    /* Signal this when you're done with the data_provider_t. TODO: Get rid of this. */
     threadsafe_cond_t *to_signal_when_done;
 };
 
@@ -90,6 +97,7 @@ struct get_store_t {
     virtual get_result_t get(const store_key_t &key) = 0;
     virtual rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key,
         rget_bound_mode_t right_mode, const store_key_t &right_key) = 0;
+    virtual ~get_store_t() {}
 };
 
 // A castime_t contains proposed cas information (if it's needed) and
@@ -125,10 +133,9 @@ enum replace_policy_t {
 
 #define NO_CAS_SUPPLIED 0
 
-// TODO: freaking rename this to sarc_mutation_t.
-struct set_mutation_t {
+struct sarc_mutation_t {
     store_key_t key;
-    data_provider_t *data;
+    unique_ptr_t<data_provider_t> data;
     mcflags_t flags;
     exptime_t exptime;
     add_policy_t add_policy;
@@ -190,7 +197,7 @@ enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
 struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
     store_key_t key;
-    data_provider_t *data;
+    unique_ptr_t<data_provider_t> data;
 };
 
 enum append_prepend_result_t {
@@ -203,7 +210,7 @@ enum append_prepend_result_t {
 
 struct mutation_t {
 
-    boost::variant<get_cas_mutation_t, set_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation;
+    boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation;
 
     // implicit
     template<class T>
@@ -227,9 +234,9 @@ class set_store_interface_t {
 public:
     /* These NON-VIRTUAL methods all construct a mutation_t and then call change(). */
     get_result_t get_cas(const store_key_t &key);
-    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    set_result_t sarc(const store_key_t &key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
     incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data);
     delete_result_t delete_key(const store_key_t &key);
 
     virtual mutation_result_t change(const mutation_t&) = 0;

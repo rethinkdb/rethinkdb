@@ -1,16 +1,18 @@
+#include "memcached/memcached.hpp"
+
 #include <stdexcept>
 #include <stdarg.h>
-#include "memcached/memcached.hpp"
+
+#include "arch/arch.hpp"
 #include "concurrency/task.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/unique_ptr.hpp"
-#include "arch/arch.hpp"
+#include "server/control.hpp"
 #include "store.hpp"
 #include "logger.hpp"
-#include "control.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
@@ -123,8 +125,9 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         client_error(saver, "bad data chunk\r\n");
     }
 
-    void client_error_writing_not_allowed(const thread_saver_t& saver) {
-        client_error(saver, "writing not allowed on this store (probably a slave)\r\n");
+    void client_error_not_allowed(const thread_saver_t& saver) {
+        client_error(saver, "operation not allowed; maybe we're not done starting up yet, or "
+            "maybe you are trying to write to a slave\r\n");
     }
 
     void server_error_object_too_large_for_cache(const thread_saver_t& saver) {
@@ -198,9 +201,21 @@ void do_get(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool with_
     /* Now that we're sure they're all valid, send off the requests */
     pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1));
 
+    /* Check if they hit a gated_get_store_t. */
+    if (gets.size() > 0 && gets[0].res.is_not_allowed) {
+        /* They all should have gotten the same error */
+        for (int i = 0; i < (int)gets.size(); i++) {
+            rassert(gets[i].res.is_not_allowed);
+        }
+        rh->client_error_not_allowed(saver);
+        return;
+    }
+
     /* Handle the results in sequence */
     for (int i = 0; i < (int)gets.size(); i++) {
         get_result_t &res = gets[i].res;
+
+        rassert(!res.is_not_allowed);
 
         /* If res.value is NULL that means the value was not found so we don't write
         anything */
@@ -286,6 +301,12 @@ void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc,
 
     rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key);
 
+    /* Check if the query hit a gated_get_store_t */
+    if (!results_iterator) {
+        rh->client_error_not_allowed(saver);
+        return;
+    }
+
     boost::optional<key_with_data_provider_t> pair;
     uint64_t count = 0;
     while (++count <= max_items && (pair = results_iterator->next())) {
@@ -331,6 +352,10 @@ public:
             /* We have to clear the data out of the socket, even if we have nowhere to put it. */
             get_data_as_buffers();
         }
+        // This is a harmless hack to get ~home_thread_mixin_t to not fail its assertion.
+#ifndef NDEBUG
+        const_cast<int&>(home_thread) = get_thread_id();
+#endif
     }
 
     size_t get_size() const {
@@ -356,8 +381,6 @@ public:
             if (to_signal) to_signal->pulse(false);
             throw data_provider_failed_exc_t();
         }
-        // Crazy wizardry happens here: cross-thread exception throw. As stack is unwound,
-        // thread_switcher's destructor causes us to switch threads.
     }
 };
 
@@ -387,8 +410,8 @@ void run_storage_command(txt_memcached_handler_t *rh,
 
     thread_saver_t saver;
 
-    memcached_data_provider_t unbuffered_data(rh, value_size, value_read_promise);
-    maybe_buffered_data_provider_t data(&unbuffered_data, MAX_BUFFERED_SET_SIZE);
+    unique_ptr_t<memcached_data_provider_t> unbuffered_data(new memcached_data_provider_t(rh, value_size, value_read_promise));
+    unique_ptr_t<maybe_buffered_data_provider_t> data(new maybe_buffered_data_provider_t(unbuffered_data, MAX_BUFFERED_SET_SIZE));
 
     block_pm_duration set_timer(&pm_cmd_set);
 
@@ -419,7 +442,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
             unreachable();
         }
 
-        set_result_t res = rh->set_store->sarc(key, &data, metadata.mcflags, metadata.exptime,
+        set_result_t res = rh->set_store->sarc(key, data, metadata.mcflags, metadata.exptime,
                                                add_policy, replace_policy, metadata.unique);
         
         if (!noreply) {
@@ -444,7 +467,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                 /* The error message will be written by do_storage() */
                 break;
             case sr_not_allowed:
-                rh->client_error_writing_not_allowed(saver);
+                rh->client_error_not_allowed(saver);
                 break;
             default: unreachable();
             }
@@ -454,7 +477,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
         append_prepend_result_t res =
             rh->set_store->append_prepend(
                 sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
-                key, &data);
+                key, data);
 
         if (!noreply) {
             switch (res) {
@@ -467,7 +490,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                 /* The error message will be written by do_storage() */
                 break;
             case apr_not_allowed:
-                rh->client_error_writing_not_allowed(saver);
+                rh->client_error_not_allowed(saver);
                 break;
             default: unreachable();
             }
@@ -604,7 +627,7 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount
                 rh->client_error(saver, "cannot increment or decrement non-numeric value\r\n");
                 break;
             case incr_decr_result_t::idr_not_allowed:
-                rh->client_error_writing_not_allowed(saver);
+                rh->client_error_not_allowed(saver);
                 break;
             default: unreachable();
         }
@@ -675,7 +698,7 @@ void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
                 rh->writef(saver, "NOT_FOUND\r\n");
                 break;
             case dr_not_allowed:
-                rh->client_error_writing_not_allowed(saver);
+                rh->client_error_not_allowed(saver);
                 break;
             default: unreachable();
         }
@@ -811,9 +834,9 @@ void do_quickset(const thread_saver_t& saver, txt_memcached_handler_t *rh, std::
             rh->writef(saver, "CLIENT_ERROR Invalid key %s\r\n", args[i]);
             return;
         }
-        buffered_data_provider_t value(args[i + 1], strlen(args[i + 1]));
+        unique_ptr_t<buffered_data_provider_t> value(new buffered_data_provider_t(args[i + 1], strlen(args[i + 1])));
 
-        set_result_t res = rh->set_store->sarc(key, &value, 0, 0, add_policy_yes, replace_policy_yes, 0);
+        set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0);
 
         if (res == sr_stored) {
             rh->writef(saver, "STORED key %s\r\n", args[i]);

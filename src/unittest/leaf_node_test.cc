@@ -307,7 +307,7 @@ public:
 
         ASSERT_TRUE(leaf::lookup(node, skey.look(), sval.look_write()));
 
-        leaf::remove(bs, node, skey.look());
+        leaf::remove(node, skey.look());
         expected.erase(p);
         expected_frontmost_offset += (1 + k.size()) + sval.look()->full_size();
         -- expected_npairs;

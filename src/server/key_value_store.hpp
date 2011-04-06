@@ -2,16 +2,15 @@
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
 #include "btree/slice.hpp"
-#include "server/slice_dispatching_to_master.hpp"
 #include "btree/node.hpp"
 #include "utils.hpp"
 #include "concurrency/access.hpp"
 #include "server/cmd_args.hpp"
+#include "server/control.hpp"
 #include "arch/arch.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "store.hpp"
-#include "control.hpp"
 
 namespace replication {
 class master_t;
@@ -38,7 +37,7 @@ public:
 
     // Blocks
     btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                            snag_ptr_t<replication::master_t>& master);
+        mutation_dispatcher_t *dispatcher);
 
     // Blocks
     ~btree_key_value_store_t();
@@ -69,7 +68,10 @@ public:
 
     void spawn_backfill(repli_timestamp since_when, replication::do_backfill_cb *callback);
 
-public:
+    static uint32_t hash(const store_key_t &key);
+
+private:
+
     int n_files;
     btree_config_t btree_static_config;
     mirrored_cache_static_config_t cache_static_config;
@@ -92,7 +94,6 @@ public:
     standard_serializer_t *serializers[MAX_SERIALIZERS];
     serializer_multiplexer_t *multiplexer;   // Helps us split the serializers among the slices
     btree_slice_t *btrees[MAX_SLICES];
-    btree_slice_dispatching_to_master_t *dispatchers[MAX_SLICES];
     timestamping_set_store_interface_t *timestampers[MAX_SLICES];
 
     uint32_t slice_num(const store_key_t &key);
@@ -100,12 +101,10 @@ public:
     set_store_t *slice_for_key_set(const store_key_t &key);
     get_store_t *slice_for_key_get(const store_key_t &key);
 
-    static uint32_t hash(const store_key_t &key);
+    void do_time_barrier_on_slice(repli_timestamp timestamp, int i);
 
-private:
-    DISABLE_COPYING(btree_key_value_store_t);
 
-private:
+
     /* slice debug control_t which allows us to see slice and hash for a key */
     class hash_control_t :
         public control_t
@@ -118,7 +117,7 @@ private:
             : control_t("hash", std::string("")), btkvs(btkvs)
 #endif
         {}
-        ~hash_control_t() {};
+        virtual ~hash_control_t() {};
 
     private:
         btree_key_value_store_t *btkvs;
@@ -145,8 +144,9 @@ private:
 
     hash_control_t hash_control;
 
-private:
-    void do_time_barrier_on_slice(repli_timestamp timestamp, int i);
+
+
+    DISABLE_COPYING(btree_key_value_store_t);
 };
 
 #endif /* __BTREE_KEY_VALUE_STORE_HPP__ */

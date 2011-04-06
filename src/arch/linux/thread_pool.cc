@@ -87,7 +87,11 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         linux_thread_t thread(tdata->thread_pool, tdata->current_thread);
         tdata->thread_pool->threads[tdata->current_thread] = &thread;
         linux_thread_pool_t::thread = &thread;
-        
+
+        /* Install a handler for segmentation faults that just prints a backtrace. If we're
+        running under valgrind, we don't install this handler because Valgrind will print the
+        backtrace for us. */
+#ifndef VALGRIND
         stack_t segv_stack;
         segv_stack.ss_sp = malloc_aligned(SEGV_STACK_SIZE, getpagesize());
         guarantee_err(segv_stack.ss_sp != 0, "malloc failed");
@@ -102,7 +106,8 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         action.sa_sigaction = &linux_thread_pool_t::sigsegv_handler;
         r = sigaction(SIGSEGV, &action, NULL);
         guarantee_err(r == 0, "Could not install SEGV handler");
-        
+#endif
+
         // If one thread is allowed to run before another one has finished
         // starting up, then it might try to access an uninitialized part of the
         // unstarted one.
@@ -121,8 +126,11 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         // needed to access.
         res = pthread_barrier_wait(tdata->barrier);
         guarantee(res == 0 || res == PTHREAD_BARRIER_SERIAL_THREAD, "Could not wait at stop barrier");
-        
+
+#ifndef VALGRIND
         free(segv_stack.ss_sp);
+#endif
+
         tdata->thread_pool->threads[tdata->current_thread] = NULL;
         linux_thread_pool_t::thread = NULL;
     }

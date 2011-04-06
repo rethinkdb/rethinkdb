@@ -1,6 +1,7 @@
 #ifndef __LARGE_BUF_HPP__
 #define __LARGE_BUF_HPP__
 
+#include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
 #include "buffer_cache/buffer_cache.hpp"
@@ -16,7 +17,7 @@ struct large_buf_available_callback_t :
     public intrusive_list_node_t<large_buf_available_callback_t> {
     virtual void on_large_buf_available(large_buf_t *large_buf) = 0;
 protected:
-    ~large_buf_available_callback_t() {}
+    virtual ~large_buf_available_callback_t() {}
 };
 
 // struct large_buf_ref is defined in buffer_cache/types.hpp.
@@ -177,7 +178,7 @@ private:
     void trees_bufs_at(const std::vector<buftree_t *>& trees, int sublevels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);
     void tree_bufs_at(buftree_t *tr, int levels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);
 
-    void adds_level(block_id_t *ids
+    void adds_level(block_id_t *ids, int num_roots
 #ifndef NDEBUG
                     , int nextlevels
 #endif

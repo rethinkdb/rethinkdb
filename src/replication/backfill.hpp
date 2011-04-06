@@ -1,6 +1,9 @@
 #ifndef __REPLICATION_BACKFILLING_HPP__
 #define __REPLICATION_BACKFILLING_HPP__
 
+#include "btree/backfill.hpp"
+#include "replication/protocol.hpp"
+
 namespace replication {
 
 class do_backfill_cb : public backfill_callback_t {
@@ -14,7 +17,15 @@ class do_backfill_cb : public backfill_callback_t {
     repli_timestamp minimum_timestamp;
 
 public:
-    do_backfill_cb(int num_dispatchers, int _home_thread, repli_stream_t **_stream) : count(2 * num_dispatchers), home_thread(_home_thread), stream(_stream), minimum_timestamp(repli_timestamp::invalid /* this is greater than all other timestamps. */) { }
+    // We start count at 1, and correspondingly decrement it in wait().
+    do_backfill_cb(int _home_thread, repli_stream_t **_stream) : count(1), home_thread(_home_thread), stream(_stream), minimum_timestamp(repli_timestamp::invalid /* this is greater than all other timestamps. */) { }
+    virtual ~do_backfill_cb() {}
+
+    void add_dual_backfiller_hold() {
+        rassert(get_thread_id() == home_thread);
+        // We decrement count twice: once upon done_deletion_keys and once upon done.
+        count += 2;
+    }
 
     // TODO: Make this take a btree_key which is more accurate a description of the interface.
     void deletion_key(const store_key_t *key) {
@@ -30,13 +41,14 @@ public:
             msg->key_size = key.size;
             memcpy(msg->key, key.contents, key.size);
 
+            debugf("send_deletion_key_to_slave stream=%p *stream=%p\n", stream, *stream);
             (*stream)->send(msg.get());
         }
     }
 
 
     void done_deletion_keys() {
-        coro_t::spawn_on_thread(home_thread, boost::bind(&do_backfill_cb::do_done, this, repli_timestamp::invalid));
+        coro_t::spawn_on_thread(home_thread, boost::bind(&do_backfill_cb::decr_count, this));
     }
 
     void on_keyvalue(backfill_atom_t atom) {
@@ -44,8 +56,6 @@ public:
     }
 
     void send_backfill_atom_to_slave(backfill_atom_t atom) {
-        data_provider_t *data = atom.value.release();
-
         if (*stream) {
             net_backfill_set_t msg;
             msg.timestamp = atom.recency;
@@ -53,12 +63,9 @@ public:
             msg.exptime = atom.exptime;
             msg.cas_or_zero = atom.cas_or_zero;
             msg.key_size = atom.key.size;
-            msg.value_size = data->get_size();
-            (*stream)->send(&msg, atom.key.contents, data);
+            msg.value_size = atom.value->get_size();
+            (*stream)->send(&msg, atom.key.contents, atom.value);
         }
-
-        // TODO: Does repli_stream_t delete data or should we do it as we do here?
-        delete data;
     }
 
     void done(repli_timestamp oper_start_timestamp) {
@@ -72,6 +79,14 @@ public:
             minimum_timestamp = oper_start_timestamp;
         }
 
+        decr_count();
+    }
+
+    void decr_count() {
+        rassert(get_thread_id() == home_thread);
+
+        debugf("decr_count() %d -> %d\n", count, count-1);
+
         count = count - 1;
         if (0 == count) {
             for_when_done.pulse();
@@ -79,6 +94,7 @@ public:
     }
 
     repli_timestamp wait() {
+        decr_count();
         for_when_done.wait();
         return minimum_timestamp;
     }

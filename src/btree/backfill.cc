@@ -1,5 +1,6 @@
 #include "btree/backfill.hpp"
 
+#include "errors.hpp"
 #include <algorithm>
 #include <vector>
 #include <boost/make_shared.hpp>
@@ -341,7 +342,7 @@ void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
             // The value is sufficiently recent.  But is it a small value or a large value?
             const btree_leaf_pair *pair = leaf::get_pair(node, offset);
             const btree_value *value = pair->value();
-            value_data_provider_t *data_provider = value_data_provider_t::create(value, state.transactor_ptr);
+            unique_ptr_t<value_data_provider_t> data_provider(value_data_provider_t::create(value, state.transactor_ptr));
             backfill_atom_t atom;
             // We'd like to use keycpy but nooo we have store_key_t and btree_key as different types.
             atom.key.size = pair->key.size;

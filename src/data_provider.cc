@@ -67,7 +67,7 @@ void auto_copying_data_provider_t::get_data_into_buffers(const buffer_group_t *d
 
 /* buffered_data_provider_t */
 
-buffered_data_provider_t::buffered_data_provider_t(data_provider_t *dp) :
+buffered_data_provider_t::buffered_data_provider_t(unique_ptr_t<data_provider_t> dp) :
     size(dp->get_size()), buffer(new char[size])
 {
     buffer_group_t writable_bg;
@@ -99,14 +99,12 @@ const const_buffer_group_t *buffered_data_provider_t::get_data_as_buffers() thro
 
 /* maybe_buffered_data_provider_t */
 
-maybe_buffered_data_provider_t::maybe_buffered_data_provider_t(data_provider_t *dp, int threshold) :
-    buffer(NULL)
+maybe_buffered_data_provider_t::maybe_buffered_data_provider_t(unique_ptr_t<data_provider_t> dp, int threshold) :
+    size(dp->get_size()), original(), exception_was_thrown(false), buffer()
 {
-    size = dp->get_size();
     if (size >= threshold) {
         original = dp;
     } else {
-        original = NULL;
         /* Catch the exception here so we can re-throw it at the appropriate moment */
         try {
             buffer.reset(new buffered_data_provider_t(dp));
@@ -181,9 +179,9 @@ void buffer_borrowing_data_provider_t::side_data_provider_t::supply_no_buffers()
     done_cond_ = NULL;
 }
 
-buffer_borrowing_data_provider_t::buffer_borrowing_data_provider_t(int side_reader_thread, data_provider_t *inner)
+buffer_borrowing_data_provider_t::buffer_borrowing_data_provider_t(int side_reader_thread, unique_ptr_t<data_provider_t> inner)
     : inner_(inner), done_cond_(),
-      side_(new side_data_provider_t(side_reader_thread, inner->get_size(), &done_cond_)),
+      side_(new side_data_provider_t(side_reader_thread, inner_->get_size(), &done_cond_)),
       side_owned_(true), supplied_buffers_(false) {
 #ifndef NDEBUG
     in_get_data_into_buffers_ = false;
@@ -230,8 +228,12 @@ const const_buffer_group_t *buffer_borrowing_data_provider_t::get_data_as_buffer
     return group;
 }
 
-buffer_borrowing_data_provider_t::side_data_provider_t *buffer_borrowing_data_provider_t::side_provider() {
-    side_owned_ = false;
-    return side_;
+unique_ptr_t<buffer_borrowing_data_provider_t::side_data_provider_t> buffer_borrowing_data_provider_t::side_provider() {
+    if (side_owned_) {
+        side_owned_ = false;
+        return unique_ptr_t<side_data_provider_t>(side_);
+    } else {
+        return unique_ptr_t<side_data_provider_t>();
+    }
 }
 

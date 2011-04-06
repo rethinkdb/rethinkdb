@@ -1,9 +1,9 @@
 #ifndef __BTREE_MODIFY_OPER_HPP__
 #define __BTREE_MODIFY_OPER_HPP__
 
+#include "utils.hpp"
 #include <boost/shared_ptr.hpp>
 #include "btree/node.hpp"
-#include "utils.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/buf_lock.hpp"
@@ -18,7 +18,7 @@ extern perfmon_counter_t pm_btree_depth;
 
 class btree_modify_oper_t {
 public:
-    btree_modify_oper_t() : slice(NULL), cas_already_set(false) { }
+    btree_modify_oper_t() : slice(NULL) { }
 
     virtual ~btree_modify_oper_t() { }
 
@@ -39,9 +39,6 @@ public:
     // These two variables are only used by the get_cas_oper; there should be a
     // nicer way to handle this.
     btree_slice_t *slice;
-    // Set to true if the CAS has already been set to some new value (generated
-    // from the slice), so run_btree_modify_oper() shouldn't 
-    bool cas_already_set;
 
     // Acquires the old large value; this exists because some
     // btree_modify_opers need to acquire it in a particular way.

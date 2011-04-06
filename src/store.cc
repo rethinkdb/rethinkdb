@@ -2,7 +2,7 @@
 
 struct mutation_get_key_functor_t : public boost::static_visitor<store_key_t> {
     store_key_t operator()(const get_cas_mutation_t &m) { return m.key; }
-    store_key_t operator()(const set_mutation_t &m) { return m.key; }
+    store_key_t operator()(const sarc_mutation_t &m) { return m.key; }
     store_key_t operator()(const delete_mutation_t &m) { return m.key; }
     store_key_t operator()(const incr_decr_mutation_t &m) { return m.key; }
     store_key_t operator()(const append_prepend_mutation_t &m) { return m.key; }
@@ -19,8 +19,8 @@ get_result_t set_store_interface_t::get_cas(const store_key_t &key) {
     return boost::get<get_result_t>(change(mut).result);
 }
 
-set_result_t set_store_interface_t::sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    set_mutation_t mut;
+set_result_t set_store_interface_t::sarc(const store_key_t &key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+    sarc_mutation_t mut;
     mut.key = key;
     mut.data = data;
     mut.flags = flags;
@@ -39,7 +39,7 @@ incr_decr_result_t set_store_interface_t::incr_decr(incr_decr_kind_t kind, const
     return boost::get<incr_decr_result_t>(change(mut).result);
 }
 
-append_prepend_result_t set_store_interface_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data) {
+append_prepend_result_t set_store_interface_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data) {
     append_prepend_mutation_t mut;
     mut.kind = kind;
     mut.key = key;

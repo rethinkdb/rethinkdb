@@ -3,6 +3,7 @@
 #define __ARCH_LINUX_DISK_AIO_COMMON_HPP__
 
 #include <libaio.h>
+#include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
 #include "arch/linux/system_event.hpp"
 #include "utils2.hpp"

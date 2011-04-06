@@ -19,11 +19,16 @@ void generic_crash_handler(int signum) {
 void ignore_crash_handler(UNUSED int signum) { }
 
 void install_generic_crash_handler() {
+
     struct sigaction action;
+    int res;
+
+#ifndef VALGRIND
     bzero(&action, sizeof(action));
     action.sa_handler = generic_crash_handler;
-    int res = sigaction(SIGSEGV, &action, NULL);
+    res = sigaction(SIGSEGV, &action, NULL);
     guarantee_err(res == 0, "Could not install SEGV handler");
+#endif
 
     bzero(&action, sizeof(action));
     action.sa_handler = ignore_crash_handler;

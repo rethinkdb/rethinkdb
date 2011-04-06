@@ -1,31 +1,38 @@
 #ifndef __REPLICATION_PROTOCOL_HPP__
 #define __REPLICATION_PROTOCOL_HPP__
 
+#include "errors.hpp"
 #include <boost/function.hpp>
 
 #include "arch/arch.hpp"
 #include "concurrency/mutex.hpp"
-#include "containers/shared_buf.hpp"
+#include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
 #include "data_provider.hpp"
 #include "replication/net_structs.hpp"
-#include "scoped_malloc.hpp"
 
 
 namespace replication {
 
 template <class T>
 struct stream_pair {
-    buffered_data_provider_t *stream;
-    buffed_data_t<T> data;
+    unique_ptr_t<buffered_data_provider_t> stream;
+    scoped_malloc<T> data;
 
     // This uses key_size, which is completely crap.
-    stream_pair(weak_buf_t buffer, size_t beg, size_t n, size_t size = 0) : data(buffer, beg) {
-        char *p;
-        size_t m = sizeof(T) + buffer.get<T>(beg)->key_size;
-        stream = new buffered_data_provider_t(size == 0 ? n - m : size, (void **)&p);
+    stream_pair(const char *beg, const char *end, size_t size = 0) : stream(), data() {
+        void *p;
+        size_t m = sizeof(T) + reinterpret_cast<const T *>(beg)->key_size;
 
-        memcpy(p, buffer.get<char>(beg + m), n - m);
+        const char *cutpoint = beg + m;
+        {
+            scoped_malloc<T> tmp(beg, cutpoint);
+            data.swap(tmp);
+        }
+
+        stream.reset(new buffered_data_provider_t(size == 0 ? end - cutpoint : size, &p));
+
+        memcpy(p, cutpoint, end - cutpoint);
     }
 
     T *operator->() { return data.get(); }
@@ -35,50 +42,37 @@ class message_callback_t {
 public:
     // These could call .swap on their parameter, taking ownership of the pointee.
     virtual void hello(net_hello_t message) = 0;
-    virtual void send(buffed_data_t<net_backfill_t>& message) = 0;
-    virtual void send(buffed_data_t<net_backfill_complete_t>& message) = 0;
-    virtual void send(buffed_data_t<net_announce_t>& message) = 0;
-    virtual void send(buffed_data_t<net_get_cas_t>& message) = 0;
+    virtual void send(scoped_malloc<net_backfill_t>& message) = 0;
+    virtual void send(scoped_malloc<net_backfill_complete_t>& message) = 0;
+    virtual void send(scoped_malloc<net_announce_t>& message) = 0;
+    virtual void send(scoped_malloc<net_get_cas_t>& message) = 0;
     virtual void send(stream_pair<net_sarc_t>& message) = 0;
     virtual void send(stream_pair<net_backfill_set_t>& message) = 0;
-    virtual void send(buffed_data_t<net_incr_t>& message) = 0;
-    virtual void send(buffed_data_t<net_decr_t>& message) = 0;
+    virtual void send(scoped_malloc<net_incr_t>& message) = 0;
+    virtual void send(scoped_malloc<net_decr_t>& message) = 0;
     virtual void send(stream_pair<net_append_t>& message) = 0;
     virtual void send(stream_pair<net_prepend_t>& message) = 0;
-    virtual void send(buffed_data_t<net_delete_t>& message) = 0;
-    virtual void send(buffed_data_t<net_backfill_delete_t>& message) = 0;
-    virtual void send(buffed_data_t<net_nop_t>& message) = 0;
-    virtual void send(buffed_data_t<net_ack_t>& message) = 0;
+    virtual void send(scoped_malloc<net_delete_t>& message) = 0;
+    virtual void send(scoped_malloc<net_backfill_delete_t>& message) = 0;
+    virtual void send(scoped_malloc<net_nop_t>& message) = 0;
+    virtual void send(scoped_malloc<net_ack_t>& message) = 0;
     virtual void conn_closed() = 0;
+    virtual ~message_callback_t() {}
 };
 
 typedef thick_list<std::pair<boost::function<void ()>, std::pair<char *, size_t> > *, uint32_t> tracker_t;
 
 class message_parser_t {
 public:
-    message_parser_t() : shutdown_asked_for(false), is_live(false) {}
+    message_parser_t() {}
     ~message_parser_t() {}
 
     void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
 
-    struct message_parser_shutdown_callback_t {
-        virtual void on_parser_shutdown() = 0;
-    protected:
-        ~message_parser_shutdown_callback_t() { }
-    };
-    void shutdown(message_parser_shutdown_callback_t *cb);
-
-    void co_shutdown();
-
 private:
-    size_t handle_message(message_callback_t *receiver, weak_buf_t buffer, size_t offset, size_t num_read, tracker_t& streams);
+    size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams);
     void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
     void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams);
-
-    bool shutdown_asked_for; /* were we asked to shutdown (used to ignore connection exceptions */
-    bool is_live; /* used to signal the parser when to stop, tells whether it needs to shut down */
-
-    message_parser_shutdown_callback_t *_cb;
 
     DISABLE_COPYING(message_parser_t);
 };
@@ -93,32 +87,26 @@ public:
     }
 
     ~repli_stream_t() {
-        if (conn_) {
-            co_shutdown();
-        }
+        rassert(!conn_->is_read_open());
     }
 
-    // TODO make this protocol-wise (as in street-wise).
-    void co_shutdown() {
-        rassert(conn_);
-        debugf("repli_stream doing conn_.reset()\n");
-        conn_.reset();
-
-        debugf("repli_stream doing parser_.co_shutdown\n");
-        parser_.co_shutdown();
-        debugf("repli_stream done co_shutdown\n");
+    // Call shutdown() when you want the repli_stream to stop. shutdown() will return
+    // immediately but cause the connection to be closed and cause conn_closed() to
+    // be called.
+    void shutdown() {
+        conn_->shutdown_read();
     }
 
     void send(net_backfill_t *msg);
     void send(net_backfill_complete_t *msg);
     void send(net_announce_t *msg);
     void send(net_get_cas_t *msg);
-    void send(net_sarc_t *msg, const char *key, data_provider_t *value);
-    void send(net_backfill_set_t *msg, const char *key, data_provider_t *value);
+    void send(net_sarc_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
+    void send(net_backfill_set_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
     void send(net_incr_t *msg);
     void send(net_decr_t *msg);
-    void send(net_append_t *msg, const char *key, data_provider_t *value);
-    void send(net_prepend_t *msg, const char *key, data_provider_t *value);
+    void send(net_append_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
+    void send(net_prepend_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
     void send(net_delete_t *msg);
     void send(net_backfill_delete_t *msg);
 
@@ -128,18 +116,17 @@ public:
     void send(net_nop_t msg);
     void send(net_ack_t msg);
 
-
-    void close();
-
 private:
 
     template <class net_struct_type>
     void sendobj(uint8_t msgcode, net_struct_type *msg);
 
     template <class net_struct_type>
-    void sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, data_provider_t *data);
+    void sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, unique_ptr_t<data_provider_t> data);
 
     void send_hello(const mutex_acquisition_t& proof_of_acquisition);
+
+    void try_write(const void *data, size_t size);
 
     message_callback_t *recv_cb_;
     mutex_t outgoing_mutex_;

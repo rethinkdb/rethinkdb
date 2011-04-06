@@ -180,6 +180,11 @@ CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL -Wno-format
 BUILD_DIR:=$(BUILD_DIR)-legacy
 endif
 
+ifeq ($(LEGACY_GCC),1)
+CXXFLAGS+=-Wno-switch-default -Wno-switch-enum
+BUILD_DIR:=$(BUILD_DIR)legacy-gcc
+endif
+
 ifeq ($(NO_EVENTFD),1)
 CXXFLAGS+=-DNO_EVENTFD
 BUILD_DIR:=$(BUILD_DIR)-no_eventfd
@@ -459,10 +464,10 @@ rerun: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
 gdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) rm -f rethinkdb_data*
-	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	cgdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 regdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	gdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	cgdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
 
 sembuild: clean
 	make SEMANTIC_SERIALIZER_CHECK=1 all
@@ -506,12 +511,12 @@ clean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM *~"
 	@echo "    RM -r $(BUILD_ROOT_DIR)"
-	@echo "    RM $(TAGS)"
-	@echo "    RM $(CSCOPE_XREF)"
+#	@echo "    RM $(TAGS)"
+#	@echo "    RM $(CSCOPE_XREF)"
 endif
 	$(QUIET) find -name '*~' -exec rm {} \;
 	$(QUIET) rm -rf $(BUILD_ROOT_DIR)
-	$(QUIET) rm -f $(TAGS) $(CSCOPE_XREF)
+#	$(QUIET) rm -f $(TAGS) $(CSCOPE_XREF)
 
 # Directories
 $(BUILD_DIR):

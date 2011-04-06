@@ -79,9 +79,9 @@ def test_function(opts, port, test_dir):
 
     if response != expected_response:
         raise ValueError("Incorrect response: %r Expected: %r" % (response, expected_response))
-    
-    print "Delete time"
+
     '''
+    print "Delete time"
     command_string = ''
     expected_response = ''
     for int in ints:
@@ -107,4 +107,6 @@ if __name__ == "__main__":
     op["chunk_size"] = IntFlag("--chunk-size", 10)
     op["num_ints"] = IntFlag("--num-ints", 1000)
     op["num_chunks"] = IntFlag("--num-chunks", 50)
-    auto_server_test_main(test_function, op.parse(sys.argv), timeout = op.parse(sys.argv)["num_ints"] * 0.03)
+    opts = op.parse(sys.argv)
+    timeout = opts["num_ints"] * (0.03 if "mockcache" not in opts["mode"] else 1)
+    auto_server_test_main(test_function, opts, timeout = timeout)

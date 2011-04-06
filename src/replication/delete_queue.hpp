@@ -64,6 +64,15 @@ struct store_key_t;
 
 namespace replication {
 
+namespace delete_queue {
+
+struct t_and_o {
+    repli_timestamp timestamp;
+    off64_t offset;
+} __attribute__((__packed__));
+
+}  // namespace delete_queue
+
 struct delete_queue_block_t {
     block_magic_t magic;
 
@@ -83,7 +92,7 @@ public:
     virtual void deletion_key(const store_key_t *key) = 0;
     virtual void done_deletion_keys() = 0;
 protected:
-    ~deletion_key_stream_receiver_t() { }
+    virtual ~deletion_key_stream_receiver_t() { }
 };
 
 // Acquires a delete queue, appends a (timestamp, key) pair to the

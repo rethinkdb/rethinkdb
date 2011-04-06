@@ -50,7 +50,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
-      cow_will_be_needed(false),
+      cow_refcount(0),
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
@@ -83,7 +83,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
-      cow_will_be_needed(false),
+      cow_refcount(0),
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
@@ -116,7 +116,8 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
         // Block with block_id was logically deleted, but its inner_buf survived.
         // That can happen when there are active snapshots that holding older versions
         // of the block. It's safe to update the top version of the block though.
-        rassert(inner_buf->data == NULL && inner_buf->do_delete);
+        rassert(inner_buf->do_delete);
+        rassert(inner_buf->data == NULL);
 
         inner_buf->subtree_recency = recency_timestamp;
         inner_buf->data = cache->serializer->malloc();
@@ -124,7 +125,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
         inner_buf->do_delete = false;
         inner_buf->next_patch_counter = 1;
         inner_buf->write_empty_deleted_block = false;
-        inner_buf->cow_will_be_needed = false;
+        inner_buf->cow_refcount = 0;
         inner_buf->transaction_id = NULL_SER_TRANSACTION_ID;
 
         return inner_buf;
@@ -132,8 +133,8 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
 }
 
 // This form of the buf constructor is used when a completely new block is being created.
-// Internal use from mc_inner_buf_t::allocate only!
-// If you update this constructor, please don't forget to update mc_inner_buf_tallocate
+// Used by mc_inner_buf_t::allocate() and by the patch log.
+// If you update this constructor, please don't forget to update mc_inner_buf_t::allocate
 // accordingly.
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp recency_timestamp)
     : cache(cache),
@@ -145,7 +146,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
       refcount(0),
       do_delete(false),
       write_empty_deleted_block(false),
-      cow_will_be_needed(false),
+      cow_refcount(0),
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
@@ -204,7 +205,7 @@ void mc_inner_buf_t::replay_patches() {
     next_patch_counter = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id) + 1;
 }
 
-void mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool create_copy_if_snapshotted) {
+bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     cache->assert_thread();
     rassert(snapshots.size() == 0 || snapshots.front().snapshotted_version <= version_id);  // you can get snapshotted_version == version_id due to copy-on-write doing the snapshotting
 
@@ -212,11 +213,13 @@ void mc_inner_buf_t::snapshot_if_needed(version_id_t new_version, bool create_co
     //   inner_version <= snapshot_txn->version_id < new_version
     // can see the current version of inner_buf->data, so we need to make some snapshots for them
     size_t num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
-    size_t refcount = num_snapshots_affected + (cow_will_be_needed ? 1 : 0);
+    size_t refcount = num_snapshots_affected + cow_refcount;
     if (refcount > 0) {
         snapshots.push_front(buf_snapshot_info_t(data, version_id, refcount));
-        cow_will_be_needed = false;
-        data = create_copy_if_snapshotted ? cache->serializer->clone(data) : NULL;
+        cow_refcount = 0;
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -235,7 +238,7 @@ void mc_inner_buf_t::release_snapshot(void *data) {
 }
 
 bool mc_inner_buf_t::safe_to_unload() {
-    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && !cow_will_be_needed && snapshots.size() == 0;
+    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.size() == 0;
 }
 
 perfmon_duration_sampler_t
@@ -296,13 +299,8 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
                 break;
             }
             case rwi_read_outdated_ok: {
-                if (inner_buf->cow_will_be_needed) {
-                    data = inner_buf->cache->serializer->clone(inner_buf->data);
-                } else {
-                    data = inner_buf->data;
-                    rassert(data != NULL);
-                    inner_buf->cow_will_be_needed = true;
-                }
+                ++inner_buf->cow_refcount;
+                data = inner_buf->data;
                 inner_buf->lock.unlock();
                 break;
             }
@@ -312,7 +310,10 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
 
                 rassert(inner_version <= version_to_access);
 
-                inner_buf->snapshot_if_needed(version_to_access, true);
+                bool snapshotted = inner_buf->snapshot_if_needed(version_to_access);
+                if (snapshotted)
+                    inner_buf->data = inner_buf->cache->serializer->clone(inner_buf->data);
+
                 inner_buf->version_id = version_to_access;
                 data = inner_buf->data;
                 rassert(data != NULL);
@@ -414,7 +415,10 @@ void mc_buf_t::mark_deleted(bool write_null) {
     rassert(!inner_buf->safe_to_unload());
     rassert(data == inner_buf->data);
 
-    inner_buf->snapshot_if_needed(inner_buf->version_id, false);
+    bool snapshotted = inner_buf->snapshot_if_needed(inner_buf->version_id);
+    if (!snapshotted)
+        inner_buf->cache->serializer->free(data);
+
     data = inner_buf->data = NULL;
 
     inner_buf->do_delete = true;
@@ -488,7 +492,7 @@ void mc_buf_t::release() {
 
     inner_buf->cache->assert_thread();
 
-    inner_buf->refcount--;
+    --inner_buf->refcount;
 
     if (!non_locking_access) {
         switch (mode) {
@@ -499,10 +503,10 @@ void mc_buf_t::release() {
             }
             case rwi_read_outdated_ok: {
                 if (data == inner_buf->data) {
-                    inner_buf->cow_will_be_needed = false;
+                    rassert(inner_buf->cow_refcount > 0);
+                    --inner_buf->cow_refcount;
                 } else {
                     inner_buf->release_snapshot(data);
-                    //inner_buf->cache->serializer->free(data);
                 }
                 break;
             }
@@ -640,7 +644,6 @@ void mc_transaction_t::on_sync() {
 mc_buf_t *mc_transaction_t::allocate() {
     /* Make a completely new block, complete with a shiny new block_id. */
     rassert(access == rwi_write);
-    //rassert(this->snapshot_version != mc_inner_buf_t::faux_version_id);
     rassert(!snapshotted);
     assert_thread();
 
@@ -662,6 +665,7 @@ mc_buf_t *mc_transaction_t::allocate() {
 
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     block_available_callback_t *callback, bool should_load) {
+    rassert(block_id != NULL_BLOCK_ID);
     rassert(is_read_mode(mode) || access != rwi_read);
     assert_thread();
 

@@ -68,6 +68,11 @@ struct cond_t {
         }
         rassert(ready);
     }
+    void reset() {
+        rassert(ready);
+        ready = false;
+        waiter = NULL;
+    }
 
 private:
     bool ready;
@@ -80,17 +85,25 @@ private:
 
 struct multicond_t {
     multicond_t() : ready(false) { }
+    ~multicond_t() {
+        // Make sure nothing was left hanging
+        rassert(waiters.empty());
+    }
 
     struct waiter_t : public intrusive_list_node_t<waiter_t> {
         virtual void on_multicond_pulsed() = 0;
+        virtual ~waiter_t() {}
     };
 
     /* pulse() and wait() act just like they do in cond_t */
     void pulse() {
         rassert(!ready);
         ready = true;
-        while (waiter_t *w = waiters.head()) {
-            waiters.remove(w);
+        /* Make a copy of 'waiters' in case of destruction */
+        intrusive_list_t<waiter_t> w2;
+        w2.append_and_clear(&waiters);
+        while (waiter_t *w = w2.head()) {
+            w2.remove(w);
             w->on_multicond_pulsed();
         }
     }
@@ -99,6 +112,21 @@ struct multicond_t {
             struct coro_waiter_t : public waiter_t {
                 coro_t *to_wake;
                 void on_multicond_pulsed() { to_wake->notify(); }
+                virtual ~coro_waiter_t() {}
+            } waiter;
+            waiter.to_wake = coro_t::self();
+            add_waiter(&waiter);
+            coro_t::wait();
+        }
+    }
+
+    /* wait_eagerly() is like wait() except that the waiter gets signalled even before
+    pulse() returns. */
+    void wait_eagerly() {
+        if (!ready) {
+            struct coro_waiter_t : public waiter_t {
+                coro_t *to_wake;
+                void on_multicond_pulsed() { to_wake->notify_now(); }
             } waiter;
             waiter.to_wake = coro_t::self();
             add_waiter(&waiter);
@@ -129,26 +157,54 @@ private:
     intrusive_list_t<waiter_t> waiters;
 };
 
+/* multicond_weak_ptr_t is a pointer to a multicond_t, but it NULLs itself when the
+multicond_t is pulsed. */
+
+struct multicond_weak_ptr_t : private multicond_t::waiter_t {
+    multicond_weak_ptr_t(multicond_t *mc = NULL) : mc(mc) { }
+    virtual ~multicond_weak_ptr_t() {}
+    void watch(multicond_t *m) {
+        rassert(!mc);
+        mc = m;
+        mc->add_waiter(this);
+    }
+    void pulse_if_non_null() {
+        if (mc) {
+            mc->pulse();   // Calls on_multicond_pulsed()
+            // It's not safe to access local variables at this point; we might have
+            // been deleted.
+        }
+    }
+private:
+    multicond_t *mc;
+    void on_multicond_pulsed() {
+        rassert(mc);
+        mc = NULL;
+    }
+};
+
 /* A threadsafe_cond_t is a thread-safe condition variable. It's like cond_t except it can be
 used with multiple coroutines on different threads. */
 
 struct threadsafe_cond_t {
     threadsafe_cond_t() : ready(false), waiter(NULL) { }
     void pulse() {
-        lock.lock();
+        spinlock_acq_t acq(&lock);
         rassert(!ready);
         ready = true;
         if (waiter) waiter->notify();
-        lock.unlock();
     }
     void wait() {
-        lock.lock();
-        if (!ready) {
-            waiter = coro_t::self();
-            lock.unlock();
+        bool local_ready;
+        {
+            spinlock_acq_t acq(&lock);
+            local_ready = ready;
+            if (!local_ready) {
+                waiter = coro_t::self();
+            }
+        }
+        if (!local_ready) {
             coro_t::wait();
-        } else {
-            lock.unlock();
         }
         rassert(ready);
     }

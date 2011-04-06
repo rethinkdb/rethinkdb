@@ -29,13 +29,11 @@ class server_t :
 {
 public:
     server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
-        : cmd_config(cmd_config), thread_pool(thread_pool)/* , toggler(this) */
+        : cmd_config(cmd_config), thread_pool(thread_pool)
     {
     }
 
     cmd_config_t *cmd_config;
-    get_store_t *get_store;
-    set_store_interface_t *set_store;
     thread_pool_t *thread_pool;
 };
 

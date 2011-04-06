@@ -42,7 +42,7 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
 
 // TODO: Get rid of these functions, put static functions on each of
 // the types, even if it's redundant, because that way it's safer.
-template <class T> struct stream_type { typedef buffed_data_t<T> type; };
+template <class T> struct stream_type { typedef scoped_malloc<T> type; };
 template <> struct stream_type<net_sarc_t> { typedef stream_pair<net_sarc_t> type; };
 template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t> type; };
 template <> struct stream_type<net_prepend_t> { typedef stream_pair<net_prepend_t> type; };
@@ -64,27 +64,27 @@ size_t objsize(const net_backfill_set_t *buf) { return sizeof(net_backfill_set_t
 size_t objsize(const net_backfill_delete_t *buf) { return sizeof(net_backfill_delete_t) + buf->key_size; }
 
 template <class T>
-void check_pass(message_callback_t *receiver, weak_buf_t buffer, size_t realoffset, size_t realsize) {
-    if (sizeof(T) <= realsize && objsize(buffer.get<T>(realoffset)) == realsize) {
-        typename stream_type<T>::type buf(buffer, realoffset, realsize);
-        receiver->send(buf);
+void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) {
+    if (sizeof(T) <= realsize && objsize(reinterpret_cast<const T *>(buf)) == realsize) {
+        typename stream_type<T>::type b(buf, buf + realsize);
+        receiver->send(b);
     } else {
-        debugf("realsize: %zu sizeof(T): %zu objsize: %zu\n", realsize, sizeof(T), objsize(buffer.get<T>(realoffset)));
+        debugf("realsize: %zu sizeof(T): %zu objsize: %zu\n", realsize, sizeof(T), objsize(reinterpret_cast<const T *>(buf)));
         throw protocol_exc_t("message wrong length for message code");
     }
 }
 
 template <class T>
-void check_first_size(message_callback_t *receiver, weak_buf_t& buffer, size_t realbegin, size_t realsize, uint32_t ident, tracker_t& streams) {
+void check_first_size(message_callback_t *receiver, const char *buf, size_t realsize, uint32_t ident, tracker_t& streams) {
     if (sizeof(T) >= realsize
-        && sizeof(T) + buffer.get<T>(realbegin)->key_size <= realsize) {
+        && sizeof(T) + reinterpret_cast<const T *>(buf)->key_size <= realsize) {
 
-        stream_pair<T> spair(buffer, realbegin, realsize, buffer.get<T>(realbegin)->value_size);
-        size_t m = realsize - sizeof(T) - buffer.get<T>(realbegin)->key_size;
+        stream_pair<T> spair(buf, buf + realsize, reinterpret_cast<const T *>(buf)->value_size);
+        size_t m = realsize - sizeof(T) - reinterpret_cast<const T *>(buf)->key_size;
 
         void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
 
-        if (!streams.add(ident, new std::pair<boost::function<void()>, std::pair<char *, size_t> >(boost::bind(fn, receiver, boost::ref(spair)), std::make_pair(spair.stream->peek() + m, buffer.get<T>(realbegin)->value_size - m)))) {
+        if (!streams.add(ident, new std::pair<boost::function<void()>, std::pair<char *, size_t> >(boost::bind(fn, receiver, boost::ref(spair)), std::make_pair(spair.stream->peek() + m, reinterpret_cast<const T *>(buf)->value_size - m)))) {
             throw protocol_exc_t("reused live ident code");
         }
 
@@ -93,14 +93,14 @@ void check_first_size(message_callback_t *receiver, weak_buf_t& buffer, size_t r
     }
 }
 
-size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t buffer, size_t offset, size_t num_read, tracker_t& streams) {
+size_t message_parser_t::handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
     if (num_read < sizeof(net_multipart_header_t)) {
         return 0;
     }
 
-    const net_header_t *hdr = buffer.get<net_header_t>(offset);
+    const net_header_t *hdr = reinterpret_cast<const net_header_t *>(buf);
     size_t msgsize = hdr->msgsize;
 
     if (msgsize < sizeof(net_multipart_header_t)) {
@@ -112,38 +112,38 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
     }
 
     if (hdr->message_multipart_aspect == SMALL) {
-        size_t realbegin = offset + sizeof(net_header_t);
+        size_t realbegin = sizeof(net_header_t);
         size_t realsize = msgsize - sizeof(net_header_t);
 
         switch (hdr->msgcode) {
-        case BACKFILL: check_pass<net_backfill_t>(receiver, buffer, realbegin, realsize); break;
-        case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, buffer, realbegin, realsize); break;
-        case ANNOUNCE: check_pass<net_announce_t>(receiver, buffer, realbegin, realsize); break;
-        case NOP: check_pass<net_nop_t>(receiver, buffer, realbegin, realsize); break;
-        case ACK: check_pass<net_ack_t>(receiver, buffer, realbegin, realsize); break;
-        case GET_CAS: check_pass<net_get_cas_t>(receiver, buffer, realbegin, realsize); break;
-        case SARC: check_pass<net_sarc_t>(receiver, buffer, realbegin, realsize); break;
-        case INCR: check_pass<net_incr_t>(receiver, buffer, realbegin, realsize); break;
-        case DECR: check_pass<net_decr_t>(receiver, buffer, realbegin, realsize); break;
-        case APPEND: check_pass<net_append_t>(receiver, buffer, realbegin, realsize); break;
-        case PREPEND: check_pass<net_prepend_t>(receiver, buffer, realbegin, realsize); break;
-        case DELETE: check_pass<net_delete_t>(receiver, buffer, realbegin, realsize); break;
-        case BACKFILL_SET: check_pass<net_backfill_set_t>(receiver, buffer, realbegin, realsize); break;
-        case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver, buffer, realbegin, realsize); break;
+        case BACKFILL: check_pass<net_backfill_t>(receiver, buf + realbegin, realsize); break;
+        case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, buf + realbegin, realsize); break;
+        case ANNOUNCE: check_pass<net_announce_t>(receiver, buf + realbegin, realsize); break;
+        case NOP: check_pass<net_nop_t>(receiver, buf + realbegin, realsize); break;
+        case ACK: check_pass<net_ack_t>(receiver, buf + realbegin, realsize); break;
+        case GET_CAS: check_pass<net_get_cas_t>(receiver, buf + realbegin, realsize); break;
+        case SARC: check_pass<net_sarc_t>(receiver, buf + realbegin, realsize); break;
+        case INCR: check_pass<net_incr_t>(receiver, buf + realbegin, realsize); break;
+        case DECR: check_pass<net_decr_t>(receiver, buf + realbegin, realsize); break;
+        case APPEND: check_pass<net_append_t>(receiver, buf + realbegin, realsize); break;
+        case PREPEND: check_pass<net_prepend_t>(receiver, buf + realbegin, realsize); break;
+        case DELETE: check_pass<net_delete_t>(receiver, buf + realbegin, realsize); break;
+        case BACKFILL_SET: check_pass<net_backfill_set_t>(receiver, buf + realbegin, realsize); break;
+        case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver, buf + realbegin, realsize); break;
         default: throw protocol_exc_t("invalid message code");
         }
     } else {
-        const net_multipart_header_t *multipart_hdr = buffer.get<net_multipart_header_t>(offset);
+        const net_multipart_header_t *multipart_hdr = reinterpret_cast<const net_multipart_header_t *>(buf);
         uint32_t ident = multipart_hdr->ident;
-        size_t realbegin = offset + sizeof(multipart_hdr);
+        size_t realbegin = sizeof(multipart_hdr);
         size_t realsize = msgsize - sizeof(multipart_hdr);
 
         if (hdr->message_multipart_aspect == FIRST) {
             switch (hdr->msgcode) {
-            case SARC: check_first_size<net_sarc_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
-            case APPEND: check_first_size<net_append_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
-            case PREPEND: check_first_size<net_prepend_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
-            case BACKFILL_SET: check_first_size<net_backfill_set_t>(receiver, buffer, realbegin, realsize, ident, streams); break;
+            case SARC: check_first_size<net_sarc_t>(receiver, buf + realbegin, realsize, ident, streams); break;
+            case APPEND: check_first_size<net_append_t>(receiver, buf + realbegin, realsize, ident, streams); break;
+            case PREPEND: check_first_size<net_prepend_t>(receiver, buf + realbegin, realsize, ident, streams); break;
+            case BACKFILL_SET: check_first_size<net_backfill_set_t>(receiver, buf + realbegin, realsize, ident, streams); break;
             default: throw protocol_exc_t("invalid message code for multipart message");
             }
         } else if (hdr->message_multipart_aspect == MIDDLE || hdr->message_multipart_aspect == LAST) {
@@ -156,7 +156,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, weak_buf_t
             if (realsize > pair->second.second) {
                 throw protocol_exc_t("buffer overflows value size");
             }
-            memcpy(pair->second.first, buffer.get<char>(realbegin), realsize);
+            memcpy(pair->second.first, buf + realbegin, realsize);
             pair->second.first += realsize;
             pair->second.second -= realsize;
 
@@ -184,97 +184,56 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
     // discontiguous and we wouldn't really care).  Worst case
     // scenario: we copy everything over the network one extra time.
     const size_t shbuf_size = 0x10000;
-    shared_buf_t shared_buf(shbuf_size);
+    scoped_malloc<char> buffer(shbuf_size);
     size_t offset = 0;
     size_t num_read = 0;
 
-    is_live = true;
-
-    struct mark_unlive {
-        bool *p;
-        ~mark_unlive() { *p = false; }
-    } marker;
-
-    marker.p = &is_live;
-
-    while (is_live) {
+    // We break out of this loop when we get a tcp_conn_t::read_closed_exc_t.
+    while (true) {
         // Try handling the message.
-        size_t handled = handle_message(receiver, weak_buf_t(shared_buf), offset, num_read, streams);
+        size_t handled = handle_message(receiver, buffer.get() + offset, num_read, streams);
         if (handled > 0) {
             rassert(handled <= num_read);
             offset += handled;
             num_read -= handled;
         } else {
             if (offset + num_read == shbuf_size) {
-                shared_buf_t new_shared_buf(shbuf_size);
-                memcpy(new_shared_buf.get(), shared_buf.get() + offset, num_read);
+                scoped_malloc<char> new_buffer(shbuf_size);
+                memcpy(new_buffer.get(), buffer.get() + offset, num_read);
                 offset = 0;
-                shared_buf.swap(new_shared_buf);
+                buffer.swap(new_buffer);
             }
 
-            num_read += conn->read_some(shared_buf.get() + offset + num_read, shbuf_size - (offset + num_read));
+            num_read += conn->read_some(buffer.get() + offset + num_read, shbuf_size - (offset + num_read));
         }
     }
-
-    /* we only get out of this loop when we've been shutdown, if the connection
-     * closes then we catch an exception and never reach here */
-    _cb->on_parser_shutdown();
-
-    // marker destructor sets is_live to false
 }
 
 
 void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+
     try {
         do_parse_hello_message(conn, receiver);
 
         tracker_t streams;
         do_parse_normal_messages(conn, receiver, streams);
+
     } catch (tcp_conn_t::read_closed_exc_t& e) {
-        if (shutdown_asked_for) {
-            _cb->on_parser_shutdown();
-        }
-        else {
-            receiver->conn_closed();
-        }
+        // Do nothing; this was to be expected.
 #ifndef NDEBUG
     } catch (protocol_exc_t& e) {
         debugf("catch 'n throwing protocol_exc_t: %s\n", e.what());
         throw;
 #endif
     }
+
+    receiver->conn_closed();
 }
 
 void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
-    rassert(!is_live);
 
     coro_t::spawn(boost::bind(&message_parser_t::do_parse_messages, this, conn, receiver));
 }
-
-void message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
-    if (!is_live) {
-        cb->on_parser_shutdown();
-    } else {
-        shutdown_asked_for = true;
-        _cb = cb;
-
-        is_live = false;
-    }
-}
-
-
-void message_parser_t::co_shutdown() {
-    struct : public message_parser_shutdown_callback_t {
-        cond_t cond;
-        void on_parser_shutdown() {
-            cond.pulse();
-        }
-    } cb;
-
-    shutdown(&cb);
-    cb.cond.wait();
-}
-
 
 // REPLI_STREAM_T
 
@@ -289,8 +248,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         hdr.msgsize = sizeof(net_header_t) + obsize;
 
         mutex_acquisition_t ak(&outgoing_mutex_);
-        conn_->write(&hdr, sizeof(net_header_t));
-        conn_->write(msg, obsize);
+
+        try_write(&hdr, sizeof(net_header_t));
+        try_write(msg, obsize);
     } else {
         net_multipart_header_t hdr;
         hdr.message_multipart_aspect = FIRST;
@@ -303,8 +263,8 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
         {
             mutex_acquisition_t ak(&outgoing_mutex_);
-            conn_->write(&hdr, sizeof(net_multipart_header_t));
-            conn_->write(msg, offset);
+            try_write(&hdr, sizeof(net_multipart_header_t));
+            try_write(msg, offset);
         }
 
         char *buf = reinterpret_cast<char *>(msg);
@@ -312,9 +272,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         while (offset + 0xFFFF < obsize) {
             mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = MIDDLE;
-            conn_->write(&hdr, sizeof(net_multipart_header_t));
+            try_write(&hdr, sizeof(net_multipart_header_t));
             // TODO change protocol so that 0 means 0x10000 mmkay?
-            conn_->write(buf + offset, 0xFFFF);
+            try_write(buf + offset, 0xFFFF);
             offset += 0xFFFF;
         }
 
@@ -322,14 +282,14 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
             rassert(obsize - offset <= 0xFFFF);
             mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = LAST;
-            conn_->write(&hdr, sizeof(net_multipart_header_t));
-            conn_->write(buf + offset, obsize - offset);
+            try_write(&hdr, sizeof(net_multipart_header_t));
+            try_write(buf + offset, obsize - offset);
         }
     }
 }
 
 template <class net_struct_type>
-void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, data_provider_t *data) {
+void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *key, unique_ptr_t<data_provider_t> data) {
     rassert(msg->value_size == data->get_size());
 
     size_t bufsize = objsize(msg);
@@ -360,11 +320,11 @@ void repli_stream_t::send(net_get_cas_t *msg) {
     sendobj(GET_CAS, msg);
 }
 
-void repli_stream_t::send(net_sarc_t *msg, const char *key, data_provider_t *value) {
+void repli_stream_t::send(net_sarc_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
     sendobj(SARC, msg, key, value);
 }
 
-void repli_stream_t::send(net_backfill_set_t *msg, const char *key, data_provider_t *value) {
+void repli_stream_t::send(net_backfill_set_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
     sendobj(BACKFILL_SET, msg, key, value);
 }
 
@@ -376,11 +336,11 @@ void repli_stream_t::send(net_decr_t *msg) {
     sendobj(DECR, msg);
 }
 
-void repli_stream_t::send(net_append_t *msg, const char *key, data_provider_t *value) {
+void repli_stream_t::send(net_append_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
     sendobj(APPEND, msg, key, value);
 }
 
-void repli_stream_t::send(net_prepend_t *msg, const char *key, data_provider_t *value) {
+void repli_stream_t::send(net_prepend_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
     sendobj(PREPEND, msg, key, value);
 }
 
@@ -414,8 +374,17 @@ void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_ac
     char informal_name[32] = "master";
     memcpy(msg.informal_name, informal_name, 32);
 
-    conn_->write(&msg, sizeof(msg));
+    try_write(&msg, sizeof(msg));
 }
 
+void repli_stream_t::try_write(const void *data, size_t size) {
+    try {
+        conn_->write(data, size);
+    } catch (tcp_conn_t::write_closed_exc_t &e) {
+        /* Master died; we happened to be mid-write at the time. A tcp_conn_t::read_closed_exc_t
+        will be thrown somewhere and that will cause us to shut down. So we can ignore this
+        exception. */
+    }
+}
 
 }  // namespace replication

@@ -134,6 +134,11 @@ public:
         cas_t *ptr = metadata_force_memcached_casptr(&metadata_flags, contents, contents + full_size());
         *ptr = new_cas;
     }
+    void add_cas() {
+        /* Create a cas, but its initial value is undefined. TODO: This is implemented
+        in a kind of hacky way. */
+        set_cas(0xCA5ADDED);
+    }
 
     void print() const {
         fprintf(stderr, "%*.*s", size, size, value());

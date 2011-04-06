@@ -182,7 +182,7 @@ perfmon_sampler_t pm_delay("throttling_delay", secs_to_ticks(1.0));
 unsigned int writeback_t::throttle_delay_ms() {
     const int max_delay_time = 500;
     const size_t expected_dirty_blocks = num_dirty_blocks() + outstanding_disk_writes + expected_active_change_count + expected_delayed_change_count;
-    const size_t start_throttling_threshold = (double)max_dirty_blocks * START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION;
+    const size_t start_throttling_threshold = (size_t) ((double)max_dirty_blocks * START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION);
 
     if (expected_dirty_blocks <= start_throttling_threshold) {
         return 0;
@@ -217,10 +217,6 @@ void writeback_t::possibly_unthrottle_transactions() {
         if (!fsm) return;
         throttled_transactions_list.remove(fsm);
         fsm->green_light();
-
-        /* green_light() should never have an immediate effect; the most it can do is push the
-        transaction onto the event queue. */
-        rassert(!too_many_dirty_blocks());
     }
 }
 

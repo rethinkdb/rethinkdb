@@ -3,8 +3,8 @@
 
 #include <libaio.h>
 #include <vector>
-#include <boost/scoped_ptr.hpp>
 #include "utils2.hpp"
+#include <boost/scoped_ptr.hpp>
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
 
