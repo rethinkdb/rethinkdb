@@ -17,7 +17,7 @@ struct large_buf_available_callback_t :
     public intrusive_list_node_t<large_buf_available_callback_t> {
     virtual void on_large_buf_available(large_buf_t *large_buf) = 0;
 protected:
-    ~large_buf_available_callback_t() {}
+    virtual ~large_buf_available_callback_t() {}
 };
 
 // struct large_buf_ref is defined in buffer_cache/types.hpp.

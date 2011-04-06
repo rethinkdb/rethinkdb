@@ -92,6 +92,7 @@ struct multicond_t {
 
     struct waiter_t : public intrusive_list_node_t<waiter_t> {
         virtual void on_multicond_pulsed() = 0;
+        virtual ~waiter_t() {}
     };
 
     /* pulse() and wait() act just like they do in cond_t */
@@ -111,6 +112,7 @@ struct multicond_t {
             struct coro_waiter_t : public waiter_t {
                 coro_t *to_wake;
                 void on_multicond_pulsed() { to_wake->notify(); }
+                virtual ~coro_waiter_t() {}
             } waiter;
             waiter.to_wake = coro_t::self();
             add_waiter(&waiter);
@@ -164,6 +166,7 @@ multicond_t is pulsed. */
 
 struct multicond_weak_ptr_t : private multicond_t::waiter_t {
     multicond_weak_ptr_t(multicond_t *mc = NULL) : mc(mc) { }
+    virtual ~multicond_weak_ptr_t() {}
     void watch(multicond_t *m) {
         rassert(!mc);
         mc = m;

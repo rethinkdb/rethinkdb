@@ -57,6 +57,7 @@ public:
     virtual void send(scoped_malloc<net_nop_t>& message) = 0;
     virtual void send(scoped_malloc<net_ack_t>& message) = 0;
     virtual void conn_closed() = 0;
+    virtual ~message_callback_t() {}
 };
 
 typedef thick_list<std::pair<boost::function<void ()>, std::pair<char *, size_t> > *, uint32_t> tracker_t;

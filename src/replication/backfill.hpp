@@ -22,6 +22,9 @@ struct backfill_and_realtime_streaming_callback_t {
         unique_ptr_t<data_provider_t> data, castime_t castime) = 0;
     virtual void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp) = 0;
     virtual void realtime_time_barrier(repli_timestamp_t timestamp) = 0;
+
+protected:
+    virtual ~backfill_and_realtime_streaming_callback_t() { }
 };
 
 /* Call backfill_and_realtime_stream() to stream data from the given key-value store to the

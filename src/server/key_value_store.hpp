@@ -112,7 +112,7 @@ private:
             : control_t("hash", std::string("")), btkvs(btkvs)
 #endif
         {}
-        ~hash_control_t() {};
+        virtual ~hash_control_t() {};
 
     private:
         btree_key_value_store_t *btkvs;
