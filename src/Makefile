@@ -415,10 +415,12 @@ deb: clean
 	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 deb
 
 # RPM for redhat and centos
+rpm: RPM_SPEC_INPUT?=../packaging/rpm.spec
 rpm: clean
 	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 RPM_SPEC_INPUT?=../packaging/rpm.spec rpm
 
 # RPM for suse 10
+rpm-suse10: RPM_SPEC_INPUT?=../packaging/rpm-suse10.spec
 rpm-suse10: clean
 	@$(MAKE) DEBUG=0 SYMBOLS=1 RPM_SPEC_INPUT=../packaging/rpm-suse10.spec rpm
 endif

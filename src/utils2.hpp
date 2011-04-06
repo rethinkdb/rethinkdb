@@ -19,9 +19,27 @@ long get_total_ram();
 // for safety  TODO: move this to a different file
 struct repli_timestamp {
     uint32_t time;
-
+    bool operator==(repli_timestamp t) {
+        return time == t.time;
+    }
+    bool operator!=(repli_timestamp t) {
+        return time != t.time;
+    }
+    bool operator<(repli_timestamp t) {
+        return time < t.time;
+    }
+    bool operator>(repli_timestamp t) {
+        return time > t.time;
+    }
+    bool operator<=(repli_timestamp t) {
+        return time <= t.time;
+    }
+    bool operator>=(repli_timestamp t) {
+        return time >= t.time;
+    }
     static const repli_timestamp invalid;
 };
+typedef repli_timestamp repli_timestamp_t;   // TODO switch name over completely to "_t" version
 
 struct initialized_repli_timestamp {
     uint32_t time;

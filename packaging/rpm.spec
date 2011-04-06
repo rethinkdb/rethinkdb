@@ -30,8 +30,8 @@ URL:       http://rethinkdb.com/
 Group:     Productivity/Databases/Servers
 Provides:  memcached
 Requires: ifelse(LEGACY_LINUX, 1,
-  `glibc >= 2.5, libaio1 >= 0.3.106',
-  `glibc >= 2.10.1, libaio1 >= 0.3.106')
+  `glibc >= 2.5, libaio >= 0.3.106',
+  `glibc >= 2.10.1, libaio >= 0.3.106')
 Conflicts: ifelse(TRIAL, 0, `TRIAL_PACKAGE_NAME', `VANILLA_PACKAGE_NAME')
 
 %description

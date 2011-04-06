@@ -13,8 +13,7 @@
 #include "store.hpp"
 
 namespace replication {
-class master_t;
-class do_backfill_cb;
+    class backfill_and_streaming_manager_t;
 }  // namespace replication
 
 
@@ -36,8 +35,7 @@ public:
                        btree_key_value_store_static_config_t *static_config);
 
     // Blocks
-    btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-        mutation_dispatcher_t *dispatcher);
+    btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config);
 
     // Blocks
     ~btree_key_value_store_t();
@@ -66,11 +64,10 @@ public:
 
     void time_barrier(repli_timestamp lower_bound_on_future_timestamps);
 
-    void spawn_backfill(repli_timestamp since_when, replication::do_backfill_cb *callback);
-
     static uint32_t hash(const store_key_t &key);
 
 private:
+    friend class replication::backfill_and_streaming_manager_t;
 
     int n_files;
     btree_config_t btree_static_config;
@@ -102,8 +99,6 @@ private:
     get_store_t *slice_for_key_get(const store_key_t &key);
 
     void do_time_barrier_on_slice(repli_timestamp timestamp, int i);
-
-
 
     /* slice debug control_t which allows us to see slice and hash for a key */
     class hash_control_t :
