@@ -217,10 +217,6 @@ void writeback_t::possibly_unthrottle_transactions() {
         if (!fsm) return;
         throttled_transactions_list.remove(fsm);
         fsm->green_light();
-
-        /* green_light() should never have an immediate effect; the most it can do is push the
-        transaction onto the event queue. */
-        rassert(!too_many_dirty_blocks());
     }
 }
 
