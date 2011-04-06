@@ -132,8 +132,6 @@ struct btree_key_value_store_static_config_t {
     log_serializer_static_config_t serializer;
     btree_config_t btree;
     mirrored_cache_static_config_t cache;
-    // Explicit padding for alignment.
-    int32_t padding;
 };
 
 /* Configuration for replication */
