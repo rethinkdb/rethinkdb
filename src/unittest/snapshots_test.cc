@@ -382,8 +382,7 @@ private:
             serializer_multiplexer_t multiplexer(serializers);
 
             btree_slice_t::create(multiplexer.proxies[0], &config.store_static_config.cache);
-            boost::scoped_ptr<mutation_dispatcher_t> dispatcher(new null_dispatcher_t());
-            btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache, dispatcher.get());
+            btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache);
 
             cache_t *cache = slice.cache();
 

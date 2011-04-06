@@ -11,7 +11,7 @@ class initialize_superblock_fsm_t;
 struct btree_replicant_t;
 class backfill_callback_t;
 
-class mutation_dispatcher_t {
+class mutation_dispatcher_t : public intrusive_list_node_t<mutation_dispatcher_t> {
 public:
     mutation_dispatcher_t() { }
     // Dispatches a change, and returns a modified mutation_t.
@@ -19,14 +19,6 @@ public:
     virtual ~mutation_dispatcher_t() { }
 private:
     DISABLE_COPYING(mutation_dispatcher_t);
-};
-
-class null_dispatcher_t : public mutation_dispatcher_t {
-public:
-    null_dispatcher_t() { }
-    mutation_t dispatch_change(const mutation_t& m, UNUSED castime_t castime) { return m; }
-private:
-    DISABLE_COPYING(null_dispatcher_t);
 };
 
 
@@ -46,8 +38,7 @@ public:
 
     // Blocks
     btree_slice_t(translator_serializer_t *serializer,
-                  mirrored_cache_config_t *dynamic_config,
-                  mutation_dispatcher_t *dispatcher);
+                  mirrored_cache_config_t *dynamic_config);
 
     // Blocks
     ~btree_slice_t();
@@ -66,12 +57,15 @@ public:
     /* backfill interface, so to speak */
     void backfill(repli_timestamp since_when, backfill_callback_t *callback);
 
-    // TODO: Why does this return by reference?
+    /* real-time monitoring interface (used for replication) */
+    void add_dispatcher(mutation_dispatcher_t *mdisp);
+    void remove_dispatcher(mutation_dispatcher_t *mdisp);
+
     cache_t *cache() { return &cache_; }
 
 private:
     cache_t cache_;
-    mutation_dispatcher_t *const dispatcher_;
+    intrusive_list_t<mutation_dispatcher_t> dispatchers_;
 
     DISABLE_COPYING(btree_slice_t);
 };

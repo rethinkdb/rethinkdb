@@ -83,19 +83,17 @@ void create_existing_btree(
         btree_slice_t **btrees,
         timestamping_set_store_interface_t **timestampers,
         mirrored_cache_config_t *dynamic_config,
-        mutation_dispatcher_t *dispatcher,
         int i) {
 
     // TODO try to align slices with serializers so that when possible, a slice is on the
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    btrees[i] = new btree_slice_t(pseudoserializers[i], dynamic_config, dispatcher);
+    btrees[i] = new btree_slice_t(pseudoserializers[i], dynamic_config);
     timestampers[i] = new timestamping_set_store_interface_t(btrees[i]);
 }
 
-btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                                                 mutation_dispatcher_t *dispatcher)
+btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config)
     : hash_control(this) {
 
     /* Start serializers */
@@ -123,7 +121,7 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     pmap(btree_static_config.n_slices,
          boost::bind(&create_existing_btree,
                      multiplexer->proxies.data(), btrees, timestampers,
-                     &per_slice_config, dispatcher, _1));
+                     &per_slice_config, _1));
 }
 
 void destroy_btree(
@@ -289,10 +287,3 @@ void btree_key_value_store_t::time_barrier(repli_timestamp lower_bound_on_future
     pmap(btree_static_config.n_slices, boost::bind(&btree_key_value_store_t::do_time_barrier_on_slice, this, lower_bound_on_future_timestamps, _1));
 }
 
-
-void btree_key_value_store_t::spawn_backfill(repli_timestamp since_when, replication::do_backfill_cb *callback) {
-    for (int i = 0; i < btree_static_config.n_slices; ++i) {
-        callback->add_dual_backfiller_hold();  // Yuck.
-        coro_t::spawn_on_thread(btrees[i]->home_thread, boost::bind(&btree_slice_t::backfill, btrees[i], since_when, callback));
-    }
-}
