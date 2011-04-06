@@ -97,6 +97,7 @@ struct get_store_t {
     virtual get_result_t get(const store_key_t &key) = 0;
     virtual rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key,
         rget_bound_mode_t right_mode, const store_key_t &right_key) = 0;
+    virtual ~get_store_t() {}
 };
 
 // A castime_t contains proposed cas information (if it's needed) and

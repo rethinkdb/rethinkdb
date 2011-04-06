@@ -7,7 +7,7 @@
 class control_t {
 public:
     control_t(const std::string& key, const std::string& help_string);
-    ~control_t();
+    virtual ~control_t();
 
     virtual std::string call(int argc, char **argv) = 0;
 

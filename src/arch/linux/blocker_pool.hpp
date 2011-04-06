@@ -18,6 +18,8 @@ struct blocker_pool_t : public linux_event_callback_t {
 
         /* done() will be called within the main thread pool once run() is done. */
         virtual void done() = 0;
+
+        virtual ~job_t() {}
     };
     void do_job(job_t *job);
 

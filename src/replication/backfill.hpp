@@ -19,6 +19,7 @@ class do_backfill_cb : public backfill_callback_t {
 public:
     // We start count at 1, and correspondingly decrement it in wait().
     do_backfill_cb(int _home_thread, repli_stream_t **_stream) : count(1), home_thread(_home_thread), stream(_stream), minimum_timestamp(repli_timestamp::invalid /* this is greater than all other timestamps. */) { }
+    virtual ~do_backfill_cb() {}
 
     void add_dual_backfiller_hold() {
         rassert(get_thread_id() == home_thread);

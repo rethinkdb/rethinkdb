@@ -83,7 +83,7 @@ public:
     virtual void deletion_key(const store_key_t *key) = 0;
     virtual void done_deletion_keys() = 0;
 protected:
-    ~deletion_key_stream_receiver_t() { }
+    virtual ~deletion_key_stream_receiver_t() { }
 };
 
 // Acquires a delete queue, appends a (timestamp, key) pair to the

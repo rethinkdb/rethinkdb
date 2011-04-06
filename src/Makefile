@@ -180,6 +180,11 @@ CXXFLAGS+=-DLEGACY_LINUX -DNO_EPOLL -Wno-format
 BUILD_DIR:=$(BUILD_DIR)-legacy
 endif
 
+ifeq ($(LEGACY_GCC),1)
+CXXFLAGS+=-Wno-switch-default -Wno-switch-enum
+BUILD_DIR:=$(BUILD_DIR)legacy-gcc
+endif
+
 ifeq ($(NO_EVENTFD),1)
 CXXFLAGS+=-DNO_EVENTFD
 BUILD_DIR:=$(BUILD_DIR)-no_eventfd
