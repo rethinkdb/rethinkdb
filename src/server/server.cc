@@ -191,15 +191,13 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                 /* Start key-value store */
                 logINF("Loading database...\n");
-                replication::master_dispatcher_t master_dispatcher(NULL);
-                btree_key_value_store_t store(&cmd_config->store_dynamic_config, &master_dispatcher);
+                btree_key_value_store_t store(&cmd_config->store_dynamic_config);
 
                 {
                     /* Are we a replication master? */
                     boost::scoped_ptr<replication::master_t> master;
                     if (cmd_config->replication_master_active) {
-                        master.reset(new replication::master_t(thread_pool, cmd_config->replication_master_listen_port));
-                        master_dispatcher.set_master(master.get());
+                        master.reset(new replication::master_t(cmd_config->replication_master_listen_port));
                         master->register_key_value_store(&store);
                     }
 

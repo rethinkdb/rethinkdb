@@ -134,6 +134,10 @@ struct multicond_t {
         }
     }
 
+    bool is_pulsed() {
+        return ready;
+    }
+
     /* One major use case for a multicond_t is to wait for one of several different
     events, where all but the event that actually happened need to be cancelled. For example,
     you might wait for some event, but also have a timeout. If the event happens before the
