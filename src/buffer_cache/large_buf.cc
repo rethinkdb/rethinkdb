@@ -271,24 +271,26 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     }
 };
 
-void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, void *buf, int64_t n) {
+void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, const void *buf, int64_t n) {
     thread_saver_t saver;
     rassert(root_ref->size - amount_to_dequeue + n > 0);
     boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
 
+    int64_t original_size = root_ref->size;
+
     // 1. Enqueue.
-    if (root_ref->size == 0) {
+    if (original_size == 0) {
         lb->allocate(n);
         rassert(lb->state == loaded);
     } else {
-        co_acquire_large_buf_slice(saver, lb.get(), root_ref->size - 1, 1);
+        co_acquire_large_buf_slice(saver, lb.get(), original_size - 1, 1);
         rassert(lb->state == loaded);
 
         int refsize_adjustment;
         lb->append(n, &refsize_adjustment);
     }
 
-    fill_at(root_ref->size, buf, n);
+    lb->fill_at(original_size, buf, n);
 
     // 2. Dequeue.
     if (amount_to_dequeue > 0) {

@@ -118,7 +118,8 @@ public:
     void acquire_for_delete(large_buf_available_callback_t *callback);
     void acquire_for_unprepend(int64_t extra_size, large_buf_available_callback_t *callback);
 
-    void co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, void *buf, int64_t n);
+    // HEY: Just put this in co_functions.
+    static void co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, const void *buf, int64_t n);
 
 
 

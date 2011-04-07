@@ -116,25 +116,11 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
     // Update the keys list.
 
     {
-        boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txor, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size())), rwi_write));
+        lbref_limit_t reflimit = lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size()));
 
-        if (keys_ref->size == 0) {
-            keys_largebuf->allocate(1 + key->size);
-            keys_largebuf->fill_at(0, key, 1 + key->size);
-        } else {
-            // TODO: acquire rhs, or lhs+rhs, something appropriate.  But see part 3. below.
-            co_acquire_large_buf(saver, keys_largebuf.get());
-
-            int refsize_adjustment_dontcare;
-            keys_largebuf->append(1 + key->size, &refsize_adjustment_dontcare);
-            keys_largebuf->fill_at(keys_ref->size - (1 + key->size), key, 1 + key->size);
-
-            if (will_actually_dequeue) {
-                int64_t amount_to_unprepend = second_tao.offset - *primal_offset;
-                keys_largebuf->unprepend(amount_to_unprepend, &refsize_adjustment_dontcare);
-                *primal_offset += amount_to_unprepend;
-            }
-        }
+        int64_t amount_to_unprepend = will_actually_dequeue ? second_tao.offset - *primal_offset : 0;
+        large_buf_t::co_enqueue(txor, keys_ref, reflimit, amount_to_unprepend, key, 1 + key->size);
+        *primal_offset += amount_to_unprepend;
     }
 
 }
