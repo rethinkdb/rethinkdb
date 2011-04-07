@@ -1,5 +1,6 @@
 #include "replication/delete_queue.hpp"
 
+#include "btree/node.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/co_functions.hpp"
 #include "containers/scoped_malloc.hpp"
@@ -212,7 +213,7 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
             char *p = buf.get();
             char *e = p + n;
             while (p < e) {
-                store_key_t *k = reinterpret_cast<store_key_t *>(p);
+                btree_key_t *k = reinterpret_cast<btree_key_t *>(p);
                 rassert(k->size + 1 <= e - p);
 
                 recipient->deletion_key(k);

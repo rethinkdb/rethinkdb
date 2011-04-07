@@ -60,6 +60,7 @@ the work across cores.
 
 */
 
+struct btree_key_t;
 struct store_key_t;
 
 namespace replication {
@@ -89,7 +90,7 @@ void initialize_empty_delete_queue(delete_queue_block_t *dqb, block_size_t block
 // sequence of buffers contains a bunch of concatenated btree keys.
 class deletion_key_stream_receiver_t {
 public:
-    virtual void deletion_key(const store_key_t *key) = 0;
+    virtual void deletion_key(const btree_key_t *key) = 0;
     virtual void done_deletion_keys() = 0;
 protected:
     virtual ~deletion_key_stream_receiver_t() { }
