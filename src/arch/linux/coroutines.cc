@@ -216,7 +216,7 @@ coro_context_t::~coro_context_t() {
 coro_t::coro_t(const boost::function<void()>& deed, int thread) :
     deed_(deed),
     current_thread_(thread),
-    original_free_contexts_thread_(thread),
+    original_free_contexts_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
     waiting_(true)
 {

@@ -4,8 +4,6 @@
 
 namespace replication {
 
-perfmon_counter_t so_called_realtime_coro_counter("so_called_realtime_coro");
-
 struct backfill_and_streaming_manager_t :
     public backfill_callback_t,
     public home_thread_mixin_t
@@ -71,38 +69,28 @@ struct backfill_and_streaming_manager_t :
     };
 
     void realtime_get_cas(const store_key_t& key, castime_t castime) {
-        so_called_realtime_coro_counter++;
         note_timestamp(castime.timestamp);
         handler_->realtime_get_cas(key, castime);
-        so_called_realtime_coro_counter--;
     }
     void realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data,
             mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy,
             replace_policy_t replace_policy, cas_t old_cas) {
-        so_called_realtime_coro_counter++;
         note_timestamp(castime.timestamp);
         handler_->realtime_sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
-        so_called_realtime_coro_counter--;
     }
     void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
             castime_t castime) {
-        so_called_realtime_coro_counter++;
         note_timestamp(castime.timestamp);
         handler_->realtime_incr_decr(kind, key, amount, castime);
-        so_called_realtime_coro_counter--;
     }
     void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
             unique_ptr_t<data_provider_t> data, castime_t castime) {
-        so_called_realtime_coro_counter++;
         note_timestamp(castime.timestamp);
         handler_->realtime_append_prepend(kind, key, data, castime);
-        so_called_realtime_coro_counter--;
     }
     void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp) {
-        so_called_realtime_coro_counter++;
         note_timestamp(timestamp);
         handler_->realtime_delete_key(key, timestamp);
-        so_called_realtime_coro_counter--;
     }
 
     /* As we receive real-time operations, we need to determine when we have received the

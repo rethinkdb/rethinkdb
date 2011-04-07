@@ -41,8 +41,6 @@ size_t large_value_data_provider_t::get_size() const {
     return lb_ref.ptr()->size;
 }
 
-perfmon_counter_t acquire_in_background_counter("acquire_in_background");
-
 void large_value_data_provider_t::acquire_in_background(threadsafe_cond_t *acquisition_cond) {
     acquire_in_background_counter++;
     {
