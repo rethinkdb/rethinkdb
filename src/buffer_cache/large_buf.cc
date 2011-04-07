@@ -294,6 +294,7 @@ void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_
 
     // 2. Dequeue.
     if (amount_to_dequeue > 0) {
+        // TODO: We could do this operation concurrently with co_acquire_large_buf_slice.
         co_acquire_large_buf_for_unprepend(saver, lb.get(), amount_to_dequeue);
 
         int refsize_adjustment;

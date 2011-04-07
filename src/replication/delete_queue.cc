@@ -83,6 +83,7 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             rassert(!will_want_to_dequeue);
         } else {
 
+            // TODO: We don't want to acquire the entire timestamp buf... Or do we?
             co_acquire_large_buf(saver, t_o_largebuf.get());
 
             delete_queue::t_and_o last_tao;
@@ -125,6 +126,7 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
 
 }
 
+// TODO: end_timestamp?  What is this?
 void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_stream_receiver_t *recipient) {
     thread_saver_t saver;
 
@@ -183,10 +185,10 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
         rassert(begin_offset <= end_offset);
 
         if (begin_offset < end_offset) {
-            boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txor, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size())), rwi_read));
+            boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txor, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size())), rwi_read_outdated_ok));
 
             // TODO: acquire subinterval.
-            co_acquire_large_buf(saver, keys_largebuf.get());
+            co_acquire_large_buf_slice(saver, keys_largebuf.get(), begin_offset, end_offset);
 
             int64_t n = end_offset - begin_offset;
 
