@@ -1,61 +1,43 @@
 #include "unittest/gtest.hpp"
 
 #include <cstdlib>
-#include <string>
-#include <functional>
-
-#include <boost/bind.hpp>
+//#include <functional>
 
 #include "errors.hpp"
-#include "server/cmd_args.hpp"
-#include "serializer/log/log_serializer.hpp"
-#include "serializer/translator.hpp"
-#include "btree/slice.hpp"
+#include "unittest/server_test_helper.hpp"
 #include "buffer_cache/transactor.hpp"
 #include "buffer_cache/co_functions.hpp"
-#include "concurrency/count_down_latch.hpp"
 
 namespace unittest {
-
-class temp_file_t {
-    char * filename;
-public:
-    temp_file_t(const char * tmpl) {
-        size_t len = strlen(tmpl);
-        filename = new char[len+1];
-        strncpy(filename, tmpl, len);
-        int fd = mkstemp(filename);
-        guarantee_err(fd != -1, "Couldn't create a temporary file");
-        close(fd);
-    }
-    operator const char *() {
-        return filename;
-    }
-    ~temp_file_t() {
-        unlink(filename);
-        delete [] filename;
-    }
-};
 
 static const int init_value = 0x12345678;
 static const int changed_value = 0x87654321;
 
-struct tester_t : public thread_message_t {
-    thread_pool_t thread_pool;
-
-    tester_t() : thread_pool(1) { }
-
-    void run() {
-        thread_pool.run(this);
+struct tester_t : public server_test_helper_t {
+protected:
+    void run_tests(thread_saver_t& saver, cache_t *cache) {
+        // It's nice to see the progress of these tests, so we use log_call
+        log_call(test_snapshot_acq_blocks_on_unfinished_create, saver, cache);
+        log_call(test_snapshot_acq_blocks_on_older_write_txns, saver, cache);
+        log_call(test_snapshot_sees_changes_started_before_its_first_block_acq, saver, cache);
+        log_call(test_snapshot_doesnt_see_later_changes_and_doesnt_block_them, saver, cache);
+        log_call(test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later, saver, cache);
+        log_call(test_snapshot_blocks_on_txns_that_acq_first_block_earlier, saver, cache);
+        log_call(test_issue_194, saver, cache);
+        log_call(test_cow_snapshots, saver, cache);
+        log_call(test_double_cow_acq_release, saver, cache);
+        log_call(test_cow_delete, saver, cache);
     }
 
 private:
     static buf_t *create(transactor_t& txor) {
         return txor.transaction()->allocate();
     }
+
     static void snap(transactor_t& txor) {
         txor.transaction()->snapshot();
     }
+
     static buf_t *acq(transactor_t& txor, block_id_t block_id, access_t mode = rwi_read) {
         thread_saver_t saver;
         return co_acquire_block(saver, txor.transaction(), block_id, mode);
@@ -81,6 +63,7 @@ private:
             signaled = true;
         }
     };
+
     static buf_t *acq_check_if_blocks_until_buf_released(transactor_t& acquiring_txor, buf_t *already_acquired_block, access_t acquire_mode, bool do_release, bool &blocked) {
         acquiring_coro_t acq_coro(acquiring_txor, already_acquired_block->get_block_id(), acquire_mode);
 
@@ -359,58 +342,10 @@ private:
         buf2_A->release();
     }
 
-    void main() {
-        temp_file_t db_file("/tmp/rdb_unittest.XXXXXX");
-
-        {
-            cmd_config_t config;
-            config.store_dynamic_config.cache.max_dirty_size = config.store_dynamic_config.cache.max_size / 10;
-
-            // Set ridiculously high flush_* values, so that flush lock doesn't block the txn creation
-            config.store_dynamic_config.cache.flush_timer_ms = 1000000;
-            config.store_dynamic_config.cache.flush_dirty_size = 1000000000;
-
-            log_serializer_private_dynamic_config_t ser_config;
-            ser_config.db_filename = db_file;
-
-            log_serializer_t::create(&config.store_dynamic_config.serializer, &ser_config, &config.store_static_config.serializer);
-            log_serializer_t serializer(&config.store_dynamic_config.serializer, &ser_config);
-
-            std::vector<serializer_t *> serializers;
-            serializers.push_back(&serializer);
-            serializer_multiplexer_t::create(serializers, 1);
-            serializer_multiplexer_t multiplexer(serializers);
-
-            btree_slice_t::create(multiplexer.proxies[0], &config.store_static_config.cache);
-            btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache);
-
-            cache_t *cache = slice.cache();
-
-            thread_saver_t saver;
-
-            // It's nice to see the progress of these tests, so we use log_call
-            log_call(test_snapshot_acq_blocks_on_unfinished_create, saver, cache);
-            log_call(test_snapshot_acq_blocks_on_older_write_txns, saver, cache);
-            log_call(test_snapshot_sees_changes_started_before_its_first_block_acq, saver, cache);
-            log_call(test_snapshot_doesnt_see_later_changes_and_doesnt_block_them, saver, cache);
-            log_call(test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later, saver, cache);
-            log_call(test_snapshot_blocks_on_txns_that_acq_first_block_earlier, saver, cache);
-            log_call(test_issue_194, saver, cache);
-            log_call(test_cow_snapshots, saver, cache);
-            log_call(test_double_cow_acq_release, saver, cache);
-            log_call(test_cow_delete, saver, cache);
-        }
-        log_call(thread_pool.shutdown);
-    }
-
-    void on_thread_switch() {
-        coro_t::spawn(boost::bind(&tester_t::main, this));
-    }
 };
 
 TEST(SnapshotsTest, all_tests) {
-    tester_t test;
-    test.run();
+    tester_t().run();
 }
 
 }  // namespace unittest
