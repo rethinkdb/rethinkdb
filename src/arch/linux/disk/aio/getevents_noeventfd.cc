@@ -35,7 +35,7 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
     io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
 
     do {
-        int nevents = io_getevents(parent->parent->aio_context, 1, MAX_IO_EVENT_PROCESSING_BATCH_SIZE,
+        int nevents = io_getevents(parent->parent->aio_context.id, 1, MAX_IO_EVENT_PROCESSING_BATCH_SIZE,
                                    events, NULL);
         if(nevents == -EINTR) {
             if(parent->shutting_down)
