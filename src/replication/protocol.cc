@@ -239,6 +239,10 @@ void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *rece
 
 template <class net_struct_type>
 void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
+
+    /* So we the repli_stream_t can't get destroyed out from under us */
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+
     size_t obsize = objsize(msg);
 
     if (obsize + sizeof(net_header_t) <= 0xFFFF) {
@@ -361,6 +365,9 @@ void repli_stream_t::send(net_ack_t msg) {
 }
 
 void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_acquisition) {
+
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+
     net_hello_t msg;
     rassert(sizeof(msg.hello_magic) == 16);
     // TODO make a #define for this.

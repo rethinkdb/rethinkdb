@@ -184,6 +184,13 @@ void slave_stream_manager_t::send(UNUSED scoped_malloc<net_ack_t>& message) {
 
 void slave_stream_manager_t::conn_closed() {
 
+    /* Do this first-thing so that nothing tries to use the closed stream. The
+    repli_stream_t destructor may block, which is why we set stream_ to NULL before
+    we call the destructor. */
+    repli_stream_t *stream_copy = stream_;
+    stream_ = NULL;
+    delete stream_copy;
+
     if (backfilling_) {
         logWRN("%s The data on this slave is now in an inconsistent state. To put the data "
             "into a consistent state again, start the server again as a slave of the same "
@@ -202,8 +209,6 @@ void slave_stream_manager_t::conn_closed() {
         multicond_->pulse();
     }
 
-    delete stream_;
-    stream_ = NULL;
     shutdown_cond_.pulse();
 }
 
