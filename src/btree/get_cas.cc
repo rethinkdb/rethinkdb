@@ -24,10 +24,16 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         // Duplicate the value and put a CAS on it if necessary
         valuecpy(&value, old_value);   // Can we fix this extra copy?
         bool there_was_cas_before = value.has_cas();
-        if (!value.has_cas()) { // We have always been at war with Eurasia.
+        cas_t cas_to_report;
+        if (value.has_cas()) {
+            // How convenient; there already was a CAS.
+            cas_to_report = value.cas();
+        } else {
+            // We have always been at war with Eurasia.
             /* This doesn't set the CAS--it just makes room for the CAS, and
             run_btree_modify_oper() sets the CAS. */
             value.add_cas();
+            cas_to_report = proposed_cas;
         }
 
         // Need to block on the caller so we don't free the large value before it's done
@@ -35,10 +41,10 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         unique_ptr_t<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
         if (value.is_large()) {
             threadsafe_cond_t to_signal_when_done;
-            res->pulse(get_result_t(dp, value.mcflags(), proposed_cas, &to_signal_when_done));
+            res->pulse(get_result_t(dp, value.mcflags(), cas_to_report, &to_signal_when_done));
             to_signal_when_done.wait();
         } else {
-            res->pulse(get_result_t(dp, value.mcflags(), proposed_cas, NULL));
+            res->pulse(get_result_t(dp, value.mcflags(), cas_to_report, NULL));
         }
 
 

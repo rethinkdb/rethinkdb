@@ -6,10 +6,16 @@ from test_common import *
 ec2 = 5
 
 def test(opts, port, test_dir):
-    # The test scripts now get the port as an environment variable (instead of running the server themselves).
+
+    # Figure out where the memcached scripts are located
+    memcached_suite_dir = os.path.join(os.path.dirname(__file__), "memcached_suite")
+
+    # The memcached test scripts now get the port as an environment variable (instead of running
+    # the server themselves).
     os.environ["RUN_PORT"] = str(port)
-    os.environ["PERLLIB"] = os.path.abspath(os.getcwd()) + "/integration/memcached_suite/lib:" + os.getenv("PERLLIB", "")
-    proc = subprocess.Popen(opts["suite-test"])
+    os.environ["PERLLIB"] = os.path.join(memcached_suite_dir, "lib") + ":" + os.getenv("PERLLIB", "")
+
+    proc = subprocess.Popen(os.path.join(memcached_suite_dir, opts["suite-test"]))
     assert proc.wait() == 0
 
 if __name__ == "__main__":

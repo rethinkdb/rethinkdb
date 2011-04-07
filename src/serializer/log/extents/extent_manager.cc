@@ -16,6 +16,8 @@ struct extent_info_t {
     } state;
 
     off64_t next_in_free_list;   // Valid if state == state_free
+public:
+    extent_info_t() : state(state_unreserved), next_in_free_list(-1) {}
 };
 
 class extent_zone_t {

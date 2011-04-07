@@ -32,6 +32,7 @@ extern perfmon_counter_t
 struct data_block_manager_gc_write_callback_t {
 
     virtual void on_gc_write_done() = 0;
+    virtual ~data_block_manager_gc_write_callback_t() {}
 };
 
 class data_block_manager_t :
@@ -53,6 +54,7 @@ public:
     struct gc_writer_t {
     
         virtual bool write_gcs(gc_write_t *writes, int num_writes, gc_write_callback_t *cb) = 0;
+        virtual ~gc_writer_t() {}
     };
 
 public:

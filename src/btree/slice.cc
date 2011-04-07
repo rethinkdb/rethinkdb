@@ -58,9 +58,8 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 }
 
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
-                             mirrored_cache_config_t *dynamic_config,
-                             mutation_dispatcher_t *dispatcher)
-    : cache_(serializer, dynamic_config), dispatcher_(dispatcher) { }
+                             mirrored_cache_config_t *dynamic_config)
+    : cache_(serializer, dynamic_config) { }
 
 btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff
@@ -96,18 +95,32 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
     castime_t ct;
 };
 
-mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) {
+mutation_result_t btree_slice_t::change(const mutation_t &mref, castime_t castime) {
     on_thread_t th(home_thread);
-    mutation_t m2 = dispatcher_->dispatch_change(m, castime);
+
+    /* Give dispatchers a chance to modify/dispatch mutation. */
+    mutation_t m = mref;
+    for (intrusive_list_t<mutation_dispatcher_t>::iterator it = dispatchers_.begin();
+            it != dispatchers_.end(); it++) {
+        m = (*it).dispatch_change(m, castime);
+    }
+
     btree_slice_change_visitor_t functor;
     functor.parent = this;
     functor.ct = castime;
-    return boost::apply_visitor(functor, m2.mutation);
+    return boost::apply_visitor(functor, m.mutation);
 }
 
 void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {
     on_thread_t th(home_thread);
     btree_backfill(this, since_when, callback);
+}
+
+void btree_slice_t::add_dispatcher(mutation_dispatcher_t *mdisp) {
+    dispatchers_.push_back(mdisp);
+}
+void btree_slice_t::remove_dispatcher(mutation_dispatcher_t *mdisp) {
+    dispatchers_.remove(mdisp);
 }
 
 void btree_slice_t::time_barrier(UNUSED repli_timestamp lower_bound_on_future_timestamps) {

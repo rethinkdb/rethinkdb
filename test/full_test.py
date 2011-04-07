@@ -227,7 +227,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340,
                     "failover"    : True},
-                          repeat=5, timeout=400)
+                          repeat=10, timeout=400)
     
     do_test_cloud("integration/append_prepend.py",
                   { "auto"        : True,
@@ -413,7 +413,8 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 340 },
                   repeat=5, timeout=460 * ec2)
 
-    for suite_test in glob.glob('integration/memcached_suite/*.t'):
+    for suite_test in os.listdir('integration/memcached_suite'):
+        if not suite_test.endswith(".t"): continue
         do_test_cloud("integration/memcached_suite.py",
                       { "auto"        : True,
                         "mode"        : mode,

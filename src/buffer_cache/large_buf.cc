@@ -271,27 +271,35 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     }
 };
 
-void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, void *buf, int64_t n) {
+void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, const void *buf, int64_t n) {
     thread_saver_t saver;
     rassert(root_ref->size - amount_to_dequeue + n > 0);
-    boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
 
-    // 1. Enqueue.
-    if (root_ref->size == 0) {
-        lb->allocate(n);
-        rassert(lb->state == loaded);
-    } else {
-        co_acquire_large_buf_slice(saver, lb.get(), root_ref->size - 1, 1);
-        rassert(lb->state == loaded);
+    {
+        boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
 
-        int refsize_adjustment;
-        lb->append(n, &refsize_adjustment);
+        int64_t original_size = root_ref->size;
+
+        // 1. Enqueue.
+        if (original_size == 0) {
+            lb->allocate(n);
+            rassert(lb->state == loaded);
+        } else {
+            co_acquire_large_buf_slice(saver, lb.get(), original_size - 1, 1);
+            rassert(lb->state == loaded);
+
+            int refsize_adjustment;
+            lb->append(n, &refsize_adjustment);
+        }
+
+        lb->fill_at(original_size, buf, n);
     }
-
-    fill_at(root_ref->size, buf, n);
 
     // 2. Dequeue.
     if (amount_to_dequeue > 0) {
+        boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
+
+        // TODO: We could do this operation concurrently with co_acquire_large_buf_slice.
         co_acquire_large_buf_for_unprepend(saver, lb.get(), amount_to_dequeue);
 
         int refsize_adjustment;
@@ -357,7 +365,7 @@ void large_buf_t::on_available(buftree_t *tr, int index) {
     }
 }
 
-void large_buf_t::adds_level(block_id_t *ids
+void large_buf_t::adds_level(block_id_t *ids, int num_roots
 #ifndef NDEBUG
                              , int nextlevels
 #endif
@@ -369,9 +377,8 @@ void large_buf_t::adds_level(block_id_t *ids
     ret->level = nextlevels;
 #endif
 
-    block_id_t new_id;
     ret->buf = (*txor)->allocate();
-    new_id = ret->buf->get_block_id();
+    block_id_t new_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
     num_bufs++;
@@ -388,7 +395,7 @@ void large_buf_t::adds_level(block_id_t *ids
     }
 #endif
 
-    for (int i = 0, ie = roots.size(); i < ie; i++) {
+    for (int i = 0, ie = num_roots; i < ie; i++) {
         node->kids[i] = ids[i];
 #ifndef NDEBUG
         ids[i] = NULL_BLOCK_ID;
@@ -399,7 +406,9 @@ void large_buf_t::adds_level(block_id_t *ids
 
     // Make sure that our .swap logic works the way we expect it to.
     rassert(roots.size() == 0);
+
     roots.push_back(ret);
+    ids[0] = new_id;
 }
 
 void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {
@@ -413,7 +422,7 @@ void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {
     int new_sublevels = num_sublevels(back + extra_size);
 
     for (int i = prev_sublevels; i < new_sublevels; ++i) {
-        adds_level(root_ref->block_ids
+        adds_level(root_ref->block_ids, ceil_divide(back, max_offset(i))
 #ifndef NDEBUG
                    , i + 1
 #endif
@@ -459,9 +468,9 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         int64_t max_k = (root_ref_limit.value - sizeof(large_buf_ref)) / sizeof(block_id_t);
 
         if (k + back_k > max_k) {
-            adds_level(root_ref->block_ids
+            adds_level(root_ref->block_ids, back_k
 #ifndef NDEBUG
-                       , num_sublevels(back) + 1
+                       , sublevels + 1
 #endif
                        );
             sublevels++;

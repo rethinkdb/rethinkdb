@@ -78,7 +78,7 @@ void linux_aio_submit_threaded_t::run() {
 
     int pos = 0;
     while (pos < (int)perform_queue.size()) {
-        int res = io_submit(parent->aio_context, perform_queue.size()-pos, perform_queue.data()+pos);
+        int res = io_submit(parent->aio_context.id, perform_queue.size()-pos, perform_queue.data()+pos);
         if (res == -EAGAIN) {
             /* Give up our CPU time slot and give some time for IO operations to be done */
             int res2 = sched_yield();

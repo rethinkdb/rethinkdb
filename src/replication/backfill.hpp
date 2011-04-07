@@ -1,104 +1,57 @@
-#ifndef __REPLICATION_BACKFILLING_HPP__
-#define __REPLICATION_BACKFILLING_HPP__
+#ifndef __REPLICATION_BACKFILL_HPP__
+#define __REPLICATION_BACKFILL_HPP__
 
 #include "btree/backfill.hpp"
-#include "replication/protocol.hpp"
+#include "server/key_value_store.hpp"
 
 namespace replication {
 
-class do_backfill_cb : public backfill_callback_t {
-    int count;
-    int home_thread;
-    // TODO: This is a double pointer because it points to the owner's
-    // stream pointer which could go NULL at any time.  This is
-    // basically horrible, hacky, and indicative of brokenness.
-    repli_stream_t **stream;
-    cond_t for_when_done;
-    repli_timestamp minimum_timestamp;
+struct backfill_and_realtime_streaming_callback_t {
 
-public:
-    // We start count at 1, and correspondingly decrement it in wait().
-    do_backfill_cb(int _home_thread, repli_stream_t **_stream) : count(1), home_thread(_home_thread), stream(_stream), minimum_timestamp(repli_timestamp::invalid /* this is greater than all other timestamps. */) { }
+    virtual void backfill_deletion(store_key_t key) = 0;
+    virtual void backfill_set(backfill_atom_t atom) = 0;
+    virtual void backfill_done(repli_timestamp_t timestamp_when_backfill_began) = 0;
 
-    void add_dual_backfiller_hold() {
-        rassert(get_thread_id() == home_thread);
-        // We decrement count twice: once upon done_deletion_keys and once upon done.
-        count += 2;
-    }
+    virtual void realtime_get_cas(const store_key_t& key, castime_t castime) = 0;
+    virtual void realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data,
+        mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy,
+        replace_policy_t replace_policy, cas_t old_cas) = 0;
+    virtual void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
+        castime_t castime) = 0;
+    virtual void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
+        unique_ptr_t<data_provider_t> data, castime_t castime) = 0;
+    virtual void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp) = 0;
+    virtual void realtime_time_barrier(repli_timestamp_t timestamp) = 0;
 
-    // TODO: Make this take a btree_key which is more accurate a description of the interface.
-    void deletion_key(const store_key_t *key) {
-        store_key_t tmp(key->size, key->contents);
-        coro_t::spawn_on_thread(home_thread, boost::bind(&do_backfill_cb::send_deletion_key_to_slave, this, tmp));
-    }
-
-    void send_deletion_key_to_slave(const store_key_t key) {
-        size_t n = sizeof(net_backfill_delete_t) + key.size;
-        if (*stream) {
-            scoped_malloc<net_backfill_delete_t> msg(n);
-            msg->padding = 0;
-            msg->key_size = key.size;
-            memcpy(msg->key, key.contents, key.size);
-
-            (*stream)->send(msg.get());
-        }
-    }
-
-
-    void done_deletion_keys() {
-        coro_t::spawn_on_thread(home_thread, boost::bind(&do_backfill_cb::decr_count, this));
-    }
-
-    void on_keyvalue(backfill_atom_t atom) {
-        coro_t::spawn_on_thread(home_thread, boost::bind(&do_backfill_cb::send_backfill_atom_to_slave, this, atom));
-    }
-
-    void send_backfill_atom_to_slave(backfill_atom_t atom) {
-        if (*stream) {
-            net_backfill_set_t msg;
-            msg.timestamp = atom.recency;
-            msg.flags = atom.flags;
-            msg.exptime = atom.exptime;
-            msg.cas_or_zero = atom.cas_or_zero;
-            msg.key_size = atom.key.size;
-            msg.value_size = atom.value->get_size();
-            (*stream)->send(&msg, atom.key.contents, atom.value);
-        }
-    }
-
-    void done(repli_timestamp oper_start_timestamp) {
-        coro_t::spawn_on_thread(home_thread, boost::bind(&do_backfill_cb::do_done, this, oper_start_timestamp));
-    }
-
-    void do_done(repli_timestamp oper_start_timestamp) {
-        rassert(get_thread_id() == home_thread);
-
-        if (minimum_timestamp.time > oper_start_timestamp.time) {
-            minimum_timestamp = oper_start_timestamp;
-        }
-
-        decr_count();
-    }
-
-    void decr_count() {
-        rassert(get_thread_id() == home_thread);
-
-        count = count - 1;
-        if (0 == count) {
-            for_when_done.pulse();
-        }
-    }
-
-    repli_timestamp wait() {
-        decr_count();
-        for_when_done.wait();
-        return minimum_timestamp;
-    }
+protected:
+    virtual ~backfill_and_realtime_streaming_callback_t() { }
 };
 
+/* Call backfill_and_realtime_stream() to stream data from the given key-value store to the
+given backfill_and_realtime_streaming_callback_t. It will begin by concurrently streaming backfill
+and realtime updates, then call backfill_done() and just stream realtime updates.
+
+When you pulse the multicond_t that you give it (from another coroutine) it will stop streaming
+and return. */
+
+void backfill_and_realtime_stream(
+
+    /* The key-value store to get the data out of. */
+    btree_key_value_store_t *kvs,
+
+    /* The time from which to start backfilling. */
+    repli_timestamp_t start_time,
+
+    /* The place to send the backfill information and real-time streaming operations. */
+    backfill_and_realtime_streaming_callback_t *cb,
+
+    /* If you pulse this multicond, then backfill_and_realtime_stream() will (eventually) return.
+    Because it's impossible to interrupt a backfill, it won't return until the backfill is done. */
+    multicond_t *pulse_to_stop
+);
 
 }  // namespace replication
 
 
 
-#endif  // __REPLICATION_BACKFILLING_HPP__
+#endif  // __REPLICATION_BACKFILL_HPP__

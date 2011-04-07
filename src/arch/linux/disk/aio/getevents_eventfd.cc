@@ -1,3 +1,5 @@
+#ifndef NO_EVENTFD
+
 #include <algorithm>
 #include <fcntl.h>
 #include <linux/fs.h>
@@ -66,7 +68,7 @@ void linux_aio_getevents_eventfd_t::on_event(int event_mask) {
         // event and getting an eventfd for this read event later due
         // to the way the kernel is structured. Better avoid this
         // complexity (hence std::min below).
-        int nevents = io_getevents(parent->aio_context, 0,
+        int nevents = io_getevents(parent->aio_context.id, 0,
                                std::min((int)nevents_total, MAX_IO_EVENT_PROCESSING_BATCH_SIZE),
                                events, NULL);
         guarantee_xerr(nevents >= 1, -nevents, "Waiting for AIO event failed");
@@ -79,4 +81,6 @@ void linux_aio_getevents_eventfd_t::on_event(int event_mask) {
 
     } while (nevents_total > 0);
 }
+
+#endif // NO_EVENTFD
 

@@ -1,4 +1,8 @@
 
+#ifndef USE_MYSQL
+#error "This file shouldn't be included if USE_MYSQL is not set."
+#endif
+
 #ifndef __MYSQL_PROTOCOL_HPP__
 #define __MYSQL_PROTOCOL_HPP__
 

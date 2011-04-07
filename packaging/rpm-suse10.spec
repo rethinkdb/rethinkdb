@@ -29,9 +29,7 @@ Packager:  Package Maintainer <support@rethinkdb.com>
 URL:       http://rethinkdb.com/
 Group:     Productivity/Databases/Servers
 Provides:  memcached
-Requires: ifelse(LEGACY_LINUX, 1,
-  `glibc >= 2.5, libaio >= 0.3.106',
-  `glibc >= 2.10.1, libaio >= 0.3.106')
+Requires:  glibc >= 2.4-31, libaio >= 0.3.104
 Conflicts: ifelse(TRIAL, 0, `TRIAL_PACKAGE_NAME', `VANILLA_PACKAGE_NAME')
 
 %description

@@ -34,12 +34,9 @@ struct coro_t : private linux_thread_message_t {
 public:
     static void spawn(const boost::function<void()>& deed);
     static void spawn_now(const boost::function<void()> &deed);
+    static void spawn_on_thread(int thread, const boost::function<void()>& deed);
 
     // Use coro_t::spawn(boost::bind(...)) for multiparamater spawnings.
-
-    static void spawn_on_thread(int thread, const boost::function<void()>& deed) {
-        (new coro_t(deed, thread))->notify();
-    }
 
 public:
     static void wait();         // Pauses the current coroutine until it's notified

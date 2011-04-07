@@ -403,7 +403,7 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
         }
     }
 
-    logERR("With key '%.*s': invalid large_buf_ref\n", key->size, key->contents);
+    logERR("With key '%.*s': invalid large_buf_ref or just a corrupted value\n", key->size, key->contents);
     return false;
 }
 
@@ -412,6 +412,7 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
 void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter) {
     if (pair_size_limiter < 0 || !leaf_pair_fits(pair, pair_size_limiter)) {
         logERR("(In block %u) A pair juts off the end of the block.\n", this_block.value);
+        return;
     }
 
     const btree_key_t *key = &pair->key;
@@ -433,23 +434,29 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
 
 
     if (value->is_large()) {
-        int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
+        if (value->size >= sizeof(large_buf_ref) && ((value->size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0)) {
 
-        int64_t seg_size = large_buf_t::bytes_per_leaf(cfg.block_size());
+            int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
 
-        const large_buf_ref *ref = value->lb_ref();
-        if (!get_large_buf_segments(key, file, ref, value->size, cfg, mod_id, offsets, &segblocks)) {
+            int64_t seg_size = large_buf_t::bytes_per_leaf(cfg.block_size());
+
+            const large_buf_ref *ref = value->lb_ref();
+            if (!get_large_buf_segments(key, file, ref, value->size, cfg, mod_id, offsets, &segblocks)) {
+                return;
+            }
+
+            pieces.resize(segblocks.bs.size());
+
+            int64_t bytes_left = ref->size;
+            for (int64_t i = 0, n = segblocks.bs.size(); i < n; ++i) {
+                int64_t beg = (i == 0 ? ref->offset % seg_size : 0);
+                pieces[i].buf = reinterpret_cast<const large_buf_leaf *>(segblocks.bs[i]->buf)->buf;
+                pieces[i].len = (i == n - 1 ? bytes_left : seg_size) - beg;
+                bytes_left -= pieces[i].len;
+            }
+        } else {
+            logERR("(In block %u) Value for key '%.*s' is corrupted.\n", this_block.value, int(key->size), key->contents);
             return;
-        }
-
-        pieces.resize(segblocks.bs.size());
-
-        int64_t bytes_left = ref->size;
-        for (int64_t i = 0, n = segblocks.bs.size(); i < n; ++i) {
-            int64_t beg = (i == 0 ? ref->offset % seg_size : 0);
-            pieces[i].buf = reinterpret_cast<const large_buf_leaf *>(segblocks.bs[i]->buf)->buf;
-            pieces[i].len = (i == n - 1 ? bytes_left : seg_size) - beg;
-            bytes_left -= pieces[i].len;
         }
     } else {
         pieces.resize(1);

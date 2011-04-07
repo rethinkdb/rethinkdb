@@ -26,6 +26,17 @@ struct drain_semaphore_t {
         if (draining && refcount == 0) cond.pulse();
     }
 
+    struct lock_t {
+        lock_t(drain_semaphore_t *p) : parent(p) {
+            parent->acquire();
+        }
+        ~lock_t() {
+            parent->release();
+        }
+    private:
+        drain_semaphore_t *parent;
+    };
+
     /* Call drain() to wait for all processes to finish and not allow any new ones
     to start. */
     void drain() {

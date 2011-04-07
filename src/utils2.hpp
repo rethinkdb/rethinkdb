@@ -5,9 +5,10 @@
 The reason it is separate from utils.hpp is that the IO layer needs some of the things in
 utils2.hpp, but utils.hpp needs some things in the IO layer. */
 
-#include "config/args.hpp"
+#include <cstdlib>
 #include <stdint.h>
 #include <time.h>
+#include "config/args.hpp"
 #include "errors.hpp"
 
 typedef uint64_t cas_t;
@@ -19,9 +20,27 @@ long get_total_ram();
 // for safety  TODO: move this to a different file
 struct repli_timestamp {
     uint32_t time;
-
+    bool operator==(repli_timestamp t) {
+        return time == t.time;
+    }
+    bool operator!=(repli_timestamp t) {
+        return time != t.time;
+    }
+    bool operator<(repli_timestamp t) {
+        return time < t.time;
+    }
+    bool operator>(repli_timestamp t) {
+        return time > t.time;
+    }
+    bool operator<=(repli_timestamp t) {
+        return time <= t.time;
+    }
+    bool operator>=(repli_timestamp t) {
+        return time >= t.time;
+    }
     static const repli_timestamp invalid;
 };
+typedef repli_timestamp repli_timestamp_t;   // TODO switch name over completely to "_t" version
 
 struct initialized_repli_timestamp {
     uint32_t time;
@@ -169,6 +188,27 @@ std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1
 // CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
 // TODO: Use this in the rest of the perfmons, if it turns out to make any
 // difference.
+
+class temp_file_t {
+    char * filename;
+public:
+    temp_file_t(const char * tmpl) {
+        size_t len = strlen(tmpl);
+        filename = new char[len+1];
+        strncpy(filename, tmpl, len);
+        int fd = mkstemp(filename);
+        guarantee_err(fd != -1, "Couldn't create a temporary file");
+        close(fd);
+    }
+    operator const char *() {
+        return filename;
+    }
+    ~temp_file_t() {
+        unlink(filename);
+        delete [] filename;
+    }
+};
+
 
 template<typename value_t>
 struct cache_line_padded_t {

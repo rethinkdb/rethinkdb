@@ -188,16 +188,8 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
     size_t offset = 0;
     size_t num_read = 0;
 
-    is_live = true;
-
-    struct mark_unlive {
-        bool *p;
-        ~mark_unlive() { *p = false; }
-    } marker;
-
-    marker.p = &is_live;
-
-    while (is_live) {
+    // We break out of this loop when we get a tcp_conn_t::read_closed_exc_t.
+    while (true) {
         // Try handling the message.
         size_t handled = handle_message(receiver, buffer.get() + offset, num_read, streams);
         if (handled > 0) {
@@ -215,76 +207,42 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
             num_read += conn->read_some(buffer.get() + offset + num_read, shbuf_size - (offset + num_read));
         }
     }
-
-    /* we only get out of this loop when we've been shutdown, if the connection
-     * closes then we catch an exception and never reach here */
-    shutdown_cb_->on_parser_shutdown();
-
-    // marker destructor sets is_live to false
 }
 
 
 void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+
     try {
         do_parse_hello_message(conn, receiver);
 
         tracker_t streams;
         do_parse_normal_messages(conn, receiver, streams);
 
-        // Ugh I
-        if (shutdown_cb_) {
-            shutdown_cb_->on_parser_shutdown();
-        }
     } catch (tcp_conn_t::read_closed_exc_t& e) {
-        // Ugh II
-        if (shutdown_cb_) {
-            shutdown_cb_->on_parser_shutdown();
-        }
-        else {
-            receiver->conn_closed();
-        }
+        // Do nothing; this was to be expected.
 #ifndef NDEBUG
     } catch (protocol_exc_t& e) {
         debugf("catch 'n throwing protocol_exc_t: %s\n", e.what());
         throw;
 #endif
     }
+
+    receiver->conn_closed();
 }
 
 void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
-    rassert(!is_live);
 
     coro_t::spawn(boost::bind(&message_parser_t::do_parse_messages, this, conn, receiver));
 }
-
-void message_parser_t::shutdown(message_parser_shutdown_callback_t *cb) {
-    if (!is_live) {
-        cb->on_parser_shutdown();
-    } else {
-        shutdown_cb_ = cb;
-
-        is_live = false;
-    }
-}
-
-
-void message_parser_t::co_shutdown() {
-    struct : public message_parser_shutdown_callback_t {
-        cond_t cond;
-        void on_parser_shutdown() {
-            cond.pulse();
-        }
-    } cb;
-
-    shutdown(&cb);
-    cb.cond.wait();
-}
-
 
 // REPLI_STREAM_T
 
 template <class net_struct_type>
 void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
+
+    /* So we the repli_stream_t can't get destroyed out from under us */
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+
     size_t obsize = objsize(msg);
 
     if (obsize + sizeof(net_header_t) <= 0xFFFF) {
@@ -294,8 +252,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         hdr.msgsize = sizeof(net_header_t) + obsize;
 
         mutex_acquisition_t ak(&outgoing_mutex_);
-        conn_->write(&hdr, sizeof(net_header_t));
-        conn_->write(msg, obsize);
+
+        try_write(&hdr, sizeof(net_header_t));
+        try_write(msg, obsize);
     } else {
         net_multipart_header_t hdr;
         hdr.message_multipart_aspect = FIRST;
@@ -308,8 +267,8 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
         {
             mutex_acquisition_t ak(&outgoing_mutex_);
-            conn_->write(&hdr, sizeof(net_multipart_header_t));
-            conn_->write(msg, offset);
+            try_write(&hdr, sizeof(net_multipart_header_t));
+            try_write(msg, offset);
         }
 
         char *buf = reinterpret_cast<char *>(msg);
@@ -317,9 +276,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         while (offset + 0xFFFF < obsize) {
             mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = MIDDLE;
-            conn_->write(&hdr, sizeof(net_multipart_header_t));
+            try_write(&hdr, sizeof(net_multipart_header_t));
             // TODO change protocol so that 0 means 0x10000 mmkay?
-            conn_->write(buf + offset, 0xFFFF);
+            try_write(buf + offset, 0xFFFF);
             offset += 0xFFFF;
         }
 
@@ -327,8 +286,8 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
             rassert(obsize - offset <= 0xFFFF);
             mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = LAST;
-            conn_->write(&hdr, sizeof(net_multipart_header_t));
-            conn_->write(buf + offset, obsize - offset);
+            try_write(&hdr, sizeof(net_multipart_header_t));
+            try_write(buf + offset, obsize - offset);
         }
     }
 }
@@ -406,6 +365,9 @@ void repli_stream_t::send(net_ack_t msg) {
 }
 
 void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_acquisition) {
+
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+
     net_hello_t msg;
     rassert(sizeof(msg.hello_magic) == 16);
     // TODO make a #define for this.
@@ -419,8 +381,17 @@ void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_ac
     char informal_name[32] = "master";
     memcpy(msg.informal_name, informal_name, 32);
 
-    conn_->write(&msg, sizeof(msg));
+    try_write(&msg, sizeof(msg));
 }
 
+void repli_stream_t::try_write(const void *data, size_t size) {
+    try {
+        conn_->write(data, size);
+    } catch (tcp_conn_t::write_closed_exc_t &e) {
+        /* Master died; we happened to be mid-write at the time. A tcp_conn_t::read_closed_exc_t
+        will be thrown somewhere and that will cause us to shut down. So we can ignore this
+        exception. */
+    }
+}
 
 }  // namespace replication

@@ -627,13 +627,13 @@ def print_results_as_html(opts, tests):
         print """</div>"""
 
 def send_email(opts, message, recipient):
-    
+
     print "Sending email to %r..." % recipient
-    
+
     num_tries = 10
     try_interval = 10   # Seconds
     smtp_server, smtp_port = os.environ.get("RETESTER_SMTP", "smtp.gmail.com:587").split(":")
-    
+
     import smtplib
 
     for tries in range(num_tries):
@@ -646,14 +646,24 @@ def send_email(opts, message, recipient):
             break
     else:
         raise Exception("Cannot connect to SMTP server '%s'" % smtp_server)
-    
+
     sender, sender_pw = os.environ["RETESTER_EMAIL_SENDER"].split(":")
-    
+
     s.starttls()
-    s.login(sender, sender_pw)
+
+    for tries in range(num_tries):
+        try:
+            s.login(sender, sender_pw)
+        except smtplib.SMTPAuthenticationError:
+            # Try again later
+            time.sleep(try_interval)
+        else:
+            break
+
     s.sendmail(sender, [recipient], message.as_string())
+
     s.quit()
-    
+
     print "Email message sent."
 
 global_start_time = datetime.datetime.now()

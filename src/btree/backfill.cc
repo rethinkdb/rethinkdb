@@ -257,9 +257,8 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
     // the superblock lock much sooner than we do right now.
 
     // The deletes have to go first (since they get overridden by
-    // newer sets) TODO: Why do we pass the later timestamp at all?
-    repli_timestamp t = { state.oper_start_timestamp.time + 1 };
-    dump_keys_from_delete_queue(state.transactor_ptr, superblock->delete_queue_block, since_when, t, callback);
+    // newer sets)
+    dump_keys_from_delete_queue(state.transactor_ptr, superblock->delete_queue_block, since_when, callback);
 
     block_id_t root_id = superblock->root_block;
     rassert(root_id != SUPERBLOCK_ID);
