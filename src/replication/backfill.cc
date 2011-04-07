@@ -1,3 +1,4 @@
+#include "btree/node.hpp"
 #include "replication/backfill.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/pmap.hpp"
@@ -175,9 +176,10 @@ struct backfill_and_streaming_manager_t :
     }
 
     /* The store calls this when we need to backfill a deletion. */
-    void deletion_key(const store_key_t *key) {
+    void deletion_key(const btree_key_t *key) {
+        store_key_t tmp(key->size, key->contents);
         coro_t::spawn_on_thread(home_thread,
-            boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, *key));
+            boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, tmp));
     }
 
     /* The store calls this when it finishes the first phase of backfilling. It's redundant
