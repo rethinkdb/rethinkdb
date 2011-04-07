@@ -126,8 +126,7 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
 
 }
 
-// TODO: end_timestamp?  What is this?
-void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_stream_receiver_t *recipient) {
+void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient) {
     thread_saver_t saver;
 
     // Beware: Right now, some aspects of correctness depend on the
@@ -146,7 +145,8 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
 
         // TODO: DON'T hold the queue_root lock for the entire operation.  Sheesh.
 
-        int64_t begin_offset = 0, end_offset = 0;
+        int64_t begin_offset = 0;
+        int64_t end_offset = keys_ref->size;
 
         {
             boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_read));
@@ -154,32 +154,25 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
 
             delete_queue::t_and_o tao;
             int64_t i = 0, ie = t_o_ref->size;
-            bool begin_found = false, end_found = false;
+            bool begin_found = false;
             while (i < ie) {
                 t_o_largebuf->read_at(i, &tao, sizeof(tao));
                 if (!begin_found && begin_timestamp.time <= tao.timestamp.time) {
                     begin_offset = tao.offset - *primal_offset;
                     begin_found = true;
-                }
-                if (end_timestamp.time <= tao.timestamp.time) {
-                    rassert(begin_found);
-                    end_offset = tao.offset - *primal_offset;
-                    end_found = true;
                     break;
                 }
                 i += sizeof(tao);
             }
 
             if (!begin_found) {
+                // TODO: Uh, we need to send some kind of "delete
+                // everything, we are backfilling from the beginning"
+                // command.
                 goto done;
-                // Nothing to do!
             }
 
-            if (!end_found) {
-                end_offset = keys_ref->size;
-            }
-
-            // So we have a begin_offset and an end_offset;
+            // So we have a begin_offset and an end_offset.
         }
 
         rassert(begin_offset <= end_offset);
@@ -188,7 +181,7 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
             boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txor, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size())), rwi_read_outdated_ok));
 
             // TODO: acquire subinterval.
-            co_acquire_large_buf_slice(saver, keys_largebuf.get(), begin_offset, end_offset);
+            co_acquire_large_buf_slice(saver, keys_largebuf.get(), begin_offset, end_offset - begin_offset);
 
             int64_t n = end_offset - begin_offset;
 
