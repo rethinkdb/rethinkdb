@@ -1,5 +1,7 @@
 import os
 import socket
+import time
+import socket
 
 def remove_local(string):
     if (string[len(string) - len('.local'):] == '.local'):
@@ -26,7 +28,6 @@ class VM():
         self.username = username
         self.rootname = rootname
         os.system("VBoxManage startvm %s --type headless" % self.uuid)
-        import time
         time.sleep(100)
         while (self.command("true") != 0):
             time.sleep(3)
@@ -34,9 +35,9 @@ class VM():
     def __del__(self):
         os.system("VBoxManage controlvm %s poweroff" % self.uuid)
 
-    def command(self, cmd_str, root = False):
+    def command(self, cmd_str, root = False, bg = False):
         #print "Got command:\n", cmd_str
-        str = "ssh -o ConnectTimeout=1000 %s@%s \"%s\"" % ((self.rootname if root else self.username), self.hostname, cmd_str)
+        str = "ssh -o ConnectTimeout=1000 %s@%s \"%s\"" % ((self.rootname if root else self.username), self.hostname, cmd_str) + ("&" if bg else "")
         #print str
         return os.system(str)
 
@@ -55,21 +56,20 @@ class target():
         self.uninstall_cl_f = uninstall_cl_f
 
     class RunError(Exception):
-        def __init__(self, cmd, ret_val):
-            self.cmd = cmd
-            self.ret_val = ret_val
+        def __init__(self, str):
+            self.str = str
         def __str__(self):
-            return repr(self.cmd) + " return with value: " + repr(self.ret_val)
+            return repr(self.str)
 
     def run(self, branch, short_name):
         if (not os.path.exists("Built_Packages")): 
             os.mkdir("Built_Packages")
         build_vm = VM(self.build_uuid, self.build_hostname, self.username)
 
-        def run_checked(cmd, root = False):
-            res = build_vm.command(cmd, root)
+        def run_checked(cmd, root = False, bg = False):
+            res = build_vm.command(cmd, root, bg)
             if res != 0:
-                raise self.RunError(cmd, res)
+                raise self.RunError(cmd + " returned on %d exit." % res)
 
         run_checked("cd rethinkdb && git checkout %s && git pull" % branch)
         run_checked("cd rethinkdb/src &&"+self.build_cl)
@@ -84,9 +84,25 @@ class target():
         for path in res_paths:
             if (not os.path.exists(os.path.join(dest, short_name))): 
                 os.mkdir(os.path.join(dest, short_name))
+
+            build_vm.command(self.uninstall_cl_f("rethinkdb"), True)
             run_checked(self.install_cl_f(path), True)
+            build_vm.command("rm test_data")
+            run_checked("rethinkdb -p 11211 -f test_data &", bg = True)
+            print "Starting tests..."
+            while (1):
+                try:
+                    s = socket.create_connection((build_vm.hostname, 11211))
+                    break
+                except:
+                    pass
+
+            from smoke_install_test import test_against
+            if (not test_against(build_vm.hostname, 11211)):
+                raise self.RunError("Tests failed")
+            s.send("rdb shutdown\r\n")
             run_checked(self.uninstall_cl_f("rethinkdb"), True)
-            scp_string = "scp %s@%s:~/%s %s" % (self.username, self.build_hostname, path, os.path.join(dest, short_name))
+            scp_string = "scp %s@%s:%s %s" % (self.username, self.build_hostname, path, os.path.join(dest, short_name))
             print scp_string
             os.system(scp_string)
 
