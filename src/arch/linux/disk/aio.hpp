@@ -44,6 +44,14 @@ struct linux_aio_getevents_t {
     virtual void prep(iocb *) = 0;
 };
 
+/* Simple wrapper around io_context_t that handles creation and destruction */
+
+struct linux_aio_context_t {
+    linux_aio_context_t(int max_concurrent);
+    ~linux_aio_context_t();
+    io_context_t id;
+};
+
 /* IO requests are sent to the linux_diskmgr_aio_t via pwrite() and pread(). It constructs iocbs
 for them, calls linux_aio_getevents_t::prep() on them, and then calls linux_aio_submit_t::submit().
 When the OS is done, the linux_aio_getevents_t finds out and calls linux_diskmgr_aio_t::aio_notify(),
@@ -63,7 +71,10 @@ public:
     objects can access it. */
 
     linux_event_queue_t *queue;
-    io_context_t aio_context;
+
+    /* This must be declared before "submitter" and "getter" so that it gets created before they
+    are created and destroyed after they are destroyed. */
+    linux_aio_context_t aio_context;
 
     boost::scoped_ptr<linux_aio_submit_t> submitter;
 

@@ -6,6 +6,7 @@
 
 #include "arch/arch.hpp"
 #include "concurrency/mutex.hpp"
+#include "concurrency/drain_semaphore.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
 #include "data_provider.hpp"
@@ -87,6 +88,7 @@ public:
     }
 
     ~repli_stream_t() {
+        drain_semaphore_.drain();   // Wait for any active send()s to finish
         rassert(!conn_->is_read_open());
     }
 
@@ -129,7 +131,14 @@ private:
     void try_write(const void *data, size_t size);
 
     message_callback_t *recv_cb_;
+
+    /* outgoing_mutex_ is used to prevent messages from being interlaced on the wire */
     mutex_t outgoing_mutex_;
+
+    /* drain_semaphore_ is used to prevent the repli_stream_t from being destroyed while there
+    are active calls to send(). */
+    drain_semaphore_t drain_semaphore_;
+
     boost::scoped_ptr<tcp_conn_t> conn_;
     message_parser_t parser_;
 };

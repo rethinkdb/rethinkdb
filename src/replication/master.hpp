@@ -137,12 +137,15 @@ public:
     void send(UNUSED scoped_malloc<net_ack_t>& message) { }
     void conn_closed() {
         assert_thread();
-        debugf("conn_closed &stream_=%p stream_=%p\n", &stream_, stream_);
+
+        /* The stream destructor may block, so we set stream_ to NULL before calling the stream
+        destructor. */
         rassert(stream_);
-        delete stream_;
-        debugf("conn_closed finished delete\n");
+        repli_stream_t *stream_copy = stream_;
         stream_ = NULL;
-        stream_exists_cond_.pulse();
+        delete stream_copy;
+
+        stream_exists_cond_.pulse();    // If anything was waiting for stream to close, signal it
         interrupt_streaming_cond_.pulse_if_non_null();   // Will interrupt any running backfill/stream operation
     }
 
