@@ -69,3 +69,57 @@ void failover_t::on_resume() {
     for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
         (*it).on_resume();
 }
+
+void failover_t::on_backfill_begin() {
+    for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
+        (*it).on_backfill_begin();
+}
+
+void failover_t::on_backfill_end() {
+    for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
+        (*it).on_backfill_end();
+}
+
+void failover_t::on_reverse_backfill_begin() {
+    for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
+        (*it).on_reverse_backfill_begin();
+}
+
+void failover_t::on_reverse_backfill_end() {
+    for (intrusive_list_t<failover_callback_t>::iterator it = callbacks.begin(); it != callbacks.end(); it++)
+        (*it).on_reverse_backfill_end();
+}
+
+/* failover_query_enabler_disabler_t is responsible for deciding when to let sets and
+gets in and when not to. */
+
+failover_query_enabler_disabler_t::failover_query_enabler_disabler_t(gated_set_store_interface_t *sg, gated_get_store_t *gg)
+    : set_gate(sg), get_gate(gg)
+{
+    /* Initially, allow gets but not sets */
+    permit_gets.reset(new gated_get_store_t::open_t(get_gate));
+    set_gate->set_message("can't run sets against this server; we're still trying to reach master");
+}
+
+void failover_query_enabler_disabler_t::on_failure() {
+    /* When master fails, start permitting sets. */
+    permit_sets.reset(new gated_set_store_interface_t::open_t(set_gate));
+}
+
+void failover_query_enabler_disabler_t::on_resume() {
+    /* When master comes up, stop permitting sets. */
+    permit_sets.reset();
+    set_gate->set_message("illegal to run sets against a slave while master is up");
+}
+
+void failover_query_enabler_disabler_t::on_backfill_begin() {
+    /* During backfilling, don't allow gets */
+    permit_gets.reset();
+    get_gate->set_message("we're in the middle of a backfill; the database state is inconsistent.");
+}
+
+void failover_query_enabler_disabler_t::on_backfill_end() {
+    /* Now that backfill is over, allow gets */
+    permit_gets.reset(new gated_get_store_t::open_t(get_gate));
+}
+

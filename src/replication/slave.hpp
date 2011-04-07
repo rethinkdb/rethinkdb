@@ -31,20 +31,13 @@ struct btree_key_value_store_t;
 namespace replication {
 
 class slave_t :
-    public home_thread_mixin_t,
-    public set_store_interface_t,
-    public failover_callback_t
+    public home_thread_mixin_t
 {
 public:
     friend void run(slave_t *);
 
     slave_t(btree_key_value_store_t *, replication_config_t, failover_config_t);
     ~slave_t();
-
-    /* set_store_interface_t interface. This interface will not work properly for anything until
-    we fail over. */
-
-    mutation_result_t change(const mutation_t &m);
 
     /* failover module which is alerted by an on_failure() call when we go out
      * of contact with the master */

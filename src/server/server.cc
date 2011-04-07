@@ -134,6 +134,15 @@ private:
 }
 #endif
 
+void wait_for_sigint() {
+
+    struct : public thread_message_t, public cond_t {
+        void on_thread_switch() { pulse(); }
+    } interrupt_cond;
+    thread_pool_t::set_interrupt_message(&interrupt_cond);
+    interrupt_cond.wait();
+}
+
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     /* Create a server object. It only exists so we can give pointers to it to other things. */
     server_t server(cmd_config, thread_pool);
@@ -192,61 +201,71 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 /* Start key-value store */
                 logINF("Loading database...\n");
                 btree_key_value_store_t store(&cmd_config->store_dynamic_config);
+                gated_set_store.internal = &store;
+                gated_get_store.internal = &store;
 
-                {
-                    /* Are we a replication master? */
-                    boost::scoped_ptr<replication::master_t> master;
-                    if (cmd_config->replication_master_active) {
-                        master.reset(new replication::master_t(cmd_config->replication_master_listen_port));
-                        master->register_key_value_store(&store);
+#ifdef TIMEBOMB_DAYS
+                /* This continuously checks to see if RethinkDB has expired */
+                timebomb::periodic_checker_t timebomb_checker(store.multiplexer->creation_timestamp);
+#endif
+
+                if (cmd_config->replication_config.active) {
+
+                    logINF("Starting up as a slave...\n");
+                    replication::slave_t slave(&store, cmd_config->replication_config, cmd_config->failover_config);
+
+                    /* So that Amazon's Elastic Load Balancer (ELB) can tell when master goes
+                    down */
+                    boost::scoped_ptr<elb_t> elb;
+                    if (cmd_config->failover_config.elb_port != -1) {
+                        elb.reset(new elb_t(elb_t::slave, cmd_config->port));
+                        slave.failover.add_callback(elb.get());
                     }
 
                     {
-                        /* Are we a replication slave? */
-                        boost::scoped_ptr<replication::slave_t> slave_store;
-                        if (cmd_config->replication_config.active) {
-                            logINF("Starting up as a slave...\n");
-                            slave_store.reset(new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config));
-                            gated_set_store.internal = slave_store.get();
-                        } else {
-                            gated_set_store.internal = &store;   /* So things can access it */
-                        }
-                        gated_get_store.internal = &store;   // Gets always go straight to the key-value store
+                        /* So that we accept/reject gets and sets at the appropriate times */
+                        failover_query_enabler_disabler_t query_enabler(&gated_set_store, &gated_get_store);
+                        slave.failover.add_callback(&query_enabler);
 
-                        if (cmd_config->replication_config.active && cmd_config->failover_config.elb_port != -1) {
-                            elb_t elb(elb_t::slave, cmd_config->port);
-                            slave_store->failover.add_callback(&elb);
-                        }
+                        wait_for_sigint();
 
-                        {
-                            /* Open the gates to allow real queries */
-                            gated_get_store_t::open_t permit_gets(&gated_get_store);
-                            gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
-
-                            logINF("Server will now permit memcached queries.\n");
-
-                            /* Wait for an order to shut down */
-                            struct : public thread_message_t, public cond_t {
-                                void on_thread_switch() { pulse(); }
-                            } interrupt_cond;
-                            thread_pool_t::set_interrupt_message(&interrupt_cond);
-
-#ifdef TIMEBOMB_DAYS
-                            timebomb::periodic_checker_t timebomb_checker(store.multiplexer->creation_timestamp);
-#endif
-
-                            interrupt_cond.wait();
-
-                            logINF("Waiting for running operations to complete...\n");
-                            // permit_gets and permit_sets destructors called here; this means
-                            // we no longer allow queries.
-
-                        }
-
-                        // Slave destructor called here
+                        logINF("Waiting for running operations to finish...\n");
+                        /* query_enabler destructor called here; has side effect of draining
+                        queries. */
                     }
 
-                    // Master destructor called here
+                    /* Slave destructor called here */
+
+                } else if (cmd_config->replication_master_active) {
+
+                    replication::master_t master(cmd_config->replication_master_listen_port);
+                    master.register_key_value_store(&store);
+
+                    /* Open the gates to allow real queries. TODO: Later we will need to not
+                    allow real queries during some phases of the master's lifecycle. */
+                    gated_get_store_t::open_t permit_gets(&gated_get_store);
+                    gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
+
+                    logINF("Server will now permit memcached queries.\n");
+
+                    wait_for_sigint();
+
+                    logINF("Waiting for running operations to finish...\n");
+                    /* Master destructor called here */
+
+                } else {
+
+                    /* We aren't doing any sort of replication. */
+
+                    // Open the gates to allow real queries
+                    gated_get_store_t::open_t permit_gets(&gated_get_store);
+                    gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
+
+                    logINF("Server will now permit memcached queries.\n");
+
+                    wait_for_sigint();
+
+                    logINF("Waiting for running operations to finish...\n");
                 }
 
                 logINF("Waiting for changes to flush to disk...\n");
