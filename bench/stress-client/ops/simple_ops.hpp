@@ -6,6 +6,8 @@
 #include "protocol.hpp"
 #include "op.hpp"
 
+#include <vector>
+
 /* read_op_t reads keys from the database. It can read multiple keys at a time if the
 protocol supports it and if the batch_factor specified is greater than 1. It chooses
 which keys to read using a seed_chooser_t that you provide. */
