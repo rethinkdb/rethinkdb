@@ -41,13 +41,17 @@ size_t large_value_data_provider_t::get_size() const {
     return lb_ref.ptr()->size;
 }
 
+perfmon_counter_t acquire_in_background_counter("acquire_in_background");
+
 void large_value_data_provider_t::acquire_in_background(threadsafe_cond_t *acquisition_cond) {
+    acquire_in_background_counter++;
     {
         thread_saver_t ts;
         co_acquire_large_buf(ts, &large_value, acquisition_cond);
     }
     rassert(large_value.state == large_buf_t::loaded);
     large_value_cond.pulse();
+    acquire_in_background_counter--;
 }
 
 const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
