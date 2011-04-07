@@ -78,7 +78,7 @@ try:
                 { "auto"        : True,
                   "mode"        : mode,
                   "no-valgrind" : not checker,
-                  "protocol"    : protocol }, timeout=120)
+                  "protocol"    : protocol }, timeout=180)
 
         do_test_cloud("integration/extraction.py",
                       { "auto"        : True,

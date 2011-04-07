@@ -106,7 +106,7 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
 // timestamps are grequal to the begin_timestamp and less than the
 // end_timestamp are passed to recipient, in no particular order.
 // TODO: Is there any reason for an end_timestamp parameter?
-void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_stream_receiver_t *recipient);
+void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient);
 
 
 

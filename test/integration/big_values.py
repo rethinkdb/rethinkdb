@@ -77,7 +77,7 @@ def test(opts, port, test_dir):
     # (234 / 4) * 4080 - the biggest large value that uses one level
     # 1048576 - the maximum legal value size
 
-    sizes = range(250, 252) + range(4079, 4082) + range(8159, 8162) + range(65535, 65538) + range(73709, 73711) + range((234 / 4) * 4080 - 2, (234 / 4) * 4080 + 2) + range(1048575, 1048578)
+    sizes = [250, 4079, 4080, 4081, 8160, 8161, (232 / 4) * 4080 - 1, (232 / 4) * 4080, (232 / 4) * 4080 + 1, 1048576, 1048577]
 
     s = socket.socket()
     s.connect(("localhost", port))
