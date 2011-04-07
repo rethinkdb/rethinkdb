@@ -13,7 +13,7 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
     explicit load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
-        bool locked __attribute__((unused)) = inner_buf->lock.lock(rwi_write, NULL);
+        bool locked UNUSED = inner_buf->lock.lock(rwi_write, NULL);
         rassert(locked);
         have_loaded = false;
         if (continue_on_thread(inner_buf->cache->serializer->home_thread, this)) on_thread_switch();
