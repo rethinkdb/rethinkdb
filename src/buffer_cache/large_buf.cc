@@ -293,6 +293,8 @@ void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_
     lb->fill_at(original_size, buf, n);
 
     // 2. Dequeue.
+    // TODO: This is buggy due to stupidity, we can't unqueue yet.
+    /*
     if (amount_to_dequeue > 0) {
         // TODO: We could do this operation concurrently with co_acquire_large_buf_slice.
         co_acquire_large_buf_for_unprepend(saver, lb.get(), amount_to_dequeue);
@@ -300,6 +302,7 @@ void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_
         int refsize_adjustment;
         lb->unprepend(amount_to_dequeue, &refsize_adjustment);
     }
+    */
 }
 
 
