@@ -1,6 +1,8 @@
 #include "python_interface.h"
 #include "protocol.hpp"
+#ifdef USE_MYSQL
 #include "protocols/mysql_protocol.hpp"
+#endif
 #include "op.hpp"
 #include "ops/consecutive_seed_model.hpp"
 #include "ops/fuzzy_model.hpp"
@@ -178,5 +180,10 @@ seed_chooser_t *fuzzy_model_make_random_chooser(fuzzy_model_t *fm, const char *d
 }
 
 void py_initialize_mysql_table(const char *server_str, int max_key, int max_value) {
+#ifdef USE_MYSQL
     initialize_mysql_table(server_str, max_key, max_value);
+#else
+    fprintf(stderr, "This version of libstress.so was not built with MySQL support.\n");
+    exit(-1);
+#endif
 }
