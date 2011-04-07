@@ -36,38 +36,6 @@ slave_t::~slave_t() {
     pulse_to_interrupt_run_loop_.pulse_if_non_null();
 }
 
-struct not_allowed_visitor_t : public boost::static_visitor<mutation_result_t> {
-    mutation_result_t operator()(UNUSED const get_cas_mutation_t& m) const {
-        /* TODO: This is a hack. We can't give a valid result because the CAS we return will
-        not be usable with the master. But currently there's no way to signal an error on
-        gets. So we pretend the value was not found. Technically this is a lie, but screw
-        it. */
-        return get_result_t();
-    }
-    mutation_result_t operator()(UNUSED const sarc_mutation_t& m) const {
-        return sr_not_allowed;
-    }
-    mutation_result_t operator()(UNUSED const incr_decr_mutation_t& m) const {
-        return incr_decr_result_t(incr_decr_result_t::idr_not_allowed);
-    }
-    mutation_result_t operator()(UNUSED const append_prepend_mutation_t& m) const {
-        return apr_not_allowed;
-    }
-    mutation_result_t operator()(UNUSED const delete_mutation_t& m) const {
-        return dr_not_allowed;
-    }
-};
-
-mutation_result_t slave_t::change(const mutation_t &m) {
-
-    if (respond_to_queries_) {
-        return internal_store_->bypass_change(m);
-    } else {
-        /* Construct a "failure" response of the right sort */
-        return boost::apply_visitor(not_allowed_visitor_t(), m.mutation);
-    }
-}
-
 std::string slave_t::failover_reset() {
     // TODO don't say get_num_threads() - 2, what does this mean?
     on_thread_t thread_switch(get_num_threads() - 2);
@@ -120,7 +88,6 @@ void run(slave_t *slave) {
     bool shutting_down = false;
     slave->shutting_down_ = &shutting_down;
 
-    slave->failover.add_callback(slave);
     slave->respond_to_queries_ = false;
     bool first_connect = true;
     while (!shutting_down) {
@@ -147,22 +114,24 @@ void run(slave_t *slave) {
             slave->pulse_to_interrupt_run_loop_.watch(&slave_multicond);
 
 #ifdef REVERSE_BACKFILLING
+            slave->failover.on_reverse_backfill_begin();
             // TODO: this is a fake timestamp!!! You _must_ fix this.
             repli_timestamp fake1 = { 0 };
             stream_mgr.reverse_side_backfill(fake1);
+            slave->failover.on_reverse_backfill_end();
 #endif
 
+            slave->failover.on_backfill_begin();
             // TODO: another fake timestamp!!! You _must_ fix this.
             repli_timestamp fake2 = { 0 };
             stream_mgr.backfill(fake2);
-            
+            slave->failover.on_backfill_end();
 
             debugf("slave_t: Waiting for things to fail...\n");
             slave_multicond.wait();
             debugf("slave_t: Things failed.\n");
 
             if (shutting_down) {
-                
                 break;
             }
 

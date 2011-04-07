@@ -353,7 +353,7 @@ class Server(object):
                 test_dir=self.test_dir, name=self.name)
             self.port = self.nrc.port
         else:
-            self.port = server_port
+            self.port = self.internal_server_port
 
         # Wait for server to start accepting connections
 

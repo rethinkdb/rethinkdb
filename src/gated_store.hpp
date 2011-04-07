@@ -20,6 +20,9 @@ struct gated_get_store_t : public get_store_t {
         gate_t::open_t open;
     };
 
+    // TODO: Make this real
+    void set_message(std::string) { }
+
     // Public because it's useful to be able to create a gated_get_store_t before you create
     // the actual get_store_t. Just don't open the gate until you create the actual get_store_t.
     get_store_t *internal;
@@ -39,6 +42,9 @@ struct gated_set_store_interface_t : public set_store_interface_t {
     private:
         gate_t::open_t open;
     };
+
+    // TODO: Make this real
+    void set_message(std::string) { }
 
     set_store_interface_t *internal;
 
