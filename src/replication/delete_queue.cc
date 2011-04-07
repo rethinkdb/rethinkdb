@@ -95,10 +95,6 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             }
 
             if (last_tao.timestamp.time != timestamp.time) {
-#ifndef NDEBUG
-                debugf("Delete queue size = t_o %ld keys %ld\n", t_o_ref->size, keys_ref->size);
-#endif
-
                 delete_queue::t_and_o tao;
                 tao.timestamp = timestamp;
                 tao.offset = *primal_offset + keys_ref->size;

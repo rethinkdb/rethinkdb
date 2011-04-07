@@ -216,7 +216,7 @@ coro_context_t::~coro_context_t() {
 coro_t::coro_t(const boost::function<void()>& deed, int thread) :
     deed_(deed),
     current_thread_(thread),
-    original_free_contexts_thread_(thread),
+    original_free_contexts_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
     waiting_(true)
 {
@@ -365,3 +365,8 @@ void coro_t::spawn(const boost::function<void()>& deed) {
 void coro_t::spawn_now(const boost::function<void()> &deed) {
     (new coro_t(deed, linux_thread_pool_t::thread_id))->notify_now();
 }
+
+void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
+    (new coro_t(deed, thread))->notify();
+}
+
