@@ -35,7 +35,7 @@ try:
     # Do quick smoke tests in some environments
     for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
 
-        do_test("../build/%s-%s/rethindkb-unittest" % (mode, checker))
+        do_test("../build/%s-%s/rethinkdb-unittest" % (mode, checker))
 
         # VERY basic tests
         do_test_cloud("integration/append_prepend.py",
