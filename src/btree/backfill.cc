@@ -184,13 +184,50 @@ protected:
     ~node_ready_callback_t() { }
 };
 
-/*
+struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block_available_callback_t {
+    // Not much of an fsm.
+    backfill_state_t *state;
+    int level;
+    block_id_t block_id;
+    acquisition_start_callback_t *acq_start_cb;
+    node_ready_callback_t *node_ready_cb;
+
+    void you_may_acquire() {
+        state->level_count(level) += 1;
+        level = -1;
+
+        buf_t *buf = state->transactor_ptr->get()->acquire(block_id, rwi_read, this);
+        state = NULL;
+        block_id = NULL_BLOCK_ID;
+        acq_start_cb->on_started_acquisition();
+        acq_start_cb = NULL;
+
+        if (buf) {
+            node_ready_cb->on_node_ready(buf);
+            node_ready_cb = NULL;
+        }
+    }
+
+    void on_block_available(buf_t *block) {
+        node_ready_cb->on_node_ready(block);
+        node_ready_cb = NULL;
+    }
+};
+
+
 void acquire_a_node(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb, node_ready_callback_t *node_ready_cb) {
 
+    acquire_a_node_fsm_t *fsm = new acquire_a_node_fsm_t;
+    fsm->state = state;
+    fsm->level = level;
+    fsm->block_id = block_id;
+    fsm->acq_start_cb = acq_start_cb;
+    fsm->node_ready_cb = node_ready_cb;
 
-
+    state->acquisition_waiter_stack(level).push_back(fsm);
+    state->consider_pulsing();
 }
-*/
+
 
 // The main purpose of this type is to incr/decr state.level_counts.
 class backfill_buf_lock_t {
