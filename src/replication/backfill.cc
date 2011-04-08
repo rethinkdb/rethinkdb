@@ -169,14 +169,9 @@ struct backfill_and_streaming_manager_t :
 
     /* backfill_callback_t implementation */
 
-    void add_dual_backfiller_hold() {
-        // Ignore this; it's redundant, because we already know how many backfill operations
-        // we started.
-        // TODO: I'm pretty sure add_dual_backfiller_hold() is obsolete and never called.
-    }
-
     /* The store calls this when we need to backfill a deletion. */
     void deletion_key(const btree_key_t *key) {
+        // This runs on the scheduler thread.
         store_key_t tmp(key->size, key->contents);
         coro_t::spawn_on_thread(home_thread,
             boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, tmp));
@@ -189,6 +184,7 @@ struct backfill_and_streaming_manager_t :
 
     /* The store calls this when we need to send a key/value pair to the slave */
     void on_keyvalue(backfill_atom_t atom) {
+        // This runs on the scheduler thread.
         coro_t::spawn_on_thread(home_thread,
             boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_set, handler_, atom));
     }
@@ -196,6 +192,7 @@ struct backfill_and_streaming_manager_t :
     /* When we are finally done, the store calls done() with the timestamp that the operation
     started at. */
     void done(repli_timestamp oper_start_timestamp) {
+        // This runs on the scheduler thread.
         rassert(oper_start_timestamp != repli_timestamp_t::invalid);
         coro_t::spawn_on_thread(home_thread,
             boost::bind(&backfill_and_streaming_manager_t::do_done, this, oper_start_timestamp));
