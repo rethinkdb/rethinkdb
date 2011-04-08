@@ -57,8 +57,11 @@ private:
         large_buf_ref_buffer_t(block_size_t block_size, const btree_value *value) {
             memcpy(ptr(), value->lb_ref(), value->lb_ref()->refsize(block_size, btree_value::lbref_limit));
         }
-        large_buf_ref *ptr() const {
-            return (large_buf_ref*)buffer;
+        const large_buf_ref *ptr() const {
+            return reinterpret_cast<const large_buf_ref *>(buffer);
+        }
+        large_buf_ref *ptr() {
+            return reinterpret_cast<large_buf_ref *>(buffer);
         }
         char buffer[MAX_IN_NODE_VALUE_SIZE];
     };
