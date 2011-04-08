@@ -103,8 +103,12 @@ public:
     }
 
     static int64_t level_max(UNUSED int level) {
-        // TODO: Make this much bigger, this is for testing.  Temporary.
-        return 2;
+        // level = 1 is the root level
+        if (level <= 3) {
+            return 40000;
+        } else {
+            return 1000;
+        }
     }
 
     void consider_pulsing() {
