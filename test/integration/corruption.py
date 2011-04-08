@@ -108,7 +108,7 @@ if __name__ == "__main__":
             unchecked_keys.remove(key)
 
         if len(unchecked_keys) != 0:
-            raise ValueError("%d keys not found; one is '%s'" % unchecked_keys[0])
+            raise ValueError("%d keys not found; one is '%s'" % (len(unchecked_keys), unchecked_keys[0]))
 
     # Check to make sure that the values are all present
 

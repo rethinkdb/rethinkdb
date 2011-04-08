@@ -530,7 +530,7 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
             rassert(!inner_buf->do_delete);
 
             // Acquire the blocks
-            buf_t *buf = transaction->acquire(inner_buf->block_id, rwi_read_outdated_ok, NULL);
+            buf_t *buf = transaction->acquire(inner_buf->block_id, rwi_read_outdated_ok);
             rassert(buf); // Acquire must succeed since we hold the flush_lock.
             serializer_inner_bufs.push_back(inner_buf);
 

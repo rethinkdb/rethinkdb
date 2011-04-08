@@ -4,6 +4,11 @@
 #include "utils2.hpp"
 #include "serializer/types.hpp"
 
+enum should_load_flag_t {
+    should_load_block,
+    shouldnt_load_block
+};
+
 typedef uint32_t block_id_t;
 #define NULL_BLOCK_ID (block_id_t(-1))
 
