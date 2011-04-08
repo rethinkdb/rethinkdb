@@ -105,7 +105,7 @@ public:
     static int64_t level_max(UNUSED int level) {
         // level = 1 is the root level
         if (level <= 3) {
-            return 40000;
+            return 100000;
         } else {
             return 1000;
         }
