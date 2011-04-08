@@ -174,8 +174,6 @@ void do_a_subtree_backfill(backfill_state_t *state, int level, block_id_t block_
 void process_a_leaf_node(backfill_state_t *state, buf_t *buf, int level);
 void process_a_internal_node(backfill_state_t *state, buf_t *buf, int level);
 
-void get_recency_timestamps(backfill_state_t *state, block_id_t *block_ids, int num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb);
-
 struct acquisition_start_callback_t {
     virtual void on_started_acquisition() = 0;
 protected:
@@ -312,7 +310,7 @@ void subtrees_backfill(backfill_state_t *state, buf_t *parent, int level, boost:
     fsm->num_block_ids = num_block_ids;
 
     fsm->recencies.reset(new repli_timestamp[num_block_ids]);
-    get_recency_timestamps(state, fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
+    state->transactor_ptr->get()->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
 }
 
 struct do_a_subtree_backfill_fsm_t : public node_ready_callback_t {
@@ -391,10 +389,5 @@ void process_a_leaf_node(backfill_state_t *state, buf_t *buf, int level) {
     buf->release();
     state->level_count(level) -= 1;
     state->consider_pulsing();
-}
-
-void get_recency_timestamps(backfill_state_t *state, block_id_t *block_ids, int num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
-    // Uh... that was easy.
-    state->transactor_ptr->get()->get_subtree_recencies(block_ids, num_block_ids, recencies_out, cb);
 }
 
