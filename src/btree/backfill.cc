@@ -226,7 +226,12 @@ public:
         pulse_response_ = waiter.wait();
 
         // Now actually acquire the node.
-        buf_lock_t tmp(saver, state_.transactor_ptr->transaction(), block_id, rwi_read, acquisition_cond);
+
+        // Since there is no coro_t::wait() between this and constructing the buf_lock_t, this
+        // is a safe place to pulse acquisition_cond.
+        acquisition_cond->pulse();
+
+        buf_lock_t tmp(saver, state_.transactor_ptr->transaction(), block_id, rwi_read);
         inner_lock_.swap(tmp);
     }
 
