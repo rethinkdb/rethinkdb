@@ -226,7 +226,7 @@ public:
         pulse_response_ = waiter.wait();
 
         // Now actually acquire the node.
-        buf_lock_t tmp(saver, state_.transactor_ptr->transaction(), block_id, rwi_read, acquisition_cond);
+        buf_lock_t tmp(saver, state_.transactor_ptr->get(), block_id, rwi_read, acquisition_cond);
         inner_lock_.swap(tmp);
     }
 

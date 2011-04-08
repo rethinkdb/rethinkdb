@@ -33,7 +33,7 @@ leaf_iterator_t::~leaf_iterator_t() {
 void leaf_iterator_t::done() {
     if (lock) {
         thread_saver_t saver;
-        transactor->transaction()->ensure_thread(saver);
+        transactor->get()->ensure_thread(saver);
         delete lock;
         lock = NULL;
     }

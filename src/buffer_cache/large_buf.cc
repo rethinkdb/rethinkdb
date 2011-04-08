@@ -102,7 +102,7 @@ large_buf_t::large_buf_t(const boost::shared_ptr<transactor_t>& _txor, large_buf
     , state(not_loaded), num_bufs(0)
 #endif
 {
-    rassert(txor && txor->transaction());
+    rassert(txor && txor->get());
     rassert(root_ref);
 }
 
