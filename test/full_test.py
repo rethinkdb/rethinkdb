@@ -149,7 +149,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 1800,
                     "memory"      : 1000,
-                    "mem-cap"     : 1100,
+                    "mem-cap"     : 1200,
                     "ndeletes"    : 0,
                     "nupdates"    : 0,
                     "ninserts"    : 1,

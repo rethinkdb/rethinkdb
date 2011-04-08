@@ -121,8 +121,5 @@ def test_function(opts, port, test_dir):
 if __name__ == "__main__":
     op = make_option_parser()
     opts = op.parse(sys.argv)
-    if opts["auto"]:
-        if 'mockcache' not in opts['mode']:
-            opts['mode'] = opts['mode'] + '-mockcache'
     auto_server_test_main(test_function, opts, timeout = 90)
 
