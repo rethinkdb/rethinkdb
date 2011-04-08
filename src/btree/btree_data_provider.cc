@@ -69,6 +69,7 @@ large_value_data_provider_t::~large_value_data_provider_t() {
 /* Choose the appropriate specialization */
 
 value_data_provider_t *value_data_provider_t::create(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor) {
+    transactor->get()->assert_thread();
     // This can be called in the scheduler thread.
     if (value->is_large()) {
         return new large_value_data_provider_t(value, transactor);
