@@ -30,7 +30,7 @@ void server_test_helper_t::setup_server_and_run_tests() {
         config.store_dynamic_config.cache.flush_dirty_size = 1000000000;
 
         log_serializer_private_dynamic_config_t ser_config;
-        ser_config.db_filename = db_file;
+        ser_config.db_filename = db_file.name();
 
         log_serializer_t::create(&config.store_dynamic_config.serializer, &ser_config, &config.store_static_config.serializer);
         log_serializer_t serializer(&config.store_dynamic_config.serializer, &ser_config);

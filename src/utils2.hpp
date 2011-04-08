@@ -193,7 +193,7 @@ public:
         guarantee_err(fd != -1, "Couldn't create a temporary file");
         close(fd);
     }
-    operator const char *() {
+    std::string name() {
         return filename;
     }
     ~temp_file_t() {
