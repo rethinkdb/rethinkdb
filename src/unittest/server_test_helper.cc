@@ -51,6 +51,8 @@ void server_test_helper_t::setup_server_and_run_tests() {
 
         thread_saver_t saver;
 
+        nap(100);   // to let patch_disk_storage do writeback.sync();
+
         run_tests(saver, cache);
     }
     log_call(thread_pool.shutdown);

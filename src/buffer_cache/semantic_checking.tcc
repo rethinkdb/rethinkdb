@@ -177,7 +177,7 @@ template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(
         translator_serializer_t *serializer,
         mirrored_cache_config_t *dynamic_config)
-    : inner_cache(serializer, dynamic_config) {
+    : serializer(serializer), inner_cache(serializer, dynamic_config) {
 }
 
 template<class inner_cache_t>
@@ -196,3 +196,9 @@ scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(
         return NULL;
     }
 }
+
+template<class inner_cache_t>
+void scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+    inner_cache.offer_read_ahead_buf(block_id, buf, recency_timestamp);
+}
+

@@ -124,7 +124,7 @@ private:
 /* Cache */
 
 template<class inner_cache_t>
-class scc_cache_t : public home_thread_mixin_t {
+class scc_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
 public:
     typedef scc_buf_t<inner_cache_t> buf_t;
     typedef scc_transaction_t<inner_cache_t> transaction_t;
@@ -143,6 +143,9 @@ public:
 
     transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
+    void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+
+    translator_serializer_t *serializer;
 private:
     inner_cache_t inner_cache;
 
