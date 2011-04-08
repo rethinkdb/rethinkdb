@@ -182,20 +182,13 @@ bool strtobool_strict(const char *string, char **end);
 // arglist and output buffer excessively.
 std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
-// Pad a value to the size of a cache line to avoid false sharing.
-// TODO: This is implemented as a struct with subtraction rather than a union
-// so that it gives an error when trying to pad a value bigger than
-// CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
-// TODO: Use this in the rest of the perfmons, if it turns out to make any
-// difference.
-
 class temp_file_t {
     char * filename;
 public:
     temp_file_t(const char * tmpl) {
         size_t len = strlen(tmpl);
         filename = new char[len+1];
-        strncpy(filename, tmpl, len);
+        memcpy(filename, tmpl, len+1);
         int fd = mkstemp(filename);
         guarantee_err(fd != -1, "Couldn't create a temporary file");
         close(fd);
@@ -209,6 +202,13 @@ public:
     }
 };
 
+
+// Pad a value to the size of a cache line to avoid false sharing.
+// TODO: This is implemented as a struct with subtraction rather than a union
+// so that it gives an error when trying to pad a value bigger than
+// CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
+// TODO: Use this in the rest of the perfmons, if it turns out to make any
+// difference.
 
 template<typename value_t>
 struct cache_line_padded_t {
