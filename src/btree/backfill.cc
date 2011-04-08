@@ -14,9 +14,6 @@
 #include "btree/leaf_node.hpp"
 #include "btree/slice.hpp"
 
-// TODO make this user-configurable.
-#define BACKFILLING_MAX_BREADTH_FIRST_BLOCKS 1
-
 // Backfilling
 
 // We want a backfill operation to follow a few simple rules.
@@ -68,12 +65,10 @@
 // TODO: Actually use shutdown_mode.
 class backfill_state_t {
 public:
-    enum acquisition_credit { no_response = 0, breadth_first_credit = 1, depth_first_credit = 2 };
-
     backfill_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _since_when, backfill_callback_t *_callback, repli_timestamp _oper_start_timestamp)
         : oper_start_timestamp(_oper_start_timestamp), slice(_slice), since_when(_since_when),
           transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), rwi_read, _since_when)),
-          callback(_callback), shutdown_mode(false), num_breadth_blocks(0) { }
+          callback(_callback), shutdown_mode(false) { }
 
     repli_timestamp oper_start_timestamp;
 
@@ -116,35 +111,15 @@ public:
         // Right now we don't actually do more than one pulse at a
         // time, but we should try.
 
-        if (num_breadth_blocks < BACKFILLING_MAX_BREADTH_FIRST_BLOCKS) {
-            int max_breadth_pulses = BACKFILLING_MAX_BREADTH_FIRST_BLOCKS - num_breadth_blocks;
-
-            for (int i = 0, n = acquisition_waiter_stacks.size(); i < n; ++i) {
-                while (acquisition_waiter_stacks[i].size() > 0) {
-                    flat_promise_t<acquisition_credit> *promise = acquisition_waiter_stacks[i].back();
-                    acquisition_waiter_stacks[i].pop_back();
-
-                    promise->pulse(breadth_first_credit);
-                    max_breadth_pulses -= 1;
-                    if (max_breadth_pulses == 0) {
-                        goto done_breadth;
-                    }
-                }
-            }
-        }
-
-    done_breadth:
-        // We're out of breadth-first slots, so let's consider depth-first slots.
-
         for (int i = level_counts.size() - 1; i >= 0; --i) {
             if (level_counts[i] < level_max(i)) {
                 int diff = level_max(i) - level_counts[i];
 
                 while (diff > 0 && !acquisition_waiter_stacks[i].empty()) {
-                    flat_promise_t<acquisition_credit> *promise = acquisition_waiter_stacks[i].back();
+                    cond_t *cond = acquisition_waiter_stacks[i].back();
                     acquisition_waiter_stacks[i].pop_back();
 
-                    promise->pulse(depth_first_credit);
+                    cond->pulse();
                     diff -= 1;
                 }
             }
@@ -164,9 +139,9 @@ public:
     }
 
 
-    std::vector< std::vector<flat_promise_t<acquisition_credit> *> > acquisition_waiter_stacks;
+    std::vector< std::vector<cond_t *> > acquisition_waiter_stacks;
 
-    std::vector<flat_promise_t<acquisition_credit> *>& acquisition_waiter_stack(int level) {
+    std::vector<cond_t *>& acquisition_waiter_stack(int level) {
         rassert(level >= 0);
         if (level >= int(acquisition_waiter_stacks.size())) {
             rassert(level == int(acquisition_waiter_stacks.size()), "Somehow we skipped a level! (level = %d, stacks.size() = %d, slice = %p)", level, int(acquisition_waiter_stacks.size()), slice);
@@ -178,8 +153,6 @@ public:
     void wait() {
         finished_cond.wait();
     }
-
-    int num_breadth_blocks;
 
 private:
     DISABLE_COPYING(backfill_state_t);
@@ -198,13 +171,12 @@ class backfill_buf_lock_t {
 
 public:
     backfill_buf_lock_t(const thread_saver_t& saver, backfill_state_t& state, int level, block_id_t block_id, threadsafe_cond_t *acquisition_cond)
-        : state_(state), level_(level), inner_lock_(), pulse_response_(backfill_state_t::no_response) {
+        : state_(state), level_(level), inner_lock_() {
         acquire_node(saver, block_id, acquisition_cond);
     }
 
     ~backfill_buf_lock_t() {
         state_.level_count(level_) -= 1;
-        state_.num_breadth_blocks -= (pulse_response_ == backfill_state_t::breadth_first_credit);
         state_.consider_pulsing();
     }
 
@@ -219,11 +191,11 @@ public:
 
         state_.level_count(level_) += 1;
 
-        flat_promise_t<backfill_state_t::acquisition_credit> waiter;
-        state_.acquisition_waiter_stack(level_).push_back(&waiter);
+        cond_t cond;
+        state_.acquisition_waiter_stack(level_).push_back(&cond);
 
         state_.consider_pulsing();
-        pulse_response_ = waiter.wait();
+        cond.wait();
 
         // Now actually acquire the node.
         buf_lock_t tmp(saver, state_.transactor_ptr->get(), block_id, rwi_read, acquisition_cond);
@@ -237,7 +209,6 @@ private:
     backfill_state_t& state_;
     int level_;
     buf_lock_t inner_lock_;
-    backfill_state_t::acquisition_credit pulse_response_;
     DISABLE_COPYING(backfill_buf_lock_t);
 };
 
@@ -324,6 +295,8 @@ void process_internal_node(backfill_state_t& state, buf_lock_t& buf_lock, int le
 }
 
 void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
+    // This can be run in the scheduler thread.
+
     const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(buf_lock->get_data_read());
 
     // Remember, we only want to process recent keys.
