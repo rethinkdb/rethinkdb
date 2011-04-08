@@ -35,7 +35,7 @@ large_value_data_provider_t::large_value_data_provider_t(const btree_value *valu
 
     /* We must have gotten into the queue for the first level of the large buf before this
     function returns. The large_buf_t::acquire_slice does this immediately.  This fixes issue #197. */
-    large_value.acquire_slice(lb_ref.ptr()->offset, lb_ref.ptr()->size, this);
+    large_value.acquire_slice(0, lb_ref.ptr()->size, this);
 }
 
 void large_value_data_provider_t::on_large_buf_available(UNUSED large_buf_t *large_buf) {
