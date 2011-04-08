@@ -199,14 +199,16 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block
         acq_start_cb->on_started_acquisition();
 
         if (buf) {
-            node_ready_cb->on_node_ready(buf);
-            node_ready_cb = NULL;
+            node_ready_callback_t *local_cb = node_ready_cb;
+            delete this;
+            local_cb->on_node_ready(buf);
         }
     }
 
     void on_block_available(buf_t *block) {
-        node_ready_cb->on_node_ready(block);
-        node_ready_cb = NULL;
+        node_ready_callback_t *local_cb = node_ready_cb;
+        delete this;
+        local_cb->on_node_ready(block);
     }
 };
 
@@ -331,6 +333,7 @@ void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, b
     // The children are all pending acquisition; we can release the parent.
     parent.release();
 }
+
 
 void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, threadsafe_cond_t *acquisition_cond) {
     pm_backfill_coros++;
