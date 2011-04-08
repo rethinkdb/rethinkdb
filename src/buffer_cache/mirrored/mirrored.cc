@@ -720,7 +720,7 @@ void mc_transaction_t::snapshot() {
     snapshotted = true;
 }
 
-void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+void mc_transaction_t::co_get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
     bool need_second_loop = false;
     for (size_t i = 0; i < num_block_ids; ++i) {
         inner_buf_t *inner_buf = cache->page_map.find(block_ids[i]);

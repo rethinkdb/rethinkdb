@@ -172,7 +172,7 @@ mock_buf_t *mock_transaction_t::allocate() {
     return buf;
 }
 
-void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+void mock_transaction_t::co_get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
     for (size_t i = 0; i < num_block_ids; ++i) {
         rassert(block_ids[i] < cache->bufs.get_size());
         internal_buf_t *internal_buf = cache->bufs[block_ids[i]];

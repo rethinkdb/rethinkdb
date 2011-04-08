@@ -355,6 +355,6 @@ void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
 
 void get_recency_timestamps(backfill_state_t& state, block_id_t *block_ids, int num_block_ids, repli_timestamp *recencies_out) {
     // Uh... that was easy.
-    (*state.transactor_ptr)->get_subtree_recencies(block_ids, num_block_ids, recencies_out);
+    (*state.transactor_ptr)->co_get_subtree_recencies(block_ids, num_block_ids, recencies_out);
 }
 
