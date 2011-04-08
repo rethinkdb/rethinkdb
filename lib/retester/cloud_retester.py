@@ -749,7 +749,9 @@ def do_test_cloud(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
     
     # Build up the command line
     command = cmd
-    for arg in cmd_args:
+    cmd_args_keys = [k for k in cmd_args]
+    cmd_args_keys.sort()
+    for arg in cmd_args_keys:
         command += " "
         # GNU cmd line builder
         if cmd_format == "gnu":
