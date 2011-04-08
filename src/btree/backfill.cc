@@ -280,22 +280,19 @@ void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, b
 
     // Conds activated when we first try to acquire the children.
     // TODO: Replace acquisition_conds with a counter that counts down to zero.
-    boost::scoped_array<threadsafe_cond_t> acquisition_conds(new threadsafe_cond_t[num_block_ids]);
+    threadsafe_cond_t acquisition_countdown(num_block_ids);
 
     for (int i = 0; i < num_block_ids; ++i) {
         if (recencies[i].time >= state.since_when.time) {
-            coro_t::spawn(boost::bind(do_subtree_backfill, boost::ref(state), level, block_ids[i], &acquisition_conds[i]));
+            coro_t::spawn(boost::bind(do_subtree_backfill, boost::ref(state), level, block_ids[i], &acquisition_countdown));
         } else {
-            acquisition_conds[i].pulse();
+            acquisition_countdown.pulse();
         }
     }
 
-    for (int i = 0; i < num_block_ids; ++i) {
-        acquisition_conds[i].wait();
-    }
+    acquisition_countdown.wait();
 
     // The children are all pending acquisition; we can release the parent.
-
     parent.release();
 }
 
