@@ -81,7 +81,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
         if (!block_is_empty[current_block - first_block]) {
             /* This automatically starts reading the block from disk and registers it with the
             cache. */
-            new mc_inner_buf_t(&cache, current_block, should_load_block);
+            new mc_inner_buf_t(&cache, current_block, true);
         }
     }
 
@@ -447,15 +447,26 @@ mc_buf_t *patch_disk_storage_t::acquire_block_no_locking(const block_id_t block_
     mc_inner_buf_t *inner_buf = cache.page_map.find(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
-        inner_buf = new mc_inner_buf_t(&cache, block_id, should_load_block);
+        inner_buf = new mc_inner_buf_t(&cache, block_id, true);
     }
     
     // We still have to acquire the lock once to wait for the buf to get ready
     mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_read, mc_inner_buf_t::faux_version_id, false);
 
-    // Release the lock we've got
-    buf->inner_buf->lock.unlock();
-    buf->non_locking_access = true;
-    buf->mode = rwi_write;
-    return buf;
+    if (buf->ready) {
+        // Release the lock we've got
+        buf->inner_buf->lock.unlock();
+        buf->non_locking_access = true;
+        buf->mode = rwi_write;
+        return buf;
+    } else {
+        co_block_available_callback_2_t cb;
+        buf->callback = &cb;
+        buf = cb.join();
+        // Release the lock we've got
+        buf->inner_buf->lock.unlock();
+        buf->non_locking_access = true;
+        buf->mode = rwi_write;
+        return buf;
+    }
 }

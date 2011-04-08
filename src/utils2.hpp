@@ -121,8 +121,6 @@ utils.hpp because the mock IO layer uses random delays. Internally, they
 secretly use the IO layer, but it is safe to include utils2.hpp from within the
 IO layer. */
 
-int choose_random_delay();
-
 void random_delay(void (*)(void*), void*);
 
 template<class cb_t>

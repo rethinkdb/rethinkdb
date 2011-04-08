@@ -33,11 +33,20 @@ struct scc_transaction_commit_callback_t {
     virtual ~scc_transaction_commit_callback_t() {}
 };
 
+template<class inner_cache_t>
+struct scc_block_available_callback_t {
+    virtual void on_block_available(scc_buf_t<inner_cache_t> *buf) = 0;
+    virtual ~scc_block_available_callback_t() {}
+};
+
 /* Buf */
 
 template<class inner_cache_t>
-class scc_buf_t
+class scc_buf_t :
+    private inner_cache_t::block_available_callback_t
 {
+    typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
+
 public:
     block_id_t get_block_id();
     bool is_dirty();
@@ -58,6 +67,8 @@ private:
     friend class scc_transaction_t<inner_cache_t>;
     bool snapshotted;
     typename inner_cache_t::buf_t *inner_buf;
+    void on_block_available(typename inner_cache_t::buf_t *buf);
+    block_available_callback_t *available_cb;
     explicit scc_buf_t(scc_cache_t<inner_cache_t> *, bool snapshotted);
     scc_cache_t<inner_cache_t> *cache;
 private:
@@ -79,6 +90,7 @@ class scc_transaction_t :
     typedef scc_buf_t<inner_cache_t> buf_t;
     typedef scc_transaction_begin_callback_t<inner_cache_t> transaction_begin_callback_t;
     typedef scc_transaction_commit_callback_t<inner_cache_t> transaction_commit_callback_t;
+    typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
 
 public:
     // TODO: Implement semantic checking for snapshots!
@@ -88,7 +100,8 @@ public:
     }
     bool commit(transaction_commit_callback_t *callback);
 
-    buf_t *acquire(block_id_t block_id, access_t mode, should_load_flag_t should_load = should_load_block);
+    buf_t *acquire(block_id_t block_id, access_t mode,
+                   block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 
@@ -116,6 +129,7 @@ public:
     typedef scc_transaction_t<inner_cache_t> transaction_t;
     typedef scc_transaction_begin_callback_t<inner_cache_t> transaction_begin_callback_t;
     typedef scc_transaction_commit_callback_t<inner_cache_t> transaction_commit_callback_t;
+    typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
 
     static void create(
         translator_serializer_t *serializer,

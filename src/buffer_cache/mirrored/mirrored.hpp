@@ -83,7 +83,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     bool safe_to_unload();
 
     // Load an existing buf from disk
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, should_load_flag_t should_load);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
@@ -133,6 +133,9 @@ private:
     void on_lock_available();
     void acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted);
 
+    bool ready;
+    block_available_callback_t *callback;
+
     ticks_t start_time;
 
     access_t mode;
@@ -154,6 +157,7 @@ public:
     patch_counter_t get_next_patch_counter();
 
     const void *get_data_read() const {
+        rassert(ready);
         return data;
     }
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
@@ -231,7 +235,8 @@ public:
 
     bool commit(transaction_commit_callback_t *callback);
 
-    buf_t *acquire(block_id_t block_id, access_t mode, should_load_flag_t should_load = should_load_block);
+    buf_t *acquire(block_id_t block_id, access_t mode,
+                   block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 

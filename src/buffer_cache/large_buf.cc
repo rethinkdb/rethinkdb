@@ -201,7 +201,7 @@ void large_buf_t::allocate(int64_t _size) {
     rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
 }
 
-struct acquire_buftree_fsm_t : public tree_available_callback_t {
+struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_available_callback_t {
     block_id_t block_id;
     int64_t offset, size;
     int levels;
@@ -223,9 +223,10 @@ struct acquire_buftree_fsm_t : public tree_available_callback_t {
 
     void go() {
         bool should_load = should_load_leaves || levels != 1;
-        buf_t *buf = (*lb->txor)->acquire(block_id, lb->access, should_load ? should_load_block : shouldnt_load_block);
-        rassert(buf);   // acquire() now blocks until the buf is available
-        on_block_available(buf);
+        buf_t *buf = (*lb->txor)->acquire(block_id, lb->access, this, should_load);
+        if (buf) {
+            on_block_available(buf);
+        }
     }
 
     void on_block_available(buf_t *buf) {
