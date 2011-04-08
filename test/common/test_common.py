@@ -461,7 +461,7 @@ class FailoverMemcachedWrapper(object):
             self.resurrect_server("slave" if not self.down["master"] else "master")
 
         target = "master" if not self.down["master"] else "slave"
-        print "Sending query to %s." % target
+        #print "Sending query to %s." % target
         mc_to_use = self.mc[target]
 
         return getattr(mc_to_use, name)
@@ -673,8 +673,6 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
     sys.exit(0)
 
 def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], test_dir=TestDir()):
-    import pdb
-    #pdb.set_trace()
     try:
         if opts["auto"]:
             repli_port = find_unused_port()
