@@ -4,6 +4,8 @@
 /* Specialization for small values */
 
 small_value_data_provider_t::small_value_data_provider_t(const btree_value *_value) : value(), buffers() {
+    // This can be called in the scheduler thread.
+
     rassert(!_value->is_large());
     const char *data = ptr_cast<char>(_value->value());
     value.assign(data, data + _value->value_size());
@@ -29,25 +31,20 @@ large_value_data_provider_t::large_value_data_provider_t(const btree_value *valu
     large_value(transactor, lb_ref.ptr(), btree_value::lbref_limit, rwi_read),
     have_value(false)
 {
+    // This can be called in the scheduler thread.
+
     /* We must have gotten into the queue for the first level of the large buf before this
-    function returns. acquire_in_background() will cause acquisition_cond to be pulsed when
-    it has started acquiring the large buf. This fixes issue #197. */
-    threadsafe_cond_t acquisition_cond;
-    coro_t::spawn_now(boost::bind(&large_value_data_provider_t::acquire_in_background, this, &acquisition_cond));
-    acquisition_cond.wait();
+    function returns. The large_buf_t::acquire_slice does this immediately.  This fixes issue #197. */
+    large_value.acquire_slice(lb_ref.ptr()->offset, lb_ref.ptr()->size, this);
+}
+
+void large_value_data_provider_t::on_large_buf_available(UNUSED large_buf_t *large_buf) {
+    rassert(large_value.state == large_buf_t::loaded);
+    large_value_cond.pulse();
 }
 
 size_t large_value_data_provider_t::get_size() const {
     return lb_ref.ptr()->size;
-}
-
-void large_value_data_provider_t::acquire_in_background(threadsafe_cond_t *acquisition_cond) {
-    {
-        thread_saver_t ts;
-        co_acquire_large_buf(ts, &large_value, acquisition_cond);
-    }
-    rassert(large_value.state == large_buf_t::loaded);
-    large_value_cond.pulse();
 }
 
 const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
@@ -64,7 +61,7 @@ const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() t
 }
 
 large_value_data_provider_t::~large_value_data_provider_t() {
-    /* acquire_in_background() must finish before we are destroyed, or else it will
+    /* The buf must be loaded before we are destroyed, or else it will
     try to access us after we are destroyed. */
     if (!have_value) large_value_cond.wait();
 }
@@ -72,6 +69,7 @@ large_value_data_provider_t::~large_value_data_provider_t() {
 /* Choose the appropriate specialization */
 
 value_data_provider_t *value_data_provider_t::create(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor) {
+    // This can be called in the scheduler thread.
     if (value->is_large()) {
         return new large_value_data_provider_t(value, transactor);
     } else {

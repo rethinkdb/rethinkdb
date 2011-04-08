@@ -37,7 +37,7 @@ private:
     friend class value_data_provider_t;
 };
 
-class large_value_data_provider_t : public value_data_provider_t {
+class large_value_data_provider_t : public value_data_provider_t, public large_buf_available_callback_t {
 private:
     large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
 
@@ -70,7 +70,7 @@ private:
     large_buf_t large_value;
     cond_t large_value_cond;
     bool have_value;
-    void acquire_in_background(threadsafe_cond_t *acquisition_cond);
+    void on_large_buf_available(large_buf_t *large_buf);
 
     friend class value_data_provider_t;
 };
