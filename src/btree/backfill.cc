@@ -62,6 +62,12 @@
 // 6L. Large values all pending or better, so we can release ownership
 // of the block.  We stop here.
 
+struct acquisition_waiter_callback_t {
+    virtual void you_may_acquire() = 0;
+protected:
+    ~acquisition_waiter_callback_t() { }
+};
+
 // TODO: Actually use shutdown_mode.
 class backfill_state_t {
 public:
@@ -116,10 +122,10 @@ public:
                 int diff = level_max(i) - level_counts[i];
 
                 while (diff > 0 && !acquisition_waiter_stacks[i].empty()) {
-                    cond_t *cond = acquisition_waiter_stacks[i].back();
+                    acquisition_waiter_callback_t *waiter_cb = acquisition_waiter_stacks[i].back();
                     acquisition_waiter_stacks[i].pop_back();
 
-                    cond->pulse();
+                    waiter_cb->you_may_acquire();
                     diff -= 1;
                 }
             }
@@ -139,9 +145,9 @@ public:
     }
 
 
-    std::vector< std::vector<cond_t *> > acquisition_waiter_stacks;
+    std::vector< std::vector<acquisition_waiter_callback_t *> > acquisition_waiter_stacks;
 
-    std::vector<cond_t *>& acquisition_waiter_stack(int level) {
+    std::vector<acquisition_waiter_callback_t *>& acquisition_waiter_stack(int level) {
         rassert(level >= 0);
         if (level >= int(acquisition_waiter_stacks.size())) {
             rassert(level == int(acquisition_waiter_stacks.size()), "Somehow we skipped a level! (level = %d, stacks.size() = %d, slice = %p)", level, int(acquisition_waiter_stacks.size()), slice);
@@ -191,11 +197,17 @@ public:
 
         state_.level_count(level_) += 1;
 
-        cond_t cond;
-        state_.acquisition_waiter_stack(level_).push_back(&cond);
+        struct : public acquisition_waiter_callback_t {
+            void you_may_acquire() {
+                cond.pulse();
+            }
+            cond_t cond;
+        } cb;
+
+        state_.acquisition_waiter_stack(level_).push_back(&cb);
 
         state_.consider_pulsing();
-        cond.wait();
+        cb.cond.wait();
 
         // Now actually acquire the node.
         buf_lock_t tmp(saver, state_.transactor_ptr->get(), block_id, rwi_read, acquisition_cond);
