@@ -172,6 +172,26 @@ void process_internal_node(backfill_state_t& state, buf_lock_t& buf_lock, int le
 
 void get_recency_timestamps(backfill_state_t& state, block_id_t *block_ids, int num_block_ids, repli_timestamp *recencies_out);
 
+struct acquisition_start_callback_t {
+    virtual void on_started_acquisition() = 0;
+protected:
+    ~acquisition_start_callback_t() { }
+};
+
+struct node_ready_callback_t {
+    virtual void on_node_ready(buf_t *buf) = 0;
+protected:
+    ~node_ready_callback_t() { }
+};
+
+/*
+void acquire_a_node(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb, node_ready_callback_t *node_ready_cb) {
+
+
+
+}
+*/
+
 // The main purpose of this type is to incr/decr state.level_counts.
 class backfill_buf_lock_t {
 
@@ -195,8 +215,6 @@ public:
         // the bottom level seen so far, and automatically to people
         // requesting nodes beneath the existing bottom level.
 
-        state_.level_count(level_) += 1;
-
         struct : public acquisition_waiter_callback_t {
             void you_may_acquire() {
                 cond.pulse();
@@ -208,6 +226,8 @@ public:
 
         state_.consider_pulsing();
         cb.cond.wait();
+
+        state_.level_count(level_) += 1;
 
         // Now actually acquire the node.
         buf_lock_t tmp(saver, state_.transactor_ptr->get(), block_id, rwi_read, acquisition_cond);
