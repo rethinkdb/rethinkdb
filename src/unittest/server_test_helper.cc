@@ -6,6 +6,28 @@
 #include "serializer/translator.hpp"
 #include "btree/slice.hpp"
 
+// Maybe find a better place for this like "unittest/utils.hpp"
+class temp_file_t {
+    char * filename;
+public:
+    temp_file_t(const char * tmpl) {
+        size_t len = strlen(tmpl);
+        filename = new char[len+1];
+        memcpy(filename, tmpl, len+1);
+        int fd = mkstemp(filename);
+        guarantee_err(fd != -1, "Couldn't create a temporary file");
+        close(fd);
+    }
+    std::string name() {
+        return filename;
+    }
+    ~temp_file_t() {
+        unlink(filename);
+        delete [] filename;
+    }
+};
+
+
 void server_test_helper_t::run() {
     struct starter_t : public thread_message_t {
         server_test_helper_t *server_test;
