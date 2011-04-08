@@ -865,7 +865,7 @@ size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *d
 mc_transaction_t *mc_cache_t::begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
     assert_thread();
     rassert(!shutting_down);
-
+    rassert(access == rwi_read || access == rwi_read_outdated_ok || recency_timestamp.time != repli_timestamp::invalid);
     rassert(access == rwi_write || expected_change_count == 0);
 
     transaction_t *txn = new transaction_t(this, access, expected_change_count, recency_timestamp);
