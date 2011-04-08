@@ -21,4 +21,11 @@ struct mc_transaction_commit_callback_t {
     virtual void on_txn_commit(mc_transaction_t *txn) = 0;
 };
 
+class get_subtree_recencies_callback_t {
+public:
+    virtual void got_subtree_recencies() = 0;
+protected:
+    ~get_subtree_recencies_callback_t() { }
+};
+
 #endif // __BUFFER_CACHE_CALLBACKS_HPP__

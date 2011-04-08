@@ -720,7 +720,19 @@ void mc_transaction_t::snapshot() {
     snapshotted = true;
 }
 
-void mc_transaction_t::co_get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+void get_subtree_recencies_helper(int slice_home_thread, translator_serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
+    serializer->assert_thread();
+
+    for (size_t i = 0; i < num_block_ids; ++i) {
+        if (recencies_out[i].time == repli_timestamp::invalid.time) {
+            recencies_out[i] = serializer->get_recency(block_ids[i]);
+        }
+    }
+
+    do_on_thread(slice_home_thread, boost::bind(&get_subtree_recencies_callback_t::got_subtree_recencies, cb));
+}
+
+void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
     bool need_second_loop = false;
     for (size_t i = 0; i < num_block_ids; ++i) {
         inner_buf_t *inner_buf = cache->page_map.find(block_ids[i]);
@@ -733,14 +745,22 @@ void mc_transaction_t::co_get_subtree_recencies(block_id_t *block_ids, size_t nu
     }
 
     if (need_second_loop) {
-        on_thread_t th(cache->serializer->home_thread);
-
-        for (size_t i = 0; i < num_block_ids; ++i) {
-            if (recencies_out[i].time == repli_timestamp::invalid.time) {
-                recencies_out[i] = cache->serializer->get_recency(block_ids[i]);
-            }
-        }
+        do_on_thread(cache->serializer->home_thread, boost::bind(&get_subtree_recencies_helper, get_thread_id(), cache->serializer, block_ids, num_block_ids, recencies_out, cb));
+    } else {
+        cb->got_subtree_recencies();
     }
+}
+
+
+void mc_transaction_t::co_get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+    struct : public get_subtree_recencies_callback_t {
+        void got_subtree_recencies() { cond.pulse(); }
+        cond_t cond;
+    } cb;
+
+    get_subtree_recencies(block_ids, num_block_ids, recencies_out, &cb);
+
+    cb.cond.wait();
 }
 
 /**
