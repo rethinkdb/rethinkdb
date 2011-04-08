@@ -16,7 +16,6 @@ public:
 
     transaction_t *transaction() { return transaction_; }
     transaction_t *operator->() { return transaction_; }
-    void commit(const thread_saver_t& saver);
 private:
     transaction_t *transaction_;
 
