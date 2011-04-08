@@ -194,13 +194,9 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block
 
     void you_may_acquire() {
         state->level_count(level) += 1;
-        level = -1;
 
         buf_t *buf = state->transactor_ptr->get()->acquire(block_id, rwi_read, this);
-        state = NULL;
-        block_id = NULL_BLOCK_ID;
         acq_start_cb->on_started_acquisition();
-        acq_start_cb = NULL;
 
         if (buf) {
             node_ready_cb->on_node_ready(buf);
