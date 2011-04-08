@@ -137,6 +137,11 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate() {
 }
 
 template<class inner_cache_t>
+void scc_transaction_t<inner_cache_t>::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
+    return inner_transaction->get_subtree_recencies(block_ids, num_block_ids, recencies_out, cb);
+}
+
+template<class inner_cache_t>
 void scc_transaction_t<inner_cache_t>::co_get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
     return inner_transaction->co_get_subtree_recencies(block_ids, num_block_ids, recencies_out);
 }
