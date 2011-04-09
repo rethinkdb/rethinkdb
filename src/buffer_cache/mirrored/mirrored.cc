@@ -109,7 +109,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
         snapshot_version = cache->get_current_version_id();
 
     block_id_t block_id = cache->free_list.gen_block_id();
-    mc_inner_buf_t *inner_buf = cache->page_map.find(block_id);
+    mc_inner_buf_t *inner_buf = cache->find_buf(block_id);
     if (!inner_buf) {
         return new mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp);
     } else {
@@ -669,7 +669,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     rassert(is_read_mode(mode) || access != rwi_read);
     assert_thread();
 
-    inner_buf_t *inner_buf = cache->page_map.find(block_id);
+    inner_buf_t *inner_buf = cache->find_buf(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
         inner_buf = new inner_buf_t(cache, block_id, should_load);
@@ -735,7 +735,7 @@ void get_subtree_recencies_helper(int slice_home_thread, translator_serializer_t
 void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
     bool need_second_loop = false;
     for (size_t i = 0; i < num_block_ids; ++i) {
-        inner_buf_t *inner_buf = cache->page_map.find(block_ids[i]);
+        inner_buf_t *inner_buf = cache->find_buf(block_ids[i]);
         if (inner_buf) {
             recencies_out[i] = inner_buf->subtree_recency;
         } else {
@@ -882,6 +882,14 @@ size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *d
     return num_snapshots_affected;
 }
 
+mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
+    return page_map.find(block_id);
+}
+
+bool mc_cache_t::contains_block(block_id_t block_id) {
+    return find_buf(block_id) != NULL;
+}
+
 mc_transaction_t *mc_cache_t::begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
     assert_thread();
     rassert(!shutting_down);
@@ -919,7 +927,7 @@ bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf
 
     // We only load the buffer if we don't have it yet
     // Also we have to recheck that the block has not been deleted in the meantime
-    if (!shutting_down && !page_map.find(block_id)) {
+    if (!shutting_down && !find_buf(block_id)) {
         new mc_inner_buf_t(this, block_id, buf, recency_timestamp);
     } else {
         serializer->free(buf);

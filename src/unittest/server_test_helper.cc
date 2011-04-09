@@ -37,15 +37,16 @@ void server_test_helper_t::setup_server_and_run_tests() {
         ser_config.db_filename = db_file.name();
 
         log_serializer_t::create(&config.store_dynamic_config.serializer, &ser_config, &config.store_static_config.serializer);
-        log_serializer_t serializer(&config.store_dynamic_config.serializer, &ser_config);
+        log_serializer_t log_serializer(&config.store_dynamic_config.serializer, &ser_config);
 
         std::vector<serializer_t *> serializers;
-        serializers.push_back(&serializer);
+        serializers.push_back(&log_serializer);
         serializer_multiplexer_t::create(serializers, 1);
         serializer_multiplexer_t multiplexer(serializers);
 
-        btree_slice_t::create(multiplexer.proxies[0], &config.store_static_config.cache);
-        btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache);
+        this->serializer = multiplexer.proxies[0];
+        btree_slice_t::create(this->serializer, &config.store_static_config.cache);
+        btree_slice_t slice(this->serializer, &config.store_dynamic_config.cache);
 
         cache_t *cache = slice.cache();
 
