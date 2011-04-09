@@ -12,7 +12,7 @@
 class server_test_helper_t {
     thread_pool_t thread_pool;
 public:
-    server_test_helper_t() : thread_pool(1) { }
+    server_test_helper_t() : thread_pool(1), serializer(NULL) { }
     void run();
 
 protected:
@@ -30,6 +30,8 @@ protected:
 
 protected:
     virtual void run_tests(thread_saver_t& saver, cache_t *cache) = 0;
+
+    translator_serializer_t *serializer;
 
 private:
     struct acquiring_coro_t {

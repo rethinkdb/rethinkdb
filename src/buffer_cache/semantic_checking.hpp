@@ -140,12 +140,11 @@ public:
         mirrored_cache_config_t *dynamic_config);
 
     block_size_t get_block_size();
-
     transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
     void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool contains_block(block_id_t block_id);
 
-    translator_serializer_t *serializer;
 private:
     inner_cache_t inner_cache;
 

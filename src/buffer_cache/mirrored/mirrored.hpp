@@ -335,6 +335,7 @@ public:
     // Transaction API
     transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
+    bool contains_block(block_id_t block_id);
 public:
     mc_inner_buf_t::version_id_t get_current_version_id() { return next_snapshot_version; }
 
@@ -357,6 +358,7 @@ public:
     size_t register_snapshotted_block(mc_inner_buf_t *inner_buf, void * data, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
 
 private:
+    inner_buf_t *find_buf(block_id_t block_id);
     void on_transaction_commit(transaction_t *txn);
 
     bool shutting_down;
