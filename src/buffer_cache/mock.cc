@@ -3,8 +3,7 @@
 
 /* Internal buf object */
 
-struct internal_buf_t
-{
+struct internal_buf_t {
     mock_cache_t *cache;
     block_id_t block_id;
     repli_timestamp subtree_recency;
@@ -196,10 +195,7 @@ mock_transaction_t::~mock_transaction_t() {
 // TODO: Why do we take a static_config if we don't use it?
 // (I.i.r.c. we have a similar situation in the mirrored cache.)
 
-void mock_cache_t::create(
-    translator_serializer_t *serializer,
-    UNUSED mirrored_cache_static_config_t *static_config)
-{
+void mock_cache_t::create( translator_serializer_t *serializer, UNUSED mirrored_cache_static_config_t *static_config) {
     on_thread_t switcher(serializer->home_thread);
 
     void *superblock = serializer->malloc();
@@ -217,9 +213,7 @@ void mock_cache_t::create(
 
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
-mock_cache_t::mock_cache_t(
-    translator_serializer_t *serializer,
-    UNUSED mirrored_cache_config_t *dynamic_config)
+mock_cache_t::mock_cache_t( translator_serializer_t *serializer, UNUSED mirrored_cache_config_t *dynamic_config)
     : serializer(serializer), block_size(serializer->get_block_size())
 {
     on_thread_t switcher(serializer->home_thread);
@@ -243,7 +237,6 @@ mock_cache_t::mock_cache_t(
 }
 
 mock_cache_t::~mock_cache_t() {
-
     /* Wait for all transactions to complete */
     transaction_counter.drain();
 
@@ -274,7 +267,6 @@ block_size_t mock_cache_t::get_block_size() {
 }
 
 mock_transaction_t *mock_cache_t::begin_transaction(access_t access, UNUSED int expected_change_count, repli_timestamp recency_timestamp, mock_transaction_begin_callback_t *callback) {
-    
     mock_transaction_t *txn = new mock_transaction_t(this, access, recency_timestamp);
     
     switch (access) {
@@ -292,4 +284,12 @@ mock_transaction_t *mock_cache_t::begin_transaction(access_t access, UNUSED int 
         default:
             unreachable("Bad access.");
     }
+}
+
+void mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, void *buf, UNUSED repli_timestamp recency_timestamp) {
+    serializer->free(buf);
+}
+
+bool mock_cache_t::contains_block(UNUSED block_id_t id) {
+    return true;    // TODO (maybe) write a more sensible implementation
 }

@@ -106,9 +106,7 @@ private:
 
 /* Cache */
 
-class mock_cache_t :
-    public home_thread_mixin_t
-{
+class mock_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
 public:
     typedef mock_buf_t buf_t;
     typedef mock_transaction_t transaction_t;
@@ -126,6 +124,10 @@ public:
 
     block_size_t get_block_size();
     transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
+
+    void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+
+    bool contains_block(block_id_t id);
 
 private:
     friend class mock_transaction_t;
