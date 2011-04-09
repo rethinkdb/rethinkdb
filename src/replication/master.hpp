@@ -5,7 +5,6 @@
 #include "arch/arch.hpp"
 #include "replication/backfill.hpp"
 #include "concurrency/mutex.hpp"
-#include "containers/snag_ptr.hpp"
 #include "containers/thick_list.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
@@ -25,7 +24,7 @@ namespace replication {
 // master_t using spawn_on_thread.
 
 class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t,
-    public message_callback_t, public snag_pointee_mixin_t,
+    public message_callback_t,
     public backfill_and_realtime_streaming_callback_t {
 public:
     master_t(int port)
@@ -43,7 +42,6 @@ public:
         // Stop listening for new connections
         listener_.reset();
 
-        wait_until_ready_to_delete();
         destroy_existing_slave_conn_if_it_exists();
     }
 
