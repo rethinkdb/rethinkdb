@@ -28,7 +28,7 @@ const const_buffer_group_t *small_value_data_provider_t::get_data_as_buffers() t
 large_value_data_provider_t::large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& _transactor) :
     transactor(_transactor),
     lb_ref((*transactor)->cache->get_block_size(), value),
-    large_value(transactor, lb_ref.ptr(), btree_value::lbref_limit, rwi_read),
+    large_value(transactor, lb_ref.ptr(), btree_value::lbref_limit, rwi_read_outdated_ok),
     have_value(false)
 {
     // This can be called in the scheduler thread.
