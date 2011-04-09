@@ -241,7 +241,6 @@ public:
                    block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb);
-    void co_get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 
     // This just sets the snapshotted flag, we finalize the snapshot as soon as the first block has been acquired (see finalize_version() )
     void snapshot();

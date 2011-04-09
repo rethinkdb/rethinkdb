@@ -104,7 +104,6 @@ public:
                    block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb);
-    void co_get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 
     scc_cache_t<inner_cache_t> *cache;
 

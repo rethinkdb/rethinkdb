@@ -116,3 +116,15 @@ void co_commit_transaction(const thread_saver_t& saver, transaction_t *transacti
         coro_t::wait();
     }
 }
+
+
+void co_get_subtree_recencies(transaction_t *txn, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+    struct : public get_subtree_recencies_callback_t {
+        void got_subtree_recencies() { cond.pulse(); }
+        cond_t cond;
+    } cb;
+
+    txn->get_subtree_recencies(block_ids, num_block_ids, recencies_out, &cb);
+
+    cb.cond.wait();
+}

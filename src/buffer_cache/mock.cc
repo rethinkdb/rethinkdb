@@ -173,17 +173,13 @@ mock_buf_t *mock_transaction_t::allocate() {
 }
 
 void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
-    co_get_subtree_recencies(block_ids, num_block_ids, recencies_out);
-    cb->got_subtree_recencies();
-}
-
-void mock_transaction_t::co_get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
     for (size_t i = 0; i < num_block_ids; ++i) {
         rassert(block_ids[i] < cache->bufs.get_size());
         internal_buf_t *internal_buf = cache->bufs[block_ids[i]];
         rassert(internal_buf);
         recencies_out[i] = internal_buf->subtree_recency;
     }
+    cb->got_subtree_recencies();
 }
 
 mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, repli_timestamp _recency_timestamp)

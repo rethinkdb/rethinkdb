@@ -752,17 +752,6 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
 }
 
 
-void mc_transaction_t::co_get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
-    struct : public get_subtree_recencies_callback_t {
-        void got_subtree_recencies() { cond.pulse(); }
-        cond_t cond;
-    } cb;
-
-    get_subtree_recencies(block_ids, num_block_ids, recencies_out, &cb);
-
-    cb.cond.wait();
-}
-
 /**
  * Cache implementation.
  */
