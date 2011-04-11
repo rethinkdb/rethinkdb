@@ -33,10 +33,17 @@ struct mock_transaction_commit_callback_t {
     virtual ~mock_transaction_commit_callback_t() {}
 };
 
+struct mock_block_available_callback_t {
+    virtual void on_block_available(mock_buf_t *buf) = 0;
+    virtual ~mock_block_available_callback_t() {}
+};
+
 /* Buf */
 
-class mock_buf_t
+class mock_buf_t :
+    public lock_available_callback_t
 {
+    typedef mock_block_available_callback_t block_available_callback_t;
 
 public:
     block_id_t get_block_id();
@@ -56,12 +63,14 @@ public:
     bool is_deleted();
 
 private:
+    void on_lock_available();
     friend class mock_transaction_t;
     friend class mock_cache_t;
     friend class internal_buf_t;
     internal_buf_t *internal_buf;
     access_t access;
     bool dirty, deleted;
+    block_available_callback_t *cb;
     mock_buf_t(internal_buf_t *buf, access_t access);
 };
 
@@ -72,15 +81,16 @@ class mock_transaction_t
     typedef mock_buf_t buf_t;
     typedef mock_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mock_transaction_commit_callback_t transaction_commit_callback_t;
+    typedef mock_block_available_callback_t block_available_callback_t;
 
 public:
     bool commit(transaction_commit_callback_t *callback);
 
     void snapshot() { }
 
-    buf_t *acquire(block_id_t block_id, access_t mode, should_load_flag_t should_load = should_load_block);
+    buf_t *acquire(block_id_t block_id, access_t mode, block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
-    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
+    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb);
 
     mock_cache_t *cache;
 
@@ -96,14 +106,13 @@ private:
 
 /* Cache */
 
-class mock_cache_t :
-    public home_thread_mixin_t
-{
+class mock_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
 public:
     typedef mock_buf_t buf_t;
     typedef mock_transaction_t transaction_t;
     typedef mock_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mock_transaction_commit_callback_t transaction_commit_callback_t;
+    typedef mock_block_available_callback_t block_available_callback_t;
 
     static void create(
         translator_serializer_t *serializer,
@@ -115,6 +124,10 @@ public:
 
     block_size_t get_block_size();
     transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
+
+    void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+
+    bool contains_block(block_id_t id);
 
 private:
     friend class mock_transaction_t;

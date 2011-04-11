@@ -83,7 +83,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     bool safe_to_unload();
 
     // Load an existing buf from disk
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, should_load_flag_t should_load);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
@@ -133,6 +133,9 @@ private:
     void on_lock_available();
     void acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted);
 
+    bool ready;
+    block_available_callback_t *callback;
+
     ticks_t start_time;
 
     access_t mode;
@@ -154,6 +157,7 @@ public:
     patch_counter_t get_next_patch_counter();
 
     const void *get_data_read() const {
+        rassert(ready);
         return data;
     }
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
@@ -208,6 +212,8 @@ private:
     DISABLE_COPYING(mc_buf_t);
 };
 
+
+
 /* Transaction class. */
 class mc_transaction_t :
     public intrusive_list_node_t<mc_transaction_t>,
@@ -231,9 +237,10 @@ public:
 
     bool commit(transaction_commit_callback_t *callback);
 
-    buf_t *acquire(block_id_t block_id, access_t mode, should_load_flag_t should_load = should_load_block);
+    buf_t *acquire(block_id_t block_id, access_t mode,
+                   block_available_callback_t *callback, bool should_load = true);
     buf_t *allocate();
-    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
+    void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb);
 
     // This just sets the snapshotted flag, we finalize the snapshot as soon as the first block has been acquired (see finalize_version() )
     void snapshot();
@@ -327,6 +334,7 @@ public:
     // Transaction API
     transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
+    bool contains_block(block_id_t block_id);
 public:
     mc_inner_buf_t::version_id_t get_current_version_id() { return next_snapshot_version; }
 
@@ -349,6 +357,7 @@ public:
     size_t register_snapshotted_block(mc_inner_buf_t *inner_buf, void * data, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
 
 private:
+    inner_buf_t *find_buf(block_id_t block_id);
     void on_transaction_commit(transaction_t *txn);
 
     bool shutting_down;

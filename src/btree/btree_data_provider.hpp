@@ -37,7 +37,7 @@ private:
     friend class value_data_provider_t;
 };
 
-class large_value_data_provider_t : public value_data_provider_t {
+class large_value_data_provider_t : public value_data_provider_t, public large_buf_available_callback_t {
 private:
     large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
 
@@ -57,8 +57,11 @@ private:
         large_buf_ref_buffer_t(block_size_t block_size, const btree_value *value) {
             memcpy(ptr(), value->lb_ref(), value->lb_ref()->refsize(block_size, btree_value::lbref_limit));
         }
-        large_buf_ref *ptr() const {
-            return (large_buf_ref*)buffer;
+        const large_buf_ref *ptr() const {
+            return reinterpret_cast<const large_buf_ref *>(buffer);
+        }
+        large_buf_ref *ptr() {
+            return reinterpret_cast<large_buf_ref *>(buffer);
         }
         char buffer[MAX_IN_NODE_VALUE_SIZE];
     };
@@ -67,7 +70,7 @@ private:
     large_buf_t large_value;
     cond_t large_value_cond;
     bool have_value;
-    void acquire_in_background(threadsafe_cond_t *acquisition_cond);
+    void on_large_buf_available(large_buf_t *large_buf);
 
     friend class value_data_provider_t;
 };

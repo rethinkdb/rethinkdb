@@ -13,7 +13,7 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
     explicit load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
-        bool locked __attribute__((unused)) = inner_buf->lock.lock(rwi_write, NULL);
+        bool locked UNUSED = inner_buf->lock.lock(rwi_write, NULL);
         rassert(locked);
         have_loaded = false;
         if (continue_on_thread(inner_buf->cache->serializer->home_thread, this)) on_thread_switch();
@@ -40,7 +40,7 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
 };
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, should_load_flag_t should_load)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load)
     : cache(cache),
       block_id(block_id),
       subtree_recency(repli_timestamp::invalid),  // Gets initialized by load_buf_fsm_t.
@@ -58,12 +58,12 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, should_load_
 
     rassert(version_id != faux_version_id);
 
-    if (should_load == should_load_block) {
+    if (should_load) {
         new load_buf_fsm_t(this);
     }
 
     // pm_n_blocks_in_memory gets incremented in cases where
-    // should_load == shouldnt_load_block, because currently we're still mallocing
+    // should_load == false, because currently we're still mallocing
     // the buffer.
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
@@ -109,7 +109,7 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
         snapshot_version = cache->get_current_version_id();
 
     block_id_t block_id = cache->free_list.gen_block_id();
-    mc_inner_buf_t *inner_buf = cache->page_map.find(block_id);
+    mc_inner_buf_t *inner_buf = cache->find_buf(block_id);
     if (!inner_buf) {
         return new mc_inner_buf_t(cache, block_id, snapshot_version, recency_timestamp);
     } else {
@@ -154,6 +154,12 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
 {
     rassert(version_id != faux_version_id);
     cache->assert_thread();
+
+#if !defined(NDEBUG) || defined(VALGRIND)
+    // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
+    // between problems with uninitialized memory and problems with uninitialized blocks
+    memset(data, 0xCD, cache->serializer->get_block_size().value());
+#endif
 
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
@@ -240,7 +246,7 @@ perfmon_duration_sampler_t
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
 mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted)
-    : mode(mode), non_locking_access(false), inner_buf(inner_buf), data(NULL)
+    : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner_buf), data(NULL)
 {
     inner_buf->cache->assert_thread();
 #ifndef FAST_PERFMON
@@ -331,6 +337,9 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
 
     pm_bufs_held.begin(&start_time);
 
+    ready = true;
+    if (callback) callback->on_block_available(this);
+
     if (snapshotted) {
         if (locked)
             inner_buf->lock.unlock();
@@ -339,6 +348,7 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
 }
 
 void mc_buf_t::apply_patch(buf_patch_t *patch) {
+    rassert(ready);
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
@@ -375,6 +385,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
 }
 
 void *mc_buf_t::get_data_major_write() {
+    rassert(ready);
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
@@ -416,6 +427,7 @@ void mc_buf_t::mark_deleted(bool write_null) {
 }
 
 patch_counter_t mc_buf_t::get_next_patch_counter() {
+    rassert(ready);
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
@@ -646,16 +658,18 @@ mc_buf_t *mc_transaction_t::allocate() {
     mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write, snapshot_version, snapshotted);
 
     assert_thread();
+    rassert(buf->ready);
 
     return buf;
 }
 
-mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode, should_load_flag_t should_load) {
+mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
+                                    block_available_callback_t *callback, bool should_load) {
     rassert(block_id != NULL_BLOCK_ID);
     rassert(is_read_mode(mode) || access != rwi_read);
     assert_thread();
 
-    inner_buf_t *inner_buf = cache->page_map.find(block_id);
+    inner_buf_t *inner_buf = cache->find_buf(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
         inner_buf = new inner_buf_t(cache, block_id, should_load);
@@ -670,8 +684,13 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode, should_l
         buf->touch_recency(recency_timestamp);
     }
 
-    maybe_finalize_version();
-    return buf;
+    if (buf->ready) {
+        maybe_finalize_version();
+        return buf;
+    } else {
+        buf->callback = snapshotted ? new snapshot_wrapper_t(this, callback) : callback;
+        return NULL;
+    }
 }
 
 void mc_transaction_t::snapshot_wrapper_t::on_block_available(mc_buf_t *block) {
@@ -701,10 +720,22 @@ void mc_transaction_t::snapshot() {
     snapshotted = true;
 }
 
-void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+void get_subtree_recencies_helper(int slice_home_thread, translator_serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
+    serializer->assert_thread();
+
+    for (size_t i = 0; i < num_block_ids; ++i) {
+        if (recencies_out[i].time == repli_timestamp::invalid.time) {
+            recencies_out[i] = serializer->get_recency(block_ids[i]);
+        }
+    }
+
+    do_on_thread(slice_home_thread, boost::bind(&get_subtree_recencies_callback_t::got_subtree_recencies, cb));
+}
+
+void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
     bool need_second_loop = false;
     for (size_t i = 0; i < num_block_ids; ++i) {
-        inner_buf_t *inner_buf = cache->page_map.find(block_ids[i]);
+        inner_buf_t *inner_buf = cache->find_buf(block_ids[i]);
         if (inner_buf) {
             recencies_out[i] = inner_buf->subtree_recency;
         } else {
@@ -714,15 +745,12 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
     }
 
     if (need_second_loop) {
-        on_thread_t th(cache->serializer->home_thread);
-
-        for (size_t i = 0; i < num_block_ids; ++i) {
-            if (recencies_out[i].time == repli_timestamp::invalid.time) {
-                recencies_out[i] = cache->serializer->get_recency(block_ids[i]);
-            }
-        }
+        do_on_thread(cache->serializer->home_thread, boost::bind(&get_subtree_recencies_helper, get_thread_id(), cache->serializer, block_ids, num_block_ids, recencies_out, cb));
+    } else {
+        cb->got_subtree_recencies();
     }
 }
+
 
 /**
  * Cache implementation.
@@ -843,10 +871,17 @@ size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *d
     return num_snapshots_affected;
 }
 
+mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
+    return page_map.find(block_id);
+}
+
+bool mc_cache_t::contains_block(block_id_t block_id) {
+    return find_buf(block_id) != NULL;
+}
+
 mc_transaction_t *mc_cache_t::begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
     assert_thread();
     rassert(!shutting_down);
-
     rassert(access == rwi_write || expected_change_count == 0);
 
     transaction_t *txn = new transaction_t(this, access, expected_change_count, recency_timestamp);
@@ -881,7 +916,7 @@ bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf
 
     // We only load the buffer if we don't have it yet
     // Also we have to recheck that the block has not been deleted in the meantime
-    if (!shutting_down && !page_map.find(block_id)) {
+    if (!shutting_down && !find_buf(block_id)) {
         new mc_inner_buf_t(this, block_id, buf, recency_timestamp);
     } else {
         serializer->free(buf);

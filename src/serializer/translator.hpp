@@ -105,14 +105,12 @@ public:
     // needs to be exposed in some way because recovery tools depend
     // on it.
     static ser_block_id_t translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid);
+    ser_block_id_t translate_block_id(block_id_t id);
 
     // "Inverts" translate_block_id, converting inner_id back to mod_id (not back to id).
     static int untranslate_block_id_to_mod_id(ser_block_id_t inner_id, int mod_count, config_block_id_t cfgid);
     static block_id_t untranslate_block_id_to_id(ser_block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid);
 
-private:
-    ser_block_id_t xlate(block_id_t id);
-    
 public:
     /* The translator serializer will only use block IDs on the inner serializer that
     are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */ 

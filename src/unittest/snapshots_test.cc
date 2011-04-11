@@ -1,8 +1,4 @@
 #include "unittest/gtest.hpp"
-
-#include <cstdlib>
-//#include <functional>
-
 #include "errors.hpp"
 #include "unittest/server_test_helper.hpp"
 #include "buffer_cache/transactor.hpp"
@@ -10,15 +6,11 @@
 
 namespace unittest {
 
-static const int init_value = 0x12345678;
-static const int changed_value = 0x87654321;
-
-struct tester_t : public server_test_helper_t {
+struct snapshots_tester_t : public server_test_helper_t {
 protected:
     void run_tests(thread_saver_t& saver, cache_t *cache) {
         // It's nice to see the progress of these tests, so we use log_call
         log_call(test_snapshot_acq_blocks_on_unfinished_create, saver, cache);
-        log_call(test_snapshot_acq_blocks_on_older_write_txns, saver, cache);
         log_call(test_snapshot_sees_changes_started_before_its_first_block_acq, saver, cache);
         log_call(test_snapshot_doesnt_see_later_changes_and_doesnt_block_them, saver, cache);
         log_call(test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later, saver, cache);
@@ -30,73 +22,6 @@ protected:
     }
 
 private:
-    static buf_t *create(transactor_t& txor) {
-        return txor.transaction()->allocate();
-    }
-
-    static void snap(transactor_t& txor) {
-        txor.transaction()->snapshot();
-    }
-
-    static buf_t *acq(transactor_t& txor, block_id_t block_id, access_t mode = rwi_read) {
-        return txor.transaction()->acquire(block_id, mode);
-    }
-
-    static void change_value(buf_t *buf, uint32_t value) {
-        buf->set_data(const_cast<void *>(buf->get_data_read()), &value, sizeof(value));
-    }
-
-    static uint32_t get_value(buf_t *buf) {
-        return *((uint32_t*) buf->get_data_read());
-    }
-
-    struct acquiring_coro_t {
-        buf_t *result;
-        bool signaled;
-        transactor_t& txor;
-        block_id_t block_id;
-        access_t mode;
-        acquiring_coro_t(transactor_t& txor, block_id_t block_id, access_t mode) : result(NULL), signaled(false), txor(txor), block_id(block_id), mode(mode) { }
-        void run() {
-            result = acq(txor, block_id, mode);
-            signaled = true;
-        }
-    };
-
-    static buf_t *acq_check_if_blocks_until_buf_released(transactor_t& acquiring_txor, buf_t *already_acquired_block, access_t acquire_mode, bool do_release, bool &blocked) {
-        acquiring_coro_t acq_coro(acquiring_txor, already_acquired_block->get_block_id(), acquire_mode);
-
-        coro_t::spawn(boost::bind(&acquiring_coro_t::run, &acq_coro));
-        nap(500);
-        blocked = !acq_coro.signaled;
-
-        if (do_release) {
-            already_acquired_block->release();
-            if (blocked) {
-                nap(500);
-                rassert(acq_coro.signaled, "Buf release must have unblocked the coroutine trying to acquire the buf. May be a bug in the test.");
-            }
-        }
-
-        return acq_coro.result;
-    }
-
-    static void create_two_blocks(transactor_t &txor, block_id_t &block_A, block_id_t &block_B) {
-        buf_t *buf_A = create(txor);
-        buf_t *buf_B = create(txor);
-        block_A = buf_A->get_block_id();
-        block_B = buf_B->get_block_id();
-        change_value(buf_A, init_value);
-        change_value(buf_B, init_value);
-        buf_A->release();
-        buf_B->release();
-    }
-
-    static void test_snapshot_acq_blocks_on_older_write_txns(thread_saver_t &saver, cache_t *cache) {
-        transactor_t t0(saver, cache, rwi_write, 0, current_time());
-        transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-    }
-
     static void test_snapshot_acq_blocks_on_unfinished_create(thread_saver_t &saver, cache_t *cache) {
         // t0:create(A), t1:snap(), t1:acq(A) blocks, t0:release(A), t1 unblocks, t1 sees the block.
         transactor_t t0(saver, cache, rwi_write, 0, current_time());
@@ -344,7 +269,7 @@ private:
 };
 
 TEST(SnapshotsTest, all_tests) {
-    tester_t().run();
+    snapshots_tester_t().run();
 }
 
 }  // namespace unittest

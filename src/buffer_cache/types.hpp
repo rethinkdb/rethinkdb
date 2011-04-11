@@ -4,11 +4,6 @@
 #include "utils2.hpp"
 #include "serializer/types.hpp"
 
-enum should_load_flag_t {
-    should_load_block,
-    shouldnt_load_block
-};
-
 typedef uint32_t block_id_t;
 #define NULL_BLOCK_ID (block_id_t(-1))
 
@@ -55,6 +50,15 @@ struct large_buf_ref {
     int refsize(block_size_t block_size, lbref_limit_t ref_limit) const;
     static int refsize(block_size_t block_size, int64_t size, int64_t offset, lbref_limit_t ref_limit);
 } __attribute((__packed__));
+
+
+// HEY: put this somewhere else.
+class get_subtree_recencies_callback_t {
+public:
+    virtual void got_subtree_recencies() = 0;
+protected:
+    ~get_subtree_recencies_callback_t() { }
+};
 
 
 #endif /* __BUFFER_CACHE_TYPES_HPP__ */

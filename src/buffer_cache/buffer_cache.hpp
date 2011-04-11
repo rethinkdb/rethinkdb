@@ -31,7 +31,10 @@ typedef scc_cache_t<mock_cache_t> cache_t;
 typedef cache_t::buf_t buf_t;
 #endif  // CUSTOM_BUF_TYPE
 typedef cache_t::transaction_t transaction_t;
+typedef cache_t::block_available_callback_t block_available_callback_t;
 typedef cache_t::transaction_begin_callback_t transaction_begin_callback_t;
 typedef cache_t::transaction_commit_callback_t transaction_commit_callback_t;
+
+
 
 #endif /* __BUFFER_CACHE_HPP__ */

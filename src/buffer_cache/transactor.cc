@@ -10,12 +10,8 @@ transactor_t::transactor_t(const thread_saver_t& saver, cache_t *cache, access_t
 transactor_t::~transactor_t() {
     if (transaction_) {
         thread_saver_t saver;
-        commit(saver);
+        guarantee(transaction_ != NULL);
+        co_commit_transaction(saver, transaction_);
+        transaction_ = NULL;
     }
-}
-
-void transactor_t::commit(const thread_saver_t& saver) {
-    guarantee(transaction_ != NULL);
-    co_commit_transaction(saver, transaction_);
-    transaction_ = NULL;
 }

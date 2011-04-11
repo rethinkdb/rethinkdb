@@ -4,6 +4,9 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/large_buf.hpp"
 
+// Avoid using this!  Use buf_lock_t instead.
+buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond = NULL);
+
 // TODO: Make acquisition_cond not take a default value, because I bet
 // we should use it everywhere.  And put it on all of these functions.
 //
@@ -25,6 +28,8 @@ transaction_t *co_begin_transaction(const thread_saver_t& saver, cache_t *cache,
 
 // Avoid using this, use transactor_t instead.
 void co_commit_transaction(const thread_saver_t& saver, transaction_t *transaction);
+
+void co_get_subtree_recencies(transaction_t *transaction, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 
 
 #endif  // __BUFFER_CACHE_CO_FUNCTIONS_HPP__

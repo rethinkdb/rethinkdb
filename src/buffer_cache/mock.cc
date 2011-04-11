@@ -3,8 +3,7 @@
 
 /* Internal buf object */
 
-struct internal_buf_t
-{
+struct internal_buf_t {
     mock_cache_t *cache;
     block_id_t block_id;
     repli_timestamp subtree_recency;
@@ -33,6 +32,10 @@ struct internal_buf_t
 };
 
 /* Buf */
+
+void mock_buf_t::on_lock_available() {
+    random_delay(cb, &mock_block_available_callback_t::on_block_available, this);
+}
 
 block_id_t mock_buf_t::get_block_id() {
     return internal_buf->block_id;
@@ -129,7 +132,7 @@ void mock_transaction_t::finish_committing(mock_transaction_commit_callback_t *c
     delete this;
 }
 
-mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, UNUSED should_load_flag_t should_load) {
+mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock_block_available_callback_t *callback, UNUSED bool should_load) {
     // should_load is ignored for the mock cache.
     if (mode == rwi_write) rassert(this->access == rwi_write);
     
@@ -142,10 +145,16 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, UNUS
     }
 
     mock_buf_t *buf = new mock_buf_t(internal_buf, mode);
-    internal_buf->lock.co_lock(mode);   // Must acquire lock before nap to ensure that lock is given out in the correct order
-    nap(choose_random_delay());
-
-    return buf;
+    if (internal_buf->lock.lock(mode, buf)) {
+        if (maybe_random_delay(callback, &mock_block_available_callback_t::on_block_available, buf)) {
+            return buf;
+        } else {
+            return NULL;
+        }
+    } else {
+        buf->cb = callback;
+        return NULL;
+    }
 }
 
 mock_buf_t *mock_transaction_t::allocate() {
@@ -162,13 +171,14 @@ mock_buf_t *mock_transaction_t::allocate() {
     return buf;
 }
 
-void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
     for (size_t i = 0; i < num_block_ids; ++i) {
         rassert(block_ids[i] < cache->bufs.get_size());
         internal_buf_t *internal_buf = cache->bufs[block_ids[i]];
         rassert(internal_buf);
         recencies_out[i] = internal_buf->subtree_recency;
     }
+    cb->got_subtree_recencies();
 }
 
 mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, repli_timestamp _recency_timestamp)
@@ -185,10 +195,7 @@ mock_transaction_t::~mock_transaction_t() {
 // TODO: Why do we take a static_config if we don't use it?
 // (I.i.r.c. we have a similar situation in the mirrored cache.)
 
-void mock_cache_t::create(
-    translator_serializer_t *serializer,
-    UNUSED mirrored_cache_static_config_t *static_config)
-{
+void mock_cache_t::create( translator_serializer_t *serializer, UNUSED mirrored_cache_static_config_t *static_config) {
     on_thread_t switcher(serializer->home_thread);
 
     void *superblock = serializer->malloc();
@@ -206,9 +213,7 @@ void mock_cache_t::create(
 
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
-mock_cache_t::mock_cache_t(
-    translator_serializer_t *serializer,
-    UNUSED mirrored_cache_config_t *dynamic_config)
+mock_cache_t::mock_cache_t( translator_serializer_t *serializer, UNUSED mirrored_cache_config_t *dynamic_config)
     : serializer(serializer), block_size(serializer->get_block_size())
 {
     on_thread_t switcher(serializer->home_thread);
@@ -232,7 +237,6 @@ mock_cache_t::mock_cache_t(
 }
 
 mock_cache_t::~mock_cache_t() {
-
     /* Wait for all transactions to complete */
     transaction_counter.drain();
 
@@ -263,7 +267,6 @@ block_size_t mock_cache_t::get_block_size() {
 }
 
 mock_transaction_t *mock_cache_t::begin_transaction(access_t access, UNUSED int expected_change_count, repli_timestamp recency_timestamp, mock_transaction_begin_callback_t *callback) {
-    
     mock_transaction_t *txn = new mock_transaction_t(this, access, recency_timestamp);
     
     switch (access) {
@@ -281,4 +284,12 @@ mock_transaction_t *mock_cache_t::begin_transaction(access_t access, UNUSED int 
         default:
             unreachable("Bad access.");
     }
+}
+
+void mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, void *buf, UNUSED repli_timestamp recency_timestamp) {
+    serializer->free(buf);
+}
+
+bool mock_cache_t::contains_block(UNUSED block_id_t id) {
+    return true;    // TODO (maybe) write a more sensible implementation
 }

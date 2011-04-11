@@ -121,8 +121,6 @@ utils.hpp because the mock IO layer uses random delays. Internally, they
 secretly use the IO layer, but it is safe to include utils2.hpp from within the
 IO layer. */
 
-int choose_random_delay();
-
 void random_delay(void (*)(void*), void*);
 
 template<class cb_t>
@@ -190,27 +188,6 @@ std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1
 // CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
 // TODO: Use this in the rest of the perfmons, if it turns out to make any
 // difference.
-
-class temp_file_t {
-    char * filename;
-public:
-    temp_file_t(const char * tmpl) {
-        size_t len = strlen(tmpl);
-        filename = new char[len+1];
-        strncpy(filename, tmpl, len);
-        int fd = mkstemp(filename);
-        guarantee_err(fd != -1, "Couldn't create a temporary file");
-        close(fd);
-    }
-    operator const char *() {
-        return filename;
-    }
-    ~temp_file_t() {
-        unlink(filename);
-        delete [] filename;
-    }
-};
-
 
 template<typename value_t>
 struct cache_line_padded_t {

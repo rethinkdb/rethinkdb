@@ -52,14 +52,6 @@ void master_t::backfill_done(repli_timestamp_t timestamp_when_backfill_began) {
 }
 
 void master_t::realtime_get_cas(const store_key_t& key, castime_t castime) {
-    // There is something disgusting with this.  What if the thing
-    // that the tmp_hold would prevent happens before we grap the
-    // tmp_hold?  Right now, this can't happen because spawn_on_thread
-    // won't block before we grab the tmp_hold, because we don't do
-    // anything before.
-
-    // TODO Is grabbing a tmp_hold really necessary?  I wish it wasn't.
-    snag_ptr_t<master_t> tmp_hold(this);
     assert_thread();
 
     if (stream_) {
@@ -76,7 +68,6 @@ void master_t::realtime_get_cas(const store_key_t& key, castime_t castime) {
 }
 
 void master_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
-    snag_ptr_t<master_t> tmp_hold(this);
     assert_thread();
 
     if (stream_) {
@@ -95,7 +86,6 @@ void master_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_
 }
 
 void master_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
-    snag_ptr_t<master_t> tmp_hold(this);
     assert_thread();
 
     if (stream_) {
@@ -125,7 +115,6 @@ void master_t::incr_decr_like(const store_key_t &key, uint64_t amount, castime_t
 }
 
 void master_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data, castime_t castime) {
-    snag_ptr_t<master_t> tmp_hold(this);
     assert_thread();
 
     if (stream_) {
@@ -152,7 +141,6 @@ void master_t::realtime_append_prepend(append_prepend_kind_t kind, const store_k
 }
 
 void master_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp) {
-    snag_ptr_t<master_t> tmp_hold(this);
     assert_thread();
 
     size_t n = sizeof(net_delete_t) + key.size;

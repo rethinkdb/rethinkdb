@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import os
 import glob
 from cloud_retester import do_test, do_test_cloud, report_cloud, setup_testing_nodes, terminate_testing_nodes
 

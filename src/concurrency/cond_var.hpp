@@ -187,34 +187,41 @@ private:
     }
 };
 
-/* A threadsafe_cond_t is a thread-safe condition variable. It's like cond_t except it can be
-used with multiple coroutines on different threads. */
+// A threadsafe_cond_t is a thread-safe condition variable. It's like
+// cond_t except it can be used with multiple coroutines on different
+// threads.
+
+// Oh and it's really a count_down_latch.  Heh.
 
 struct threadsafe_cond_t {
-    threadsafe_cond_t() : ready(false), waiter(NULL) { }
+    explicit threadsafe_cond_t(int _counter = 1) : counter(_counter), waiter(NULL) {
+        rassert(_counter >= 0);
+    }
     void pulse() {
         spinlock_acq_t acq(&lock);
-        rassert(!ready);
-        ready = true;
-        if (waiter) waiter->notify();
+        rassert(counter > 0);
+        -- counter;
+        if (counter == 0 && waiter) {
+            waiter->notify();
+        }
     }
     void wait() {
-        bool local_ready;
+        int local_counter;
         {
             spinlock_acq_t acq(&lock);
-            local_ready = ready;
-            if (!local_ready) {
+            local_counter = counter;
+            if (local_counter != 0) {
                 waiter = coro_t::self();
             }
         }
-        if (!local_ready) {
+        if (local_counter != 0) {
             coro_t::wait();
         }
-        rassert(ready);
+        rassert(counter == 0);
     }
 
 private:
-    bool ready;
+    int counter;
     coro_t *waiter;
     spinlock_t lock;
 

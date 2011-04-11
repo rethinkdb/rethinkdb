@@ -67,10 +67,10 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
 
     // Possibly update the (timestamp, offset) queue.  (This happens at most once per second.)
     {
-        // HEY: Why must we allocate large_buf_t's with new?
-        boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
-
         if (t_o_ref->size == 0) {
+            // HEY: Why must we allocate large_buf_t's with new?
+            boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
+
             // The size is only zero in the unallocated state.  (Large
             // bufs can't actually handle size zero, so we can't let
             // the large buf shrink to that size.)
@@ -83,31 +83,44 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
             rassert(!will_want_to_dequeue);
         } else {
 
-            // TODO: We don't want to acquire the entire timestamp buf... Or do we?
-            co_acquire_large_buf(saver, t_o_largebuf.get());
-
             delete_queue::t_and_o last_tao;
-            t_o_largebuf->read_at(t_o_ref->size - sizeof(last_tao), &last_tao, sizeof(last_tao));
 
-            if (last_tao.timestamp.time > timestamp.time) {
-                logWRN("The delete queue is receiving updates out of order (t1 = %d, t2 = %d), or the system clock has been set back!  Bringing up a replica may be excessively inefficient.\n", last_tao.timestamp.time, timestamp.time);
+            {
+                boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
 
-                // Timestamps must be monotonically increasing, so sorry.
-                timestamp = last_tao.timestamp;
-            }
+                co_acquire_large_buf_slice(saver, t_o_largebuf.get(), t_o_ref->size - sizeof(last_tao), sizeof(last_tao));
 
-            if (last_tao.timestamp.time != timestamp.time) {
-                delete_queue::t_and_o tao;
-                tao.timestamp = timestamp;
-                tao.offset = *primal_offset + keys_ref->size;
-                int refsize_adjustment_dontcare;
-                t_o_largebuf->append(sizeof(tao), &refsize_adjustment_dontcare);
-                t_o_largebuf->fill_at(t_o_ref->size - sizeof(tao), &tao, sizeof(tao));
+                t_o_largebuf->read_at(t_o_ref->size - sizeof(last_tao), &last_tao, sizeof(last_tao));
+
+                if (last_tao.timestamp.time > timestamp.time) {
+                    logWRN("The delete queue is receiving updates out of order (t1 = %d, t2 = %d), or the system clock has been set back!  Bringing up a replica may be excessively inefficient.\n", last_tao.timestamp.time, timestamp.time);
+
+                    // Timestamps must be monotonically increasing, so sorry.
+                    timestamp = last_tao.timestamp;
+                }
+
+                if (last_tao.timestamp.time != timestamp.time) {
+                    delete_queue::t_and_o tao;
+                    tao.timestamp = timestamp;
+                    tao.offset = *primal_offset + keys_ref->size;
+                    int refsize_adjustment_dontcare;
+
+                    // It's okay to append because we acquired the rhs
+                    // of the large buf.
+                    t_o_largebuf->append(sizeof(tao), &refsize_adjustment_dontcare);
+                    t_o_largebuf->fill_at(t_o_ref->size - sizeof(tao), &tao, sizeof(tao));
+                }
             }
 
             if (will_want_to_dequeue && t_o_ref->size >= int64_t(2 * sizeof(second_tao))) {
+                boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
+
+                co_acquire_large_buf_slice(saver, t_o_largebuf.get(), 0, 2 * sizeof(second_tao));
+
                 t_o_largebuf->read_at(sizeof(second_tao), &second_tao, sizeof(second_tao));
                 will_actually_dequeue = true;
+
+                // It's okay to unprepend because we acquired the lhs of the large buf.
                 int refsize_adjustment_dontcare;
                 t_o_largebuf->unprepend(sizeof(second_tao), &refsize_adjustment_dontcare);
             }

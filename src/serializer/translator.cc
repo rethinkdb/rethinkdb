@@ -186,7 +186,7 @@ block_id_t translator_serializer_t::untranslate_block_id_to_id(ser_block_id_t in
     return (inner_id.value - cfgid.subsequent_ser_id().value - mod_id) / mod_count;
 }
 
-ser_block_id_t translator_serializer_t::xlate(block_id_t id) {
+ser_block_id_t translator_serializer_t::translate_block_id(block_id_t id) {
     return translate_block_id(id, mod_count, mod_id, cfgid);
 }
 
@@ -210,11 +210,11 @@ void translator_serializer_t::free(void *ptr) {
 }
 
 bool translator_serializer_t::do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback) {
-    return inner->do_read(xlate(block_id), buf, callback);
+    return inner->do_read(translate_block_id(block_id), buf, callback);
 }
 
 ser_transaction_id_t translator_serializer_t::get_current_transaction_id(block_id_t block_id, const void* buf) {
-    return inner->get_current_transaction_id(xlate(block_id), buf);
+    return inner->get_current_transaction_id(translate_block_id(block_id), buf);
 }
 
 struct write_fsm_t : public serializer_t::write_txn_callback_t, public serializer_t::write_tid_callback_t {
@@ -237,7 +237,7 @@ bool translator_serializer_t::do_write(write_t *writes, int num_writes, serializ
     fsm->cb = callback;
     fsm->tid_cb = tid_callback;
     for (int i = 0; i < num_writes; i++) {
-        fsm->writes.push_back(serializer_t::write_t(xlate(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
+        fsm->writes.push_back(serializer_t::write_t(translate_block_id(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
                                                 writes[i].buf_specified, writes[i].buf, writes[i].write_empty_deleted_block, writes[i].callback, writes[i].assign_transaction_id));
     }
     if (inner->do_write(fsm->writes.data(), num_writes, fsm, fsm)) {
@@ -261,7 +261,7 @@ block_id_t translator_serializer_t::max_block_id() {
         while (x % mod_count != mod_id) x++;
         x /= mod_count;
     }
-    rassert(xlate(x).value >= inner->max_block_id().value);
+    rassert(translate_block_id(x).value >= inner->max_block_id().value);
 
     while (x > 0) {
         --x;
@@ -275,11 +275,11 @@ block_id_t translator_serializer_t::max_block_id() {
 
 
 bool translator_serializer_t::block_in_use(block_id_t id) {
-    return inner->block_in_use(xlate(id));
+    return inner->block_in_use(translate_block_id(id));
 }
 
 repli_timestamp translator_serializer_t::get_recency(block_id_t id) {
-    return inner->get_recency(xlate(id));
+    return inner->get_recency(translate_block_id(id));
 }
 
 bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {

@@ -14,9 +14,6 @@
 #include "btree/leaf_node.hpp"
 #include "btree/slice.hpp"
 
-// TODO make this user-configurable.
-#define BACKFILLING_MAX_BREADTH_FIRST_BLOCKS 1
-
 // Backfilling
 
 // We want a backfill operation to follow a few simple rules.
@@ -65,15 +62,19 @@
 // 6L. Large values all pending or better, so we can release ownership
 // of the block.  We stop here.
 
+struct acquisition_waiter_callback_t {
+    virtual void you_may_acquire() = 0;
+protected:
+    ~acquisition_waiter_callback_t() { }
+};
+
 // TODO: Actually use shutdown_mode.
 class backfill_state_t {
 public:
-    enum acquisition_credit { no_response = 0, breadth_first_credit = 1, depth_first_credit = 2 };
-
     backfill_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _since_when, backfill_callback_t *_callback, repli_timestamp _oper_start_timestamp)
         : oper_start_timestamp(_oper_start_timestamp), slice(_slice), since_when(_since_when),
           transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), rwi_read, _since_when)),
-          callback(_callback), shutdown_mode(false), num_breadth_blocks(0) { }
+          callback(_callback), shutdown_mode(false) { }
 
     repli_timestamp oper_start_timestamp;
 
@@ -102,8 +103,12 @@ public:
     }
 
     static int64_t level_max(UNUSED int level) {
-        // TODO: Make this much bigger, this is for testing.  Temporary.
-        return 2;
+        // level = 1 is the root level
+        if (level <= 3) {
+            return 100000;
+        } else {
+            return 1000;
+        }
     }
 
     void consider_pulsing() {
@@ -116,35 +121,18 @@ public:
         // Right now we don't actually do more than one pulse at a
         // time, but we should try.
 
-        if (num_breadth_blocks < BACKFILLING_MAX_BREADTH_FIRST_BLOCKS) {
-            int max_breadth_pulses = BACKFILLING_MAX_BREADTH_FIRST_BLOCKS - num_breadth_blocks;
-
-            for (int i = 0, n = acquisition_waiter_stacks.size(); i < n; ++i) {
-                while (acquisition_waiter_stacks[i].size() > 0) {
-                    flat_promise_t<acquisition_credit> *promise = acquisition_waiter_stacks[i].back();
-                    acquisition_waiter_stacks[i].pop_back();
-
-                    promise->pulse(breadth_first_credit);
-                    max_breadth_pulses -= 1;
-                    if (max_breadth_pulses == 0) {
-                        goto done_breadth;
-                    }
-                }
-            }
-        }
-
-    done_breadth:
-        // We're out of breadth-first slots, so let's consider depth-first slots.
+        rassert(level_counts.size() <= acquisition_waiter_stacks.size());
+        level_counts.resize(acquisition_waiter_stacks.size(), 0);
 
         for (int i = level_counts.size() - 1; i >= 0; --i) {
             if (level_counts[i] < level_max(i)) {
                 int diff = level_max(i) - level_counts[i];
 
                 while (diff > 0 && !acquisition_waiter_stacks[i].empty()) {
-                    flat_promise_t<acquisition_credit> *promise = acquisition_waiter_stacks[i].back();
+                    acquisition_waiter_callback_t *waiter_cb = acquisition_waiter_stacks[i].back();
                     acquisition_waiter_stacks[i].pop_back();
 
-                    promise->pulse(depth_first_credit);
+                    do_later(boost::bind(&acquisition_waiter_callback_t::you_may_acquire, waiter_cb));
                     diff -= 1;
                 }
             }
@@ -164,9 +152,9 @@ public:
     }
 
 
-    std::vector< std::vector<flat_promise_t<acquisition_credit> *> > acquisition_waiter_stacks;
+    std::vector< std::vector<acquisition_waiter_callback_t *> > acquisition_waiter_stacks;
 
-    std::vector<flat_promise_t<acquisition_credit> *>& acquisition_waiter_stack(int level) {
+    std::vector<acquisition_waiter_callback_t *>& acquisition_waiter_stack(int level) {
         rassert(level >= 0);
         if (level >= int(acquisition_waiter_stacks.size())) {
             rassert(level == int(acquisition_waiter_stacks.size()), "Somehow we skipped a level! (level = %d, stacks.size() = %d, slice = %p)", level, int(acquisition_waiter_stacks.size()), slice);
@@ -179,78 +167,74 @@ public:
         finished_cond.wait();
     }
 
-    int num_breadth_blocks;
-
 private:
     DISABLE_COPYING(backfill_state_t);
 };
 
-void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids);
-void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, threadsafe_cond_t *acquisition_cond);
-void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock);
-void process_internal_node(backfill_state_t& state, buf_lock_t& buf_lock, int level);
+struct acquisition_start_callback_t;
 
+void subtrees_backfill(backfill_state_t *state, buf_t *parent, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids);
+void do_a_subtree_backfill(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb);
+void process_a_leaf_node(backfill_state_t *state, buf_t *buf, int level);
+void process_a_internal_node(backfill_state_t *state, buf_t *buf, int level);
 
-void get_recency_timestamps(backfill_state_t& state, block_id_t *block_ids, int num_block_ids, repli_timestamp *recencies_out);
-
-// The main purpose of this type is to incr/decr state.level_counts.
-class backfill_buf_lock_t {
-
-public:
-    backfill_buf_lock_t(const thread_saver_t& saver, backfill_state_t& state, int level, block_id_t block_id, threadsafe_cond_t *acquisition_cond)
-        : state_(state), level_(level), inner_lock_(), pulse_response_(backfill_state_t::no_response) {
-        acquire_node(saver, block_id, acquisition_cond);
-    }
-
-    ~backfill_buf_lock_t() {
-        state_.level_count(level_) -= 1;
-        state_.num_breadth_blocks -= (pulse_response_ == backfill_state_t::breadth_first_credit);
-        state_.consider_pulsing();
-    }
-
-    void acquire_node(const thread_saver_t& saver, block_id_t block_id, threadsafe_cond_t *acquisition_cond) {
-        // There are two ways to get permission to acquire.  One way:
-        // breadth-first: if your grandparent and above are all zero.
-        // If we are out of breadth-first credits or you don't
-        // qualify, you can try for a depth-first credit, which are
-        // given out rather liberally to people requesting nodes on
-        // the bottom level seen so far, and automatically to people
-        // requesting nodes beneath the existing bottom level.
-
-        state_.level_count(level_) += 1;
-
-        flat_promise_t<backfill_state_t::acquisition_credit> waiter;
-        state_.acquisition_waiter_stack(level_).push_back(&waiter);
-
-        state_.consider_pulsing();
-        pulse_response_ = waiter.wait();
-
-        // Now actually acquire the node.
-
-        // Since there is no coro_t::wait() between this and constructing the buf_lock_t, this
-        // is a safe place to pulse acquisition_cond.
-        acquisition_cond->pulse();
-
-        buf_lock_t tmp(saver, state_.transactor_ptr->transaction(), block_id, rwi_read);
-        inner_lock_.swap(tmp);
-    }
-
-    buf_t *operator->() { return inner_lock_.buf(); }
-    buf_lock_t &inner_lock() { return inner_lock_; }
-
-private:
-    backfill_state_t& state_;
-    int level_;
-    buf_lock_t inner_lock_;
-    backfill_state_t::acquisition_credit pulse_response_;
-    DISABLE_COPYING(backfill_buf_lock_t);
+struct acquisition_start_callback_t {
+    virtual void on_started_acquisition() = 0;
+protected:
+    ~acquisition_start_callback_t() { }
 };
 
-perfmon_counter_t pm_backfill_coros("backfill_coros");
+struct node_ready_callback_t {
+    virtual void on_node_ready(buf_t *buf) = 0;
+protected:
+    ~node_ready_callback_t() { }
+};
+
+struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block_available_callback_t {
+    // Not much of an fsm.
+    backfill_state_t *state;
+    int level;
+    block_id_t block_id;
+    acquisition_start_callback_t *acq_start_cb;
+    node_ready_callback_t *node_ready_cb;
+
+    void you_may_acquire() {
+        state->level_count(level) += 1;
+
+        buf_t *buf = state->transactor_ptr->get()->acquire(block_id, rwi_read, this);
+        acq_start_cb->on_started_acquisition();
+
+        if (buf) {
+            node_ready_callback_t *local_cb = node_ready_cb;
+            delete this;
+            local_cb->on_node_ready(buf);
+        }
+    }
+
+    void on_block_available(buf_t *block) {
+        node_ready_callback_t *local_cb = node_ready_cb;
+        delete this;
+        local_cb->on_node_ready(block);
+    }
+};
+
+
+void acquire_a_node(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb, node_ready_callback_t *node_ready_cb) {
+
+    acquire_a_node_fsm_t *fsm = new acquire_a_node_fsm_t;
+    fsm->state = state;
+    fsm->level = level;
+    fsm->block_id = block_id;
+    fsm->acq_start_cb = acq_start_cb;
+    fsm->node_ready_cb = node_ready_cb;
+
+    state->acquisition_waiter_stack(level).push_back(fsm);
+    state->consider_pulsing();
+}
+
 
 
 void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
-    pm_backfill_coros++;
     thread_saver_t saver;
     backfill_state_t state(saver, slice, since_when, callback, current_time());
     buf_lock_t superblock_buf(saver, *state.transactor_ptr, SUPERBLOCK_ID, rwi_read);
@@ -272,67 +256,113 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
         // No root, so no keys in this entire shard.
         callback->done(state.oper_start_timestamp);
     } else {
-        subtrees_backfill(state, superblock_buf, 0, &root_id, 1);
+        boost::scoped_array<block_id_t> roots(new block_id_t[1]);
+        roots[0] = root_id;
+        state.level_count(0) += 1;
+        state.acquisition_waiter_stacks.resize(1);
+        subtrees_backfill(&state, superblock_buf.give_up_ownership(), 1, roots, 1);
         state.wait();
         callback->done(state.oper_start_timestamp);
     }
-    pm_backfill_coros--;
 }
 
-void subtrees_backfill(backfill_state_t& state, buf_lock_t& parent, int level, block_id_t *block_ids, int num_block_ids) {
-    boost::scoped_array<repli_timestamp> recencies(new repli_timestamp[num_block_ids]);
-    get_recency_timestamps(state, block_ids, num_block_ids, recencies.get());
+struct subtrees_backfill_fsm_t : public get_subtree_recencies_callback_t, public acquisition_start_callback_t {
+    backfill_state_t *state;
+    buf_t *parent;
+    int level;
+    boost::scoped_array<block_id_t> block_ids;
+    int num_block_ids;
+    boost::scoped_array<repli_timestamp> recencies;
+    int acquisition_countdown;
 
-    // Conds activated when we first try to acquire the children.
-    // TODO: Replace acquisition_conds with a counter that counts down to zero.
-    boost::scoped_array<threadsafe_cond_t> acquisition_conds(new threadsafe_cond_t[num_block_ids]);
+    void got_subtree_recencies() {
+        acquisition_countdown = num_block_ids + 1;
 
-    for (int i = 0; i < num_block_ids; ++i) {
-        if (recencies[i].time >= state.since_when.time) {
-            coro_t::spawn(boost::bind(do_subtree_backfill, boost::ref(state), level, block_ids[i], &acquisition_conds[i]));
-        } else {
-            acquisition_conds[i].pulse();
+        for (int i = 0; i < num_block_ids; ++i) {
+            if (recencies[i].time >= state->since_when.time) {
+                do_a_subtree_backfill(state, level, block_ids[i], this);
+            } else {
+                decr_acquisition_countdown();
+            }
+        }
+
+        decr_acquisition_countdown();
+    }
+
+    void on_started_acquisition() {
+        decr_acquisition_countdown();
+    }
+
+    void decr_acquisition_countdown() {
+        rassert(acquisition_countdown > 0);
+        -- acquisition_countdown;
+        if (acquisition_countdown == 0) {
+            parent->release();
+            state->level_count(level - 1) -= 1;
+            state->consider_pulsing();
+            delete this;
         }
     }
+};
 
-    for (int i = 0; i < num_block_ids; ++i) {
-        acquisition_conds[i].wait();
-    }
+void subtrees_backfill(backfill_state_t *state, buf_t *parent, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids) {
+    subtrees_backfill_fsm_t *fsm = new subtrees_backfill_fsm_t;
+    fsm->state = state;
+    fsm->parent = parent;
+    fsm->level = level;
+    fsm->block_ids.swap(param_block_ids);
+    fsm->num_block_ids = num_block_ids;
 
-    // The children are all pending acquisition; we can release the parent.
-
-    parent.release();
+    fsm->recencies.reset(new repli_timestamp[num_block_ids]);
+    state->transactor_ptr->get()->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
 }
 
-void do_subtree_backfill(backfill_state_t& state, int level, block_id_t block_id, threadsafe_cond_t *acquisition_cond) {
-    pm_backfill_coros++;
-    thread_saver_t saver;
-    backfill_buf_lock_t buf_lock(saver, state, level, block_id, acquisition_cond);
+struct do_a_subtree_backfill_fsm_t : public node_ready_callback_t {
+    backfill_state_t *state;
+    int level;
 
-    const node_t *node = reinterpret_cast<const node_t *>(buf_lock->get_data_read());
+    void on_node_ready(buf_t *buf) {
+        const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
 
-    if (node::is_leaf(node)) {
-        process_leaf_node(state, buf_lock.inner_lock());
-    } else {
-        rassert(node::is_internal(node));
+        backfill_state_t *local_state = state;
+        int local_level = level;
 
-        process_internal_node(state, buf_lock.inner_lock(), level);
+        if (node::is_leaf(node)) {
+            delete this;
+            process_a_leaf_node(local_state, buf, local_level);
+        } else {
+            rassert(node::is_internal(node));
+
+            delete this;
+            process_a_internal_node(local_state, buf, local_level);
+        }
     }
-    pm_backfill_coros--;
+};
+
+void do_a_subtree_backfill(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb) {
+    do_a_subtree_backfill_fsm_t *fsm = new do_a_subtree_backfill_fsm_t;
+    fsm->state = state;
+    fsm->level = level;
+
+    acquire_a_node(state, level, block_id, acq_start_cb, fsm);
 }
 
-void process_internal_node(backfill_state_t& state, buf_lock_t& buf_lock, int level) {
-    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(buf_lock->get_data_read());
+// This releases its buf_t parameter.
+void process_a_internal_node(backfill_state_t *state, buf_t *buf, int level) {
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(buf->get_data_read());
 
     boost::scoped_array<block_id_t> children;
     size_t num_children;
     internal_node::get_children_ids(node, children, &num_children);
 
-    subtrees_backfill(state, buf_lock, level + 1, children.get(), num_children);
+    subtrees_backfill(state, buf, level + 1, children, num_children);
 }
 
-void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
-    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(buf_lock->get_data_read());
+// This releases its buf_t parameter.
+void process_a_leaf_node(backfill_state_t *state, buf_t *buf, int level) {
+    // This can be run in the scheduler thread.
+
+    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(buf->get_data_read());
 
     // Remember, we only want to process recent keys.
 
@@ -342,11 +372,11 @@ void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
         uint16_t offset = node->pair_offsets[i];
         repli_timestamp recency = leaf::get_timestamp_value(node, offset);
 
-        if (recency.time >= state.since_when.time) {
+        if (recency.time >= state->since_when.time) {
             // The value is sufficiently recent.  But is it a small value or a large value?
             const btree_leaf_pair *pair = leaf::get_pair(node, offset);
             const btree_value *value = pair->value();
-            unique_ptr_t<value_data_provider_t> data_provider(value_data_provider_t::create(value, state.transactor_ptr));
+            unique_ptr_t<value_data_provider_t> data_provider(value_data_provider_t::create(value, state->transactor_ptr));
             backfill_atom_t atom;
             // We'd like to use keycpy but nooo we have store_key_t and btree_key as different types.
             atom.key.size = pair->key.size;
@@ -356,13 +386,12 @@ void process_leaf_node(backfill_state_t& state, buf_lock_t& buf_lock) {
             atom.exptime = value->exptime();
             atom.recency = recency;
             atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
-            state.callback->on_keyvalue(atom);
+            state->callback->on_keyvalue(atom);
         }
     }
-}
 
-void get_recency_timestamps(backfill_state_t& state, block_id_t *block_ids, int num_block_ids, repli_timestamp *recencies_out) {
-    // Uh... that was easy.
-    (*state.transactor_ptr)->get_subtree_recencies(block_ids, num_block_ids, recencies_out);
+    buf->release();
+    state->level_count(level) -= 1;
+    state->consider_pulsing();
 }
 

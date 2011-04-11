@@ -33,14 +33,16 @@ leaf_iterator_t::~leaf_iterator_t() {
 void leaf_iterator_t::done() {
     if (lock) {
         thread_saver_t saver;
-        transactor->transaction()->ensure_thread(saver);
+        transactor->get()->ensure_thread(saver);
         delete lock;
         lock = NULL;
     }
 }
 
 key_with_data_provider_t leaf_iterator_t::pair_to_key_with_data_provider(const btree_leaf_pair* pair) {
-    value_data_provider_t *data_provider = value_data_provider_t::create(pair->value(), transactor); 
+    thread_saver_t saver;
+    transactor->get()->ensure_thread(saver);
+    value_data_provider_t *data_provider = value_data_provider_t::create(pair->value(), transactor);
     return key_with_data_provider_t(key_to_str(&pair->key), pair->value()->mcflags(),
         boost::shared_ptr<data_provider_t>(data_provider));
 }

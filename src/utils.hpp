@@ -1,4 +1,3 @@
-
 #ifndef __UTILS_HPP__
 #define __UTILS_HPP__
 
@@ -14,7 +13,6 @@
 #include "arch/arch.hpp"
 #include "utils2.hpp"
 #include <string>
-
 
 // Precise time (time+nanoseconds) for logging, etc.
 struct precise_time_t : public tm {

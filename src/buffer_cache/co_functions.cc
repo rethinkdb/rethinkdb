@@ -1,5 +1,36 @@
 #include "buffer_cache/co_functions.hpp"
 
+struct co_block_available_callback_t : public block_available_callback_t {
+    coro_t *self;
+    buf_t *value;
+
+    virtual void on_block_available(buf_t *block) {
+        value = block;
+        self->notify();
+    }
+
+    buf_t *join() {
+        self = coro_t::self();
+        coro_t::wait();
+        return value;
+    }
+};
+
+buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) {
+    transaction->ensure_thread(saver);
+    co_block_available_callback_t cb;
+    buf_t *value = transaction->acquire(block_id, mode, &cb);
+    if (acquisition_cond) {
+        acquisition_cond->pulse();
+    }
+    if (!value) {
+        value = cb.join();
+    }
+    rassert(value);
+    return value;
+}
+
+
 struct large_value_acquired_t : public large_buf_available_callback_t {
     coro_t *self;
     large_value_acquired_t() : self(coro_t::self()) { }
@@ -84,4 +115,16 @@ void co_commit_transaction(const thread_saver_t& saver, transaction_t *transacti
     if (!transaction->commit(&cb)) {
         coro_t::wait();
     }
+}
+
+
+void co_get_subtree_recencies(transaction_t *txn, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
+    struct : public get_subtree_recencies_callback_t {
+        void got_subtree_recencies() { cond.pulse(); }
+        cond_t cond;
+    } cb;
+
+    txn->get_subtree_recencies(block_ids, num_block_ids, recencies_out, &cb);
+
+    cb.cond.wait();
 }
