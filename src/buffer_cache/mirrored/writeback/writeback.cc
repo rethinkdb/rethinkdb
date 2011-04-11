@@ -1,6 +1,7 @@
 #include "writeback.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include <cmath>
+#include <set>
 
 writeback_t::begin_transaction_fsm_t::begin_transaction_fsm_t(writeback_t *wb, mc_transaction_t *txn, mc_transaction_begin_callback_t *cb)
     : writeback(wb), transaction(txn)
@@ -265,6 +266,14 @@ void writeback_t::local_buf_t::mark_block_id_deleted() {
     deleted_block.block_id = gbuf->block_id;
     deleted_block.write_empty_block = gbuf->write_empty_deleted_block;
     gbuf->cache->writeback.deleted_blocks.push_back(deleted_block);
+
+    // As the block has been deleted, we must not accept any versions of it offered
+    // by a read-ahead operation
+    gbuf->cache->writeback.reject_read_ahead_blocks.insert(gbuf->block_id);
+}
+
+bool writeback_t::can_read_ahead_block_be_accepted(block_id_t block_id) {
+    return reject_read_ahead_blocks.find(block_id) == reject_read_ahead_blocks.end();
 }
 
 void writeback_t::flush_timer_callback(void *ctx) {
@@ -582,6 +591,12 @@ void writeback_t::concurrent_flush_t::update_transaction_ids() {
         if (serializer_writes[i].buf_specified && serializer_writes[i].buf) {
             serializer_inner_bufs[inner_buf_ix++]->transaction_id = parent->cache->serializer->get_current_transaction_id(serializer_writes[i].block_id, serializer_writes[i].buf);
         }
+
+        // We assume that all deleted blocks are by now been reflected in the serializer's LBA (in case of the log serializer)
+        // and will not get offered as read-ahead blocks anymore.
+        // Therefore we can remove them from our reject_read_ahead_blocks list.
+        // TODO: I don't like this implicit assumption (which is not really part of the tid_callback semantics). Change it.
+        parent->reject_read_ahead_blocks.erase(serializer_writes[i].block_id);
     }
 
     // Allow new concurrent flushes to start from now on

@@ -4,6 +4,7 @@
 #include "store.hpp"
 #include "arch/arch.hpp"
 #include "replication/backfill.hpp"
+#include "replication/backfill_sender.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/thick_list.hpp"
 #include "replication/net_structs.hpp"
@@ -14,21 +15,18 @@ class btree_key_value_store_t;
 
 namespace replication {
 
-// master_t is a class that manages a connection to a slave.  It
-// behaves somewhat like a set_store_t, in fact maybe it actually
-// obeys the set_store_t interface.  Right now it is like a
-// set_store_t that sends data to the slave.  You must send the
-// messages on the master_t's thread.  Use a
-// buffer_borrowing_data_provider_t whose side thread is the master's
-// home_thread, and then send its side_data_provider_t to the
-// master_t using spawn_on_thread.
+// master_t is a class that manages a connection to a slave.
 
-class master_t : public home_thread_mixin_t, public linux_tcp_listener_callback_t,
+class master_t :
+    public linux_tcp_listener_callback_t,
     public message_callback_t,
-    public backfill_and_realtime_streaming_callback_t {
+    public backfill_sender_t {
 public:
-    master_t(int port)
-        : stream_(NULL), listener_port_(port) {
+    master_t(int port) :
+        backfill_sender_t(&stream_),
+        stream_(NULL),
+        listener_port_(port)
+    {
 
         // Because stream_ is initially NULL
         stream_exists_cond_.pulse();
@@ -50,23 +48,6 @@ public:
 
     bool has_slave() { return stream_ != NULL; }
 
-    /* backfill_and_realtime_streaming_callback_t interface */
-
-    void backfill_deletion(store_key_t key);
-    void backfill_set(backfill_atom_t atom);
-    void backfill_done(repli_timestamp_t timestamp_when_backfill_began);
-
-    void realtime_get_cas(const store_key_t& key, castime_t castime);
-    void realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data,
-        mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy,
-        replace_policy_t replace_policy, cas_t old_cas);
-    void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
-        castime_t castime);
-    void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-        unique_ptr_t<data_provider_t> data, castime_t castime);
-    void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp);
-    void realtime_time_barrier(repli_timestamp_t timestamp);
-
     // Listener callback functions
     void on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn);
 
@@ -76,21 +57,15 @@ public:
         coro_t::spawn_now(boost::bind(&master_t::do_backfill_and_realtime_stream, this, message->timestamp));
     }
     void send(UNUSED scoped_malloc<net_backfill_complete_t>& message) {
-#ifdef REVERSE_BACKFILLING
         // TODO: What about time_barrier, which the slave side does?
 
         queue_store_->backfill_complete();
         debugf("Slave sent BACKFILL_COMPLETE.\n");
-#else
-        (void)message;
-        crash("Reverse backfilling disabled.\n");
-#endif
     }
     void send(UNUSED scoped_malloc<net_announce_t>& message) { guarantee(false, "slave sent announce"); }
     void send(UNUSED scoped_malloc<net_get_cas_t>& message) { guarantee(false, "slave sent get_cas"); }
     void send(UNUSED stream_pair<net_sarc_t>& message) { guarantee(false, "slave sent sarc"); }
     void send(stream_pair<net_backfill_set_t>& msg) {
-#ifdef REVERSE_BACKFILLING
         // TODO: this is duplicate code.
 
         sarc_mutation_t mut;
@@ -104,10 +79,6 @@ public:
 
         // TODO: We need this operation to force the cas to be set.
         queue_store_->backfill_handover(new mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
-#else
-        (void)msg;
-        crash("Reverse backfilling disabled.\n");
-#endif
     }
 
     void send(UNUSED scoped_malloc<net_incr_t>& message) { guarantee(false, "slave sent incr"); }
@@ -116,7 +87,6 @@ public:
     void send(UNUSED stream_pair<net_prepend_t>& message) { guarantee(false, "slave sent prepend"); }
     void send(UNUSED scoped_malloc<net_delete_t>& message) { guarantee(false, "slave sent delete"); }
     void send(scoped_malloc<net_backfill_delete_t>& msg) {
-#ifdef REVERSE_BACKFILLING
         // TODO: this is duplicate code.
 
         delete_mutation_t mut;
@@ -126,10 +96,6 @@ public:
         // relevant to slaves -- it's used when putting deletions into the
         // delete queue.
         queue_store_->backfill_handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid));
-#else
-        (void)msg;
-        crash("Reverse backfilling disabled.\n");
-#endif
     }
     void send(UNUSED scoped_malloc<net_nop_t>& message) { guarantee(false, "slave sent nop"); }
     void send(UNUSED scoped_malloc<net_ack_t>& message) { }
@@ -150,9 +116,6 @@ public:
     void do_backfill_and_realtime_stream(repli_timestamp since_when);
 
 private:
-
-    template <class net_struct_type>
-    void incr_decr_like(const store_key_t& key, uint64_t amount, castime_t castime);
 
     void destroy_existing_slave_conn_if_it_exists();
 
