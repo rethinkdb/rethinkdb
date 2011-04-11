@@ -240,9 +240,6 @@ void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *rece
 template <class net_struct_type>
 void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
-    /* So we the repli_stream_t can't get destroyed out from under us */
-    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-
     size_t obsize = objsize(msg);
 
     if (obsize + sizeof(net_header_t) <= 0xFFFF) {
@@ -309,58 +306,72 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
 }
 
 void repli_stream_t::send(net_backfill_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL, msg);
 }
 
 void repli_stream_t::send(net_backfill_complete_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL_COMPLETE, msg);
 }
 
 void repli_stream_t::send(net_announce_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(ANNOUNCE, msg);
 }
 
 void repli_stream_t::send(net_get_cas_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(GET_CAS, msg);
 }
 
 void repli_stream_t::send(net_sarc_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(SARC, msg, key, value);
 }
 
 void repli_stream_t::send(net_backfill_set_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL_SET, msg, key, value);
 }
 
 void repli_stream_t::send(net_incr_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(INCR, msg);
 }
 
 void repli_stream_t::send(net_decr_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(DECR, msg);
 }
 
 void repli_stream_t::send(net_append_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(APPEND, msg, key, value);
 }
 
 void repli_stream_t::send(net_prepend_t *msg, const char *key, unique_ptr_t<data_provider_t> value) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(PREPEND, msg, key, value);
 }
 
 void repli_stream_t::send(net_delete_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(DELETE, msg);
 }
 
 void repli_stream_t::send(net_backfill_delete_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL_DELETE, msg);
 }
 
 void repli_stream_t::send(net_nop_t msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(NOP, &msg);
 }
 
 void repli_stream_t::send(net_ack_t msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(ACK, &msg);
 }
 
