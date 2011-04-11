@@ -16,7 +16,8 @@ def test(opts, port, test_dir):
     os.environ["PERLLIB"] = os.path.join(memcached_suite_dir, "lib") + ":" + os.getenv("PERLLIB", "")
 
     proc = subprocess.Popen(os.path.join(memcached_suite_dir, opts["suite-test"]))
-    assert proc.wait() == 0
+    suite_test_succeeded = proc.wait() == 0
+    assert suite_test_succeeded
 
 if __name__ == "__main__":
     op = make_option_parser()
