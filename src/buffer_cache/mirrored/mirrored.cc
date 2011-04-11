@@ -914,9 +914,9 @@ void mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_time
 bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     assert_thread();
 
-    // We only load the buffer if we don't have it yet
-    // Also we have to recheck that the block has not been deleted in the meantime
-    if (!shutting_down && !find_buf(block_id)) {
+    // Check that the offered block is allowed to be accepted at the current time
+    // (e.g. that we don't have a more recent version already nor that it got deleted in the meantime)
+    if (can_read_ahead_block_be_accepted(block_id)) {
         new mc_inner_buf_t(this, block_id, buf, recency_timestamp);
     } else {
         serializer->free(buf);
@@ -928,4 +928,17 @@ bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf
     }
 
     return true;
+}
+
+bool mc_cache_t::can_read_ahead_block_be_accepted(block_id_t block_id) {
+    assert_thread();
+
+    if (shutting_down) {
+        return false;
+    }
+
+    const bool we_already_have_the_block = find_buf(block_id);
+    const bool writeback_has_no_objections = writeback.can_read_ahead_block_be_accepted(block_id);
+
+    return !we_already_have_the_block && writeback_has_no_objections;
 }
