@@ -37,7 +37,12 @@ void queueing_store_t::handover(mutation_t *m, castime_t castime) {
 }
 
 void queueing_store_t::time_barrier(repli_timestamp timestamp) {
-    queued_time_barrier_ = timestamp;
+    if (queue_mode_ == queue_mode_off) {
+        inner_->time_barrier(timestamp);
+    } else {
+        rassert(queued_time_barrier_ == repli_timestamp_t::invalid || queued_time_barrier_ < timestamp);
+        queued_time_barrier_ = timestamp;
+    }
 }
 
 void queueing_store_t::backfill_handover(mutation_t *m, castime_t castime) {
@@ -45,7 +50,8 @@ void queueing_store_t::backfill_handover(mutation_t *m, castime_t castime) {
     delete m;
 }
 
-void queueing_store_t::backfill_complete() {
+void queueing_store_t::backfill_complete(repli_timestamp timestamp) {
+    inner_->time_barrier(timestamp);
     start_flush();
 }
 

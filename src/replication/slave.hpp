@@ -105,7 +105,7 @@ private:
 
     new_master_control_t new_master_control_;
 
-    boost::scoped_ptr<queueing_store_t> internal_store_;
+    btree_key_value_store_t *internal_store_;
     replication_config_t replication_config_;
     failover_config_t failover_config_;
 

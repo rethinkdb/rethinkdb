@@ -57,10 +57,15 @@ public:
         coro_t::spawn_now(boost::bind(&master_t::do_backfill_and_realtime_stream, this, message->timestamp));
     }
     void send(UNUSED scoped_malloc<net_backfill_complete_t>& message) {
+#ifdef REVERSE_BACKFILLING
         // TODO: What about time_barrier, which the slave side does?
 
         queue_store_->backfill_complete();
         debugf("Slave sent BACKFILL_COMPLETE.\n");
+#else
+        crash("reverse backfilling is disabled");
+        (void)message;
+#endif
     }
     void send(UNUSED scoped_malloc<net_announce_t>& message) { guarantee(false, "slave sent announce"); }
     void send(UNUSED scoped_malloc<net_get_cas_t>& message) { guarantee(false, "slave sent get_cas"); }
@@ -98,7 +103,7 @@ public:
         queue_store_->backfill_handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid));
     }
     void send(UNUSED scoped_malloc<net_nop_t>& message) { guarantee(false, "slave sent nop"); }
-    void send(UNUSED scoped_malloc<net_ack_t>& message) { }
+    void send(UNUSED scoped_malloc<net_ack_t>& message) { crash("ack is obsolete"); }
     void conn_closed() {
         assert_thread();
 
