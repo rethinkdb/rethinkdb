@@ -2,11 +2,14 @@
 #define __CONCURRENCY_GATE_HPP__
 
 #include "concurrency/cond_var.hpp"
+#include "concurrency/pmap.hpp"
 
 /* A gate is a concurrency object that monitors some shared resource. Opening the
 gate allows actors to access the resource. Closing the gate prevents actors from
 accessing the resource, but blocks until all the actors are done accessing the
-resource. */
+resource.
+
+gate_t is not thread-safe! If you want thread-safety, use threadsafe_gate_t. */
 
 struct gate_t {
 
@@ -34,6 +37,7 @@ struct gate_t {
             gate->num_inside_gate--;
         }
     private:
+        DISABLE_COPYING(entry_t);
         gate_t *gate;
     };
 
@@ -49,6 +53,7 @@ struct gate_t {
             gate->pulsed_when_num_inside_gate_zero.wait();
         }
     private:
+        DISABLE_COPYING(open_t);
         gate_t *gate;
     };
 
@@ -64,6 +69,55 @@ private:
     int num_inside_gate;
 
     cond_t pulsed_when_num_inside_gate_zero;
+};
+
+/* threadsafe_gate_t is a thread-safe version of gate_t. It can be entered on any thread
+and opened/closed from any thread. Its behavior is undefined if you open/close it on two
+threads concurrently. */
+
+struct threadsafe_gate_t {
+
+    threadsafe_gate_t() : subgates(new gate_t[get_num_threads()]) { }
+
+    bool is_open() {
+        return subgates[get_thread_id()].is_open();
+    }
+
+    /* Sentry that represents using the resource that the gate protects */
+    struct entry_t {
+        entry_t(threadsafe_gate_t *g) : subentry(&g->subgates[get_thread_id()]) { }
+    private:
+        DISABLE_COPYING(entry_t);
+        gate_t::entry_t subentry;
+    };
+
+    /* Sentry that opens and then closes gate */
+    struct open_t {
+        open_t(threadsafe_gate_t *g) : gate(g) {
+            subopens.resize(get_num_threads());
+            pmap(get_num_threads(), boost::bind(&open_t::do_open, this, _1));
+        }
+        ~open_t() {
+            pmap(get_num_threads(), boost::bind(&open_t::do_close, this, _1));
+        }
+    private:
+        DISABLE_COPYING(open_t);
+        void do_open(int thread) {
+            on_thread_t thread_switcher(thread);
+            subopens[thread] = new gate_t::open_t(&gate->subgates[thread]);
+        }
+        void do_close(int thread) {
+            on_thread_t thread_switcher(thread);
+            delete subopens[thread];
+        }
+        threadsafe_gate_t *gate;
+        std::vector<gate_t::open_t *> subopens;
+    };
+
+private:
+    friend class open_t;
+    friend class entry_t;
+    boost::scoped_array<gate_t> subgates;
 };
 
 #endif /* __CONCURRENCY_GATE_HPP__ */
