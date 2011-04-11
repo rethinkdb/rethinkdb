@@ -151,132 +151,126 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         /* Start logger */
         log_controller_t log_controller;
 
-        /* Start accepting connections, so that perfmons and command_ts can be accessed. We use
-        these gated-stores to prevent actual queries from being run until we are ready. */
-        gated_get_store_t gated_get_store(NULL);
-        gated_set_store_interface_t gated_set_store(NULL);
-        conn_acceptor_t conn_acceptor(cmd_config->port,
-            boost::bind(&serve_memcache, _1, &gated_get_store, &gated_set_store));
-        logINF("Server is now accepting connections on port %d, but only for maintenance operations.\n", cmd_config->port);
+        /* Copy database filenames from private serializer configurations into a single vector of strings */
+        std::vector<std::string> db_filenames;
+        std::vector<log_serializer_private_dynamic_config_t>& serializer_private = cmd_config->store_dynamic_config.serializer_private;
+        std::vector<log_serializer_private_dynamic_config_t>::iterator it;
 
-        {
-            /* Copy database filenames from private serializer configurations into a single vector of strings */
-            std::vector<std::string> db_filenames;
-            std::vector<log_serializer_private_dynamic_config_t>& serializer_private = cmd_config->store_dynamic_config.serializer_private;
-            std::vector<log_serializer_private_dynamic_config_t>::iterator it;
+        for (it = serializer_private.begin(); it != serializer_private.end(); ++it) {
+            db_filenames.push_back((*it).db_filename);
+        }
 
-            for (it = serializer_private.begin(); it != serializer_private.end(); ++it) {
-                db_filenames.push_back((*it).db_filename);
-            }
-
-            /* Check to see if there is an existing database */
-            struct : public btree_key_value_store_t::check_callback_t, public promise_t<bool> {
-                void on_store_check(bool ok) { pulse(ok); }
-            } check_cb;
-            btree_key_value_store_t::check_existing(db_filenames, &check_cb);
-            bool existing = check_cb.wait();
-            if (existing && cmd_config->create_store && !cmd_config->force_create) {
-                fail_due_to_user_error(
-                    "It looks like there already is a database here. RethinkDB will abort in case you "
-                    "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
-            } else {
-                if (!existing) {
-                    cmd_config->create_store = true;
-                }
-            }
-
-            /* Record information about disk drives to log file */
-            log_disk_info(cmd_config->store_dynamic_config.serializer_private);
-
-            /* Create store if necessary */
-            if (cmd_config->create_store) {
-                logINF("Creating database...\n");
-                btree_key_value_store_t::create(&cmd_config->store_dynamic_config,
-                                                &cmd_config->store_static_config);
-                logINF("Done creating.\n");
-            }
-
-            if (!cmd_config->shutdown_after_creation) {
-
-                /* Start key-value store */
-                logINF("Loading database...\n");
-                btree_key_value_store_t store(&cmd_config->store_dynamic_config);
-                gated_set_store.internal = &store;
-                gated_get_store.internal = &store;
-
-#ifdef TIMEBOMB_DAYS
-                /* This continuously checks to see if RethinkDB has expired */
-                timebomb::periodic_checker_t timebomb_checker(store.multiplexer->creation_timestamp);
-#endif
-
-                if (cmd_config->replication_config.active) {
-
-                    logINF("Starting up as a slave...\n");
-                    replication::slave_t slave(&store, cmd_config->replication_config, cmd_config->failover_config);
-
-                    /* So that Amazon's Elastic Load Balancer (ELB) can tell when master goes
-                    down */
-                    boost::scoped_ptr<elb_t> elb;
-                    if (cmd_config->failover_config.elb_port != -1) {
-                        elb.reset(new elb_t(elb_t::slave, cmd_config->port));
-                        slave.failover.add_callback(elb.get());
-                    }
-
-                    {
-                        /* So that we accept/reject gets and sets at the appropriate times */
-                        failover_query_enabler_disabler_t query_enabler(&gated_set_store, &gated_get_store);
-                        slave.failover.add_callback(&query_enabler);
-
-                        wait_for_sigint();
-
-                        logINF("Waiting for running operations to finish...\n");
-                        /* query_enabler destructor called here; has side effect of draining
-                        queries. */
-                    }
-
-                    /* Slave destructor called here */
-
-                } else if (cmd_config->replication_master_active) {
-
-                    replication::master_t master(cmd_config->replication_master_listen_port);
-                    master.register_key_value_store(&store);
-
-                    /* Open the gates to allow real queries. TODO: Later we will need to not
-                    allow real queries during some phases of the master's lifecycle. */
-                    gated_get_store_t::open_t permit_gets(&gated_get_store);
-                    gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
-
-                    logINF("Server will now permit memcached queries.\n");
-
-                    wait_for_sigint();
-
-                    logINF("Waiting for running operations to finish...\n");
-                    /* Master destructor called here */
-
-                } else {
-
-                    /* We aren't doing any sort of replication. */
-
-                    // Open the gates to allow real queries
-                    gated_get_store_t::open_t permit_gets(&gated_get_store);
-                    gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
-
-                    logINF("Server will now permit memcached queries.\n");
-
-                    wait_for_sigint();
-
-                    logINF("Waiting for running operations to finish...\n");
-                }
-
-                logINF("Waiting for changes to flush to disk...\n");
-                // Store destructor called here
-
-            } else {
-                logINF("Shutting down...\n");
+        /* Check to see if there is an existing database */
+        struct : public btree_key_value_store_t::check_callback_t, public promise_t<bool> {
+            void on_store_check(bool ok) { pulse(ok); }
+        } check_cb;
+        btree_key_value_store_t::check_existing(db_filenames, &check_cb);
+        bool existing = check_cb.wait();
+        if (existing && cmd_config->create_store && !cmd_config->force_create) {
+            fail_due_to_user_error(
+                "It looks like there already is a database here. RethinkDB will abort in case you "
+                "didn't mean to overwrite it. Run with the '--force' flag to override this warning.");
+        } else {
+            if (!existing) {
+                cmd_config->create_store = true;
             }
         }
 
-        logINF("Closing connections...\n");
+        /* Record information about disk drives to log file */
+        log_disk_info(cmd_config->store_dynamic_config.serializer_private);
+
+        /* Create store if necessary */
+        if (cmd_config->create_store) {
+            logINF("Creating database...\n");
+            btree_key_value_store_t::create(&cmd_config->store_dynamic_config,
+                                            &cmd_config->store_static_config);
+            logINF("Done creating.\n");
+        }
+
+        if (!cmd_config->shutdown_after_creation) {
+
+            /* Start key-value store */
+            logINF("Loading database...\n");
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config);
+
+#ifdef TIMEBOMB_DAYS
+            /* This continuously checks to see if RethinkDB has expired */
+            timebomb::periodic_checker_t timebomb_checker(store.multiplexer->creation_timestamp);
+#endif
+
+            /* Start accepting connections. We use gated-stores so that the slave code can
+            forbid gets and sets at appropriate times. */
+            gated_get_store_t gated_get_store(&store);
+            gated_set_store_interface_t gated_set_store(&store);
+            conn_acceptor_t conn_acceptor(cmd_config->port,
+                boost::bind(&serve_memcache, _1, &gated_get_store, &gated_set_store));
+
+            if (cmd_config->replication_config.active) {
+
+                logINF("Starting up as a slave...\n");
+                replication::slave_t slave(&store, cmd_config->replication_config, cmd_config->failover_config);
+
+                /* So that Amazon's Elastic Load Balancer (ELB) can tell when master goes
+                down */
+                boost::scoped_ptr<elb_t> elb;
+                if (cmd_config->failover_config.elb_port != -1) {
+                    elb.reset(new elb_t(elb_t::slave, cmd_config->port));
+                    slave.failover.add_callback(elb.get());
+                }
+
+                {
+                    /* So that we accept/reject gets and sets at the appropriate times */
+                    failover_query_enabler_disabler_t query_enabler(&gated_set_store, &gated_get_store);
+                    slave.failover.add_callback(&query_enabler);
+
+                    wait_for_sigint();
+
+                    logINF("Waiting for running operations to finish...\n");
+                    /* query_enabler destructor called here; has side effect of draining
+                    queries. */
+                }
+
+                /* Slave destructor called here */
+
+            } else if (cmd_config->replication_master_active) {
+
+                replication::master_t master(cmd_config->replication_master_listen_port);
+                master.register_key_value_store(&store);
+
+                /* Open the gates to allow real queries. TODO: Later we will need to not
+                allow real queries during some phases of the master's lifecycle. */
+                gated_get_store_t::open_t permit_gets(&gated_get_store);
+                gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
+
+                logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
+
+                wait_for_sigint();
+
+                logINF("Waiting for running operations to finish...\n");
+                /* Master destructor called here */
+
+            } else {
+
+                /* We aren't doing any sort of replication. */
+
+                // Open the gates to allow real queries
+                gated_get_store_t::open_t permit_gets(&gated_get_store);
+                gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
+
+                logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
+
+                wait_for_sigint();
+
+                logINF("Waiting for running operations to finish...\n");
+            }
+
+            logINF("Waiting for changes to flush to disk...\n");
+            // Connections closed here
+            // Store destructor called here
+
+        } else {
+            logINF("Shutting down...\n");
+        }
 
     } catch (conn_acceptor_t::address_in_use_exc_t) {
         logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor

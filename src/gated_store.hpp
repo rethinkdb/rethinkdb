@@ -17,7 +17,7 @@ struct gated_get_store_t : public get_store_t {
     struct open_t {
         open_t(gated_get_store_t *s) : open(&s->gate) { }
     private:
-        gate_t::open_t open;
+        threadsafe_gate_t::open_t open;
     };
 
     // TODO: Make this real
@@ -28,7 +28,7 @@ struct gated_get_store_t : public get_store_t {
     get_store_t *internal;
 
 private:
-    gate_t gate;
+    threadsafe_gate_t gate;
 };
 
 struct gated_set_store_interface_t : public set_store_interface_t {
@@ -40,7 +40,7 @@ struct gated_set_store_interface_t : public set_store_interface_t {
     struct open_t {
         open_t(gated_set_store_interface_t *s) : open(&s->gate) { }
     private:
-        gate_t::open_t open;
+        threadsafe_gate_t::open_t open;
     };
 
     // TODO: Make this real
@@ -49,7 +49,7 @@ struct gated_set_store_interface_t : public set_store_interface_t {
     set_store_interface_t *internal;
 
 private:
-    gate_t gate;
+    threadsafe_gate_t gate;
 };
 
 #endif /* __GATED_STORE_HPP__ */
