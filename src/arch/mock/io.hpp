@@ -85,7 +85,7 @@ protected:
         return false;
     }
     
-    bool write_async(size_t offset, size_t length, void *buf, mock_iocallback_t *cb) {
+    bool write_async(size_t offset, size_t length, const void *buf, mock_iocallback_t *cb) {
         rassert(mode & mode_write);
         write_blocking(offset, length, buf);
         random_delay(cb, &mock_iocallback_t::on_io_complete);
@@ -100,7 +100,7 @@ protected:
         }
     }
     
-    void write_blocking(size_t offset, size_t length, void *buf) {
+    void write_blocking(size_t offset, size_t length, const void *buf) {
         rassert(mode & mode_write);
         verify(offset, length, buf);
         for (unsigned i = 0; i < length / DEVICE_BLOCK_SIZE; i += 1) {
@@ -143,7 +143,7 @@ private:
     };
     segmented_vector_t<block_t, 10*GIGABYTE/DEVICE_BLOCK_SIZE> blocks;
     
-    void verify(UNUSED size_t offset, UNUSED size_t length, UNUSED void *buf) {
+    void verify(UNUSED size_t offset, UNUSED size_t length, UNUSED const void *buf) {
         rassert(buf);
         rassert(offset + length <= get_size());
         rassert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);

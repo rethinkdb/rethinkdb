@@ -338,15 +338,17 @@ void writeback_t::concurrent_flush_t::on_lock_available() {
     do_writeback();
 }
 
-struct buf_writer_t :
+struct writeback_t::concurrent_flush_t::buf_writer_t :
     public serializer_t::write_block_callback_t,
     public thread_message_t,
     public home_thread_mixin_t
 {
     writeback_t *parent;
     mc_buf_t *buf;
-    explicit buf_writer_t(writeback_t *wb, mc_buf_t *buf)
-        : parent(wb), buf(buf)
+    bool *transaction_ids_have_been_updated;
+    bool released_buffer;
+    explicit buf_writer_t(writeback_t *wb, mc_buf_t *buf, bool *tids_updated)
+        : parent(wb), buf(buf), transaction_ids_have_been_updated(tids_updated), released_buffer(false)
     {
         parent->outstanding_disk_writes++;
     }
@@ -354,15 +356,27 @@ struct buf_writer_t :
         if (continue_on_thread(home_thread, this)) on_thread_switch();
     }
     void on_thread_switch() {
+        if (!*transaction_ids_have_been_updated) {
+            // Writeback might still need the buffer. We wait until we get destructed before releasing it...
+            call_later_on_this_thread(this);
+            return;
+        }
+        released_buffer = true;
         buf->release();
         parent->outstanding_disk_writes--;
         parent->possibly_unthrottle_transactions();
-        delete this;
+    }
+    ~buf_writer_t() {
+        if (!released_buffer) {
+            buf->release();
+            parent->outstanding_disk_writes--;
+            parent->possibly_unthrottle_transactions();
+        }
     }
 };
 
 writeback_t::concurrent_flush_t::concurrent_flush_t(writeback_t* parent) :
-        parent(parent) {
+        transaction_ids_have_been_updated(false), parent(parent) {
     transaction = NULL;
 
     // Start flushing immediately
@@ -454,12 +468,10 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
                     if (lbuf->last_patch_materialized < (*range.second)->get_patch_counter()) {
                         if (!parent->cache->patch_disk_storage->store_patch(*(*range.second), transaction_id)) {
                             patch_storage_failure = true;
-                            //fprintf(stderr, "Patch storage failure\n");
                             lbuf->needs_flush = true;
                             break;
                         }
                         else {
-                            //fprintf(stderr, "Patch stored\n");
                             patches_stored++;
                         }
                     }
@@ -553,13 +565,14 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
             serializer_inner_bufs.push_back(inner_buf);
 
             // Fill the serializer structure
+            buf_writer_t *buf_writer = new buf_writer_t(parent, buf, &transaction_ids_have_been_updated);
+            buf_writers.push_back(buf_writer);
             serializer_writes.push_back(translator_serializer_t::write_t::make(
                 inner_buf->block_id,
                 inner_buf->subtree_recency,
                 buf->get_data_read(),
                 inner_buf->write_empty_deleted_block,
-                new buf_writer_t(parent, buf)
-                ));
+                buf_writer));
         } else if (recency_dirty) {
             // No need to acquire the block.
             serializer_writes.push_back(translator_serializer_t::write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency, NULL));
@@ -592,21 +605,24 @@ bool writeback_t::concurrent_flush_t::do_write() {
 
 void writeback_t::concurrent_flush_t::update_transaction_ids() {
     rassert(parent->writeback_in_progress);
+    rassert(!transaction_ids_have_been_updated);
     parent->cache->assert_thread();
 
     // Retrieve changed transaction ids
     size_t inner_buf_ix = 0;
     for (size_t i = 0; i < serializer_writes.size(); ++i) {
         if (serializer_writes[i].buf_specified && serializer_writes[i].buf) {
+            rassert(serializer_inner_bufs[inner_buf_ix]->block_id == serializer_writes[i].block_id);
             serializer_inner_bufs[inner_buf_ix++]->transaction_id = parent->cache->serializer->get_current_transaction_id(serializer_writes[i].block_id, serializer_writes[i].buf);
         }
 
-        // We assume that all deleted blocks are by now been reflected in the serializer's LBA (in case of the log serializer)
+        // We assume that all deleted blocks are reflected in the serializer's LBA (in case of the log serializer) by now
         // and will not get offered as read-ahead blocks anymore.
         // Therefore we can remove them from our reject_read_ahead_blocks list.
         // TODO: I don't like this implicit assumption (which is not really part of the tid_callback semantics). Change it.
         parent->reject_read_ahead_blocks.erase(serializer_writes[i].block_id);
     }
+    transaction_ids_have_been_updated = true;
 
     // Allow new concurrent flushes to start from now on
     // (we had to wait until the transaction got passed to the serializer)
@@ -629,9 +645,15 @@ void writeback_t::concurrent_flush_t::on_serializer_write_txn() {
 
 bool writeback_t::concurrent_flush_t::do_cleanup() {
     parent->cache->assert_thread();
+    rassert(transaction_ids_have_been_updated);
     
     /* We are done writing all of the buffers */
-    
+
+    // At this point it's definitely safe to release all the buffers
+    for (size_t i = 0; i < buf_writers.size(); ++i) {
+        delete buf_writers[i];
+    }
+
     bool committed __attribute__((unused)) = transaction->commit(NULL);
     rassert(committed); // Read-only transactions commit immediately.
 

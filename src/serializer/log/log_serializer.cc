@@ -441,12 +441,9 @@ struct ls_write_fsm_t :
         on_thread_switch();
     }
     
-    void on_thread_switch() {
-
-        /* TODO: This does not work well in master currently! (crashes). Disabled for now... */
-        
+    void on_thread_switch() {        
         // Launch up to this many block writers at a time, then yield the CPU
-        /*const int target_chunk_size = 100;
+        const int target_chunk_size = 100;
         int chunk_size = 0;
         while (num_writes > 0 && chunk_size < target_chunk_size) {
             ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes);
@@ -454,13 +451,6 @@ struct ls_write_fsm_t :
             num_writes--;
             writes++;
             chunk_size++;
-        }*/
-
-        while (num_writes > 0) {
-            ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes);
-            if (!writer->run(this)) num_writes_waited_for++;
-            num_writes--;
-            writes++;
         }
         
         if (num_writes == 0) done_preparing_writes();

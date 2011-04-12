@@ -217,6 +217,10 @@ public:
         void update_transaction_ids();  // Called on cache thread
         bool do_cleanup();   // Called on cache thread
 
+        bool transaction_ids_have_been_updated;
+        struct buf_writer_t;
+        std::vector<buf_writer_t *> buf_writers;
+
         writeback_t* parent; // We need this for flush concurrency control (i.e. flush_lock, active_flushes etc.)
 
         ticks_t start_time;
