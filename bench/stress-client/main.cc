@@ -195,7 +195,8 @@ int main(int argc, char *argv[])
         }
 
         while(feof(in_file) == 0) {
-            int id, min_seed, max_seed;
+            int id;
+            seed_t min_seed, max_seed;
             res = fread(&id, sizeof(id), 1, in_file);
             res = fread(&min_seed, sizeof(min_seed), 1, in_file);
             res = fread(&max_seed, sizeof(max_seed), 1, in_file);
