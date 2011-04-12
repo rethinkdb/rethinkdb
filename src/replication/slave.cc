@@ -113,19 +113,16 @@ void run(slave_t *slave) {
             // will get closed.
             slave->pulse_to_interrupt_run_loop_.watch(&slave_multicond);
 
-#ifdef REVERSE_BACKFILLING
-            slave->failover.on_reverse_backfill_begin();
             // TODO: this is a fake timestamp!!! You _must_ fix this.
-            repli_timestamp fake1 = { 0 };
-            stream_mgr.reverse_side_backfill(fake1);
+            repli_timestamp fake = { 0 };
+
+            slave->failover.on_reverse_backfill_begin();
+            stream_mgr.reverse_side_backfill(fake);
             slave->failover.on_reverse_backfill_end();
-#endif
 
             slave->failover.on_backfill_begin();
-            // TODO: another fake timestamp!!! You _must_ fix this.
-            repli_timestamp fake2 = { 0 };
-            stream_mgr.backfill(fake2);
-            slave->failover.on_backfill_end();
+            stream_mgr.backfill(fake);
+            slave->failover.on_backfill_end();   // TODO this is the wrong time to call on_backfill_end()
 
             debugf("slave_t: Waiting for things to fail...\n");
             slave_multicond.wait();

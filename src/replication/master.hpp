@@ -5,6 +5,7 @@
 #include "arch/arch.hpp"
 #include "replication/backfill.hpp"
 #include "replication/backfill_sender.hpp"
+#include "replication/backfill_receiver.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/thick_list.hpp"
 #include "replication/net_structs.hpp"
@@ -19,14 +20,18 @@ namespace replication {
 
 class master_t :
     public linux_tcp_listener_callback_t,
-    public message_callback_t,
-    public backfill_sender_t {
+    public backfill_sender_t,
+    public backfill_receiver_t {
 public:
-    master_t(int port) :
+    master_t(int port, btree_key_value_store_t *kv_store) :
         backfill_sender_t(&stream_),
+        backfill_receiver_t(kv_store),
         stream_(NULL),
-        listener_port_(port)
+        listener_port_(port),
+        kvs_(kv_store)
     {
+        listener_.reset(new tcp_listener_t(listener_port_));
+        listener_->set_callback(this);
 
         // Because stream_ is initially NULL
         stream_exists_cond_.pulse();
@@ -43,9 +48,6 @@ public:
         destroy_existing_slave_conn_if_it_exists();
     }
 
-    // The master does not turn on its listener until this function is called.
-    void register_key_value_store(btree_key_value_store_t *kv_store);
-
     bool has_slave() { return stream_ != NULL; }
 
     // Listener callback functions
@@ -56,53 +58,7 @@ public:
     void send(UNUSED scoped_malloc<net_backfill_t>& message) {
         coro_t::spawn_now(boost::bind(&master_t::do_backfill_and_realtime_stream, this, message->timestamp));
     }
-    void send(UNUSED scoped_malloc<net_backfill_complete_t>& message) {
-#ifdef REVERSE_BACKFILLING
-        // TODO: What about time_barrier, which the slave side does?
-
-        queue_store_->backfill_complete();
-        debugf("Slave sent BACKFILL_COMPLETE.\n");
-#else
-        crash("reverse backfilling is disabled");
-        (void)message;
-#endif
-    }
     void send(UNUSED scoped_malloc<net_announce_t>& message) { guarantee(false, "slave sent announce"); }
-    void send(UNUSED scoped_malloc<net_get_cas_t>& message) { guarantee(false, "slave sent get_cas"); }
-    void send(UNUSED stream_pair<net_sarc_t>& message) { guarantee(false, "slave sent sarc"); }
-    void send(stream_pair<net_backfill_set_t>& msg) {
-        // TODO: this is duplicate code.
-
-        sarc_mutation_t mut;
-        mut.key.assign(msg->key_size, msg->keyvalue);
-        mut.data = msg.stream;
-        mut.flags = msg->flags;
-        mut.exptime = msg->exptime;
-        mut.add_policy = add_policy_yes;
-        mut.replace_policy = replace_policy_yes;
-        mut.old_cas = NO_CAS_SUPPLIED;
-
-        // TODO: We need this operation to force the cas to be set.
-        queue_store_->backfill_handover(new mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
-    }
-
-    void send(UNUSED scoped_malloc<net_incr_t>& message) { guarantee(false, "slave sent incr"); }
-    void send(UNUSED scoped_malloc<net_decr_t>& message) { guarantee(false, "slave sent decr"); }
-    void send(UNUSED stream_pair<net_append_t>& message) { guarantee(false, "slave sent append"); }
-    void send(UNUSED stream_pair<net_prepend_t>& message) { guarantee(false, "slave sent prepend"); }
-    void send(UNUSED scoped_malloc<net_delete_t>& message) { guarantee(false, "slave sent delete"); }
-    void send(scoped_malloc<net_backfill_delete_t>& msg) {
-        // TODO: this is duplicate code.
-
-        delete_mutation_t mut;
-        mut.key.assign(msg->key_size, msg->key);
-        // NO_CAS_SUPPLIED is not used in any way for deletions, and the
-        // timestamp is part of the "->change" interface in a way not
-        // relevant to slaves -- it's used when putting deletions into the
-        // delete queue.
-        queue_store_->backfill_handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid));
-    }
-    void send(UNUSED scoped_malloc<net_nop_t>& message) { guarantee(false, "slave sent nop"); }
     void send(UNUSED scoped_malloc<net_ack_t>& message) { crash("ack is obsolete"); }
     void conn_closed() {
         assert_thread();
@@ -132,7 +88,7 @@ private:
     boost::scoped_ptr<tcp_listener_t> listener_;
 
     // The key value store.
-    boost::scoped_ptr<queueing_store_t> queue_store_;
+    btree_key_value_store_t *kvs_;
 
     // This is unpulsed iff stream_ is non-NULL.
     cond_t stream_exists_cond_; 

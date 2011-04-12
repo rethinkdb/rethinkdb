@@ -28,10 +28,8 @@ struct slave_stream_manager_t :
 
     void backfill(repli_timestamp since_when);
 
-#ifdef REVERSE_BACKFILLING
     // Called by run() after the slave_stream_manager_t is created. Fold into constructor?
     void reverse_side_backfill(repli_timestamp since_when);
-#endif
 
     /* message_callback_t interface */
     // These call .swap on their parameter, taking ownership of the pointee.
@@ -50,6 +48,8 @@ struct slave_stream_manager_t :
     // If multicond_ is pulsed, we drop our connection to the master. If the connection
     // to the master drops on its own, we pulse multicond_.
     multicond_t *multicond_;
+
+    btree_key_value_store_t *kvs_;
 
     // When conn_closed() is called, we consult interrupted_by_external_event_ to determine
     // if this is a spontaneous loss of connectivity or if it's due to an intentional

@@ -1,4 +1,5 @@
 #include "replication/slave_stream_manager.hpp"
+#include "replication/backfill_sender.hpp"
 
 namespace replication {
 
@@ -9,6 +10,7 @@ slave_stream_manager_t::slave_stream_manager_t(
     backfill_receiver_t(kvs),
     stream_(NULL),
     multicond_(NULL),
+    kvs_(kvs),
     interrupted_by_external_event_(false) {
 
     /* This is complicated. "new repli_stream_t()" could call our conn_closed() method.
@@ -32,28 +34,18 @@ void slave_stream_manager_t::backfill(repli_timestamp since_when) {
     if (stream_) stream_->send(&bf);
 }
 
-#ifdef REVERSE_BACKFILLING
 void slave_stream_manager_t::reverse_side_backfill(repli_timestamp since_when) {
-    // TODO: This rather duplicates some code in master_t::do_backfill.
 
     assert_thread();
 
     debugf("Doing reverse_side_backfill.\n");
 
-    do_backfill_cb cb(home_thread, &stream_);
+    backfill_sender_t sender(&stream_);
 
-    internal_store_->inner()->spawn_backfill(since_when, &cb);
-
-    debugf("reverse_side_backfill waiting...\n");
-    repli_timestamp minimum_timestamp = cb.wait();
-    debugf("reverse_side_backfill done waiting.\n");
-    if (stream_) {
-        net_backfill_complete_t msg;
-        msg.time_barrier_timestamp = minimum_timestamp;
-        stream_->send(&msg);
-    }
+    multicond_t mc;
+    mc.pulse();   // So that backfill_and_realtime_stream() returns as soon as the backfill part is over
+    backfill_and_realtime_stream(kvs_, since_when, &sender, &mc);
 }
-#endif
 
  /* message_callback_t interface */
 void slave_stream_manager_t::hello(UNUSED net_hello_t message) {
