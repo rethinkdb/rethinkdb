@@ -107,10 +107,6 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
     rassert(log_block_bufs.size() == number_of_blocks);
 
     set_active_log_block(first_block);
-
-    /* We may have made a lot of blocks dirty by initializing the patch log. We need to start
-    a sync explicitly because we bypassed transaction_t. */
-    cache.writeback.sync(NULL);
 }
 
 patch_disk_storage_t::~patch_disk_storage_t() {

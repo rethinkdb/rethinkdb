@@ -808,8 +808,15 @@ mc_cache_t::mc_cache_t(
     patch_disk_storage.reset(new patch_disk_storage_t(*this, MC_CONFIGBLOCK_ID));
     patch_disk_storage->load_patches(patch_memory_storage);
 
+    /* Please note: writebacks must *not* happen prior to this point! */
+    /* Writebacks ( / syncs / flushes) can cause blocks to be rewritten and require an intact patch_memory_storage! */
+
     // Register us for read ahead to warm up faster
     serializer->register_read_ahead_cb(this);
+
+    /* We may have made a lot of blocks dirty by initializing the patch log. We need to start
+    a sync explicitly because it bypassed transaction_t. */
+    writeback.sync(NULL);
 }
 
 mc_cache_t::~mc_cache_t() {
