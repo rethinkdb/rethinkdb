@@ -508,10 +508,6 @@ class FailoverMemcachedWrapper(object):
 
     def resurrect_server(self, jesus):
 
-        # Reverse backfilling is temporarily disabled, so we can't bring back up master
-        # if slave is up
-        if jesus == "master" and not self.down["slave"]: return
-
         assert self.down[jesus]
         print "Resurrecting %s..." % jesus
         self.server[jesus].start()
