@@ -103,15 +103,19 @@ public:
     }
 
     static int64_t level_max(UNUSED int level) {
-        // level = 1 is the root level
+        // level = 1 is the root level.  These numbers are
+        // ridiculously small because we have to spawn a coroutine
+        // because the buffer cache is broken.
         if (level <= 3) {
-            return 100000;
-        } else {
             return 1000;
+        } else {
+            return 50;
         }
     }
 
     void consider_pulsing() {
+        rassert(coro_t::self());
+
         // We try to do as many pulses as we can (thus getting
         // behavior equivalent to calling consider_pulsing) but we
         // only actually do one pulse because this function gets
@@ -132,6 +136,10 @@ public:
                     acquisition_waiter_callback_t *waiter_cb = acquisition_waiter_stacks[i].back();
                     acquisition_waiter_stacks[i].pop_back();
 
+                    // For some reason the buffer cache is broken.  It
+                    // expects transaction_t::acquire to run in a
+                    // coroutine!  So we use coro_t::spawn instead of
+                    // do_later.
                     coro_t::spawn(boost::bind(&acquisition_waiter_callback_t::you_may_acquire, waiter_cb));
                     diff -= 1;
                 }
@@ -215,6 +223,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block
     }
 
     void on_block_available(buf_t *block) {
+        rassert(coro_t::self());
         node_ready_callback_t *local_cb = node_ready_cb;
         delete this;
         local_cb->on_node_ready(block);
@@ -223,7 +232,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block
 
 
 void acquire_a_node(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb, node_ready_callback_t *node_ready_cb) {
-
+    rassert(coro_t::self());
     acquire_a_node_fsm_t *fsm = new acquire_a_node_fsm_t;
     fsm->state = state;
     fsm->level = level;
@@ -279,6 +288,11 @@ struct subtrees_backfill_fsm_t : public get_subtree_recencies_callback_t, public
     int acquisition_countdown;
 
     void got_subtree_recencies() {
+        coro_t::spawn_now(boost::bind(&subtrees_backfill_fsm_t::got_subtree_recencies_in_coro, this));
+    }
+
+    void got_subtree_recencies_in_coro() {
+        rassert(coro_t::self());
         acquisition_countdown = num_block_ids + 1;
 
         for (int i = 0; i < num_block_ids; ++i) {
@@ -293,10 +307,12 @@ struct subtrees_backfill_fsm_t : public get_subtree_recencies_callback_t, public
     }
 
     void on_started_acquisition() {
+        rassert(coro_t::self());
         decr_acquisition_countdown();
     }
 
     void decr_acquisition_countdown() {
+        rassert(coro_t::self());
         rassert(acquisition_countdown > 0);
         -- acquisition_countdown;
         if (acquisition_countdown == 0) {
@@ -309,6 +325,7 @@ struct subtrees_backfill_fsm_t : public get_subtree_recencies_callback_t, public
 };
 
 void subtrees_backfill(backfill_state_t *state, buf_t *parent, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids) {
+    rassert(coro_t::self());
     subtrees_backfill_fsm_t *fsm = new subtrees_backfill_fsm_t;
     fsm->state = state;
     fsm->parent = parent;
@@ -325,6 +342,7 @@ struct do_a_subtree_backfill_fsm_t : public node_ready_callback_t {
     int level;
 
     void on_node_ready(buf_t *buf) {
+        rassert(coro_t::self());
         const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
 
         backfill_state_t *local_state = state;
