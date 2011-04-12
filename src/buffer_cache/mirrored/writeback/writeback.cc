@@ -358,7 +358,6 @@ struct writeback_t::concurrent_flush_t::buf_writer_t :
     void on_thread_switch() {
         if (!*transaction_ids_have_been_updated) {
             // Writeback might still need the buffer. We wait until we get destructed before releasing it...
-            call_later_on_this_thread(this);
             return;
         }
         released_buffer = true;
