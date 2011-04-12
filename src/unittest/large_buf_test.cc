@@ -45,10 +45,16 @@ private:
             char ref_bytes[sizeof(large_buf_ref) + num_root_ref_inlined * sizeof(block_id_t)];
         };
 
+        std::vector<char> chars(initial_size);
+        for (int64_t i = 0; i < initial_size; ++i) {
+            // 23 is relatively prime to leaf_size, which should be 4080.
+            chars[i] = 'A' + (i % 23);
+        }
         
         {
             large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
             lb.allocate(initial_size);
+            lb.fill_at(0, chars.data(), initial_size);
         }
 
         ASSERT_EQ(0, ref.offset);
@@ -62,10 +68,22 @@ private:
             ASSERT_EQ(0, refsize_adjustment_out);
         }
 
+        chars.erase(chars.begin(), chars.begin() + unprepend_amount);
+
         // Makes sure that unprepend unshifts the way we expect.  We
         // expect things to be shifted largely to the left.
         ASSERT_EQ(leaf_size - ((1 + unprepend_amount) % leaf_size) - 1, ref.offset);
         ASSERT_EQ(initial_size - unprepend_amount, ref.size);
+
+        {
+            large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_read);
+            co_acquire_large_buf(saver, &lb);
+
+            std::vector<char> chars_out(initial_size - unprepend_amount);
+            lb.read_at(0, chars_out.data(), initial_size - unprepend_amount);
+
+            ASSERT_TRUE(chars == chars_out);
+        }
     }
 };
 
