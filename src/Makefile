@@ -18,6 +18,7 @@ RETHINKDB_SOLO_PRODUCT:=1
 PRODUCT_NAME:=RethinkDB Solo
 VANILLA_PACKAGE_NAME?=rethinkdb
 SERVER_EXEC_NAME?=rethinkdb
+EXTRACTOR_EXEC_NAME?=rdb-extractor
 else
 RETHINKDB_CACHE_PRODUCT:=1
 RETHINKDB_SOLO_PRODUCT:=0
@@ -255,6 +256,8 @@ else
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
 endif
 
+extractor: $(BUILD_DIR)/$(EXTRACTOR_EXEC_NAME)
+
 ifeq ($(PACKAGING),1)
 DEBIAN_PKG_DIR:=debian
 SUPPRESSED_LINTIAN_TAGS:=new-package-should-close-itp-bug
@@ -415,6 +418,14 @@ ifeq ($(VERBOSE),0)
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
+
+$(BUILD_DIR)/$(EXTRACTOR_EXEC_NAME): CXXFLAGS+= -DEXTRACTOR
+$(BUILD_DIR)/$(EXTRACTOR_EXEC_NAME): $(OBJS) $(BUILD_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    LD $@"
+endif
+	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(EXTRACTOR_EXEC_NAME)
+	@echo "    Finished building RethinkDB extractor version '${RETHINKDB_VERSION}'"
 
 $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
