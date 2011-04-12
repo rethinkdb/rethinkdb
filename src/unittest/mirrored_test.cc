@@ -39,6 +39,7 @@ private:
         // create a fake buffer (be careful with populating it with data
         void *fake_buf = serializer->malloc();
         buf_data_t *ser_data = ptr_cast<buf_data_t>(fake_buf);
+        ser_data--;
         ser_data->block_id = serializer->translate_block_id(block_A);
         ser_data->transaction_id = 1;
 

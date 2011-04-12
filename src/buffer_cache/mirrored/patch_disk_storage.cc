@@ -100,8 +100,8 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
 
             // Check that this is a valid log block
             mc_buf_t *log_buf = log_block_bufs[current_block - first_block];
-            void *buf_data = log_buf->get_data_major_write();
-            guarantee(strncmp(reinterpret_cast<char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
+            const void *buf_data = log_buf->get_data_read();
+            guarantee(strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
         }
     }
     rassert(log_block_bufs.size() == number_of_blocks);

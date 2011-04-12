@@ -103,7 +103,7 @@ failover_query_enabler_disabler_t::failover_query_enabler_disabler_t(gated_set_s
 
 void failover_query_enabler_disabler_t::on_failure() {
     /* When master fails, start permitting sets. */
-    permit_sets.reset(new gated_set_store_interface_t::open_t(set_gate));
+    if (!permit_sets) permit_sets.reset(new gated_set_store_interface_t::open_t(set_gate));
 }
 
 void failover_query_enabler_disabler_t::on_resume() {
@@ -120,6 +120,6 @@ void failover_query_enabler_disabler_t::on_backfill_begin() {
 
 void failover_query_enabler_disabler_t::on_backfill_end() {
     /* Now that backfill is over, allow gets */
-    permit_gets.reset(new gated_get_store_t::open_t(get_gate));
+    if (!permit_gets) permit_gets.reset(new gated_get_store_t::open_t(get_gate));
 }
 

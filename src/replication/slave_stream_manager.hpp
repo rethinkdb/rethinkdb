@@ -2,7 +2,7 @@
 #define __REPLICATION_SLAVE_STREAM_MANAGER_HPP__
 
 #include "replication/protocol.hpp"
-#include "replication/queueing_store.hpp"
+#include "replication/backfill_receiver.hpp"
 
 namespace replication {
 
@@ -15,40 +15,27 @@ SIGINT) then it pulses the multicond, and the slave_stream_manager_t automatical
 the connection to the master. */
 
 struct slave_stream_manager_t :
-    public message_callback_t,
+    public backfill_receiver_t,
     public home_thread_mixin_t,
     public multicond_t::waiter_t
 {
     // Give it a connection to the master, a pointer to the store to forward changes to, and a
     // multicond. If the multicond is pulsed, it will kill the connection. If the connection dies,
     // it will pulse the multicond.
-    slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn, queueing_store_t *is, multicond_t *multicond);
+    slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn, btree_key_value_store_t *kvs, multicond_t *multicond);
 
     ~slave_stream_manager_t();
 
     void backfill(repli_timestamp since_when);
 
-#ifdef REVERSE_BACKFILLING
     // Called by run() after the slave_stream_manager_t is created. Fold into constructor?
     void reverse_side_backfill(repli_timestamp since_when);
-#endif
 
     /* message_callback_t interface */
     // These call .swap on their parameter, taking ownership of the pointee.
     void hello(net_hello_t message);
     void send(scoped_malloc<net_backfill_t>& message);
-    void send(scoped_malloc<net_backfill_complete_t>& message);
-    void send(scoped_malloc<net_announce_t>& message);
-    void send(scoped_malloc<net_get_cas_t>& message);
-    void send(stream_pair<net_sarc_t>& message);
-    void send(stream_pair<net_backfill_set_t>& message);
-    void send(scoped_malloc<net_incr_t>& message);
-    void send(scoped_malloc<net_decr_t>& message);
-    void send(stream_pair<net_append_t>& message);
-    void send(stream_pair<net_prepend_t>& message);
-    void send(scoped_malloc<net_delete_t>& message);
-    void send(scoped_malloc<net_backfill_delete_t>& message);
-    void send(scoped_malloc<net_nop_t>& message);
+    void send(UNUSED scoped_malloc<net_announce_t>& message) { crash("announce is obsolete"); }
     void send(scoped_malloc<net_ack_t>& message);
     void conn_closed();
 
@@ -58,15 +45,11 @@ struct slave_stream_manager_t :
     // Our connection to the master
     repli_stream_t *stream_;
 
-    // What to forward queries to
-    queueing_store_t *internal_store_;
-
     // If multicond_ is pulsed, we drop our connection to the master. If the connection
     // to the master drops on its own, we pulse multicond_.
     multicond_t *multicond_;
 
-    // True iff we are currently recieving a stream of backfilled data from the master
-    bool backfilling_;
+    btree_key_value_store_t *kvs_;
 
     // When conn_closed() is called, we consult interrupted_by_external_event_ to determine
     // if this is a spontaneous loss of connectivity or if it's due to an intentional

@@ -5,7 +5,6 @@
 #include "btree/leaf_node.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/large_buf.hpp"
-#include "buffer_cache/buf_patch.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "utils.hpp"
@@ -15,6 +14,29 @@
 #include "fsck/raw_block.hpp"
 
 namespace extract {
+// Hack: Redefine guarantee to handle these gracefully at places
+// where code is shared between serve and extract
+class guarantee_exception_t {
+    const std::string message;
+public:
+    guarantee_exception_t(const char *msg) : message(msg) { }
+    const char *c_str() { if (message.length() > 0) return message.c_str(); else return "Unknown guarantee failure"; }
+};
+#undef guarantee
+#define guarantee(cond, msg...) do {    \
+        if (!(cond)) {                  \
+            throw guarantee_exception_t("" msg); \
+        }                               \
+    } while (0)
+
+// Hack: Force recompilation with redefined guarantee macros
+#undef __BUF_PATCH_HPP__
+#undef __BTREE_BUF_PATCHES_HPP__
+#include "buffer_cache/buf_patch.hpp"
+#include "buffer_cache/buf_patch.cc"
+#include "btree/buf_patches.hpp"
+#include "btree/buf_patches.cc"
+
 
 typedef config_t::override_t cfg_t;
 
@@ -212,7 +234,13 @@ void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, non
                 int num_patches = 0;
                 uint16_t current_offset = 6; //sizeof(LOG_BLOCK_MAGIC);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(buf_data_t)) {
-                    buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
+                    buf_patch_t *patch;
+                    try {
+                        patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
+                    } catch (guarantee_exception_t &e) {
+                        logERR("Corrupted patch: %s. Ignoring the rest of the log block.\n", e.c_str());
+                        break;
+                    }
                     if (!patch) {
                         break;
                     }

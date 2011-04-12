@@ -234,8 +234,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             } else if (cmd_config->replication_master_active) {
 
-                replication::master_t master(cmd_config->replication_master_listen_port);
-                master.register_key_value_store(&store);
+                replication::master_t master(cmd_config->replication_master_listen_port, &store);
 
                 /* Open the gates to allow real queries. TODO: Later we will need to not
                 allow real queries during some phases of the master's lifecycle. */
