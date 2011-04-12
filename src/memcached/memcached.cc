@@ -237,9 +237,6 @@ void do_get(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool with_
                 rh->write_crlf(saver);
             }
         }
-        if (res.to_signal_when_done) {
-            res.to_signal_when_done->pulse();
-        }
     }
 
     rh->write_end(saver);
