@@ -52,10 +52,10 @@ protected:
     /* These always return 'false'; the reason they return bool instead of void
 is for consistency with other asynchronous-callback methods */
     bool read_async(size_t offset, size_t length, void *buf, linux_iocallback_t *cb);
-    bool write_async(size_t offset, size_t length, void *buf, linux_iocallback_t *cb);
+    bool write_async(size_t offset, size_t length, const void *buf, linux_iocallback_t *cb);
 
     void read_blocking(size_t offset, size_t length, void *buf);
-    void write_blocking(size_t offset, size_t length, void *buf);
+    void write_blocking(size_t offset, size_t length, const void *buf);
 
     ~linux_file_t();
 
@@ -64,7 +64,7 @@ private:
     bool is_block;
     bool file_exists;
     uint64_t file_size;
-    void verify(size_t offset, size_t length, void* buf);
+    void verify(size_t offset, size_t length, const void *buf);
     boost::scoped_ptr<linux_diskmgr_t> diskmgr;
 
     DISABLE_COPYING(linux_file_t);

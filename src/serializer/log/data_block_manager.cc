@@ -218,7 +218,7 @@ bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, se
 
     pm_serializer_data_blocks_written++;
 
-    buf_data_t *data = (buf_data_t*)buf_in;
+    const buf_data_t *data = ptr_cast<buf_data_t>(buf_in);
     data--;
     if (transaction_id != NULL_SER_TRANSACTION_ID) {
         *const_cast<buf_data_t *>(data) = make_buf_data_t(block_id, transaction_id);

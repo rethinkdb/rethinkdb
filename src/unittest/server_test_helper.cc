@@ -56,7 +56,7 @@ void server_test_helper_t::setup_server_and_run_tests() {
 
         run_tests(saver, cache);
     }
-    log_call(thread_pool.shutdown);
+    trace_call(thread_pool.shutdown);
 }
 
 // Static helper functions
