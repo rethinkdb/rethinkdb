@@ -30,6 +30,7 @@ void _logf(const char *src_file, int src_line, log_level_t level, const char *fo
 #define logWRN(fmt, args...) _logf(__FILE__, __LINE__, WRN, (fmt), ##args)
 #define logERR(fmt, args...) _logf(__FILE__, __LINE__, ERR, (fmt), ##args)
 
+// TODO: This should not be named log_call.  It uses debugf.
 #ifndef NDEBUG
 #define log_call(fn, args...) do {                                          \
         debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
