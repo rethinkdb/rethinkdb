@@ -37,6 +37,7 @@ TAGS:=.tags
 CSCOPE_XREF:=.cscope
 RUN_PORT?=11211
 RUN_FLAGS?=-s 3 -c 2 -m 10
+RUN_FILE?=rethinkdb_data
 VALGRIND_FLAGS?=--leak-check=full --db-attach=yes --show-reachable=yes --suppressions=../scripts/rethinkdb-valgrind-suppressions.supp
 CALLGRIND_FLAGS?=--simulate-cache=yes --simulate-wb=yes --simulate-hwpref=yes --cacheuse=yes --collect-jumps=yes
 
@@ -458,18 +459,18 @@ $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME):
 # like the similarly-named targets except that they don't remove old data files.
 
 run: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	$(QUIET) rm -f rethinkdb_data*
-	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	$(QUIET) rm -f $(RUN_FILE)
+	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
 rerun: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	$(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
 gdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	$(QUIET) rm -f rethinkdb_data*
-	cgdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	$(QUIET) rm -f $(RUN_FILE)
+	cgdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
 regdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	cgdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	cgdb --args $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
 sembuild: clean
 	make SEMANTIC_SERIALIZER_CHECK=1 all
@@ -479,23 +480,23 @@ ifeq ($(VALGRIND),0)
 	$(error Using the 'valgrind' target doesn't automatically set VALGRIND to 1. Try again with \
 'make valgrind VALGRIND=1')
 endif
-	$(QUIET) rm -f rethinkdb_data*
-	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	$(QUIET) rm -f $(RUN_FILE)
+	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
 revalgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(VALGRIND),0)
 	$(error Using the 'revalgrind' target doesn't automatically set VALGRIND to 1. Try again with \
 'make valgrind VALGRIND=1')
 endif
-	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
 callgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(CALLGRIND),0)
 	$(error Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \
 'make calgrind CALLGRIND=1')
 endif
-	$(QUIET) rm -f rethinkdb_data*
-	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	$(QUIET) rm -f $(RUN_FILE)
+	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
 tags:
 	$(QUIET) ctags -R -f $(TAGS) --langmap="c++:.cc.tcc.hpp"

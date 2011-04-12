@@ -17,7 +17,6 @@ backfill_receiver_t::~backfill_receiver_t() {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_backfill_complete_t>& message) {
-    debugf("Got backfill-complete, timestamp: %d\n", message->time_barrier_timestamp.time);
     internal_store_.backfill_complete(message->time_barrier_timestamp);
     backfilling_ = false;
 }
@@ -111,7 +110,6 @@ void backfill_receiver_t::send(scoped_malloc<net_backfill_delete_t>& msg) {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_nop_t>& message) {
-    debugf("Got nop, timestamp: %d\n", message->timestamp.time);
     internal_store_.time_barrier(message->timestamp);
 }
 
