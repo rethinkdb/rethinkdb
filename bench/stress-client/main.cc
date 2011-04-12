@@ -141,19 +141,21 @@ int main(int argc, char *argv[])
             /* Construct the client object */
             client()
         {
-            client.add_op(config->op_ratios.inserts, &insert_op);
-
-            client.add_op(config->op_ratios.deletes, &delete_op);
-
             int expected_batch_factor = (config->batch_factor.min + config->batch_factor.max) / 2;
-            client.add_op(config->op_ratios.reads / expected_batch_factor, &read_op);
-            client.add_op(config->op_ratios.updates, &update_op);
-            client.add_op(config->op_ratios.appends, &append_op);
-            client.add_op(config->op_ratios.prepends, &prepend_op);
 
-            client.add_op(config->op_ratios.verifies, &verify_op);
+            /* We multiply the ratio by expected_batch_factor to get nicer rounding for reads (instead of dividing the reads frequency) */
+            client.add_op(config->op_ratios.inserts * expected_batch_factor, &insert_op);
 
-            client.add_op(config->op_ratios.range_reads, &range_read_op);
+            client.add_op(config->op_ratios.deletes * expected_batch_factor, &delete_op);
+
+            client.add_op(config->op_ratios.reads, &read_op);
+            client.add_op(config->op_ratios.updates * expected_batch_factor, &update_op);
+            client.add_op(config->op_ratios.appends * expected_batch_factor, &append_op);
+            client.add_op(config->op_ratios.prepends * expected_batch_factor, &prepend_op);
+
+            client.add_op(config->op_ratios.verifies * expected_batch_factor, &verify_op);
+
+            client.add_op(config->op_ratios.range_reads * expected_batch_factor, &range_read_op);
         }
 
         ~client_stuff_t() {
@@ -195,7 +197,8 @@ int main(int argc, char *argv[])
         }
 
         while(feof(in_file) == 0) {
-            int id, min_seed, max_seed;
+            int id;
+            seed_t min_seed, max_seed;
             res = fread(&id, sizeof(id), 1, in_file);
             res = fread(&min_seed, sizeof(min_seed), 1, in_file);
             res = fread(&max_seed, sizeof(max_seed), 1, in_file);
