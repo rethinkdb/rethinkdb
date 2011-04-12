@@ -145,7 +145,7 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock
     }
 
     mock_buf_t *buf = new mock_buf_t(internal_buf, mode);
-    if (internal_buf->lock.lock(mode, buf)) {
+    if (internal_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, buf)) {
         if (maybe_random_delay(callback, &mock_block_available_callback_t::on_block_available, buf)) {
             return buf;
         } else {

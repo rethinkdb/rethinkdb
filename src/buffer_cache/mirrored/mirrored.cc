@@ -811,12 +811,19 @@ mc_cache_t::mc_cache_t(
     max_patches_size_ratio(dynamic_config->wait_for_flush ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
     next_snapshot_version(mc_inner_buf_t::faux_version_id+1)
 {
+#ifndef NDEBUG
+    writebacks_allowed = false;
+#endif
+
     /* Load differential log from disk */
     patch_disk_storage.reset(new patch_disk_storage_t(*this, MC_CONFIGBLOCK_ID));
     patch_disk_storage->load_patches(patch_memory_storage);
 
     /* Please note: writebacks must *not* happen prior to this point! */
     /* Writebacks ( / syncs / flushes) can cause blocks to be rewritten and require an intact patch_memory_storage! */
+#ifndef NDEBUG
+    writebacks_allowed = true;
+#endif
 
     // Register us for read ahead to warm up faster
     serializer->register_read_ahead_cb(this);

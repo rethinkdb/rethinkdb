@@ -22,8 +22,6 @@ void backfill_receiver_t::send(scoped_malloc<net_backfill_complete_t>& message) 
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_get_cas_t>& msg) {
-    // TODO this returns a get_result_t (with cross-thread messaging),
-    // and we don't really care for that.
     get_cas_mutation_t mut;
     mut.key.assign(msg->key_size, msg->key);
     internal_store_.handover(new mutation_t(mut), castime_t(msg->proposed_cas, msg->timestamp));
@@ -54,8 +52,19 @@ void backfill_receiver_t::send(stream_pair<net_backfill_set_t>& msg) {
     mut.replace_policy = replace_policy_yes;
     mut.old_cas = NO_CAS_SUPPLIED;
 
-    // TODO: We need this operation to force the cas to be set.
     internal_store_.backfill_handover(new mutation_t(mut), castime_t(msg->cas_or_zero, msg->timestamp));
+
+    if (msg->cas_or_zero != 0) {
+        /* We need to make sure that the key gets assigned a CAS, because it has a CAS on the
+        other node. If the key did not have a CAS before we sent "mut", then it will still lack a
+        CAS after we send "mut", so we also send "cas_mut" to force it to have a CAS. Since we
+        send "msg->cas_or_zero" as the "proposed_cas" for "cas_mut", the CAS will be correct. If
+        the key had a CAS before we sent "mut", then "mut" will set the CAS to the correct value,
+        and "cas_mut" will be a noop. */
+        get_cas_mutation_t cas_mut;
+        cas_mut.key = mut.key;
+        internal_store_.backfill_handover(new mutation_t(cas_mut), castime_t(msg->cas_or_zero, msg->timestamp));
+    }
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_incr_t>& msg) {

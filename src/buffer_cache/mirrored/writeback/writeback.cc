@@ -103,6 +103,7 @@ perfmon_sampler_t pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), 
 
 bool writeback_t::sync(sync_callback_t *callback) {
     cache->assert_thread();
+    rassert(cache->writebacks_allowed);
 
     // Have to check active_flushes too, because a return value of true has to guarantee that changes handled
     // by previous flushes are also on disk. If these are still running, we must initiate a new flush
