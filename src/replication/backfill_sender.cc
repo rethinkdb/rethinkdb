@@ -65,7 +65,12 @@ void backfill_sender_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_
         stru.add_policy = add_policy;
         stru.replace_policy = replace_policy;
         stru.old_cas = old_cas;
-        if (*stream_) (*stream_)->send(&stru, key.contents, data);
+        try {
+            if (*stream_) (*stream_)->send(&stru, key.contents, data);
+        } catch (data_provider_failed_exc_t) {
+            /* Do nothing. Because the data provider failed, the operation was never performed
+            on the master, so it's good if it's also never performed on the slave either. */
+        }
     }
 }
 
@@ -109,7 +114,11 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
             appendstruct.key_size = key.size;
             appendstruct.value_size = data->get_size();
 
-            if (*stream_) (*stream_)->send(&appendstruct, key.contents, data);
+            try {
+                if (*stream_) (*stream_)->send(&appendstruct, key.contents, data);
+            } catch (data_provider_failed_exc_t) {
+                /* See coment in realtime_sarc() */
+            }
         } else {
             rassert(kind == append_prepend_PREPEND);
 
@@ -119,7 +128,11 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
             prependstruct.key_size = key.size;
             prependstruct.value_size = data->get_size();
 
-            if (*stream_) (*stream_)->send(&prependstruct, key.contents, data);
+            try {
+                if (*stream_) (*stream_)->send(&prependstruct, key.contents, data);
+            } catch (data_provider_failed_exc_t) {
+                /* See coment in realtime_sarc() */
+            }
         }
     }
 }
