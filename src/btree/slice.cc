@@ -133,3 +133,15 @@ void btree_slice_t::time_barrier(UNUSED repli_timestamp lower_bound_on_future_ti
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
     superblock->touch_recency(lower_bound_on_future_timestamps);
 }
+
+repli_timestamp btree_slice_t::get_last_time_barrier() {
+    thread_saver_t saver;
+    on_thread_t th(cache()->home_thread);
+    transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::invalid);
+
+    block_id_t superblock_id = SUPERBLOCK_ID;
+    repli_timestamp_t superblock_recency;
+    co_get_subtree_recencies(transactor.get(), &superblock_id, 1, &superblock_recency);
+    return superblock_recency;
+}
+

@@ -30,6 +30,7 @@ void backfill_sender_t::backfill_set(backfill_atom_t atom) {
 }
 
 void backfill_sender_t::backfill_done(repli_timestamp_t timestamp_when_backfill_began) {
+    debugf("Backfill done, timestamp: %d\n", timestamp_when_backfill_began.time);
     net_backfill_complete_t msg;
     msg.time_barrier_timestamp = timestamp_when_backfill_began;
     if (*stream_) (*stream_)->send(&msg);
@@ -139,6 +140,7 @@ void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timest
 }
 
 void backfill_sender_t::realtime_time_barrier(repli_timestamp timestamp) {
+    debugf("Time barrier, timestamp: %d\n", timestamp.time);
     assert_thread();
     net_nop_t msg;
     msg.timestamp = timestamp;
