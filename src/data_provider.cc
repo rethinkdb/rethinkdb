@@ -26,43 +26,12 @@ const const_buffer_group_t *auto_buffering_data_provider_t::get_data_as_buffers(
 
 void auto_copying_data_provider_t::get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t) {
 
-    int bytes = get_size();
-    rassert((int)dest->get_size() == bytes);
-
     const const_buffer_group_t *source = get_data_as_buffers();
-    rassert((int)source->get_size() == bytes);
+    rassert(source->get_size() == get_size());
 
-    /* Copy data between source and dest; we have to always copy the minimum of the sizes of the
-    next chunk that each one has */
-    int source_buf = 0, source_off = 0, dest_buf = 0, dest_off = 0;
-    while (bytes > 0) {
-        while (source->get_buffer(source_buf).size == source_off) {
-            source_buf++;
-            source_off = 0;
-        }
-        while (dest->get_buffer(dest_buf).size == dest_off) {
-            dest_buf++;
-            dest_off = 0;
-        }
-        int chunk = std::min(
-            source->get_buffer(source_buf).size - source_off,
-            dest->get_buffer(dest_buf).size - dest_off);
-        memcpy(
-            reinterpret_cast<char *>(dest->get_buffer(dest_buf).data) + dest_off,
-            reinterpret_cast<const char *>(source->get_buffer(source_buf).data) + source_off,
-            chunk);
-        source_off += chunk;
-        dest_off += chunk;
-        bytes -= chunk;
-    }
+    rassert(dest->get_size() == get_size());
 
-    /* Make sure we reached the end of both source and dest */
-    rassert(
-        (source_buf == (int)source->num_buffers()     && source_off == 0) ||
-        (source_buf == (int)source->num_buffers() - 1 && source_off == source->get_buffer(source_buf).size));
-    rassert(
-        (dest_buf == (int)dest->num_buffers()     && dest_off == 0) ||
-        (dest_buf == (int)dest->num_buffers() - 1 && dest_off == dest->get_buffer(dest_buf).size));
+    buffer_group_copy_data(dest, source);
 }
 
 /* buffered_data_provider_t */
@@ -139,101 +108,57 @@ const const_buffer_group_t *maybe_buffered_data_provider_t::get_data_as_buffers(
     }
 }
 
+/* bad_data_provider_t */
 
-buffer_borrowing_data_provider_t::side_data_provider_t::side_data_provider_t(int reading_thread, size_t size, cond_t *done_cond)
-    : reading_thread_(reading_thread), done_cond_(done_cond), got_data_(false), size_(size) {
+bad_data_provider_t::bad_data_provider_t(size_t size) : size(size) { }
+
+size_t bad_data_provider_t::get_size() const {
+    return size;
 }
 
-buffer_borrowing_data_provider_t::side_data_provider_t::~side_data_provider_t() {
-    if (!got_data_) {
-        cond_.wait();
-    }
-    if (done_cond_) {
-        done_cond_->pulse();
-    }
+void bad_data_provider_t::get_data_into_buffers(UNUSED const buffer_group_t *dest) throw (data_provider_failed_exc_t) {
+    throw data_provider_failed_exc_t();
 }
 
-
-size_t buffer_borrowing_data_provider_t::side_data_provider_t::get_size() const { return size_; }
-
-const const_buffer_group_t *buffer_borrowing_data_provider_t::side_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
-    const const_buffer_group_t *buffers = cond_.wait();
-    got_data_ = true;
-
-    if (!buffers) {
-        throw data_provider_failed_exc_t();
-    }
-    return buffers;
+const const_buffer_group_t *bad_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
+    throw data_provider_failed_exc_t();
 }
 
-void buffer_borrowing_data_provider_t::side_data_provider_t::supply_buffers_and_wait(const const_buffer_group_t *buffers) {
-    on_thread_t thread(reading_thread_);
-    cond_t *done_cond_local = done_cond_;
-    cond_.pulse(buffers);
-    done_cond_local->wait();
-}
+/* duplicate_data_provider() */
 
-void buffer_borrowing_data_provider_t::side_data_provider_t::supply_no_buffers() {
-    on_thread_t thread(reading_thread_);
-    cond_.pulse(NULL);
-    done_cond_ = NULL;
-}
+void duplicate_data_provider(unique_ptr_t<data_provider_t> original, int n, unique_ptr_t<data_provider_t> *dps_out) {
 
-buffer_borrowing_data_provider_t::buffer_borrowing_data_provider_t(int side_reader_thread, unique_ptr_t<data_provider_t> inner)
-    : inner_(inner), done_cond_(),
-      side_(new side_data_provider_t(side_reader_thread, inner_->get_size(), &done_cond_)),
-      side_owned_(true), supplied_buffers_(false) {
-#ifndef NDEBUG
-    in_get_data_into_buffers_ = false;
-#endif
-}
+    if (n > 0) {
 
-buffer_borrowing_data_provider_t::~buffer_borrowing_data_provider_t() {
-    rassert(!in_get_data_into_buffers_);
+        /* Allocate the first data provider in such a way that it exposes its internal
+        buffer to us */
+        size_t size = original->get_size();
+        void *data;
+        dps_out[0].reset(new buffered_data_provider_t(size, &data));
 
-    if (side_owned_) {
-        delete side_;
-    } else {
-        if (!supplied_buffers_) {
-            side_->supply_no_buffers();
+        /* Fill its internal buffer */
+        bool succeeded = true;
+        try {
+            buffer_group_t bg;
+            bg.add_buffer(size, data);
+            original->get_data_into_buffers(&bg);
+        } catch (data_provider_failed_exc_t) {
+            succeeded = false;
+        }
+
+        if (succeeded) {
+            /* Create the remaining data providers by copying the data from the first data
+            provider's internal buffer */
+            for (int i = 1; i < n; i++) {
+                dps_out[i].reset(new buffered_data_provider_t(data, size));
+            }
+
+        } else {
+            /* Destroy the buffered_data_provider_t that we already made and instead make a
+            bunch of bad_data_provider_ts */
+            for (int i = 0; i < n; i++) {
+                dps_out[i].reset(new bad_data_provider_t(size));
+            }
         }
     }
 }
-
-size_t buffer_borrowing_data_provider_t::get_size() const { return inner_->get_size(); }
-
-void buffer_borrowing_data_provider_t::get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t) {
-#ifndef NDEBUG
-    in_get_data_into_buffers_ = true;
-    try {
-#endif
-
-        inner_->get_data_into_buffers(dest);
-        supplied_buffers_ = true;
-        side_->supply_buffers_and_wait(const_view(dest));
-
-#ifndef NDEBUG
-    } catch (data_provider_failed_exc_t&) {
-        in_get_data_into_buffers_ = false;
-        throw;
-    }
-    in_get_data_into_buffers_ = false;
-#endif
-}
-
-const const_buffer_group_t *buffer_borrowing_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
-    supplied_buffers_ = true;
-    const const_buffer_group_t *group = inner_->get_data_as_buffers();
-    side_->supply_buffers_and_wait(group);
-    return group;
-}
-
-unique_ptr_t<buffer_borrowing_data_provider_t::side_data_provider_t> buffer_borrowing_data_provider_t::side_provider() {
-    if (side_owned_) {
-        side_owned_ = false;
-        return unique_ptr_t<side_data_provider_t>(side_);
-    } else {
-        return unique_ptr_t<side_data_provider_t>();
-    }
-}
-
