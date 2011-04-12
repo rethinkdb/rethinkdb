@@ -10,14 +10,14 @@ for mode in ["debug", "release"]:
     do_test("cd ../src/; nice make -j",
             { "DEBUG"            : 1 if mode    == "debug"    else 0,
               "UNIT_TESTS" : 1 },
-            cmd_format="make")
+            cmd_format="make", timeout=180)
 
 for special in ["NO_EPOLL", "MOCK_IO_LAYER", "MOCK_CACHE_CHECK", "VALGRIND"]:
     do_test("cd ../src/; nice make -j",
             { "DEBUG" : 1,
               special : 1,
               "UNIT_TESTS" : 1 },
-            cmd_format="make")
+            cmd_format="make", timeout=180)
 
 # Make sure auxillary tools compile
 do_test("cd ../bench/stress-client/; make clean; make stress libstress.so",
