@@ -114,6 +114,9 @@ private:
     to shut down the slave. */
     bool *shutting_down_;
 
+    /* The run loop pulses this when it finishes */
+    cond_t pulsed_when_run_loop_done_;
+
     /* pulse_to_interrupt_run_loop_ holds a pointer to whatever multicond_t the run
     loop is blocking on at the moment. */
     multicond_weak_ptr_t pulse_to_interrupt_run_loop_;

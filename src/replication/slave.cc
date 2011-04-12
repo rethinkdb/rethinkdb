@@ -34,6 +34,8 @@ slave_t::~slave_t() {
     on connecting to the master, this will cause us to resume trying to connect. If we
     are in a timeout before retrying the connection, this will cut the timout short. */
     pulse_to_interrupt_run_loop_.pulse_if_non_null();
+
+    pulsed_when_run_loop_done_.wait();
 }
 
 std::string slave_t::failover_reset() {
@@ -167,6 +169,8 @@ void run(slave_t *slave) {
             c.wait();
         }
     }
+
+    slave->pulsed_when_run_loop_done_.pulse();
 }
 
 std::string slave_t::new_master(int argc, char **argv) {
