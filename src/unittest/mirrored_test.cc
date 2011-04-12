@@ -8,7 +8,7 @@ struct mirrored_tester_t : public server_test_helper_t {
 protected:
     void run_tests(thread_saver_t& saver UNUSED, cache_t *cache UNUSED) {
         // for now this test doesn't work as it should, so turn it off
-        log_call(test_read_ahead_checks_free_list, saver, cache);
+        trace_call(test_read_ahead_checks_free_list, saver, cache);
     }
 private:
     void test_read_ahead_checks_free_list(thread_saver_t& saver, cache_t *cache) {

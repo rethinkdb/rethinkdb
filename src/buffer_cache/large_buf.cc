@@ -728,7 +728,7 @@ int large_buf_t::try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_i
         for (int i = ret; i < backindex; ++i) {
             block_ids[i - ret] = block_ids[i];
         }
-        rassert(ret < (int)trs->size());
+        rassert(ret <= (int)trs->size());
         trs->erase(trs->begin(), trs->begin() + std::min((int)trs->size(), ret));
     }
 

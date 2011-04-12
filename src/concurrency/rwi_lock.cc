@@ -83,8 +83,9 @@ bool rwi_lock_t::try_lock(access_t access, bool from_queue) {
             res = try_lock_upgrade(from_queue);
             break;
         case rwi_read_outdated_ok:
+            unreachable("Tried to acquire the rw-lock using read_outdated_ok");
         default:
-            unreachable("Invalid lock state");
+            unreachable("Tried to acquire the rw-lock using unknown mode");
     }
 
     return res;
