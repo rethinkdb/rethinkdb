@@ -140,9 +140,24 @@ bool maybe_random_delay(cb_t *cb, void (cb_t::*method)());
 template<class cb_t, class arg1_t>
 bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
 
+// HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
+// debug.hpp (and debug.cc).
 /* Debugging printing API (prints current thread in addition to message) */
 
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
+
+#ifndef NDEBUG
+#define trace_call(fn, args...) do {                                          \
+        debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
+        fn(args);                                                           \
+        debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
+    } while (0)
+#define TRACEPOINT debugf("%s:%u reached\n", __FILE__, __LINE__)
+#else
+#define trace_call(fn, args...) fn(args)
+// TRACEPOINT is not defined in release, so that TRACEPOINTS do not linger in the code unnecessarily
+#endif
+
 
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.

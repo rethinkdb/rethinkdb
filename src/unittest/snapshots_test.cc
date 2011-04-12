@@ -9,16 +9,16 @@ namespace unittest {
 struct snapshots_tester_t : public server_test_helper_t {
 protected:
     void run_tests(thread_saver_t& saver, cache_t *cache) {
-        // It's nice to see the progress of these tests, so we use log_call
-        log_call(test_snapshot_acq_blocks_on_unfinished_create, saver, cache);
-        log_call(test_snapshot_sees_changes_started_before_its_first_block_acq, saver, cache);
-        log_call(test_snapshot_doesnt_see_later_changes_and_doesnt_block_them, saver, cache);
-        log_call(test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later, saver, cache);
-        log_call(test_snapshot_blocks_on_txns_that_acq_first_block_earlier, saver, cache);
-        log_call(test_issue_194, saver, cache);
-        log_call(test_cow_snapshots, saver, cache);
-        log_call(test_double_cow_acq_release, saver, cache);
-        log_call(test_cow_delete, saver, cache);
+        // It's nice to see the progress of these tests, so we use trace_call
+        trace_call(test_snapshot_acq_blocks_on_unfinished_create, saver, cache);
+        trace_call(test_snapshot_sees_changes_started_before_its_first_block_acq, saver, cache);
+        trace_call(test_snapshot_doesnt_see_later_changes_and_doesnt_block_them, saver, cache);
+        trace_call(test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later, saver, cache);
+        trace_call(test_snapshot_blocks_on_txns_that_acq_first_block_earlier, saver, cache);
+        trace_call(test_issue_194, saver, cache);
+        trace_call(test_cow_snapshots, saver, cache);
+        trace_call(test_double_cow_acq_release, saver, cache);
+        trace_call(test_cow_delete, saver, cache);
     }
 
 private:
