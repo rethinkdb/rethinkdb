@@ -68,9 +68,10 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
 
     // We manage our block IDs separately from the normal mechanism, but they are still in the same
     // ID-space. So we have to reserve the block IDs. TODO: We should use a separate ID-space.
-    cache.free_list.reserve_block_id(start_id);
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
-        cache.free_list.reserve_block_id(current_block);
+        if (block_is_empty[current_block - first_block]) {
+            cache.free_list.reserve_block_id(current_block);
+        }
     }
 
     // Preload log blocks so that they get read from disk in parallel

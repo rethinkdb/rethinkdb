@@ -35,6 +35,7 @@ void array_free_list_t::reserve_block_id(block_id_t id) {
                 return;
             }
         }
+        unreachable("Tried to reserve a block id which is already taken.");
     }
 }
 
