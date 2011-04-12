@@ -671,7 +671,6 @@ mc_buf_t *mc_transaction_t::allocate() {
 // to support the new behavior or we can be slow.
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     block_available_callback_t *callback, bool should_load) {
-    rassert(coro_t::self());
     rassert(block_id != NULL_BLOCK_ID);
     rassert(is_read_mode(mode) || access != rwi_read);
     assert_thread();

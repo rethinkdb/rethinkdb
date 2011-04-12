@@ -537,8 +537,18 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
             rassert(!inner_buf->do_delete);
 
             // Acquire the blocks
-            buf_t *buf = transaction->acquire(inner_buf->block_id, rwi_read_outdated_ok, NULL);
-            rassert(buf); // Acquire must succeed since we hold the flush_lock.
+            buf_t *buf;
+            {
+                ASSERT_NO_CORO_WAITING;
+                // transaction->acquire expects to be called from
+                // within a coroutine, except when we call it from
+                // here.  I guess.
+                buf = transaction->acquire(inner_buf->block_id, rwi_read_outdated_ok, NULL);
+                // Acquire always succeeds, but sometimes it blocks.
+                // But it won't block because we hold the flush lock.
+                rassert(buf);
+            }
+            
             serializer_inner_bufs.push_back(inner_buf);
 
             // Fill the serializer structure
