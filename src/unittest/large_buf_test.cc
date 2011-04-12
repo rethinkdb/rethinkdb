@@ -72,7 +72,7 @@ private:
 
         // Makes sure that unprepend unshifts the way we expect.  We
         // expect things to be shifted largely to the left.
-        ASSERT_EQ(leaf_size - ((1 + unprepend_amount) % leaf_size) - 1, ref.offset);
+        ASSERT_EQ(unprepend_amount % leaf_size, ref.offset);
         ASSERT_EQ(initial_size - unprepend_amount, ref.size);
 
         {
