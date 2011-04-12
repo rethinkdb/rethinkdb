@@ -131,11 +131,28 @@ enum replace_policy_t {
 #define NO_CAS_SUPPLIED 0
 
 struct sarc_mutation_t {
+
+    /* The key to operate on */
     store_key_t key;
+
+    /* The value to give the key; must not be NULL.
+    TODO: Should NULL mean a deletion? */
     unique_ptr_t<data_provider_t> data;
+
+    /* The flags to store with the value */
     mcflags_t flags;
+
+    /* When to make the value expire */
     exptime_t exptime;
+
+    /* If add_policy is add_policy_no and the key doesn't already exist, then the operation
+    will be cancelled and the return value will be sr_didnt_add */
     add_policy_t add_policy;
+
+    /* If replace_policy is replace_policy_no and the key already exists, or if
+    replace_policy is replace_policy_if_cas_matches and the key is either missing a
+    CAS or has a CAS different from old cas, then the operation will be cancelled and
+    the return value will be sr_didnt_replace. */
     replace_policy_t replace_policy;
     cas_t old_cas;
 };
