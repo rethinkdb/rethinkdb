@@ -127,7 +127,7 @@ if __name__ == "__main__":
         print "Out of %d values written, %d survived the server shutdown." % \
             (len(mutual_dict), successes)
         if fails > opts["missing_value_threshold"]:
-            raise ValueError("Unacceptably many values were missing.")
+            raise ValueError("Unacceptably many values were missing: %d" % fails)
     run_with_timeout(verify_values, timeout = opts["verify_timeout"], name = "verification test", test_dir = test_dir)
 
     # Clean up

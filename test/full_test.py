@@ -433,7 +433,12 @@ def run_all_tests(mode, checker, protocol, cores, slices):
 
     for suite_test in os.listdir('integration/memcached_suite'):
         if not suite_test.endswith(".t"): continue
-        do_test_cloud("integration/memcached_suite.py",
+
+        do_test_appropriately = do_test_cloud
+        if suite_test.endswith('expirations.t'): # EC2 seems to be too slow for expirations.t some of the time.
+            do_test_appropriately = do_test
+
+        do_test_appropriately("integration/memcached_suite.py",
                       { "auto"        : True,
                         "mode"        : mode,
                         "no-valgrind" : not checker,
