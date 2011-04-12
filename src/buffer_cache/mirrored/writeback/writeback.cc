@@ -306,7 +306,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     parent->cache->assert_thread();
 
     // As we cannot afford waiting for blocks to get loaded from disk while holding the flush lock,
-    // we instead to reclaim some space in the on-disk patch storage now.
+    // we instead reclaim some space in the on-disk patch storage now.
     ticks_t start_time2;
     pm_flushes_diff_flush.begin(&start_time2);
     unsigned int blocks_to_flush = (unsigned long long)parent->dirty_bufs.size() * 100ll / parent->cache->get_block_size().value() + 1;
@@ -383,6 +383,24 @@ void writeback_t::concurrent_flush_t::do_writeback() {
     parent->cache->assert_thread();
 
     pm_flushes_locking.end(&start_time);
+
+    // Move callbacks to locals only after we got the lock.
+    // That way callbacks coming in while waiting for the flush lock
+    // can still go into this flush.
+    current_sync_callbacks.append_and_clear(&parent->sync_callbacks);
+
+    // Also, at this point we can still clear the start_next_sync_immediately...
+    parent->start_next_sync_immediately = false;
+
+    // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
+    // us later. This happens only if the flush timer is running, and writeback starts for some
+    // other reason before the flush timer goes off; if this writeback had been started by the
+    // flush timer, then flush_timer would be NULL here, because flush_timer_callback sets it
+    // to NULL.
+    if (parent->flush_timer) {
+        cancel_timer(parent->flush_timer);
+        parent->flush_timer = NULL;
+    }
 
     // Go through the different flushing steps...
     prepare_patches();
@@ -465,34 +483,14 @@ void writeback_t::concurrent_flush_t::prepare_patches() {
     }
     pm_flushes_diff_store.end(&start_time2);
     if (patch_storage_failure)
-        parent->force_patch_storage_flush = true; // Make sure we solve the problem for the next flush...
+        parent->force_patch_storage_flush = true; // Make sure we resolve the storage space shortage for the next flush...
 
     pm_flushes_diff_patches_stored.record(patches_stored);
     if (patch_storage_failure)
         pm_flushes_diff_storage_failures.record(patches_stored);
 }
 
-void writeback_t::concurrent_flush_t::acquire_bufs() {
-    parent->cache->assert_thread();
-    
-    // Move callbacks to locals only after we got the lock.
-    // That way callbacks coming in while waiting for the flush lock
-    // can still go into this flush.
-    current_sync_callbacks.append_and_clear(&parent->sync_callbacks);
-    
-    // Also, at this point we can still clear the start_next_sync_immediately...
-    parent->start_next_sync_immediately = false;
-
-    // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
-    // us later. This happens only if the flush timer is running, and writeback starts for some
-    // other reason before the flush timer goes off; if this writeback had been started by the
-    // flush timer, then flush_timer would be NULL here, because flush_timer_callback sets it
-    // to NULL.
-    if (parent->flush_timer) {
-        cancel_timer(parent->flush_timer);
-        parent->flush_timer = NULL;
-    }
-    
+void writeback_t::concurrent_flush_t::acquire_bufs() {    
     /* Request read locks on all of the blocks we need to flush. */
     pm_flushes_writing.begin(&start_time);
 
