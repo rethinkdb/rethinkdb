@@ -129,6 +129,10 @@ static __thread intrusive_list_t<coro_context_t> *free_contexts = NULL;
 /* An array of ints counting the number of coros on each thread */
 static __thread int coro_context_count = 0;
 
+#ifndef NDEBUG
+__thread int coro_no_waiting = 0;
+#endif  // NDEBUG
+
 /* coro_globals_t */
 
 coro_globals_t::coro_globals_t() {
@@ -259,6 +263,7 @@ coro_t *coro_t::self() {   /* class method */
 
 void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
+    rassert(coro_no_waiting == 0, "This code path is not supposed to use coroutines.");
 
 #ifndef NDEBUG
     /* It's not safe to wait() in a catch clause of an exception handler. We use the non-standard

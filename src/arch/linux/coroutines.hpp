@@ -12,6 +12,27 @@ const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
 struct coro_context_t;
 
+#ifndef NDEBUG
+// coro_t::wait() asserts that this is zero.
+extern __thread int coro_no_waiting;
+
+// Put this in methods that should not be called in a coroutine
+// context.
+struct assert_no_coro_waiting_t {
+    assert_no_coro_waiting_t() {
+        ++coro_no_waiting;
+    }
+    ~assert_no_coro_waiting_t() {
+        --coro_no_waiting;
+    }
+};
+
+#define ASSERT_NO_CORO_WAITING assert_no_coro_waiting_t assert_no_coro_waiting_var
+#else  // NDEBUG
+#define ASSERT_NO_CORO_WAITING do { } while (0)
+#endif  // NDEBUG
+
+
 /* Please only construct one coro_globals_t per thread. Coroutines can only be used when
 a coro_globals_t exists. It exists to take advantage of RAII. */
 
