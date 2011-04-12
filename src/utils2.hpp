@@ -38,6 +38,11 @@ struct repli_timestamp {
     bool operator>=(repli_timestamp t) {
         return time >= t.time;
     }
+    static repli_timestamp distant_past() {
+        repli_timestamp t;
+        t.time = 0;
+        return t;
+    }
     static const repli_timestamp invalid;
 };
 typedef repli_timestamp repli_timestamp_t;   // TODO switch name over completely to "_t" version
