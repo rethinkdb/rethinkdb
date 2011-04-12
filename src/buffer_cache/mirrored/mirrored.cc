@@ -663,8 +663,15 @@ mc_buf_t *mc_transaction_t::allocate() {
     return buf;
 }
 
+// TODO: This interface is a lie, we block until the block is
+// available.  The parameter callback is unused.  We have code that
+// wants to release its hold on some buffers as soon as we have
+// stepped in line to acquire the buffer's child.  We can't do that
+// right now, and as long as this function is blocking, it will have
+// to support the new behavior or we can be slow.
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     block_available_callback_t *callback, bool should_load) {
+    rassert(coro_t::self());
     rassert(block_id != NULL_BLOCK_ID);
     rassert(is_read_mode(mode) || access != rwi_read);
     assert_thread();
@@ -688,6 +695,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         maybe_finalize_version();
         return buf;
     } else {
+        rassert(false, "This can never happen, buf_t::buf_t will set buf->ready to true.");
         buf->callback = snapshotted ? new snapshot_wrapper_t(this, callback) : callback;
         return NULL;
     }

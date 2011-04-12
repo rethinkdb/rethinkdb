@@ -21,6 +21,8 @@ buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction,
     co_block_available_callback_t cb;
     buf_t *value = transaction->acquire(block_id, mode, &cb);
     if (acquisition_cond) {
+        // TODO: This is worthless crap, because the
+        // transaction_t::acquire interface is a lie.
         acquisition_cond->pulse();
     }
     if (!value) {

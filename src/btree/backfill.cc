@@ -132,7 +132,7 @@ public:
                     acquisition_waiter_callback_t *waiter_cb = acquisition_waiter_stacks[i].back();
                     acquisition_waiter_stacks[i].pop_back();
 
-                    do_later(boost::bind(&acquisition_waiter_callback_t::you_may_acquire, waiter_cb));
+                    coro_t::spawn(boost::bind(&acquisition_waiter_callback_t::you_may_acquire, waiter_cb));
                     diff -= 1;
                 }
             }
@@ -202,12 +202,15 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block
         state->level_count(level) += 1;
 
         buf_t *buf = state->transactor_ptr->get()->acquire(block_id, rwi_read, this);
+        // TODO: This is worthless crap.  We haven't started the
+        // acquisition, we've FINISHED acquiring the buf because the
+        // interface of acquire is a complete lie.  Thus we have worse
+        // performance.
         acq_start_cb->on_started_acquisition();
 
+        rassert(buf, "apparently the transaction_t::acquire interface now takes a callback parameter but never uses it");
         if (buf) {
-            node_ready_callback_t *local_cb = node_ready_cb;
-            delete this;
-            local_cb->on_node_ready(buf);
+            on_block_available(buf);
         }
     }
 
