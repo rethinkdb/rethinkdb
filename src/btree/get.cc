@@ -81,7 +81,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
             // lock.
             buf_lock.release();
 
-            return get_result_t(dp, value->mcflags(), 0, NULL);
+            return get_result_t(dp, value->mcflags(), 0);
         }
     } else {
         /* Key not found. */

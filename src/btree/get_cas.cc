@@ -4,6 +4,31 @@
 #include "concurrency/cond_var.hpp"
 #include "btree/btree_data_provider.hpp"
 
+// TODO: Use a shared_ptr to the transactor instead of a death_signalling_data_provider_t.
+
+struct death_signalling_data_provider_t : public data_provider_t {
+
+    death_signalling_data_provider_t(unique_ptr_t<data_provider_t> dp, threadsafe_cond_t *c) :
+        dp(dp), pulse_on_death(c) { }
+    ~death_signalling_data_provider_t() {
+        pulse_on_death->pulse();
+    }
+
+    size_t get_size() const {
+        return dp->get_size();
+    }
+    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t) {
+        return dp->get_data_as_buffers();
+    }
+    void get_data_into_buffers(const buffer_group_t *bg) throw (data_provider_failed_exc_t) {
+        dp->get_data_into_buffers(bg);
+    }
+
+private:
+    unique_ptr_t<data_provider_t> dp;
+    threadsafe_cond_t *pulse_on_death;
+};
+
 // This function is like get(), except that it sets a CAS value if there isn't
 // one already, so it has to be a btree_modify_oper_t. Potentially we can use a
 // regular get() for this (that replaces itself with this one if a CAS value
@@ -40,13 +65,15 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         // Deliver the value to the client via the promise_t we got
         unique_ptr_t<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
         if (value.is_large()) {
+            // When dp2 is destroyed, it will signal to_signal_when_done.
             threadsafe_cond_t to_signal_when_done;
-            res->pulse(get_result_t(dp, value.mcflags(), cas_to_report, &to_signal_when_done));
+            unique_ptr_t<death_signalling_data_provider_t> dp2(
+                new death_signalling_data_provider_t(dp, &to_signal_when_done));
+            res->pulse(get_result_t(dp2, value.mcflags(), cas_to_report));
             to_signal_when_done.wait();
         } else {
-            res->pulse(get_result_t(dp, value.mcflags(), cas_to_report, NULL));
+            res->pulse(get_result_t(dp, value.mcflags(), cas_to_report));
         }
-
 
         // Return the new value to the code that will put it into the tree
         if (there_was_cas_before) {
