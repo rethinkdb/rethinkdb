@@ -28,12 +28,13 @@ struct backfill_and_streaming_manager_t :
                 return m;
             }
             mutation_t operator()(const sarc_mutation_t& m) {
-                unique_ptr_t<buffer_borrowing_data_provider_t> borrower(new buffer_borrowing_data_provider_t(manager->home_thread, m.data));
+                unique_ptr_t<data_provider_t> dps[2];
+                duplicate_data_provider(m.data, 2, dps);
                 coro_t::spawn_on_thread(manager->home_thread,
                     boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
-                        m.key, borrower->side_provider(), m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
+                        m.key, dps[0], m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
                 sarc_mutation_t m2(m);
-                m2.data = borrower;
+                m2.data = dps[1];
                 return m2;
             }
             mutation_t operator()(const incr_decr_mutation_t& m) {
@@ -43,12 +44,13 @@ struct backfill_and_streaming_manager_t :
                 return m;
             }
             mutation_t operator()(const append_prepend_mutation_t &m) {
-                unique_ptr_t<buffer_borrowing_data_provider_t> borrower(new buffer_borrowing_data_provider_t(manager->home_thread, m.data));
+                unique_ptr_t<data_provider_t> dps[2];
+                duplicate_data_provider(m.data, 2, dps);
                 coro_t::spawn_on_thread(manager->home_thread,
                     boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
-                        m.kind, m.key, borrower->side_provider(), castime));
+                        m.kind, m.key, dps[0], castime));
                 append_prepend_mutation_t m2(m);
-                m2.data = borrower;
+                m2.data = dps[1];
                 return m2;
             }
             mutation_t operator()(const delete_mutation_t& m) {
