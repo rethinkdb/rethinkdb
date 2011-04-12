@@ -113,15 +113,15 @@ void run(slave_t *slave) {
             // will get closed.
             slave->pulse_to_interrupt_run_loop_.watch(&slave_multicond);
 
-            // TODO: this is a fake timestamp!!! You _must_ fix this.
-            repli_timestamp fake = { 0 };
+            repli_timestamp last_time_barrier = slave->internal_store_->get_last_time_barrier();
+            debugf("Last time barrier: %d\n", last_time_barrier.time);
 
             slave->failover.on_reverse_backfill_begin();
-            stream_mgr.reverse_side_backfill(fake);
+            stream_mgr.reverse_side_backfill(last_time_barrier);
             slave->failover.on_reverse_backfill_end();
 
             slave->failover.on_backfill_begin();
-            stream_mgr.backfill(fake);
+            stream_mgr.backfill(last_time_barrier);
             slave->failover.on_backfill_end();   // TODO this is the wrong time to call on_backfill_end()
 
             debugf("slave_t: Waiting for things to fail...\n");

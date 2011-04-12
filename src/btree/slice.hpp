@@ -53,6 +53,7 @@ public:
     mutation_result_t change(const mutation_t &m, castime_t castime);
 
     void time_barrier(repli_timestamp lower_bound_on_future_timestamps);
+    repli_timestamp get_last_time_barrier();
 
     /* backfill interface, so to speak */
     void backfill(repli_timestamp since_when, backfill_callback_t *callback);

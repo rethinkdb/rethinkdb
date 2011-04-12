@@ -287,3 +287,6 @@ void btree_key_value_store_t::time_barrier(repli_timestamp lower_bound_on_future
     pmap(btree_static_config.n_slices, boost::bind(&btree_key_value_store_t::do_time_barrier_on_slice, this, lower_bound_on_future_timestamps, _1));
 }
 
+repli_timestamp btree_key_value_store_t::get_last_time_barrier() {
+    return btrees[0]->get_last_time_barrier();
+}

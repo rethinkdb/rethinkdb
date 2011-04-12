@@ -52,6 +52,9 @@ struct ls_start_existing_fsm_t :
         ser->state = log_serializer_t::state_starting_up;
         
         ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->dynamic_config->io_backend);
+        if (!ser->dbfile->exists()) {
+            crash("Database file \"%s\" does not exist.\n", ser->db_path);
+        }
         
         state = state_read_static_header;
         to_signal_when_done = NULL;

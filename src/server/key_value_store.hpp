@@ -63,6 +63,7 @@ public:
     // No particular interface.
 
     void time_barrier(repli_timestamp lower_bound_on_future_timestamps);
+    repli_timestamp get_last_time_barrier();
 
     static uint32_t hash(const store_key_t &key);
 
