@@ -21,10 +21,14 @@ struct backfill_atom_t {
 class backfill_callback_t : public replication::deletion_key_stream_receiver_t {
 public:
     virtual void on_keyvalue(backfill_atom_t atom) = 0;
-    virtual void done(repli_timestamp oper_start_timestamp) = 0;
+    virtual void done() = 0;
 protected:
     virtual ~backfill_callback_t() { }
 };
+
+/* `btree_backfill()` is guaranteed to find all changes whose timestamps are greater than
+or equal than `since_when` but which reached the tree before `btree_backfill()` was called.
+It may also find changes that happened before `since_when`. */
 
 void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback);
 

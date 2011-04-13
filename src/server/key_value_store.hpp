@@ -60,10 +60,15 @@ public:
 
     mutation_result_t change(const mutation_t &m, castime_t ct);
 
-    // No particular interface.
+    // The current value of the "replication clock" is the timestamp that new operations
+    // will be assigned. It is persisted to disk. You can read and write it with
+    // {s,g}et_replication_clock(). "last_sync" is also persisted, but it doesn't have any
+    // direct effect.
 
-    void time_barrier(repli_timestamp lower_bound_on_future_timestamps);
-    repli_timestamp get_last_time_barrier();
+    void set_replication_clock(repli_timestamp_t t);
+    repli_timestamp get_replication_clock();
+    void set_last_sync(repli_timestamp_t t);
+    repli_timestamp get_last_sync();
 
     static uint32_t hash(const store_key_t &key);
 

@@ -7,8 +7,6 @@
 
 class mutation_dispatcher_t;
 
-class initialize_superblock_fsm_t;
-struct btree_replicant_t;
 class backfill_callback_t;
 
 class mutation_dispatcher_t : public intrusive_list_node_t<mutation_dispatcher_t> {
@@ -52,11 +50,13 @@ public:
 
     mutation_result_t change(const mutation_t &m, castime_t castime);
 
-    void time_barrier(repli_timestamp lower_bound_on_future_timestamps);
-    repli_timestamp get_last_time_barrier();
-
     /* backfill interface, so to speak */
     void backfill(repli_timestamp since_when, backfill_callback_t *callback);
+
+    void set_replication_clock(repli_timestamp_t t);
+    repli_timestamp get_replication_clock();
+    void set_last_sync(repli_timestamp_t t);
+    repli_timestamp get_last_sync();
 
     /* real-time monitoring interface (used for replication) */
     void add_dispatcher(mutation_dispatcher_t *mdisp);

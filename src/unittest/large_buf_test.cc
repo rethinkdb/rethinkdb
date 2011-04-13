@@ -36,7 +36,7 @@ private:
         ASSERT_LE(initial_size, leaf_size * (leaf_size / sizeof(block_id_t)));
 
 
-        repli_timestamp time = current_time();
+        repli_timestamp time = repli_timestamp_t::distant_past();
 
         boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache, rwi_write, 0, time));
 

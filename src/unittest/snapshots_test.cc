@@ -24,7 +24,7 @@ protected:
 private:
     static void test_snapshot_acq_blocks_on_unfinished_create(thread_saver_t &saver, cache_t *cache) {
         // t0:create(A), t1:snap(), t1:acq(A) blocks, t0:release(A), t1 unblocks, t1 sees the block.
-        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+        transactor_t t0(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
         transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
 
         buf_t *buf0 = create(t0);
@@ -39,13 +39,13 @@ private:
 
     static void test_snapshot_sees_changes_started_before_its_first_block_acq(thread_saver_t &saver, cache_t *cache) {
         // t0:create+release(A,B), t1:snap(), t2:acqw(A), t2:change+release(A), t1:acq(A), t1 sees the A change, t1:release(A), t2:acqw(B), t2:change(B), t1:acq(B) blocks, t2:release(B), t1 unblocks, t1 sees the B change
-        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+        transactor_t t0(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
 
         block_id_t block_A, block_B;
         create_two_blocks(t0, block_A, block_B);
 
         transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-        transactor_t t2(saver, cache, rwi_write, 0, current_time());
+        transactor_t t2(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
 
         snap(t1);
 
@@ -69,13 +69,13 @@ private:
 
     static void test_snapshot_doesnt_see_later_changes_and_doesnt_block_them(thread_saver_t &saver, cache_t *cache) {
         // t0:create+release(A), t1:snap(), t1:acq(A), t2:acqw(A) doesn't block, t2:change+release(A), t3:snap(), t3:acq(A), t1 doesn't see the change, t3 does see the change
-        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+        transactor_t t0(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
 
         block_id_t block_A, block_B;
         create_two_blocks(t0, block_A, block_B);
 
         transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-        transactor_t t2(saver, cache, rwi_write, 0, current_time());
+        transactor_t t2(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
         transactor_t t3(saver, cache, rwi_read, 0, repli_timestamp::invalid);
 
         snap(t1);
@@ -99,13 +99,13 @@ private:
 
     static void test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later(thread_saver_t &saver, cache_t *cache) {
         // t0:create+release(A,B), t1:snap(), t1:acq(A), t2:acqw(A) doesn't block, t2:acqw(B), t1:acq(B) doesn't block
-        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+        transactor_t t0(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
 
         block_id_t block_A, UNUSED block_B;
         create_two_blocks(t0, block_A, block_B);
 
         transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-        transactor_t t2(saver, cache, rwi_write, 0, current_time());
+        transactor_t t2(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
 
         snap(t1);
         buf_t *buf1_A = acq(t1, block_A, rwi_read);
@@ -127,12 +127,12 @@ private:
 
     static void test_snapshot_blocks_on_txns_that_acq_first_block_earlier(thread_saver_t &saver, cache_t *cache) {
         // t0:create+release(A,B), t1:acqw(A), t1:acqw(B), t1:release(A), t2:snap(), t2:acq+release(A), t2:acq(B) blocks, t1:release(B), t2 unblocks
-        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+        transactor_t t0(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
 
         block_id_t block_A, block_B;
         create_two_blocks(t0, block_A, block_B);
 
-        transactor_t t1(saver, cache, rwi_write, 0, current_time());
+        transactor_t t1(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
         transactor_t t2(saver, cache, rwi_read, 0, repli_timestamp::invalid);
 
         buf_t *buf1_A = acq(t1, block_A, rwi_write);
@@ -157,13 +157,13 @@ private:
         // issue 194 unit-test
         // t0:create+release(A,B), t1:acqw+release(A), t2:acqw(A), t3:snap(), t3:acq(A) blocks, t2:release(A), t1:acqw+release(B), t2:acqw(B), t2:change(B), t3:acq(B) blocks, t2:release(B), t3 unblocks and sees B change
         // (fails on t2:acqw(B) with assertion if issue 194 is not fixed)
-        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+        transactor_t t0(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
 
         block_id_t block_A, block_B;
         create_two_blocks(t0, block_A, block_B);
 
-        transactor_t t1(saver, cache, rwi_write, 0, current_time());
-        transactor_t t2(saver, cache, rwi_write, 0, current_time());
+        transactor_t t1(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
+        transactor_t t2(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
         transactor_t t3(saver, cache, rwi_read, 0, repli_timestamp::invalid);
 
         buf_t *buf1_A = acq(t1, block_A, rwi_write);
@@ -192,13 +192,13 @@ private:
 
     static void test_cow_snapshots(thread_saver_t &saver, cache_t *cache) {
         // t0:create+release(A,B), t3:acq_outdated_ok(A), t1:acqw(A) doesn't block, t1:change(A), t1:release(A), t2:acqw(A) doesn't block, t2:release(A), t3 doesn't see the change, t3:release(A)
-        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+        transactor_t t0(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
 
         block_id_t block_A, block_B;
         create_two_blocks(t0, block_A, block_B);
 
-        transactor_t t1(saver, cache, rwi_write, 0, current_time());
-        transactor_t t2(saver, cache, rwi_write, 0, current_time());
+        transactor_t t1(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
+        transactor_t t2(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
         transactor_t t3(saver, cache, rwi_read, 0, repli_timestamp::invalid);
 
         buf_t *buf3_A = acq(t3, block_A, rwi_read_outdated_ok);
@@ -219,7 +219,7 @@ private:
 
     static void test_double_cow_acq_release(thread_saver_t &saver, cache_t * cache) {
         // t0:create+release(A,B), t1:acq_outdated_ok(A), t2:acq_outdated_ok(A), [t3:acqw(A) doesn't block, t3:delete(A),] t1:release(A), t2:release(A)
-        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+        transactor_t t0(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
 
         block_id_t block_A, block_B;
         create_two_blocks(t0, block_A, block_B);
@@ -236,14 +236,14 @@ private:
 
     static void test_cow_delete(thread_saver_t &saver, cache_t * cache) {
         // t0:create+release(A,B), t1:acq_outdated_ok(A), t2:acq_outdated_ok(A), t3:acqw(A) doesn't block, t3:delete(A), t1:release(A), t2:release(A)
-        transactor_t t0(saver, cache, rwi_write, 0, current_time());
+        transactor_t t0(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
 
         block_id_t block_A, block_B;
         create_two_blocks(t0, block_A, block_B);
 
         transactor_t t1(saver, cache, rwi_read, 0, repli_timestamp::invalid);
         transactor_t t2(saver, cache, rwi_read, 0, repli_timestamp::invalid);
-        transactor_t t3(saver, cache, rwi_write, 0, current_time());
+        transactor_t t3(saver, cache, rwi_write, 0, repli_timestamp_t::distant_past());
 
         buf_t *buf1_A = acq(t1, block_A, rwi_read_outdated_ok);
         buf_t *buf2_A = acq(t2, block_A, rwi_read_outdated_ok);

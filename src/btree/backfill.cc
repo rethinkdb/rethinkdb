@@ -71,12 +71,10 @@ protected:
 // TODO: Actually use shutdown_mode.
 class backfill_state_t {
 public:
-    backfill_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _since_when, backfill_callback_t *_callback, repli_timestamp _oper_start_timestamp)
-        : oper_start_timestamp(_oper_start_timestamp), slice(_slice), since_when(_since_when),
+    backfill_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _since_when, backfill_callback_t *_callback)
+        : slice(_slice), since_when(_since_when),
           transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), rwi_read, _since_when)),
           callback(_callback), shutdown_mode(false) { }
-
-    repli_timestamp oper_start_timestamp;
 
     // The slice we're backfilling from.
     btree_slice_t *const slice;
@@ -248,7 +246,7 @@ void acquire_a_node(backfill_state_t *state, int level, block_id_t block_id, acq
 
 void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
     thread_saver_t saver;
-    backfill_state_t state(saver, slice, since_when, callback, current_time());
+    backfill_state_t state(saver, slice, since_when, callback);
     buf_lock_t superblock_buf(saver, *state.transactor_ptr, SUPERBLOCK_ID, rwi_read);
 
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
@@ -266,7 +264,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
 
     if (root_id == NULL_BLOCK_ID) {
         // No root, so no keys in this entire shard.
-        callback->done(state.oper_start_timestamp);
+        callback->done();
     } else {
         boost::scoped_array<block_id_t> roots(new block_id_t[1]);
         roots[0] = root_id;
@@ -274,7 +272,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
         state.acquisition_waiter_stacks.resize(1);
         subtrees_backfill(&state, superblock_buf.give_up_ownership(), 1, roots, 1);
         state.wait();
-        callback->done(state.oper_start_timestamp);
+        callback->done();
     }
 }
 

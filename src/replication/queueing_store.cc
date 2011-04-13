@@ -33,7 +33,8 @@ void queueing_store_t::handover(mutation_t *m, castime_t castime) {
 
 void queueing_store_t::time_barrier(repli_timestamp timestamp) {
     if (queue_mode_ == queue_mode_off) {
-        inner_->time_barrier(timestamp);
+        inner_->set_replication_clock(timestamp);
+        inner_->set_last_sync(timestamp);
     } else {
         rassert(queued_time_barrier_ == repli_timestamp_t::invalid || queued_time_barrier_ < timestamp);
         queued_time_barrier_ = timestamp;
@@ -46,7 +47,8 @@ void queueing_store_t::backfill_handover(mutation_t *m, castime_t castime) {
 }
 
 void queueing_store_t::backfill_complete(repli_timestamp timestamp) {
-    inner_->time_barrier(timestamp);
+    inner_->set_replication_clock(timestamp);
+    inner_->set_last_sync(timestamp);
     start_flush();
 }
 
@@ -78,7 +80,8 @@ void queueing_store_t::start_flush() {
     queue_mode_ = queue_mode_off;
 
     if (queued_time_barrier_.time != repli_timestamp::invalid.time) {
-        inner_->time_barrier(queued_time_barrier_);
+        inner_->set_replication_clock(queued_time_barrier_);
+        inner_->set_last_sync(queued_time_barrier_);
         queued_time_barrier_ = repli_timestamp::invalid;
     }
 }

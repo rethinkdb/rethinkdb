@@ -1,8 +1,9 @@
 #ifndef __REPLICATION_BACKFILL_OUT_HPP__
 #define __REPLICATION_BACKFILL_OUT_HPP__
 
-#include "replication/backfill.hpp"
+#include "btree/backfill.hpp"
 #include "server/key_value_store.hpp"
+#include "replication/backfill.hpp"
 
 namespace replication {
 

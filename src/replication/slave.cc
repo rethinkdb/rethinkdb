@@ -115,15 +115,19 @@ void run(slave_t *slave) {
             // will get closed.
             slave->pulse_to_interrupt_run_loop_.watch(&slave_multicond);
 
-            repli_timestamp last_time_barrier = slave->internal_store_->get_last_time_barrier();
-            debugf("Last time barrier: %d\n", last_time_barrier.time);
+            // last_sync is the latest timestamp that we didn't get all the master's changes for
+            repli_timestamp last_sync = slave->internal_store_->get_last_sync();
+            debugf("Last sync: %d\n", last_sync.time);
 
             slave->failover.on_reverse_backfill_begin();
-            stream_mgr.reverse_side_backfill(last_time_barrier);
+            // We use last_sync.next() so that we don't send any of the master's own changes back
+            // to it. This makes sense in conjunction with incrementing the replication clock when
+            // we lose contact with the master.
+            stream_mgr.reverse_side_backfill(last_sync.next());
             slave->failover.on_reverse_backfill_end();
 
             slave->failover.on_backfill_begin();
-            stream_mgr.backfill(last_time_barrier);
+            stream_mgr.backfill(last_sync);
             slave->failover.on_backfill_end();   // TODO this is the wrong time to call on_backfill_end()
 
             debugf("slave_t: Waiting for things to fail...\n");
@@ -133,6 +137,12 @@ void run(slave_t *slave) {
             if (shutting_down) {
                 break;
             }
+
+            /* Make sure that any sets we run are assigned a timestamp later than the latest
+            timestamp we got from the master. */
+            repli_timestamp_t rc = slave->internal_store_->get_replication_clock();
+            debugf("Incrementing clock from %d to %d\n", rc.time, rc.time+1);
+            slave->internal_store_->set_replication_clock(rc.next());
 
             slave->failover.on_failure();
 

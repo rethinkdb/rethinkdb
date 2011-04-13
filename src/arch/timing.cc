@@ -54,5 +54,5 @@ repeating_timer_t::~repeating_timer_t() {
 }
 
 void repeating_timer_t::on_timer_ring(void *v_timer) {
-    reinterpret_cast<repeating_timer_t*>(v_timer)->ring();
+    coro_t::spawn(reinterpret_cast<repeating_timer_t*>(v_timer)->ring);
 }

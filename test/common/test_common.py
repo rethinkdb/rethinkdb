@@ -514,6 +514,11 @@ class FailoverMemcachedWrapper(object):
         self.mc[jesus] = self.mc_maker[jesus]()
         self.down[jesus] = False
 
+        if jesus == "master":
+            # This is a hack since the master will respond to queries immediately, before the slave
+            # even realizes it's up.
+            time.sleep(10)
+
 def connect_to_port(opts, port):
     if opts["mclib"] == "pylibmc":
         import pylibmc

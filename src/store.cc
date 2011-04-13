@@ -54,7 +54,7 @@ delete_result_t set_store_interface_t::delete_key(const store_key_t &key) {
 }
 
 timestamping_set_store_interface_t::timestamping_set_store_interface_t(set_store_t *target)
-    : target(target), cas_counter(0) { }
+    : target(target), cas_counter(0), timestamp(repli_timestamp_t::distant_past()) { }
 
 mutation_result_t timestamping_set_store_interface_t::change(const mutation_t &mutation) {
     on_thread_t thread_switcher(home_thread);
@@ -62,12 +62,14 @@ mutation_result_t timestamping_set_store_interface_t::change(const mutation_t &m
 }
 
 castime_t timestamping_set_store_interface_t::make_castime() {
-    repli_timestamp timestamp = current_time();
-
     /* The cas-value includes the current time and a counter. The time is so that we don't assign
     the same CAS twice across multiple runs of the database. The counter is so that we don't assign
     the same CAS twice to two requests received in the same second. */
     cas_t cas = (uint64_t(timestamp.time) << 32) ^ uint64_t(++cas_counter);
 
     return castime_t(cas, timestamp);
+}
+
+void timestamping_set_store_interface_t::set_timestamp(repli_timestamp_t ts) {
+    timestamp = ts;
 }

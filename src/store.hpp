@@ -289,10 +289,15 @@ public:
 
     mutation_result_t change(const mutation_t &);
 
+    /* When we pass a mutation through, we give it a timestamp determined by the last call to
+    set_timestamp(). */
+    void set_timestamp(repli_timestamp_t ts);
+
 private:
     castime_t make_castime();
     set_store_t *target;
     uint32_t cas_counter;
+    repli_timestamp_t timestamp;
 };
 
 #endif /* __STORE_HPP__ */
