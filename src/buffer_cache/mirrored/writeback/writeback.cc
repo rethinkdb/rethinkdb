@@ -182,6 +182,12 @@ unsigned int writeback_t::num_dirty_blocks() {
 perfmon_sampler_t pm_delay("throttling_delay", secs_to_ticks(1.0));
 
 unsigned int writeback_t::throttle_delay_ms() {
+    /* TODO: For now, delay-based throttling is disabled as it causes reordering issues. 
+     * See issue #255 on github for further information.
+     */
+    return 0;
+
+    /*
     const int max_delay_time = 500;
     const size_t expected_dirty_blocks = num_dirty_blocks() + outstanding_disk_writes + expected_active_change_count + expected_delayed_change_count;
     const size_t start_throttling_threshold = (size_t) ((double)max_dirty_blocks * START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION);
@@ -205,6 +211,7 @@ unsigned int writeback_t::throttle_delay_ms() {
     delay_ms = std::min(delay_ms, (float)max_delay_time);
     pm_delay.record(delay_ms);
     return (int)delay_ms;
+    */
 }
 
 bool writeback_t::too_many_dirty_blocks() {
