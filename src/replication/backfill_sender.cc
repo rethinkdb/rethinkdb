@@ -2,7 +2,17 @@
 
 namespace replication {
 
-backfill_sender_t::backfill_sender_t(repli_stream_t **stream) : stream_(stream) { }
+backfill_sender_t::backfill_sender_t(repli_stream_t **stream) :
+    stream_(stream), have_warned_about_expiration(false) { }
+
+void backfill_sender_t::warn_about_expiration() {
+    if (!have_warned_about_expiration) {
+        logWRN("RethinkDB does not support the combination of expiration times and replication. "
+            "The master and the slave may report different values for keys that have expiration "
+            "times.\n");
+        have_warned_about_expiration = true;
+    }
+}
 
 void backfill_sender_t::backfill_deletion(store_key_t key) {
     size_t n = sizeof(net_backfill_delete_t) + key.size;
@@ -17,6 +27,11 @@ void backfill_sender_t::backfill_deletion(store_key_t key) {
 }
 
 void backfill_sender_t::backfill_set(backfill_atom_t atom) {
+
+    if (atom.exptime != 0) {
+        warn_about_expiration();
+    }
+
     if (*stream_) {
         net_backfill_set_t msg;
         msg.timestamp = atom.recency;
@@ -53,6 +68,10 @@ void backfill_sender_t::realtime_get_cas(const store_key_t& key, castime_t casti
 
 void backfill_sender_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     assert_thread();
+
+    if (exptime != 0) {
+        warn_about_expiration();
+    }
 
     if (*stream_) {
         net_sarc_t stru;
