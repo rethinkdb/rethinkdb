@@ -42,3 +42,17 @@ void pulse_after_time(multicond_t *mc, int ms) {
     mc->add_waiter(pw);
 }
 
+// repeating_timer_t
+
+repeating_timer_t::repeating_timer_t(int frequency_ms, boost::function<void(void)> ring) :
+    ring(ring) {
+    timer = add_timer(frequency_ms, &repeating_timer_t::on_timer_ring, this);
+}
+
+repeating_timer_t::~repeating_timer_t() {
+    cancel_timer(timer);
+}
+
+void repeating_timer_t::on_timer_ring(void *v_timer) {
+    reinterpret_cast<repeating_timer_t*>(v_timer)->ring();
+}
