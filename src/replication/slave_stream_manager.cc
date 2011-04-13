@@ -1,5 +1,6 @@
 #include "replication/slave_stream_manager.hpp"
 #include "replication/backfill_sender.hpp"
+#include "replication/backfill_out.hpp"
 
 namespace replication {
 
@@ -7,10 +8,11 @@ slave_stream_manager_t::slave_stream_manager_t(
         boost::scoped_ptr<tcp_conn_t> *conn,
         btree_key_value_store_t *kvs,
         multicond_t *multicond) :
-    backfill_receiver_t(kvs),
+    backfill_receiver_t(&backfill_storer_),
     stream_(NULL),
     multicond_(NULL),
     kvs_(kvs),
+    backfill_storer_(kvs),
     interrupted_by_external_event_(false) {
 
     /* This is complicated. "new repli_stream_t()" could call our conn_closed() method.

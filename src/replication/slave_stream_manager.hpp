@@ -3,6 +3,8 @@
 
 #include "replication/protocol.hpp"
 #include "replication/backfill_receiver.hpp"
+#include "replication/backfill_in.hpp"
+#include "server/key_value_store.hpp"
 
 namespace replication {
 
@@ -50,6 +52,9 @@ struct slave_stream_manager_t :
     multicond_t *multicond_;
 
     btree_key_value_store_t *kvs_;
+
+    // For backfilling
+    backfill_storer_t backfill_storer_;
 
     // When conn_closed() is called, we consult interrupted_by_external_event_ to determine
     // if this is a spontaneous loss of connectivity or if it's due to an intentional

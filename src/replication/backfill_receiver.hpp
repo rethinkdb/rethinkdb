@@ -2,16 +2,14 @@
 #define __REPLICATION_BACKFILL_RECEIVER_HPP__
 
 #include "replication/protocol.hpp"
-#include "server/key_value_store.hpp"
-#include "replication/queueing_store.hpp"
+#include "replication/backfill.hpp"
 
 namespace replication {
 
 struct backfill_receiver_t :
     public message_callback_t
 {
-    backfill_receiver_t(btree_key_value_store_t *underlying);
-    ~backfill_receiver_t();
+    backfill_receiver_t(backfill_and_realtime_streaming_callback_t *cb) : cb(cb) { }
 
     /* backfill_receiver_t handles the subset of protocol messages that are required
     for receiving a backfill or streaming updates. The subclass of backfill_receiver_t should
@@ -30,8 +28,7 @@ struct backfill_receiver_t :
     void send(scoped_malloc<net_nop_t>& message);
 
 private:
-    bool backfilling_;
-    queueing_store_t internal_store_;
+    backfill_and_realtime_streaming_callback_t *cb;
 };
 
 }

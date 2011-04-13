@@ -1,7 +1,8 @@
 #include "btree/node.hpp"
-#include "replication/backfill.hpp"
+#include "replication/backfill_out.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/pmap.hpp"
+#include "btree/slice.hpp"
 
 namespace replication {
 

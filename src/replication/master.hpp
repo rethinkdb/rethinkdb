@@ -3,9 +3,10 @@
 
 #include "store.hpp"
 #include "arch/arch.hpp"
-#include "replication/backfill.hpp"
+#include "replication/backfill_out.hpp"
 #include "replication/backfill_sender.hpp"
 #include "replication/backfill_receiver.hpp"
+#include "replication/backfill_in.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/thick_list.hpp"
 #include "replication/net_structs.hpp"
@@ -25,10 +26,11 @@ class master_t :
 public:
     master_t(int port, btree_key_value_store_t *kv_store) :
         backfill_sender_t(&stream_),
-        backfill_receiver_t(kv_store),
+        backfill_receiver_t(&backfill_storer_),
         stream_(NULL),
         listener_port_(port),
-        kvs_(kv_store)
+        kvs_(kv_store),
+        backfill_storer_(kv_store)
     {
         listener_.reset(new tcp_listener_t(listener_port_));
         listener_->set_callback(this);
@@ -89,6 +91,9 @@ private:
 
     // The key value store.
     btree_key_value_store_t *kvs_;
+
+    // For reverse-backfilling;
+    backfill_storer_t backfill_storer_;
 
     // This is unpulsed iff stream_ is non-NULL.
     cond_t stream_exists_cond_; 
