@@ -37,6 +37,9 @@ struct backfill_sender_t :
 private:
     repli_stream_t **stream_;
 
+    void warn_about_expiration();
+    bool have_warned_about_expiration;
+
     template <class net_struct_type>
     void incr_decr_like(const store_key_t& key, uint64_t amount, castime_t castime);
 };
