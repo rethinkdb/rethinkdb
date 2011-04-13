@@ -53,21 +53,25 @@ def run_rethinkdb(opts, test_dir, flags = [], timeout = 10):
     else:
         return (return_value, open(stdout_path, 'r').read(), open(stderr_path, 'r').read())
 
+db_got_created = False
 
 # expected_return_value = None means we expect server to not terminate
 def check_rethinkdb_flags(opts, flags, expected_return_value):
+    global db_got_created
     assert opts["database"] == "rethinkdb"
     
     create_db_timeout = 15 * ec2
     rethinkdb_check_timeout = 10
     
     test_dir = TestDir()
-    # Create an empty database file
-    create_result = run_rethinkdb(opts, test_dir, ["create", "--force"], create_db_timeout)
-    if create_result is None:
-        raise ValueError("Server took longer than %d seconds to create database." % create_db_timeout)
-    if create_result[0] != 0:
-        raise ValueError("Server failed to create database.")
+    # Create an empty database file the first time this runs
+    if not db_got_created:
+        create_result = run_rethinkdb(opts, test_dir, ["create", "--force", "--diff-log-size", "1"], create_db_timeout)
+        if create_result is None:
+            raise ValueError("Server took longer than %d seconds to create database." % create_db_timeout)
+        if create_result[0] != 0:
+            raise ValueError("Server failed to create database.")
+        db_got_created = True
     
     # Run RethinkDB with the specified flags
     rethinkdb_result = run_rethinkdb(opts, test_dir, flags, rethinkdb_check_timeout)

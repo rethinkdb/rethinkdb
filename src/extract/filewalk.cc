@@ -5,7 +5,6 @@
 #include "btree/leaf_node.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/large_buf.hpp"
-#include "buffer_cache/buf_patch.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "utils.hpp"
@@ -212,7 +211,13 @@ void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, non
                 int num_patches = 0;
                 uint16_t current_offset = 6; //sizeof(LOG_BLOCK_MAGIC);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(buf_data_t)) {
-                    buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
+                    buf_patch_t *patch;
+                    try {
+                        patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
+                    } catch (patch_deserialization_error_t &e) {
+                        logERR("Corrupted patch. Ignoring the rest of the log block.\n");
+                        break;
+                    }
                     if (!patch) {
                         break;
                     }

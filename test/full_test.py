@@ -21,7 +21,7 @@ for mode in ["debug", "release"]:
                               "MOCK_IO_LAYER"    : 1 if mock_io               else 0,
                               "MOCK_CACHE_CHECK" : 1 if mock_cache            else 0,
                               "NO_EPOLL"         : 1 if poll_mode == "poll"   else 0 },
-                            cmd_format="make")
+                            cmd_format="make", timeout=180)
 
 # Make sure auxillary tools compile
 do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0 LIBGSL=0 stress libstress.so",
@@ -433,7 +433,12 @@ def run_all_tests(mode, checker, protocol, cores, slices):
 
     for suite_test in os.listdir('integration/memcached_suite'):
         if not suite_test.endswith(".t"): continue
-        do_test_cloud("integration/memcached_suite.py",
+
+        do_test_appropriately = do_test_cloud
+        if suite_test.endswith('expirations.t'): # EC2 seems to be too slow for expirations.t some of the time.
+            do_test_appropriately = do_test
+
+        do_test_appropriately("integration/memcached_suite.py",
                       { "auto"        : True,
                         "mode"        : mode,
                         "no-valgrind" : not checker,

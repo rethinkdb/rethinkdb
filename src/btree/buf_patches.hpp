@@ -1,5 +1,5 @@
-#ifndef __BUF_PATCHES_HPP__
-#define	__BUF_PATCHES_HPP__
+#ifndef __BTREE_BUF_PATCHES_HPP__
+#define	__BTREE_BUF_PATCHES_HPP__
 
 /* This file provides btree specific buffer patches */
 
@@ -95,5 +95,5 @@ private:
     char *key_buf;
 };
 
-#endif	/* __BUF_PATCHES_HPP__ */
+#endif	/* __BTREE_BUF_PATCHES_HPP__ */
 

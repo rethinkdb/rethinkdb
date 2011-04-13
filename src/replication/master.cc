@@ -11,15 +11,6 @@
 
 namespace replication {
 
-void master_t::register_key_value_store(btree_key_value_store_t *store) {
-    on_thread_t th(home_thread);
-    rassert(queue_store_ == NULL);
-    queue_store_.reset(new queueing_store_t(store));
-    rassert(!listener_);
-    listener_.reset(new tcp_listener_t(listener_port_));
-    listener_->set_callback(this);
-}
-
 void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     // TODO: Carefully handle case where a slave is already connected.
 
@@ -63,7 +54,7 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
 
         multicond_t mc; // when mc is pulsed, backfill_and_realtime_stream() will return
         interrupt_streaming_cond_.watch(&mc);
-        backfill_and_realtime_stream(queue_store_->inner(), since_when, this, &mc);
+        backfill_and_realtime_stream(kvs_, since_when, this, &mc);
 
         /* So we can shut down */
         streaming_cond_.pulse();

@@ -52,6 +52,9 @@ struct ls_start_existing_fsm_t :
         ser->state = log_serializer_t::state_starting_up;
         
         ser->dbfile = new direct_file_t(ser->db_path, file_t::mode_read | file_t::mode_write, ser->dynamic_config->io_backend);
+        if (!ser->dbfile->exists()) {
+            crash("Database file \"%s\" does not exist.\n", ser->db_path);
+        }
         
         state = state_read_static_header;
         to_signal_when_done = NULL;
@@ -438,12 +441,9 @@ struct ls_write_fsm_t :
         on_thread_switch();
     }
     
-    void on_thread_switch() {
-
-        /* TODO: This does not work well in master currently! (crashes). Disabled for now... */
-        
+    void on_thread_switch() {        
         // Launch up to this many block writers at a time, then yield the CPU
-        /*const int target_chunk_size = 100;
+        const int target_chunk_size = 100;
         int chunk_size = 0;
         while (num_writes > 0 && chunk_size < target_chunk_size) {
             ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes);
@@ -451,13 +451,6 @@ struct ls_write_fsm_t :
             num_writes--;
             writes++;
             chunk_size++;
-        }*/
-
-        while (num_writes > 0) {
-            ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes);
-            if (!writer->run(this)) num_writes_waited_for++;
-            num_writes--;
-            writes++;
         }
         
         if (num_writes == 0) done_preparing_writes();

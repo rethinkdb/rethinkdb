@@ -49,6 +49,7 @@
 
 #define crash(msg, ...) do {                                        \
         report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
+        BREAKPOINT; /* this used to be abort(), but it didn't cause VALGRIND to print a backtrace */ \
         abort();                                                    \
     } while (0)
 

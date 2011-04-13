@@ -21,6 +21,8 @@ buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction,
     co_block_available_callback_t cb;
     buf_t *value = transaction->acquire(block_id, mode, &cb);
     if (acquisition_cond) {
+        // TODO: This is worthless crap, because the
+        // transaction_t::acquire interface is a lie.
         acquisition_cond->pulse();
     }
     if (!value) {
@@ -49,6 +51,8 @@ void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, in
     lb->ensure_thread(saver);
     lb->acquire_slice(offset, size, &acquired);
     if (acquisition_cond) {
+        // TODO: This is worthless crap, because the
+        // transaction_t::acquire interface is a lie.
         acquisition_cond->pulse();
     }
     coro_t::wait();

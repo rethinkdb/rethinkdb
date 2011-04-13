@@ -17,6 +17,9 @@ int get_cpu_count();
 long get_available_ram();
 long get_total_ram();
 
+/* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
+counter. */
+
 // for safety  TODO: move this to a different file
 struct repli_timestamp {
     uint32_t time;
@@ -38,20 +41,24 @@ struct repli_timestamp {
     bool operator>=(repli_timestamp t) {
         return time >= t.time;
     }
+    static repli_timestamp distant_past() {
+        repli_timestamp t;
+        t.time = 0;
+        return t;
+    }
+    repli_timestamp next() {
+        repli_timestamp t;
+        t.time = time + 1;
+        return t;
+    }
     static const repli_timestamp invalid;
 };
 typedef repli_timestamp repli_timestamp_t;   // TODO switch name over completely to "_t" version
 
-struct initialized_repli_timestamp {
-    uint32_t time;
-    explicit initialized_repli_timestamp(uint32_t _time) : time(_time) { }
-    initialized_repli_timestamp(repli_timestamp timestamp) : time(timestamp.time) { }
-
-    operator repli_timestamp() const {
-        repli_timestamp ret = { time };
-        return ret;
-    }
-};
+// Converts a time_t (in seconds) to a repli_timestamp, but avoids
+// returning the invalid repli_timestamp value, which might matter
+// once every 116 years.
+repli_timestamp repli_time(time_t t);
 
 struct charslice {
     char *beg, *end;
@@ -64,16 +71,6 @@ struct const_charslice {
     const_charslice(const char *beg_, const char *end_) : beg(beg_), end(end_) { }
     const_charslice() : beg(NULL), end(NULL) { }
 };
-
-
-
-// Converts a time_t (in seconds) to a repli_timestamp, but avoids
-// returning the invalid repli_timestamp value, which might matter
-// once every 116 years.
-repli_timestamp repli_time(time_t t);
-
-// TODO: move this to a different file
-repli_timestamp current_time();
 
 typedef uint64_t microtime_t;
 
@@ -135,9 +132,24 @@ bool maybe_random_delay(cb_t *cb, void (cb_t::*method)());
 template<class cb_t, class arg1_t>
 bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
 
+// HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
+// debug.hpp (and debug.cc).
 /* Debugging printing API (prints current thread in addition to message) */
 
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
+
+#ifndef NDEBUG
+#define trace_call(fn, args...) do {                                          \
+        debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
+        fn(args);                                                           \
+        debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
+    } while (0)
+#define TRACEPOINT debugf("%s:%u reached\n", __FILE__, __LINE__)
+#else
+#define trace_call(fn, args...) fn(args)
+// TRACEPOINT is not defined in release, so that TRACEPOINTS do not linger in the code unnecessarily
+#endif
+
 
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.

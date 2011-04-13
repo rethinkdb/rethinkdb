@@ -663,6 +663,12 @@ mc_buf_t *mc_transaction_t::allocate() {
     return buf;
 }
 
+// TODO: This interface is a lie, we block until the block is
+// available.  The parameter callback is unused.  We have code that
+// wants to release its hold on some buffers as soon as we have
+// stepped in line to acquire the buffer's child.  We can't do that
+// right now, and as long as this function is blocking, it will have
+// to support the new behavior or we can be slow.
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     block_available_callback_t *callback, bool should_load) {
     rassert(block_id != NULL_BLOCK_ID);
@@ -688,6 +694,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         maybe_finalize_version();
         return buf;
     } else {
+        rassert(false, "This can never happen, buf_t::buf_t will set buf->ready to true.");
         buf->callback = snapshotted ? new snapshot_wrapper_t(this, callback) : callback;
         return NULL;
     }
@@ -804,12 +811,26 @@ mc_cache_t::mc_cache_t(
     max_patches_size_ratio(dynamic_config->wait_for_flush ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
     next_snapshot_version(mc_inner_buf_t::faux_version_id+1)
 {
+#ifndef NDEBUG
+    writebacks_allowed = false;
+#endif
+
     /* Load differential log from disk */
     patch_disk_storage.reset(new patch_disk_storage_t(*this, MC_CONFIGBLOCK_ID));
     patch_disk_storage->load_patches(patch_memory_storage);
 
+    /* Please note: writebacks must *not* happen prior to this point! */
+    /* Writebacks ( / syncs / flushes) can cause blocks to be rewritten and require an intact patch_memory_storage! */
+#ifndef NDEBUG
+    writebacks_allowed = true;
+#endif
+
     // Register us for read ahead to warm up faster
     serializer->register_read_ahead_cb(this);
+
+    /* We may have made a lot of blocks dirty by initializing the patch log. We need to start
+    a sync explicitly because it bypassed transaction_t. */
+    writeback.sync(NULL);
 }
 
 mc_cache_t::~mc_cache_t() {

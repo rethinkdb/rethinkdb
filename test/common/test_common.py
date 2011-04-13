@@ -508,15 +508,16 @@ class FailoverMemcachedWrapper(object):
 
     def resurrect_server(self, jesus):
 
-        # Reverse backfilling is temporarily disabled, so we can't bring back up master
-        # if slave is up
-        if jesus == "master" and not self.down["slave"]: return
-
         assert self.down[jesus]
         print "Resurrecting %s..." % jesus
         self.server[jesus].start()
         self.mc[jesus] = self.mc_maker[jesus]()
         self.down[jesus] = False
+
+        if jesus == "master":
+            # This is a hack since the master will respond to queries immediately, before the slave
+            # even realizes it's up.
+            time.sleep(10)
 
 def connect_to_port(opts, port):
     if opts["mclib"] == "pylibmc":

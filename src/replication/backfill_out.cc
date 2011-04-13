@@ -1,7 +1,8 @@
 #include "btree/node.hpp"
-#include "replication/backfill.hpp"
+#include "replication/backfill_out.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/pmap.hpp"
+#include "btree/slice.hpp"
 
 namespace replication {
 
@@ -28,12 +29,13 @@ struct backfill_and_streaming_manager_t :
                 return m;
             }
             mutation_t operator()(const sarc_mutation_t& m) {
-                unique_ptr_t<buffer_borrowing_data_provider_t> borrower(new buffer_borrowing_data_provider_t(manager->home_thread, m.data));
+                unique_ptr_t<data_provider_t> dps[2];
+                duplicate_data_provider(m.data, 2, dps);
                 coro_t::spawn_on_thread(manager->home_thread,
                     boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
-                        m.key, borrower->side_provider(), m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
+                        m.key, dps[0], m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
                 sarc_mutation_t m2(m);
-                m2.data = borrower;
+                m2.data = dps[1];
                 return m2;
             }
             mutation_t operator()(const incr_decr_mutation_t& m) {
@@ -43,12 +45,13 @@ struct backfill_and_streaming_manager_t :
                 return m;
             }
             mutation_t operator()(const append_prepend_mutation_t &m) {
-                unique_ptr_t<buffer_borrowing_data_provider_t> borrower(new buffer_borrowing_data_provider_t(manager->home_thread, m.data));
+                unique_ptr_t<data_provider_t> dps[2];
+                duplicate_data_provider(m.data, 2, dps);
                 coro_t::spawn_on_thread(manager->home_thread,
                     boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
-                        m.kind, m.key, borrower->side_provider(), castime));
+                        m.kind, m.key, dps[0], castime));
                 append_prepend_mutation_t m2(m);
-                m2.data = borrower;
+                m2.data = dps[1];
                 return m2;
             }
             mutation_t operator()(const delete_mutation_t& m) {
@@ -70,101 +73,23 @@ struct backfill_and_streaming_manager_t :
     };
 
     void realtime_get_cas(const store_key_t& key, castime_t castime) {
-        note_timestamp(castime.timestamp);
         handler_->realtime_get_cas(key, castime);
     }
     void realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data,
             mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy,
             replace_policy_t replace_policy, cas_t old_cas) {
-        note_timestamp(castime.timestamp);
         handler_->realtime_sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
     }
     void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
             castime_t castime) {
-        note_timestamp(castime.timestamp);
         handler_->realtime_incr_decr(kind, key, amount, castime);
     }
     void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
             unique_ptr_t<data_provider_t> data, castime_t castime) {
-        note_timestamp(castime.timestamp);
         handler_->realtime_append_prepend(kind, key, data, castime);
     }
     void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp) {
-        note_timestamp(timestamp);
         handler_->realtime_delete_key(key, timestamp);
-    }
-
-    /* As we receive real-time operations, we need to determine when we have received the
-    last operation whose timestamp is in a given second. The way we do this is: whenever we
-    see a timestamp T that we have never seen before, we do a round-trip to every thread to
-    make sure that all of the messages with timestamp T-1 have made it to the
-    backfill_and_streaming_manager_t, and then we send a message to the listener saying that second
-    T-1 is over.
-
-    There are two things that drive this: we check whenever we receive a mutation, and if we don't
-    receive mutations for a while we just check periodically. */
-
-    static void idle_timer_callback(void *sender_) {
-        backfill_and_streaming_manager_t *sender = reinterpret_cast<backfill_and_streaming_manager_t *>(sender_);
-
-        sender->idle_timer_ = NULL;
-        sender->note_timestamp(current_time());
-    }
-
-    void note_timestamp(repli_timestamp timestamp) {
-
-        assert_thread();
-        rassert(timestamp.time != repli_timestamp::invalid.time);
-
-        if (timestamp.time > latest_timestamp_.time) {
-            latest_timestamp_ = timestamp;
-            coro_t::spawn_now(boost::bind(&backfill_and_streaming_manager_t::do_time_barrier, this, timestamp));
-        }
-
-        /* We have a timer in addition to the notifications as we receive operations so that even
-        if there are no operations for a while, we still send heartbeats to the slave. */
-        if (idle_timer_) cancel_timer(idle_timer_);
-        idle_timer_ = fire_timer_once(1100, &backfill_and_streaming_manager_t::idle_timer_callback, this);
-    }
-
-    static void roundtrip_to_db_thread(int slice_thread, repli_timestamp timestamp, cond_t *cond, int *counter) {
-        {
-            on_thread_t th(slice_thread);
-
-            repli_timestamp t = current_time();
-
-            // TODO: Don't crash just because the slave sent a bunch of
-            // crap to us.  Just disconnect the slave.
-            guarantee(t.time >= timestamp.time);
-        }
-
-        --*counter;
-        rassert(*counter >= 0);
-        if (*counter == 0) {
-            cond->pulse();
-        }
-    }
-
-    void do_time_barrier(repli_timestamp t) {
-
-        assert_thread();
-
-        // So we don't get deleted while we wait for the thread round-trips
-        time_barriers_drain_semaphore_.acquire();
-
-        // TODO: Use pmap
-        cond_t cond;
-        int n = internal_store_->btree_static_config.n_slices;
-        int counter = n;
-        for (int i = 0; i < n; i++) {
-            coro_t::spawn(boost::bind(&backfill_and_streaming_manager_t::roundtrip_to_db_thread,
-                internal_store_->btrees[i]->home_thread, t, &cond, &counter));
-        }
-        cond.wait();
-
-        handler_->realtime_time_barrier(t);
-
-        time_barriers_drain_semaphore_.release();
     }
 
     /* backfill_callback_t implementation */
@@ -189,34 +114,55 @@ struct backfill_and_streaming_manager_t :
             boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_set, handler_, atom));
     }
 
-    /* When we are finally done, the store calls done() with the timestamp that the operation
-    started at. */
-    void done(repli_timestamp oper_start_timestamp) {
-        // This runs on the scheduler thread.
-        rassert(oper_start_timestamp != repli_timestamp_t::invalid);
+    /* When we are finally done, the store calls done(). */
+    void done() {
+
+        // This runs in the scheduler, so we have to spawn a coroutine.
         coro_t::spawn_on_thread(home_thread,
-            boost::bind(&backfill_and_streaming_manager_t::do_done, this, oper_start_timestamp));
+            boost::bind(&backfill_and_streaming_manager_t::do_done, this));
     }
 
-    void do_done(repli_timestamp_t oper_start_timestamp) {
+    void do_done() {
         rassert(get_thread_id() == home_thread);
-
-        /* We want to send the most conservative possible assurance to the slave, so we
-        send them the earliest of the timestamps that the different slices' backfills gave
-        us. */
-        if (minimum_timestamp == repli_timestamp_t::invalid ||
-                oper_start_timestamp.time < minimum_timestamp.time) {
-            minimum_timestamp = oper_start_timestamp;
-        }
 
         outstanding_backfills--;
         if (outstanding_backfills == 0) {
-            /* We're done backfilling. */
-            handler_->backfill_done(minimum_timestamp);
+            /* We're done backfilling. The timestamp we send to backfill_done() should be the
+            earliest timestamp such that we have backfilled all changes which are timestamped
+            less than that timestamp. That's why we call `.next()`; if it was "less than or equal"
+            instead of "less than", we wouldn't call `.next()`. */
+            debugf("Backfilled up to %d\n", initial_replication_clock_.next().time);
+            handler_->backfill_done(initial_replication_clock_.next());
 
             /* This allows us to shut down */
             pulsed_when_backfill_over.pulse();
         }
+    }
+
+    /* Logic for incrementing the replication clock */
+
+    repli_timestamp_t replication_clock_, initial_replication_clock_;
+
+    void increment_replication_clock() {
+        drain_semaphore_t::lock_t dont_shut_down(&replication_clock_drain_semaphore_);
+
+        /* We are sending heartbeat number "rc" */
+        repli_timestamp_t rc = replication_clock_.next();
+
+        debugf("Initiating transition from %d to %d\n", replication_clock_.time, rc.time);
+
+        replication_clock_ = rc;
+
+        /* This blocks while the heartbeat goes to the key-value stores and back. Before we made
+        this call, every operation we got from the key-value stores had timestamp less than rc; when
+        this call returns, every operation we get from the key-value stores will have timestamp
+        greater than or equal to rc. */
+        internal_store_->set_replication_clock(rc);
+
+        /* Now that we're *sure* that no more operations are going to occur that have timestamps
+        less than "rc", we can send a time-barrier to the slave. */
+        debugf("Sending heartbeat %d to slave\n", rc.time);
+        handler_->realtime_time_barrier(rc);
     }
 
     /* Startup, shutdown, and member variables */
@@ -226,20 +172,9 @@ struct backfill_and_streaming_manager_t :
 
     realtime_mutation_dispatcher_t *realtime_mutation_dispatchers[MAX_SLICES];
     int outstanding_backfills;
-    repli_timestamp_t minimum_timestamp;
 
-    drain_semaphore_t time_barriers_drain_semaphore_;
-
-    // If no actions come in, we periodically send time-barriers
-    // anyway, to keep up a heartbeat.  This is the timer token for
-    // the next time we must send a time-barrier (if we haven't already).
-    timer_token_t *idle_timer_;
-
-    // The latest timestamp we've seen.  Every time we get a new
-    // timestamp, we update this value and spawn
-    // note_timestamp(the_new_timestamp),
-    // which tells the slices to check in.
-    repli_timestamp latest_timestamp_;
+    boost::scoped_ptr<repeating_timer_t> replication_clock_timer_;
+    drain_semaphore_t replication_clock_drain_semaphore_;
 
     /* We can't stop until backfill is over and we can't interrupt a running backfill operation,
     so we have to use pulsed_when_backfill_over to wait for the backfill operation to finish. */
@@ -249,10 +184,13 @@ struct backfill_and_streaming_manager_t :
             backfill_and_realtime_streaming_callback_t *handler,
             repli_timestamp_t timestamp) :
         internal_store_(kvs),
-        handler_(handler),
-        latest_timestamp_(current_time())
+        handler_(handler)
     {
-        minimum_timestamp = repli_timestamp_t::invalid;
+        /* Read the old value of the replication clock. */
+        replication_clock_ = internal_store_->get_replication_clock();
+
+        /* The time we start the backfill at */
+        initial_replication_clock_ = replication_clock_;
 
         /* On each thread, atomically start a backfill operation and start streaming
         realtime operations. If we start a backfill but don't start streaming operations
@@ -273,8 +211,15 @@ struct backfill_and_streaming_manager_t :
                     ));
         }
 
-        /* Start an initial idle timer */
-        idle_timer_ = fire_timer_once(1100, &backfill_and_streaming_manager_t::idle_timer_callback, this);
+        /* Increment the replication clock right after we spawn the subcoroutines. This
+        makes it so that every operation with timestamp `initial_replication_clock_` will be
+        included in the backfill, and no operation with timestamp `initial_replication_clock_ + 1`
+        will be included. */
+        increment_replication_clock();
+
+        /* Start the timer that will repeatedly increment the replication clock */
+        replication_clock_timer_.reset(new repeating_timer_t(1000,
+            boost::bind(&backfill_and_streaming_manager_t::increment_replication_clock, this)));
     }
 
     void register_on_slice(int i, repli_timestamp_t timestamp) {
@@ -303,11 +248,10 @@ struct backfill_and_streaming_manager_t :
         pmap(internal_store_->btree_static_config.n_slices,
             boost::bind(&backfill_and_streaming_manager_t::unregister_on_slice, this, _1));
 
-        /* Cancel real-time time barrier idle timer */
-        if (idle_timer_) cancel_timer(idle_timer_);
-
-        /* Wait for any real-time time barriers to finish */
-        time_barriers_drain_semaphore_.drain();
+        /* Stop the replication-clock timer, and wait for any operations that it started to
+        finish. */
+        replication_clock_timer_.reset();
+        replication_clock_drain_semaphore_.drain();
 
         /* Now we can stop */
     }

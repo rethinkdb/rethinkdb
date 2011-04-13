@@ -74,10 +74,10 @@ struct key_with_data_provider_t {
 typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
 struct get_result_t {
-    get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
-        is_not_allowed(false), value(v), flags(f), cas(c), to_signal_when_done(s) { }
+    get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c) :
+        is_not_allowed(false), value(v), flags(f), cas(c) { }
     get_result_t() :
-        is_not_allowed(false), value(), flags(0), cas(0), to_signal_when_done(NULL) { }
+        is_not_allowed(false), value(), flags(0), cas(0) { }
 
     /* If true, then all other fields should be ignored. */
     bool is_not_allowed;
@@ -88,9 +88,6 @@ struct get_result_t {
 
     mcflags_t flags;
     cas_t cas;
-
-    /* Signal this when you're done with the data_provider_t. TODO: Get rid of this. */
-    threadsafe_cond_t *to_signal_when_done;
 };
 
 struct get_store_t {
@@ -134,11 +131,28 @@ enum replace_policy_t {
 #define NO_CAS_SUPPLIED 0
 
 struct sarc_mutation_t {
+
+    /* The key to operate on */
     store_key_t key;
+
+    /* The value to give the key; must not be NULL.
+    TODO: Should NULL mean a deletion? */
     unique_ptr_t<data_provider_t> data;
+
+    /* The flags to store with the value */
     mcflags_t flags;
+
+    /* When to make the value expire */
     exptime_t exptime;
+
+    /* If add_policy is add_policy_no and the key doesn't already exist, then the operation
+    will be cancelled and the return value will be sr_didnt_add */
     add_policy_t add_policy;
+
+    /* If replace_policy is replace_policy_no and the key already exists, or if
+    replace_policy is replace_policy_if_cas_matches and the key is either missing a
+    CAS or has a CAS different from old cas, then the operation will be cancelled and
+    the return value will be sr_didnt_replace. */
     replace_policy_t replace_policy;
     cas_t old_cas;
 };
@@ -275,10 +289,15 @@ public:
 
     mutation_result_t change(const mutation_t &);
 
+    /* When we pass a mutation through, we give it a timestamp determined by the last call to
+    set_timestamp(). */
+    void set_timestamp(repli_timestamp_t ts);
+
 private:
     castime_t make_castime();
     set_store_t *target;
     uint32_t cas_counter;
+    repli_timestamp_t timestamp;
 };
 
 #endif /* __STORE_HPP__ */

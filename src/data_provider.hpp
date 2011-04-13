@@ -86,7 +86,9 @@ public:
     size_t get_size() const;
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
 
+    /* TODO: This is bad. */
     char *peek() { return buffer.get(); }
+
 private:
     size_t size;
     const_buffer_group_t bg;
@@ -115,53 +117,25 @@ private:
     boost::scoped_ptr<buffered_data_provider_t> buffer;   // NULL if we decide not to buffer
 };
 
+/* A bad_data_provider_t is a data_provider_t that throws an exception whenever its data is
+accessed. */
 
-class buffer_borrowing_data_provider_t : public data_provider_t {
+class bad_data_provider_t : public data_provider_t {
 public:
-    class side_data_provider_t : public auto_copying_data_provider_t {
-    public:
-        // Takes the thread that the reader reads from.  Soon after
-        // construction, this serves as the de facto home thread of
-        // the side_data_provider_t.
-        side_data_provider_t(int reading_thread, size_t size, cond_t *done_cond);
-        ~side_data_provider_t();
+    bad_data_provider_t(size_t size);
 
-        size_t get_size() const;
-        const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
-
-        void supply_buffers_and_wait(const const_buffer_group_t *buffers);
-        void supply_no_buffers();
-
-    private:
-        int reading_thread_;
-        unicond_t<const const_buffer_group_t *> cond_;
-        cond_t *done_cond_;
-        bool got_data_;
-        size_t size_;
-        bool will_never_get_data_;
-    };
-
-
-    buffer_borrowing_data_provider_t(int side_reader_thread, unique_ptr_t<data_provider_t> inner);
-    ~buffer_borrowing_data_provider_t();
     size_t get_size() const;
-
     void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
-
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
 
-    // You can only call this once.
-    unique_ptr_t<side_data_provider_t> side_provider();
 private:
-    unique_ptr_t<data_provider_t> inner_;
-    cond_t done_cond_;  // Lives on the side_reader_thread.
-    side_data_provider_t *side_;
-    bool side_owned_;
-    bool supplied_buffers_;
-#ifndef NDEBUG
-    bool in_get_data_into_buffers_;
-#endif
+    size_t size;
 };
 
+/* duplicate_data_provider() makes a bunch of data providers that are all equivalent to the original
+data provider. Internally it makes many copies of the data, so the created data providers are
+completely independent. */
+
+void duplicate_data_provider(unique_ptr_t<data_provider_t> original, int n, unique_ptr_t<data_provider_t> *dps_out);
 
 #endif /* __DATA_PROVIDER_HPP__ */

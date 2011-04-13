@@ -4,13 +4,9 @@
 namespace replication {
 
 queueing_store_t::queueing_store_t(btree_key_value_store_t *inner) :
-    inner_(inner), queue_mode_(queue_mode_on), queued_time_barrier_(repli_timestamp::invalid) {
-
-    debugf("%p->queueing_store_t()\n", this);
-}
+    inner_(inner), queue_mode_(queue_mode_on), queued_time_barrier_(repli_timestamp::invalid) { }
 
 queueing_store_t::~queueing_store_t() {
-    debugf("%p->~queueing_store_t()\n", this);
     while (!mutation_queue_.empty()) {
         delete mutation_queue_.front().first;
         mutation_queue_.pop();
@@ -29,7 +25,6 @@ mutation_result_t queueing_store_t::bypass_change(const mutation_t& m) {
 // TODO: Add locks to make these atomic operations explicitly atomic.
 
 void queueing_store_t::handover(mutation_t *m, castime_t castime) {
-    debugf("%p->handover()\n", this);
     // Atomic operation: pushing onto the queue and checking if
     // queue_mode_ in perhaps_flush, then starting flush.
     mutation_queue_.push(std::make_pair(m, castime));
@@ -37,7 +32,13 @@ void queueing_store_t::handover(mutation_t *m, castime_t castime) {
 }
 
 void queueing_store_t::time_barrier(repli_timestamp timestamp) {
-    queued_time_barrier_ = timestamp;
+    if (queue_mode_ == queue_mode_off) {
+        inner_->set_replication_clock(timestamp);
+        inner_->set_last_sync(timestamp);
+    } else {
+        rassert(queued_time_barrier_ == repli_timestamp_t::invalid || queued_time_barrier_ < timestamp);
+        queued_time_barrier_ = timestamp;
+    }
 }
 
 void queueing_store_t::backfill_handover(mutation_t *m, castime_t castime) {
@@ -45,7 +46,9 @@ void queueing_store_t::backfill_handover(mutation_t *m, castime_t castime) {
     delete m;
 }
 
-void queueing_store_t::backfill_complete() {
+void queueing_store_t::backfill_complete(repli_timestamp timestamp) {
+    inner_->set_replication_clock(timestamp);
+    inner_->set_last_sync(timestamp);
     start_flush();
 }
 
@@ -77,7 +80,8 @@ void queueing_store_t::start_flush() {
     queue_mode_ = queue_mode_off;
 
     if (queued_time_barrier_.time != repli_timestamp::invalid.time) {
-        inner_->time_barrier(queued_time_barrier_);
+        inner_->set_replication_clock(queued_time_barrier_);
+        inner_->set_last_sync(queued_time_barrier_);
         queued_time_barrier_ = repli_timestamp::invalid;
     }
 }

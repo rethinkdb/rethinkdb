@@ -31,16 +31,6 @@ repli_timestamp repli_time(time_t t) {
     return ret;
 }
 
-repli_timestamp current_time() {
-    // Get the current time, cast it to 32 bits.  The lack of
-    // precision will not break things in 2038 or 2106 if we compare
-    // times correctly.
-
-    // time(NULL) does not do a system call (on Linux), last time we
-    // checked, but it's still kind of slow.
-    return repli_time(time(NULL));
-}
-
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;

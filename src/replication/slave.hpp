@@ -105,7 +105,7 @@ private:
 
     new_master_control_t new_master_control_;
 
-    boost::scoped_ptr<queueing_store_t> internal_store_;
+    btree_key_value_store_t *internal_store_;
     replication_config_t replication_config_;
     failover_config_t failover_config_;
 
@@ -113,6 +113,9 @@ private:
     destructor sets *shutting_down_ to true and pulse pulse_to_interrupt_run_loop_
     to shut down the slave. */
     bool *shutting_down_;
+
+    /* The run loop pulses this when it finishes */
+    cond_t pulsed_when_run_loop_done_;
 
     /* pulse_to_interrupt_run_loop_ holds a pointer to whatever multicond_t the run
     loop is blocking on at the moment. */

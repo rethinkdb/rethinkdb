@@ -142,7 +142,7 @@ bool linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_ioc
     return false;
 }
 
-bool linux_file_t::write_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
+bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_iocallback_t *callback) {
 
 #ifdef DEBUG_DUMP_WRITES
     printf("--- WRITE BEGIN ---\n");
@@ -169,7 +169,7 @@ void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
     (void)res;
 }
 
-void linux_file_t::write_blocking(size_t offset, size_t length, void *buf) {
+void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
     verify(offset, length, buf);
  tryagain:
     ssize_t res = pwrite(fd.get(), buf, length, offset);
@@ -184,7 +184,7 @@ linux_file_t::~linux_file_t() {
     // scoped_fd_t's destructor takes care of close()ing the file
 }
 
-void linux_file_t::verify(UNUSED size_t offset, UNUSED size_t length, UNUSED void *buf) {
+void linux_file_t::verify(UNUSED size_t offset, UNUSED size_t length, UNUSED const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
     rassert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);

@@ -68,9 +68,10 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
 
     // We manage our block IDs separately from the normal mechanism, but they are still in the same
     // ID-space. So we have to reserve the block IDs. TODO: We should use a separate ID-space.
-    cache.free_list.reserve_block_id(start_id);
     for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
-        cache.free_list.reserve_block_id(current_block);
+        if (block_is_empty[current_block - first_block]) {
+            cache.free_list.reserve_block_id(current_block);
+        }
     }
 
     // Preload log blocks so that they get read from disk in parallel
@@ -100,17 +101,13 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
 
             // Check that this is a valid log block
             mc_buf_t *log_buf = log_block_bufs[current_block - first_block];
-            void *buf_data = log_buf->get_data_major_write();
-            guarantee(strncmp(reinterpret_cast<char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
+            const void *buf_data = log_buf->get_data_read();
+            guarantee(strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
         }
     }
     rassert(log_block_bufs.size() == number_of_blocks);
 
     set_active_log_block(first_block);
-
-    /* We may have made a lot of blocks dirty by initializing the patch log. We need to start
-    a sync explicitly because we bypassed transaction_t. */
-    cache.writeback.sync(NULL);
 }
 
 patch_disk_storage_t::~patch_disk_storage_t() {

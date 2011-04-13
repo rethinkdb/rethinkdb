@@ -298,6 +298,8 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
     memcpy(buf.get(), msg, sizeof(net_struct_type));
     memcpy(buf.get() + sizeof(net_struct_type), key, msg->key_size);
 
+    /* We guarantee that if data->get_data_into_buffers() fails, we rethrow the exception without
+    sending anything over the wire. */
     buffer_group_t group;
     group.add_buffer(data->get_size(), buf.get() + sizeof(net_struct_type) + msg->key_size);
     data->get_data_into_buffers(&group);

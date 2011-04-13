@@ -2,7 +2,17 @@
 
 namespace replication {
 
-backfill_sender_t::backfill_sender_t(repli_stream_t **stream) : stream_(stream) { }
+backfill_sender_t::backfill_sender_t(repli_stream_t **stream) :
+    stream_(stream), have_warned_about_expiration(false) { }
+
+void backfill_sender_t::warn_about_expiration() {
+    if (!have_warned_about_expiration) {
+        logWRN("RethinkDB does not support the combination of expiration times and replication. "
+            "The master and the slave may report different values for keys that have expiration "
+            "times.\n");
+        have_warned_about_expiration = true;
+    }
+}
 
 void backfill_sender_t::backfill_deletion(store_key_t key) {
     size_t n = sizeof(net_backfill_delete_t) + key.size;
@@ -17,6 +27,11 @@ void backfill_sender_t::backfill_deletion(store_key_t key) {
 }
 
 void backfill_sender_t::backfill_set(backfill_atom_t atom) {
+
+    if (atom.exptime != 0) {
+        warn_about_expiration();
+    }
+
     if (*stream_) {
         net_backfill_set_t msg;
         msg.timestamp = atom.recency;
@@ -54,6 +69,10 @@ void backfill_sender_t::realtime_get_cas(const store_key_t& key, castime_t casti
 void backfill_sender_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     assert_thread();
 
+    if (exptime != 0) {
+        warn_about_expiration();
+    }
+
     if (*stream_) {
         net_sarc_t stru;
         stru.timestamp = castime.timestamp;
@@ -65,7 +84,12 @@ void backfill_sender_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_
         stru.add_policy = add_policy;
         stru.replace_policy = replace_policy;
         stru.old_cas = old_cas;
-        if (*stream_) (*stream_)->send(&stru, key.contents, data);
+        try {
+            if (*stream_) (*stream_)->send(&stru, key.contents, data);
+        } catch (data_provider_failed_exc_t) {
+            /* Do nothing. Because the data provider failed, the operation was never performed
+            on the master, so it's good if it's also never performed on the slave either. */
+        }
     }
 }
 
@@ -109,7 +133,11 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
             appendstruct.key_size = key.size;
             appendstruct.value_size = data->get_size();
 
-            if (*stream_) (*stream_)->send(&appendstruct, key.contents, data);
+            try {
+                if (*stream_) (*stream_)->send(&appendstruct, key.contents, data);
+            } catch (data_provider_failed_exc_t) {
+                /* See coment in realtime_sarc() */
+            }
         } else {
             rassert(kind == append_prepend_PREPEND);
 
@@ -119,7 +147,11 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
             prependstruct.key_size = key.size;
             prependstruct.value_size = data->get_size();
 
-            if (*stream_) (*stream_)->send(&prependstruct, key.contents, data);
+            try {
+                if (*stream_) (*stream_)->send(&prependstruct, key.contents, data);
+            } catch (data_provider_failed_exc_t) {
+                /* See coment in realtime_sarc() */
+            }
         }
     }
 }

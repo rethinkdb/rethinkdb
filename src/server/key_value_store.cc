@@ -122,6 +122,9 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
          boost::bind(&create_existing_btree,
                      multiplexer->proxies.data(), btrees, timestampers,
                      &per_slice_config, _1));
+
+    /* Initialize the timestampers to the correct timestamp */
+    set_replication_clock(get_replication_clock());
 }
 
 void destroy_btree(
@@ -175,6 +178,31 @@ struct check_existing_fsm_t
 
 void btree_key_value_store_t::check_existing(const std::vector<std::string>& filenames, check_callback_t *cb) {
     new check_existing_fsm_t(filenames, cb);
+}
+
+static void set_one_timestamper(timestamping_set_store_interface_t **timestampers, int i, repli_timestamp_t t) {
+    timestampers[i]->set_timestamp(t);
+}
+
+void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t) {
+
+    /* Change what value will be assigned to new incoming operations */
+    pmap(btree_static_config.n_slices, boost::bind(&set_one_timestamper, timestampers, _1, t));
+
+    /* Update the value on disk */
+    btrees[0]->set_replication_clock(t);
+}
+
+repli_timestamp btree_key_value_store_t::get_replication_clock() {
+    return btrees[0]->get_replication_clock();   /* Read the value from disk */
+}
+
+void btree_key_value_store_t::set_last_sync(repli_timestamp_t t) {
+    btrees[0]->set_last_sync(t);   /* Write the value to disk */
+}
+
+repli_timestamp btree_key_value_store_t::get_last_sync() {
+    return btrees[0]->get_last_sync();   /* Read the value from disk */
 }
 
 /* Hashing keys and choosing a slice for each key */
@@ -278,12 +306,3 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t
     const mutation_result_t& res = slice_for_key_set(m.get_key())->change(m, ct);
     return res;
 }
-
-void btree_key_value_store_t::do_time_barrier_on_slice(repli_timestamp timestamp, int i) {
-    btrees[i]->time_barrier(timestamp);
-}
-
-void btree_key_value_store_t::time_barrier(repli_timestamp lower_bound_on_future_timestamps) {
-    pmap(btree_static_config.n_slices, boost::bind(&btree_key_value_store_t::do_time_barrier_on_slice, this, lower_bound_on_future_timestamps, _1));
-}
-
