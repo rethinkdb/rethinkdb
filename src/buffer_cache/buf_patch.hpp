@@ -15,6 +15,35 @@ typedef uint32_t patch_counter_t;
 typedef char patch_operation_code_t;
 
 /*
+ * As the buf_patch code is used in both extract and server, it should not crash
+ * in case of a failed patch deserialization (i.e. loading a patch from disk).
+ * Instead patches should emit a patch_deserialization_error_t exception.
+ */
+class patch_deserialization_error_t {
+    std::string message;
+public:
+    patch_deserialization_error_t(const char *file, int line, const char *msg) {
+        if (msg[0]) {
+            message = "Patch deserialization error: " + std::string(msg);
+        } else {
+            message = "Patch deserialization error.";
+        }
+        std::stringstream conv;
+        conv << line;
+        std::string line_str;
+        conv >> line_str;
+        message += " (in " + std::string(file) + ":" + line_str + ")";
+    }
+    const char *c_str() { return message.c_str(); }
+};
+#define guarantee_patch_format(cond, msg...) do {    \
+        if (!(cond)) {                  \
+            throw patch_deserialization_error_t(__FILE__, __LINE__, "" msg); \
+        }                               \
+    } while (0)
+
+
+/*
  * A buf_patch_t is an in-memory representation for a patch. A patch describes
  * a specific change which can be applied to a buffer.
  * Each buffer patch has a patch counter as well as a transaction id. The transaction id

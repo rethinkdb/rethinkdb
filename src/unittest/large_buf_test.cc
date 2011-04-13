@@ -12,12 +12,16 @@ protected:
 
     void run_tests(thread_saver_t& saver, cache_t *cache) {
         {
+#ifndef NDEBUG
             TRACEPOINT;
+#endif
             // This is expected to pass.
             run_unprepend_shift_babytest(saver, cache, 4 * leaf_bytes(cache), leaf_bytes(cache) - 1);
         }
         {
+#ifndef NDEBUG
             TRACEPOINT;
+#endif
             // This is expected to fail (because our code is expected
             // to be broken), at the time of writing the test.
             run_unprepend_shift_babytest(saver, cache, 4 * leaf_bytes(cache), leaf_bytes(cache));
