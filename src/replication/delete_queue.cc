@@ -16,7 +16,7 @@ const int PRIMAL_OFFSET_OFFSET = sizeof(block_magic_t);
 const int TIMESTAMPS_AND_OFFSETS_OFFSET = PRIMAL_OFFSET_OFFSET + sizeof(off64_t);
 const int TIMESTAMPS_AND_OFFSETS_SIZE = sizeof(large_buf_ref) + 3 * sizeof(block_id_t);
 
-const int64_t MAX_DELETE_QUEUE_KEYS_SIZE = 234 * MEGABYTE;
+const int64_t MAX_DELETE_QUEUE_KEYS_SIZE = 16 * MEGABYTE;
 
 off64_t *primal_offset(void *root_buffer) {
     return reinterpret_cast<off64_t *>(reinterpret_cast<char *>(root_buffer) + PRIMAL_OFFSET_OFFSET);
