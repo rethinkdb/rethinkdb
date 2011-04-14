@@ -45,6 +45,7 @@ class SubProcess(object):
         self.valgrind_tool = valgrind_tool
         if valgrind_tool is not None:
             cmd_line = ["valgrind",
+                "--log-file=%s" % test_dir.make_file(output_path + ".valgrind"),
                 "--tool=%s" % valgrind_tool,
                 "--error-exitcode=%d" % valgrind_error_code]
             if valgrind_tool == "memcheck":
