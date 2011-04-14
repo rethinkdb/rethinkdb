@@ -27,6 +27,7 @@ slave_stream_manager_t::slave_stream_manager_t(
 }
 
 slave_stream_manager_t::~slave_stream_manager_t() {
+    assert_thread();
     shutdown_cond_.wait();
 }
 
@@ -66,6 +67,7 @@ void slave_stream_manager_t::send(UNUSED scoped_malloc<net_ack_t>& message) {
 }
 
 void slave_stream_manager_t::conn_closed() {
+    assert_thread();
 
     /* Do this first-thing so that nothing tries to use the closed stream. The
     repli_stream_t destructor may block, which is why we set stream_ to NULL before
@@ -86,9 +88,10 @@ void slave_stream_manager_t::conn_closed() {
 }
 
 void slave_stream_manager_t::on_multicond_pulsed() {
+    assert_thread();
+
     interrupted_by_external_event_ = true;
     stream_->shutdown();   // Will cause conn_closed() to be called
-    shutdown_cond_.wait();
 }
 
 }
