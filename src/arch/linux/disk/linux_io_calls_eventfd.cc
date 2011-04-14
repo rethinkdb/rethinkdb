@@ -17,10 +17,6 @@
 
 /* Async IO scheduler */
 
-perfmon_counter_t
-    pm_io_reads_completed("io_reads_completed[ioreads]"),
-    pm_io_writes_completed("io_writes_completed[iowrites]");
-
 linux_io_calls_eventfd_t::linux_io_calls_eventfd_t(linux_event_queue_t *queue)
     : linux_io_calls_base_t(queue)
 {
