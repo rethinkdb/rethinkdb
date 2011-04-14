@@ -47,9 +47,13 @@ namespace fsck {
 struct config_t {
     std::vector<std::string> input_filenames;
     std::string log_file_name;
+    bool print_command_line;
+
+    config_t() :print_command_line(false) {}
 };
 
 bool check_files(const config_t& config);
+std::string extract_command_line_args(const config_t& cfg);
 
 
 

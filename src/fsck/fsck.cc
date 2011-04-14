@@ -22,6 +22,10 @@ void usage(const char *name) {
                 "Output options:\n"
                 "  -l  --log-file            File to log to.  If not provided, messages will be\n"
                 "                            printed to stderr.\n");
+#ifndef NDEBUG
+    help->pagef("  -c  --command-line        Print the command line arguments that were used\n"
+                "                            to start this server.\n");
+#endif
     help->pagef("\n"
                 "Fsck is used to check one or more files for consistency\n");
     exit(0);
@@ -38,19 +42,25 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     }
     for (;;) {
         int do_help = 0;
+        int command_line = 0;
         static const struct option long_options[] =
             {
                 {"file", required_argument, 0, 'f'},
                 {"log-file", required_argument, 0, 'l'},
                 {"help", no_argument, &do_help, 1},
+                {"command-line", no_argument, &command_line, 'c'},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "f:l:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "f:l:hc", long_options, &option_index);
 
         if (do_help) {
             c = 'h';
+        }
+
+        if(command_line) {
+            c = 'c';
         }
 
         // Detect the end of the options.
@@ -65,6 +75,9 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             break;
         case 'l':
             config->log_file_name = optarg;
+            break;
+        case 'c':
+            config->print_command_line = true;
             break;
         case 'h':
             usage(argv[0]);
