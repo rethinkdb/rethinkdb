@@ -6,7 +6,7 @@ import time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
-extent_size = 1024 * 1024
+extent_size = 8 * 1024 * 1024
 block_size = 4096
 lbaent_size = 16
 lba_shard_factor = 16
