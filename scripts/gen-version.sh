@@ -10,6 +10,15 @@
 # 4. otherwise, use default_version variable (defined below) as the version
 # 5. 'v' at the beginning of the version number is stripped
 
+short=0
+while getopts s name
+do
+    case "$name" in
+    s)      short=1;;
+    ?)
+    esac
+done
+
 set -euo pipefail
 
 default_version='0.0-internal-unknown'
@@ -61,5 +70,10 @@ if [ -z "$version" ]; then
 fi
 
 version=$(echo "$version" | sed -e 's/^v//')
+
+if [ "$short" -eq 1 ]; then
+    version=$(echo "$version" | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\)-.*/\1/')
+fi
+
 echo "$version"
 
