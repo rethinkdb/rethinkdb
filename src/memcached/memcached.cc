@@ -347,7 +347,12 @@ public:
     ~memcached_data_provider_t() {
         if (!was_read) {
             /* We have to clear the data out of the socket, even if we have nowhere to put it. */
-            get_data_as_buffers();
+            try {
+                get_data_as_buffers();
+            } catch (data_provider_failed_exc_t) {
+                // If the connection was closed then we don't need to clear the
+                // data out of the socket.
+            }
         }
         // This is a harmless hack to get ~home_thread_mixin_t to not fail its assertion.
 #ifndef NDEBUG
