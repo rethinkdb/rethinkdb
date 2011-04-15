@@ -22,7 +22,14 @@ public:
         worker_active_gate_opener.reset(new gate_t::open_t(&worker_active_gate));
     }
     ~coro_pool_t() {
+        assert_thread();
         shutting_down = true;
+
+        // Wait till queued tasks get handled...
+        // (in case queue_task got called and spawned a new coroutine but that coroutine has not materialized yet)
+        if (!task_queue.empty()) {
+            coro_t::yield();
+        }
 
         // Close the active gate. This automatically waits on all workers to finish whatever they are doing
         worker_active_gate_opener.reset();
