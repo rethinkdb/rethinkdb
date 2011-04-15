@@ -196,6 +196,11 @@ void do_get(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool with_
         return;
     }
 
+    // We have to wait on noreply storage operations to finish first.
+    // If we don't, terrible stuff can happen (like outdated values getting returned
+    // to clients, riots breaking out all around the world, power plants exploding...)
+    rh->drain_semaphore.drain();
+
     block_pm_duration get_timer(&pm_cmd_get);
 
     /* Now that we're sure they're all valid, send off the requests */
@@ -293,6 +298,11 @@ void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc,
         rh->client_error_bad_command_line_format(saver);
         return;
     }
+
+    // We have to wait on noreply storage operations to finish first.
+    // If we don't, terrible stuff can happen (like outdated values getting returned
+    // to clients, riots breaking out all around the world, power plants exploding...)
+    rh->drain_semaphore.drain();
 
     block_pm_duration rget_timer(&pm_cmd_rget);
 
