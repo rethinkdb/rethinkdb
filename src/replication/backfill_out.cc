@@ -3,6 +3,7 @@
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/pmap.hpp"
 #include "btree/slice.hpp"
+#include "concurrency/coro_pool.hpp"
 
 namespace replication {
 
@@ -23,40 +24,35 @@ struct backfill_and_streaming_manager_t :
             castime_t castime;
         
             mutation_t operator()(const get_cas_mutation_t& m) {
-                coro_t::spawn_on_thread(manager->home_thread,
-                    boost::bind(&backfill_and_streaming_manager_t::realtime_get_cas, manager,
+                manager->coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::realtime_get_cas, manager,
                         m.key, castime));
                 return m;
             }
             mutation_t operator()(const sarc_mutation_t& m) {
                 unique_ptr_t<data_provider_t> dps[2];
                 duplicate_data_provider(m.data, 2, dps);
-                coro_t::spawn_on_thread(manager->home_thread,
-                    boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
+                manager->coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
                         m.key, dps[0], m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
                 sarc_mutation_t m2(m);
                 m2.data = dps[1];
                 return m2;
             }
             mutation_t operator()(const incr_decr_mutation_t& m) {
-                coro_t::spawn_on_thread(manager->home_thread,
-                    boost::bind(&backfill_and_streaming_manager_t::realtime_incr_decr, manager,
+                manager->coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::realtime_incr_decr, manager,
                         m.kind, m.key, m.amount, castime));
                 return m;
             }
             mutation_t operator()(const append_prepend_mutation_t &m) {
                 unique_ptr_t<data_provider_t> dps[2];
                 duplicate_data_provider(m.data, 2, dps);
-                coro_t::spawn_on_thread(manager->home_thread,
-                    boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
+                manager->coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
                         m.kind, m.key, dps[0], castime));
                 append_prepend_mutation_t m2(m);
                 m2.data = dps[1];
                 return m2;
             }
             mutation_t operator()(const delete_mutation_t& m) {
-                coro_t::spawn_on_thread(manager->home_thread,
-                    boost::bind(&backfill_and_streaming_manager_t::realtime_delete_key, manager,
+                manager->coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::realtime_delete_key, manager,
                         m.key, castime.timestamp));
                 return m;
             }
@@ -98,8 +94,7 @@ struct backfill_and_streaming_manager_t :
     void deletion_key(const btree_key_t *key) {
         // This runs on the scheduler thread.
         store_key_t tmp(key->size, key->contents);
-        coro_t::spawn_on_thread(home_thread,
-            boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, tmp));
+        coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, tmp));
     }
 
     /* The store calls this when it finishes the first phase of backfilling. It's redundant
@@ -110,16 +105,14 @@ struct backfill_and_streaming_manager_t :
     /* The store calls this when we need to send a key/value pair to the slave */
     void on_keyvalue(backfill_atom_t atom) {
         // This runs on the scheduler thread.
-        coro_t::spawn_on_thread(home_thread,
-            boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_set, handler_, atom));
+        coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_set, handler_, atom));
     }
 
     /* When we are finally done, the store calls done(). */
     void done() {
 
         // This runs in the scheduler, so we have to spawn a coroutine.
-        coro_t::spawn_on_thread(home_thread,
-            boost::bind(&backfill_and_streaming_manager_t::do_done, this));
+        coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::do_done, this));
     }
 
     void do_done() {
@@ -176,6 +169,9 @@ struct backfill_and_streaming_manager_t :
     boost::scoped_ptr<repeating_timer_t> replication_clock_timer_;
     drain_semaphore_t replication_clock_drain_semaphore_;
 
+    /* In order to not stress the coroutine limit too much, we use a coro_pool to handle our work */
+    coro_pool_t coro_pool;
+
     /* We can't stop until backfill is over and we can't interrupt a running backfill operation,
     so we have to use pulsed_when_backfill_over to wait for the backfill operation to finish. */
     cond_t pulsed_when_backfill_over;
@@ -184,7 +180,8 @@ struct backfill_and_streaming_manager_t :
             backfill_and_realtime_streaming_callback_t *handler,
             repli_timestamp_t timestamp) :
         internal_store_(kvs),
-        handler_(handler)
+        handler_(handler),
+        coro_pool(512) // TODO: Make this a define-constant or something
     {
         /* Read the old value of the replication clock. */
         replication_clock_ = internal_store_->get_replication_clock();
@@ -203,6 +200,7 @@ struct backfill_and_streaming_manager_t :
 
             outstanding_backfills++;
 
+            // (we cannot use our coro_pool because it might run on a different thread)
             coro_t::spawn_on_thread(internal_store_->btrees[i]->home_thread,
                 boost::bind(&backfill_and_streaming_manager_t::register_on_slice,
                     this,
