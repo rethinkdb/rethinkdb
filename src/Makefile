@@ -250,7 +250,7 @@ SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -n
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
 #### Version number handling
-RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
+RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh -s)
 ifneq ($(TIMEBOMB),0)
 RETHINKDB_VERSION:=$(RETHINKDB_VERSION)-trial
 endif
@@ -359,6 +359,7 @@ build-deb: all prepare_deb_package_dirs
 # Finally, produce a debian package
 	$(QUIET) fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
+deb: SERVER_EXEC_NAME=rethinkdb$(RETHINKDB_VERSION)
 deb: all prepare_deb_package_dirs
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION)-unstripped build-deb
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_PACKAGING_VERSION=$(RETHINKDB_VERSION) build-deb
@@ -398,6 +399,7 @@ build-rpm: all prepare_rpm_package_dirs
 # FIXME: write rpmbuild output out to stderr if there's an error
 	$(QUIET) rpmbuild -bb --target=x86_64 --buildroot `readlink -f $(RPM_BUILD_ROOT)` $(RPM_SPEC_FILE) > /tmp/rpmbuild.stdout
 
+rpm: SERVER_EXEC_NAME=rethinkdb$(RETHINKDB_VERSION)
 rpm: all prepare_rpm_package_dirs
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=0 RETHINKDB_VERSION=$(RETHINKDB_VERSION)-unstripped build-rpm
 	$(QUIET) $(MAKE) STRIP_ON_INSTALL=1 RETHINKDB_VERSION=$(RETHINKDB_VERSION) build-rpm
