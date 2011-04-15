@@ -1,0 +1,46 @@
+#!/bin/bash -vx
+usage() {
+    echo "Usage:"
+    echo "      $0 [OPTIONS] -i <old_file_1> [-i <old_file_2> ...] -o <new_file_1> [-o <new_file_2> ...]"
+    echo "      Migrate from old rethinkdb database"
+    echo "Options:"
+}
+
+infile=()
+outfile=()
+old_rdb='old_rethinkdb' #previous rethinkdb version
+new_rdb='rethinkdb' #new rethinkdb version
+
+while getopts i:o:p:r: name
+do
+    case "$name" in
+    i)      infile+=("$OPTARG");;
+    o)      outfile+=("$OPTARG");;
+    p)      old_rdb=("$OPTARG");;
+    r)      new_rdb=("$OPTARG");;
+    ?)      usage
+            exit 2;;
+    esac
+done
+
+echo ${infile[@]}
+echo ${outfile[@]}
+
+filecl=()
+for file in ${infile[@]}
+do
+    filecl+=("-f" $file)
+done
+
+$old_rdb extract ${filecl[@]} -o /tmp/rdb_migration_swap
+flags=`$old_rdb fsck ${filecl[@]} -c | grep FLAGS: | sed s/FLAGS://`
+
+filecl=()
+for file in ${outfile[@]}
+do
+    filecl+=("-f" $file)
+done
+
+$new_rdb ${filecl[@]} $flags -p 12345&
+while ! nc -q 1 localhost 12345 </dev/null; do sleep 2; done
+(cat /tmp/rdb_migration_swap && echo "rdb shutdown") | nc localhost 12345
