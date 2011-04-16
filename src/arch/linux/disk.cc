@@ -14,7 +14,6 @@
 #include "arch/linux/disk/diskmgr.hpp"
 #include "arch/linux/disk/aio/submit_pool.hpp"
 #include "arch/linux/disk/aio/submit_sync.hpp"
-#include "arch/linux/disk/aio/submit_threaded.hpp"
 #include "logger.hpp"
 
 // #define DEBUG_DUMP_WRITES 1
