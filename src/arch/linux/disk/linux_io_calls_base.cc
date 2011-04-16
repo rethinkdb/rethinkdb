@@ -11,6 +11,7 @@
 #include "config/args.hpp"
 #include "utils2.hpp"
 #include "logger.hpp"
+#include "concurrent_io_dependencies.hpp"
 
 /* Async IO scheduler - the common base */
 linux_io_calls_base_t::linux_io_calls_base_t(linux_event_queue_t *queue)
@@ -34,6 +35,9 @@ linux_io_calls_base_t::~linux_io_calls_base_t()
 }
 
 void linux_io_calls_base_t::aio_notify(iocb *event, int result) {
+    // Unregister the dependency
+    io_requests.dependencies.unregister_request(event);
+
     // Schedule the requests we couldn't finish last time
     n_pending--;
     process_requests();
@@ -72,7 +76,7 @@ void linux_io_calls_base_t::process_requests() {
     int res = 0;
     while(!io_requests.queue.empty()) {
         res = io_requests.process_request_batch();
-        if(res < 0)
+        if(res <= 0)
             break;
     }
     guarantee_xerr(res >= 0 || res == -EAGAIN, -res, "Could not submit IO request");
@@ -90,9 +94,22 @@ int linux_io_calls_base_t::queue_t::process_request_batch() {
     // Submit a batch
     int res = 0;
     if(queue.size() > 0) {
-        res = io_submit(parent->aio_context,
-                        std::min(queue.size(), size_t(TARGET_IO_QUEUE_DEPTH / 2)),
-                        &queue[0]);
+        size_t submit_length = std::min(queue.size(), size_t(TARGET_IO_QUEUE_DEPTH / 2));
+        // Check and register dependencies
+        for (size_t i = 0; i < submit_length; ++i) {
+            if (dependencies.is_conflicting(queue[i])) {
+                // Stop before this request
+                submit_length = i;
+                break;
+            } else {
+                dependencies.register_active_request(queue[i]);
+            }
+        }
+        if (submit_length > 0) {
+            res = io_submit(parent->aio_context,
+                            submit_length,
+                            &queue[0]);
+        }
         if (res > 0) {
             // TODO: erase will cause the vector to shift elements in
             // the back. Perhaps we should optimize this somehow.

@@ -9,6 +9,7 @@
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "event.hpp"
+#include "arch/linux/disk/concurrent_io_dependencies.hpp"
 
 class linux_io_calls_base_t : public linux_event_callback_t {
 public:
@@ -29,6 +30,7 @@ public:
         linux_io_calls_base_t *parent;
         typedef std::vector<iocb*> request_vector_t;
         request_vector_t queue;
+        concurrent_io_dependencies_t dependencies;
         
         explicit queue_t(linux_io_calls_base_t *parent);
         int process_request_batch();

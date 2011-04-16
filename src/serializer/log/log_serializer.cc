@@ -743,6 +743,10 @@ struct ls_read_fsm_t :
     }
     
     void on_io_complete(event_t *e) {
+        buf_data_t *data = ptr_cast<buf_data_t>(buf);
+        --data;
+        guarantee(data->block_id == block_id); // Make sure we got the right block and it's metadata is intact
+
         done();
     }
     
