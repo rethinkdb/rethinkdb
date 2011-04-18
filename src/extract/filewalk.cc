@@ -199,38 +199,40 @@ void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_
 
 void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, UNUSED uint64_t filesize) {
     // Scan through all log blocks, build a map block_id -> patch list
-    for (std::map<size_t, off64_t>::const_iterator offset_it = offsets.begin(); offset_it != offsets.end(); ++offset_it) {
-        rassert((uint64_t)offset_it->second + cfg.block_size_ <= filesize);
-        
+    for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
+         offset <= max_offset;
+         offset += cfg.block_size().ser_value()) {
         block b;
-        b.init(cfg.block_size().ser_value(), &file, offset_it->second);
+        b.init(cfg.block_size().ser_value(), &file, offset);
 
         ser_block_id_t block_id = b.buf_data().block_id;
 
-        const void *data = b.buf;
-        if (memcmp(reinterpret_cast<const char *>(data), "LOGB00", 6) == 0) {
-            int num_patches = 0;
-            uint16_t current_offset = 6; //sizeof(LOG_BLOCK_MAGIC);
-            while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(buf_data_t)) {
-                buf_patch_t *patch;
-                try {
-                    patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
-                } catch (patch_deserialization_error_t &e) {
-                    logERR("Corrupted patch. Ignoring the rest of the log block.\n");
-                    break;
+        if (offsets.find(block_id.value) != offsets.end() && offsets.find(block_id.value)->second == offset) {
+            const void *data = b.buf;
+            if (memcmp(reinterpret_cast<const char *>(data), "LOGB00", 6) == 0) {
+                int num_patches = 0;
+                uint16_t current_offset = 6; //sizeof(LOG_BLOCK_MAGIC);
+                while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(buf_data_t)) {
+                    buf_patch_t *patch;
+                    try {
+                        patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
+                    } catch (patch_deserialization_error_t &e) {
+                        logERR("Corrupted patch. Ignoring the rest of the log block.\n");
+                        break;
+                    }
+                    if (!patch) {
+                        break;
+                    }
+                    else {
+                        current_offset += patch->get_serialized_size();
+                        buf_patches[patch->get_block_id()].push_back(patch);
+                        ++num_patches;
+                    }
                 }
-                if (!patch) {
-                    break;
-                }
-                else {
-                    current_offset += patch->get_serialized_size();
-                    buf_patches[patch->get_block_id()].push_back(patch);
-                    ++num_patches;
-                }
-            }
 
-            if (num_patches > 0) {
-                logDBG("We have a log block with %d patches.\n", num_patches);
+                if (num_patches > 0) {
+                    logDBG("We have a log block with %d patches.\n", num_patches);
+                }
             }
         }
     }
@@ -247,49 +249,50 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
     // order of block id.  However, we still do some random access
     // when retrieving large buf values.
 
-    for (std::map<size_t, off64_t>::const_iterator offset_it = offsets.begin(); offset_it != offsets.end(); ++offset_it) {
-        rassert((uint64_t)offset_it->second + cfg.block_size_ <= filesize);
-
+    for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
+         offset <= max_offset;
+         offset += cfg.block_size().ser_value()) {
         block b;
-        b.init(cfg.block_size().ser_value(), &file, offset_it->second);
+        b.init(cfg.block_size().ser_value(), &file, offset);
         
         ser_block_id_t block_id = b.buf_data().block_id;
 
+        if (offsets.find(block_id.value) != offsets.end() && offsets.find(block_id.value)->second == offset) {
+            int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(block_id, cfg.mod_count, CONFIG_BLOCK_ID);
+            block_id_t cache_block_id = translator_serializer_t::untranslate_block_id_to_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
 
-        int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(block_id, cfg.mod_count, CONFIG_BLOCK_ID);
-        block_id_t cache_block_id = translator_serializer_t::untranslate_block_id_to_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
-
-        if (!cfg.ignore_diff_log) {
-            // Replay patches
-            std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = buf_patches.find(cache_block_id);
-            if (patches != buf_patches.end()) {
-                // We apply only patches which match exactly the provided transaction ID.
-                // Sepcifically, this ensures that we only replay patches which are for the right slice,
-                // as transaction IDs are disjoint across slices (this relies on the current implementation
-                // details of the cache and serializer though)
-                for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
-                    //fprintf(stdout, "Checking patch with TID %d against TID %d...\n", (int)(*patch)->get_transaction_id(), (int)b.buf_data().transaction_id);
-                    if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
-                        (*patch)->apply_to_buf((char*)b.buf);
+            if (!cfg.ignore_diff_log) {
+                // Replay patches
+                std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = buf_patches.find(cache_block_id);
+                if (patches != buf_patches.end()) {
+                    // We apply only patches which match exactly the provided transaction ID.
+                    // Sepcifically, this ensures that we only replay patches which are for the right slice,
+                    // as transaction IDs are disjoint across slices (this relies on the current implementation
+                    // details of the cache and serializer though)
+                    for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
+                        //fprintf(stdout, "Checking patch with TID %d against TID %d...\n", (int)(*patch)->get_transaction_id(), (int)b.buf_data().transaction_id);
+                        if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
+                            (*patch)->apply_to_buf((char*)b.buf);
+                        }
                     }
                 }
             }
-        }
 
-        const leaf_node_t *leaf = (leaf_node_t *)b.buf;
+            const leaf_node_t *leaf = (leaf_node_t *)b.buf;
 
-        if (check_magic<leaf_node_t>(leaf->magic)) {
-            int num_pairs = leaf->npairs;
-            logDBG("We have a leaf node with %d pairs.\n", num_pairs);
+            if (check_magic<leaf_node_t>(leaf->magic)) {
+                int num_pairs = leaf->npairs;
+                logDBG("We have a leaf node with %d pairs.\n", num_pairs);
 
-            int pair_offsets_back_offset = offsetof(leaf_node_t, pair_offsets) + sizeof(*leaf->pair_offsets) * num_pairs;
-            if (unsigned(pair_offsets_back_offset) < cfg.block_size().value()) {
+                int pair_offsets_back_offset = offsetof(leaf_node_t, pair_offsets) + sizeof(*leaf->pair_offsets) * num_pairs;
+                if (unsigned(pair_offsets_back_offset) < cfg.block_size().value()) {
 
-                for (int j = 0; j < num_pairs; ++j) {
-                    uint16_t pair_offset = leaf->pair_offsets[j];
-                    if (pair_offset >= pair_offsets_back_offset && pair_offset <= cfg.block_size().value()) {
-                        const btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
-                        dump_pair_value(dumper, file, cfg, offsets, pair, block_id, cfg.block_size().value() - pair_offset);
+                    for (int j = 0; j < num_pairs; ++j) {
+                        uint16_t pair_offset = leaf->pair_offsets[j];
+                        if (pair_offset >= pair_offsets_back_offset && pair_offset <= cfg.block_size().value()) {
+                            const btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
+                            dump_pair_value(dumper, file, cfg, offsets, pair, block_id, cfg.block_size().value() - pair_offset);
+                        }
                     }
                 }
             }

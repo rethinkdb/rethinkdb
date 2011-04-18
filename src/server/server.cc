@@ -210,11 +210,11 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 logINF("Starting up as a slave...\n");
                 replication::slave_t slave(&store, cmd_config->replication_config, cmd_config->failover_config);
 
-                /* So that Amazon's Elastic Load Balancer (ELB) can tell when master goes
-                down */
+                /* So that Amazon's Elastic Load Balancer (ELB) can tell when *
+                 * master goes down */
                 boost::scoped_ptr<elb_t> elb;
                 if (cmd_config->failover_config.elb_port != -1) {
-                    elb.reset(new elb_t(elb_t::slave, cmd_config->port));
+                    elb.reset(new elb_t(elb_t::slave, cmd_config->failover_config.elb_port));
                     slave.failover.add_callback(elb.get());
                 }
 
@@ -235,6 +235,14 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             } else if (cmd_config->replication_master_active) {
 
                 replication::master_t master(cmd_config->replication_master_listen_port, &store, &gated_get_store, &gated_set_store);
+
+                /* So that Amazon's Elastic Load Balancer (ELB) can tell when
+                 * master is up. TODO: This might report us as being up when we aren't actually
+                 accepting queries. */
+                boost::scoped_ptr<elb_t> elb;
+                if (cmd_config->failover_config.elb_port != -1) {
+                    elb.reset(new elb_t(elb_t::master, cmd_config->failover_config.elb_port));
+                }
 
                 wait_for_sigint();
 
