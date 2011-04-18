@@ -210,11 +210,11 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 logINF("Starting up as a slave...\n");
                 replication::slave_t slave(&store, cmd_config->replication_config, cmd_config->failover_config);
 
-                /* So that Amazon's Elastic Load Balancer (ELB) can tell when master goes
-                down */
+                /* So that Amazon's Elastic Load Balancer (ELB) can tell when *
+                 * master goes down */
                 boost::scoped_ptr<elb_t> elb;
                 if (cmd_config->failover_config.elb_port != -1) {
-                    elb.reset(new elb_t(elb_t::slave, cmd_config->port));
+                    elb.reset(new elb_t(elb_t::slave, cmd_config->failover_config.elb_port));
                     slave.failover.add_callback(elb.get());
                 }
 
@@ -236,10 +236,18 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                 replication::master_t master(cmd_config->replication_master_listen_port, &store);
 
-                /* Open the gates to allow real queries. TODO: Later we will need to not
-                allow real queries during some phases of the master's lifecycle. */
+                /* Open the gates to allow real queries. TODO: Later we will
+                 * need to not allow real queries during some phases of the
+                 * master's lifecycle. */
                 gated_get_store_t::open_t permit_gets(&gated_get_store);
                 gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
+
+                /* So that Amazon's Elastic Load Balancer (ELB) can tell when
+                 * master is up */
+                boost::scoped_ptr<elb_t> elb;
+                if (cmd_config->failover_config.elb_port != -1) {
+                    elb.reset(new elb_t(elb_t::master, cmd_config->failover_config.elb_port));
+                }
 
                 logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
 
