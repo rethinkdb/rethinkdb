@@ -234,14 +234,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             } else if (cmd_config->replication_master_active) {
 
-                replication::master_t master(cmd_config->replication_master_listen_port, &store);
-
-                /* Open the gates to allow real queries. TODO: Later we will need to not
-                allow real queries during some phases of the master's lifecycle. */
-                gated_get_store_t::open_t permit_gets(&gated_get_store);
-                gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
-
-                logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
+                replication::master_t master(cmd_config->replication_master_listen_port, &store, &gated_get_store, &gated_set_store);
 
                 wait_for_sigint();
 
