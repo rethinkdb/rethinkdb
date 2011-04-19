@@ -46,6 +46,10 @@ void queueing_store_t::backfill_handover(mutation_t *m, castime_t castime) {
     delete m;
 }
 
+void queueing_store_t::backfill_delete_all_keys() {
+
+}
+
 void queueing_store_t::backfill_complete(repli_timestamp timestamp) {
     inner_->set_replication_clock(timestamp);
     inner_->set_last_sync(timestamp);

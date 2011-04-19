@@ -22,6 +22,7 @@ public:
     void time_barrier(repli_timestamp timestamp);
 
     void backfill_handover(mutation_t *m, castime_t castime);
+    void backfill_delete_all_keys();
     void backfill_complete(repli_timestamp timestamp);
 
     btree_key_value_store_t *inner() { return inner_; }

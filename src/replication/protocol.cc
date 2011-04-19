@@ -320,6 +320,11 @@ void repli_stream_t::send(net_backfill_complete_t *msg) {
     sendobj(BACKFILL_COMPLETE, msg);
 }
 
+void repli_stream_t::send(net_backfill_delete_everything_t msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+    sendobj(BACKFILL_DELETE_EVERYTHING, &msg);
+}
+
 void repli_stream_t::send(net_announce_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(ANNOUNCE, msg);
