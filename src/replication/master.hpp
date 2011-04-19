@@ -55,6 +55,14 @@ public:
         // Stop listening for new connections
         listener_.reset();
 
+        // Drain operations. It isn't really necessary to drain gets here, but we must drain sets
+        // before we destroy the slave connection so that the user can be guaranteed that all
+        // operations will make it to the slave after sending SIGINT.
+        set_gate_->set_message("server is shutting down.");
+        get_gate_->set_message("server is shutting down.");
+        set_permission_.reset();
+        get_permission_.reset();
+
         destroy_existing_slave_conn_if_it_exists();
     }
 
