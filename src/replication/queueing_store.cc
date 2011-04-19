@@ -47,7 +47,7 @@ void queueing_store_t::backfill_handover(mutation_t *m, castime_t castime) {
 }
 
 void queueing_store_t::backfill_delete_all_keys() {
-
+    inner_->delete_all_keys();
 }
 
 void queueing_store_t::backfill_complete(repli_timestamp timestamp) {

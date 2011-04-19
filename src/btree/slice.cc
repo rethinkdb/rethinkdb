@@ -1,6 +1,8 @@
-#include "errors.hpp" 
 #include <boost/scoped_ptr.hpp>
+
+#include "errors.hpp"
 #include "btree/backfill.hpp"
+#include "btree/delete_all_keys.hpp"
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/transactor.hpp"
@@ -116,6 +118,12 @@ mutation_result_t btree_slice_t::change(const mutation_t &mref, castime_t castim
     functor.parent = this;
     functor.ct = castime;
     return boost::apply_visitor(functor, m.mutation);
+}
+
+void btree_slice_t::delete_all_keys() {
+    on_thread_t th(home_thread);
+
+    btree_delete_all_keys(this);
 }
 
 void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {
