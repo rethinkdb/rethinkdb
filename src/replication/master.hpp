@@ -3,6 +3,7 @@
 
 #include "store.hpp"
 #include "arch/arch.hpp"
+#include "gated_store.hpp"
 #include "replication/backfill_out.hpp"
 #include "replication/backfill_sender.hpp"
 #include "replication/backfill_receiver.hpp"
@@ -24,12 +25,14 @@ class master_t :
     public backfill_sender_t,
     public backfill_receiver_t {
 public:
-    master_t(int port, btree_key_value_store_t *kv_store) :
+    master_t(int port, btree_key_value_store_t *kv_store, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate) :
         backfill_sender_t(&stream_),
         backfill_receiver_t(&backfill_storer_),
         stream_(NULL),
         listener_port_(port),
         kvs_(kv_store),
+        get_gate_(get_gate),
+        set_gate_(set_gate),
         backfill_storer_(kv_store)
     {
         listener_.reset(new tcp_listener_t(listener_port_));
@@ -40,6 +43,11 @@ public:
 
         // Because there is initially no backfill operation
         streaming_cond_.pulse();
+
+        /* Initially, we don't allow either gets or sets, because no slave has connected yet so
+        we don't know how out-of-date our data might be. */
+        get_gate_->set_message("haven't gotten initial slave connection yet; data might be out of date.");
+        set_gate_->set_message("haven't gotten initial slave connection yet; data might be out of date.");
     }
 
     ~master_t() {
@@ -92,6 +100,12 @@ private:
     // The key value store.
     btree_key_value_store_t *kvs_;
 
+    // Pointers to the gates we use to allow/disallow gets and sets
+    gated_get_store_t *get_gate_;
+    gated_set_store_interface_t *set_gate_;
+    boost::scoped_ptr<gated_get_store_t::open_t> get_permission_;
+    boost::scoped_ptr<gated_set_store_interface_t::open_t> set_permission_;
+
     // For reverse-backfilling;
     backfill_storer_t backfill_storer_;
 
@@ -106,11 +120,6 @@ private:
 
     DISABLE_COPYING(master_t);
 };
-
-
-
-
-
 
 }  // namespace replication
 
