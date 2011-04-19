@@ -16,6 +16,11 @@ backfill_storer_t::~backfill_storer_t() {
     }
 }
 
+void backfill_storer_t::backfill_delete_everything() {
+    backfilling_ = true;
+    internal_store_.delete_all_keys();
+}
+
 void backfill_storer_t::backfill_deletion(store_key_t key) {
     backfilling_ = true;
 

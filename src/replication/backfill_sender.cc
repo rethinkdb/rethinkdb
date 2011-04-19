@@ -14,6 +14,16 @@ void backfill_sender_t::warn_about_expiration() {
     }
 }
 
+void backfill_sender_t::backfill_delete_everything() {
+    debugf("send backfill_delete_everything(), %d\n", int(bool(*stream_)));
+
+    if (*stream_) {
+        net_backfill_delete_everything_t msg;
+        msg.padding = 0;
+        (*stream_)->send(msg);
+    }
+}
+
 void backfill_sender_t::backfill_deletion(store_key_t key) {
 
     debugf("send backfill_deletion(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
