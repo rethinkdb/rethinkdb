@@ -572,7 +572,7 @@ private:
 
 perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_ticks(2));
 
-bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback) {
+bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback, bool main_mutex_has_been_acquired) {
     // Even if state != state_ready we might get a do_write from the
     // datablock manager on gc (because it's writing the final gc as
     // we're shutting down). That is ok, which is why we don't assert
@@ -582,7 +582,13 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
 
     ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
     w->tid_callback = tid_callback;
-    w->run();
+    if (main_mutex_has_been_acquired) {
+        // Go straigt to on_lock_available
+        w->on_lock_available();
+    }
+    else {
+        w->run();
+    }
     if (w->done) {
         delete w;
         return true;
@@ -594,6 +600,7 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
 
 bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb) {
 
+    rassert(main_mutex.is_locked()); // GC must have acquired the mutex already
     struct gc_callback_wrapper_t : public write_txn_callback_t {
         virtual void on_serializer_write_txn() {
             target->on_gc_write_done();
@@ -617,7 +624,7 @@ bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, in
         }
     }
 
-    if (do_write(cb_wrapper->writes.data(), cb_wrapper->writes.size(), cb_wrapper)) {
+    if (do_write(cb_wrapper->writes.data(), cb_wrapper->writes.size(), cb_wrapper, NULL, true)) {
         delete cb_wrapper;
         return true;
     } else {

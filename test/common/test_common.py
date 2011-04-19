@@ -281,7 +281,10 @@ class Server(object):
         self.times_started = 0
         self.server = None
 
-    def block_until_up(self, timeout):
+    def block_until_up(self, require_gets = True, timeout = server_start_time):
+
+        print "Waiting for %s to %s;" % (self.name, "accept operations" if require_gets else "load"),
+        sys.stdout.flush()
 
         start_time = time.time()
         deadline = start_time + timeout
@@ -301,23 +304,25 @@ class Server(object):
         else:
             raise RuntimeError("Server took longer than %.2f seconds to start." % timeout)
 
-        while time.time() < deadline:
-            s.settimeout(deadline - time.time())
-            s.send("get are_you_up\r\n")
-            line = s.makefile().readline()
+        if require_gets:
+            while time.time() < deadline:
+                s.settimeout(deadline - time.time())
+                s.send("get are_you_up\r\n")
+                line = s.makefile().readline()
 
-            if line.startswith("VALUE") or line == "END\r\n":
-                break
-            elif line.startswith("CLIENT_ERROR"):
-                time.sleep(0.1)
+                if line.startswith("VALUE") or line == "END\r\n":
+                    break
+                elif line.startswith("CLIENT_ERROR"):
+                    time.sleep(0.1)
+                else:
+                    raise RuntimeError("Unexpected response from server: %r" % line)
             else:
-                raise RuntimeError("Unexpected response from server: %r" % line)
-        else:
-            raise RuntimeError("Server took longer than %.2f seconds to start." % timeout)
+                raise RuntimeError("Server took longer than %.2f seconds to start." % timeout)
 
-        return time.time() - start_time
+        print "took %.2f seconds to start." % (time.time() - start_time)
+        time.sleep(0.2)
 
-    def start(self):
+    def start(self, require_gets=True):
 
         self.times_started += 1
         if self.times_started == 1: self.name = self.base_name
@@ -359,11 +364,7 @@ class Server(object):
 
         # Wait for server to start accepting connections
 
-        print "Waiting for %s to start;" % self.name,
-        sys.stdout.flush()
-        start_time = self.block_until_up(self.server_start_time)
-        print "took %.2f seconds to start." % start_time
-        time.sleep(0.2)
+        self.block_until_up(require_gets)
 
         # Make sure nothing went wrong during startup
 
@@ -443,18 +444,21 @@ class MemcachedWrapperThatRestartsServer(object):
 
 class FailoverMemcachedWrapper(object):
     def __init__(self, opts, master, slave, master_mc_maker, slave_mc_maker, test_dir):
-        self.opts = opts
-        self.server = {'master' : master, 'slave' : slave}
-        self.down = {'master' : True, 'slave' : True}
-        self.mc_maker = {'master' : master_mc_maker, 'slave' : slave_mc_maker}
-        self.mc = {'master' : None, 'slave' : None}
-        self.test_dir = test_dir
 
-        # Decide which servers should be up at startup
-        ups = random.choice(["master only", "master & slave"])
-        print "The following servers will be up initially:", ups
-        if "master" in ups: self.resurrect_server("master")
-        if "slave" in ups: self.resurrect_server("slave")
+        self.opts = opts
+        self.test_dir = test_dir
+        self.server = {'master' : master, 'slave' : slave}
+
+        # The master won't accept operations until the slave connects to it
+        master.start(require_gets = False)
+        slave.start()
+        master.block_until_up(require_gets = True)
+
+        self.down = {'master' : False, 'slave' : False}
+        self.mc_maker = {'master' : master_mc_maker, 'slave' : slave_mc_maker}
+        self.mc = {'master' : master_mc_maker(), 'slave' : slave_mc_maker()}
+
+        self.ops_since_last_transition = 0
 
     def __getattr__(self, name):
         if (random.random() < self.opts["kill_failover_server_prob"]) and not self.down["master"] and not self.down["slave"]:
@@ -463,16 +467,21 @@ class FailoverMemcachedWrapper(object):
             self.resurrect_server("slave" if not self.down["master"] else "master")
 
         target = "master" if not self.down["master"] else "slave"
-        #print "Sending query to %s." % target
         mc_to_use = self.mc[target]
+        self.ops_since_last_transition += 1
 
         return getattr(mc_to_use, name)
 
     def disconnect_all(self):
+        self.print_and_reset_ops()
         if self.mc["master"]:
             self.mc["master"].disconnect_all()
         if self.mc["slave"]:
             self.mc["slave"].disconnect_all()
+
+    def print_and_reset_ops(self):
+        print "Performed %d operations." % self.ops_since_last_transition
+        self.ops_since_last_transition = 0
 
     def wait_for_slave_to_assume_masterhood(self):
         print "Waiting for slave to assume masterhood..."
@@ -499,6 +508,8 @@ class FailoverMemcachedWrapper(object):
 
     def kill_server(self, victim):
 
+        self.print_and_reset_ops()
+
         assert not self.down[victim]
         print "Stopping %s..." % victim
         self.mc[victim].disconnect_all()
@@ -510,16 +521,13 @@ class FailoverMemcachedWrapper(object):
 
     def resurrect_server(self, jesus):
 
+        self.print_and_reset_ops()
+
         assert self.down[jesus]
         print "Resurrecting %s..." % jesus
         self.server[jesus].start()
         self.mc[jesus] = self.mc_maker[jesus]()
         self.down[jesus] = False
-
-        if jesus == "master":
-            # This is a hack since the master will respond to queries immediately, before the slave
-            # even realizes it's up.
-            time.sleep(10)
 
 def connect_to_port(opts, port):
     if opts["mclib"] == "pylibmc":

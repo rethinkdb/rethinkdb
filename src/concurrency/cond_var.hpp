@@ -187,6 +187,26 @@ private:
     }
 };
 
+/* multicond_link_t connects one multicond_t to another multicond_t such that if the first
+one is pulsed, the second one will be pulsed as well. */
+
+struct multicond_link_t : private multicond_t::waiter_t {
+    multicond_link_t(multicond_t *s, multicond_t *d) : source(s) {
+        dest.watch(d);
+        source->add_waiter(this);
+    }
+    ~multicond_link_t() {
+        if (source) source->remove_waiter(this);
+    }
+private:
+    multicond_t *source;
+    void on_multicond_pulsed() {
+        source = NULL;   // So we don't do an extra remove_waiter() in our destructor
+        dest.pulse_if_non_null();
+    }
+    multicond_weak_ptr_t dest;
+};
+
 // A threadsafe_cond_t is a thread-safe condition variable. It's like
 // cond_t except it can be used with multiple coroutines on different
 // threads.

@@ -110,7 +110,6 @@ void run(slave_t *slave) {
             // No exception was thrown; it must have worked.
             slave->timeout_ = INITIAL_TIMEOUT;
             slave->give_up_.on_reconnect();
-            first_connect = false;
             slave->failover.on_resume();
             logINF("Connected as slave to: %s:%d\n", slave->replication_config_.hostname, slave->replication_config_.port);
 
@@ -122,12 +121,14 @@ void run(slave_t *slave) {
             repli_timestamp last_sync = slave->internal_store_->get_last_sync();
             debugf("Last sync: %d\n", last_sync.time);
 
-            slave->failover.on_reverse_backfill_begin();
-            // We use last_sync.next() so that we don't send any of the master's own changes back
-            // to it. This makes sense in conjunction with incrementing the replication clock when
-            // we lose contact with the master.
-            stream_mgr.reverse_side_backfill(last_sync.next());
-            slave->failover.on_reverse_backfill_end();
+            if (!first_connect) {
+                slave->failover.on_reverse_backfill_begin();
+                // We use last_sync.next() so that we don't send any of the master's own changes back
+                // to it. This makes sense in conjunction with incrementing the replication clock when
+                // we lose contact with the master.
+                stream_mgr.reverse_side_backfill(last_sync.next());
+                slave->failover.on_reverse_backfill_end();
+            }
 
             slave->failover.on_backfill_begin();
             stream_mgr.backfill(last_sync);
@@ -148,6 +149,8 @@ void run(slave_t *slave) {
             slave->internal_store_->set_replication_clock(rc.next());
 
             slave->failover.on_failure();
+
+            first_connect = false;
 
         } catch (tcp_conn_t::connect_failed_exc_t& e) {
             //Presumably if the master doesn't even accept an initial

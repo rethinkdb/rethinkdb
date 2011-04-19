@@ -1,6 +1,7 @@
-import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, datetime, shutil
+import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, shutil
 import socket
 from vcoptparse import *
+from datetime import datetime
 
 reports = []
 
@@ -291,7 +292,7 @@ def do_test(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
     reports.append((command, results))
 
 retest_output_dir = os.path.expanduser("~/retest_output")
-retest_output_dir_subdir_lifetime = 60 * 60 * 24   # Output expires after 24 hours
+retest_output_dir_subdir_lifetime = 28 * 60 * 60 * 24   # Output expires after 28 days
 
 def process_output_file(path):
     """Examine the file and return:
@@ -378,6 +379,9 @@ def process_output_dir(result):
     process_output_file.
     """
     
+    global retest_output_dir
+    global retest_output_dir_subdir_lifetime
+
     # Create retest_output_dir if necessary
     if not os.path.isdir(retest_output_dir):
         os.mkdir(retest_output_dir)
@@ -389,6 +393,12 @@ def process_output_dir(result):
         if time.time() - mod_time > retest_output_dir_subdir_lifetime:
             shutil.rmtree(old_dir)
     
+    # Create a subdirectory for the current date/time
+    formatted_datetime = datetime.now().strftime('%F %a %R')
+    retest_output_dir = os.path.join(retest_output_dir, formatted_datetime)
+    if not os.path.isdir(retest_output_dir):
+        os.mkdir(retest_output_dir)
+
     # Pick a name for our newest addition to retest_output_dir and copy the directory there
     i = 1
     while os.path.exists(os.path.join(retest_output_dir, str(i))): i += 1
@@ -668,7 +678,7 @@ def send_email(opts, message, recipient):
 
     print "Email message sent."
 
-global_start_time = datetime.datetime.now()
+global_start_time = datetime.now()
 
 def send_results_by_email(opts, tests, recipient, message):
     global global_start_time
@@ -695,7 +705,7 @@ def send_results_by_email(opts, tests, recipient, message):
     message = email.mime.text.MIMEText(output, mime_type)
     running_user = os.getenv("USER", "N/A")
     start_time = global_start_time
-    end_time = datetime.datetime.now()
+    end_time = datetime.now()
     if os.getenv("USE_CLOUD", "false") == "false":
         cloud_flag_str = ""
     else:
