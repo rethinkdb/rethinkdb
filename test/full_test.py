@@ -582,6 +582,19 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "diff-log-size" : 0,
                     "fsck"        : False},
                   repeat=1, timeout=300 * ec2)
+    do_test_cloud("integration/failover_script.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : 1,
+                    "slices"      : 1,
+                    "duration"    : 180,
+                    "diff-log-size" : 0,
+                    "fsck"        : False,
+                    "failover-script" : "assets/failover_script_test.py"
+                    },
+                  repeat=1, timeout=300 * ec2)
                   
     
                 

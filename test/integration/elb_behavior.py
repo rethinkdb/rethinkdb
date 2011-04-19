@@ -2,7 +2,6 @@
 import random, time, sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
-elb_ports = (find_unused_port(), find_unused_port())
 
 def test_connection(port, host = 'localhost'):
     s = socket.socket()
