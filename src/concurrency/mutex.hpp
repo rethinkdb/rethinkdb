@@ -47,6 +47,10 @@ public:
         rassert(!locked);
         locked = true;
     }
+
+    bool is_locked() {
+        return locked;
+    }
 };
 
 void co_lock_mutex(mutex_t *mutex);

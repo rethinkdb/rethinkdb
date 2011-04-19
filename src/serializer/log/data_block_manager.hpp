@@ -11,6 +11,7 @@
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
 #include "containers/bitset.hpp"
+#include "concurrency/mutex.hpp"
 #include "extents/extent_manager.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/types.hpp"
@@ -36,7 +37,8 @@ struct data_block_manager_gc_write_callback_t {
 };
 
 class data_block_manager_t :
-    public data_block_manager_gc_write_callback_t
+    public data_block_manager_gc_write_callback_t,
+    public lock_available_callback_t
 {
 
     friend class dbm_read_ahead_fsm_t;
@@ -310,10 +312,14 @@ private:
 
     void on_gc_write_done();
 
+    void on_lock_available();
+
     enum gc_step {
         gc_reconstruct, /* reconstructing on startup */
         gc_ready, /* ready to start */
-        gc_read,  /* waiting for reads, sending out writes */
+        gc_ready_lock_available, /* ready to start, got main_mutex */
+        gc_read,  /* waiting for reads, acquiring main_mutex */
+        gc_read_lock_available,  /* waiting for reads, sending out writes */
         gc_write, /* waiting for writes */
     };
 
