@@ -2,30 +2,30 @@
 from cloud_retester import do_test, do_test_cloud, report_cloud, setup_testing_nodes, terminate_testing_nodes
 
 # Clean the repo
-#do_test("cd ../src/; make clean")
+do_test("cd ../src/; make clean")
 
 # Make every target first, as some tests depend on multiple targets
-#for mode in ["debug", "release"]:
-#    # Build our targets
-#    do_test("cd ../src/; nice make -j",
-#            { "DEBUG"            : 1 if mode    == "debug"    else 0,
-#              "UNIT_TESTS" : 1 },
-#            cmd_format="make", timeout=180)
-#
-#for special in ["NO_EPOLL", "MOCK_IO_LAYER", "MOCK_CACHE_CHECK", "VALGRIND"]:
-#    do_test("cd ../src/; nice make -j",
-#            { "DEBUG" : 1,
-#              special : 1,
-#              "UNIT_TESTS" : 1 },
-#            cmd_format="make", timeout=180)
-#
-## Make sure auxillary tools compile
-#do_test("cd ../bench/stress-client/; make clean; make stress libstress.so",
-#        {},
-#        cmd_format="make")
-#do_test("cd ../bench/serializer-bench/; make clean; make",
-#        {},
-#        cmd_format="make")
+for mode in ["debug", "release"]:
+    # Build our targets
+    do_test("cd ../src/; nice make -j",
+            { "DEBUG"            : 1 if mode    == "debug"    else 0,
+              "UNIT_TESTS" : 1 },
+            cmd_format="make", timeout=180)
+
+for special in ["NO_EPOLL", "MOCK_IO_LAYER", "MOCK_CACHE_CHECK", "VALGRIND"]:
+    do_test("cd ../src/; nice make -j",
+            { "DEBUG" : 1,
+              special : 1,
+              "UNIT_TESTS" : 1 },
+            cmd_format="make", timeout=180)
+
+# Make sure auxillary tools compile
+do_test("cd ../bench/stress-client/; make clean; make stress libstress.so",
+        {},
+        cmd_format="make")
+do_test("cd ../bench/serializer-bench/; make clean; make",
+        {},
+        cmd_format="make")
 
 # For safety: ensure that nodes are terminated in case of exceptions
 try:
@@ -35,65 +35,65 @@ try:
     # Do quick smoke tests in some environments
     for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
 
-#        do_test("../build/%s-%s/rethinkdb-unittest" % (mode, checker))
-#
-#        # VERY basic tests
-#        do_test_cloud("integration/append_prepend.py",
-#                { "auto"        : True,
-#                  "mode"        : mode,
-#                  "no-valgrind" : not checker,
-#                  "protocol"    : protocol })
-#
-#        do_test_cloud("integration/unappend_unprepend.py",
-#                { "auto"        : True,
-#                  "mode"        : mode,
-#                  "no-valgrind" : not checker,
-#                  "protocol"    : protocol })
-#        
-#        do_test_cloud("integration/cas.py",
-#                { "auto"        : True,
-#                  "mode"        : mode,
-#                  "no-valgrind" : not checker,
-#                  "protocol"    : protocol })
-#        
-#        do_test_cloud("integration/flags.py",
-#                { "auto"        : True,
-#                  "mode"        : mode,
-#                  "no-valgrind" : not checker,
-#                  "protocol"    : protocol })
-#        
-#        do_test_cloud("integration/incr_decr.py",
-#                { "auto"        : True,
-#                  "mode"        : mode,
-#                  "no-valgrind" : not checker,
-#                  "protocol"    : protocol })
-#        
-#        do_test_cloud("integration/expiration.py",
-#                { "auto"        : True,
-#                  "mode"        : mode,
-#                  "no-valgrind" : not checker,
-#                  "protocol"    : protocol })
-#        
-#        do_test_cloud("integration/big_values.py",
-#                { "auto"        : True,
-#                  "mode"        : mode,
-#                  "no-valgrind" : not checker,
-#                  "protocol"    : protocol }, timeout=180)
-#
-#        do_test_cloud("integration/extraction.py",
-#                      { "auto"        : True,
-#                        "mode"        : mode,
-#                        "no-valgrind" : not checker,
-#                        "protocol"    : protocol })
-#
-#        do_test_cloud("integration/serial_mix.py",
-#                { "auto"        : True,
-#                  "mode"        : mode,
-#                  "no-valgrind" : not checker,
-#                  "protocol"    : protocol,
-#                  "duration"    : 10,
-#                  "fsck"        : True},
-#                repeat=1, timeout=90)
+        do_test("../build/%s-%s/rethinkdb-unittest" % (mode, checker))
+
+        # VERY basic tests
+        do_test_cloud("integration/append_prepend.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol })
+
+        do_test_cloud("integration/unappend_unprepend.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol })
+        
+        do_test_cloud("integration/cas.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol })
+        
+        do_test_cloud("integration/flags.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol })
+        
+        do_test_cloud("integration/incr_decr.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol })
+        
+        do_test_cloud("integration/expiration.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol })
+        
+        do_test_cloud("integration/big_values.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol }, timeout=180)
+
+        do_test_cloud("integration/extraction.py",
+                      { "auto"        : True,
+                        "mode"        : mode,
+                        "no-valgrind" : not checker,
+                        "protocol"    : protocol })
+
+        do_test_cloud("integration/serial_mix.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol,
+                  "duration"    : 10,
+                  "fsck"        : True},
+                repeat=1, timeout=90)
         
         do_test_cloud("integration/rget.py",
                 { "auto"        : True,
@@ -102,58 +102,58 @@ try:
                   "protocol"    : protocol }, timeout=45)
         
         # More advanced tests in various cores/slices configuration
-#        for (cores, slices) in [(1, 1)]:
-#            do_test_cloud("integration/many_keys.py",
-#                    { "auto"        : True,
-#                      "mode"        : mode,
-#                      "no-valgrind" : not checker,
-#                      "protocol"    : protocol,
-#                      "cores"       : cores,
-#                      "slices"      : slices,
-#                      "num-keys"    : 500 })
-#
-#            do_test_cloud("integration/serial_mix.py",
-#                    { "auto"        : True,
-#                      "mode"        : mode,
-#                      "no-valgrind" : not checker,
-#                      "protocol"    : protocol,
-#                      "cores"       : cores,
-#                      "slices"      : slices,
-#                      "duration"    : 10 },
-#                    repeat=2, timeout=65)
-#        
-#            do_test_cloud("integration/serial_mix.py",
-#                    { "auto"        : True,
-#                      "mode"        : mode,
-#                      "no-valgrind" : not checker,
-#                      "protocol"    : protocol,
-#                      "cores"       : cores,
-#                      "slices"      : slices,
-#                      "duration"    : 10,
-#                      "restart-server-prob" : "0.0005" },
-#                    repeat=2, timeout=65)
-#        
-#            do_test_cloud("integration/multi_serial_mix.py",
-#                    { "auto"        : True,
-#                      "mode"        : mode,
-#                      "no-valgrind" : not checker,
-#                      "protocol"    : protocol,
-#                      "cores"       : cores,
-#                      "slices"      : slices,
-#                      "duration"    : 10 },
-#                    repeat=2, timeout=65)
-#            
-#            do_test_cloud("integration/multi_serial_mix.py",
-#                    { "auto"        : True,
-#                      "mode"        : mode,
-#                      "no-valgrind" : not checker,
-#                      "protocol"    : protocol,
-#                      "cores"       : cores,
-#                      "slices"      : slices,
-#                      "memory"      : 7,
-#                      "diff-log-size" : 2,
-#                      "duration"    : 10 },
-#                    repeat=2, timeout=65)
+        for (cores, slices) in [(1, 1)]:
+            do_test_cloud("integration/many_keys.py",
+                    { "auto"        : True,
+                      "mode"        : mode,
+                      "no-valgrind" : not checker,
+                      "protocol"    : protocol,
+                      "cores"       : cores,
+                      "slices"      : slices,
+                      "num-keys"    : 500 })
+
+            do_test_cloud("integration/serial_mix.py",
+                    { "auto"        : True,
+                      "mode"        : mode,
+                      "no-valgrind" : not checker,
+                      "protocol"    : protocol,
+                      "cores"       : cores,
+                      "slices"      : slices,
+                      "duration"    : 10 },
+                    repeat=2, timeout=65)
+        
+            do_test_cloud("integration/serial_mix.py",
+                    { "auto"        : True,
+                      "mode"        : mode,
+                      "no-valgrind" : not checker,
+                      "protocol"    : protocol,
+                      "cores"       : cores,
+                      "slices"      : slices,
+                      "duration"    : 10,
+                      "restart-server-prob" : "0.0005" },
+                    repeat=2, timeout=65)
+        
+            do_test_cloud("integration/multi_serial_mix.py",
+                    { "auto"        : True,
+                      "mode"        : mode,
+                      "no-valgrind" : not checker,
+                      "protocol"    : protocol,
+                      "cores"       : cores,
+                      "slices"      : slices,
+                      "duration"    : 10 },
+                    repeat=2, timeout=65)
+            
+            do_test_cloud("integration/multi_serial_mix.py",
+                    { "auto"        : True,
+                      "mode"        : mode,
+                      "no-valgrind" : not checker,
+                      "protocol"    : protocol,
+                      "cores"       : cores,
+                      "slices"      : slices,
+                      "memory"      : 7,
+                      "diff-log-size" : 2,
+                      "duration"    : 10 },
+                    repeat=2, timeout=65)
         
     # Report the results
     report_cloud()
