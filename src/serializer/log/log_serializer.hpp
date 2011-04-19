@@ -102,13 +102,17 @@ public:
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
     bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
     ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf);
-    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL);
+    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) {
+        return do_write(writes, num_writes, callback, tid_callback, false);
+    }
     block_size_t get_block_size();
     ser_block_id_t max_block_id();
     bool block_in_use(ser_block_id_t id);
     repli_timestamp get_recency(ser_block_id_t id);
 
 private:
+    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback, bool main_mutex_has_been_acquired);
+
     std::vector<read_ahead_callback_t*> read_ahead_callbacks;
     bool offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool should_perform_read_ahead();

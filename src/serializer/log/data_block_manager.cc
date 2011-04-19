@@ -1,6 +1,7 @@
 #include "data_block_manager.hpp"
 #include "log_serializer.hpp"
 #include "utils.hpp"
+#include "concurrency/mutex.hpp"
 #include "arch/arch.hpp"
 
 /* TODO: Right now we perform garbage collection via the do_write() interface on the
@@ -291,7 +292,18 @@ void data_block_manager_t::on_gc_write_done() {
     run_gc();
 }
 
+void data_block_manager_t::on_lock_available() {
+    if (gc_state.step() == gc_ready) {
+        gc_state.set_step(gc_ready_lock_available);
+    } else {
+        rassert(gc_state.step() == gc_read);
+        gc_state.set_step(gc_read_lock_available);
+    }
+    run_gc();
+}
+
 void data_block_manager_t::run_gc() {
+    // TODO: Convert this to a coroutine!
     bool run_again = true;
     while (run_again) {
         run_again = false;
@@ -311,6 +323,12 @@ void data_block_manager_t::run_gc() {
                 gc_stats.old_total_blocks -= static_config->blocks_per_extent();
 
                 /* read all the live data into buffers */
+
+                serializer->main_mutex.lock(this);
+                break;
+
+            case gc_ready_lock_available:
+                serializer->main_mutex.unlock();
 
                 /* make sure the read callback knows who we are */
                 gc_state.gc_read_callback.parent = this;
@@ -341,7 +359,12 @@ void data_block_manager_t::run_gc() {
                     gc_state.set_step(gc_ready);
                     break;
                 }
-                
+
+                serializer->main_mutex.lock(this); // The mutex gets released in write_gcs!
+                break;
+            }
+            
+            case gc_read_lock_available: {
                 /* an array to put our writes in */
 #ifndef NDEBUG
                 int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();

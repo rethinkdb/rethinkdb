@@ -270,7 +270,6 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
                     // as transaction IDs are disjoint across slices (this relies on the current implementation
                     // details of the cache and serializer though)
                     for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
-                        //fprintf(stdout, "Checking patch with TID %d against TID %d...\n", (int)(*patch)->get_transaction_id(), (int)b.buf_data().transaction_id);
                         if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
                             (*patch)->apply_to_buf((char*)b.buf);
                         }
