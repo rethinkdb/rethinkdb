@@ -69,6 +69,7 @@ def check_results(res, expected_count):
         raise ValueError("received unsorted rget output")
 
 def test_function(opts, port, test_dir):
+    assert false
     foo_count = 100
     fop_count = 1000
     max_results = foo_count+fop_count

@@ -292,7 +292,7 @@ def do_test(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
     reports.append((command, results))
 
 retest_output_dir = os.path.expanduser("~/retest_output")
-retest_output_dir_subdir_lifetime = 28 * 60 * 60 * 24   # Output expires after 14 days
+retest_output_dir_subdir_lifetime = 28 * 60 * 60 * 24   # Output expires after 28 days
 
 def process_output_file(path):
     """Examine the file and return:
