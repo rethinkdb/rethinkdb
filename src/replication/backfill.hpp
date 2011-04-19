@@ -7,12 +7,7 @@ namespace replication {
 
 struct backfill_and_realtime_streaming_callback_t {
 
-    // Either every slice sends deletions, or no slice sends
-    // deletions.  This returns true if every slice can send deletions
-    // (and tells the caller that he should send deletions).  Returns
-    // false if the caller should not bother.
-    virtual bool backfill_deletions_needed(bool this_slice_can_send_deletions) = 0;
-
+    virtual void backfill_delete_everything() = 0;
     virtual void backfill_deletion(store_key_t key) = 0;
     virtual void backfill_set(backfill_atom_t atom) = 0;
 
