@@ -32,9 +32,16 @@ slave_stream_manager_t::~slave_stream_manager_t() {
 }
 
 void slave_stream_manager_t::backfill(repli_timestamp since_when) {
+
+    multicond_t c;
+
     net_backfill_t bf;
     bf.timestamp = since_when;
     if (stream_) stream_->send(&bf);
+
+    backfill_done_cond_.watch(&c);   // Stop when the backfill finishes
+    multicond_link_t abort_if_connection_closed(&shutdown_cond_, &c);   // Stop if the connection is closed
+    c.wait();
 }
 
 void slave_stream_manager_t::reverse_side_backfill(repli_timestamp since_when) {

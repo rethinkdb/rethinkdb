@@ -28,6 +28,8 @@ struct slave_stream_manager_t :
 
     ~slave_stream_manager_t();
 
+    /* backfill() returns when the backfill is over, but continues streaming realtime updates even
+    after it has returned */
     void backfill(repli_timestamp since_when);
 
     // Called by run() after the slave_stream_manager_t is created. Fold into constructor?
@@ -36,9 +38,18 @@ struct slave_stream_manager_t :
     /* message_callback_t interface */
     // These call .swap on their parameter, taking ownership of the pointee.
     void hello(net_hello_t message);
+
     void send(scoped_malloc<net_backfill_t>& message);
     void send(UNUSED scoped_malloc<net_announce_t>& message) { crash("announce is obsolete"); }
     void send(scoped_malloc<net_ack_t>& message);
+
+    // Overrides backfill_receiver_t::send(scoped_malloc<net_backfill_complete_t>&)
+    void send(scoped_malloc<net_backfill_complete_t>& message) {
+        backfill_receiver_t::send(message);
+        backfill_done_cond_.pulse_if_non_null();
+    }
+    multicond_weak_ptr_t backfill_done_cond_;
+
     void conn_closed();
 
     // Called when the multicond is pulsed for some other reason
@@ -63,7 +74,7 @@ struct slave_stream_manager_t :
 
     // In our destructor, we block on shutdown_cond_ to make sure that the repli_stream_t
     // has actually completed its shutdown process.
-    cond_t shutdown_cond_;
+    multicond_t shutdown_cond_;
 };
 
 }
