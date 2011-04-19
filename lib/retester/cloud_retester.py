@@ -182,8 +182,18 @@ class TestingNode:
                 return self.get_file(remote_path, destination_path, retry-1)
             else:
                 raise e
-        
-        
+
+    def get_file_gz(self, remote_path, destination_path, retry = 3):
+        f = open(destination_path, "w")
+        result = self.run_command("gzip -c \"%s\"" % remote_path) # TODO: Escape filename
+        if not result[0] == 0:
+            print "gzip returned an error"
+            # TODO: Handle properly
+            return
+        f.write(result[1])
+        f.close()
+
+
     def put_directory(self, local_path, destination_path, retry = 3):
         
         print "Sending directory %r to cloud..." % local_path
@@ -597,7 +607,8 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         
     return (node, test_reference)
 
-
+# TODO: Move budget to configuration file
+gz_budget_left = 512 * 1024 * 1024 # 512 MiB 
 def get_report_for_test(test_reference):
     print "Downloading results for test %s" % test_reference[1]
     
@@ -624,6 +635,7 @@ def get_report_for_test(test_reference):
     result.output_dir = SmartTemporaryDirectory("out_")
     
     def get_directory(remote_path, destination_path):
+        global gz_budget_left
         assert os.path.isdir(destination_path)
         for file in node.list_directory(remote_path):
             max_file_size = 100000
@@ -635,6 +647,10 @@ def get_report_for_test(test_reference):
                 get_directory(r_path, d_path)
             elif file.st_size <= max_file_size:
                 node.get_file(r_path, d_path)
+            elif gz_budget_left > 0:
+                # Retrieve complete gzipped file as long as we have some budget left for this
+                node.get_file_gz(r_path, "%s.gz" % d_path)
+                gz_budget_left -= (os.stat("%s.gz" % d_path))[ST_SIZE]
             else:
                 f = open(d_path, "w")
                 res = node.run_command("head -c %d \"%s\"" % (max_file_size / 2, r_path))
