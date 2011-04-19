@@ -187,7 +187,6 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "memory"      : 1,
-                    "diff-log-size" : 0,
                     "serve-flags" : "--flush-timer 0 --wait-for-flush y",
                     "num-testers" : 128,
                     "duration"    : 420,
