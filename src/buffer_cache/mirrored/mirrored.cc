@@ -301,6 +301,7 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
             case rwi_read_outdated_ok: {
                 ++inner_buf->cow_refcount;
                 data = inner_buf->data;
+                rassert(data != NULL);
                 inner_buf->lock.unlock();
                 break;
             }
@@ -679,6 +680,9 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
         inner_buf = new inner_buf_t(cache, block_id, should_load);
+    } else {
+        rassert(!inner_buf->do_delete);
+        rassert(inner_buf->data != NULL);
     }
 
     // If we are not in a snapshot transaction, then snapshot_version is faux_version_id,
