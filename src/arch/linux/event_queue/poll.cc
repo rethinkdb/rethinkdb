@@ -75,7 +75,9 @@ void poll_event_queue_t::run() {
         // The only likely poll error here is ENOMEM, which we
         // have no way of handling, and it's probably fatal.
         guarantee_err(res != -1, "Waiting for poll events failed");
-        
+
+        block_pm_duration event_loop_timer(&pm_eventloop);
+
         int count = 0;
         for (unsigned int i = 0; i < watched_fds.size(); i++) {
             if(watched_fds[i].revents != 0) {
