@@ -47,9 +47,10 @@ append_prepend_result_t set_store_interface_t::append_prepend(append_prepend_kin
     return boost::get<append_prepend_result_t>(change(mut).result);
 }
 
-delete_result_t set_store_interface_t::delete_key(const store_key_t &key) {
+delete_result_t set_store_interface_t::delete_key(const store_key_t &key, bool dont_put) {
     delete_mutation_t mut;
     mut.key = key;
+    mut.dont_put_in_delete_queue = dont_put;
     return boost::get<delete_result_t>(change(mut).result);
 }
 

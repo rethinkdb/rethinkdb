@@ -175,6 +175,10 @@ enum set_result_t {
 
 struct delete_mutation_t {
     store_key_t key;
+
+    /* This is a hack for replication. If true, the btree will not record the change
+    in the delete queue. */
+    bool dont_put_in_delete_queue;
 };
 
 enum delete_result_t {
@@ -251,7 +255,7 @@ public:
     set_result_t sarc(const store_key_t &key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
     incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
     append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data);
-    delete_result_t delete_key(const store_key_t &key);
+    delete_result_t delete_key(const store_key_t &key, bool dont_store_in_delete_queue=false);
 
     virtual mutation_result_t change(const mutation_t&) = 0;
 

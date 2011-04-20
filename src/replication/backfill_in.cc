@@ -21,6 +21,7 @@ void backfill_storer_t::backfill_deletion(store_key_t key) {
 
     delete_mutation_t mut;
     mut.key = key;
+    mut.dont_put_in_delete_queue = true;
     // NO_CAS_SUPPLIED is not used in any way for deletions, and the
     // timestamp is part of the "->change" interface in a way not
     // relevant to slaves -- it's used when putting deletions into the
