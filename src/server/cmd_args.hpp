@@ -150,7 +150,9 @@ struct failover_config_t {
 
     failover_config_t()
         : active(false), elb_port(-1)
-    {}
+    {
+        *failover_script_path = 0;
+    }
 };
 
 /* All the configuration together */

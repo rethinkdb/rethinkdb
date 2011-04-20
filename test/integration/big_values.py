@@ -75,9 +75,9 @@ def test(opts, port, test_dir):
     # 65536 - 16-bit rollover
     # 73710 - netrecord causes some kind of weird failure at this point sometimes
     # (234 / 4) * 4080 - the biggest large value that uses one level
-    # 1048576 - the maximum legal value size
-
-    sizes = [250, 4079, 4080, 4081, 8160, 8161, (232 / 4) * 4080 - 1, (232 / 4) * 4080, (232 / 4) * 4080 + 1, 1048576, 1048577]
+    # 10 * 1048576 - the maximum legal value size
+    
+    sizes = [250, 4079, 4080, 4081, 8160, 8161, (232 / 4) * 4080 - 1, (232 / 4) * 4080, (232 / 4) * 4080 + 1, 1048576, 10 * 1048577]
 
     s = socket.socket()
     s.connect(("localhost", port))

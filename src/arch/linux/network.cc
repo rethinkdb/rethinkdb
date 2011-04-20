@@ -266,7 +266,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
                 throw write_closed_exc_t();
             }
 
-            /* Go around the loop and try to read again */
+            /* Go around the loop and try to write again */
 
         } else if (res == -1 && (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
                                  errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
@@ -371,7 +371,7 @@ void linux_tcp_conn_t::on_event(int events) {
         has hung up.
         
         Ignore it; the other logic will handle it properly. */
-        
+
     } else if (events & poll_event_err) {
         /* We don't know why we got this, so shut the hell down. */
         logERR("Unexpected poll_event_err. Events: %d\n", events);

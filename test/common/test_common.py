@@ -56,6 +56,7 @@ def make_option_parser():
     o["kill_failover_server_prob"] = FloatFlag("--kill-failover-server-prob", .01)
     o["resurrect_failover_server_prob"] = FloatFlag("--resurrect-failover-server-prob", .01)
     o["elb"] = BoolFlag("--elb")
+    o["failover-script"] = StringFlag("--failover-script", "")
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -682,19 +683,41 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
     
     sys.exit(0)
 
+def start_master_slave_pair(opts, extra_flags, test_dir):
+    repli_port = find_unused_port()
+    if opts["elb"]:
+        elb_ports = (find_unused_port(), find_unused_port())
+
+    m_flags = ["--master", "%d" % repli_port] 
+    if opts["elb"]:
+        m_flags += ["--run-behind-elb", "%d" % elb_ports[0]]
+
+    server = Server(opts, extra_flags=extra_flags + m_flags, name="master", test_dir=test_dir)
+
+    if opts["elb"]:
+        server.elb_port = elb_ports[0]
+    server.start()
+    
+    s_flags = ["--slave-of", "localhost:%d" % repli_port] 
+
+    if opts["elb"]:
+        s_flags += ["--run-behind-elb", "%d" % elb_ports[1]]
+
+    if opts["failover-script"]:
+        s_flags += ["--failover-script", opts["failover-script"]]
+
+    repli_server = Server(opts, extra_flags=extra_flags + s_flags, name="slave", test_dir=test_dir)
+    if opts["elb"]:
+        repli_server.elb_port = elb_ports[1]
+    repli_server.start()
+
+    return (server, repli_server)
+
+
 def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], test_dir=TestDir()):
     try:
         if opts["auto"]:
-            repli_port = find_unused_port()
-            if opts["elb"]:
-                elb_ports = (find_unused_port(), find_unused_port())
-            m_flags = ["--master", "%d" % repli_port] + (["--run-behind-elb", "%d" % elb_ports[0]] if opts["elb"] else [])
-            server = Server(opts, extra_flags=extra_flags + m_flags, name="master", test_dir=test_dir)
-            server.start()
-            
-            s_flags = ["--slave-of", "localhost:%d" % repli_port] + (["--run-behind-elb", "%d" % elb_ports[1]] if opts["elb"] else [])
-            repli_server = Server(opts, extra_flags=extra_flags + s_flags, name="slave", test_dir=test_dir)
-            repli_server.start()
+            (server, repli_server) = start_master_slave_pair(opts, extra_flags, test_dir)
 
             stat_checker = start_stats(opts, server.port)
 
@@ -707,6 +730,7 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
             else:
                 mc.elb_port = None
                 repli_mc.elb_port = None
+
             try:
                 run_with_timeout(test_function, args=(opts,mc,repli_mc), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
             except Exception, e:
@@ -735,17 +759,7 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
 def elb_test_main(test_function, opts, timeout = 30, extra_flags = [], test_dir=TestDir()):
     try:
         if opts["auto"]:
-            repli_port = find_unused_port()
-            elb_ports = (find_unused_port(), find_unused_port())
-            m_flags = ["--master", "%d" % repli_port, "--run-behind-elb", "%d" % elb_ports[0]]
-            server = Server(opts, extra_flags=extra_flags + m_flags, name="master", test_dir=test_dir)
-            server.elb_port = elb_ports[0]
-            server.start()
-            
-            s_flags = ["--slave-of", "localhost:%d" % repli_port, "--run-behind-elb", "%d" % elb_ports[1]]
-            repli_server = Server(opts, extra_flags=extra_flags + s_flags, name="slave", test_dir=test_dir)
-            repli_server.elb_port = elb_ports[1]
-            repli_server.start()
+            (server, repli_server) = start_master_slave_pair(opts, extra_flags, test_dir)
 
             stat_checker = start_stats(opts, server.port)
 

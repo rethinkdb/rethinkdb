@@ -67,7 +67,7 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
             parent->remask();
         }
         void pulse() {
-            rassert(mc);
+            rassert(mc, "%p got a pulse() when event mask is %d", parent, parent->old_mask);
             mc->pulse();   // Calls on_multicond_pulsed()
         }
         void on_multicond_pulsed() {
@@ -92,8 +92,15 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
         dont_destroy_yet = true;
 
         int error_mask = poll_event_err | poll_event_hup | poll_event_rdhup;
+        guarantee((event & (error_mask | old_mask)) == event, "Unexpected event received (from operating system?).");
         if (event & error_mask) {
             error_handler->on_event(event & error_mask);
+
+            /* The error handler might have cancelled some waits, which would
+             cause remask() to be run. To avoid calling waiter_t::pulse() twice,
+             we "&" again with our event mask to cancel any events that we
+             are no longer waiting for. */
+            event &= old_mask;
         }
 
         if (event & poll_event_in) {

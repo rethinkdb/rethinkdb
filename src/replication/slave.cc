@@ -22,6 +22,9 @@ slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t r
       replication_config_(replication_config),
       failover_config_(failover_config)
 {
+    if (strlen(failover_config.failover_script_path) > 0) {
+        failover.add_callback(&failover_script_);
+    }
     coro_t::spawn(boost::bind(&run, this));
 }
 
