@@ -62,6 +62,17 @@
 // 6L. Large values all pending or better, so we can release ownership
 // of the block.  We stop here.
 
+class backfill_state_t;
+
+struct btree_traversal_helper_t {
+    virtual void process_a_pair(backfill_state_t *state, const btree_leaf_pair *pair, repli_timestamp recency) = 0;
+
+    virtual ~btree_traversal_helper_t() { }
+};
+
+
+btree_traversal_helper_t *HACK_make_backfill_traversal_helper(backfill_callback_t *callback, repli_timestamp since_when);
+
 struct acquisition_waiter_callback_t {
     virtual void you_may_acquire() = 0;
 protected:
@@ -74,7 +85,7 @@ public:
     backfill_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _since_when, backfill_callback_t *_callback)
         : slice(_slice), since_when(_since_when),
           transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), rwi_read, _since_when)),
-          callback(_callback), shutdown_mode(false) { }
+          helper(HACK_make_backfill_traversal_helper(_callback, _since_when)), shutdown_mode(false) { }
 
     // The slice we're backfilling from.
     btree_slice_t *const slice;
@@ -82,7 +93,7 @@ public:
     repli_timestamp const since_when;
     boost::shared_ptr<transactor_t> transactor_ptr;
     // The callback which receives key/value pairs.
-    backfill_callback_t *const callback;
+    boost::scoped_ptr<btree_traversal_helper_t> helper;
     cond_t finished_cond;
 
     // Should we stop backfilling immediately?
@@ -176,6 +187,35 @@ public:
 private:
     DISABLE_COPYING(backfill_state_t);
 };
+
+struct backfill_traversal_helper_t : public btree_traversal_helper_t {
+    void process_a_pair(backfill_state_t *state, const btree_leaf_pair *pair, repli_timestamp recency) {
+        if (recency.time >= state->since_when.time) {
+            const btree_value *value = pair->value();
+            unique_ptr_t<value_data_provider_t> data_provider(value_data_provider_t::create(value, state->transactor_ptr));
+            backfill_atom_t atom;
+            atom.key.assign(pair->key.size, pair->key.contents);
+            atom.value = data_provider;
+            atom.flags = value->mcflags();
+            atom.exptime = value->exptime();
+            atom.recency = recency;
+            atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
+            callback_->on_keyvalue(atom);
+        }
+    }
+
+    backfill_callback_t *callback_;
+    repli_timestamp since_when_;
+
+    backfill_traversal_helper_t(backfill_callback_t *callback, repli_timestamp since_when)
+        : callback_(callback), since_when_(since_when) { }
+};
+
+btree_traversal_helper_t *HACK_make_backfill_traversal_helper(backfill_callback_t *callback, repli_timestamp since_when) {
+    return new backfill_traversal_helper_t(callback, since_when);
+}
+
+
 
 struct acquisition_start_callback_t;
 
@@ -390,23 +430,9 @@ void process_a_leaf_node(backfill_state_t *state, buf_t *buf, int level) {
     for (int i = 0; i < npairs; ++i) {
         uint16_t offset = node->pair_offsets[i];
         repli_timestamp recency = leaf::get_timestamp_value(node, offset);
+        const btree_leaf_pair *pair = leaf::get_pair(node, offset);
 
-        if (recency.time >= state->since_when.time) {
-            // The value is sufficiently recent.  But is it a small value or a large value?
-            const btree_leaf_pair *pair = leaf::get_pair(node, offset);
-            const btree_value *value = pair->value();
-            unique_ptr_t<value_data_provider_t> data_provider(value_data_provider_t::create(value, state->transactor_ptr));
-            backfill_atom_t atom;
-            // We'd like to use keycpy but nooo we have store_key_t and btree_key as different types.
-            atom.key.size = pair->key.size;
-            memcpy(atom.key.contents, pair->key.contents, pair->key.size);
-            atom.value = data_provider;
-            atom.flags = value->mcflags();
-            atom.exptime = value->exptime();
-            atom.recency = recency;
-            atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
-            state->callback->on_keyvalue(atom);
-        }
+        state->helper->process_a_pair(state, pair, recency);
     }
 
     buf->release();
