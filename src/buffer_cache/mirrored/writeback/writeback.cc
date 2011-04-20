@@ -363,20 +363,18 @@ struct writeback_t::concurrent_flush_t::buf_writer_t :
         if (continue_on_thread(home_thread, this)) on_thread_switch();
     }
     void on_thread_switch() {
+        parent->outstanding_disk_writes--;
+        parent->possibly_unthrottle_transactions();
         if (!*transaction_ids_have_been_updated) {
             // Writeback might still need the buffer. We wait until we get destructed before releasing it...
             return;
         }
         released_buffer = true;
         buf->release();
-        parent->outstanding_disk_writes--;
-        parent->possibly_unthrottle_transactions();
     }
     ~buf_writer_t() {
         if (!released_buffer) {
             buf->release();
-            parent->outstanding_disk_writes--;
-            parent->possibly_unthrottle_transactions();
         }
     }
 };
