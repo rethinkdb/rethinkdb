@@ -104,6 +104,7 @@ void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, cons
 void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp) {
     delete_mutation_t mut;
     mut.key = key;
+    mut.dont_put_in_delete_queue = true;
     // TODO: where does "timestamp" go???  IS THIS RIGHT?? WHO KNOWS.
     internal_store_.handover(new mutation_t(mut), castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, timestamp));
 }
