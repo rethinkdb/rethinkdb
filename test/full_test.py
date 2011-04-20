@@ -189,9 +189,8 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "memory"      : 1,
                     "serve-flags" : "--flush-timer 0 --wait-for-flush y",
                     "num-testers" : 128,
-                    "duration"    : 420,
-                    "sigint-timeout" : sigint_timeout },
-                  repeat=3, timeout = 480 + sigint_timeout)
+                    "duration"    : 420 },
+                  repeat=3, timeout = 480)
     
     # TODO: This should really only be run under one environment...
     do_test_cloud("regression/gc_verification.py",
