@@ -6,6 +6,59 @@
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"
 
+
+// Traversal
+
+// We want a traversal operation to follow a few simple rules.
+//
+// 1. Get as far away from the root as possible.
+//
+// 2. Avoid using more than K + O(1) blocks, for some user-selected
+// constant K.
+//
+// 3. Prefetch efficiently.
+//
+// This code hopefully will be nice to genericize; you could
+// reimplement rget if you genericized this.
+
+// The Lifecyle of a block_id_t
+//
+// Every time we deal with a block_id_t, it goes through these states...
+//
+// 1. Knowledge of the block_id_t.  This is where we know about the
+// block_id_t, and haven't done anything about it yet.
+//
+// 2. Acquiring its subtree_recency value from the serializer.  The
+// block_id_t is grouped with a bunch of others in an array, and we've
+// sent a request to the serializer to respond with all these
+// subtree_recency values (and the original array).
+//
+// 3. Acquired the subtree_recency value.  The block_id_t's
+// subtree_recency is known, but we still have not attempted to
+// acquire the block.  (If the recency is insufficiently recent, we
+// stop here.)
+//
+// 4. Block acquisition pending.  We have sent a request to acquire
+// the block.  It has not yet successfully completed.
+//
+// 5I. Block acquisition complete, it's an internal node, partly
+// processed children.  We hold the lock on the block, and the
+// children blocks are currently being processed and have not reached
+// stage 4.
+//
+// 6I. Live children all reached stage 4.  We can now release ownership
+// of the block.  We stop here.
+//
+// 5L. Block acquisition complete, it's a leaf node, we may have to
+// handle large values.
+//
+// 6L. Large values all pending or better, so we can release ownership
+// of the block.  We stop here.
+//
+// (6L might not be implemented, or 5L and 6L might depend on whether
+// the btree_traversal_helper_t implementation is interested in
+// values.)
+
 struct parent_releaser_t;
 
 struct acquisition_waiter_callback_t {
