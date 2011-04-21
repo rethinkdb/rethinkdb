@@ -696,8 +696,8 @@ def start_master_slave_pair(opts, extra_flags, test_dir):
 
     if opts["elb"]:
         server.elb_port = elb_ports[0]
-    server.start()
-    
+    server.start(False)
+
     s_flags = ["--slave-of", "localhost:%d" % repli_port] 
 
     if opts["elb"]:
