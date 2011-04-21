@@ -114,7 +114,7 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t b
     if (typename inner_cache_t::buf_t *inner_buf = inner_transaction->acquire(block_id, mode, buf, should_load)) {
         buf->inner_buf = inner_buf;
         rassert(block_id == buf->get_block_id());
-        if (!snapshotted) {
+        if (!snapshotted && should_load) {
             if (cache->crc_map.get(block_id)) {
                 rassert(buf->compute_crc() == cache->crc_map.get(block_id));
             } else {
