@@ -65,7 +65,11 @@
 class backfill_state_t;
 
 struct btree_traversal_helper_t {
-    virtual void process_a_pair(backfill_state_t *state, const btree_leaf_pair *pair, repli_timestamp recency) = 0;
+    // This is free to call mark_deleted.
+    virtual void process_a_leaf(backfill_state_t *state, buf_t *leaf_node_buf) = 0;
+
+    virtual void postprocess_internal_node(buf_t *internal_node_buf) = 0;
+    virtual void postprocess_btree_superblock(buf_t *superblock_buf) = 0;
 
     virtual ~btree_traversal_helper_t() { }
 };
@@ -189,19 +193,38 @@ private:
 };
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t {
-    void process_a_pair(backfill_state_t *state, const btree_leaf_pair *pair, repli_timestamp recency) {
-        if (recency.time >= state->since_when.time) {
-            const btree_value *value = pair->value();
-            unique_ptr_t<value_data_provider_t> data_provider(value_data_provider_t::create(value, state->transactor_ptr));
-            backfill_atom_t atom;
-            atom.key.assign(pair->key.size, pair->key.contents);
-            atom.value = data_provider;
-            atom.flags = value->mcflags();
-            atom.exptime = value->exptime();
-            atom.recency = recency;
-            atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
-            callback_->on_keyvalue(atom);
+    void process_a_leaf(backfill_state_t *state, buf_t *leaf_node_buf) {
+        const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
+
+        // Remember, we only want to process recent keys.
+
+        int npairs = data->npairs;
+
+        for (int i = 0; i < npairs; ++i) {
+            uint16_t offset = data->pair_offsets[i];
+            repli_timestamp recency = leaf::get_timestamp_value(data, offset);
+            const btree_leaf_pair *pair = leaf::get_pair(data, offset);
+
+            if (recency.time >= state->since_when.time) {
+                const btree_value *value = pair->value();
+                unique_ptr_t<value_data_provider_t> data_provider(value_data_provider_t::create(value, state->transactor_ptr));
+                backfill_atom_t atom;
+                atom.key.assign(pair->key.size, pair->key.contents);
+                atom.value = data_provider;
+                atom.flags = value->mcflags();
+                atom.exptime = value->exptime();
+                atom.recency = recency;
+                atom.cas_or_zero = value->has_cas() ? value->cas() : 0;
+                callback_->on_keyvalue(atom);
+            }
         }
+    }
+
+    void postprocess_internal_node(UNUSED buf_t *internal_node_buf) {
+        // do nothing
+    }
+    void postprocess_btree_superblock(UNUSED buf_t *superblock_buf) {
+        // do nothing
     }
 
     backfill_callback_t *callback_;
@@ -217,9 +240,10 @@ btree_traversal_helper_t *HACK_make_backfill_traversal_helper(backfill_callback_
 
 
 
+struct parent_releaser_t;
 struct acquisition_start_callback_t;
 
-void subtrees_backfill(backfill_state_t *state, buf_t *parent, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids);
+void subtrees_backfill(backfill_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids);
 void do_a_subtree_backfill(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb);
 void process_a_leaf_node(backfill_state_t *state, buf_t *buf, int level);
 void process_a_internal_node(backfill_state_t *state, buf_t *buf, int level);
@@ -283,6 +307,33 @@ void acquire_a_node(backfill_state_t *state, int level, block_id_t block_id, acq
 }
 
 
+struct parent_releaser_t {
+    virtual void release() = 0;
+protected:
+    ~parent_releaser_t() { }
+};
+
+struct superblock_releaser_t : public parent_releaser_t {
+    buf_t *buf_;
+    backfill_state_t *state_;
+    virtual void release() {
+        state_->helper->postprocess_btree_superblock(buf_);
+        buf_->release();
+        delete this;
+    }
+    superblock_releaser_t(buf_t *buf, backfill_state_t *state) : buf_(buf), state_(state) { }
+};
+
+struct internal_node_releaser_t : public parent_releaser_t {
+    buf_t *buf_;
+    backfill_state_t *state_;
+    virtual void release() {
+        state_->helper->postprocess_internal_node(buf_);
+        buf_->release();
+        delete this;
+    }
+    internal_node_releaser_t(buf_t *buf, backfill_state_t *state) : buf_(buf), state_(state) { }
+};
 
 void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
     thread_saver_t saver;
@@ -310,7 +361,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
         roots[0] = root_id;
         state.level_count(0) += 1;
         state.acquisition_waiter_stacks.resize(1);
-        subtrees_backfill(&state, superblock_buf.give_up_ownership(), 1, roots, 1);
+        subtrees_backfill(&state, new superblock_releaser_t(superblock_buf.give_up_ownership(), &state), 1, roots, 1);
         state.wait();
         callback->done();
     }
@@ -318,7 +369,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
 
 struct subtrees_backfill_fsm_t : public get_subtree_recencies_callback_t, public acquisition_start_callback_t {
     backfill_state_t *state;
-    buf_t *parent;
+    parent_releaser_t *releaser;
     int level;
     boost::scoped_array<block_id_t> block_ids;
     int num_block_ids;
@@ -354,7 +405,7 @@ struct subtrees_backfill_fsm_t : public get_subtree_recencies_callback_t, public
         rassert(acquisition_countdown > 0);
         -- acquisition_countdown;
         if (acquisition_countdown == 0) {
-            parent->release();
+            releaser->release();
             state->level_count(level - 1) -= 1;
             state->consider_pulsing();
             delete this;
@@ -362,11 +413,11 @@ struct subtrees_backfill_fsm_t : public get_subtree_recencies_callback_t, public
     }
 };
 
-void subtrees_backfill(backfill_state_t *state, buf_t *parent, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids) {
+void subtrees_backfill(backfill_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids) {
     rassert(coro_t::self());
     subtrees_backfill_fsm_t *fsm = new subtrees_backfill_fsm_t;
     fsm->state = state;
-    fsm->parent = parent;
+    fsm->releaser = releaser;
     fsm->level = level;
     fsm->block_ids.swap(param_block_ids);
     fsm->num_block_ids = num_block_ids;
@@ -414,27 +465,13 @@ void process_a_internal_node(backfill_state_t *state, buf_t *buf, int level) {
     size_t num_children;
     internal_node::get_children_ids(node, children, &num_children);
 
-    subtrees_backfill(state, buf, level + 1, children, num_children);
+    subtrees_backfill(state, new internal_node_releaser_t(buf, state), level + 1, children, num_children);
 }
 
 // This releases its buf_t parameter.
 void process_a_leaf_node(backfill_state_t *state, buf_t *buf, int level) {
     // This can be run in the scheduler thread.
-
-    const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(buf->get_data_read());
-
-    // Remember, we only want to process recent keys.
-
-    int npairs = node->npairs;
-
-    for (int i = 0; i < npairs; ++i) {
-        uint16_t offset = node->pair_offsets[i];
-        repli_timestamp recency = leaf::get_timestamp_value(node, offset);
-        const btree_leaf_pair *pair = leaf::get_pair(node, offset);
-
-        state->helper->process_a_pair(state, pair, recency);
-    }
-
+    state->helper->process_a_leaf(state, buf);
     buf->release();
     state->level_count(level) -= 1;
     state->consider_pulsing();
