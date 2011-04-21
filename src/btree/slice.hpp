@@ -52,7 +52,7 @@ public:
 
     /* btree_slice_t interface */
 
-    void delete_all_keys();
+    void delete_all_keys_for_backfill();
 
     void backfill(repli_timestamp since_when, backfill_callback_t *callback);
 

@@ -120,10 +120,10 @@ mutation_result_t btree_slice_t::change(const mutation_t &mref, castime_t castim
     return boost::apply_visitor(functor, m.mutation);
 }
 
-void btree_slice_t::delete_all_keys() {
+void btree_slice_t::delete_all_keys_for_backfill() {
     on_thread_t th(home_thread);
 
-    btree_delete_all_keys(this);
+    btree_delete_all_keys_for_backfill(this);
 }
 
 void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {

@@ -3,7 +3,7 @@
 
 class btree_slice_t;
 
-void btree_delete_all_keys(btree_slice_t *slice);
+void btree_delete_all_keys_for_backfill(btree_slice_t *slice);
 
 
 

@@ -62,7 +62,7 @@ public:
 
     /* btree_key_value_store_t interface */
 
-    void delete_all_keys();
+    void delete_all_keys_for_backfill();
 
     // The current value of the "replication clock" is the timestamp that new operations
     // will be assigned. It is persisted to disk. You can read and write it with

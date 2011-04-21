@@ -311,8 +311,8 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t
 
 /* btree_key_value_store_t interface */
 
-void btree_key_value_store_t::delete_all_keys() {
+void btree_key_value_store_t::delete_all_keys_for_backfill() {
     for (int i = 0; i < btree_static_config.n_slices; ++i) {
-        btrees[i]->delete_all_keys();
+        btrees[i]->delete_all_keys_for_backfill();
     }
 }
