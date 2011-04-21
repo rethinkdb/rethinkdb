@@ -9,7 +9,7 @@
 
 class transactor_t;
 struct btree_superblock_t;
-class backfill_state_t;
+class traversal_state_t;
 class parent_releaser_t;
 class btree_slice_t;
 
@@ -29,7 +29,7 @@ public:
     void decr_acquisition_countdown();
 
     // private
-    backfill_state_t *state;
+    traversal_state_t *state;
     parent_releaser_t *releaser;
     int level;
     int acquisition_countdown;

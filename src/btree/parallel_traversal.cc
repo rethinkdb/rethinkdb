@@ -16,23 +16,22 @@ protected:
 
 
 
-// TODO: Actually use shutdown_mode.
-class backfill_state_t {
+class traversal_state_t {
 public:
-    backfill_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _transaction_tstamp, btree_traversal_helper_t *_helper)
+    traversal_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _transaction_tstamp, btree_traversal_helper_t *_helper)
         : slice(_slice),
           transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), helper->transaction_mode(), _transaction_tstamp)),
-          helper(_helper), shutdown_mode(false) { }
+          helper(_helper) { }
 
-    // The slice we're backfilling from.
+    // The slice whose btree we're traversing
     btree_slice_t *const slice;
-    boost::shared_ptr<transactor_t> transactor_ptr;
-    // The callback which receives key/value pairs.
-    boost::scoped_ptr<btree_traversal_helper_t> helper;
-    cond_t finished_cond;
 
-    // Should we stop backfilling immediately?
-    bool shutdown_mode;
+    boost::shared_ptr<transactor_t> transactor_ptr;
+
+    // The helper.
+    boost::scoped_ptr<btree_traversal_helper_t> helper;
+
+    cond_t finished_cond;
 
     // The number of pending + acquired blocks, by level.
     std::vector<int64_t> level_counts;
@@ -120,13 +119,13 @@ public:
     }
 
 private:
-    DISABLE_COPYING(backfill_state_t);
+    DISABLE_COPYING(traversal_state_t);
 };
 
-void subtrees_backfill(backfill_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids);
-void do_a_subtree_backfill(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb);
-void process_a_leaf_node(backfill_state_t *state, buf_t *buf, int level);
-void process_a_internal_node(backfill_state_t *state, buf_t *buf, int level);
+void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids);
+void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb);
+void process_a_leaf_node(traversal_state_t *state, buf_t *buf, int level);
+void process_a_internal_node(traversal_state_t *state, buf_t *buf, int level);
 
 struct node_ready_callback_t {
     virtual void on_node_ready(buf_t *buf) = 0;
@@ -136,7 +135,7 @@ protected:
 
 struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block_available_callback_t {
     // Not much of an fsm.
-    backfill_state_t *state;
+    traversal_state_t *state;
     int level;
     block_id_t block_id;
     acquisition_start_callback_t *acq_start_cb;
@@ -167,7 +166,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block
 };
 
 
-void acquire_a_node(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb, node_ready_callback_t *node_ready_cb) {
+void acquire_a_node(traversal_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb, node_ready_callback_t *node_ready_cb) {
     rassert(coro_t::self());
     acquire_a_node_fsm_t *fsm = new acquire_a_node_fsm_t;
     fsm->state = state;
@@ -188,18 +187,18 @@ protected:
 
 struct internal_node_releaser_t : public parent_releaser_t {
     buf_t *buf_;
-    backfill_state_t *state_;
+    traversal_state_t *state_;
     virtual void release() {
         state_->helper->postprocess_internal_node(buf_);
         buf_->release();
         delete this;
     }
-    internal_node_releaser_t(buf_t *buf, backfill_state_t *state) : buf_(buf), state_(state) { }
+    internal_node_releaser_t(buf_t *buf, traversal_state_t *state) : buf_(buf), state_(state) { }
 };
 
 void btree_parallel_traversal(btree_slice_t *slice, repli_timestamp transaction_tstamp, btree_traversal_helper_t *helper) {
     thread_saver_t saver;
-    backfill_state_t state(saver, slice, transaction_tstamp, helper);
+    traversal_state_t state(saver, slice, transaction_tstamp, helper);
     buf_lock_t superblock_buf(saver, *state.transactor_ptr, SUPERBLOCK_ID, helper->btree_superblock_mode());
 
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
@@ -212,7 +211,7 @@ void btree_parallel_traversal(btree_slice_t *slice, repli_timestamp transaction_
 
     struct : public parent_releaser_t {
         buf_t *buf;
-        backfill_state_t *state;
+        traversal_state_t *state;
         void release() {
             state->helper->postprocess_btree_superblock(buf);
             buf->release();
@@ -229,13 +228,13 @@ void btree_parallel_traversal(btree_slice_t *slice, repli_timestamp transaction_
         roots[0] = root_id;
         state.level_count(0) += 1;
         state.acquisition_waiter_stacks.resize(1);
-        subtrees_backfill(&state, &superblock_releaser, 1, roots, 1);
+        subtrees_traverse(&state, &superblock_releaser, 1, roots, 1);
         state.wait();
     }
 }
 
 
-void subtrees_backfill(backfill_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids) {
+void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids) {
     rassert(coro_t::self());
     interesting_children_callback_t *fsm = new interesting_children_callback_t;
     fsm->state = state;
@@ -243,15 +242,15 @@ void subtrees_backfill(backfill_state_t *state, parent_releaser_t *releaser, int
     fsm->level = level;
     state->helper->filter_interesting_children(state->transactor_ptr, param_block_ids.get(), num_block_ids, fsm);
 }
-struct do_a_subtree_backfill_fsm_t : public node_ready_callback_t {
-    backfill_state_t *state;
+struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
+    traversal_state_t *state;
     int level;
 
     void on_node_ready(buf_t *buf) {
         rassert(coro_t::self());
         const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
 
-        backfill_state_t *local_state = state;
+        traversal_state_t *local_state = state;
         int local_level = level;
 
         if (node::is_leaf(node)) {
@@ -266,8 +265,8 @@ struct do_a_subtree_backfill_fsm_t : public node_ready_callback_t {
     }
 };
 
-void do_a_subtree_backfill(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb) {
-    do_a_subtree_backfill_fsm_t *fsm = new do_a_subtree_backfill_fsm_t;
+void do_a_subtree_traversal(traversal_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb) {
+    do_a_subtree_traversal_fsm_t *fsm = new do_a_subtree_traversal_fsm_t;
     fsm->state = state;
     fsm->level = level;
 
@@ -275,18 +274,18 @@ void do_a_subtree_backfill(backfill_state_t *state, int level, block_id_t block_
 }
 
 // This releases its buf_t parameter.
-void process_a_internal_node(backfill_state_t *state, buf_t *buf, int level) {
+void process_a_internal_node(traversal_state_t *state, buf_t *buf, int level) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(buf->get_data_read());
 
     boost::scoped_array<block_id_t> children;
     size_t num_children;
     internal_node::get_children_ids(node, children, &num_children);
 
-    subtrees_backfill(state, new internal_node_releaser_t(buf, state), level + 1, children, num_children);
+    subtrees_traverse(state, new internal_node_releaser_t(buf, state), level + 1, children, num_children);
 }
 
 // This releases its buf_t parameter.
-void process_a_leaf_node(backfill_state_t *state, buf_t *buf, int level) {
+void process_a_leaf_node(traversal_state_t *state, buf_t *buf, int level) {
     // This can be run in the scheduler thread.
     state->helper->process_a_leaf(state->transactor_ptr, buf);
     buf->release();
@@ -299,7 +298,7 @@ void interesting_children_callback_t::receive_interesting_children(boost::scoped
     acquisition_countdown = num_block_ids + 1;
 
     for (int i = 0; i < num_block_ids; ++i) {
-        do_a_subtree_backfill(state, level, block_ids[i], this);
+        do_a_subtree_traversal(state, level, block_ids[i], this);
     }
 
     decr_acquisition_countdown();
