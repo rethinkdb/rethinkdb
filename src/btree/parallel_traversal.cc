@@ -289,10 +289,7 @@ void btree_parallel_traversal(btree_slice_t *slice, repli_timestamp transaction_
 
 void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids) {
     rassert(coro_t::self());
-    interesting_children_callback_t *fsm = new interesting_children_callback_t;
-    fsm->state = state;
-    fsm->releaser = releaser;
-    fsm->level = level;
+    interesting_children_callback_t *fsm = new interesting_children_callback_t(state, releaser, level);
     state->helper->filter_interesting_children(state->transactor_ptr, param_block_ids.get(), num_block_ids, fsm);
 }
 struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {

@@ -28,7 +28,10 @@ public:
     void on_started_acquisition();
     void decr_acquisition_countdown();
 
-    // private
+    interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level)
+        : state(_state), releaser(_releaser), level(_level) { }
+
+private:
     traversal_state_t *state;
     parent_releaser_t *releaser;
     int level;
