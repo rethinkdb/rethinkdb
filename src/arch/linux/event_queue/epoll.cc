@@ -93,6 +93,8 @@ void epoll_event_queue_t::run() {
         // (see section 7 [CPU scheduling] in B-tree Indexes and CPU
         // Caches by Goetz Graege and Pre-Ake Larson).
 
+        block_pm_duration event_loop_timer(&pm_eventloop);
+
         for (int i = 0; i < nevents; i++) {
             if (events[i].data.ptr == NULL) {
                 // The event was queued for a resource that's

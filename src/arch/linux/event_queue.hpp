@@ -34,7 +34,7 @@ const int poll_event_hup = 8;
 const int poll_event_rdhup = 16;
 
 // Queue stats (declared here so whichever queue is chosen can access it)
-extern perfmon_sampler_t pm_events_per_loop;
+extern perfmon_duration_sampler_t pm_eventloop;
 
 /* Pick the queue now*/
 #ifdef NO_EPOLL
