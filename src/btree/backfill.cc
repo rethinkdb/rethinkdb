@@ -83,16 +83,16 @@ struct interesting_children_callback_t : public acquisition_start_callback_t {
 };
 
 struct btree_traversal_helper_t {
-    virtual void preprocess_btree_superblock(backfill_state_t *state, const btree_superblock_t *superblock) = 0;
+    virtual void preprocess_btree_superblock(boost::shared_ptr<transactor_t>& txor, const btree_superblock_t *superblock) = 0;
 
     // This is free to call mark_deleted.
-    virtual void process_a_leaf(backfill_state_t *state, buf_t *leaf_node_buf) = 0;
+    virtual void process_a_leaf(boost::shared_ptr<transactor_t>& txor, buf_t *leaf_node_buf) = 0;
 
     virtual void postprocess_internal_node(buf_t *internal_node_buf) = 0;
 
     virtual void postprocess_btree_superblock(buf_t *superblock_buf) = 0;
 
-    virtual void filter_interesting_children(backfill_state_t *state, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb) = 0;
+    virtual void filter_interesting_children(boost::shared_ptr<transactor_t>& txor, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb) = 0;
 
     virtual access_t transaction_mode() = 0;
     virtual access_t btree_superblock_mode() = 0;
@@ -219,11 +219,11 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
 
     // The deletes have to go first (since they get overridden by
     // newer sets)
-    void preprocess_btree_superblock(backfill_state_t *state, const btree_superblock_t *superblock) {
-        dump_keys_from_delete_queue(state->transactor_ptr, superblock->delete_queue_block, since_when_, callback_);
+    void preprocess_btree_superblock(boost::shared_ptr<transactor_t>& txor, const btree_superblock_t *superblock) {
+        dump_keys_from_delete_queue(txor, superblock->delete_queue_block, since_when_, callback_);
     }
 
-    void process_a_leaf(backfill_state_t *state, buf_t *leaf_node_buf) {
+    void process_a_leaf(boost::shared_ptr<transactor_t>& txor, buf_t *leaf_node_buf) {
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
         // Remember, we only want to process recent keys.
@@ -237,7 +237,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
 
             if (recency.time >= since_when_.time) {
                 const btree_value *value = pair->value();
-                unique_ptr_t<value_data_provider_t> data_provider(value_data_provider_t::create(value, state->transactor_ptr));
+                unique_ptr_t<value_data_provider_t> data_provider(value_data_provider_t::create(value, txor));
                 backfill_atom_t atom;
                 atom.key.assign(pair->key.size, pair->key.contents);
                 atom.value = data_provider;
@@ -285,7 +285,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
         }
     };
 
-    void filter_interesting_children(backfill_state_t *state, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb) {
+    void filter_interesting_children(boost::shared_ptr<transactor_t>& txor, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb) {
         annoying_t *fsm = new annoying_t;
         fsm->cb = cb;
         fsm->block_ids.reset(new block_id_t[num_block_ids]);
@@ -294,7 +294,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
         fsm->since_when = since_when_;
         fsm->recencies.reset(new repli_timestamp[num_block_ids]);
 
-        state->transactor_ptr->get()->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
+        txor->get()->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
     }
 
     backfill_callback_t *callback_;
@@ -387,7 +387,7 @@ void btree_parallel_traversal(btree_slice_t *slice, repli_timestamp transaction_
 
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
 
-    helper->preprocess_btree_superblock(&state, superblock);
+    helper->preprocess_btree_superblock(state.transactor_ptr, superblock);
 
     block_id_t root_id = superblock->root_block;
     rassert(root_id != SUPERBLOCK_ID);
@@ -462,7 +462,7 @@ void subtrees_backfill(backfill_state_t *state, parent_releaser_t *releaser, int
     fsm->state = state;
     fsm->releaser = releaser;
     fsm->level = level;
-    state->helper->filter_interesting_children(state, param_block_ids.get(), num_block_ids, fsm);
+    state->helper->filter_interesting_children(state->transactor_ptr, param_block_ids.get(), num_block_ids, fsm);
 }
 
 struct do_a_subtree_backfill_fsm_t : public node_ready_callback_t {
@@ -510,7 +510,7 @@ void process_a_internal_node(backfill_state_t *state, buf_t *buf, int level) {
 // This releases its buf_t parameter.
 void process_a_leaf_node(backfill_state_t *state, buf_t *buf, int level) {
     // This can be run in the scheduler thread.
-    state->helper->process_a_leaf(state, buf);
+    state->helper->process_a_leaf(state->transactor_ptr, buf);
     buf->release();
     state->level_count(level) -= 1;
     state->consider_pulsing();
