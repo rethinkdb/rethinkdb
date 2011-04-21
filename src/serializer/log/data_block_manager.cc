@@ -293,12 +293,7 @@ void data_block_manager_t::on_gc_write_done() {
 }
 
 void data_block_manager_t::on_lock_available() {
-    if (gc_state.step() == gc_ready) {
-        gc_state.set_step(gc_ready_lock_available);
-    } else {
-        rassert(gc_state.step() == gc_read);
-        gc_state.set_step(gc_read_lock_available);
-    }
+    rassert(gc_state.step() == gc_ready_lock_available || gc_state.step() == gc_read_lock_available);
     run_gc();
 }
 
@@ -324,6 +319,7 @@ void data_block_manager_t::run_gc() {
 
                 /* read all the live data into buffers */
 
+                gc_state.set_step(gc_ready_lock_available);
                 serializer->main_mutex.lock(this);
                 break;
 
@@ -332,6 +328,13 @@ void data_block_manager_t::run_gc() {
 
                 /* make sure the read callback knows who we are */
                 gc_state.gc_read_callback.parent = this;
+
+                /* If other forces cause all of the blocks in the extent to become garbage
+                before we even finish GCing it, they will set current_entry to NULL. */
+                if (gc_state.current_entry == NULL) {
+                    gc_state.set_step(gc_ready);
+                    break;
+                }
 
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
@@ -351,20 +354,22 @@ void data_block_manager_t::run_gc() {
                 if (gc_state.refcount > 0) {
                     /* We got a block, but there are still more to go */
                     break;
-                }    
-                
-                /* If other forces cause all of the blocks in the extent to become garbage
-                before we even finish GCing it, they will set current_entry to NULL. */
-                if (gc_state.current_entry == NULL) {
-                    gc_state.set_step(gc_ready);
-                    break;
                 }
 
+                gc_state.set_step(gc_read_lock_available);
                 serializer->main_mutex.lock(this); // The mutex gets released in write_gcs!
                 break;
             }
             
             case gc_read_lock_available: {
+                /* If other forces cause all of the blocks in the extent to become garbage
+                before we even finish GCing it, they will set current_entry to NULL. */
+                if (gc_state.current_entry == NULL) {
+                    serializer->main_mutex.unlock();
+                    gc_state.set_step(gc_ready);
+                    break;
+                }
+
                 /* an array to put our writes in */
 #ifndef NDEBUG
                 int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
@@ -400,7 +405,7 @@ void data_block_manager_t::run_gc() {
                 /* Our write should have forced all of the blocks in the extent to become garbage,
                 which should have caused the extent to be released and gc_state.current_offset to
                 become NULL. */
-                rassert(gc_state.current_entry == NULL);
+                rassert(gc_state.current_entry == NULL, "%d live blocks left on the extent.\n", (int)gc_state.current_entry->g_array.count());
                 
                 rassert(gc_state.refcount == 0);
 

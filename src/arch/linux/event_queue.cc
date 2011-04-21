@@ -3,6 +3,8 @@
 #include "arch/linux/thread_pool.hpp"
 #include "concurrency/cond_var.hpp"
 
+perfmon_duration_sampler_t pm_eventloop("eventloop", secs_to_ticks(1.0));
+
 // TODO: I guess signum is unused because we aren't interested, and
 // uctx is unused because we don't have any context data.  Is this the
 // true?

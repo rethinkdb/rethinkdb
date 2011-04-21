@@ -138,8 +138,14 @@ class SubProcess(object):
 def run_executable(command_line, output_path, test_dir, timeout=60, valgrind_tool=None):
 
     summary = os.path.basename(command_line[0])
-    if len(command_line) > 4: summary += " " + cmd_join(command_line[1:4]) + " [...]"
-    else: summary += " " + cmd_join(command_line[1:])
+    for chunk in command_line[1:]:
+        if len(summary) + len(chunk) > 200:
+            summary += " [...]"
+            break
+        elif " " in chunk:
+            summary += " \"%s\"" % chunk
+        else:
+            summary += " " + chunk
     print "Running %r;" % summary,
     sys.stdout.flush()
 
