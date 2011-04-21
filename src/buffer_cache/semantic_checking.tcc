@@ -1,4 +1,5 @@
 #include "buffer_cache/semantic_checking.hpp"
+#include "semantic_checking.hpp"
 
 /* Buf */
 
@@ -61,12 +62,14 @@ void scc_buf_t<inner_cache_t>::touch_recency(repli_timestamp timestamp) {
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::release() {
     rassert(inner_buf);
-    if (!snapshotted && !inner_buf->is_deleted()) {
+    if (!snapshotted && !inner_buf->is_deleted() && should_load) {
         if (!inner_buf->is_dirty() && cache->crc_map.get(inner_buf->get_block_id())) {
             rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
         } else {
             cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
         }
+    } else if (inner_buf->is_deleted()) {
+        cache->crc_map.set(inner_buf->get_block_id(), 0);
     }
 
     inner_buf->release();
@@ -79,7 +82,8 @@ void scc_buf_t<inner_cache_t>::on_block_available(typename inner_cache_t::buf_t 
     rassert(buf);
 
     inner_buf = buf;
-    if (!snapshotted) {
+    // TODO: Can we reach this with !should_load? I guess if the block has been loaded before and we were just waiting on the lock to become available?
+    if (!snapshotted && should_load) {
         if (cache->crc_map.get(inner_buf->get_block_id())) {
             rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
         } else {
@@ -90,8 +94,8 @@ void scc_buf_t<inner_cache_t>::on_block_available(typename inner_cache_t::buf_t 
 }
 
 template<class inner_cache_t>
-scc_buf_t<inner_cache_t>::scc_buf_t(scc_cache_t<inner_cache_t> *_cache, bool snapshotted)
-    : snapshotted(snapshotted), inner_buf(NULL), available_cb(NULL), cache(_cache) { }
+scc_buf_t<inner_cache_t>::scc_buf_t(scc_cache_t<inner_cache_t> *_cache, bool snapshotted, bool should_load)
+    : snapshotted(snapshotted), should_load(should_load), inner_buf(NULL), available_cb(NULL), cache(_cache) { }
 
 /* Transaction */
 
@@ -109,12 +113,12 @@ bool scc_transaction_t<inner_cache_t>::commit(transaction_commit_callback_t *cal
 template<class inner_cache_t>
 scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback, bool should_load) {
-    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache, snapshotted);
+    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache, snapshotted, should_load);
     buf->cache = this->cache;
     if (typename inner_cache_t::buf_t *inner_buf = inner_transaction->acquire(block_id, mode, buf, should_load)) {
         buf->inner_buf = inner_buf;
         rassert(block_id == buf->get_block_id());
-        if (!snapshotted) {
+        if (!snapshotted && should_load) {
             if (cache->crc_map.get(block_id)) {
                 rassert(buf->compute_crc() == cache->crc_map.get(block_id));
             } else {
@@ -130,7 +134,7 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t b
 
 template<class inner_cache_t>
 scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate() {
-    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache, snapshotted);
+    scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache, snapshotted, true);
     buf->inner_buf = inner_transaction->allocate();
     cache->crc_map.set(buf->inner_buf->get_block_id(), buf->compute_crc());
     return buf;
