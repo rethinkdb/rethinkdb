@@ -63,6 +63,24 @@
 // of the block.  We stop here.
 
 class backfill_state_t;
+struct parent_releaser_t;
+
+struct acquisition_start_callback_t {
+    virtual void on_started_acquisition() = 0;
+protected:
+    ~acquisition_start_callback_t() { }
+};
+
+struct interesting_children_callback_t : public acquisition_start_callback_t {
+    void receive_interesting_children(boost::scoped_array<block_id_t>& block_ids, int num_block_ids);
+
+    void on_started_acquisition();
+    void decr_acquisition_countdown();
+    backfill_state_t *state;
+    parent_releaser_t *releaser;
+    int level;
+    int acquisition_countdown;
+};
 
 struct btree_traversal_helper_t {
     // This is free to call mark_deleted.
@@ -70,6 +88,10 @@ struct btree_traversal_helper_t {
 
     virtual void postprocess_internal_node(buf_t *internal_node_buf) = 0;
     virtual void postprocess_btree_superblock(buf_t *superblock_buf) = 0;
+
+    virtual void filter_interesting_children(backfill_state_t *state, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb);
+
+    virtual access_t transaction_mode() = 0;
 
     virtual ~btree_traversal_helper_t() { }
 };
@@ -227,6 +249,44 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
         // do nothing
     }
 
+    access_t transaction_mode() { return rwi_read; }
+
+    struct annoying_t : public get_subtree_recencies_callback_t {
+        interesting_children_callback_t *cb;
+        boost::scoped_array<block_id_t> block_ids;
+        int num_block_ids;
+        boost::scoped_array<repli_timestamp> recencies;
+        repli_timestamp since_when;
+
+        void got_subtree_recencies() {
+            boost::scoped_array<block_id_t> local_block_ids;
+            local_block_ids.swap(block_ids);
+            int j = 0;
+            for (int i = 0; i < num_block_ids; ++i) {
+                if (recencies[i].time >= since_when.time) {
+                    local_block_ids[j] = local_block_ids[i];
+                    ++j;
+                }
+            }
+            int num_surviving_block_ids = j;
+
+            delete this;
+            coro_t::spawn(boost::bind(&interesting_children_callback_t::receive_interesting_children, cb, boost::ref(local_block_ids), num_surviving_block_ids));
+        }
+    };
+
+    void filter_interesting_children(backfill_state_t *state, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb) {
+        annoying_t *fsm = new annoying_t;
+        fsm->cb = cb;
+        fsm->block_ids.reset(new block_id_t[num_block_ids]);
+        std::copy(block_ids, block_ids + num_block_ids, fsm->block_ids.get());
+        fsm->num_block_ids = num_block_ids;
+        fsm->since_when = since_when_;
+        fsm->recencies.reset(new repli_timestamp[num_block_ids]);
+
+        state->transactor_ptr->get()->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
+    }
+
     backfill_callback_t *callback_;
     repli_timestamp since_when_;
 
@@ -240,19 +300,10 @@ btree_traversal_helper_t *HACK_make_backfill_traversal_helper(backfill_callback_
 
 
 
-struct parent_releaser_t;
-struct acquisition_start_callback_t;
-
 void subtrees_backfill(backfill_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids);
 void do_a_subtree_backfill(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb);
 void process_a_leaf_node(backfill_state_t *state, buf_t *buf, int level);
 void process_a_internal_node(backfill_state_t *state, buf_t *buf, int level);
-
-struct acquisition_start_callback_t {
-    virtual void on_started_acquisition() = 0;
-protected:
-    ~acquisition_start_callback_t() { }
-};
 
 struct node_ready_callback_t {
     virtual void on_node_ready(buf_t *buf) = 0;
@@ -413,17 +464,42 @@ struct subtrees_backfill_fsm_t : public get_subtree_recencies_callback_t, public
     }
 };
 
+void interesting_children_callback_t::receive_interesting_children(boost::scoped_array<block_id_t>& block_ids, int num_block_ids) {
+    acquisition_countdown = num_block_ids + 1;
+
+    for (int i = 0; i < num_block_ids; ++i) {
+        do_a_subtree_backfill(state, level, block_ids[i], this);
+    }
+
+    decr_acquisition_countdown();
+}
+
+
+void interesting_children_callback_t::on_started_acquisition() {
+    rassert(coro_t::self());
+    decr_acquisition_countdown();
+}
+
+void interesting_children_callback_t::decr_acquisition_countdown() {
+    rassert(coro_t::self());
+    rassert(acquisition_countdown > 0);
+    -- acquisition_countdown;
+    if (acquisition_countdown == 0) {
+        releaser->release();
+        state->level_count(level - 1) -= 1;
+        state->consider_pulsing();
+        delete this;
+    }
+}
+
+
 void subtrees_backfill(backfill_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids) {
     rassert(coro_t::self());
-    subtrees_backfill_fsm_t *fsm = new subtrees_backfill_fsm_t;
+    interesting_children_callback_t *fsm = new interesting_children_callback_t;
     fsm->state = state;
     fsm->releaser = releaser;
     fsm->level = level;
-    fsm->block_ids.swap(param_block_ids);
-    fsm->num_block_ids = num_block_ids;
-
-    fsm->recencies.reset(new repli_timestamp[num_block_ids]);
-    state->transactor_ptr->get()->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
+    state->helper->filter_interesting_children(state, param_block_ids.get(), num_block_ids, fsm);
 }
 
 struct do_a_subtree_backfill_fsm_t : public node_ready_callback_t {
