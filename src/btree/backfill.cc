@@ -89,15 +89,13 @@ struct btree_traversal_helper_t {
     virtual void postprocess_internal_node(buf_t *internal_node_buf) = 0;
     virtual void postprocess_btree_superblock(buf_t *superblock_buf) = 0;
 
-    virtual void filter_interesting_children(backfill_state_t *state, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb);
+    virtual void filter_interesting_children(backfill_state_t *state, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb) = 0;
 
     virtual access_t transaction_mode() = 0;
 
     virtual ~btree_traversal_helper_t() { }
 };
 
-
-btree_traversal_helper_t *HACK_make_backfill_traversal_helper(backfill_callback_t *callback, repli_timestamp since_when);
 
 struct acquisition_waiter_callback_t {
     virtual void you_may_acquire() = 0;
