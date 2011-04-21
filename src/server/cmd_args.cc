@@ -234,7 +234,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"failover-script",      required_argument, 0, failover_script},
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO @sam push this through to where you want it
                 {"run-behind-elb",       required_argument, 0, run_behind_elb},
-                {"failover",             no_argument, 0, failover}, //TODO @sam @jdoliner push this through when we know where it goes
+                {"failover",             no_argument, 0, failover}, //TODO hook this up
+                {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
                 {0, 0, 0, 0}
             };
 

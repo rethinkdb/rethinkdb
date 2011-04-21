@@ -147,9 +147,10 @@ struct failover_config_t {
     int     heartbeat_timeout; /* noncommunicative period after which the other server is considered to be unreachable we can maybe take this out TODO @jdoliner */
     bool    active;
     int     elb_port;
+    bool    no_rogue; /* whether to go rogue when the master is struggling to stay up */
 
     failover_config_t()
-        : active(false), elb_port(-1)
+        : active(false), elb_port(-1), no_rogue(false)
     {
         *failover_script_path = 0;
     }
