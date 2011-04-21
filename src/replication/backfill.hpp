@@ -7,6 +7,7 @@ namespace replication {
 
 struct backfill_and_realtime_streaming_callback_t {
 
+    virtual void backfill_delete_everything() = 0;
     virtual void backfill_deletion(store_key_t key) = 0;
     virtual void backfill_set(backfill_atom_t atom) = 0;
 

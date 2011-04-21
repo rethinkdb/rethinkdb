@@ -60,6 +60,10 @@ public:
 
     mutation_result_t change(const mutation_t &m, castime_t ct);
 
+    /* btree_key_value_store_t interface */
+
+    void delete_all_keys_for_backfill();
+
     // The current value of the "replication clock" is the timestamp that new operations
     // will be assigned. It is persisted to disk. You can read and write it with
     // {s,g}et_replication_clock(). "last_sync" is also persisted, but it doesn't have any

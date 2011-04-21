@@ -10,7 +10,8 @@ namespace replication {
 
 enum multipart_aspect { SMALL = 0x81, FIRST = 0x82, MIDDLE = 0x83, LAST = 0x84 };
 
-enum message_code { MSGCODE_NIL = 0, BACKFILL = 0x01, BACKFILL_COMPLETE, ANNOUNCE, NOP, ACK,
+enum message_code { MSGCODE_NIL = 0, BACKFILL = 0x01, BACKFILL_COMPLETE, BACKFILL_DELETE_EVERYTHING,
+                    ANNOUNCE, NOP, ACK,
 
                     // TODO: Explicitly number these
                     GET_CAS, SARC, INCR, DECR, APPEND, PREPEND, DELETE, BACKFILL_SET, BACKFILL_DELETE };
@@ -51,6 +52,12 @@ struct net_backfill_t {
 
 struct net_backfill_complete_t {
     repli_timestamp time_barrier_timestamp;
+} __attribute__((__packed__));
+
+struct net_backfill_delete_everything_t {
+    // We need at least 4 bytes so that we do not get a msgsize
+    // smaller than sizeof(net_multipart_header_t).
+    uint32_t padding;
 } __attribute__((__packed__));
 
 struct net_announce_t {

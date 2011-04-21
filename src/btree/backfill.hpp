@@ -33,5 +33,4 @@ It may also find changes that happened before `since_when`. */
 void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback);
 
 
-
 #endif  // __BTREE_BACKFILL_HPP__

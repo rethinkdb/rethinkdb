@@ -16,6 +16,7 @@ struct backfill_receiver_t :
     handle the remaining protocol messages. */
 
     void send(scoped_malloc<net_backfill_complete_t>& message);
+    void send(scoped_malloc<net_backfill_delete_everything_t>& message);
     void send(scoped_malloc<net_get_cas_t>& message);
     void send(stream_pair<net_sarc_t>& message);
     void send(stream_pair<net_backfill_set_t>& message);
