@@ -333,6 +333,13 @@ void data_block_manager_t::run_gc() {
                 /* make sure the read callback knows who we are */
                 gc_state.gc_read_callback.parent = this;
 
+                /* If other forces cause all of the blocks in the extent to become garbage
+                before we even finish GCing it, they will set current_entry to NULL. */
+                if (gc_state.current_entry == NULL) {
+                    gc_state.set_step(gc_ready);
+                    break;
+                }
+
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
@@ -351,13 +358,6 @@ void data_block_manager_t::run_gc() {
                 if (gc_state.refcount > 0) {
                     /* We got a block, but there are still more to go */
                     break;
-                }    
-                
-                /* If other forces cause all of the blocks in the extent to become garbage
-                before we even finish GCing it, they will set current_entry to NULL. */
-                if (gc_state.current_entry == NULL) {
-                    gc_state.set_step(gc_ready);
-                    break;
                 }
 
                 serializer->main_mutex.lock(this); // The mutex gets released in write_gcs!
@@ -365,6 +365,14 @@ void data_block_manager_t::run_gc() {
             }
             
             case gc_read_lock_available: {
+                /* If other forces cause all of the blocks in the extent to become garbage
+                before we even finish GCing it, they will set current_entry to NULL. */
+                if (gc_state.current_entry == NULL) {
+                    serializer->main_mutex.unlock();
+                    gc_state.set_step(gc_ready);
+                    break;
+                }
+
                 /* an array to put our writes in */
 #ifndef NDEBUG
                 int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
