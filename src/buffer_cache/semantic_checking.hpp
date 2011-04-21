@@ -66,10 +66,11 @@ public:
 private:
     friend class scc_transaction_t<inner_cache_t>;
     bool snapshotted;
+    bool should_load;
     typename inner_cache_t::buf_t *inner_buf;
     void on_block_available(typename inner_cache_t::buf_t *buf);
     block_available_callback_t *available_cb;
-    explicit scc_buf_t(scc_cache_t<inner_cache_t> *, bool snapshotted);
+    explicit scc_buf_t(scc_cache_t<inner_cache_t> *, bool snapshotted, bool should_load);
     scc_cache_t<inner_cache_t> *cache;
 private:
     crc_t compute_crc() {
