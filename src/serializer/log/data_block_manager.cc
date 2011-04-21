@@ -293,6 +293,7 @@ void data_block_manager_t::on_gc_write_done() {
 }
 
 void data_block_manager_t::on_lock_available() {
+    rassert(gc_state.step() == gc_ready_lock_available || gc_state.step() == gc_read_lock_available);
     run_gc();
 }
 
@@ -318,8 +319,8 @@ void data_block_manager_t::run_gc() {
 
                 /* read all the live data into buffers */
 
-                serializer->main_mutex.lock(this);
                 gc_state.set_step(gc_ready_lock_available);
+                serializer->main_mutex.lock(this);
                 break;
 
             case gc_ready_lock_available:
@@ -355,8 +356,8 @@ void data_block_manager_t::run_gc() {
                     break;
                 }
 
-                serializer->main_mutex.lock(this); // The mutex gets released in write_gcs!
                 gc_state.set_step(gc_read_lock_available);
+                serializer->main_mutex.lock(this); // The mutex gets released in write_gcs!
                 break;
             }
             
