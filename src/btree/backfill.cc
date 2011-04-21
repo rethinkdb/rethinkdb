@@ -108,10 +108,10 @@ protected:
 // TODO: Actually use shutdown_mode.
 class backfill_state_t {
 public:
-    backfill_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _since_when, backfill_callback_t *_callback)
+    backfill_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _since_when, btree_traversal_helper_t *_helper)
         : slice(_slice), since_when(_since_when),
           transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), rwi_read, _since_when)),
-          helper(HACK_make_backfill_traversal_helper(_callback, _since_when)), shutdown_mode(false) { }
+          helper(_helper), shutdown_mode(false) { }
 
     // The slice we're backfilling from.
     btree_slice_t *const slice;
@@ -294,11 +294,6 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
         : callback_(callback), since_when_(since_when) { }
 };
 
-btree_traversal_helper_t *HACK_make_backfill_traversal_helper(backfill_callback_t *callback, repli_timestamp since_when) {
-    return new backfill_traversal_helper_t(callback, since_when);
-}
-
-
 
 void subtrees_backfill(backfill_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids);
 void do_a_subtree_backfill(backfill_state_t *state, int level, block_id_t block_id, acquisition_start_callback_t *acq_start_cb);
@@ -388,7 +383,8 @@ struct internal_node_releaser_t : public parent_releaser_t {
 
 void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
     thread_saver_t saver;
-    backfill_state_t state(saver, slice, since_when, callback);
+    backfill_traversal_helper_t helper(callback, since_when);
+    backfill_state_t state(saver, slice, since_when, &helper);
     buf_lock_t superblock_buf(saver, *state.transactor_ptr, SUPERBLOCK_ID, rwi_read);
 
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
