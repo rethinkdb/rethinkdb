@@ -528,9 +528,6 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
             parent->deleted_blocks[i].write_empty_block,
             NULL
             ));
-
-        block_id_t id = parent->deleted_blocks[i].block_id;
-        parent->cache->free_list.release_block_id(id);
     }
     parent->deleted_blocks.clear();
 

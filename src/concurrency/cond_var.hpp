@@ -83,8 +83,10 @@ private:
 
 /* A multicond_t is a condition variable that more than one thing can wait for. */
 
+/* And if you pass a countdown parameter to its constructor, it can
+   require multiple pulses or zero pulses before triggering. */
 struct multicond_t {
-    multicond_t() : ready(false) { }
+    multicond_t(int64_t countdown = 1) : ready_countdown(countdown) { }
     ~multicond_t() {
         // Make sure nothing was left hanging
         rassert(waiters.empty());
@@ -97,18 +99,20 @@ struct multicond_t {
 
     /* pulse() and wait() act just like they do in cond_t */
     void pulse() {
-        rassert(!ready);
-        ready = true;
-        /* Make a copy of 'waiters' in case of destruction */
-        intrusive_list_t<waiter_t> w2;
-        w2.append_and_clear(&waiters);
-        while (waiter_t *w = w2.head()) {
-            w2.remove(w);
-            w->on_multicond_pulsed();
+        rassert(ready_countdown != 0);
+        -- ready_countdown;
+        if (ready_countdown == 0) {
+            /* Make a copy of 'waiters' in case of destruction */
+            intrusive_list_t<waiter_t> w2;
+            w2.append_and_clear(&waiters);
+            while (waiter_t *w = w2.head()) {
+                w2.remove(w);
+                w->on_multicond_pulsed();
+            }
         }
     }
     void wait() {
-        if (!ready) {
+        if (ready_countdown != 0) {
             struct coro_waiter_t : public waiter_t {
                 coro_t *to_wake;
                 void on_multicond_pulsed() { to_wake->notify(); }
@@ -123,7 +127,7 @@ struct multicond_t {
     /* wait_eagerly() is like wait() except that the waiter gets signalled even before
     pulse() returns. */
     void wait_eagerly() {
-        if (!ready) {
+        if (ready_countdown != 0) {
             struct coro_waiter_t : public waiter_t {
                 coro_t *to_wake;
                 void on_multicond_pulsed() { to_wake->notify_now(); }
@@ -135,7 +139,7 @@ struct multicond_t {
     }
 
     bool is_pulsed() {
-        return ready;
+        return ready_countdown == 0;
     }
 
     /* One major use case for a multicond_t is to wait for one of several different
@@ -145,19 +149,19 @@ struct multicond_t {
     to wait() that is designed to be used by things that will signal a multicond_t, but also
     need to be notified if something else signals the multicond first. */
     void add_waiter(waiter_t *w) {
-        if (ready) {
+        if (ready_countdown == 0) {
             w->on_multicond_pulsed();
         } else {
             waiters.push_back(w);
         }
     }
     void remove_waiter(waiter_t *w) {
-        rassert(!ready);
+        rassert(ready_countdown != 0);
         waiters.remove(w);
     }
 
 private:
-    bool ready;
+    int64_t ready_countdown;
     intrusive_list_t<waiter_t> waiters;
 };
 

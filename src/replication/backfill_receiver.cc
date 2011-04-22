@@ -7,6 +7,11 @@ void backfill_receiver_t::send(scoped_malloc<net_backfill_complete_t>& message) 
     cb->backfill_done(message->time_barrier_timestamp);
 }
 
+void backfill_receiver_t::send(UNUSED scoped_malloc<net_backfill_delete_everything_t>& msg) {
+    debugf("recv backfill_delete_everything()\n");
+    cb->backfill_delete_everything();
+}
+
 void backfill_receiver_t::send(scoped_malloc<net_get_cas_t>& msg) {
     store_key_t key(msg->key_size, msg->key);
     debugf("recv realtime_get_cas(%.*s)\n", key.size, key.contents);

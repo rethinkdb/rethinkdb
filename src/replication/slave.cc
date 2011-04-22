@@ -164,7 +164,7 @@ void run(slave_t *slave) {
         }
 
         /* The connection has failed. Let's see what we should do */
-        if (!slave->give_up_.give_up()) {
+        if (slave->failover_config_.no_rogue || !slave->give_up_.give_up()) {
             int timeout = slave->timeout_;
             slave->timeout_ = std::min(slave->timeout_ * TIMEOUT_GROWTH_FACTOR, (long)TIMEOUT_CAP);
 

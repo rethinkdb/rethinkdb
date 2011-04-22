@@ -50,7 +50,10 @@ public:
 
     mutation_result_t change(const mutation_t &m, castime_t castime);
 
-    /* backfill interface, so to speak */
+    /* btree_slice_t interface */
+
+    void delete_all_keys_for_backfill();
+
     void backfill(repli_timestamp since_when, backfill_callback_t *callback);
 
     /* TODO: This really doesn't belong on btree_slice_t. */
