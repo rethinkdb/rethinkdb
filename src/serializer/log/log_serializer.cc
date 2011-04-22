@@ -618,7 +618,6 @@ bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, in
             /* make_internal() makes a write_t that will not change the timestamp. */
             cb_wrapper->writes.push_back(write_t::make_internal(gc_writes[i].block_id, gc_writes[i].buf, NULL));
         } else {
-            // TODO: Does this assert fail for large values now?
             rassert(memcmp(gc_writes[i].buf, "zero", 4) == 0);   // Check for zerobuf magic
             cb_wrapper->writes.push_back(write_t::make_internal(gc_writes[i].block_id, NULL, NULL));
         }

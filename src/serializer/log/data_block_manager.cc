@@ -336,6 +336,7 @@ void data_block_manager_t::run_gc() {
                     break;
                 }
 
+                rassert(gc_state.refcount == 0);
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
@@ -385,6 +386,7 @@ void data_block_manager_t::run_gc() {
 
                     char *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
                     ser_block_id_t id = (reinterpret_cast<buf_data_t *>(block))->block_id;
+                    rassert(id != ser_block_id_t::null());
                     void *data = block + sizeof(buf_data_t);
 
                     gc_writes.push_back(gc_write_t(id, data));
@@ -392,7 +394,6 @@ void data_block_manager_t::run_gc() {
 
                 rassert(gc_writes.size() == (size_t)num_writes);
 
-                /* make sure the callback knows who we are */
                 gc_state.set_step(gc_write);
 
                 /* schedule the write */
