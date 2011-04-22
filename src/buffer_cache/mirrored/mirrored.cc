@@ -254,9 +254,7 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
     : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner_buf), data(NULL)
 {
     inner_buf->cache->assert_thread();
-#ifndef FAST_PERFMON
     patches_affected_data_size_at_start = -1;
-#endif
 
     // If the top version is less or equal to version_to_access, then we need to acquire
     // a read lock first (otherwise we may get the data of the unfinished write on top).
@@ -324,11 +322,13 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
                 data = inner_buf->data;
                 rassert(data != NULL);
 
-#ifndef FAST_PERFMON
-                if (!inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start == -1) {
-                    patches_affected_data_size_at_start = inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id);
+                if (!inner_buf->writeback_buf.needs_flush &&
+                        patches_affected_data_size_at_start == -1 &&
+                        global_full_perfmon) {
+                    patches_affected_data_size_at_start =
+                        inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id);
                 }
-#endif
+
                 break;
             }
             case rwi_intent:
@@ -481,20 +481,16 @@ void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
     }
 }
 
-#ifndef FAST_PERFMON
 perfmon_sampler_t pm_patches_size_per_write("patches_size_per_write_buf", secs_to_ticks(1), false);
-#endif
 
 void mc_buf_t::release() {
     inner_buf->cache->assert_thread();
     pm_bufs_held.end(&start_time);
 
-#ifndef FAST_PERFMON
     if (mode == rwi_write && !inner_buf->writeback_buf.needs_flush && patches_affected_data_size_at_start >= 0) {
         if (inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) > (size_t)patches_affected_data_size_at_start)
             pm_patches_size_per_write.record(inner_buf->cache->patch_memory_storage.get_affected_data_size(inner_buf->block_id) - patches_affected_data_size_at_start);
     }
-#endif
 
     inner_buf->cache->assert_thread();
 

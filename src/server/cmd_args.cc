@@ -8,6 +8,7 @@
 #include "help.hpp"
 #include "arch/arch.hpp"
 #include "cmd_args.hpp"
+#include "perfmon.hpp"   // For `global_full_perfmon`
 
 /* Note that this file only parses arguments for the 'serve' and 'create' subcommands. */
 
@@ -76,7 +77,10 @@ void usage_serve() {
                 "Output options:\n"
                 "  -v, --verbose         Print extra information to standard output.\n");
     help->pagef("  -l, --log-file        File to log to. If not provided, messages will be\n"
-                "                        printed to stderr.\n");
+                "                        printed to stderr.\n"
+                "      --full-perfmon    Report more detailed statistics in response to a\n"
+                "                        \"stats\" request. Collecting the more detailed stats\n"
+                "                        will slow the server down somewhat.\n");
 #ifdef SEMANTIC_SERIALIZER_CHECK
     help->pagef("  -S, --semantic-file   Path to the semantic file for the previously specified\n"
                 "                        database file. Can only be specified after the path to\n"
@@ -176,7 +180,8 @@ enum {
     flush_concurrency,
     flush_threshold,
     run_behind_elb,
-    failover
+    failover,
+    full_perfmon
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -202,6 +207,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     {
         int do_help = 0;
         int do_force_create = 0;
+        int do_full_perfmon = 0;
         struct option long_options[] =
             {
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
@@ -236,6 +242,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"run-behind-elb",       required_argument, 0, run_behind_elb},
                 {"failover",             no_argument, 0, failover}, //TODO hook this up
                 {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
+                {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {0, 0, 0, 0}
             };
 
@@ -246,6 +253,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             c = 'h';
         if (do_force_create)
             c = force_create;
+        if (do_full_perfmon) {
+            c = full_perfmon;
+        }
      
         /* Detect the end of the options. */
         if (c == -1)
@@ -313,6 +323,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 break;
             case run_behind_elb:
                 config.set_elb_port(optarg); break;
+            case full_perfmon:
+                global_full_perfmon = true; break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */

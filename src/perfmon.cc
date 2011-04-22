@@ -73,6 +73,8 @@ perfmon_t::~perfmon_t() {
     get_var_list().remove(this);
 }
 
+bool global_full_perfmon = false;
+
 /* perfmon_counter_t */
 
 perfmon_counter_t::perfmon_counter_t(std::string name)
