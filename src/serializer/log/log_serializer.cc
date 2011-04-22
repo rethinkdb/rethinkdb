@@ -678,7 +678,7 @@ struct ls_read_fsm_t :
     void on_io_complete() {
         buf_data_t *data = ptr_cast<buf_data_t>(buf);
         --data;
-        guarantee(data->block_id == block_id);
+        guarantee(data->block_id == block_id, "Got wrong block when reading from disk (id %u instead of %u).\n", data->block_id.value, block_id.value);
 
         done = true;
 
