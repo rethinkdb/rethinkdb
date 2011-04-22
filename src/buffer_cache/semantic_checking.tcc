@@ -68,8 +68,6 @@ void scc_buf_t<inner_cache_t>::release() {
         } else {
             cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
         }
-    } else if (inner_buf->is_deleted()) {
-        cache->crc_map.set(inner_buf->get_block_id(), 0);
     }
 
     inner_buf->release();

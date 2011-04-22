@@ -519,6 +519,7 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
     serializer_inner_bufs.reserve(parent->dirty_bufs.size());
 
     // Write deleted block_ids.
+    deleted_block_ids.reserve(parent->deleted_blocks.size());
     for (size_t i = 0; i < parent->deleted_blocks.size(); i++) {
         // NULL indicates a deletion
         serializer_writes.push_back(translator_serializer_t::write_t::make(
@@ -528,9 +529,11 @@ void writeback_t::concurrent_flush_t::acquire_bufs() {
             parent->deleted_blocks[i].write_empty_block,
             NULL
             ));
-
+        
+        // We free the corresponding block_ids as soon as the serializer write preparation has finished (i.e. on tid_callback)
+        // We don't want the cache to mess with the block_id (e.g. reuse it for another block) before we are finished.
         block_id_t id = parent->deleted_blocks[i].block_id;
-        parent->cache->free_list.release_block_id(id);
+        deleted_block_ids.push_back(id);
     }
     parent->deleted_blocks.clear();
 
@@ -611,6 +614,13 @@ void writeback_t::concurrent_flush_t::update_transaction_ids() {
     rassert(parent->writeback_in_progress);
     rassert(!transaction_ids_have_been_updated);
     parent->cache->assert_thread();
+
+    // Release block_ids of deleted blocks
+    // TODO: This does not really belong here, but it looks like we have to wait for the serializer preparation to finish before doing this.
+    // TODO: Refactor the stuff around the tid_callback (also see comment below, regarding the reject_read_ahead_blocks list)
+    for (size_t i = 0; i < deleted_block_ids.size(); i++) {
+        parent->cache->free_list.release_block_id(deleted_block_ids[i]);
+    }
 
     // Retrieve changed transaction ids
     size_t inner_buf_ix = 0;
