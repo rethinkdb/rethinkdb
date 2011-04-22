@@ -16,8 +16,6 @@ const int PRIMAL_OFFSET_OFFSET = sizeof(block_magic_t);
 const int TIMESTAMPS_AND_OFFSETS_OFFSET = PRIMAL_OFFSET_OFFSET + sizeof(off64_t);
 const int TIMESTAMPS_AND_OFFSETS_SIZE = sizeof(large_buf_ref) + 3 * sizeof(block_id_t);
 
-const int64_t MAX_DELETE_QUEUE_KEYS_SIZE = 16 * MEGABYTE;
-
 off64_t *primal_offset(void *root_buffer) {
     return reinterpret_cast<off64_t *>(reinterpret_cast<char *>(root_buffer) + PRIMAL_OFFSET_OFFSET);
 }
@@ -38,7 +36,7 @@ int keys_largebuf_ref_size(block_size_t block_size) {
 
 }  // namespace delete_queue
 
-void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp timestamp, const store_key_t *key) {
+void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp timestamp, const store_key_t *key) {
     thread_saver_t saver;
 
     // Beware: Right now, some aspects of correctness depend on the
@@ -56,7 +54,7 @@ void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t q
     rassert(t_o_ref->size % sizeof(delete_queue::t_and_o) == 0);
 
     // Figure out what we need to do.
-    bool will_want_to_dequeue = (keys_ref->size + 1 + int64_t(key->size) > delete_queue::MAX_DELETE_QUEUE_KEYS_SIZE);
+    bool will_want_to_dequeue = (keys_ref->size + 1 + int64_t(key->size) > delete_queue_limit);
     bool will_actually_dequeue = false;
 
     delete_queue::t_and_o second_tao = { repli_timestamp::invalid, -1 };

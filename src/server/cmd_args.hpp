@@ -123,6 +123,8 @@ struct btree_key_value_store_dynamic_config_t {
     std::vector<log_serializer_private_dynamic_config_t> serializer_private;
 
     mirrored_cache_config_t cache;
+
+    int64_t total_delete_queue_limit;
 };
 
 /* Configuration for the store (btree, cache, and serializers) that is set at database
@@ -220,7 +222,8 @@ public:
     void set_last_semantic_file(const char* value);
 #endif
     void set_master_listen_port(const char *value);
-    void set_master_addr(char *value);
+    void set_master_addr(const char *value);
+    void set_total_delete_queue_limit(const char *value);
     void set_failover_file(const char* value);
     void set_heartbeat_timeout(const char* value);
     void set_elb_port(const char* value);
