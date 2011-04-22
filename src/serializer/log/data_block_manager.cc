@@ -138,7 +138,7 @@ struct dbm_read_ahead_fsm_t :
         // We divide the extent into chunks of size read_ahead_size, then select the one which contains off_in
         read_ahead_offset = extent + (off_in - extent) / read_ahead_size * read_ahead_size;
         read_ahead_buf = malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE);
-        parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, this);
+        parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, DEFAULT_DISK_ACCOUNT, this);
     }
 
     void on_io_complete() {
@@ -203,7 +203,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb)
     else {
         buf_data_t *data = (buf_data_t*)buf_out;
         data--;
-        dbfile->read_async(off_in, static_config->block_size().ser_value(), data, cb);
+        dbfile->read_async(off_in, static_config->block_size().ser_value(), data, DEFAULT_DISK_ACCOUNT, cb);
     }
 
     return false;
@@ -227,7 +227,7 @@ bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, se
         rassert(data->block_id == block_id);
     }
 
-    dbfile->write_async(offset, static_config->block_size().ser_value(), data, cb);
+    dbfile->write_async(offset, static_config->block_size().ser_value(), data, DEFAULT_DISK_ACCOUNT, cb);
 
     return false;
 }
@@ -338,6 +338,7 @@ void data_block_manager_t::run_gc() {
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
                                            gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
+                                           DEFAULT_DISK_ACCOUNT,
                                            &(gc_state.gc_read_callback));
                         gc_state.refcount++;
                     }

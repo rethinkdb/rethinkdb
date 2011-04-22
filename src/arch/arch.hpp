@@ -109,8 +109,8 @@ inline void cancel_timer(timer_token_t *timer) {
     io_config_t::cancel_timer(timer);
 }
 
-void co_read(direct_file_t *file, size_t offset, size_t length, void *buf);
-void co_write(direct_file_t *file, size_t offset, size_t length, void *buf);
+void co_read(direct_file_t *file, size_t offset, size_t length, void *buf, direct_file_t::account_t *account);
+void co_write(direct_file_t *file, size_t offset, size_t length, void *buf, direct_file_t::account_t *account);
 
 #include "arch/spinlock.hpp"
 #include "arch/timing.hpp"

@@ -29,7 +29,7 @@ struct extent_block_t :
         parent->last_block = this;
         is_last_block = true;
         
-        parent->file->write_async(parent->offset + offset, DEVICE_BLOCK_SIZE, data, this);
+        parent->file->write_async(parent->offset + offset, DEVICE_BLOCK_SIZE, data, DEFAULT_DISK_ACCOUNT, this);
     }
     
     void on_extent_sync() {
@@ -89,7 +89,7 @@ extent_t::~extent_t() {
 
 void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb) {
     rassert(!last_block);
-    file->read_async(offset + pos, length, buffer, cb);
+    file->read_async(offset + pos, length, buffer, DEFAULT_DISK_ACCOUNT, cb);
 }
 
 void extent_t::append(void *buffer, size_t length) {

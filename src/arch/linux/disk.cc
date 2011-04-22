@@ -16,6 +16,7 @@
 #include "arch/linux/disk/pool.hpp"
 #include "arch/linux/disk/conflict_resolving.hpp"
 #include "arch/linux/disk/stats.hpp"
+#include "arch/linux/disk/accounting.hpp"
 
 // #define DEBUG_DUMP_WRITES 1
 
@@ -27,8 +28,14 @@ actual implementations can be swapped in at runtime. */
 
 struct linux_disk_manager_t {
     virtual ~linux_disk_manager_t() { }
-    virtual void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, linux_iocallback_t *cb) = 0;
-    virtual void submit_read(fd_t fd, void *buf, size_t count, size_t offset, linux_iocallback_t *cb) = 0;
+
+    virtual void *create_account(int priority) = 0;
+    virtual void destroy_account(void *account) = 0;
+
+    virtual void submit_write(fd_t fd, const void *buf, size_t count, size_t offset,
+        void *account, linux_iocallback_t *cb) = 0;
+    virtual void submit_read(fd_t fd, void *buf, size_t count, size_t offset,
+        void *account, linux_iocallback_t *cb) = 0;
 };
 
 template<class backend_t>
@@ -36,7 +43,10 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
 
     backend_t backend;
 
-    typedef conflict_resolving_diskmgr_t<typename backend_t::action_t> conflict_resolver_t;
+    typedef accounting_diskmgr_t<typename backend_t::action_t> accounter_t;
+    accounter_t accounter;
+
+    typedef conflict_resolving_diskmgr_t<typename accounter_t::action_t> conflict_resolver_t;
     conflict_resolver_t conflict_resolver;
 
     typedef stats_diskmgr_t<typename conflict_resolver_t::action_t> stats_t;
@@ -47,25 +57,41 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
     };
 
     linux_templated_disk_manager_t(linux_event_queue_t *queue) :
-        backend(queue)
+        backend(queue),
+        /* The parameter to `accounter` is how many IO operations it will pass on to `backend`
+        before waiting for some of them to complete. If it is too high, then the accounting will be
+        biased. If it is too low, then `backend`'s pipeline won't always be full. */
+        accounter(TARGET_IO_QUEUE_DEPTH * 2)
     {
         stats.submit_fun = boost::bind(&conflict_resolver_t::submit, &conflict_resolver, _1);
-        conflict_resolver.submit_fun = boost::bind(&backend_t::submit, &backend, _1);
-        backend.done_fun = boost::bind(&conflict_resolver_t::done, &conflict_resolver, _1);
+        conflict_resolver.submit_fun = boost::bind(&accounter_t::submit, &accounter, _1);
+        accounter.submit_fun = boost::bind(&backend_t::submit, &backend, _1);
+        backend.done_fun = boost::bind(&accounter_t::done, &accounter, _1);
+        accounter.done_fun = boost::bind(&conflict_resolver_t::done, &conflict_resolver, _1);
         conflict_resolver.done_fun = boost::bind(&stats_t::done, &stats, _1);
         stats.done_fun = boost::bind(&linux_templated_disk_manager_t<backend_t>::done, this, _1);
     }
 
-    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, linux_iocallback_t *cb) {
+    void *create_account(int pri) {
+        return reinterpret_cast<void*>(new typename accounter_t::account_t(&accounter, pri));
+    }
+
+    void destroy_account(void *account) {
+        delete reinterpret_cast<typename accounter_t::account_t*>(account);
+    }
+
+    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
         action_t *a = new action_t;
         a->make_write(fd, buf, count, offset);
+        a->account = reinterpret_cast<typename accounter_t::account_t*>(account);
         a->cb = cb;
         stats.submit(a);
     }
 
-    void submit_read(fd_t fd, void *buf, size_t count, size_t offset, linux_iocallback_t *cb) {
+    void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
         action_t *a = new action_t;
         a->make_read(fd, buf, count, offset);
+        a->account = reinterpret_cast<typename accounter_t::account_t*>(account);
         a->cb = cb;
         stats.submit(a);
     };
@@ -76,6 +102,16 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
         delete a2;
     }
 };
+
+/* Disk account object */
+
+linux_file_t::account_t::account_t(linux_file_t *par, int pri) :
+    parent(par), account(parent->diskmgr->create_account(pri))
+    { }
+
+linux_file_t::account_t::~account_t() {
+    parent->diskmgr->destroy_account(account);
+}
 
 /* Disk file object */
 
@@ -145,6 +181,8 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
             diskmgr.reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue));
         }
     }
+
+    default_account.reset(new account_t(this, 1));
 }
 
 bool linux_file_t::exists() {
@@ -179,15 +217,17 @@ void linux_file_t::set_size_at_least(size_t size) {
     }
 }
 
-bool linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
+bool linux_file_t::read_async(size_t offset, size_t length, void *buf, account_t *account, linux_iocallback_t *callback) {
 
     verify(offset, length, buf);
-    diskmgr->submit_read(fd.get(), buf, length, offset, callback);
+    diskmgr->submit_read(fd.get(), buf, length, offset,
+        account == DEFAULT_DISK_ACCOUNT ? default_account->account : account->account,
+        callback);
 
     return false;
 }
 
-bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, linux_iocallback_t *callback) {
+bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, account_t *account, linux_iocallback_t *callback) {
 
 #ifdef DEBUG_DUMP_WRITES
     printf("--- WRITE BEGIN ---\n");
@@ -198,7 +238,9 @@ bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, li
 #endif
 
     verify(offset, length, buf);
-    diskmgr->submit_write(fd.get(), buf, length, offset, callback);
+    diskmgr->submit_write(fd.get(), buf, length, offset,
+        account == DEFAULT_DISK_ACCOUNT ? default_account->account : account->account,
+        callback);
 
     return false;
 }
