@@ -45,6 +45,7 @@ public:
     virtual void hello(net_hello_t message) = 0;
     virtual void send(scoped_malloc<net_backfill_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_complete_t>& message) = 0;
+    virtual void send(scoped_malloc<net_backfill_delete_everything_t>& message) = 0;
     virtual void send(scoped_malloc<net_announce_t>& message) = 0;
     virtual void send(scoped_malloc<net_get_cas_t>& message) = 0;
     virtual void send(stream_pair<net_sarc_t>& message) = 0;
@@ -101,6 +102,7 @@ public:
 
     void send(net_backfill_t *msg);
     void send(net_backfill_complete_t *msg);
+    void send(net_backfill_delete_everything_t msg);
     void send(net_announce_t *msg);
     void send(net_get_cas_t *msg);
     void send(net_sarc_t *msg, const char *key, unique_ptr_t<data_provider_t> value);

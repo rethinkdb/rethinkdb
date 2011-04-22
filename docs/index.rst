@@ -399,16 +399,21 @@ ignore the corrupted parts of the database file.
 Replication and Failover
 ------------------------
 
-RethinkDB servers can be run master-slave configuration. Slaves will be kept in
+RethinkDB servers can be run in a master-slave configuration. Slaves will be kept in
 a consistent state with the master and will only respond to read commands as
 long as the master remains up. On master failure the slave will switch to
 responding to all commands until the master is brought back up and caught up on
 the slave's changes. The following commands start a slave and a master.::
 
-  $ rethinkdb serve --master-port port
+  $ rethinkdb serve --masterport
   $ rethinkdb serve --slave-of host:port
 
-RethinkDB can be configured to run a script on failure
+RethinkDB can run a user specified script on failure by running the slave as follows:::
+
+  $ rethinkdb serve --slave-of host:port --failover-script foo
+
+RethinkDB will call the script with ``down`` as its first argument when the
+master goes down and ``up`` as its first argument when the master comes up.
 
 ``````````
 Amazon ELB
@@ -420,6 +425,35 @@ and should use TCP. The following command will start a slave that correctly work
 with ELB::
 
   $ rethinkdb server --slave-of host:port --run-behind-elb
+
+```````````````````
+IP Address Stealing
+```````````````````
+RethinkDB can load balance by manipulation if IP addresses. In this scheme the
+slave, on failover will "steal" the fallen master's IP address thus invisibly
+redirecting new connections to itself. The master machine must be run with 2 IP
+addresses, one for user connections and one for replication connections. This
+way the slave can steal the master's user facing address but not the
+replication address thus allowing it to reconnect when the master becomes
+available. Virtual IPs can be setup on Linux like so:::
+
+  user@master$ ifconfig eth0:1 192.168.0.2 up
+
+And taken back down with::
+
+  user@master$ ifconfig eth0:1 down
+
+The slave side script which will facilitate this is:::
+
+  #!/bin/bash
+  if [ "$1" = "down" ]
+  then
+  ifconfig eth0:1 user_facing_ip_addr up
+  fi
+  if [ "$1" = "up" ]
+  then
+  ifconfig eth0:1 down
+  fi
 
 =================  
 Advanced features

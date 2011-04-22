@@ -817,7 +817,7 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
     }
 
     *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
-    rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
+    rassert(roots.size() == 0 || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
 }
 
 

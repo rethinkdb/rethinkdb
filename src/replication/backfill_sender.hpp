@@ -19,6 +19,7 @@ struct backfill_sender_t :
 
     /* backfill_and_realtime_streaming_callback_t interface */
 
+    void backfill_delete_everything();
     void backfill_deletion(store_key_t key);
     void backfill_set(backfill_atom_t atom);
     void backfill_done(repli_timestamp_t timestamp_when_backfill_began);
