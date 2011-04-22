@@ -181,7 +181,8 @@ enum {
     flush_threshold,
     run_behind_elb,
     failover,
-    full_perfmon
+    full_perfmon,
+    total_delete_queue_limit
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -243,6 +244,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"failover",             no_argument, 0, failover}, //TODO hook this up
                 {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
+                {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
                 {0, 0, 0, 0}
             };
 
@@ -275,7 +277,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_cores(optarg); break;
             case 's':
                 slices_set_by_user = true;
-                config.set_slices(optarg); break;
+                config.set_slices(optarg);
+                break;
             case 'f':
                 config.push_private_config(optarg); break;
 #ifdef SEMANTIC_SERIALIZER_CHECK
@@ -319,12 +322,13 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case failover_script:
                 config.set_failover_file(optarg); break;
             case heartbeat_timeout:
-                not_implemented();
-                break;
+                not_implemented(); break;
             case run_behind_elb:
                 config.set_elb_port(optarg); break;
             case full_perfmon:
                 global_full_perfmon = true; break;
+            case total_delete_queue_limit:
+                config.set_total_delete_queue_limit(optarg); break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -675,8 +679,9 @@ void parsing_cmd_config_t::set_master_listen_port(const char *value) {
     }
 }
 
-void parsing_cmd_config_t::set_master_addr(char *value) {
-    char *token = strtok(value, ":");
+void parsing_cmd_config_t::set_master_addr(const char *value) {
+    std::vector<char> copy(value, value + 1 + strlen(value));
+    char *token = strtok(copy.data(), ":");
     if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN - 1) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
     }
@@ -692,6 +697,14 @@ void parsing_cmd_config_t::set_master_addr(char *value) {
     replication_config.port = parse_int(token);
 
     replication_config.active = true;
+}
+
+void parsing_cmd_config_t::set_total_delete_queue_limit(const char *value) {
+    int64_t target = parse_longlong(value);
+    if (parsing_failed || target < 0)
+        fail_due_to_user_error("Total delete queue limit must be non-negative\n");
+
+    store_dynamic_config.total_delete_queue_limit = target;
 }
 
 void parsing_cmd_config_t::set_failover_file(const char* value) {
@@ -865,7 +878,9 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.cache.flush_dirty_size = 0;
     store_dynamic_config.cache.flush_waiting_threshold = DEFAULT_FLUSH_WAITING_THRESHOLD;
     store_dynamic_config.cache.max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
-    
+
+    store_dynamic_config.total_delete_queue_limit = DEFAULT_TOTAL_DELETE_QUEUE_LIMIT;
+
     create_store = false;
     force_create = false;
     shutdown_after_creation = false;

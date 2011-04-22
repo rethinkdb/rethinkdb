@@ -90,6 +90,32 @@ struct backfill_and_streaming_manager_t :
 
     /* backfill_callback_t implementation */
 
+    bool should_send_deletion_keys(bool can_send_deletion_keys) {
+        on_thread_t th(home_thread);
+
+        if (all_delete_queues_so_far_can_send_keys_ && !can_send_deletion_keys) {
+            all_delete_queues_so_far_can_send_keys_ = false;
+
+            // We only send this once, and it is important that we
+            // send it before the delete_queues_can_send_keys_cond_
+            // gets pulsed, because then a delete queue could finish
+            // and start sending sets before we sent a
+            // delete_everything message.
+            handler_->backfill_delete_everything();
+        }
+
+        delete_queues_can_send_keys_cond_.pulse();
+
+        // Wait until all slices have pulsed it.
+        delete_queues_can_send_keys_cond_.wait();
+
+        return all_delete_queues_so_far_can_send_keys_;
+    }
+
+    void wait_and_maybe_send_delete_all_keys_message() {
+        delete_queues_can_send_keys_cond_.wait();
+    }
+
     /* The store calls this when we need to backfill a deletion. */
     void deletion_key(const btree_key_t *key) {
         // This runs on the scheduler thread.
@@ -160,6 +186,9 @@ struct backfill_and_streaming_manager_t :
 
     /* Startup, shutdown, and member variables */
 
+    multicond_t delete_queues_can_send_keys_cond_;
+    bool all_delete_queues_so_far_can_send_keys_;
+
     btree_key_value_store_t *internal_store_;
     backfill_and_realtime_streaming_callback_t *handler_;
 
@@ -179,6 +208,8 @@ struct backfill_and_streaming_manager_t :
     backfill_and_streaming_manager_t(btree_key_value_store_t *kvs,
             backfill_and_realtime_streaming_callback_t *handler,
             repli_timestamp_t timestamp) :
+        delete_queues_can_send_keys_cond_(kvs->btree_static_config.n_slices),
+        all_delete_queues_so_far_can_send_keys_(true),
         internal_store_(kvs),
         handler_(handler),
         coro_pool(512) // TODO: Make this a define-constant or something

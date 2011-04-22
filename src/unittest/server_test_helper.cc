@@ -46,7 +46,7 @@ void server_test_helper_t::setup_server_and_run_tests() {
 
         this->serializer = multiplexer.proxies[0];
         btree_slice_t::create(this->serializer, &config.store_static_config.cache);
-        btree_slice_t slice(this->serializer, &config.store_dynamic_config.cache);
+        btree_slice_t slice(this->serializer, &config.store_dynamic_config.cache, MEGABYTE);
 
         cache_t *cache = slice.cache();
 
