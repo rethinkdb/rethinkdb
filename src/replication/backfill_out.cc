@@ -93,7 +93,16 @@ struct backfill_and_streaming_manager_t :
     bool should_send_deletion_keys(bool can_send_deletion_keys) {
         on_thread_t th(home_thread);
 
-        all_delete_queues_so_far_can_send_keys_ &= can_send_deletion_keys;
+        if (all_delete_queues_so_far_can_send_keys_ && !can_send_deletion_keys) {
+            all_delete_queues_so_far_can_send_keys_ = false;
+
+            // We only send this once, and it is important that we
+            // send it before the delete_queues_can_send_keys_cond_
+            // gets pulsed, because then a delete queue could finish
+            // and start sending sets before we sent a
+            // delete_everything message.
+            handler_->backfill_delete_everything();
+        }
 
         delete_queues_can_send_keys_cond_.pulse();
 
@@ -101,6 +110,10 @@ struct backfill_and_streaming_manager_t :
         delete_queues_can_send_keys_cond_.wait();
 
         return all_delete_queues_so_far_can_send_keys_;
+    }
+
+    void wait_and_maybe_send_delete_all_keys_message() {
+        delete_queues_can_send_keys_cond_.wait();
     }
 
     /* The store calls this when we need to backfill a deletion. */
