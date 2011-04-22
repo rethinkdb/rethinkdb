@@ -73,7 +73,7 @@ class traversal_state_t {
 public:
     traversal_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _transaction_tstamp, btree_traversal_helper_t *_helper)
         : slice(_slice),
-          transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), helper->transaction_mode(), _transaction_tstamp)),
+          transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), _helper->transaction_mode(), _transaction_tstamp)),
           helper(_helper) { }
 
     // The slice whose btree we're traversing
