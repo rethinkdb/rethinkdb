@@ -62,7 +62,8 @@ void scc_buf_t<inner_cache_t>::touch_recency(repli_timestamp timestamp) {
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::release() {
     rassert(inner_buf);
-    if (!snapshotted && !inner_buf->is_deleted() && should_load) {
+    if (!snapshotted && !inner_buf->is_deleted()) {
+        rassert (should_load);
         if (!inner_buf->is_dirty() && cache->crc_map.get(inner_buf->get_block_id())) {
             rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
         } else {
@@ -80,8 +81,7 @@ void scc_buf_t<inner_cache_t>::on_block_available(typename inner_cache_t::buf_t 
     rassert(buf);
 
     inner_buf = buf;
-    // TODO: Can we reach this with !should_load? I guess if the block has been loaded before and we were just waiting on the lock to become available?
-    if (!snapshotted && should_load) {
+    if (!snapshotted) {
         if (cache->crc_map.get(inner_buf->get_block_id())) {
             rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
         } else {
