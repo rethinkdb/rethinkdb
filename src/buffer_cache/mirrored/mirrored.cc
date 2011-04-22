@@ -121,6 +121,11 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
 
         inner_buf->subtree_recency = recency_timestamp;
         inner_buf->data = cache->serializer->malloc();
+        #if !defined(NDEBUG) || defined(VALGRIND)
+            // The memory allocator already filled this with 0xBD, but it's nice to be able to distinguish
+            // between problems with uninitialized memory and problems with uninitialized blocks
+            memset(inner_buf->data, 0xCD, cache->serializer->get_block_size().value());
+        #endif
         inner_buf->version_id = snapshot_version;
         inner_buf->do_delete = false;
         inner_buf->next_patch_counter = 1;
