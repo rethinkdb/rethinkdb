@@ -26,6 +26,12 @@ protected:
             // to be broken), at the time of writing the test.
             run_unprepend_shift_babytest(saver, cache, 4 * leaf_bytes(cache), leaf_bytes(cache));
         }
+        {
+#ifndef NDEBUG
+            TRACEPOINT;
+#endif
+            run_pend_grind_test(saver, cache);
+        }
     }
 
 private:
@@ -87,6 +93,54 @@ private:
             lb.read_at(0, chars_out.data(), initial_size - unprepend_amount);
 
             ASSERT_TRUE(chars == chars_out);
+        }
+    }
+
+    void run_pend_grind_test(thread_saver_t& saver, cache_t *cache) {
+        const int num_root_ref_inlined = 2;
+
+        // Sanity check test parameters.
+
+
+        repli_timestamp time = repli_timestamp_t::distant_past();
+
+        boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache, rwi_write, 0, time));
+
+        union {
+            large_buf_ref ref;
+            char ref_bytes[sizeof(large_buf_ref) + num_root_ref_inlined * sizeof(block_id_t)];
+        };
+
+        std::vector<char> chars(5000);
+        for (int64_t i = 0; i < 5000; ++i) {
+            // 23 is relatively prime to leaf_size, which should be 4080.
+            chars[i] = 'A' + (i % 23);
+        }
+        
+        {
+            large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
+            lb.allocate(5000);
+            lb.fill_at(0, chars.data(), 5000);
+        }
+
+        for (int i = 0; i < 10000; i++) {
+            debugf("%d\n", i);
+            {
+                large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
+                co_acquire_large_buf_for_unprepend(saver, &lb, 100);
+                int refsize_adjustment_out;
+                lb.unprepend(100, &refsize_adjustment_out);
+                debugf("unprepend: %d\n", refsize_adjustment_out);
+            }
+            {
+                large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
+                threadsafe_cond_t cond;
+                co_acquire_large_buf(saver, &lb, &cond);
+                cond.wait();
+                int refsize_adjustment_out;
+                lb.append(100, &refsize_adjustment_out);
+                debugf("append: %d\n", refsize_adjustment_out);
+            }
         }
     }
 };
