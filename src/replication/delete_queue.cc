@@ -174,11 +174,8 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
                 i += sizeof(tao);
             }
 
-            if (!begin_found) {
-                // TODO: Uh, we need to send some kind of "delete
-                // everything, we are backfilling from the beginning"
-                // command.
-                goto done;
+            if (!recipient->should_send_deletion_keys(begin_found)) {
+                return;
             }
 
             // So we have a begin_offset and an end_offset.
@@ -212,7 +209,6 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
         }
     }
 
- done:
     recipient->done_deletion_keys();
 }
 
