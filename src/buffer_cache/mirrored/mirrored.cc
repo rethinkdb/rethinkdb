@@ -533,6 +533,7 @@ void mc_buf_t::release() {
             inner_buf->writeback_buf.set_recency_dirty(false); // TODO: Do we need to handle recency in master in some other way?
         }
         if (inner_buf->safe_to_unload()) {
+            inner_buf->cache->free_list.release_block_id(inner_buf->block_id);
             delete inner_buf;
             inner_buf = NULL;
         }

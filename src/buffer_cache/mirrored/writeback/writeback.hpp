@@ -221,8 +221,6 @@ public:
         struct buf_writer_t;
         std::vector<buf_writer_t *> buf_writers;
 
-        std::vector<block_id_t> deleted_block_ids; // These have been deleted and can be added to the free list upon finish of the serializer write preparation
-
         writeback_t* parent; // We need this for flush concurrency control (i.e. flush_lock, active_flushes etc.)
 
         ticks_t start_time;
