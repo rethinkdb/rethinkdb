@@ -67,6 +67,11 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
         repli_timestamp since_when;
 
         void got_subtree_recencies() {
+            coro_t::spawn(boost::bind(&annoying_t::do_got_subtree_recencies, this));
+        }
+
+        void do_got_subtree_recencies() {
+            rassert(coro_t::self());
             boost::scoped_array<block_id_t> local_block_ids;
             local_block_ids.swap(block_ids);
             int j = 0;
@@ -77,9 +82,9 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
                 }
             }
             int num_surviving_block_ids = j;
-
+            interesting_children_callback_t *local_cb = cb;
             delete this;
-            coro_t::spawn(boost::bind(&interesting_children_callback_t::receive_interesting_children, cb, boost::ref(local_block_ids), num_surviving_block_ids));
+            local_cb->receive_interesting_children(local_block_ids, num_surviving_block_ids);
         }
     };
 

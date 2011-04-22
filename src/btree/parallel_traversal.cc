@@ -82,7 +82,7 @@ public:
     boost::shared_ptr<transactor_t> transactor_ptr;
 
     // The helper.
-    boost::scoped_ptr<btree_traversal_helper_t> helper;
+    btree_traversal_helper_t *helper;
 
     cond_t finished_cond;
 
