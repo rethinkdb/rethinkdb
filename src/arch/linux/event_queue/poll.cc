@@ -7,9 +7,10 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
+#include <poll.h>
 #include "config/args.hpp"
 #include "utils2.hpp"
-#include "arch/linux/disk.hpp"
+#include "arch/linux/event_queue.hpp"
 #include "arch/linux/event_queue/poll.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "logger.hpp"

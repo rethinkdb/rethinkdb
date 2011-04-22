@@ -11,31 +11,73 @@
 #include "config/args.hpp"
 #include "utils2.hpp"
 #include "arch/linux/coroutines.hpp"
-#include "arch/linux/disk/diskmgr.hpp"
-#include "arch/linux/disk/aio/submit_pool.hpp"
-#include "arch/linux/disk/aio/submit_sync.hpp"
 #include "logger.hpp"
+#include "arch/linux/disk/aio.hpp"
+#include "arch/linux/disk/pool.hpp"
+#include "arch/linux/disk/conflict_resolving.hpp"
+#include "arch/linux/disk/stats.hpp"
 
 // #define DEBUG_DUMP_WRITES 1
 
+/* Disk manager object takes care of queueing operations, collecting statistics, preventing
+conflicts, and actually sending them to the disk. Defined as an abstract class so that different
+actual implementations can be swapped in at runtime. */
+
+// TODO: If two files are on the same disk, should they share part of the disk manager?
+
+struct linux_disk_manager_t {
+    virtual ~linux_disk_manager_t() { }
+    virtual void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, linux_iocallback_t *cb) = 0;
+    virtual void submit_read(fd_t fd, void *buf, size_t count, size_t offset, linux_iocallback_t *cb) = 0;
+};
+
+template<class backend_t>
+struct linux_templated_disk_manager_t : public linux_disk_manager_t {
+
+    backend_t backend;
+
+    typedef conflict_resolving_diskmgr_t<typename backend_t::action_t> conflict_resolver_t;
+    conflict_resolver_t conflict_resolver;
+
+    typedef stats_diskmgr_t<typename conflict_resolver_t::action_t> stats_t;
+    stats_t stats;
+
+    struct action_t : public stats_t::action_t {
+        linux_iocallback_t *cb;
+    };
+
+    linux_templated_disk_manager_t(linux_event_queue_t *queue) :
+        backend(queue)
+    {
+        stats.submit_fun = boost::bind(&conflict_resolver_t::submit, &conflict_resolver, _1);
+        conflict_resolver.submit_fun = boost::bind(&backend_t::submit, &backend, _1);
+        backend.done_fun = boost::bind(&conflict_resolver_t::done, &conflict_resolver, _1);
+        conflict_resolver.done_fun = boost::bind(&stats_t::done, &stats, _1);
+        stats.done_fun = boost::bind(&linux_templated_disk_manager_t<backend_t>::done, this, _1);
+    }
+
+    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, linux_iocallback_t *cb) {
+        action_t *a = new action_t;
+        a->make_write(fd, buf, count, offset);
+        a->cb = cb;
+        stats.submit(a);
+    }
+
+    void submit_read(fd_t fd, void *buf, size_t count, size_t offset, linux_iocallback_t *cb) {
+        action_t *a = new action_t;
+        a->make_read(fd, buf, count, offset);
+        a->cb = cb;
+        stats.submit(a);
+    };
+
+    void done(typename stats_t::action_t *a) {
+        action_t *a2 = static_cast<action_t *>(a);
+        a2->cb->on_io_complete();
+        delete a2;
+    }
+};
+
 /* Disk file object */
-
-perfmon_duration_sampler_t
-    pm_io_reads_started("io_disk_reads", secs_to_ticks(1)),
-    pm_io_writes_started("io_disk_writes", secs_to_ticks(1));
-
-linux_disk_op_t::linux_disk_op_t(bool is_write, linux_iocallback_t *cb)
-    : is_write(is_write), callback(cb) {
-    if (is_write) pm_io_writes_started.begin(&start_time);
-    else pm_io_reads_started.begin(&start_time);
-}
-
-void linux_disk_op_t::done() {
-    if (is_write) pm_io_writes_started.end(&start_time);
-    else pm_io_reads_started.end(&start_time);
-    callback->on_io_complete();
-    delete this;
-}
 
 linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, const linux_io_backend_t io_backend)
     : fd(INVALID_FD)
@@ -95,9 +137,13 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
     }
 
     // Construct a disk manager.
-    // TODO: If two files are on the same disk, they should use the same disk manager maybe.
     if (linux_thread_pool_t::thread) {
-        diskmgr.reset(new linux_diskmgr_aio_t(&linux_thread_pool_t::thread->queue, io_backend));
+        linux_event_queue_t *queue = &linux_thread_pool_t::thread->queue;
+        if (io_backend == aio_native) {
+            diskmgr.reset(new linux_templated_disk_manager_t<linux_diskmgr_aio_t>(queue));
+        } else {
+            diskmgr.reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue));
+        }
     }
 }
 
@@ -136,7 +182,7 @@ void linux_file_t::set_size_at_least(size_t size) {
 bool linux_file_t::read_async(size_t offset, size_t length, void *buf, linux_iocallback_t *callback) {
 
     verify(offset, length, buf);
-    diskmgr->pread(fd.get(), buf, length, offset, new linux_disk_op_t(false, callback));
+    diskmgr->submit_read(fd.get(), buf, length, offset, callback);
 
     return false;
 }
@@ -152,7 +198,7 @@ bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, li
 #endif
 
     verify(offset, length, buf);
-    diskmgr->pwrite(fd.get(), buf, length, offset, new linux_disk_op_t(true, callback));
+    diskmgr->submit_write(fd.get(), buf, length, offset, callback);
 
     return false;
 }

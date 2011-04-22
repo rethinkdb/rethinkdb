@@ -8,7 +8,7 @@
 some systems. */
 
 struct linux_aio_getevents_eventfd_t :
-    public linux_aio_getevents_t, public linux_event_callback_t
+    public linux_diskmgr_aio_t::getevents_strategy_t, public linux_event_callback_t
 {
     explicit linux_aio_getevents_eventfd_t(linux_diskmgr_aio_t *parent);
     ~linux_aio_getevents_eventfd_t();

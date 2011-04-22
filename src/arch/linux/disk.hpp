@@ -18,19 +18,7 @@ struct linux_iocallback_t {
     virtual void on_io_complete() = 0;
 };
 
-struct linux_disk_op_t {
-
-    /* Used for profiling. */
-    bool is_write;
-    ticks_t start_time;
-
-    linux_iocallback_t *callback;
-
-    linux_disk_op_t(bool is_write, linux_iocallback_t *cb);
-    void done();
-};
-
-struct linux_diskmgr_t;
+struct linux_disk_manager_t;
 
 class linux_file_t {
 public:
@@ -50,7 +38,7 @@ protected:
     void set_size_at_least(size_t size);
 
     /* These always return 'false'; the reason they return bool instead of void
-is for consistency with other asynchronous-callback methods */
+    is for consistency with other asynchronous-callback methods */
     bool read_async(size_t offset, size_t length, void *buf, linux_iocallback_t *cb);
     bool write_async(size_t offset, size_t length, const void *buf, linux_iocallback_t *cb);
 
@@ -65,7 +53,7 @@ private:
     bool file_exists;
     uint64_t file_size;
     void verify(size_t offset, size_t length, const void *buf);
-    boost::scoped_ptr<linux_diskmgr_t> diskmgr;
+    boost::scoped_ptr<linux_disk_manager_t> diskmgr;
 
     DISABLE_COPYING(linux_file_t);
 };

@@ -7,7 +7,7 @@
 /* Strategy for calling io_getevents() that works when io_set_eventfd() is missing */
 
 struct linux_aio_getevents_noeventfd_t :
-    public linux_aio_getevents_t, public linux_event_callback_t
+    public linux_diskmgr_aio_t::getevents_strategy_t, public linux_event_callback_t
 {
     explicit linux_aio_getevents_noeventfd_t(linux_diskmgr_aio_t *parent);
     ~linux_aio_getevents_noeventfd_t();
