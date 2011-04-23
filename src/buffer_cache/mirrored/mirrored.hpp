@@ -145,9 +145,8 @@ private:
 
     ~mc_buf_t();
 
-#ifndef FAST_PERFMON
+    /* For performance monitoring */
     long int patches_affected_data_size_at_start;
-#endif
 
 public:
     void release();
@@ -317,6 +316,12 @@ private:
     // components it wasn't originally given.
 
     translator_serializer_t *serializer;
+
+    // We use a separate IO account for reads and writes, so reads can pass ahead
+    // of active writebacks. Otherwise writebacks could badly block out readers,
+    // thereby blocking user queries.
+    boost::scoped_ptr<file_t::account_t> reads_io_account;
+    boost::scoped_ptr<file_t::account_t> writes_io_account;
 
     page_map_t page_map;
     page_repl_t page_repl;

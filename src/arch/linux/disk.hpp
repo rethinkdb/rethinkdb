@@ -18,19 +18,9 @@ struct linux_iocallback_t {
     virtual void on_io_complete() = 0;
 };
 
-struct linux_disk_op_t {
+struct linux_disk_manager_t;
 
-    /* Used for profiling. */
-    bool is_write;
-    ticks_t start_time;
-
-    linux_iocallback_t *callback;
-
-    linux_disk_op_t(bool is_write, linux_iocallback_t *cb);
-    void done();
-};
-
-struct linux_diskmgr_t;
+#define DEFAULT_DISK_ACCOUNT NULL
 
 class linux_file_t {
 public:
@@ -40,7 +30,18 @@ public:
         mode_create = 1 << 2
     };
 
-protected:
+    struct account_t {
+        account_t(linux_file_t *f, int p);
+        ~account_t();
+    private:
+        friend class linux_file_t;
+        linux_file_t *parent;
+        /* account is internally a pointer to a accounting_diskmgr_t::account_t object. It has to be
+        a void* because accounting_diskmgr_t is a template, so its actual type depends on what
+        IO backend is chosen. */
+        void *account;
+    };
+
     linux_file_t(const char *path, int mode, bool is_really_direct, const linux_io_backend_t io_backend);
 
     bool exists();
@@ -50,9 +51,9 @@ protected:
     void set_size_at_least(size_t size);
 
     /* These always return 'false'; the reason they return bool instead of void
-is for consistency with other asynchronous-callback methods */
-    bool read_async(size_t offset, size_t length, void *buf, linux_iocallback_t *cb);
-    bool write_async(size_t offset, size_t length, const void *buf, linux_iocallback_t *cb);
+    is for consistency with other asynchronous-callback methods */
+    bool read_async(size_t offset, size_t length, void *buf, account_t *account, linux_iocallback_t *cb);
+    bool write_async(size_t offset, size_t length, const void *buf, account_t *account, linux_iocallback_t *cb);
 
     void read_blocking(size_t offset, size_t length, void *buf);
     void write_blocking(size_t offset, size_t length, const void *buf);
@@ -65,7 +66,12 @@ private:
     bool file_exists;
     uint64_t file_size;
     void verify(size_t offset, size_t length, const void *buf);
-    boost::scoped_ptr<linux_diskmgr_t> diskmgr;
+
+    /* In a scoped pointer because it's polymorphic */
+    boost::scoped_ptr<linux_disk_manager_t> diskmgr;
+
+    /* In a scoped_ptr so we can initialize it after "diskmgr" */
+    boost::scoped_ptr<account_t> default_account;
 
     DISABLE_COPYING(linux_file_t);
 };
@@ -73,37 +79,19 @@ private:
 /* The "direct" in linux_direct_file_t refers to the fact that the
 file is opened in O_DIRECT mode, and there are restrictions on the
 alignment of the chunks being written and read to and from the file. */
-class linux_direct_file_t : private linux_file_t {
+class linux_direct_file_t : public linux_file_t {
 public:
-    using linux_file_t::exists;
-    using linux_file_t::is_block_device;
-    using linux_file_t::get_size;
-    using linux_file_t::set_size;
-    using linux_file_t::set_size_at_least;
-    using linux_file_t::read_async;
-    using linux_file_t::write_async;
-    using linux_file_t::read_blocking;
-    using linux_file_t::write_blocking;
-
-    linux_direct_file_t(const char *path, int mode, const linux_io_backend_t io_backend = aio_native) : linux_file_t(path, mode, true, io_backend) { }
+    linux_direct_file_t(const char *path, int mode, const linux_io_backend_t io_backend = aio_native) :
+        linux_file_t(path, mode, true, io_backend) { }
 
 private:
     DISABLE_COPYING(linux_direct_file_t);
 };
 
-class linux_nondirect_file_t : private linux_file_t {
+class linux_nondirect_file_t : public linux_file_t {
 public:
-    using linux_file_t::exists;
-    using linux_file_t::is_block_device;
-    using linux_file_t::get_size;
-    using linux_file_t::set_size;
-    using linux_file_t::set_size_at_least;
-    using linux_file_t::read_async;
-    using linux_file_t::write_async;
-    using linux_file_t::read_blocking;
-    using linux_file_t::write_blocking;
-
-    linux_nondirect_file_t(const char *path, int mode, const linux_io_backend_t io_backend = aio_native) : linux_file_t(path, mode, false, io_backend) { }
+    linux_nondirect_file_t(const char *path, int mode, const linux_io_backend_t io_backend = aio_native) :
+        linux_file_t(path, mode, false, io_backend) { }
 
 private:
     DISABLE_COPYING(linux_nondirect_file_t);

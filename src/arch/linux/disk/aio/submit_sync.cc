@@ -12,13 +12,12 @@ linux_aio_submit_sync_t::~linux_aio_submit_sync_t() {
 }
 
 void linux_aio_submit_sync_t::submit(iocb *operation) {
-    queue.push(operation);
+    queue.push_back(operation);
     pump();
 }
 
-void linux_aio_submit_sync_t::notify_done(iocb *event) {
+void linux_aio_submit_sync_t::notify_done() {
     n_pending--;
-    dependencies.unregister_request(event);
     pump();
 }
 
@@ -29,14 +28,10 @@ void linux_aio_submit_sync_t::pump() {
         size_t target_batch_size = TARGET_IO_QUEUE_DEPTH - n_pending;
         request_batch.reserve(target_batch_size);
         while (!queue.empty() && request_batch.size() < target_batch_size) {
-            if (dependencies.is_conflicting(queue.peek()))
-                break;
-
-            iocb *request = queue.pull();
-            dependencies.register_active_request(request);
-
-            request_batch.push_back(request);
+            request_batch.push_back(queue.front());
+            queue.pop_front();
         }
+
         if (request_batch.size() == 0)
             break;
 

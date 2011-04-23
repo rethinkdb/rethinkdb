@@ -83,13 +83,14 @@ void create_existing_btree(
         btree_slice_t **btrees,
         timestamping_set_store_interface_t **timestampers,
         mirrored_cache_config_t *dynamic_config,
+        int64_t delete_queue_limit,
         int i) {
 
     // TODO try to align slices with serializers so that when possible, a slice is on the
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    btrees[i] = new btree_slice_t(pseudoserializers[i], dynamic_config);
+    btrees[i] = new btree_slice_t(pseudoserializers[i], dynamic_config, delete_queue_limit);
     timestampers[i] = new timestamping_set_store_interface_t(btrees[i]);
 }
 
@@ -121,7 +122,7 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     pmap(btree_static_config.n_slices,
          boost::bind(&create_existing_btree,
                      multiplexer->proxies.data(), btrees, timestampers,
-                     &per_slice_config, _1));
+                     &per_slice_config, dynamic_config->total_delete_queue_limit / btree_static_config.n_slices, _1));
 
     /* Initialize the timestampers to the correct timestamp */
     set_replication_clock(get_replication_clock());

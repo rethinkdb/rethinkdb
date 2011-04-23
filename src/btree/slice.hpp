@@ -36,7 +36,8 @@ public:
 
     // Blocks
     btree_slice_t(translator_serializer_t *serializer,
-                  mirrored_cache_config_t *dynamic_config);
+                  mirrored_cache_config_t *dynamic_config,
+                  int64_t delete_queue_limit);
 
     // Blocks
     ~btree_slice_t();
@@ -68,9 +69,11 @@ public:
     void remove_dispatcher(mutation_dispatcher_t *mdisp);
 
     cache_t *cache() { return &cache_; }
+    int64_t delete_queue_limit() { return delete_queue_limit_; }
 
 private:
     cache_t cache_;
+    int64_t delete_queue_limit_;
     intrusive_list_t<mutation_dispatcher_t> dispatchers_;
 
     DISABLE_COPYING(btree_slice_t);

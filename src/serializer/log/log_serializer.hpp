@@ -98,12 +98,14 @@ public:
     void *clone(void*); // clones a buf
     void free(void*);
 
+    file_t::account_t *make_io_account(int priority);
+
     void register_read_ahead_cb(read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
-    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback);
+    bool do_read(ser_block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback);
     ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf);
-    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) {
-        return do_write(writes, num_writes, callback, tid_callback, false);
+    bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) {
+        return do_write(writes, num_writes, io_account, callback, tid_callback, false);
     }
     block_size_t get_block_size();
     ser_block_id_t max_block_id();
@@ -111,14 +113,14 @@ public:
     repli_timestamp get_recency(ser_block_id_t id);
 
 private:
-    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback, bool main_mutex_has_been_acquired);
+    bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback, bool main_mutex_has_been_acquired);
 
     std::vector<read_ahead_callback_t*> read_ahead_callbacks;
     bool offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool should_perform_read_ahead();
 
     /* Called by the data block manager when it wants us to rewrite some blocks */
-    bool write_gcs(data_block_manager_t::gc_write_t *writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb);
+    bool write_gcs(data_block_manager_t::gc_write_t *writes, int num_writes, file_t::account_t *io_account, data_block_manager_t::gc_write_callback_t *cb);
 
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);

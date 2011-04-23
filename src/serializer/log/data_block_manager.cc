@@ -1,3 +1,5 @@
+#include <boost/smart_ptr/scoped_ptr.hpp>
+
 #include "data_block_manager.hpp"
 #include "log_serializer.hpp"
 #include "utils.hpp"
@@ -68,6 +70,7 @@ void data_block_manager_t::end_reconstruct() {
 void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
     rassert(state == state_unstarted);
     dbfile = file;
+    gc_io_account.reset(new file_t::account_t(file, GC_IO_PRIORITY));
     
     /* Reconstruct the active data block extents from the metablock. */
     
@@ -128,7 +131,7 @@ struct dbm_read_ahead_fsm_t :
     off64_t off_in;
     void *buf_out;
 
-    dbm_read_ahead_fsm_t(data_block_manager_t *p, off64_t off_in, void *buf_out, iocallback_t *cb)
+    dbm_read_ahead_fsm_t(data_block_manager_t *p, off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb)
         : parent(p), callback(cb), read_ahead_buf(NULL), off_in(off_in), buf_out(buf_out)
     {
         extent = floor_aligned(off_in, parent->static_config->extent_size());
@@ -138,7 +141,7 @@ struct dbm_read_ahead_fsm_t :
         // We divide the extent into chunks of size read_ahead_size, then select the one which contains off_in
         read_ahead_offset = extent + (off_in - extent) / read_ahead_size * read_ahead_size;
         read_ahead_buf = malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE);
-        parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, this);
+        parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, io_account, this);
     }
 
     void on_io_complete() {
@@ -193,23 +196,23 @@ struct dbm_read_ahead_fsm_t :
     }
 };
 
-bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb) {
+bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb) {
     rassert(state == state_ready);
 
     if (serializer->should_perform_read_ahead()) {
         // We still need an fsm for read ahead as additional work has to be done on io complete...
-        new dbm_read_ahead_fsm_t(this, off_in, buf_out, cb);
+        new dbm_read_ahead_fsm_t(this, off_in, buf_out, io_account, cb);
     }
     else {
         buf_data_t *data = (buf_data_t*)buf_out;
         data--;
-        dbfile->read_async(off_in, static_config->block_size().ser_value(), data, cb);
+        dbfile->read_async(off_in, static_config->block_size().ser_value(), data, io_account, cb);
     }
 
     return false;
 }
 
-bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb) {
+bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, file_t::account_t *io_account, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
@@ -227,7 +230,7 @@ bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, se
         rassert(data->block_id == block_id);
     }
 
-    dbfile->write_async(offset, static_config->block_size().ser_value(), data, cb);
+    dbfile->write_async(offset, static_config->block_size().ser_value(), data, io_account, cb);
 
     return false;
 }
@@ -336,11 +339,13 @@ void data_block_manager_t::run_gc() {
                     break;
                 }
 
+                rassert(gc_state.refcount == 0);
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
                                            gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
+                                           gc_io_account.get(),
                                            &(gc_state.gc_read_callback));
                         gc_state.refcount++;
                     }
@@ -385,6 +390,7 @@ void data_block_manager_t::run_gc() {
 
                     char *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
                     ser_block_id_t id = (reinterpret_cast<buf_data_t *>(block))->block_id;
+                    rassert(id != ser_block_id_t::null());
                     void *data = block + sizeof(buf_data_t);
 
                     gc_writes.push_back(gc_write_t(id, data));
@@ -392,11 +398,10 @@ void data_block_manager_t::run_gc() {
 
                 rassert(gc_writes.size() == (size_t)num_writes);
 
-                /* make sure the callback knows who we are */
                 gc_state.set_step(gc_write);
 
                 /* schedule the write */
-                bool done = gc_writer->write_gcs(gc_writes.data(), gc_writes.size(), this);
+                bool done = gc_writer->write_gcs(gc_writes.data(), gc_writes.size(), gc_io_account.get(), this);
                 if (!done) break;
             }
                 

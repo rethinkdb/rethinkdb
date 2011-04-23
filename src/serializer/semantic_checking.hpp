@@ -114,6 +114,10 @@ public:
         inner_serializer.free(ptr);
     }
 
+    file_t::account_t *make_io_account(int priority) {
+        return inner_serializer.make_io_account(priority);
+    }
+
 public:
     /* For reads, we check to make sure that the data we get back in the read is
     consistent with what was last written there. */
@@ -162,13 +166,13 @@ public:
         }
     };
 
-    bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
+    bool do_read(ser_block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback) {
 #ifdef SERIALIZER_DEBUG_PRINT
         printf("Reading %ld\n", block_id);
 #endif
         reader_t *reader = new reader_t(this, block_id, buf, blocks.get(block_id.value));
         reader->callback = NULL;
-        if (inner_serializer.do_read(block_id, buf, reader)) {
+        if (inner_serializer.do_read(block_id, buf, io_account, reader)) {
             reader->on_serializer_read();
             return true;
         } else {
@@ -204,7 +208,7 @@ public:
        }
     };
 
-    bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) {
+    bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) {
         for (int i = 0; i < num_writes; i++) {
 
             if (!writes[i].buf_specified) continue;
@@ -238,7 +242,7 @@ public:
 
         writer_t *writer = new writer_t(this, ++last_write_started);
         writer->callback = NULL;
-        if (inner_serializer.do_write(writes, num_writes, writer, tid_callback)) {
+        if (inner_serializer.do_write(writes, num_writes, io_account, writer, tid_callback)) {
             writer->on_serializer_write_txn();
             return true;
         } else {

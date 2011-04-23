@@ -7,7 +7,7 @@ bool static_header_check(direct_file_t *file) {
         return false;
     } else {
         static_header_t *buffer = (static_header_t *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-        co_read(file, 0, DEVICE_BLOCK_SIZE, buffer);
+        co_read(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
         bool equals = memcmp(buffer, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) == 0;
         free(buffer);
         return equals;
@@ -30,7 +30,7 @@ void co_static_header_write(direct_file_t *file, void *data, size_t data_size) {
     
     memcpy(buffer->data, data, data_size);
     
-    co_write(file, 0, DEVICE_BLOCK_SIZE, buffer);
+    co_write(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
     
     free(buffer);
 }
@@ -49,7 +49,7 @@ void co_static_header_read(direct_file_t *file, static_header_read_callback_t *c
     rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
     rassert(file->exists());
     static_header_t *buffer = (static_header_t*)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
-    co_read(file, 0, DEVICE_BLOCK_SIZE, buffer);
+    co_read(file, 0, DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
     if (memcmp(buffer->software_name, SOFTWARE_NAME_STRING, sizeof(SOFTWARE_NAME_STRING)) != 0) {
         fail_due_to_user_error("This doesn't appear to be a RethinkDB data file.");
     }

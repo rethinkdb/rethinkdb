@@ -7,21 +7,25 @@
 
 class bitset_t {
 private:
-    size_t _size, _count;
-    uint64_t *bits;
+    size_t _count, _size;
+    std::vector<uint64_t> bits;
 
 public:
-    explicit bitset_t(size_t size) {
-        bits = new uint64_t[ceil_aligned(size, 64) / 64];
-        bzero(bits, ceil_aligned(size, 64) / 64 * sizeof(uint64_t));
-        _size = size;
+    bitset_t() {
+        _size = 0;
         _count = 0;
 #ifndef NDEBUG
         verify();
 #endif
     }
-    ~bitset_t() {
-        delete[] bits;
+
+    explicit bitset_t(size_t size) {
+        bits.resize(ceil_aligned(size, 64) / 64, 0);
+        _size = size;
+        _count = 0;
+#ifndef NDEBUG
+        verify();
+#endif
     }
 
 public:
@@ -56,6 +60,16 @@ public:
 
     size_t size() const {
         return _size;
+    }
+
+    void resize(size_t size) {
+        bits.resize(ceil_aligned(size, 64) / 64, 0);
+        _size = size;
+        _count = 0;
+        for (int i = 0; i < (int)_size; i++) if (test(i)) _count++;
+#ifndef NDEBUG
+        verify();
+#endif
     }
 
     size_t count() const {

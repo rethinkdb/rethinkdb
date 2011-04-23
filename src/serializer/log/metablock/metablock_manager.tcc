@@ -91,12 +91,12 @@ void metablock_manager_t<metablock_t>::create(direct_file_t *dbfile, off64_t ext
     /* Wipe the metablock slots so we don't mistake something left by a previous database for a
     valid metablock. */
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
-        co_write(dbfile, metablock_offsets[i], DEVICE_BLOCK_SIZE, buffer);
+        co_write(dbfile, metablock_offsets[i], DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
     }
 
     /* Write the first metablock */
     buffer->prepare(initial, MB_START_VERSION);
-    co_write(dbfile, metablock_offsets[0], DEVICE_BLOCK_SIZE, buffer);
+    co_write(dbfile, metablock_offsets[0], DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
 
     free(buffer);
 }
@@ -114,7 +114,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
     
     dbfile->set_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + DEVICE_BLOCK_SIZE);
     
-    co_read(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
+    co_read(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, DEFAULT_DISK_ACCOUNT);
     
     state = state_reading;
     bool done_looking = false;
@@ -164,7 +164,7 @@ void metablock_manager_t<metablock_t>::co_start_existing(direct_file_t *file, bo
             mb_buffer_in_use = false;
             state = state_ready;
         } else {
-            co_read(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
+            co_read(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, DEFAULT_DISK_ACCOUNT);
         }
     }
 }
@@ -194,7 +194,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
     mb_buffer_in_use = true;
     
     state = state_writing;
-    co_write(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer);
+    co_write(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, DEFAULT_DISK_ACCOUNT);
 
     head++;
 

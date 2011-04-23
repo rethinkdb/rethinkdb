@@ -63,6 +63,12 @@ public:
     virtual void end_stats(void *, perfmon_stats_t *) = 0;
 };
 
+/* When `global_full_perfmon` is true, some perfmons will perform more elaborate stat
+calculations, which might take longer but will produce more informative performance
+stats. The command-line flag `--full-perfmon` sets `global_full_perfmon` to true. */
+
+extern bool global_full_perfmon;
+
 /* perfmon_counter_t is a perfmon_t that keeps a global counter that can be incremented
 and decremented. (Internally, it keeps many individual counters for thread-safety.) */
 
@@ -120,38 +126,28 @@ public:
 /* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a starting and ending
 time. When something starts, call begin(); when something ends, call end() with the same value
 as begin. It will produce stats for the number of active events, the average length of an event,
-and the like. */
+and so on. If `global_full_perfmon` is false, it won't report any timing-related stats because
+`get_ticks()` is rather slow. */
 
 struct perfmon_duration_sampler_t {
-    /* It turns out to be expensive to call get_ticks() every time anything begins or ends.
-    If we compile with FAST_PERFMON defined, then get_ticks() will not be called and it will
-    not report stats about timing. */
-    
+
 private:
     perfmon_counter_t active;
     perfmon_counter_t total;
-#ifndef FAST_PERFMON
     perfmon_sampler_t recent;
-#endif
 public:
     perfmon_duration_sampler_t(std::string name, UNUSED ticks_t length)
-        : active(name + "_active_count"), total(name + "_total")
-#ifndef FAST_PERFMON
-        , recent(name, length, true)
-#endif
+        : active(name + "_active_count"), total(name + "_total") , recent(name, length, true)
         { }
-    void begin(UNUSED ticks_t *v) {
+    void begin(ticks_t *v) {
         active++;
         total++;
-#ifndef FAST_PERFMON
-        *v = get_ticks();
-#endif
+        if (global_full_perfmon) *v = get_ticks();
+        else *v = 0;
     }
-    void end(UNUSED ticks_t *v) {
+    void end(ticks_t *v) {
         active--;
-#ifndef FAST_PERFMON
-        recent.record(ticks_to_secs(get_ticks() - *v));
-#endif
+        if (*v != 0) recent.record(ticks_to_secs(get_ticks() - *v));
     }
 };
 

@@ -7,6 +7,9 @@
 #include "config/args.hpp"
 #include "perfmon.hpp"
 
+/* This file must only be included from event_queue.hpp, because it needs
+event_queue_base_t. */
+
 // Event queue structure
 struct epoll_event_queue_t : public event_queue_base_t {
 public:
