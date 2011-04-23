@@ -652,8 +652,9 @@ struct diff_log_errors {
     int missing_log_block_count; // must be 0
     int deleted_log_block_count; // must be 0
     int non_sequential_logs; // must be 0
+    int corrupted_patch_blocks; // must be 0
 
-    diff_log_errors() : missing_log_block_count(0), deleted_log_block_count(0), non_sequential_logs(0) { }
+    diff_log_errors() : missing_log_block_count(0), deleted_log_block_count(0), non_sequential_logs(0), corrupted_patch_blocks(0) { }
 };
 
 static char LOG_BLOCK_MAGIC[] = {'L','O','G','B','0','0'};
@@ -688,8 +689,13 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
             if (strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
                 uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cx.block_size().value()) {
-                    // TODO: Catch guarantees in load_patch instead of failing instantly
-                    buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
+                    buf_patch_t *patch;
+                    try {
+                        patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
+                    } catch (patch_deserialization_error_t &e) {
+                        ++errs->corrupted_patch_blocks;
+                        break;
+                    }
                     if (!patch) {
                         break;
                     }
@@ -1474,6 +1480,10 @@ bool report_diff_log_errors(const diff_log_errors *errs) {
     }
     if (errs->non_sequential_logs > 0) {
         printf("ERROR %s The diff log for %d blocks has non-sequential patch counters\n", state, errs->non_sequential_logs);
+        ok = false;
+    }
+    if (errs->corrupted_patch_blocks > 0) {
+        printf("ERROR %s %d blocks of the diff log contain at least one corrupted patch\n", state, errs->corrupted_patch_blocks);
         ok = false;
     }
 

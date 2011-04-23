@@ -73,7 +73,11 @@ class traversal_state_t {
 public:
     traversal_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _transaction_tstamp, btree_traversal_helper_t *_helper)
         : slice(_slice),
-          transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), _helper->transaction_mode(), _transaction_tstamp)),
+          /* We can't compute the expected change count (we're either
+             doing nothing or deleting the entire tree or something),
+             so we just pass 0.  You could let this be a
+             helper-supplied value, if you cared. */
+          transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), _helper->transaction_mode(), 0, _transaction_tstamp)),
           helper(_helper) { }
 
     // The slice whose btree we're traversing

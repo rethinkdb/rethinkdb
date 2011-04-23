@@ -204,7 +204,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
         file_size = size;
     }
 
-    // Construct a disk manager.
+    // Construct a disk manager. (given that we have an event pool)
     if (linux_thread_pool_t::thread) {
         linux_event_queue_t *queue = &linux_thread_pool_t::thread->queue;
         if (io_backend == aio_native) {
@@ -212,9 +212,9 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
         } else {
             diskmgr.reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue));
         }
-    }
 
-    default_account.reset(new account_t(this, 1));
+        default_account.reset(new account_t(this, 1));
+    }
 }
 
 bool linux_file_t::exists() {
@@ -250,6 +250,7 @@ void linux_file_t::set_size_at_least(size_t size) {
 }
 
 bool linux_file_t::read_async(size_t offset, size_t length, void *buf, account_t *account, linux_iocallback_t *callback) {
+    rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
     verify(offset, length, buf);
     diskmgr->submit_read(fd.get(), buf, length, offset,
@@ -260,6 +261,7 @@ bool linux_file_t::read_async(size_t offset, size_t length, void *buf, account_t
 }
 
 bool linux_file_t::write_async(size_t offset, size_t length, const void *buf, account_t *account, linux_iocallback_t *callback) {
+    rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
 
 #ifdef DEBUG_DUMP_WRITES
     printf("--- WRITE BEGIN ---\n");
