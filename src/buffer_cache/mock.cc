@@ -206,7 +206,7 @@ void mock_cache_t::create( translator_serializer_t *serializer, UNUSED mirrored_
     struct : public serializer_t::write_txn_callback_t, public cond_t {
         void on_serializer_write_txn() { pulse(); }
     } cb;
-    if (!serializer->do_write(&write, 1, &cb)) cb.wait();
+    if (!serializer->do_write(&write, 1, DEFAULT_DISK_ACCOUNT, &cb)) cb.wait();
 
     serializer->free(superblock);
 }
@@ -228,7 +228,7 @@ mock_cache_t::mock_cache_t( translator_serializer_t *serializer, UNUSED mirrored
         if (serializer->block_in_use(i)) {
             internal_buf_t *internal_buf = new internal_buf_t(this, i, serializer->get_recency(i));
             bufs[i] = internal_buf;
-            if (!serializer->do_read(i, internal_buf->data, &read_cb)) read_cb.acquire();
+            if (!serializer->do_read(i, internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb)) read_cb.acquire();
         }
     }
 
@@ -254,7 +254,7 @@ mock_cache_t::~mock_cache_t() {
         struct : public serializer_t::write_txn_callback_t, public cond_t {
             void on_serializer_write_txn() { pulse(); }
         } cb;
-        if (!serializer->do_write(writes.data(), writes.size(), &cb)) cb.wait();
+        if (!serializer->do_write(writes.data(), writes.size(), DEFAULT_DISK_ACCOUNT, &cb)) cb.wait();
     }
 
     for (block_id_t i = 0; i < bufs.get_size(); i++) {

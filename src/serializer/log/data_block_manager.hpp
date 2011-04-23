@@ -55,7 +55,7 @@ public:
     
     struct gc_writer_t {
     
-        virtual bool write_gcs(gc_write_t *writes, int num_writes, gc_write_callback_t *cb) = 0;
+        virtual bool write_gcs(gc_write_t *writes, int num_writes, file_t::account_t *io_account, gc_write_callback_t *cb) = 0;
         virtual ~gc_writer_t() {}
     };
 
@@ -103,12 +103,12 @@ public:
     void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 
 public:
-    bool read(off64_t off_in, void *buf_out, iocallback_t *cb);
+    bool read(off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb);
 
     /* The offset that the data block manager chose will be left in off_out as soon as write()
     returns. The callback will be called when the data is actually on disk and it is safe to reuse
     the buffer. */
-    bool write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb);
+    bool write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, file_t::account_t *io_account, iocallback_t *cb);
 
 public:
     /* exposed gc api */
@@ -178,6 +178,7 @@ private:
     log_serializer_t *serializer;
 
     direct_file_t* dbfile;
+    boost::scoped_ptr<file_t::account_t> gc_io_account;
 
     off64_t gimme_a_new_offset();
 
