@@ -34,7 +34,7 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
             slice->assert_thread();
             const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
 
-            replication::add_key_to_delete_queue(txor, sb->delete_queue_block, recency, key);
+            replication::add_key_to_delete_queue(slice->delete_queue_limit(), txor, sb->delete_queue_block, recency, key);
         }
     }
 };

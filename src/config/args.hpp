@@ -90,6 +90,8 @@
 // Default port to do replication on
 #define DEFAULT_REPLICATION_PORT                  11319
 
+#define DEFAULT_TOTAL_DELETE_QUEUE_LIMIT          GIGABYTE
+
 // Default extension for the semantic file which is appended to the database name
 #define DEFAULT_SEMANTIC_EXTENSION                ".semantic"
 
@@ -198,10 +200,9 @@
 // The btree superblock, which has a reference to the root node block
 // id.
 #define SUPERBLOCK_ID                             0
-// The delete queue block.  Holds the delete queue.  HEY: This is
-// kind of fragile because some patch disk storage code expects this
-// value to be 1 (since the free list returns 1 the first time a block
-// id is generated, or something).
+// HEY: This is kind of fragile because some patch disk storage code
+// expects this value to be 1 (since the free list returns 1 the first
+// time a block id is generated, or something).
 #define MC_CONFIGBLOCK_ID                         (SUPERBLOCK_ID + 1)
 
 // The ratio at which we should start GCing.  (HEY: What's the extra
