@@ -133,7 +133,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
 
 }
 
-void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient) {
+bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient) {
     thread_saver_t saver;
 
     // Beware: Right now, some aspects of correctness depend on the
@@ -173,7 +173,7 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
             }
 
             if (!recipient->should_send_deletion_keys(begin_found)) {
-                return;
+                return false;
             }
 
             // So we have a begin_offset and an end_offset.
@@ -208,6 +208,7 @@ void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
     }
 
     recipient->done_deletion_keys();
+    return true;
 }
 
 // TODO: maybe this function should be somewhere else.  Well,

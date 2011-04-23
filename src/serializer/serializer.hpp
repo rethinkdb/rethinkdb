@@ -27,6 +27,10 @@ struct serializer_t :
     virtual void *clone(void*) = 0; // clones a buf
     virtual void free(void*) = 0;
 
+    /* Allocates a new io account for the underlying file.
+    Use delete to free it. */
+    virtual file_t::account_t *make_io_account(int priority) = 0;
+
     /* Some serializer implementations support read-ahead to speed up cache warmup.
     This is supported through a read_ahead_callback_t which gets called whenever the serializer has read-ahead some buf.
     The callee can then decide whether it wants to use the offered buffer of discard it.
@@ -46,7 +50,7 @@ struct serializer_t :
         virtual void on_serializer_read() = 0;
         virtual ~read_callback_t() {}
     };
-    virtual bool do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) = 0;
+    virtual bool do_read(ser_block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback) = 0;
 
     virtual ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf) = 0;
     
@@ -105,7 +109,7 @@ struct serializer_t :
     };
     /* tid_callback is called as soon as new transaction ids have been assigned to each written block,
     callback gets called when all data has been written to disk */
-    virtual bool do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) = 0;
+    virtual bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) = 0;
     
     /* The size, in bytes, of each serializer block */
     
