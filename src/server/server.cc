@@ -198,7 +198,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             timebomb::periodic_checker_t timebomb_checker(store.multiplexer->creation_timestamp);
 #endif
 
-            /* Start accepting connections. We use gated-stores so that the slave code can
+            /* Start accepting connections. We use gated-stores so that the code can
             forbid gets and sets at appropriate times. */
             gated_get_store_t gated_get_store(&store);
             gated_set_store_interface_t gated_set_store(&store);
