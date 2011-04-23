@@ -143,10 +143,11 @@ public:
         active++;
         total++;
         if (global_full_perfmon) *v = get_ticks();
+        else *v = 0;
     }
     void end(ticks_t *v) {
         active--;
-        if (global_full_perfmon) recent.record(ticks_to_secs(get_ticks() - *v));
+        if (*v != 0) recent.record(ticks_to_secs(get_ticks() - *v));
     }
 };
 
