@@ -31,6 +31,9 @@ struct drain_semaphore_t {
         lock_t(drain_semaphore_t *p) : parent(p) {
             parent->acquire();
         }
+        lock_t(const lock_t& copy_me) : parent(copy_me.parent) {
+            parent->refcount++;
+        }
         ~lock_t() {
             parent->release();
         }

@@ -318,7 +318,7 @@ struct ls_block_writer_t :
                 off64_t new_offset;
                 done = ser->data_block_manager->write(write.buf, write.block_id, write.assign_transaction_id ? ser->current_transaction_id : NULL_SER_TRANSACTION_ID, &new_offset, io_account, this);
 
-                ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::real(new_offset));
+                ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::real(new_offset), io_account);
             } else {
                 /* Deletion */
 
@@ -333,11 +333,11 @@ struct ls_block_writer_t :
 
                     off64_t new_offset;
                     done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, io_account, this);
-                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
+                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset), io_account);
                 } else {
                     done = true;
                     // TODO this should not be equal to flagged_off64_t::padding(), use a different constant.
-                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::delete_id());
+                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::delete_id(), io_account);
                 }
             }
             if (done) {
@@ -352,7 +352,7 @@ struct ls_block_writer_t :
             rassert(write.recency_specified);
 
             if (write.recency_specified) {
-                ser->lba_index->set_block_offset(write.block_id, write.recency, ser->lba_index->get_block_offset(write.block_id));
+                ser->lba_index->set_block_offset(write.block_id, write.recency, ser->lba_index->get_block_offset(write.block_id), io_account);
             }
             return do_finish();
         }
@@ -390,10 +390,6 @@ struct ls_write_fsm_t :
     log_serializer_t::write_t *writes;
     int num_writes;
 
-    // TODO: We currently use this only for the data blocks, not for metablock and LBA writes
-    // (which use the default disk account instead).
-    // It's probably not worth cluttering the interfaces of those by requiring the account
-    // to be passed, is it?
     file_t::account_t *io_account;
     
     extent_manager_t::transaction_t *extent_txn;
@@ -444,7 +440,7 @@ struct ls_write_fsm_t :
         
         /* Just to make sure that the LBA GC gets exercised */
         
-        ser->lba_index->consider_gc();
+        ser->lba_index->consider_gc(io_account);
         
         /* Start the process of launching individual block writers */
         
@@ -477,7 +473,7 @@ struct ls_write_fsm_t :
         
         /* Sync the LBA */
         
-        offsets_were_written = ser->lba_index->sync(this);
+        offsets_were_written = ser->lba_index->sync(io_account, this);
         
         /* Prepare metablock now instead of in when we write it so that we will have the correct
         metablock information for this write even if another write starts before we finish writing
@@ -533,7 +529,7 @@ struct ls_write_fsm_t :
     
     void maybe_write_metablock() {
         if (offsets_were_written && num_writes_waited_for == 0 && !waiting_for_prev_write) {
-            bool done_with_metablock = ser->metablock_manager->write_metablock(&mb_buffer, this);
+            bool done_with_metablock = ser->metablock_manager->write_metablock(&mb_buffer, io_account, this);
             
             /* If there was another transaction waiting for us to write our metablock so it could
             write its metablock, notify it now so it can write its metablock. */

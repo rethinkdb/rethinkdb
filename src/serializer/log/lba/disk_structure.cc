@@ -60,7 +60,7 @@ void lba_disk_structure_t::on_extent_read() {
     start_callback->on_lba_load();
 }
 
-void lba_disk_structure_t::add_entry(ser_block_id_t block_id, repli_timestamp recency, flagged_off64_t offset) {
+void lba_disk_structure_t::add_entry(ser_block_id_t block_id, repli_timestamp recency, flagged_off64_t offset, file_t::account_t *io_account) {
     if (last_extent && last_extent->full()) {
         /* We have filled up an extent. Transfer it to the superblock. */
 
@@ -99,17 +99,17 @@ void lba_disk_structure_t::add_entry(ser_block_id_t block_id, repli_timestamp re
         /* Write the new superblock */
 
         superblock_offset = superblock_extent->offset + superblock_extent->amount_filled;
-        superblock_extent->append(buffer, ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
+        superblock_extent->append(buffer, ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE), io_account);
     }
 
     if (!last_extent) {
-        last_extent = new lba_disk_extent_t(em, file);
+        last_extent = new lba_disk_extent_t(em, file, io_account);
     }
 
     rassert(!last_extent->full());
 
     // TODO: timestamp
-    last_extent->add_entry(lba_entry_t::make(block_id, recency, offset));
+    last_extent->add_entry(lba_entry_t::make(block_id, recency, offset), io_account);
 }
 
 struct lba_writer_t :
@@ -132,7 +132,7 @@ struct lba_writer_t :
     }
 };
 
-void lba_disk_structure_t::sync(sync_callback_t *cb) {
+void lba_disk_structure_t::sync(file_t::account_t *io_account, sync_callback_t *cb) {
     lba_writer_t *writer = new lba_writer_t(cb);
     
     /* Count how many things need to be synced */
@@ -145,10 +145,10 @@ void lba_disk_structure_t::sync(sync_callback_t *cb) {
         cb->on_lba_sync();
         delete writer;
     } else {
-        if (last_extent) last_extent->sync(writer);
+        if (last_extent) last_extent->sync(io_account, writer);
         if (superblock_extent) superblock_extent->sync(writer);
         for (lba_disk_extent_t *e = extents_in_superblock.head(); e; e = extents_in_superblock.next(e)) {
-            e->sync(writer);
+            e->sync(io_account, writer);
         }
     }
 }
