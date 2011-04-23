@@ -90,6 +90,7 @@ void initialize_empty_delete_queue(delete_queue_block_t *dqb, block_size_t block
 // sequence of buffers contains a bunch of concatenated btree keys.
 class deletion_key_stream_receiver_t {
 public:
+    virtual bool should_send_deletion_keys(bool can_send_deletion_keys) = 0;
     virtual void deletion_key(const btree_key_t *key) = 0;
     virtual void done_deletion_keys() = 0;
 protected:
@@ -99,14 +100,15 @@ protected:
 // Acquires a delete queue, appends a (timestamp, key) pair to the
 // queue, and releases the queue.  The delete queue is identified by
 // queue_root.  This must be called on the transaction's home thread.
-void add_key_to_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp timestamp, const store_key_t *key);
+void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp timestamp, const store_key_t *key);
 
 // Dumps keys from the delete queue, blocking until all the keys in
 // the interval have been passed to the recipient.  All keys whose
 // timestamps are grequal to the begin_timestamp and less than the
 // end_timestamp are passed to recipient, in no particular order.
-// TODO: Is there any reason for an end_timestamp parameter?
-void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient);
+//
+// Returns false if we should send _everything_ when backfilling.
+bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient);
 
 
 

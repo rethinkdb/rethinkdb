@@ -145,9 +145,8 @@ private:
 
     ~mc_buf_t();
 
-#ifndef FAST_PERFMON
+    /* For performance monitoring */
     long int patches_affected_data_size_at_start;
-#endif
 
 public:
     void release();
