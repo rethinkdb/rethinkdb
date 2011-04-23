@@ -18,7 +18,10 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
     // The deletes have to go first (since they get overridden by
     // newer sets)
     void preprocess_btree_superblock(boost::shared_ptr<transactor_t>& txor, const btree_superblock_t *superblock) {
-        dump_keys_from_delete_queue(txor, superblock->delete_queue_block, since_when_, callback_);
+        if (!dump_keys_from_delete_queue(txor, superblock->delete_queue_block, since_when_, callback_)) {
+            // Set since_when_ to the minimum timestamp, so that we backfill everything.
+            since_when_.time = 0;
+        }
     }
 
     void process_a_leaf(boost::shared_ptr<transactor_t>& txor, buf_t *leaf_node_buf) {

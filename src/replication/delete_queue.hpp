@@ -106,8 +106,9 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
 // the interval have been passed to the recipient.  All keys whose
 // timestamps are grequal to the begin_timestamp and less than the
 // end_timestamp are passed to recipient, in no particular order.
-// TODO: Is there any reason for an end_timestamp parameter?
-void dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient);
+//
+// Returns false if we should send _everything_ when backfilling.
+bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient);
 
 
 
