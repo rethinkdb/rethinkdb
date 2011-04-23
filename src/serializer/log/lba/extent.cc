@@ -19,7 +19,7 @@ struct extent_block_t :
         free(data);
     }
     
-    void write() {
+    void write(file_t::account_t *io_account) {
         waiting_for_prev = true;
         have_finished_sync = false;
         
@@ -29,7 +29,7 @@ struct extent_block_t :
         parent->last_block = this;
         is_last_block = true;
         
-        parent->file->write_async(parent->offset + offset, DEVICE_BLOCK_SIZE, data, DEFAULT_DISK_ACCOUNT, this);
+        parent->file->write_async(parent->offset + offset, DEVICE_BLOCK_SIZE, data, io_account, this);
     }
     
     void on_extent_sync() {
@@ -92,7 +92,7 @@ void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb
     file->read_async(offset + pos, length, buffer, DEFAULT_DISK_ACCOUNT, cb);
 }
 
-void extent_t::append(void *buffer, size_t length) {
+void extent_t::append(void *buffer, size_t length, file_t::account_t *io_account) {
     rassert(amount_filled + length <= em->extent_size);
     
     while (length > 0) {
@@ -113,7 +113,7 @@ void extent_t::append(void *buffer, size_t length) {
         if (amount_filled % DEVICE_BLOCK_SIZE == 0) {
             extent_block_t *b = current_block;
             current_block = NULL;
-            b->write();
+            b->write(io_account);
         }
         
         length -= chunk;

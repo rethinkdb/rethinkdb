@@ -113,11 +113,11 @@ public:
         virtual void on_metablock_write() = 0;
         virtual ~metablock_write_callback_t() {}
     };
-    bool write_metablock(metablock_t *mb, metablock_write_callback_t *cb);
+    bool write_metablock(metablock_t *mb, file_t::account_t *io_account, metablock_write_callback_t *cb);
 private:
-    void write_metablock_callback(metablock_t *mb, metablock_write_callback_t *cb);
+    void write_metablock_callback(metablock_t *mb, file_t::account_t *io_account, metablock_write_callback_t *cb);
 public:
-    void co_write_metablock(metablock_t *mb);
+    void co_write_metablock(metablock_t *mb, file_t::account_t *io_account);
 
 private:
     mutex_t write_lock;

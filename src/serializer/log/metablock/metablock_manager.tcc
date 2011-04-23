@@ -182,7 +182,7 @@ bool metablock_manager_t<metablock_t>::start_existing(direct_file_t *file, bool 
     return false;
 }
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
+void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb, file_t::account_t *io_account) {
     mutex_acquisition_t hold(&write_lock);
 
     rassert(state == state_ready);
@@ -194,7 +194,7 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
     mb_buffer_in_use = true;
     
     state = state_writing;
-    co_write(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, DEFAULT_DISK_ACCOUNT);
+    co_write(dbfile, head.offset(), DEVICE_BLOCK_SIZE, mb_buffer, io_account);
 
     head++;
 
@@ -203,14 +203,14 @@ void metablock_manager_t<metablock_t>::co_write_metablock(metablock_t *mb) {
 }
 
 template<class metablock_t>
-void metablock_manager_t<metablock_t>::write_metablock_callback(metablock_t *mb, metablock_write_callback_t *cb) {
-    co_write_metablock(mb);
+void metablock_manager_t<metablock_t>::write_metablock_callback(metablock_t *mb, file_t::account_t *io_account, metablock_write_callback_t *cb) {
+    co_write_metablock(mb, io_account);
     cb->on_metablock_write();
 }
 
 template<class metablock_t>
-bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, metablock_write_callback_t *cb) {
-    coro_t::spawn(boost::bind(&metablock_manager_t<metablock_t>::write_metablock_callback, this, mb, cb));
+bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, file_t::account_t *io_account, metablock_write_callback_t *cb) {
+    coro_t::spawn(boost::bind(&metablock_manager_t<metablock_t>::write_metablock_callback, this, mb, io_account, cb));
     return false;
 }
 

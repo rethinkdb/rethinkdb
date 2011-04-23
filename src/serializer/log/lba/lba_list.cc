@@ -103,7 +103,7 @@ repli_timestamp lba_list_t::get_block_recency(ser_block_id_t block) {
 }
 
 // TODO rename to set_block_info
-void lba_list_t::set_block_offset(ser_block_id_t block, repli_timestamp recency, flagged_off64_t offset) {
+void lba_list_t::set_block_offset(ser_block_id_t block, repli_timestamp recency, flagged_off64_t offset, file_t::account_t *io_account) {
     rassert(state == state_ready);
 
     in_memory_index.set_block_info(block, recency, offset);
@@ -113,7 +113,7 @@ void lba_list_t::set_block_offset(ser_block_id_t block, repli_timestamp recency,
     current disk_structure, so it's meaningless but harmless to call add_entry(). However,
     since our changes are also being put into the in_memory_index, they will be
     incorporated into the new disk_structure that the GC creates, so they won't get lost. */
-    disk_structures[block.value % LBA_SHARD_FACTOR]->add_entry(block, recency, offset);
+    disk_structures[block.value % LBA_SHARD_FACTOR]->add_entry(block, recency, offset, io_account);
 }
 
 struct lba_syncer_t :
@@ -124,12 +124,12 @@ struct lba_syncer_t :
     int structures_unsynced;
     lba_list_t::sync_callback_t *callback;
     
-    explicit lba_syncer_t(lba_list_t *owner)
+    explicit lba_syncer_t(lba_list_t *owner, file_t::account_t *io_account)
         : owner(owner), done(false), should_delete_self(false), callback(NULL)
     {
         structures_unsynced = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
-            owner->disk_structures[i]->sync(this);
+            owner->disk_structures[i]->sync(io_account, this);
         }
     }
     
@@ -144,10 +144,10 @@ struct lba_syncer_t :
     }
 };
 
-bool lba_list_t::sync(sync_callback_t *cb) {
+bool lba_list_t::sync(file_t::account_t *io_account, sync_callback_t *cb) {
     rassert(state == state_ready);
     
-    lba_syncer_t *syncer = new lba_syncer_t(this);
+    lba_syncer_t *syncer = new lba_syncer_t(this, io_account);
     if (syncer->done) {
         delete syncer;
         return true;
@@ -164,9 +164,9 @@ void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
     }
 }
 
-void lba_list_t::consider_gc() {
+void lba_list_t::consider_gc(file_t::account_t *io_account) {
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
-        if (we_want_to_gc(i)) gc(i);
+        if (we_want_to_gc(i)) gc(i, io_account);
     }
 }
 
@@ -176,15 +176,15 @@ struct gc_fsm_t :
     lba_list_t *owner;
     int i;
     
-    gc_fsm_t(lba_list_t *owner, int i)
+    gc_fsm_t(lba_list_t *owner, int i, file_t::account_t *io_account)
         : owner(owner), i(i)
         {
             pm_serializer_lba_gcs++;
             owner->gc_count++;
-            do_replace_disk_structure();
+            do_replace_disk_structure(io_account);
         }
     
-    void do_replace_disk_structure() {
+    void do_replace_disk_structure(file_t::account_t *io_account) {
         /* Replace the LBA with a new empty LBA */
         
         owner->disk_structures[i]->destroy();
@@ -198,13 +198,13 @@ struct gc_fsm_t :
             ser_block_id_t block_id = ser_block_id_t::make(id);
             flagged_off64_t off = owner->get_block_offset(block_id);
             if (flagged_off64_t::has_value(off)) {
-                owner->disk_structures[i]->add_entry(block_id, owner->get_block_recency(block_id), off);
+                owner->disk_structures[i]->add_entry(block_id, owner->get_block_recency(block_id), off, io_account);
             }
         }
 
         /* Sync the new LBA */
         
-        owner->disk_structures[i]->sync(this);
+        owner->disk_structures[i]->sync(io_account, this);
     }
     
     void on_lba_sync() {
@@ -246,8 +246,8 @@ bool lba_list_t::we_want_to_gc(int i) {
     return true;
 }
 
-void lba_list_t::gc(int i) {
-    new gc_fsm_t(this, i);
+void lba_list_t::gc(int i, file_t::account_t *io_account) {
+    new gc_fsm_t(this, i, io_account);
 }
 
 bool lba_list_t::shutdown(shutdown_callback_t *cb) {
