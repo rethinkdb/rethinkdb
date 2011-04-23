@@ -207,30 +207,44 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             if (cmd_config->replication_config.active) {
 
-                logINF("Starting up as a slave...\n");
-                replication::slave_t slave(&store, cmd_config->replication_config, cmd_config->failover_config);
+                /* Failover callbacks. It's not safe to add or remove them when the slave is
+                running, so we have to set them all up now. */
+                failover_t failover;   // Keeps track of all the callbacks
 
-                /* So that Amazon's Elastic Load Balancer (ELB) can tell when *
-                 * master goes down */
+                /* So that Amazon's Elastic Load Balancer (ELB) can tell when master goes down */
                 boost::scoped_ptr<elb_t> elb;
                 if (cmd_config->failover_config.elb_port != -1) {
                     elb.reset(new elb_t(elb_t::slave, cmd_config->failover_config.elb_port));
-                    slave.failover.add_callback(elb.get());
+                    failover.add_callback(elb.get());
                 }
 
+                /* So that we call the appropriate user-defined callback on failure */
+                boost::scoped_ptr<failover_script_callback_t> failover_script;
+                if (strlen(cmd_config->failover_config.failover_script_path) > 0) {
+                    failover_script.reset(new failover_script_callback_t(
+                        cmd_config->failover_config.failover_script_path));
+                    failover.add_callback(failover_script.get());
+                }
+
+                /* So that we accept/reject gets and sets at the appropriate times */
+                failover_query_enabler_disabler_t query_enabler(&gated_set_store, &gated_get_store);
+                failover.add_callback(&query_enabler);
+
                 {
-                    /* So that we accept/reject gets and sets at the appropriate times */
-                    failover_query_enabler_disabler_t query_enabler(&gated_set_store, &gated_get_store);
-                    slave.failover.add_callback(&query_enabler);
+                    logINF("Starting up as a slave...\n");
+                    replication::slave_t slave(&store, cmd_config->replication_config,
+                        cmd_config->failover_config, &failover);
 
                     wait_for_sigint();
 
                     logINF("Waiting for running operations to finish...\n");
-                    /* query_enabler destructor called here; has side effect of draining
-                    queries. */
+
+                    /* Slave destructor called here */
                 }
 
-                /* Slave destructor called here */
+                /* query_enabler destructor called here; has the side effect of draining queries. */
+
+                /* Other failover destructors called here */
 
             } else if (cmd_config->replication_master_active) {
 
