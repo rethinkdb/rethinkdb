@@ -264,6 +264,11 @@ void log_serializer_t::free(void *ptr) {
     ::free(reinterpret_cast<void *>(data));
 }
 
+file_t::account_t *log_serializer_t::make_io_account(int priority) {
+    rassert(dbfile);
+    return new file_t::account_t(dbfile, priority);
+}
+
 /* Each transaction written is handled by a new ls_write_fsm_t instance. This is so that
 multiple writes can be handled concurrently -- if more than one cache uses the same serializer,
 one cache should be able to start a flush before the previous cache's flush is done.
@@ -276,14 +281,15 @@ struct ls_block_writer_t :
     log_serializer_t *ser;
     log_serializer_t::write_t write;
     iocallback_t *extra_cb;
+    file_t::account_t *io_account;
 
     // A buffer that's zeroed out (except in the beginning, where we
     // write the block id), which we write upon deletion.  Can be NULL.
     void *zerobuf;
 
     ls_block_writer_t(log_serializer_t *ser,
-                      const log_serializer_t::write_t &write)
-        : ser(ser), write(write), zerobuf(NULL) { }
+                      const log_serializer_t::write_t &write, file_t::account_t *io_account)
+        : ser(ser), write(write), io_account(io_account), zerobuf(NULL) { }
     
     bool run(iocallback_t *cb) {
         extra_cb = NULL;
@@ -310,9 +316,9 @@ struct ls_block_writer_t :
 
             if (write.buf) {
                 off64_t new_offset;
-                done = ser->data_block_manager->write(write.buf, write.block_id, write.assign_transaction_id ? ser->current_transaction_id : NULL_SER_TRANSACTION_ID, &new_offset, this);
+                done = ser->data_block_manager->write(write.buf, write.block_id, write.assign_transaction_id ? ser->current_transaction_id : NULL_SER_TRANSACTION_ID, &new_offset, io_account, this);
 
-                ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::real(new_offset));
+                ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::real(new_offset), io_account);
             } else {
                 /* Deletion */
 
@@ -326,12 +332,12 @@ struct ls_block_writer_t :
                     memcpy(zerobuf, &log_serializer_t::zerobuf_magic, sizeof(block_magic_t));
 
                     off64_t new_offset;
-                    done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, this);
-                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset));
+                    done = ser->data_block_manager->write(zerobuf, write.block_id, ser->current_transaction_id, &new_offset, io_account, this);
+                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::deleteblock(new_offset), io_account);
                 } else {
                     done = true;
                     // TODO this should not be equal to flagged_off64_t::padding(), use a different constant.
-                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::delete_id());
+                    ser->lba_index->set_block_offset(write.block_id, recency, flagged_off64_t::delete_id(), io_account);
                 }
             }
             if (done) {
@@ -346,7 +352,7 @@ struct ls_block_writer_t :
             rassert(write.recency_specified);
 
             if (write.recency_specified) {
-                ser->lba_index->set_block_offset(write.block_id, write.recency, ser->lba_index->get_block_offset(write.block_id));
+                ser->lba_index->set_block_offset(write.block_id, write.recency, ser->lba_index->get_block_offset(write.block_id), io_account);
             }
             return do_finish();
         }
@@ -383,6 +389,8 @@ struct ls_write_fsm_t :
 
     log_serializer_t::write_t *writes;
     int num_writes;
+
+    file_t::account_t *io_account;
     
     extent_manager_t::transaction_t *extent_txn;
     
@@ -396,7 +404,7 @@ struct ls_write_fsm_t :
     log_serializer_t::write_tid_callback_t *tid_callback;
     
     ls_write_fsm_t(log_serializer_t *ser, log_serializer_t::write_t *writes, int num_writes)
-        : ser(ser), writes(writes), num_writes(num_writes), next_write(NULL)
+        : ser(ser), writes(writes), num_writes(num_writes), io_account(DEFAULT_DISK_ACCOUNT), next_write(NULL)
     {
         pm_serializer_writes.begin(&start_time);
         callback = NULL;
@@ -432,7 +440,7 @@ struct ls_write_fsm_t :
         
         /* Just to make sure that the LBA GC gets exercised */
         
-        ser->lba_index->consider_gc();
+        ser->lba_index->consider_gc(io_account);
         
         /* Start the process of launching individual block writers */
         
@@ -446,7 +454,7 @@ struct ls_write_fsm_t :
         const int target_chunk_size = 100;
         int chunk_size = 0;
         while (num_writes > 0 && chunk_size < target_chunk_size) {
-            ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes);
+            ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes, io_account);
             if (!writer->run(this)) num_writes_waited_for++;
             num_writes--;
             writes++;
@@ -465,7 +473,7 @@ struct ls_write_fsm_t :
         
         /* Sync the LBA */
         
-        offsets_were_written = ser->lba_index->sync(this);
+        offsets_were_written = ser->lba_index->sync(io_account, this);
         
         /* Prepare metablock now instead of in when we write it so that we will have the correct
         metablock information for this write even if another write starts before we finish writing
@@ -521,7 +529,7 @@ struct ls_write_fsm_t :
     
     void maybe_write_metablock() {
         if (offsets_were_written && num_writes_waited_for == 0 && !waiting_for_prev_write) {
-            bool done_with_metablock = ser->metablock_manager->write_metablock(&mb_buffer, this);
+            bool done_with_metablock = ser->metablock_manager->write_metablock(&mb_buffer, io_account, this);
             
             /* If there was another transaction waiting for us to write our metablock so it could
             write its metablock, notify it now so it can write its metablock. */
@@ -572,7 +580,7 @@ private:
 
 perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_ticks(2));
 
-bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callback_t *callback, write_tid_callback_t *tid_callback, bool main_mutex_has_been_acquired) {
+bool log_serializer_t::do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback, bool main_mutex_has_been_acquired) {
     // Even if state != state_ready we might get a do_write from the
     // datablock manager on gc (because it's writing the final gc as
     // we're shutting down). That is ok, which is why we don't assert
@@ -581,6 +589,7 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     assert_thread();
 
     ls_write_fsm_t *w = new ls_write_fsm_t(this, writes, num_writes);
+    w->io_account = io_account;
     w->tid_callback = tid_callback;
     if (main_mutex_has_been_acquired) {
         // Go straigt to on_lock_available
@@ -598,7 +607,7 @@ bool log_serializer_t::do_write(write_t *writes, int num_writes, write_txn_callb
     }
 }
 
-bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, int num_writes, data_block_manager_t::gc_write_callback_t *cb) {
+bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, int num_writes, direct_file_t::account_t *io_account, data_block_manager_t::gc_write_callback_t *cb) {
 
     rassert(main_mutex.is_locked()); // GC must have acquired the mutex already
     struct gc_callback_wrapper_t : public write_txn_callback_t {
@@ -623,7 +632,7 @@ bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, in
         }
     }
 
-    if (do_write(cb_wrapper->writes.data(), cb_wrapper->writes.size(), cb_wrapper, NULL, true)) {
+    if (do_write(cb_wrapper->writes.data(), cb_wrapper->writes.size(), io_account, cb_wrapper, NULL, true)) {
         delete cb_wrapper;
         return true;
     } else {
@@ -641,9 +650,10 @@ struct ls_read_fsm_t :
     log_serializer_t *ser;
     ser_block_id_t block_id;
     void *buf;
+    file_t::account_t *io_account;
     
     ls_read_fsm_t(log_serializer_t *ser, ser_block_id_t block_id, void *buf)
-        : ser(ser), block_id(block_id), buf(buf)
+        : ser(ser), block_id(block_id), buf(buf), io_account(DEFAULT_DISK_ACCOUNT)
     {
         pm_serializer_reads.begin(&start_time);
         callback = NULL;
@@ -669,7 +679,7 @@ struct ls_read_fsm_t :
         flagged_off64_t offset = ser->lba_index->get_block_offset(block_id);
         rassert(!offset.parts.is_delete);   // Make sure the block actually exists
 
-        if (ser->data_block_manager->read(offset.parts.value, buf, this)) {
+        if (ser->data_block_manager->read(offset.parts.value, buf, io_account, this)) {
             on_io_complete();
         }
     }
@@ -688,11 +698,12 @@ struct ls_read_fsm_t :
     }
 };
 
-bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, read_callback_t *callback) {
+bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback) {
     rassert(state == state_ready);
     assert_thread();
     
     ls_read_fsm_t *fsm = new ls_read_fsm_t(this, block_id, buf);
+    fsm->io_account = io_account;
     fsm->run();
     if (fsm->done) {
         delete fsm;

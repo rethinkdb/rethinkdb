@@ -591,7 +591,7 @@ bool writeback_t::concurrent_flush_t::do_write() {
     parent->cache->serializer->assert_thread();
 
     bool continue_instantly = serializer_writes.empty() ||
-            parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), this, this);
+            parent->cache->serializer->do_write(serializer_writes.data(), serializer_writes.size(), parent->cache->writes_io_account.get(), this, this);
 
     if (continue_instantly) {
         // the tid_callback gets called even if do_write returns true...

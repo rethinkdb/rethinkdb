@@ -25,7 +25,7 @@ void patch_disk_storage_t::create(translator_serializer_t *serializer, block_id_
     struct : public serializer_t::write_txn_callback_t, public cond_t {
         void on_serializer_write_txn() { pulse(); }
     } cb;
-    if (!serializer->do_write(&write, 1, &cb)) cb.wait();
+    if (!serializer->do_write(&write, 1, DEFAULT_DISK_ACCOUNT, &cb)) cb.wait();
 
     serializer->free(c);
 }
@@ -45,7 +45,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
         struct : public serializer_t::read_callback_t, public cond_t {
             void on_serializer_read() { pulse(); }
         } cb;
-        if (!cache.serializer->do_read(start_id, config_block, &cb)) cb.wait();
+        if (!cache.serializer->do_read(start_id, config_block, DEFAULT_DISK_ACCOUNT, &cb)) cb.wait();
         guarantee(check_magic<mc_config_block_t>(config_block->magic), "Invalid mirrored cache config block magic");
         number_of_blocks = config_block->cache.n_patch_log_blocks;
         cache.serializer->free(config_block);

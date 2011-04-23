@@ -64,7 +64,7 @@ struct transaction_t :
 
         start_time = get_ticks();
         
-        bool done = ser->do_write(&writes[0], writes.size(), this);
+        bool done = ser->do_write(&writes[0], writes.size(), DEFAULT_DISK_ACCOUNT, this);
         if (done) on_serializer_write_txn();   // Probably never happens
     }
     

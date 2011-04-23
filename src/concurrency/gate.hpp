@@ -3,6 +3,7 @@
 
 #include "concurrency/cond_var.hpp"
 #include "concurrency/pmap.hpp"
+#include "utils2.hpp"
 
 /* A gate is a concurrency object that monitors some shared resource. Opening the
 gate allows actors to access the resource. Closing the gate prevents actors from
@@ -26,7 +27,7 @@ struct gate_t {
     }
 
     /* Sentry that represents using the resource that the gate protects */
-    struct entry_t {
+    struct entry_t : public home_thread_mixin_t {
         entry_t(gate_t *g) : gate(g) {
             rassert(gate->open);
             gate->num_inside_gate++;
@@ -42,7 +43,7 @@ struct gate_t {
     };
 
     /* Sentry that opens and then closes gate */
-    struct open_t {
+    struct open_t : public home_thread_mixin_t {
         open_t(gate_t *g) : gate(g) {
             rassert(!gate->open);
             gate->open = true;

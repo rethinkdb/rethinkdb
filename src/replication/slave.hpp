@@ -36,21 +36,12 @@ class slave_t :
 public:
     friend void run(slave_t *);
 
-    slave_t(btree_key_value_store_t *, replication_config_t, failover_config_t);
+    slave_t(btree_key_value_store_t *, replication_config_t, failover_config_t, failover_t *failover);
     ~slave_t();
 
-    /* failover module which is alerted by an on_failure() call when we go out
-     * of contact with the master */
-    failover_t failover;
+    failover_t *failover_;
 
 private:
-    friend class failover_t;
-
-    /* failover callback interface */
-    void on_failure();
-    void on_resume();
-
-
     /* structure to tell us when to give up on the master */
     class give_up_t {
     public:
@@ -90,15 +81,9 @@ private:
         slave_t *slave;
     };
 
-    // This is too complicated.
-
     give_up_t give_up_;
 
-    /* Other failover callbacks */
-    failover_script_callback_t failover_script_;
-
     /* state for failover */
-    bool respond_to_queries_; /* are we responding to queries */
     long timeout_; /* ms to wait before trying to reconnect */
 
     failover_reset_control_t failover_reset_control_;

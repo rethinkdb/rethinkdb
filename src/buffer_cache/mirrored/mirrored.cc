@@ -21,7 +21,7 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     void on_thread_switch() {
         if (!have_loaded) {
             inner_buf->subtree_recency = inner_buf->cache->serializer->get_recency(inner_buf->block_id);
-            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, this))
+            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, inner_buf->cache->reads_io_account.get(), this))
                 on_serializer_read();
         } else {
             // Read the transaction id
@@ -786,7 +786,7 @@ void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_stat
     struct : public serializer_t::write_txn_callback_t, public cond_t {
         void on_serializer_write_txn() { pulse(); }
     } cb;
-    if (!serializer->do_write(&write, 1, &cb)) cb.wait();
+    if (!serializer->do_write(&write, 1, DEFAULT_DISK_ACCOUNT, &cb)) cb.wait();
 
     serializer->free(superblock);
 }
@@ -797,6 +797,8 @@ mc_cache_t::mc_cache_t(
 
     dynamic_config(dynamic_config),
     serializer(serializer),
+    reads_io_account(serializer->make_io_account(CACHE_READS_IO_PRIORITY)),
+    writes_io_account(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY)),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
         dynamic_config->max_size / serializer->get_block_size().ser_value(),

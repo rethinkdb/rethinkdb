@@ -13,18 +13,16 @@ namespace replication {
 
 // TODO unit test offsets
 
-slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t replication_config, failover_config_t failover_config)
-    : failover_script_(failover_config.failover_script_path),
-      timeout_(INITIAL_TIMEOUT),
-      failover_reset_control_(std::string("failover reset"), this),
-      new_master_control_(std::string("new master"), this),
-      internal_store_(internal_store),
-      replication_config_(replication_config),
-      failover_config_(failover_config)
+slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t replication_config,
+        failover_config_t failover_config, failover_t *failover) :
+    failover_(failover),
+    timeout_(INITIAL_TIMEOUT),
+    failover_reset_control_(std::string("failover reset"), this),
+    new_master_control_(std::string("new master"), this),
+    internal_store_(internal_store),
+    replication_config_(replication_config),
+    failover_config_(failover_config)
 {
-    if (strlen(failover_config.failover_script_path) > 0) {
-        failover.add_callback(&failover_script_);
-    }
     coro_t::spawn(boost::bind(&run, this));
 }
 
@@ -79,21 +77,11 @@ void slave_t::give_up_t::limit_to(unsigned int limit) {
         successful_reconnects.pop();
 }
 
-/* failover callback */
-void slave_t::on_failure() {
-    respond_to_queries_ = true;
-}
-
-void slave_t::on_resume() {
-    respond_to_queries_ = false;
-}
-
 void run(slave_t *slave) {
 
     bool shutting_down = false;
     slave->shutting_down_ = &shutting_down;
 
-    slave->respond_to_queries_ = false;
     bool first_connect = true;
     while (!shutting_down) {
         try {
@@ -110,7 +98,7 @@ void run(slave_t *slave) {
             // No exception was thrown; it must have worked.
             slave->timeout_ = INITIAL_TIMEOUT;
             slave->give_up_.on_reconnect();
-            slave->failover.on_resume();
+            slave->failover_->on_resume();
             logINF("Connected as slave to: %s:%d\n", slave->replication_config_.hostname, slave->replication_config_.port);
 
             // This makes it so that if we get a shutdown/reset command, the connection
@@ -122,17 +110,17 @@ void run(slave_t *slave) {
             debugf("Last sync: %d\n", last_sync.time);
 
             if (!first_connect) {
-                slave->failover.on_reverse_backfill_begin();
+                slave->failover_->on_reverse_backfill_begin();
                 // We use last_sync.next() so that we don't send any of the master's own changes back
                 // to it. This makes sense in conjunction with incrementing the replication clock when
                 // we lose contact with the master.
                 stream_mgr.reverse_side_backfill(last_sync.next());
-                slave->failover.on_reverse_backfill_end();
+                slave->failover_->on_reverse_backfill_end();
             }
 
-            slave->failover.on_backfill_begin();
+            slave->failover_->on_backfill_begin();
             stream_mgr.backfill(last_sync);
-            slave->failover.on_backfill_end();   // TODO this is the wrong time to call on_backfill_end()
+            slave->failover_->on_backfill_end();
 
             debugf("slave_t: Waiting for things to fail...\n");
             slave_multicond.wait();
@@ -148,7 +136,7 @@ void run(slave_t *slave) {
             debugf("Incrementing clock from %d to %d\n", rc.time, rc.time+1);
             slave->internal_store_->set_replication_clock(rc.next());
 
-            slave->failover.on_failure();
+            slave->failover_->on_failure();
 
             first_connect = false;
 

@@ -394,15 +394,15 @@ def process_output_dir(result):
             shutil.rmtree(old_dir)
     
     # Create a subdirectory for the current date/time
-    formatted_datetime = datetime.now().strftime('%F %a %R')
-    retest_output_dir = os.path.join(retest_output_dir, formatted_datetime)
-    if not os.path.isdir(retest_output_dir):
-        os.mkdir(retest_output_dir)
+    formatted_datetime = datetime.now().strftime('%F.%R.%a')
+    output_dir = os.path.join(retest_output_dir, formatted_datetime)
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
 
-    # Pick a name for our newest addition to retest_output_dir and copy the directory there
+    # Pick a name for our newest addition to output_dir and copy the directory there
     i = 1
-    while os.path.exists(os.path.join(retest_output_dir, str(i))): i += 1
-    output_dir = os.path.join(retest_output_dir, str(i))
+    while os.path.exists(os.path.join(output_dir, str(i))): i += 1
+    output_dir = os.path.join(output_dir, str(i))
     shutil.move(result.output_dir.take_dir(), output_dir)
     
     # Recursively make permissions friendly

@@ -162,8 +162,7 @@ struct backfill_and_streaming_manager_t :
 
     repli_timestamp_t replication_clock_, initial_replication_clock_;
 
-    void increment_replication_clock() {
-        drain_semaphore_t::lock_t dont_shut_down(&replication_clock_drain_semaphore_);
+    void increment_replication_clock(drain_semaphore_t::lock_t) {
 
         /* We are sending heartbeat number "rc" */
         repli_timestamp_t rc = replication_clock_.next();
@@ -244,11 +243,12 @@ struct backfill_and_streaming_manager_t :
         makes it so that every operation with timestamp `initial_replication_clock_` will be
         included in the backfill, and no operation with timestamp `initial_replication_clock_ + 1`
         will be included. */
-        increment_replication_clock();
+        drain_semaphore_t::lock_t dont_shut_down(&replication_clock_drain_semaphore_);
+        increment_replication_clock(dont_shut_down);
 
         /* Start the timer that will repeatedly increment the replication clock */
         replication_clock_timer_.reset(new repeating_timer_t(1000,
-            boost::bind(&backfill_and_streaming_manager_t::increment_replication_clock, this)));
+            boost::bind(&backfill_and_streaming_manager_t::increment_replication_clock, this, dont_shut_down)));
     }
 
     void register_on_slice(int i, repli_timestamp_t timestamp) {
