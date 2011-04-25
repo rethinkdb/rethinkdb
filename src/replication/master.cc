@@ -31,6 +31,7 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
 
     stream_ = new repli_stream_t(conn, this);
     stream_exists_cond_.reset();
+    logINF("Slave connected\n");
     debugf("made repli_stream.\n");
 
     // TODO when sending/receiving hello handshake, use database magic
