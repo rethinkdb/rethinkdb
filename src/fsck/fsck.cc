@@ -7,6 +7,7 @@
 #include "logger.hpp"
 #include "utils.hpp"
 #include "help.hpp"
+#include "checker.hpp"
 
 namespace fsck {
 
@@ -18,7 +19,9 @@ void usage(UNUSED const char *name) {
     help->pagef("\n"
                 "Options:\n"
                 "  -f  --file                Path to file or block device where part or all of\n"
-                "                            the database exists.\n");
+                "                            the database exists.\n"
+                "      --ignore-diff-log     Do not apply patches from the diff log while\n"
+                "                            checking the database.\n");
     help->pagef("\n"
                 "Output options:\n"
                 "  -l  --log-file            File to log to.  If not provided, messages will be\n"
@@ -27,6 +30,9 @@ void usage(UNUSED const char *name) {
                 "Fsck is used to check one or more files for consistency\n");
     exit(0);
 }
+
+enum { ignore_diff_log = 256,  // Start these values above the ASCII range.
+};
 
 void parse_cmd_args(int argc, char **argv, config_t *config) {
     // TODO disallow rogue options.
@@ -42,6 +48,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
         static const struct option long_options[] =
             {
                 {"file", required_argument, 0, 'f'},
+                {"ignore-diff-log", no_argument, 0, ignore_diff_log},
                 {"log-file", required_argument, 0, 'l'},
                 {"help", no_argument, &do_help, 1},
                 {0, 0, 0, 0}
@@ -63,6 +70,9 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             break;
         case 'f':
             config->input_filenames.push_back(optarg);
+            break;
+        case ignore_diff_log:
+            config->ignore_diff_log = true;
             break;
         case 'l':
             config->log_file_name = optarg;
