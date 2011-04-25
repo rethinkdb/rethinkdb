@@ -625,7 +625,7 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
             if (opts["failover"]):
                 repli_port = find_unused_port()
                 master = Server(opts, extra_flags=extra_flags + ["--master", "%d" % repli_port], name="master", test_dir=test_dir)
-                slave = Server(opts, extra_flags=extra_flags + ["--slave-of", "localhost:%d" % repli_port], name="slave", test_dir=test_dir)
+                slave = Server(opts, extra_flags=extra_flags + ["--slave-of", "localhost:%d" % repli_port, "--no-rogue"], name="slave", test_dir=test_dir)
                 servers = [master, slave]
                 mc = FailoverMemcachedWrapper(opts, master, slave, lambda: (connect_to_server(opts, master, test_dir=test_dir)), lambda: (connect_to_server(opts, slave, test_dir=test_dir)), test_dir=test_dir)
                 stat_checkers = []   # Stat checking doesn't play nicely with server restarting
@@ -699,7 +699,7 @@ def start_master_slave_pair(opts, extra_flags, test_dir):
         server.elb_port = elb_ports[0]
     server.start(False)
 
-    s_flags = ["--slave-of", "localhost:%d" % repli_port] 
+    s_flags = ["--slave-of", "localhost:%d" % repli_port, "--no-rogue"]
 
     if opts["elb"]:
         s_flags += ["--run-behind-elb", "%d" % elb_ports[1]]
