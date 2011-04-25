@@ -35,10 +35,11 @@ struct drain_semaphore_t {
             parent->refcount++;
         }
         lock_t &operator=(const lock_t &copy_me) {
-            drain_semaphore_t *old_parent = parent;
+            // We have to increment the reference count before calling release()
+            // in case `parent` is already `copy_me.parent`
+            copy_me.parent++;
+            parent->release();
             parent = copy_me.parent;
-            parent->refcount++;
-            old_parent->release();
             return *this;
         }
         ~lock_t() {
