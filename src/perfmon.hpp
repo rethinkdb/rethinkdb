@@ -8,6 +8,7 @@
 #include "utils2.hpp"
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
+#include <limits>
 
 #include <sstream>
 
@@ -103,14 +104,38 @@ class perfmon_sampler_t :
 public:
     typedef double value_t;
 private:
-    friend class perfmon_sampler_step_t;
-    struct sample_t {
-        value_t value;
-        ticks_t timestamp;
-        sample_t(value_t v, time_t t) : value(v), timestamp(t) { }
+    struct stats_t {
+        int count;
+        value_t sum, min, max;
+        stats_t() : count(0), sum(0),
+            min(std::numeric_limits<value_t>::max()),
+            max(std::numeric_limits<value_t>::min())
+            { }
+        void record(value_t v) {
+            count++;
+            sum += v;
+            if (count) {
+                min = std::min(min, v);
+                max = std::max(max, v);
+            } else {
+                min = max = v;
+            }
+        }
+        void aggregate(const stats_t &s) {
+            count += s.count;
+            sum += s.sum;
+            if (s.count) {
+                min = std::min(min, s.min);
+                max = std::max(max, s.max);
+            }
+        }
     };
-    std::deque<sample_t> values[MAX_THREADS];
-    void expire();
+    struct thread_info_t {
+        stats_t current_stats, last_stats;
+        int current_interval;
+    } thread_info[MAX_THREADS];
+    void update(ticks_t now);
+
     std::string name;
     ticks_t length;
     bool include_rate;
@@ -136,7 +161,7 @@ private:
     perfmon_counter_t total;
     perfmon_sampler_t recent;
 public:
-    perfmon_duration_sampler_t(std::string name, UNUSED ticks_t length)
+    perfmon_duration_sampler_t(std::string name, ticks_t length)
         : active(name + "_active_count"), total(name + "_total") , recent(name, length, true)
         { }
     void begin(ticks_t *v) {
