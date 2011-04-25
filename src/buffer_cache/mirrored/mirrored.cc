@@ -953,7 +953,8 @@ bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf
 
     // Check if we want to unregister ourselves
     if (page_repl.is_full(5)) {
-        serializer->unregister_read_ahead_cb(this);
+        // unregister_read_ahead_cb requires a coro context, but we might not be in any
+        coro_t::spawn_now(boost::bind(&translator_serializer_t::unregister_read_ahead_cb, serializer, this));
     }
 
     return true;
