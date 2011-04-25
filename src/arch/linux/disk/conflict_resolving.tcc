@@ -90,8 +90,8 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
                 /* If the waiter is a read, and the range it was supposed to read is a subrange of
                 our range, then we can just fill its buffer directly instead of going to disk. */
                 if (waiter->get_is_read() &&
-                        waiter->get_offset() <= action->get_offset() &&
-                        waiter->get_offset() + waiter->get_count() >= action->get_offset() + action->get_count() ) {
+                        waiter->get_offset() >= action->get_offset() &&
+                        waiter->get_offset() + waiter->get_count() <= action->get_offset() + action->get_count() ) {
 
                     memcpy(waiter->get_buf(),
                            (const char*)action->get_buf() + waiter->get_offset() - action->get_offset(),
