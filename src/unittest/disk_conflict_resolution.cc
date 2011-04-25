@@ -220,6 +220,30 @@ TEST(DiskConflictTest, NoReadReadConflict) {
     r2.go();
 }
 
+/* WriteReadSubrange verifies that if a write and then a read are sent, and the read
+is for a subrange of the write, the read gets the right value */
+
+TEST(DiskConflictTest, WriteReadSubrange) {
+    test_driver_t d;
+    write_test_t w(&d, 0, "abcdefghijklmnopqrstuvwxyz");
+    read_test_t r(&d, 3, "defghijkl");
+    w.go();
+    r.go();
+}
+
+/* WriteReadSuperrange verifies that if a write and then a read are sent, and the read
+is for a superrange of the write, the read gets the right value */
+
+TEST(DiskConflictTest, WriteReadSuperrange) {
+    test_driver_t d;
+    write_test_t initial_write(&d, 0, "abc____________________xyz");
+    write_test_t w(&d, 3, "defghijklmnopqrstuvw");
+    read_test_t r(&d, 0, "abcdefghijklmnopqrstuvwxyz");
+    initial_write.go();
+    w.go();
+    r.go();
+}
+
 /* MetaTest is a sanity check to make sure that the above tests are actually testing something. */
 
 void cause_test_failure() {
