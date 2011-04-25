@@ -90,9 +90,18 @@ void metablock_manager_t<metablock_t>::create(direct_file_t *dbfile, off64_t ext
 
     /* Wipe the metablock slots so we don't mistake something left by a previous database for a
     valid metablock. */
+    struct : public iocallback_t, public cond_t {
+        int refcount;
+        void on_io_complete() {
+            refcount--;
+            if (refcount == 0) pulse();
+        }
+    } callback;
+    callback.refcount = metablock_offsets.size();
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
-        co_write(dbfile, metablock_offsets[i], DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT);
+        dbfile->write_async(metablock_offsets[i], DEVICE_BLOCK_SIZE, buffer, DEFAULT_DISK_ACCOUNT, &callback);
     }
+    callback.wait();
 
     /* Write the first metablock */
     buffer->prepare(initial, MB_START_VERSION);
