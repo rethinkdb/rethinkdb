@@ -19,7 +19,7 @@ def test_function(opts, port, test_dir):
 
     s.close()
 
-    time.sleep(2)
+    time.sleep(20)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(("localhost", port))
@@ -28,6 +28,7 @@ def test_function(opts, port, test_dir):
     expected = "VALUE key 0 2\r\n99\r\nEND\r\n"
     received = s.recv(len(expected))
     if received != expected:
+        print "Note if you get a wrong value here it's very possibly that the timeout was set too low, if you get no value then that's probably the actual issue popping up"
         print "Expected:", expected
         print "Received:", received
         raise ValueError("Bad value")

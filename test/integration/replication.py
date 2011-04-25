@@ -2,6 +2,7 @@
 import random, time, sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
+import pylibmc
 
 def random_key(opts):
     # The reason we have keysuffix is in case another test (such as multi_serial_mix.py) is using
@@ -131,6 +132,16 @@ def random_action(opts, mc, repli_mc, clone, deleted):
 def test(opts, mc, repli_mc, test_dir):
     clone = {}
     deleted = set()
+
+    print "Waiting for master to start up..."
+    while 1:
+        ok = False
+        try:
+            ok = mc.set("foo", "bar")
+        except pylibmc.ClientError:
+            pass
+        if ok:
+            break
     
     start_time = time.time()
     while time.time() < start_time + opts["duration"]:
