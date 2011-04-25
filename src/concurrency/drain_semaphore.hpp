@@ -34,6 +34,13 @@ struct drain_semaphore_t {
         lock_t(const lock_t& copy_me) : parent(copy_me.parent) {
             parent->refcount++;
         }
+        lock_t &operator=(const lock_t &copy_me) {
+            drain_semaphore_t *old_parent = parent;
+            parent = copy_me.parent;
+            parent->refcount++;
+            old_parent->release();
+            return *this;
+        }
         ~lock_t() {
             parent->release();
         }
@@ -53,6 +60,7 @@ struct drain_semaphore_t {
     }
 
 private:
+    DISABLE_COPYING(drain_semaphore_t);
     bool draining;
     int refcount;
     cond_t cond;
