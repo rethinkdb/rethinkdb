@@ -12,14 +12,12 @@
 namespace replication {
 
 void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
+    mutex_acquisition_t ak(&stream_setup_teardown);
     // TODO: Carefully handle case where a slave is already connected.
-
-    // Right now we uncleanly close the slave connection.  What if
-    // somebody has partially written a message to it (and writes the
-    // rest of the message to conn?)  That will happen, the way the
-    // code is, right now.
-    debugf("listener accept, destroying existing slave conn\n");
-    destroy_existing_slave_conn_if_it_exists();
+    if (stream_) { 
+        logINF("Rejecting slave connection because I already have one\n");
+        return;
+    }
     debugf("making new repli_stream..\n");
 
     if (!get_permission_) {
