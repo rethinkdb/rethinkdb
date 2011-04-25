@@ -31,4 +31,4 @@ if __name__ == "__main__":
     op = make_option_parser().parse(sys.argv)
     if os.path.split(op["failover-script"])[1] != "failover_script_test.py":
         raise ValueError("This should be run with test/assets/failover_script_test.py as is failover script") #is there a none path dependent way to specify this script?
-    elb_test_main(test, op, timeout = (100 if not op.has_key("duration") else op["duration"] + 60))
+    master_slave_main(test, op, timeout = (100 if not op.has_key("duration") else op["duration"] + 60))

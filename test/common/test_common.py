@@ -693,6 +693,7 @@ def start_master_slave_pair(opts, extra_flags, test_dir):
         m_flags += ["--run-behind-elb", "%d" % elb_ports[0]]
 
     server = Server(opts, extra_flags=extra_flags + m_flags, name="master", test_dir=test_dir)
+    server.master_port = repli_port
 
     if opts["elb"]:
         server.elb_port = elb_ports[0]
@@ -756,7 +757,7 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
     
     sys.exit(0)
 
-def elb_test_main(test_function, opts, timeout = 30, extra_flags = [], test_dir=TestDir()):
+def master_slave_main(test_function, opts, timeout = 30, extra_flags = [], test_dir=TestDir()):
     try:
         if opts["auto"]:
             (server, repli_server) = start_master_slave_pair(opts, extra_flags, test_dir)

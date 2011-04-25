@@ -30,4 +30,4 @@ if __name__ == "__main__":
     op = make_option_parser()
     op = op.parse(sys.argv)
     op["elb"] = True
-    elb_test_main(test, op, timeout = (100 if not op.has_key("duration") else op["duration"] + 60))
+    master_slave_main(test, op, timeout = (100 if not op.has_key("duration") else op["duration"] + 60))
