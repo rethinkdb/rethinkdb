@@ -81,6 +81,7 @@ public:
     void send(UNUSED scoped_malloc<net_ack_t>& message) { crash("ack is obsolete"); }
     void conn_closed() {
         assert_thread();
+        mutex_acquisition_t ak(&stream_setup_teardown);
 
         /* The stream destructor may block, so we set stream_ to NULL before calling the stream
         destructor. */
@@ -120,6 +121,9 @@ private:
 
     // This is unpulsed iff stream_ is non-NULL.
     cond_t stream_exists_cond_; 
+
+    //
+    mutex_t stream_setup_teardown;
 
     // This is unpulsed iff there is not a running backfill/stream operation
     cond_t streaming_cond_;

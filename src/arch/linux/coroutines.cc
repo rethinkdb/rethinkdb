@@ -263,7 +263,7 @@ coro_t *coro_t::self() {   /* class method */
 
 void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
-    rassert(coro_no_waiting == 0, "This code path is not supposed to use coroutines.");
+    rassert(coro_no_waiting == 0, "This code path is not supposed to use waiting.");
 
 #ifndef NDEBUG
     /* It's not safe to wait() in a catch clause of an exception handler. We use the non-standard
