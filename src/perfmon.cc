@@ -107,78 +107,56 @@ void perfmon_counter_t::end_stats(void *data, perfmon_stats_t *dest) {
 perfmon_sampler_t::perfmon_sampler_t(std::string name, ticks_t length, bool include_rate)
     : name(name), length(length), include_rate(include_rate) { }
 
-void perfmon_sampler_t::expire() {
-    ticks_t now = get_ticks();
-    std::deque<sample_t> &queue = values[get_thread_id()];
-    while (!queue.empty() && queue.front().timestamp + length < now) queue.pop_front();
+void perfmon_sampler_t::update(ticks_t now) {
+    int interval = now / length;
+    thread_info_t *thread = &thread_info[get_thread_id()];
+    while (thread->current_interval < interval) {
+        thread->last_stats = thread->current_stats;
+        thread->current_stats = stats_t();
+        thread->current_interval++;
+    }
 }
 
 void perfmon_sampler_t::record(value_t v) {
-    expire();
-    values[get_thread_id()].push_back(sample_t(v, get_ticks()));
+    ticks_t now = get_ticks();
+    update(now);
+    thread_info_t *thread = &thread_info[get_thread_id()];
+    thread->current_stats.record(v);
 }
 
-struct perfmon_sampler_step_t {
-    uint64_t counts[MAX_THREADS];
-    perfmon_sampler_t::value_t values[MAX_THREADS], mins[MAX_THREADS], maxes[MAX_THREADS];
-};
-
 void *perfmon_sampler_t::begin_stats() {
-    return new perfmon_sampler_step_t;
+    return new stats_t[get_num_threads()];
 }
 
 void perfmon_sampler_t::visit_stats(void *data) {
-    perfmon_sampler_step_t *d = (perfmon_sampler_step_t *)data;
-    expire();
-    d->values[get_thread_id()] = 0;
-    d->counts[get_thread_id()] = 0;
-    for (std::deque<perfmon_sampler_t::sample_t>::iterator it = values[get_thread_id()].begin();
-         it != values[get_thread_id()].end(); it++) {
-        d->values[get_thread_id()] += (*it).value;
-        if (d->counts[get_thread_id()] > 0) {
-            d->mins[get_thread_id()] = std::min(d->mins[get_thread_id()], (*it).value);
-            d->maxes[get_thread_id()] = std::max(d->maxes[get_thread_id()], (*it).value);
-        } else {
-            d->mins[get_thread_id()] = (*it).value;
-            d->maxes[get_thread_id()] = (*it).value;
-        }
-        d->counts[get_thread_id()]++;
-    }
+    update(get_ticks());
+    /* Return last_stats instead of current_stats so that we can give a complete interval's
+    worth of stats. We might be halfway through an interval, in which case current_stats will
+    only have half an interval worth. */
+    ((stats_t *)data)[get_thread_id()] = thread_info[get_thread_id()].last_stats;
 }
 
 void perfmon_sampler_t::end_stats(void *data, perfmon_stats_t *dest) {
-    perfmon_sampler_step_t *d = (perfmon_sampler_step_t *)data;
-    perfmon_sampler_t::value_t value = 0;
-    uint64_t count = 0;
-    perfmon_sampler_t::value_t min = 0, max = 0;   /* Initializers to make GCC shut up */
-    bool have_any = false;
+    stats_t *stats = (stats_t *)data;
+    stats_t aggregated;
     for (int i = 0; i < get_num_threads(); i++) {
-        value += d->values[i];
-        count += d->counts[i];
-        if (d->counts[i]) {
-            if (have_any) {
-                min = std::min(d->mins[i], min);
-                max = std::max(d->maxes[i], max);
-            } else {
-                min = d->mins[i];
-                max = d->maxes[i];
-                have_any = true;
-            }
-        }
+        aggregated.aggregate(stats[i]);
     }
-    if (have_any) {
-        (*dest)[name + "_avg"] = format(value / count);
-        (*dest)[name + "_min"] = format(min);
-        (*dest)[name + "_max"] = format(max);
+
+    if (aggregated.count > 0) {
+        (*dest)[name + "_avg"] = format(aggregated.sum / aggregated.count);
+        (*dest)[name + "_min"] = format(aggregated.min);
+        (*dest)[name + "_max"] = format(aggregated.max);
     } else {
         (*dest)[name + "_avg"] = "-";
         (*dest)[name + "_min"] = "-";
         (*dest)[name + "_max"] = "-";
     }
     if (include_rate) {
-        (*dest)[name + "_persec"] = format(count / ticks_to_secs(length));
+        (*dest)[name + "_persec"] = format(aggregated.count / ticks_to_secs(length));
     }
-    delete d;
+
+    delete[] stats;
 };
 
 /* perfmon_function_t */
