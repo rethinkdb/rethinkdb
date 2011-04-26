@@ -76,6 +76,8 @@ public:
 
     static uint32_t hash(const store_key_t &key);
 
+    creation_timestamp_t get_creation_timestamp() const { return multiplexer->creation_timestamp; }
+
 private:
     friend class replication::backfill_and_streaming_manager_t;
 
