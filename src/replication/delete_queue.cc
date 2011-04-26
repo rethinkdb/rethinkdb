@@ -74,7 +74,6 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
             t_o_largebuf->allocate(sizeof(tao));
             t_o_largebuf->fill_at(0, &tao, sizeof(tao));
             rassert(keys_ref->size == 0);
-            rassert(!will_want_to_dequeue);
         } else {
 
             delete_queue::t_and_o last_tao;
