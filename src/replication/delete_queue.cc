@@ -126,7 +126,19 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
         lbref_limit_t reflimit = lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size()));
 
         int64_t amount_to_unprepend = will_actually_dequeue ? second_tao.offset - *primal_offset : 0;
-        large_buf_t::co_enqueue(txor, keys_ref, reflimit, amount_to_unprepend, key, 1 + key->size);
+        rassert (amount_to_unprepend <= keys_ref->size + 1 + key->size);
+        if (amount_to_unprepend < keys_ref->size + 1 + key->size) {
+            large_buf_t::co_enqueue(txor, keys_ref, reflimit, amount_to_unprepend, key, 1 + key->size);
+        } else {
+            if (keys_ref->size > 0) {
+                boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, keys_ref, reflimit, rwi_write));
+                co_acquire_large_buf_for_delete(lb.get());
+                lb->mark_deleted();
+                keys_ref->size = 0;
+                keys_ref->offset = 0;
+            }
+        }
+
         *primal_offset += amount_to_unprepend;
     }
 
