@@ -17,8 +17,8 @@ slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t r
         failover_config_t failover_config, failover_t *failover) :
     failover_(failover),
     timeout_(INITIAL_TIMEOUT),
-    failover_reset_control_(std::string("failover reset"), this),
-    new_master_control_(std::string("new master"), this),
+    failover_reset_control_(this),
+    new_master_control_(this),
     internal_store_(internal_store),
     replication_config_(replication_config),
     failover_config_(failover_config)
@@ -39,9 +39,8 @@ slave_t::~slave_t() {
     pulsed_when_run_loop_done_.wait();
 }
 
-std::string slave_t::failover_reset() {
-    // TODO don't say get_num_threads() - 2, what does this mean?
-    on_thread_t thread_switch(get_num_threads() - 2);
+void slave_t::failover_reset() {
+    on_thread_t thread_switch(home_thread);
     give_up_.reset();
     timeout_ = INITIAL_TIMEOUT;
 
@@ -49,8 +48,16 @@ std::string slave_t::failover_reset() {
     on connecting to the master, this will cause us to resume trying to connect. If we
     are in a timeout before retrying the connection, this will cut the timout short. */
     pulse_to_interrupt_run_loop_.pulse_if_non_null();
+}
 
-    return std::string("Resetting failover\n");
+void slave_t::new_master(std::string host, int port) {
+    on_thread_t thread_switcher(home_thread);
+
+    /* redo the replication_config info */
+    strcpy(replication_config_.hostname, host.c_str());
+    replication_config_.port = port;
+
+    failover_reset();
 }
 
 /* give_up_t interface: the give_up_t struct keeps track of the last N times
@@ -164,7 +171,7 @@ void run(slave_t *slave) {
         } else {
             logINF("Master at %s:%d has failed %d times in the last %d seconds, "
                    "going rogue. To resume slave behavior send the command "
-                   "\"rethinkdb failover reset\" (over telnet).\n",
+                   "\"rethinkdb failover-reset\" (over telnet).\n",
                    slave->replication_config_.hostname, slave->replication_config_.port,
                    MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS);
 
@@ -175,30 +182,6 @@ void run(slave_t *slave) {
     }
 
     slave->pulsed_when_run_loop_done_.pulse();
-}
-
-std::string slave_t::new_master(int argc, char **argv) {
-    guarantee(argc == 3); // TODO: Handle argc = 0.
-    std::string host = argv[1];
-    if (host.length() >  MAX_HOSTNAME_LEN - 1)
-        return "That hostname is too long; use a shorter one.\n";
-
-    /* redo the replication_config info */
-    strcpy(replication_config_.hostname, host.c_str());
-    replication_config_.port = atoi(argv[2]); //TODO this is ugly
-
-    failover_reset();
-
-    return "New master set\n";
-}
-
-// TODO: instead of UNUSED, ensure that these parameters are empty.
-std::string slave_t::failover_reset_control_t::call(UNUSED int argc, UNUSED char **argv) {
-    return slave->failover_reset();
-}
-
-std::string slave_t::new_master_control_t::call(UNUSED int argc, UNUSED char **argv) {
-    return slave->new_master(argc, argv);
 }
 
 }  // namespace replication

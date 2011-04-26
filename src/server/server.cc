@@ -322,7 +322,7 @@ shutdown_control_t shutdown_control(std::string("shutdown"));
 
 struct malloc_control_t : public control_t {
     malloc_control_t(std::string key)
-        : control_t(key, "tcmalloc-testing control.") { }
+        : control_t(key, "tcmalloc-testing control.", true) { }
 
     std::string call(UNUSED int argc, UNUSED char **argv) {
         std::vector<void *> ptrs;
@@ -343,6 +343,4 @@ struct malloc_control_t : public control_t {
 
         return ret;
     }
-};
-
-malloc_control_t malloc_control("malloc_control");
+} malloc_control("malloc_control");

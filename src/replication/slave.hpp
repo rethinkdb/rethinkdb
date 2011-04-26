@@ -56,27 +56,44 @@ private:
     /* Failover controllers */
 
     /* Control to  allow the failover state to be reset during run time */
-    std::string failover_reset();
+    void failover_reset();
 
     class failover_reset_control_t : public control_t {
     public:
-        failover_reset_control_t(std::string key, slave_t *slave)
-            : control_t(key, "Reset the failover module to the state at startup (will force a reconnection to the master)."), slave(slave)
-        {}
-        std::string call(int argc, char **argv);
+        failover_reset_control_t(slave_t *slave)
+            : control_t("failover-reset", "Reset the failover module to the state at startup. This will force a reconnection to the master."), slave(slave)
+            { }
+        std::string call(int argc, UNUSED char **argv) {
+            if (argc == 1) {
+                slave->failover_reset();
+                return "Failover module was reset.\r\n";
+            } else {
+                return "\"failover-reset\" expects no arguments.\r\n";
+            }
+        }
     private:
         slave_t *slave;
     };
 
     /* Control to allow the master to be changed during run time */
-    std::string new_master(int argc, char **argv);
+    void new_master(std::string host, int port);
 
     class new_master_control_t : public control_t {
     public:
-        new_master_control_t(std::string key, slave_t *slave)
-            : control_t(key, "Set a new master for replication (the slave will disconnect and immediately reconnect to the new server). Syntax: \"rdb new_master host port\""), slave(slave)
-    {}
-        std::string call(int argc, char **argv);
+        new_master_control_t(slave_t *slave)
+            : control_t("new-master", "Set a new master for replication. The slave will disconnect and immediately reconnect to the new server. Syntax: \"rethinkdb new-master host port\""), slave(slave)
+            { }
+        std::string call(int argc, char **argv) {
+            if (argc != 3) return "Syntax: \"rethinkdb new-master host port\"\r\n";
+            std::string host = argv[1];
+            if (host.length() >  MAX_HOSTNAME_LEN - 1)
+                return "That hostname is too long; use a shorter one.\r\n";
+            int port = atoi(argv[2]);
+            if (port <= 0)
+                return "Can't interpret \"" + std::string(argv[2]) + "\" as a valid port.\r\n";
+            slave->new_master(host, port);
+            return "New master was set.\r\n";
+        }
     private:
         slave_t *slave;
     };
