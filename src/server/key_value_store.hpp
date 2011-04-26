@@ -116,11 +116,7 @@ private:
     {
     public:
         hash_control_t(btree_key_value_store_t *btkvs)
-#ifndef NDEBUG  //No documentation if we're in release mode.
-            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash key")), btkvs(btkvs)
-#else
-            : control_t("hash", std::string("")), btkvs(btkvs)
-#endif
+            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash key"), true), btkvs(btkvs)
         {}
         virtual ~hash_control_t() {};
 

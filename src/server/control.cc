@@ -6,7 +6,7 @@
 
 control_map_t& get_control_map() {
     /* Getter function so that we can be sure that control_list is initialized before it is needed,
-    as advised by the C++ FAQ. Otherwise, a control_t  might be initialized before the control list
+    as advised by the C++ FAQ. Otherwise, a control_t might be initialized before the control list
     was initialized. */
     
     static control_map_t control_map;
@@ -21,28 +21,23 @@ spinlock_t& get_control_lock() {
 }
 
 std::string control_t::exec(int argc, char **argv) {
-    if (argc == 0) return help();
+    if (argc == 0) {
+        return "You must provide a command name. Type \"rethinkdb help\" for a list of available "
+            "commands.\r\n";
+    }
     std::string command = argv[0];
 
     control_map_t::iterator it = get_control_map().find(command);
     if (it == get_control_map().end()) {
-        return help();
+        return "There is no command called \"" + command + "\". Type \"rethinkdb help\" for a "
+            "list of available commands.\r\n";
     } else {
         return (*it).second->call(argc, argv);
     }
 }
 
-std::string control_t::help() {
-    std::string res;
-    for (control_map_t::iterator it = get_control_map().begin(); it != get_control_map().end(); it++) {
-        if ((*it).second->help_string.size() == 0) continue;
-        res += ((*it).first + ": " + (*it).second->help_string + "\r\n");
-    }
-    return res;
-}
-
-control_t::control_t(const std::string& _key, const std::string& _help_string)
-    : key(_key), help_string(_help_string)
+control_t::control_t(const std::string& _key, const std::string& _help_string, bool _secret)
+    : key(_key), help_string(_help_string), secret(_secret)
 {
     rassert(key.size() > 0);
     spinlock_acq_t control_acq(&get_control_lock());
@@ -58,15 +53,46 @@ control_t::~control_t() {
     map.erase(it);
 }
 
+/* Control that displays a list of controls */
+struct help_control_t : public control_t
+{
+    help_control_t() : control_t("help", "Display this help message.") { }
+    std::string call(int argc, char **argv) {
+
+        bool show_secret = false;
+        if (argc == 2 && argv[1] == std::string("secret")) {
+            show_secret = true;
+        } else if (argc != 1) {
+            return "\"rethinkdb help\" does not expect a parameter.\r\n";
+        }
+
+#ifndef NDEBUG
+        show_secret = true;
+#endif
+
+        spinlock_acq_t control_acq(&get_control_lock());
+        std::string res = "\r\nThe following commands are available:\r\n\r\n";
+        for (control_map_t::iterator it = get_control_map().begin(); it != get_control_map().end(); it++) {
+            if ((*it).second->secret && !show_secret) continue;
+            res += (*it).first + ": " + (*it).second->help_string;
+            if ((*it).second->secret) res += " (secret)";
+            res += "\r\n";
+        }
+        res += "\r\n";
+        return res;
+    }
+} help_control;
+
 /* Example of how to add a control */
-struct hi_t : public control_t
+struct hi_control_t : public control_t
 {
 private:
     int counter;
 public:
-    hi_t(std::string key)
-        : control_t(key, ""), counter(0)
-    {}
+    hi_control_t() :
+        control_t("hi", "Say 'hi' to the server, and it will say 'hi' back.", true),
+        counter(0)
+        { }
     std::string call(UNUSED int argc, UNUSED char **argv) {
         counter++;
         if (counter < 3)
@@ -76,6 +102,4 @@ public:
         else
             return "Base QPS decreased by 100,000.\r\n";
     }
-};
-
-hi_t hi("hi");
+} hi_control;
