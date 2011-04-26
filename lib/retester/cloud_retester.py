@@ -482,8 +482,11 @@ def copy_basedata_to_testing_node(node):
     command_result = node.run_command("chmod +x " + node.global_bench_path + "/*/*")
     if command_result[0] != 0:
         print "Unable to make bench files executable"
-    node.put_file(base_directory + "/../bench/stress-client/libstress.so", node.global_bench_path + "/stress-client/libstress.so")
-    node.put_file(base_directory + "/../bench/stress-client/stress.py", node.global_bench_path + "/stress-client/stress.py")
+    try:
+        node.put_file(base_directory + "/../bench/stress-client/libstress.so", node.global_bench_path + "/stress-client/libstress.so")
+        node.put_file(base_directory + "/../bench/stress-client/stress.py", node.global_bench_path + "/stress-client/stress.py")
+    except Exception as e:
+        print "Failed copying stress auxiliary files: %s" % e
     
     # Copy test hierarchy
     node.make_directory(node.global_test_path)
