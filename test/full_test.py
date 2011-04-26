@@ -460,9 +460,9 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                         "protocol"    : protocol,
                         "cores"       : cores,
                         "slices"      : slices,
-                        "sigint-timeout" : 360,
+                        "sigint-timeout" : 560,
                         "suite-test"  : suite_test},
-                      repeat=3, timeout=480)
+                      repeat=3, timeout=540)
                       
     # Test different command line configurations (defaults less thoroughly)
     do_test_cloud("integration/serial_mix.py",
