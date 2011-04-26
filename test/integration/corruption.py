@@ -11,7 +11,8 @@ from test_common import *
 if __name__ == "__main__":
 
     op = make_option_parser()
-    op["mclib"].default = "memcache"   # memcache plays nicer with this test than pylibmc does
+    #op["mclib"].default = "memcache"   # memcache plays nicer with this test than pylibmc does
+    op["mclib"].default = "pylibmc"     # ... but seems to cause connection hangups during verification! Also niceness is overrated.
     op["extract"] = BoolFlag("--no-extract", invert = True)
     op["verify_timeout"] = IntFlag("--verify-timeout", 120) # Should be proportional to duration.
     op["missing_value_threshold"] = IntFlag("--missing-value-threshold", 0)
