@@ -68,7 +68,7 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                     "cores"       : cores,
                     "slices"      : slices,
                     "sigint-timeout" : sigint_timeout },
-                  repeat=3, timeout = 200 + sigint_timeout)
+                  repeat=3, timeout = 320 + sigint_timeout)
     
     do_test_cloud("integration/pipeline.py",
                   { "auto"        : True,
@@ -278,7 +278,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "protocol"    : protocol,
                     "cores"       : cores,
                     "slices"      : slices },
-                  repeat=3)
+                  repeat=3, timeout=90)
     
     do_test_cloud("integration/cas.py",
                   { "auto"        : True,
