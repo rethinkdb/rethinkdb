@@ -172,6 +172,11 @@ bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
                 i += sizeof(tao);
             }
 
+            if (!begin_found && ie > 0 && begin_timestamp.time > tao.timestamp.time) {
+                begin_offset = end_offset;
+                begin_found = true;
+            }
+
             if (!recipient->should_send_deletion_keys(begin_found)) {
                 return false;
             }
