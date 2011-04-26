@@ -411,16 +411,6 @@ void writeback_t::concurrent_flush_t::do_writeback() {
     // Also, at this point we can still clear the start_next_sync_immediately...
     parent->start_next_sync_immediately = false;
 
-    // Cancel the flush timer because we're doing writeback now, so we don't need it to remind
-    // us later. This happens only if the flush timer is running, and writeback starts for some
-    // other reason before the flush timer goes off; if this writeback had been started by the
-    // flush timer, then flush_timer would be NULL here, because flush_timer_callback sets it
-    // to NULL.
-    if (parent->flush_timer) {
-        cancel_timer(parent->flush_timer);
-        parent->flush_timer = NULL;
-    }
-
     // Go through the different flushing steps...
     prepare_patches();
     acquire_bufs();
