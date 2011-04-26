@@ -683,8 +683,8 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         /* The buf isn't in the cache and must be loaded from disk */
         inner_buf = new inner_buf_t(cache, block_id, should_load);
     } else {
-        rassert(!inner_buf->do_delete);
-        rassert(inner_buf->data != NULL);
+        rassert(!inner_buf->do_delete || snapshotted);
+        rassert(inner_buf->data != NULL || snapshotted);
     }
 
     // If we are not in a snapshot transaction, then snapshot_version is faux_version_id,
