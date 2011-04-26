@@ -179,7 +179,7 @@ unsigned int writeback_t::num_dirty_blocks() {
     return dirty_bufs.size();
 }
 
-perfmon_sampler_t pm_delay("throttling_delay", secs_to_ticks(1.0));
+//perfmon_sampler_t pm_delay("throttling_delay", secs_to_ticks(1.0));
 
 unsigned int writeback_t::throttle_delay_ms() {
     /* TODO: For now, delay-based throttling is disabled as it causes reordering issues. 
