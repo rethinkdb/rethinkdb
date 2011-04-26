@@ -35,7 +35,7 @@ public:
         set_gate_(set_gate),
         backfill_storer_(kv_store)
     {
-        logINF("Waiting for initial slave to connect...\n");
+        logINF("Waiting for initial slave to connect on port %d...\n", listener_port_);
         listener_.reset(new tcp_listener_t(listener_port_));
         listener_->set_callback(this);
 

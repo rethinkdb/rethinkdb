@@ -30,13 +30,13 @@ wait_for_early_second();
 
 # Modified the expiration time to fix #264 (the old version of the line follows first)
 # print $sock "set foo 0 1 6\r\nfooval\r\n";
-print $sock "set foo 0 2 6\r\nfooval\r\n";
+print $sock "set foo 0 60 6\r\nfooval\r\n";
 is(scalar <$sock>, "STORED\r\n", "stored foo");
 
 mem_get_is($sock, "foo", "fooval");
 # Modified the expiration time to fix #264 (the old version of the line follows first)
 # sleep(1.5);
-sleep(2);
+sleep(60);
 mem_get_is($sock, "foo", undef);
 
 $expire = time() - 1;
@@ -44,11 +44,11 @@ print $sock "set foo 0 $expire 6\r\nfooval\r\n";
 is(scalar <$sock>, "STORED\r\n", "stored foo");
 mem_get_is($sock, "foo", undef, "already expired");
 
-$expire = time() + 1;
+$expire = time() + 5;
 print $sock "set foo 0 $expire 6\r\nfoov+1\r\n";
 is(scalar <$sock>, "STORED\r\n", "stored foo");
 mem_get_is($sock, "foo", "foov+1");
-sleep(2.2);
+sleep(7.2);
 mem_get_is($sock, "foo", undef, "now expired");
 
 $expire = time() - 20;
@@ -56,13 +56,13 @@ print $sock "set boo 0 $expire 6\r\nbooval\r\n";
 is(scalar <$sock>, "STORED\r\n", "stored boo");
 mem_get_is($sock, "boo", undef, "now expired");
 
-print $sock "add add 0 2 6\r\naddval\r\n";
+print $sock "add add 0 5 6\r\naddval\r\n";
 is(scalar <$sock>, "STORED\r\n", "stored add");
 mem_get_is($sock, "add", "addval");
 # second add fails
-print $sock "add add 0 2 7\r\naddval2\r\n";
+print $sock "add add 0 5 7\r\naddval2\r\n";
 is(scalar <$sock>, "NOT_STORED\r\n", "add failure");
-sleep(2.3);
+sleep(5.3);
 print $sock "add add 0 2 7\r\naddval3\r\n";
 is(scalar <$sock>, "STORED\r\n", "stored add again");
 mem_get_is($sock, "add", "addval3");

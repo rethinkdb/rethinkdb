@@ -21,7 +21,7 @@ def test(opts, server, repli_server, test_dir):
 
     server.shutdown()
 
-    time.sleep(10) #give the slave a chance to realize the master is down
+    time.sleep(30) #give the slave a chance to realize the master is down
 
     if (not test_connection(repli_server.elb_port)):
         raise ValueError("slave should be accepting elb connections on %d but it isn't" % repli_server.elb_port)
