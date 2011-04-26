@@ -243,6 +243,56 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
     }
 }
 
+/* recover_basic_block_consistency checks whether offsets and sizes in the supplied buffer are valid.
+ This check is used to determine whether we can safely apply patches to this block.
+ If problems are found, the inconsistencies are corrected as well as possible.
+ In case of an incorrectable problem, false is returned. If all problems could
+ be recovered from, true is returned.
+ Please note that this check is valid only because of the way that we are flushing
+ patches in the current implementation of RethinkDB. Namely, it assumes that the buf
+ as it is on disk is always valid. In theory it is perfectly fine though, if a buf
+ is in an invalid state, and only becomes valid again after all applicable patches
+ have been replayed. The reason this does not happen with our writeback is that
+ writeback acquires the flush lock (so all buffers are in a valid state) and then either
+ flushes *only* patches, but does not touch the existing block, or applies *all*
+ outstanding patches and only then writes the block to disk, so it's consistent again. */
+bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
+    leaf_node_t *leaf = (leaf_node_t *)buf;
+    if (check_magic<leaf_node_t>(leaf->magic)) {
+        // Check that the number of pairs is not too high and that the offsets are fine
+        int num_pairs = leaf->npairs;
+        int pair_offsets_back_offset = offsetof(leaf_node_t, pair_offsets) + sizeof(*leaf->pair_offsets) * num_pairs;
+        if (unsigned(pair_offsets_back_offset) < cfg.block_size().value()) {
+            for (int j = 0; j < num_pairs; ++j) {
+                uint16_t pair_offset = leaf->pair_offsets[j];
+                if (!(pair_offset >= pair_offsets_back_offset && pair_offset <= cfg.block_size().value())) {
+                    // Illegal pair offset
+                    // Recover...
+                    logERR("Recovering from a corrupted leaf node block. Data might be lost.\n");
+                    if (pair_offset < pair_offsets_back_offset) {
+                        leaf->pair_offsets[j] = pair_offsets_back_offset;
+                    } else {
+                        leaf->pair_offsets[j] = cfg.block_size().value();
+                    }
+                }
+            }
+        } else {
+            // Too many pairs
+            return false;
+        }
+
+        return true;
+    } else {
+        // For now, we only handle leaf nodes.
+        // In theory, there can be patches which change the magic of the block, such that a
+        // non-leaf block can become a leaf node only after patches have been applied.
+        // HOWEVER we are lucky, because all init() functions in RethinkDB currently use
+        // get_buf_major_write(). thereby disabling the patching. This makes sure that
+        // the block magic always finds its way to the on-disk version of the block.
+        return false;
+    }
+}
+
 void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, UNUSED uint64_t filesize) {
     // If the database has been copied to a normal filesystem, it's
     // _way_ faster to rescan the file in order of offset than in
@@ -262,17 +312,26 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
             block_id_t cache_block_id = translator_serializer_t::untranslate_block_id_to_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
 
             if (!cfg.ignore_diff_log) {
-                // Replay patches
-                std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = buf_patches.find(cache_block_id);
-                if (patches != buf_patches.end()) {
-                    // We apply only patches which match exactly the provided transaction ID.
-                    // Sepcifically, this ensures that we only replay patches which are for the right slice,
-                    // as transaction IDs are disjoint across slices (this relies on the current implementation
-                    // details of the cache and serializer though)
-                    for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
-                        if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
-                            (*patch)->apply_to_buf((char*)b.buf);
+                // See comments for recover_basic_block_consistency above
+                if (recover_basic_block_consistency(cfg, b.buf)) {
+                    // Replay patches
+                    std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = buf_patches.find(cache_block_id);
+                    if (patches != buf_patches.end()) {
+                        // We apply only patches which match exactly the provided transaction ID.
+                        // Sepcifically, this ensures that we only replay patches which are for the right slice,
+                        // as transaction IDs are disjoint across slices (this relies on the current implementation
+                        // details of the cache and serializer though)
+                        for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
+                            if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
+                                (*patch)->apply_to_buf((char*)b.buf);
+                            }
                         }
+                    }
+                } else {
+                    const leaf_node_t *leaf = (leaf_node_t *)b.buf;
+                    // If the block is not considered consistent, but still is a leaf, something is wrong with the block.
+                    if (check_magic<leaf_node_t>(leaf->magic)) {
+                        logERR("Not replaying patches for block %u. The block seems to be corrupted.\n", block_id.value);
                     }
                 }
             }
