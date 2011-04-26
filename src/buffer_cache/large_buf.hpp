@@ -46,6 +46,11 @@ struct tree_available_callback_t {
     virtual ~tree_available_callback_t() {}
 };
 
+enum should_load_code_t {
+    no_load_leaves,
+    should_load_everything,
+    should_load_right_leaf
+};
 
 
 class large_buf_t : public tree_available_callback_t {
@@ -174,7 +179,7 @@ private:
     buftree_t *allocate_buftree(int64_t size, int64_t offset, int levels, block_id_t *block_id);
     buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
 
-    void do_acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_);
+    void do_acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, should_load_code_t should_load_code);
 
     void trees_bufs_at(const std::vector<buftree_t *>& trees, int sublevels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);
     void tree_bufs_at(buftree_t *tr, int levels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);

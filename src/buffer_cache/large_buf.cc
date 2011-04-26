@@ -52,7 +52,6 @@ private:
     DISABLE_COPYING(lb_indexer);
 };
 
-
 int64_t large_buf_t::bytes_per_leaf(block_size_t block_size) {
     return block_size.value() - sizeof(large_buf_leaf);
 }
@@ -209,20 +208,21 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     buftree_t *tr;
     int index;
     large_buf_t *lb;
-    bool should_load_leaves;
+    should_load_code_t should_load_code;
 
     // When this becomes 0, we return and destroy.
     int life_counter;
 
-    acquire_buftree_fsm_t(large_buf_t *lb_, block_id_t block_id_, int64_t offset_, int64_t size_, int levels_, tree_available_callback_t *cb_, int index_, bool should_load_leaves_)
-        : block_id(block_id_), offset(offset_), size(size_), levels(levels_), cb(cb_), tr(new buftree_t()), index(index_), lb(lb_), should_load_leaves(should_load_leaves_) {
+    acquire_buftree_fsm_t(large_buf_t *lb_, block_id_t block_id_, int64_t offset_, int64_t size_, int levels_, tree_available_callback_t *cb_, int index_, should_load_code_t should_load_code_)
+        : block_id(block_id_), offset(offset_), size(size_), levels(levels_), cb(cb_), tr(new buftree_t()), index(index_), lb(lb_), should_load_code(should_load_code_) {
 #ifndef NDEBUG
         tr->level = levels_;
 #endif
 }
 
     void go() {
-        bool should_load = should_load_leaves || levels != 1;
+        bool should_load = should_load_code > no_load_leaves || levels != 1;
+        debugf("acquiring with access %d, should_load = %d\n", lb->access, should_load);
         buf_t *buf = (*lb->txor)->acquire(block_id, lb->access, this, should_load);
         if (buf) {
             on_block_available(buf);
@@ -250,7 +250,8 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
             for (; !ixer.done(); ixer.step()) {
                 int k = ixer.index();
                 lb_interval in = ixer.subinterval();
-                acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[k], in.offset, in.size, levels - 1, this, k, should_load_leaves);
+                should_load_code_t child_code = k + 1 == ixer.end_index() && should_load_code == should_load_right_leaf ? should_load_right_leaf : no_load_leaves;
+                acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[k], in.offset, in.size, levels - 1, this, k, child_code);
                 fsm->go();
             }
         }
@@ -299,8 +300,12 @@ void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_
     if (amount_to_dequeue > 0) {
         boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
 
+        debugf("co_enqueue acquiring for unprepend..\n");
+
         // TODO: We could do this operation concurrently with co_acquire_large_buf_slice.
         co_acquire_large_buf_for_unprepend(saver, lb.get(), amount_to_dequeue);
+
+        debugf("co_enqueue unprepending.. size = %ld, offset = %ld, amount_to_dequeue = %ld\n", root_ref->size, root_ref->offset, amount_to_dequeue);
 
         int refsize_adjustment;
         lb->unprepend(amount_to_dequeue, &refsize_adjustment);
@@ -309,14 +314,26 @@ void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_
 
 
 void large_buf_t::acquire_for_unprepend(int64_t extra_size, large_buf_available_callback_t *callback) {
-    do_acquire_slice(root_ref->offset, extra_size, callback, false);
+    // TODO: this is _slightly_ inefficient (considering the way we
+    // use it in the delete queue), and crap.
+
+    rassert(extra_size < root_ref->size);
+
+    // This is disgusting, but it works.  Usually it acquires one of
+    // the nodes more eagerly than necessary (the right leaf node,
+    // obviously).  We use extra_size + 1 because we sometimes want to
+    // acquire and load the left-most surviving leaf node, and its
+    // parents.  This is due to the unshifting and shrinking of the
+    // tree that we do in unprepend.
+
+    do_acquire_slice(root_ref->offset, extra_size + 1, callback, should_load_right_leaf);
 }
 
 void large_buf_t::acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_) {
-    do_acquire_slice(root_ref->offset + slice_offset, slice_size, callback_, true);
+    do_acquire_slice(root_ref->offset + slice_offset, slice_size, callback_, should_load_everything);
 }
 
-void large_buf_t::do_acquire_slice(int64_t raw_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_) {
+void large_buf_t::do_acquire_slice(int64_t raw_offset, int64_t slice_size, large_buf_available_callback_t *callback_, should_load_code_t should_load_code_) {
     rassert(0 <= raw_offset);
     rassert(0 <= slice_size);
     rassert(raw_offset + slice_size <= root_ref->offset + root_ref->size);
@@ -327,25 +344,30 @@ void large_buf_t::do_acquire_slice(int64_t raw_offset, int64_t slice_size, large
 
     DEBUG_ONLY(state = loading);
 
-    int sublevels = num_sublevels(root_ref->offset + root_ref->size);
+    if (slice_size > 0) {
+        int sublevels = num_sublevels(root_ref->offset + root_ref->size);
 
-    lb_indexer ixer(raw_offset, slice_size, max_offset(sublevels));
-    roots.resize(ixer.end_index(), NULL);
-    num_to_acquire = ixer.end_index() - ixer.index();
+        lb_indexer ixer(raw_offset, slice_size, max_offset(sublevels));
+        roots.resize(ixer.end_index(), NULL);
+        num_to_acquire = ixer.end_index() - ixer.index();
 
-    // TODO: This duplicates logic inside acquire_buftree_fsm_t, and
-    // we could fix that, but it's not that important.
+        // TODO: This duplicates logic inside acquire_buftree_fsm_t, and
+        // we could fix that, but it's not that important.
 
-    for (; !ixer.done(); ixer.step()) {
-        int k = ixer.index();
-        lb_interval in = ixer.subinterval();
-        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[k], in.offset, in.size, sublevels, this, k, should_load_leaves_);
-        f->go();
+        for (; !ixer.done(); ixer.step()) {
+            int k = ixer.index();
+            lb_interval in = ixer.subinterval();
+            acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[k], in.offset, in.size, sublevels, this, k, should_load_code_);
+            f->go();
+        }
+    } else {
+        DEBUG_ONLY(state = loaded);
+        callback->on_large_buf_available(this);
     }
 }
 
 void large_buf_t::acquire_for_delete(large_buf_available_callback_t *callback_) {
-    do_acquire_slice(root_ref->offset, root_ref->size, callback_, false);
+    do_acquire_slice(root_ref->offset, root_ref->size, callback_, no_load_leaves);
 }
 
 void large_buf_t::on_available(buftree_t *tr, int index) {
@@ -765,7 +787,7 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
     int original_refsize = root_ref->refsize(block_size(), root_ref_limit);
 
     int64_t sublevels = num_sublevels(root_ref->offset + root_ref->size);
-    rassert(roots[0]->level == sublevels);
+    rassert(roots.size() == 0 || roots[0]->level == sublevels);
 
     {
         int64_t delbeg = floor_aligned(root_ref->offset, num_leaf_bytes());
@@ -791,6 +813,10 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
         // Now we've gotta shift the block _before_ considering whether to remove a level.
 
         if (sublevels == 1) {
+            // We can't shift leaf nodes.  The reason is that we have
+            // only acquired the leaf node for deletion, and haven't
+            // actually loaded the leaf node block.
+
             if (root_ref->offset > 0) {
                 large_buf_leaf *leaf = ptr_cast<large_buf_leaf>(roots[0]->buf->get_data_major_write());
                 rassert(uint64_t(root_ref->offset) <= block_size().value() - offsetof(large_buf_leaf, buf));
