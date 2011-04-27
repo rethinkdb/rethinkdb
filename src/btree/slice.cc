@@ -42,9 +42,9 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     boost::scoped_ptr<cache_t> cache(new cache_t(serializer, &startup_dynamic_config));
 
     /* Initialize the btree superblock and the delete queue */
-    transactor_t transactor(saver, cache.get(), rwi_write, 1, repli_timestamp_t::distant_past());
+    boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache.get(), rwi_write, 1, repli_timestamp_t::distant_past()));
 
-    buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
+    buf_lock_t superblock(saver, *txor, SUPERBLOCK_ID, rwi_write);
 
     // Initialize replication time barrier to 0 so that if we are a slave, we will begin by pulling
     // ALL updates from master.
@@ -58,9 +58,9 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 
     // Allocate sb->delete_queue_block like an ordinary block.
     buf_lock_t delete_queue_block;
-    delete_queue_block.allocate(saver, transactor);
+    delete_queue_block.allocate(saver, *txor);
     replication::delete_queue_block_t *dqb = reinterpret_cast<replication::delete_queue_block_t *>(delete_queue_block->get_data_major_write());
-    initialize_empty_delete_queue(dqb, serializer->get_block_size());
+    initialize_empty_delete_queue(txor, dqb, serializer->get_block_size());
     sb->delete_queue_block = delete_queue_block->get_block_id();
 
     sb->replication_clock = sb->last_sync = repli_timestamp_t::distant_past();

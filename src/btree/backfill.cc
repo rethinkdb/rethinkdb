@@ -13,11 +13,12 @@
 
 class btree_slice_t;
 
-struct backfill_traversal_helper_t : public btree_traversal_helper_t {
+struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
 
     // The deletes have to go first (since they get overridden by
     // newer sets)
     void preprocess_btree_superblock(boost::shared_ptr<transactor_t>& txor, const btree_superblock_t *superblock) {
+        assert_thread();
         if (!dump_keys_from_delete_queue(txor, superblock->delete_queue_block, since_when_, callback_)) {
             // Set since_when_ to the minimum timestamp, so that we backfill everything.
             since_when_.time = 0;
@@ -25,6 +26,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
     }
 
     void process_a_leaf(boost::shared_ptr<transactor_t>& txor, buf_t *leaf_node_buf) {
+        assert_thread();
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
         // Remember, we only want to process recent keys.
@@ -52,9 +54,11 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
     }
 
     void postprocess_internal_node(UNUSED buf_t *internal_node_buf) {
+        assert_thread();
         // do nothing
     }
     void postprocess_btree_superblock(UNUSED buf_t *superblock_buf) {
+        assert_thread();
         // do nothing
     }
 
@@ -92,6 +96,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t {
     };
 
     void filter_interesting_children(boost::shared_ptr<transactor_t>& txor, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb) {
+        assert_thread();
         annoying_t *fsm = new annoying_t;
         fsm->cb = cb;
         fsm->block_ids.reset(new block_id_t[num_block_ids]);

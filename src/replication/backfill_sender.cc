@@ -57,6 +57,8 @@ void backfill_sender_t::backfill_set(backfill_atom_t atom) {
         msg.value_size = atom.value->get_size();
         (*stream_)->send(&msg, atom.key.contents, atom.value);
     }
+
+    debugf("done send backfill_set(%.*s), %d\n", atom.key.size, atom.key.contents, int(bool(*stream_)));
 }
 
 void backfill_sender_t::backfill_done(repli_timestamp_t timestamp_when_backfill_began) {

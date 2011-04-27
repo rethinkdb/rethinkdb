@@ -111,11 +111,16 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
                 co_acquire_large_buf_slice(saver, t_o_largebuf.get(), 0, 2 * sizeof(second_tao));
 
                 t_o_largebuf->read_at(sizeof(second_tao), &second_tao, sizeof(second_tao));
-                will_actually_dequeue = true;
 
-                // It's okay to unprepend because we acquired the lhs of the large buf.
-                int refsize_adjustment_dontcare;
-                t_o_largebuf->unprepend(sizeof(second_tao), &refsize_adjustment_dontcare);
+                // We want to encourage at least one timestamp to
+                // actually be less than the minimum valid timestamp.
+                if (second_tao.offset < *primal_offset) {
+                    will_actually_dequeue = true;
+
+                    // It's okay to unprepend because we acquired the lhs of the large buf.
+                    int refsize_adjustment_dontcare;
+                    t_o_largebuf->unprepend(sizeof(second_tao), &refsize_adjustment_dontcare);
+                }
             }
         }
     }
@@ -175,7 +180,7 @@ bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
             bool begin_found = false;
             while (i < ie) {
                 t_o_largebuf->read_at(i, &tao, sizeof(tao));
-                if (!begin_found && begin_timestamp.time <= tao.timestamp.time) {
+                if (begin_timestamp.time <= tao.timestamp.time) {
                     begin_offset = tao.offset - *primal_offset;
                     begin_found = true;
                     break;
@@ -183,7 +188,9 @@ bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
                 i += sizeof(tao);
             }
 
-            if (!begin_found && ie > 0 && begin_timestamp.time > tao.timestamp.time) {
+            if (begin_found && tao.offset < *primal_offset) {
+                begin_found = false;
+            } else if (!begin_found && ie > 0 && begin_timestamp.time > tao.timestamp.time) {
                 begin_offset = end_offset;
                 begin_found = true;
             }
@@ -200,7 +207,6 @@ bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
         if (begin_offset < end_offset) {
             boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txor, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size())), rwi_read_outdated_ok));
 
-            // TODO: acquire subinterval.
             co_acquire_large_buf_slice(saver, keys_largebuf.get(), begin_offset, end_offset - begin_offset);
 
             int64_t n = end_offset - begin_offset;
@@ -221,6 +227,14 @@ bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
                 p += k->size + 1;
             }
         }
+    } else {
+        // We can only be here if the delete queue never had any keys
+        // inserted into it -- in which it's correct to say that we
+        // can send all the keys in the delete queue from a given time
+        // stamp.  So we pass true.
+        if (!recipient->should_send_deletion_keys(true)) {
+            return false;
+        }
     }
 
     recipient->done_deletion_keys();
@@ -237,16 +251,25 @@ void initialize_large_buf_ref(large_buf_ref *ref, int size_in_bytes) {
 
     ref->offset = 0;
     ref->size = 0;
+#ifndef VALGRIND
     for (int i = 0, e = ids_bytes / sizeof(block_id_t); i < e; ++i) {
         ref->block_ids[i] = NULL_BLOCK_ID;
     }
+#endif
 }
 
-void initialize_empty_delete_queue(delete_queue_block_t *dqb, block_size_t block_size) {
+void initialize_empty_delete_queue(boost::shared_ptr<transactor_t>& txor, delete_queue_block_t *dqb, block_size_t block_size) {
     dqb->magic = delete_queue_block_t::expected_magic;
     *delete_queue::primal_offset(dqb) = 0;
-    large_buf_ref *t_and_o = delete_queue::timestamps_and_offsets_largebuf(dqb);
-    initialize_large_buf_ref(t_and_o, delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE);
+    {
+        large_buf_ref *t_and_o = delete_queue::timestamps_and_offsets_largebuf(dqb);
+        initialize_large_buf_ref(t_and_o, delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE);
+        large_buf_t lb(txor, t_and_o, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write);
+        lb.allocate(sizeof(delete_queue::t_and_o));
+        delete_queue::t_and_o zerotime = { { 0 }, 0 };
+        lb.fill_at(0, &zerotime, sizeof(zerotime));
+    }
+
     large_buf_ref *k = delete_queue::keys_largebuf(dqb);
     initialize_large_buf_ref(k, delete_queue::keys_largebuf_ref_size(block_size));
 }
