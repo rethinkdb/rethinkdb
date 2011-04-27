@@ -63,7 +63,13 @@ template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::release() {
     rassert(inner_buf);
     if (!snapshotted && !inner_buf->is_deleted()) {
-        rassert (should_load);
+        /* There are two valid use cases for should_load == false:
+         1. deletion of buffers
+         2. overwriting the value of a buffer
+         If we got here, it has to be case 2, so we hope that the buffer has been filled
+         with data by now and compute a new crc.
+        */
+        rassert(should_load || inner_buf->is_dirty());
         if (!inner_buf->is_dirty() && cache->crc_map.get(inner_buf->get_block_id())) {
             rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
         } else {
