@@ -126,8 +126,9 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     }
 
     void client_error_not_allowed(const thread_saver_t& saver) {
-        client_error(saver, "operation not allowed; maybe we're not done starting up yet, or "
-            "maybe you are trying to write to a slave\r\n");
+        client_error(saver, "operation not allowed; maybe you're trying to write to a slave, or "
+            "maybe the database is currently in an inconsistent state, or maybe we're shutting "
+            "down.\r\n");
     }
 
     void server_error_object_too_large_for_cache(const thread_saver_t& saver) {
