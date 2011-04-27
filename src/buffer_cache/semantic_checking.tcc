@@ -23,21 +23,25 @@ const void *scc_buf_t<inner_cache_t>::get_data_read() const {
 
 template<class inner_cache_t>
 void *scc_buf_t<inner_cache_t>::get_data_major_write() {
+    has_been_changed = true;
     return inner_buf->get_data_major_write();
 }
 
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::set_data(void *dest, const void *src, const size_t n) {
+    has_been_changed = true;
     inner_buf->set_data(dest, src, n);
 }
 
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::move_data(void *dest, const void *src, const size_t n) {
+    has_been_changed = true;
     inner_buf->move_data(dest, src, n);
 }
 
 template<class inner_cache_t>
 void scc_buf_t<inner_cache_t>::apply_patch(buf_patch_t *patch) {
+    has_been_changed = true;
     inner_buf->apply_patch(patch);
 }
 
@@ -69,8 +73,8 @@ void scc_buf_t<inner_cache_t>::release() {
          If we got here, it has to be case 2, so we hope that the buffer has been filled
          with data by now and compute a new crc.
         */
-        rassert(should_load || inner_buf->is_dirty());
-        if (!inner_buf->is_dirty() && cache->crc_map.get(inner_buf->get_block_id())) {
+        rassert(should_load || has_been_changed);
+        if (!has_been_changed && cache->crc_map.get(inner_buf->get_block_id())) {
             rassert(compute_crc() == cache->crc_map.get(inner_buf->get_block_id()));
         } else {
             cache->crc_map.set(inner_buf->get_block_id(), compute_crc());
@@ -99,7 +103,7 @@ void scc_buf_t<inner_cache_t>::on_block_available(typename inner_cache_t::buf_t 
 
 template<class inner_cache_t>
 scc_buf_t<inner_cache_t>::scc_buf_t(scc_cache_t<inner_cache_t> *_cache, bool snapshotted, bool should_load)
-    : snapshotted(snapshotted), should_load(should_load), inner_buf(NULL), available_cb(NULL), cache(_cache) { }
+    : snapshotted(snapshotted), should_load(should_load), has_been_changed(false), inner_buf(NULL), available_cb(NULL), cache(_cache) { }
 
 /* Transaction */
 
