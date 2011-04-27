@@ -51,9 +51,7 @@ template <> struct stream_type<net_backfill_set_t> { typedef stream_pair<net_bac
 size_t objsize(UNUSED const net_backfill_t *buf) { return sizeof(net_backfill_t); }
 size_t objsize(UNUSED const net_backfill_complete_t *buf) { return sizeof(net_backfill_complete_t); }
 size_t objsize(UNUSED const net_backfill_delete_everything_t *buf) { return sizeof(net_backfill_delete_everything_t); }
-size_t objsize(UNUSED const net_ack_t *buf) { return sizeof(net_ack_t); }
 size_t objsize(UNUSED const net_nop_t *buf) { return sizeof(net_nop_t); }
-size_t objsize(UNUSED const net_announce_t *buf) { return sizeof(net_announce_t); }
 size_t objsize(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
 size_t objsize(const net_incr_t *buf) { return sizeof(net_incr_t) + buf->key_size; }
 size_t objsize(const net_decr_t *buf) { return sizeof(net_decr_t) + buf->key_size; }
@@ -121,9 +119,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, const char
         case BACKFILL: check_pass<net_backfill_t>(receiver, buf + realbegin, realsize); break;
         case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, buf + realbegin, realsize); break;
         case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver, buf + realbegin, realsize); break;
-        case ANNOUNCE: check_pass<net_announce_t>(receiver, buf + realbegin, realsize); break;
         case NOP: check_pass<net_nop_t>(receiver, buf + realbegin, realsize); break;
-        case ACK: check_pass<net_ack_t>(receiver, buf + realbegin, realsize); break;
         case GET_CAS: check_pass<net_get_cas_t>(receiver, buf + realbegin, realsize); break;
         case SARC: check_pass<net_sarc_t>(receiver, buf + realbegin, realsize); break;
         case INCR: check_pass<net_incr_t>(receiver, buf + realbegin, realsize); break;
@@ -325,11 +321,6 @@ void repli_stream_t::send(net_backfill_delete_everything_t msg) {
     sendobj(BACKFILL_DELETE_EVERYTHING, &msg);
 }
 
-void repli_stream_t::send(net_announce_t *msg) {
-    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-    sendobj(ANNOUNCE, msg);
-}
-
 void repli_stream_t::send(net_get_cas_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(GET_CAS, msg);
@@ -378,11 +369,6 @@ void repli_stream_t::send(net_backfill_delete_t *msg) {
 void repli_stream_t::send(net_nop_t msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(NOP, &msg);
-}
-
-void repli_stream_t::send(net_ack_t msg) {
-    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-    sendobj(ACK, &msg);
 }
 
 void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_acquisition) {

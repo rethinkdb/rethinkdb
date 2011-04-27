@@ -40,8 +40,6 @@ struct slave_stream_manager_t :
     void hello(net_hello_t message);
 
     void send(scoped_malloc<net_backfill_t>& message);
-    void send(UNUSED scoped_malloc<net_announce_t>& message) { crash("announce is obsolete"); }
-    void send(scoped_malloc<net_ack_t>& message);
 
     // Overrides backfill_receiver_t::send(scoped_malloc<net_backfill_complete_t>&)
     void send(scoped_malloc<net_backfill_complete_t>& message) {

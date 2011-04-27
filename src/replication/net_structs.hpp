@@ -11,7 +11,7 @@ namespace replication {
 enum multipart_aspect { SMALL = 0x81, FIRST = 0x82, MIDDLE = 0x83, LAST = 0x84 };
 
 enum message_code { MSGCODE_NIL = 0, BACKFILL = 0x01, BACKFILL_COMPLETE, BACKFILL_DELETE_EVERYTHING,
-                    ANNOUNCE, NOP, ACK,
+                    NOP,
 
                     // TODO: Explicitly number these
                     GET_CAS, SARC, INCR, DECR, APPEND, PREPEND, DELETE, BACKFILL_SET, BACKFILL_DELETE };
@@ -60,21 +60,11 @@ struct net_backfill_delete_everything_t {
     uint32_t padding;
 } __attribute__((__packed__));
 
-struct net_announce_t {
-    repli_timestamp from;
-    repli_timestamp to;
-} __attribute__((__packed__));
-
 // TODO: Get rid of one of these, and maybe just make the protocol
 // "layer" completely symmetric.
 struct net_nop_t {
     repli_timestamp timestamp;
 } __attribute__((__packed__));
-
-struct net_ack_t {
-    repli_timestamp timestamp;
-} __attribute__((__packed__));
-
 
 struct net_get_cas_t {
     cas_t proposed_cas;

@@ -81,8 +81,6 @@ public:
     void send(UNUSED scoped_malloc<net_backfill_t>& message) {
         coro_t::spawn_now(boost::bind(&master_t::do_backfill_and_realtime_stream, this, message->timestamp));
     }
-    void send(UNUSED scoped_malloc<net_announce_t>& message) { guarantee(false, "slave sent announce"); }
-    void send(UNUSED scoped_malloc<net_ack_t>& message) { crash("ack is obsolete"); }
     void conn_closed() {
         assert_thread();
         mutex_acquisition_t ak(&stream_setup_teardown);
