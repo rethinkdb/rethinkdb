@@ -83,16 +83,15 @@ struct periodic_checker_t {
     }
 
     ~periodic_checker_t() {
-        timer_token_lock.lock();
+        spinlock_acq_t lock(&timer_token_lock);
         no_more_checking = true;
         if (timer_token) {
             cancel_timer(const_cast<timer_token_t*>(timer_token));
         } 
-        timer_token_lock.unlock();
     }
 
     static void check(periodic_checker_t *timebomb_checker) {
-        timer_token_lock.lock();
+        spinlock_acq_t lock(&timer_token_lock);
         if (!no_more_checking) {
             bool exploded = false;
             time_t time_now = time(NULL);
@@ -121,11 +120,10 @@ struct periodic_checker_t {
             } else {
                 // schedule next check
                 long seconds_left = ceil(double(TIMEBOMB_DAYS)*seconds_in_a_day - seconds_since_created) + 1;
-                long seconds_till_check = min(seconds_left, timebomb_check_period_in_sec);
+                long seconds_till_check = seconds_left < timebomb_check_period_in_sec ? seconds_left : timebomb_check_period_in_sec;
                 timebomb_checker->timer_token = fire_timer_once(seconds_till_check * 1000, (void (*)(void*)) &check, timebomb_checker);
             }
         }
-        timer_token_lock.unlock();
     }
 private:
     creation_timestamp_t creation_timestamp;
@@ -195,7 +193,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
 #ifdef TIMEBOMB_DAYS
             /* This continuously checks to see if RethinkDB has expired */
-            timebomb::periodic_checker_t timebomb_checker(store.multiplexer->creation_timestamp);
+            timebomb::periodic_checker_t timebomb_checker(store.get_creation_timestamp());
 #endif
 
             /* Start accepting connections. We use gated-stores so that the code can

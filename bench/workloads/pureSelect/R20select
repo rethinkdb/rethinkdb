@@ -15,9 +15,16 @@ elif [ $DATABASE == "mysql" ]; then
         {client}mysqlstress[$STRESS_CLIENT]:"-b 8-32 -v 8-32 -c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/0/0/1 -i $TMP_KEY_FILE" \
         iostat:1 vmstat:1
 elif [ $DATABASE == "membase" ]; then
+    # Kill the page cache!
+        sync
+        sudo sh -c 'echo 1 > /proc/sys/vm/drop_caches'
+        sync
+        sleep 30
+        sudo sh -c 'echo 0 > /proc/sys/vm/drop_caches'
+
     ./dbench                                                                                   \
         -d "$BENCH_DIR/bench_output/Select_performance" -H $SERVER_HOSTS -p 11211 \
-        {server}membase:"-d $PERSISTENT_DATA_DIR -m 32768"                                       \
+        {server}membase:"-d $PERSISTENT_DATA_DIR -m 32768 -c yes"                                       \
         {client}stress[$STRESS_CLIENT]:"-b 8-32 -v 8-32 -c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/0/0/1 -i $TMP_KEY_FILE" \
         iostat:1 vmstat:1
 else

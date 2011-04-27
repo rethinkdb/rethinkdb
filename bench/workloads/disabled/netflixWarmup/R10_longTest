@@ -2,5 +2,6 @@
 
 . `dirname "$0"`/common
 
-run_with_clients 4
+run_with_clients 512
+
 

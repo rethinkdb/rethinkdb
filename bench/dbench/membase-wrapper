@@ -7,10 +7,11 @@ URI_BASE='http://localhost:8091'
 
 # Handle command line arguments.
 
-while getopts 'm:d:' flag; do
+while getopts 'm:d:c:' flag; do
     case "$flag" in
         d) DATA_DIR="$OPTARG";;
         m) RAM_QUOTA="$OPTARG";;
+        c) CONTINUE="$OPTARG";; # TODO: Redo this without a parameter
     esac
 done
 
@@ -19,6 +20,8 @@ if [ -z "$DATA_DIR" -o -z "$RAM_QUOTA" ]; then
     echo "Usage: $(basename "$0") -d DATA_DIR -m RAM_QUOTA"
     echo "Runs a clean membase instance and configures it with the given options."
     echo "Assumes that membase has been compiled and prepared."
+    echo "If -c yes is given, an existing Membase database is \"continued\""
+    echo "instead of a new one being created."
     exit 2
 fi
 
@@ -30,7 +33,9 @@ esac
 
 
 # "Prepare" and run server.
-rm -rf "$NS_DIR/"{config,data,logs,Mnesia*}
+if [-z "$CONTINUE" ]; then
+    rm -rf "$NS_DIR/"{config,data,logs,Mnesia*}
+fi
 "$NS_DIR/start.sh" &
 
 # Wait for the server to accept HTTP connections.
