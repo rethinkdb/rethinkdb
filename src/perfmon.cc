@@ -110,10 +110,10 @@ perfmon_sampler_t::perfmon_sampler_t(std::string name, ticks_t length, bool incl
 void perfmon_sampler_t::update(ticks_t now) {
     int interval = now / length;
     thread_info_t *thread = &thread_info[get_thread_id()];
-    while (thread->current_interval < interval) {
-        thread->last_stats = thread->current_stats;
+    if (thread->current_interval < interval) {
+        thread->last_stats = (thread->current_interval + 1 == interval) ? thread->current_stats : stats_t();
         thread->current_stats = stats_t();
-        thread->current_interval++;
+        thread->current_interval = interval;
     }
 }
 

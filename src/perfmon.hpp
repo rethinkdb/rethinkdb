@@ -131,6 +131,9 @@ private:
         }
     };
     struct thread_info_t {
+        thread_info_t() {
+            current_interval = get_ticks();
+        }
         stats_t current_stats, last_stats;
         int current_interval;
     } thread_info[MAX_THREADS];
