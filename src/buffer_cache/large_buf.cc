@@ -222,7 +222,6 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
 
     void go() {
         bool should_load = should_load_code > no_load_leaves || levels != 1;
-        debugf("acquiring with access %d, should_load = %d\n", lb->access, should_load);
         buf_t *buf = (*lb->txor)->acquire(block_id, lb->access, this, should_load);
         if (buf) {
             on_block_available(buf);
@@ -300,12 +299,8 @@ void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_
     if (amount_to_dequeue > 0) {
         boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
 
-        debugf("co_enqueue acquiring for unprepend..\n");
-
         // TODO: We could do this operation concurrently with co_acquire_large_buf_slice.
         co_acquire_large_buf_for_unprepend(saver, lb.get(), amount_to_dequeue);
-
-        debugf("co_enqueue unprepending.. size = %ld, offset = %ld, amount_to_dequeue = %ld\n", root_ref->size, root_ref->offset, amount_to_dequeue);
 
         int refsize_adjustment;
         lb->unprepend(amount_to_dequeue, &refsize_adjustment);
