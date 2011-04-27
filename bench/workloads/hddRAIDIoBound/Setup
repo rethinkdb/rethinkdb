@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $DATABASE == "rethinkdb" ]; then
-    ../../build/release/rethinkdb create $HDD_DRIVES --force
+    ../../build/release/rethinkdb create $HDD_DRIVES --force --diff-log-size 192
 fi
 
 if [ $DATABASE == "mysql" ]; then

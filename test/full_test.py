@@ -95,8 +95,8 @@ def run_canonical_tests(mode, checker, protocol, cores, slices):
                             "cores"         : cores,
                             "slices"        : slices,
                             "duration"      : dur,
-                            "verify-timeout": dur * 4 * ec2 + 200 },
-                          repeat=2, timeout=dur * 4 * ec2 + 200)
+                            "verify-timeout": dur * 5 * ec2 + 290 },
+                          repeat=2, timeout=dur * 5 * ec2 + 290)
 
 # Running all tests
 def run_all_tests(mode, checker, protocol, cores, slices):
