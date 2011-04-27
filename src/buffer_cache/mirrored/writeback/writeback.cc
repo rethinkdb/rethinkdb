@@ -94,9 +94,15 @@ writeback_t::writeback_t(
 }
 
 writeback_t::~writeback_t() {
-    rassert(!flush_timer);
+    rassert(!writeback_in_progress);
+    rassert(active_flushes == 0);
+    rassert(sync_callbacks.size() == 0);
     rassert(outstanding_disk_writes == 0);
     rassert(expected_active_change_count == 0);
+    if (flush_timer) {
+        cancel_timer(flush_timer);
+        flush_timer = NULL;
+    }
 }
 
 perfmon_sampler_t pm_patches_size_ratio("patches_size_ratio", secs_to_ticks(5), false);
