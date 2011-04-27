@@ -246,7 +246,7 @@ bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
 // largebuf, so we'll know that we have to ->allocate the largebuf
 // when we see a size of 0 in the large_buf_ref.
 void initialize_large_buf_ref(large_buf_ref *ref, int size_in_bytes) {
-    int ids_bytes = size_in_bytes - offsetof(large_buf_ref, block_ids);
+    UNUSED int ids_bytes = size_in_bytes - offsetof(large_buf_ref, block_ids);
     rassert(ids_bytes > 0);
 
     ref->offset = 0;
