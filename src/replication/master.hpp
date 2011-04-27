@@ -33,9 +33,13 @@ public:
         kvs_(kv_store),
         get_gate_(get_gate),
         set_gate_(set_gate),
-        backfill_storer_(kv_store)
+        backfill_storer_(kv_store),
+        dont_wait_for_slave_control(this)
     {
         logINF("Waiting for initial slave to connect on port %d...\n", listener_port_);
+        logINF("If no slave was connected when the master last shut down, send "
+            "\"rethinkdb dont-wait-for-slave\" to the server over telnet to go ahead "
+            "without waiting for the slave to connect.\n");
         listener_.reset(new tcp_listener_t(listener_port_));
         listener_->set_callback(this);
 
@@ -130,6 +134,39 @@ private:
 
     // Pulse this to interrupt a running backfill/realtime stream operation
     multicond_weak_ptr_t interrupt_streaming_cond_;
+
+    // TODO: Instead of having this, we should just remember if a slave was connected when we last
+    // shut down.
+    friend class dont_wait_for_slave_control_t;
+    struct dont_wait_for_slave_control_t : public control_t {
+        master_t *master;
+        dont_wait_for_slave_control_t(master_t *m) :
+            control_t("dont-wait-for-slave", "Go ahead and accept operations even though no slave "
+                "has connected yet. Only use this if no slave was connected to the master at the "
+                "time the master was last shut down. If you abuse this, the server could lose data "
+                "or could serve out-of-date or inconsistent data to your clients.\r\n"),
+            master(m) { }
+        std::string call(int argc, UNUSED char **argv) {
+            if (argc != 1) {
+                return "\"dont-wait-for-slave\" doesn't expect any arguments.\r\n";
+            }
+            if (!master->get_permission_) {
+                if (!master->stream_) {
+                    master->get_permission_.reset(new gated_get_store_t::open_t(master->get_gate_));
+                    master->set_permission_.reset(new gated_set_store_interface_t::open_t(master->set_gate_));
+                    logINF("Now accepting operations even though no slave connected because "
+                        "\"rethinkdb dont-wait-for-slave\" was run.\n");
+                    return "Master will now accept operations even though no slave has connected yet.\r\n";
+                } else {
+                    return "The master cannot accept operations because it is reverse-backfilling from "
+                        "the slave right now, so its data is in an inconsistent state. The master will "
+                        "accept operations once it is done reverse-backfilling.\r\n";
+                }
+            } else {
+                return "The master is already accepting operations.\r\n";
+            }
+        }
+    } dont_wait_for_slave_control;
 
     DISABLE_COPYING(master_t);
 };
