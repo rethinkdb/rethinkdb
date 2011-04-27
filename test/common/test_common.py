@@ -699,6 +699,16 @@ def start_master_slave_pair(opts, extra_flags, test_dir):
         server.elb_port = elb_ports[0]
     server.start(False)
 
+    while 1:
+        try:
+            print "Trying to connect to: %d" % repli_port
+            s = socket.create_connection(('localhost', repli_port))
+        except:
+            time.sleep(2)
+            continue
+        s.close()
+        break
+
     s_flags = ["--slave-of", "localhost:%d" % repli_port, "--no-rogue"]
 
     if opts["elb"]:
