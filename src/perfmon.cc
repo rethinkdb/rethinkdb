@@ -105,14 +105,27 @@ void perfmon_counter_t::end_stats(void *data, perfmon_stats_t *dest) {
 /* perfmon_sampler_t */
 
 perfmon_sampler_t::perfmon_sampler_t(std::string name, ticks_t length, bool include_rate)
-    : name(name), length(length), include_rate(include_rate) { }
+    : name(name), length(length), include_rate(include_rate)
+{
+    for (int i = 0; i < MAX_THREADS; i++) {
+        thread_info[i].current_interval = get_ticks() / length;
+    }
+}
 
 void perfmon_sampler_t::update(ticks_t now) {
     int interval = now / length;
     thread_info_t *thread = &thread_info[get_thread_id()];
-    if (thread->current_interval < interval) {
-        thread->last_stats = (thread->current_interval + 1 == interval) ? thread->current_stats : stats_t();
+
+    if (thread->current_interval == interval) {
+        /* We're up to date; nothing to do */
+    } else if (thread->current_interval + 1 == interval) {
+        /* We're one step behind */
+        thread->last_stats = thread->current_stats;
         thread->current_stats = stats_t();
+        thread->current_interval++;
+    } else {
+        /* We're more than one step behind */
+        thread->last_stats = thread->current_stats = stats_t();
         thread->current_interval = interval;
     }
 }
