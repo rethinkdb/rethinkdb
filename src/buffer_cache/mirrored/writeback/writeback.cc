@@ -312,7 +312,7 @@ void writeback_t::flush_timer_callback(void *ctx) {
     
     /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on
     the cache, and besides we're about to sync anyway. */
-    if (!self->cache->shutting_down && (num_dirty_blocks() > 0 || sync_callbacks.size() > 0)) {
+    if (!self->cache->shutting_down && (self->num_dirty_blocks() > 0 || self->sync_callbacks.size() > 0)) {
         self->sync(NULL);
     }
 }
