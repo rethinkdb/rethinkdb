@@ -312,6 +312,7 @@ install-manpages: ../docs/man/rethinkdb.1
 
 install-tools: ../scripts/rethinkdb.bash
 	$(QUIET) install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
+	$(QUIET) install -m755 -d $(DESTDIR)$(bash_completion_dir)
 	$(QUIET) install -m644 ../scripts/rethinkdb.bash $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
 
 install-docs:

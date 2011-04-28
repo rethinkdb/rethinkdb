@@ -129,7 +129,12 @@ fi
 %defattr(-,root,root)
 %attr(0755,root,root) %{full_server_exec_name_versioned}
 
+%dir %attr(0755,root,root) %{bash_completion_dir}
+%dir %attr(0755,root,root) %{internal_bash_completion_dir}
 %attr(0444,root,root) %{internal_bash_completion_dir}/%{server_exec_name}.bash
+
 %doc %attr(0444,root,root) %{man1_dir}/%{server_exec_name_versioned}.1.gz
+
+%dir %attr(0755,root,root) %{doc_dir}
 %doc %attr(0444,root,root) %{doc_dir}/copyright
 
