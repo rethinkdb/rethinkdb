@@ -117,7 +117,7 @@ else
   done << END
 %{full_server_exec_name} %{full_server_exec_name_versioned}
 %{man1_dir}/%{server_exec_name}.1.gz %{man1_dir}/%{server_exec_name_versioned}.1.gz
-%{bash_completion_dir}/%{server_exec_name}.bash %{internal_bash_completion_dir}/%{server_exec_name}.bash
+%{bash_completion_dir}/%{server_exec_name}.bash %{internal_bash_completion_dir}/%{server_exec_name_versioned}.bash
 END
 fi
 
