@@ -14,10 +14,6 @@ private:
 // 13 is the length of the text.
 const char STANDARD_HELLO_MAGIC[16] = "13rethinkdbrepl";
 
-bool valid_role(uint32_t val) {
-    return val == role_master || val == role_new_slave || val == role_slave;
-}
-
 void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
     net_hello_t buf;
     conn->read(&buf, sizeof(buf));
@@ -31,12 +27,6 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
         throw protocol_exc_t("bad protocol version");  // TODO details
     }
 
-    if (!valid_role(buf.role)) {
-        throw protocol_exc_t("bad protocol role");  // TODO details
-    }
-
-    rassert(32 == sizeof(buf.informal_name));
-
     receiver->hello(buf);
 }
 
@@ -48,12 +38,11 @@ template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t>
 template <> struct stream_type<net_prepend_t> { typedef stream_pair<net_prepend_t> type; };
 template <> struct stream_type<net_backfill_set_t> { typedef stream_pair<net_backfill_set_t> type; };
 
+size_t objsize(UNUSED const net_master_introduce_t *buf) { return sizeof(net_master_introduce_t); }
 size_t objsize(UNUSED const net_backfill_t *buf) { return sizeof(net_backfill_t); }
 size_t objsize(UNUSED const net_backfill_complete_t *buf) { return sizeof(net_backfill_complete_t); }
 size_t objsize(UNUSED const net_backfill_delete_everything_t *buf) { return sizeof(net_backfill_delete_everything_t); }
-size_t objsize(UNUSED const net_ack_t *buf) { return sizeof(net_ack_t); }
 size_t objsize(UNUSED const net_nop_t *buf) { return sizeof(net_nop_t); }
-size_t objsize(UNUSED const net_announce_t *buf) { return sizeof(net_announce_t); }
 size_t objsize(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
 size_t objsize(const net_incr_t *buf) { return sizeof(net_incr_t) + buf->key_size; }
 size_t objsize(const net_decr_t *buf) { return sizeof(net_decr_t) + buf->key_size; }
@@ -118,12 +107,11 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, const char
         size_t realsize = msgsize - sizeof(net_header_t);
 
         switch (hdr->msgcode) {
+        case MASTER_INTRODUCE: check_pass<net_master_introduce_t>(receiver, buf + realbegin, realsize); break;
         case BACKFILL: check_pass<net_backfill_t>(receiver, buf + realbegin, realsize); break;
         case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, buf + realbegin, realsize); break;
         case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver, buf + realbegin, realsize); break;
-        case ANNOUNCE: check_pass<net_announce_t>(receiver, buf + realbegin, realsize); break;
         case NOP: check_pass<net_nop_t>(receiver, buf + realbegin, realsize); break;
-        case ACK: check_pass<net_ack_t>(receiver, buf + realbegin, realsize); break;
         case GET_CAS: check_pass<net_get_cas_t>(receiver, buf + realbegin, realsize); break;
         case SARC: check_pass<net_sarc_t>(receiver, buf + realbegin, realsize); break;
         case INCR: check_pass<net_incr_t>(receiver, buf + realbegin, realsize); break;
@@ -310,6 +298,11 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
     sendobj(msgcode, reinterpret_cast<net_struct_type *>(buf.get()));
 }
 
+void repli_stream_t::send(net_master_introduce_t *msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+    sendobj(MASTER_INTRODUCE, msg);
+}
+
 void repli_stream_t::send(net_backfill_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL, msg);
@@ -323,11 +316,6 @@ void repli_stream_t::send(net_backfill_complete_t *msg) {
 void repli_stream_t::send(net_backfill_delete_everything_t msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL_DELETE_EVERYTHING, &msg);
-}
-
-void repli_stream_t::send(net_announce_t *msg) {
-    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-    sendobj(ANNOUNCE, msg);
 }
 
 void repli_stream_t::send(net_get_cas_t *msg) {
@@ -380,11 +368,6 @@ void repli_stream_t::send(net_nop_t msg) {
     sendobj(NOP, &msg);
 }
 
-void repli_stream_t::send(net_ack_t msg) {
-    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-    sendobj(ACK, &msg);
-}
-
 void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_acquisition) {
 
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
@@ -394,13 +377,6 @@ void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_ac
     // TODO make a #define for this.
     memcpy(msg.hello_magic, "13rethinkdbrepl", 16);
     msg.replication_protocol_version = 1;
-    msg.role = role_master;
-    // TODO have this use actual database_magic!  Or die!
-    msg.database_creation_timestamp = 0;
-    rassert(sizeof(msg.informal_name) == 32);
-    // TODO possibly have a user configurable name.  Or decide not to.
-    char informal_name[32] = "master";
-    memcpy(msg.informal_name, informal_name, 32);
 
     try_write(&msg, sizeof(msg));
 }

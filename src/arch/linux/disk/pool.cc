@@ -17,3 +17,4 @@ void pool_diskmgr_t::submit(action_t *action) {
     action->parent = this;
     blocker_pool.do_job(action);
 }
+

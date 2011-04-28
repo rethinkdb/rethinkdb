@@ -57,11 +57,14 @@ public:
 
     void backfill(repli_timestamp since_when, backfill_callback_t *callback);
 
-    /* TODO: This really doesn't belong on btree_slice_t. */
+    /* These store metadata for replication. There must be a better way to store this information,
+    since it really doesn't belong on the btree_slice_t! TODO: Move them elsewhere. */
     void set_replication_clock(repli_timestamp_t t);
     repli_timestamp get_replication_clock();
     void set_last_sync(repli_timestamp_t t);
     repli_timestamp get_last_sync();
+    void set_replication_creation_timestamp(uint32_t t);
+    uint32_t get_replication_creation_timestamp();
 
     /* real-time monitoring interface (used for replication) TODO Move this to a separate object
     that sits on top of the btree_slice_t. */

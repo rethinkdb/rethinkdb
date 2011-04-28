@@ -89,7 +89,21 @@ void run(slave_t *slave) {
     bool shutting_down = false;
     slave->shutting_down_ = &shutting_down;
 
-    bool first_connect = true;
+    /* Determine if we were connected to the master at the time that we last shut down. We figure
+    that if the last timestamp (get_replication_clock()) is the same as the last timestamp that
+    we are up to date with the master on (get_last_sync()), then we were connected to the master at
+    the time that we shut down. If this is our first time starting up, then both will be 0, so they
+    will be equal anyway, which produces the correct behavior because the way we act when we first
+    connect is the same as the way we act when we reconnect after we went down. */
+    bool were_connected_before =
+        slave->internal_store_->get_replication_clock() == slave->internal_store_->get_last_sync();
+
+    if (!were_connected_before) {
+        logINF("We didn't have contact with the master at the time that we last shut down, so "
+            "we will now resume accepting writes.\n");
+        slave->failover_->on_failure();
+    }
+
     while (!shutting_down) {
         try {
 
@@ -116,7 +130,7 @@ void run(slave_t *slave) {
             repli_timestamp last_sync = slave->internal_store_->get_last_sync();
             debugf("Last sync: %d\n", last_sync.time);
 
-            if (!first_connect) {
+            if (!were_connected_before) {
                 slave->failover_->on_reverse_backfill_begin();
                 // We use last_sync.next() so that we don't send any of the master's own changes back
                 // to it. This makes sense in conjunction with incrementing the replication clock when
@@ -145,13 +159,13 @@ void run(slave_t *slave) {
 
             slave->failover_->on_failure();
 
-            first_connect = false;
+            were_connected_before = false;
 
         } catch (tcp_conn_t::connect_failed_exc_t& e) {
-            //Presumably if the master doesn't even accept an initial
-            //connection then this is a user error rather than some sort of
-            //failure
-            if (first_connect) {
+            // If the master was down when we last shut down, it's not so remarkable that it
+            // would still be down when we come back up. But if that's not the case and it's
+            // our first time connecting, we blame the failure to connect on user error.
+            if (were_connected_before) {
                 crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up "
                     "yet. But what do I know, I'm just a database.\n",
                     slave->replication_config_.hostname, slave->replication_config_.port);
@@ -169,8 +183,9 @@ void run(slave_t *slave) {
             c.wait();
 
         } else {
-            logINF("Master at %s:%d has failed %d times in the last %d seconds, "
-                   "going rogue. To resume slave behavior send the command "
+            logINF("Master at %s:%d has failed %d times in the last %d seconds. "
+                   "The slave is now going rogue; it will stop trying to reconnect to the master "
+                   "and it will accept writes. To resume normal slave behavior, send the command "
                    "\"rethinkdb failover-reset\" (over telnet).\n",
                    slave->replication_config_.hostname, slave->replication_config_.port,
                    MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS);

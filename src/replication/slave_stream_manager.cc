@@ -68,11 +68,6 @@ void slave_stream_manager_t::send(UNUSED scoped_malloc<net_backfill_t>& message)
     rassert(false, "backfill message?  what?\n");
 }
 
-void slave_stream_manager_t::send(UNUSED scoped_malloc<net_ack_t>& message) {
-    // TODO: Kill connection when master sends garbage.
-    crash("ack is obsolete\n");
-}
-
 void slave_stream_manager_t::conn_closed() {
     assert_thread();
 
