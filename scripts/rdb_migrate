@@ -41,6 +41,12 @@ do
     filecl+=("-f" $file)
 done
 
-$new_rdb ${filecl[@]} $flags -p 12345&
-while ! nc -q 1 localhost 12345 </dev/null; do sleep 2; done
-(cat /tmp/rdb_migration_swap && echo "rdb shutdown") | nc localhost 12345
+port=`unused_port`
+if [ "${#port}" -eq 0 ]
+then
+    port=12345
+fi
+
+$new_rdb ${filecl[@]} $flags -p "$port"&
+while ! nc -q 1 localhost "$port" </dev/null; do sleep 2; done
+(cat /tmp/rdb_migration_swap && echo "rdb shutdown") | nc localhost "$port"
