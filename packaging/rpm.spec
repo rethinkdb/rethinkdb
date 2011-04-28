@@ -83,7 +83,7 @@ if [ -n "$ALTERNATIVES" ]; then
     --slave %{bash_completion_dir}/%{server_exec_name}.bash %{server_exec_name}.bash %{internal_bash_completion_dir}/%{server_exec_name_versioned}.bash
 else
   while read link path; do
-    if [ ! -e "$link" ]; then
+    if [ ! \( -e "$link" -o -h "$link" \) ]; then
       ln -vs "$path" "$link"
     fi
   done << END
