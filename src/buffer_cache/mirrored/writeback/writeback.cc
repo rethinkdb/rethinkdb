@@ -173,9 +173,11 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
             sync(NULL);
         } else if (sync_callbacks.size() >= flush_waiting_threshold) {
             sync(NULL);
-        } else if (!flush_timer && !flush_time_randomizer.is_never_flush() && num_dirty_blocks() > 0) {
+        }
+
+        if (!flush_timer && !flush_time_randomizer.is_never_flush()) {
             /* Start the flush timer so that the modified data doesn't sit in memory for too long
-            without being written to disk. */
+            without being written to disk and the patches_size_ratio gets updated */
             flush_timer = fire_timer_once(flush_time_randomizer.next_time_interval(), flush_timer_callback, this);
         }
     }
@@ -310,7 +312,7 @@ void writeback_t::flush_timer_callback(void *ctx) {
     
     /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on
     the cache, and besides we're about to sync anyway. */
-    if (!self->cache->shutting_down) {
+    if (!self->cache->shutting_down && (num_dirty_blocks() > 0 || sync_callbacks.size() > 0)) {
         self->sync(NULL);
     }
 }
