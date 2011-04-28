@@ -68,7 +68,7 @@ ALTERNATIVES=""
 for alt in update-alternatives alternatives; do
   for dir in /usr/sbin /sbin; do
     full_alt="$dir/$alt"
-    if [ -x full_alt ]; then
+    if [ -x "$full_alt" ]; then
       ALTERNATIVES="$full_alt"
       break 2
     fi
@@ -99,7 +99,7 @@ ALTERNATIVES=""
 for alt in update-alternatives alternatives; do
   for dir in /usr/sbin /sbin; do
     full_alt="$dir/$alt"
-    if [ -x full_alt ]; then
+    if [ -x "$full_alt" ]; then
       ALTERNATIVES="$full_alt"
       break 2
     fi
