@@ -1,9 +1,9 @@
 .. RethinkDB documentation master file, created by
-   sphinx-quickstart on Thu Jan 13 01:07:31 2011.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. sphinx-quickstart on Thu Jan 13 01:07:31 2011.
+.. You can adapt this file completely to your liking, but it should at least
+.. contain the root `toctree` directive.
 .. If you find yourself editing this and would like to preview it use
-   http://www.tele3.cz/jbar/rest/rest.html
+.. http://www.tele3.cz/jbar/rest/rest.html
 
 ============
 Introduction
@@ -39,6 +39,8 @@ data consistency checks, do performance tuning, and more.
 
 This manual describes the features exposed by RethinkDB in significant
 detail. For additional questions, please contact RethinkDB support_.
+
+.. contents::
 
 =================
 Quick start guide
@@ -397,48 +399,182 @@ corrupted and  server cannot open the database file. In this
 case, ``extract`` will try to recover as much data as possible and
 ignore the corrupted parts of the database file.
 
-------------------------
-Replication and Failover
-------------------------
+========================
+Replication and failover
+========================
 
-RethinkDB servers can be run in a master-slave configuration. Slaves will be kept in
-a consistent state with the master and will only respond to read commands as
-long as the master remains up. On master failure the slave will switch to
-responding to all commands until the master is brought back up and caught up on
-the slave's changes. The following commands start a slave and a master.::
+RethinkDB version 2.0 supports replication between two servers: a
+"master" and a "slave".
 
-  $ rethinkdb serve --master port
-  $ rethinkdb serve --slave-of host:port
+-----------
+Basic setup
+-----------
 
-RethinkDB can run a user specified script on failure by running the slave as follows:::
+RethinkDB replication can be set up as follows:
 
-  $ rethinkdb serve --slave-of host:port --failover-script foo
+1. Install RethinkDB version 2.x on two machines. Choose one machine to
+act as the "master" and one machine to act as the "slave".
 
-RethinkDB will call the script with ``down`` as its first argument when the
-master goes down and ``up`` as its first argument when the master comes up.
+2. If you intend to turn an existing non-replicated RethinkDB 2.x
+database into a replicated database, the database files must be present
+on the master machine. If you intend to turn an existing RethinkDB 1.x
+database into a replicated database, you must first turn it into a
+RethinkDB 2.x database, which is described elsewhere. If you want to
+start a fresh database, use ``rethinkdb create`` to create a new empty
+database on the master machine.
 
-``````````
-Amazon ELB
-``````````
+3. Create a new empty database on the slave machine using ``rethinkdb
+create``. The database creation parameters (number of slices, block
+size, etc.) can be different on the master and the slave.
 
-RethinkDB is ready out of the box to work with Amazon's Elastic Load Balancer.
-Health checks and traffic should be routed to the same ports in ELB's configuration 
-and should use TCP. The following command will start a slave that correctly works
-with ELB::
+4. On the master machine, run ``rethinkdb serve --master <port>``, using
+the ``-f`` flag to specify the database files you prepared in step 2.
+You should see a message like of ``Waiting for initial slave to connect
+on port <port>...`` in the master's log.
 
-  $ rethinkdb serve --master port --run-behind-elb port
-  $ rethinkdb serve --slave-of host:port --run-behind-elb port
+5. On the slave machine, run ``rethinkdb serve --slave-of
+<master>:<port>``. You should see a message indicating successful
+connection to the master in the slave's log. You should see a message
+indicating that the slave has connected in the master's log.
 
-```````````````````
-IP Address Stealing
-```````````````````
-RethinkDB can load balance by manipulation of IP addresses. In this scheme the
-slave, on failover will "steal" the fallen master's IP address thus invisibly
-redirecting new connections to itself. The master machine must be run with 2 IP
-addresses, one for user connections and one for replication connections. This
-way the slave can steal the master's user facing address but not the
-replication address thus allowing it to reconnect when the master becomes
-available. Virtual IPs can be setup on Linux like so:::
+6. At this point, you can perform reads and writes on the master using
+the normal memcached-compatible interface. If the master's database
+contained any data before the master was started up, the slave will copy
+that data; after it finishes copying that data, the slave will also
+allow you to perform reads, but not writes. Any writes that you perform
+on the master will be replicated to the slave.
+
+In general, the master and the slave will always report the same value
+for each key, unless a change has recently been made on one of them and
+has not yet been transferred to the other. There are some exceptions to
+this rule; the main exception is that no guarantees are made about keys
+with expiration times.
+
+--------------
+Crash recovery
+--------------
+
+If the slave crashes, restart it using the same parameters as before. It
+will automatically reconnect to the master and catch up with any changes
+that occurred while the slave was down.
+
+If the master crashes, the slave will detect that the master is no
+longer active and will allow you to perform writes. Restart the master
+using the same parameters as before; the slave will automatically
+reconnect to the master and the master will catch up with any changes
+that were made on the slave while the master was down. Once the master
+has caught up, the slave will stop accepting writes and the master will
+start accepting reads and writes.
+
+-----------------
+Disaster recovery
+-----------------
+
+If your slave-machine is struck by lightning, destroyed in an
+explosion, or has a hard-drive crash: Buy a new server to act as the new
+slave machine. Create a new fresh database on the slave machine. Run
+``rethinkdb serve --slave-of <master>:<port>`` on that machine. It will
+automatically re-copy the data from the master.
+
+If your master-machine is destroyed, shut down the slave (using SIGINT
+or by sending ``rethinkdb shutdown`` over telnet) and run ``rethinkdb
+serve --master <port>`` on the slave machine using the same set of files
+that you ran ``rethinkdb serve --slave-of ...`` with. Now the slave
+machine will act as a master, and you can start up a new slave using the
+procedure described above. Note that once you run ``rethinkdb serve
+--master`` on the slave's data files, they will be irreversibly
+converted into master-files, and you will have to perform the same
+reversal again if you want that particular machine to be the
+slave-machine.
+
+----------------------
+Database restructuring
+----------------------
+
+You can always convert a nonreplicated database into a replication
+master or vice versa; just start it with or without the ``--master``
+flag, and it will behave correctly. You can use the same technique to
+convert a slave database into a nonreplicated database or a replication
+master, but you won't be able to change it back into a slave again if
+you do that.
+
+-----------
+CAS queries
+-----------
+
+``gets`` queries count as writes for the purposes of replication.
+
+-------------------------------
+The dangers of expiration times
+-------------------------------
+
+Please don't mix expiration times with replication. If you insert keys
+with expiration times into a replicated database, the behavior is
+undefined; the keys may have different values on the master and the
+slave.
+
+--------------
+Divergent data
+--------------
+
+Sometimes the data on the master and the slave can diverge. This can
+happen if the master crashes, and some writes to the master are recorded
+to disk without being sent to the slave. It can also happen if the slave
+and master lose contact with each other but clients stay in touch with
+both of them. (Divergence isn't the same as when the master or the slave
+goes down; when the master or the slave goes down, then it will
+automatically catch back up with the other one.)
+
+When the master and slave get back in contact after having diverged, the
+following procedure is used to merge the data:
+
+* If a key was changed on neither the master nor the slave since they
+  diverged, then it keeps that value.
+
+* If a key was changed on the slave since the slave and master diverged,
+  then it takes the value it was given on the slave.
+
+* If a key was changed on the master but not on the slave, then it may
+  have either the value it was assigned on the master or the value that
+  it had before the divergence.
+
+-----------------------------
+Elastic Load Balancer support
+-----------------------------
+
+You may want to use Amazon's Elastic Load Balancer (ELB) in conjunction
+with RethinkDB, to automatically direct queries to whichever of the
+master and the slave is able to accept writes. If you add
+``--run-behind-elb <port>`` to the slave's command line, then it will
+accept connections on the given ``<port>`` if and only if it is willing
+to accept writes. It will drop the connection as soon as it accepts it.
+The only purpose of this is to signal to the ELB that it is willing to
+accept writes.
+
+----------------
+Failover scripts
+----------------
+
+If you need more complicated behavior when the slave loses contact with
+the master, you can specify a failover script. Add ``--failover-script
+<script>`` to the slave's command line. When the slave makes contact
+with the master, it will execute the given script with the argument
+``up``. When it loses contact, it will execute the script with the
+argument ``down``. You can use this to trigger a custom response when
+the master fails.
+
+``````````````````````````````````````````````````
+Using failover scripts to do "IP address stealing"
+``````````````````````````````````````````````````
+
+RethinkDB can load balance by manipulation of IP addresses. In this
+scheme the slave, on failover will "steal" the fallen master's IP
+address thus invisibly redirecting new connections to itself. The master
+machine must be run with 2 IP addresses, one for user connections and
+one for replication connections. This way the slave can steal the
+master's user facing address but not the replication address thus
+allowing it to reconnect when the master becomes available. Virtual IPs
+can be setup on Linux like so:::
 
   user@master$ ifconfig eth0:1 192.168.0.2 up
 
@@ -457,6 +593,101 @@ The slave side script which will facilitate this is:::
   then
   ifconfig eth0:1 down
   fi
+
+----------------------
+The slave "goes rogue"
+----------------------
+
+If the slave loses and then regains contact with the master five times
+in five minutes, it will assume that something is wrong with the master
+machine and it will stop trying to reconnect to the master. It will
+continue to accept writes. You will see a message in the slave's log
+explaining that it has "gone rogue". When you fix whatever was causing
+the master to behave so erratically, send the command ``rethinkdb
+failover-reset`` to the slave over telnet to make it reconnect to the
+master.
+
+You can prevent the slave from going rogue by passing the ``--no-rogue``
+flag on the slave's command line.
+
+-------------------
+Backfill operations
+-------------------
+
+When the slave connects to the master for the first time, or when the
+slave and master are reunited after one of them goes down, they must
+catch up to changes that have been made in their absence. This process
+is called "backfilling". Specifically, backfilling occurs in the
+following situations:
+
+* When the slave connects to the master immediately after the slave was
+  started or restarted, the master backfills to the slave.
+
+* When the slave reconnects to the master after the master went down
+  while the slave stayed up, the slave backfills to the master and then
+  the master backfills to the slave. (The purpose of the second backfill
+  is to resolve any divergence in the data.)
+
+Due to an unfortunate limitation of RethinkDB's internal architecture, a
+backfill operation cannot be interrupted, not even if the receiver of
+the backfill disconnects during the backfill. If you try to shut down a
+server while it is backfilling to another server, it will print ``Waiting
+for operations to complete...`` and then stay in that state until the
+backfill completes, which may take a long time. Unfortunately, there
+isn't much you can do about this.
+
+--------------------------
+Relocating to new machines
+--------------------------
+
+Moving a slave to a new machine is easy. Shut down the old slave.
+Optionally, copy the old slave's data files to the new machine. (If you
+copy the data files, the slave will start up faster, but it's not
+strictly necessary.) Start a new slave on the new machine.
+
+Moving a master to a new machine is slightly harder. Shut down the old
+master. Copy the old master's data files to the new machine. Start the
+new master. Send the command ``rethinkdb new-master <host> <port>`` over
+telnet to the slave. It will reconnect to the new master and transfer
+any changes that occurred on the slave while you were relocating the
+master. (Alternatively, you can just restart the slave with a different
+value for the ``--slave-of`` parameter.)
+
+------------------------
+Hazards to watch out for
+------------------------
+
+If you run RethinkDB even once in non-slave-mode on a set of slave data
+files, those data files will be irreversibly changed, and you won't be
+able to use them in slave-mode ever again!
+
+Don't use multiple slaves with the same master. If you try to connect a
+second slave while a slave is already connected, RethinkDB will kick the
+connection off. If you disconnect the slave and then connect another
+one, RethinkDB will not complain, but if you later reconnect the
+original slave, RethinkDB may become confused and the behavior is
+undefined in this case. Your data may be corrupted.
+
+-----------
+Other notes
+-----------
+
+When you run ``rethinkdb serve --slave-of <master>:<port>``, the
+database files must either be empty or must have come from a previous
+run of ``rethinkdb serve --slave-of`` with the same master. If this is
+not true, RethinkDB will display an error message and then crash.
+RethinkDB identifies the "same master" using an identifier in the
+master's data files, so the slave will work OK if you migrate the
+master, including its data files, to a new machine.
+
+Be careful if you shut down the slave, shut down the master, and then
+start back up the master. The master will refuse to start back up again;
+it will complain that it is waiting for a slave to connect. Fortunately,
+this problem is easy to fix. If you start the slave up after starting
+the master up, then the database will automatically fix the problem.
+Alternatively, you can send ``rethinkdb dont-wait-for-slave`` to the
+master over telnet, which will put the master back in the state it was
+in before it was shut down.
 
 =================  
 Advanced features
