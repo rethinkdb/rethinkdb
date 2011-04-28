@@ -32,6 +32,11 @@ void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn)
     stream_ = new repli_stream_t(conn, this);
     stream_exists_cond_.reset();
 
+    /* Send the slave our database creation timestamp so it knows which master it's connected to. */
+    net_master_introduce_t introduction;
+    introduction.database_creation_timestamp = kvs_->get_creation_timestamp();
+    stream_->send(&introduction);
+
     // TODO when sending/receiving hello handshake, use database magic
     // to handle case where slave is already connected.
 

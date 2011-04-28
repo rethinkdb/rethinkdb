@@ -64,6 +64,7 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     sb->delete_queue_block = delete_queue_block->get_block_id();
 
     sb->replication_clock = sb->last_sync = repli_timestamp_t::distant_past();
+    sb->replication_creation_timestamp = 0;
 }
 
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
@@ -172,6 +173,24 @@ repli_timestamp btree_slice_t::get_last_sync() {
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
     return sb->last_sync;
+}
+
+void btree_slice_t::set_replication_creation_timestamp(uint32_t t) {
+    thread_saver_t saver;
+    on_thread_t th(cache()->home_thread);
+    transactor_t transactor(saver, cache(), rwi_write, 0, repli_timestamp_t::distant_past());
+    buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
+    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
+    sb->replication_creation_timestamp = t;
+}
+
+uint32_t btree_slice_t::get_replication_creation_timestamp() {
+    thread_saver_t saver;
+    on_thread_t th(cache()->home_thread);
+    transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::distant_past());
+    buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_read);
+    const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
+    return sb->replication_creation_timestamp;
 }
 
 void btree_slice_t::add_dispatcher(mutation_dispatcher_t *mdisp) {

@@ -43,18 +43,19 @@ class message_callback_t {
 public:
     // These could call .swap on their parameter, taking ownership of the pointee.
     virtual void hello(net_hello_t message) = 0;
+    virtual void send(scoped_malloc<net_master_introduce_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_complete_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_delete_everything_t>& message) = 0;
+    virtual void send(scoped_malloc<net_backfill_delete_t>& message) = 0;
+    virtual void send(stream_pair<net_backfill_set_t>& message) = 0;
     virtual void send(scoped_malloc<net_get_cas_t>& message) = 0;
     virtual void send(stream_pair<net_sarc_t>& message) = 0;
-    virtual void send(stream_pair<net_backfill_set_t>& message) = 0;
     virtual void send(scoped_malloc<net_incr_t>& message) = 0;
     virtual void send(scoped_malloc<net_decr_t>& message) = 0;
     virtual void send(stream_pair<net_append_t>& message) = 0;
     virtual void send(stream_pair<net_prepend_t>& message) = 0;
     virtual void send(scoped_malloc<net_delete_t>& message) = 0;
-    virtual void send(scoped_malloc<net_backfill_delete_t>& message) = 0;
     virtual void send(scoped_malloc<net_nop_t>& message) = 0;
     virtual void conn_closed() = 0;
     virtual ~message_callback_t() {}
@@ -98,18 +99,19 @@ public:
         conn_->shutdown_read();
     }
 
+    void send(net_master_introduce_t *msg);
     void send(net_backfill_t *msg);
     void send(net_backfill_complete_t *msg);
     void send(net_backfill_delete_everything_t msg);
+    void send(net_backfill_delete_t *msg);
+    void send(net_backfill_set_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
     void send(net_get_cas_t *msg);
     void send(net_sarc_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
-    void send(net_backfill_set_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
     void send(net_incr_t *msg);
     void send(net_decr_t *msg);
     void send(net_append_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
     void send(net_prepend_t *msg, const char *key, unique_ptr_t<data_provider_t> value);
     void send(net_delete_t *msg);
-    void send(net_backfill_delete_t *msg);
     void send(net_nop_t msg);
 
 private:

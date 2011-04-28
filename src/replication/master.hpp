@@ -76,11 +76,17 @@ public:
     // Listener callback functions
     void on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn);
 
-    // TODO: kill slave connection instead of crashing server when slave sends garbage.
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
+
+    void send(UNUSED scoped_malloc<net_master_introduce_t>& message) {
+        // TODO: kill slave connection instead of crashing server when slave sends garbage.
+        crash("Slave claims to be master.");
+    }
+
     void send(UNUSED scoped_malloc<net_backfill_t>& message) {
         coro_t::spawn_now(boost::bind(&master_t::do_backfill_and_realtime_stream, this, message->timestamp));
     }
+
     void conn_closed() {
         assert_thread();
         mutex_acquisition_t ak(&stream_setup_teardown);

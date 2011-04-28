@@ -39,6 +39,20 @@ struct slave_stream_manager_t :
     // These call .swap on their parameter, taking ownership of the pointee.
     void hello(net_hello_t message);
 
+    void send(scoped_malloc<net_master_introduce_t>& message) {
+        uint32_t creation_timestamp = kvs_->get_replication_creation_timestamp();
+        if (creation_timestamp == 0) {
+            kvs_->set_replication_creation_timestamp(message->database_creation_timestamp);
+        } else if (creation_timestamp == NOT_A_SLAVE) {
+            fail_due_to_user_error("It is illegal to turn an existing database into a slave. You "
+                "must run a slave on a fresh data file or on a data file from a previous slave of "
+                "the same master.");
+        } else if (creation_timestamp != message->database_creation_timestamp) {
+            fail_due_to_user_error("The master that we are currently a slave of is a different "
+                "database than the one we were a slave of before. That doesn't work.");
+        }
+    }
+
     void send(scoped_malloc<net_backfill_t>& message);
 
     // Overrides backfill_receiver_t::send(scoped_malloc<net_backfill_complete_t>&)

@@ -16,6 +16,10 @@ namespace replication {
     class backfill_and_streaming_manager_t;
 }  // namespace replication
 
+// If the database is not a slave, then get_replication_creation_timestamp() is NOT_A_SLAVE.
+// If the database is a slave, then get_replication_creation_timestamp() returns the creation
+// timestamp of the master.
+#define NOT_A_SLAVE uint32_t(0xFFFFFFFF)
 
 /* btree_key_value_store_t represents a collection of serializers and slices, possibly distributed
 across several cores. */
@@ -73,6 +77,8 @@ public:
     repli_timestamp get_replication_clock();
     void set_last_sync(repli_timestamp_t t);
     repli_timestamp get_last_sync();
+    void set_replication_creation_timestamp(uint32_t ts);
+    uint32_t get_replication_creation_timestamp();
 
     static uint32_t hash(const store_key_t &key);
 
