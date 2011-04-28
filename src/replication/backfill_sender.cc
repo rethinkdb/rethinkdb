@@ -41,7 +41,7 @@ void backfill_sender_t::backfill_deletion(store_key_t key) {
 
 void backfill_sender_t::backfill_set(backfill_atom_t atom) {
 
-    debugf("send backfill_set(%.*s), %d\n", atom.key.size, atom.key.contents, int(bool(*stream_)));
+    debugf("send backfill_set(%.*s, t=%u, len=%ld), %d\n", atom.key.size, atom.key.contents, atom.recency.time, atom.value->get_size(), int(bool(*stream_)));
 
     if (atom.exptime != 0) {
         warn_about_expiration();
