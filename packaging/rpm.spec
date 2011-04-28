@@ -83,7 +83,9 @@ if [ -n "$ALTERNATIVES" ]; then
     --slave %{bash_completion_dir}/%{server_exec_name}.bash %{server_exec_name}.bash %{internal_bash_completion_dir}/%{server_exec_name_versioned}.bash
 else
   while read link path; do
-    [ -e "$link" ] || ln -s "$path" "$link"
+    if [ ! -e "$link" ]; then
+      ln -vs "$path" "$link"
+    fi
   done << END
 %{full_server_exec_name} %{full_server_exec_name_versioned}
 %{man1_dir}/%{server_exec_name}.1.gz %{man1_dir}/%{server_exec_name_versioned}.1.gz
@@ -109,7 +111,9 @@ if [ -n "$ALTERNATIVES"  -a -h %{full_server_exec_name} -a "$(readlink %{full_se
   $ALTERNATIVES --remove %{server_exec_name} %{full_server_exec_name_versioned}
 else
   while read link path; do
-    [ -h "$link" -a "$(readlink $link)" = "$path" ] && rm "$link"
+    if [ -h "$link" -a "$(readlink $link)" = "$path" ]; then
+      rm -v "$link"
+    fi
   done << END
 %{full_server_exec_name} %{full_server_exec_name_versioned}
 %{man1_dir}/%{server_exec_name}.1.gz %{man1_dir}/%{server_exec_name_versioned}.1.gz
