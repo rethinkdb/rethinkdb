@@ -2,6 +2,8 @@
    sphinx-quickstart on Thu Jan 13 01:07:31 2011.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
+.. If you find yourself editing this and would like to preview it use
+   http://www.tele3.cz/jbar/rest/rest.html
 
 ============
 Introduction
@@ -405,7 +407,7 @@ long as the master remains up. On master failure the slave will switch to
 responding to all commands until the master is brought back up and caught up on
 the slave's changes. The following commands start a slave and a master.::
 
-  $ rethinkdb serve --masterport
+  $ rethinkdb serve --master port
   $ rethinkdb serve --slave-of host:port
 
 RethinkDB can run a user specified script on failure by running the slave as follows:::
@@ -424,12 +426,13 @@ Health checks and traffic should be routed to the same ports in ELB's configurat
 and should use TCP. The following command will start a slave that correctly works
 with ELB::
 
-  $ rethinkdb server --slave-of host:port --run-behind-elb
+  $ rethinkdb serve --master port --run-behind-elb port
+  $ rethinkdb serve --slave-of host:port --run-behind-elb port
 
 ```````````````````
 IP Address Stealing
 ```````````````````
-RethinkDB can load balance by manipulation if IP addresses. In this scheme the
+RethinkDB can load balance by manipulation of IP addresses. In this scheme the
 slave, on failover will "steal" the fallen master's IP address thus invisibly
 redirecting new connections to itself. The master machine must be run with 2 IP
 addresses, one for user connections and one for replication connections. This
