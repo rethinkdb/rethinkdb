@@ -1,3 +1,8 @@
 #!/bin/sh
 set -e
 
+bin_dir=BIN_DIR
+server_exec_name=SERVER_EXEC_NAME
+server_exec_name_versioned=SERVER_EXEC_NAME_VERSIONED
+
+update-alternatives --remove $server_exec_name $bin_dir/$server_exec_name_versioned

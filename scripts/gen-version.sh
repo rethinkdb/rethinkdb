@@ -1,6 +1,10 @@
 #!/bin/bash
 #
-# Determines the version:
+# Command line arguments:
+#   -r  Print number of revisions since v0.1 and exit
+#   -s  Print the version in a short form
+#
+# Determining the version:
 # 1. If the variable VERSION_FILE is set, it's the first word of that file
 # 2. If we are in a git repository:
 # 2.a. if VERSION.OVERRIDE file exists at the top of the repository, it's first word is the version (unless it's empty)
@@ -16,6 +20,25 @@ default_version='0.0-internal-unknown'
 
 lf='
 '
+
+print_usage () {
+  cat 1>&2 <<END_USAGE
+Usage: $0 [-r|-s]
+  -r  Print number of revisions since v0.1 tag and exit
+  -s  Print the version in a short form
+  -h  Print help (this message)
+END_USAGE
+}
+
+short=0
+while getopts rsh opt; do
+    case "$opt" in
+    r)      git rev-list v0.1..HEAD | wc -l; exit 0;;
+    s)      short=1;;
+    h)      print_usage; exit 1;;
+    ?)      print_usage; exit 1;;
+    esac
+done
 
 ##### Find the top of the repository
 

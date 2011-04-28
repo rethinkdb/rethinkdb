@@ -11,7 +11,7 @@ dnl   LEGACY_LINUX - 0 or 1 (specifies which library versions we can use)
 dnl   TRIAL - 0 or 1
 dnl   DISK_SIZE - approximate size in KB of the installed package
 dnl
-Package: PACKAGE_NAME
+Package: VERSIONED_PACKAGE_NAME
 Version: PACKAGE_VERSION
 Architecture: amd64
 Maintainer: Package Maintainer <support@rethinkdb.com>
@@ -22,6 +22,7 @@ Depends: ifelse(LEGACY_LINUX, 1,
   `libc6 (>= 2.10.1), libaio1 (>= 0.3.106)')
 Replaces: ifelse(TRIAL, 0, `TRIAL_PACKAGE_NAME (<= PACKAGE_VERSION)')
 Conflicts: ifelse(TRIAL, 0, `TRIAL_PACKAGE_NAME', `VANILLA_PACKAGE_NAME')
+Provides: PACKAGE_NAME, memcached
 Section: database
 Priority: optional
 Homepage: http://rethinkdb.com/

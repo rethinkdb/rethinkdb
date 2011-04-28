@@ -66,8 +66,6 @@ else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
-MAN_PAGES:=$(wildcard ../docs/man/*)
-
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
@@ -120,9 +118,9 @@ CXXFLAGS+=-DTIMEBOMB_DAYS=$(TIMEBOMB)
 endif
 
 ifneq ($(TRIAL),0)
-SERVER_EXEC_NAME:=$(SERVER_EXEC_NAME)-trial
 BUILD_DIR:=$(BUILD_DIR)-trial
 PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)
+SERVER_EXEC_NAME:=$(SERVER_EXEC_NAME)-trial
 endif
 
 ifeq (${STATIC_LIBGCC},1)
@@ -195,13 +193,6 @@ STATIC_LIBRARIES+=tcmalloc_minimal
 endif
 endif
 
-prefix?=/usr
-bindir:=$(prefix)/bin
-docdir:=$(prefix)/share/doc/$(PACKAGE_NAME)
-mandir:=$(prefix)/share/man
-man1dir:=$(mandir)/man1
-bashcompletiondir:=/etc/bash_completion.d
-
 # look for the static library in the same directory as the .so file
 STATIC_LIBRARY_PATHS:=$(foreach lib,$(STATIC_LIBRARIES),$(shell /sbin/ldconfig -p | awk '/lib$(lib).so / { gsub("\\.so$$", ".a", $$NF); print $$NF; exit 0; }'))
 
@@ -240,13 +231,20 @@ SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
 #### Version number handling
 RETHINKDB_VERSION:=$(shell ../scripts/gen-version.sh)
-ifneq ($(TIMEBOMB),0)
-RETHINKDB_VERSION:=$(RETHINKDB_VERSION)-trial
-endif
+RETHINKDB_SHORT_VERSION:=$(shell ../scripts/gen-version.sh -s)
+PACKAGING_ALTERNATIVES_PRIORITY:=$(shell echo $$(../scripts/gen-version.sh -r)/100 | bc)
+
+# ifneq ($(TIMEBOMB),0)
+# RETHINKDB_VERSION:=$(RETHINKDB_VERSION)-trial
+# RETHINKDB_SHORT_VERSION:=$(RETHINKDB_SHORT_VERSION)-trial
+# endif
 RETHINKDB_PACKAGING_VERSION?=$(RETHINKDB_VERSION)
 CXXFLAGS+=-DRETHINKDB_VERSION=\"$(RETHINKDB_VERSION)\"
 
+SERVER_EXEC_NAME_VERSIONED:=$(SERVER_EXEC_NAME)-$(RETHINKDB_SHORT_VERSION)
+
 ##### Build targets
+.PHONY: all install-binaries install-manpages install-tools install install-rpm install-deb build-deb deb build-rpm rpm rpm-suse10 run rerun gdb regdb sembuild valgrind revalgrind callgrind
 
 # High level build targets
 
@@ -256,9 +254,16 @@ else
 all: $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(BUILD_DIR)/$(START_DB_NAME) $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME)
 endif
 
+unit:
+	$(MAKE) UNIT_TESTS=1
+	$(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME)
+
 extractor: $(BUILD_DIR)/$(EXTRACTOR_EXEC_NAME)
 
+# Packaging
 ifeq ($(PACKAGING),1)
+PACKAGE_FOR_SUSE_10?=0
+RPM_SPEC_INPUT?=../packaging/rpm.spec 
 DEBIAN_PKG_DIR:=debian
 SUPPRESSED_LINTIAN_TAGS:=new-package-should-close-itp-bug
 RPM_BUILD_ROOT=$(RPM_PACKAGE_DIR)/BUILD
@@ -269,6 +274,18 @@ RETHINKDB_VERSION_RPM=$(subst -,_,$(RETHINKDB_PACKAGING_VERSION))
 DEB_PACKAGE_REVISION?=1
 RETHINKDB_VERSION_DEB=$(RETHINKDB_PACKAGING_VERSION)-$(DEB_PACKAGE_REVISION)
 
+VERSIONED_PACKAGE_NAME:=$(PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
+VERSIONED_PRODUCT_SHARE_DIR:=/usr/share/$(VERSIONED_PACKAGE_NAME)
+
+prefix?=/usr
+bin_dir:=$(prefix)/bin
+doc_dir:=$(prefix)/share/doc/$(VERSIONED_PACKAGE_NAME)
+man_dir:=$(prefix)/share/man
+man1_dir:=$(man_dir)/man1
+share_dir:=$(prefix)/share/$(VERSIONED_PACKAGE_NAME)
+bash_completion_dir:=/etc/bash_completion.d
+internal_bash_completion_dir:=$(share_dir)$(bash_completion_dir)
+
 prepare_deb_package_dirs:
 	$(QUIET) mkdir -p $(DEB_PACKAGE_DIR)
 	$(QUIET) mkdir -p $(DEB_CONTROL_ROOT)
@@ -278,34 +295,35 @@ prepare_rpm_package_dirs:
 	$(QUIET) for d in BUILD RPMS/x86_64 SOURCES SPECS SRPMS; do mkdir -p $(RPM_PACKAGE_DIR)/$$d; done
 
 install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
-	$(QUIET) install -m755 -d $(DESTDIR)$(bindir)
-	$(QUIET) install -m755 -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(bindir)/$(SERVER_EXEC_NAME)
+	$(QUIET) install -m755 -d $(DESTDIR)$(bin_dir)
+	$(QUIET) install -m755 -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
 ifeq ($(STRIP_ON_INSTALL),1)
-	$(QUIET) strip --strip-unneeded $(DESTDIR)$(bindir)/$(SERVER_EXEC_NAME)
+	$(QUIET) strip --strip-unneeded $(DESTDIR)$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
 endif
 
-install-manpages: $(MAN_PAGES)
-	$(QUIET) install -m755 -d $(DESTDIR)$(man1dir)
-# TODO: support other man sections
-	$(QUIET) for manpage in $(MAN_PAGES); do \
-			gzip -9 < $$manpage | install -m644 -T /dev/stdin $(DESTDIR)$(man1dir)/$$(basename $$manpage).gz; \
-		done
+install-manpages: ../docs/man/rethinkdb.1
+	$(QUIET) install -m755 -d $(DESTDIR)$(man1_dir)
+# TODO: support other man pages
+	$(QUIET) gzip -9 < ../docs/man/rethinkdb.1 | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz;
+#	$(QUIET) for manpage in $(MAN_PAGES); do \
+#			gzip -9 < $$manpage | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$$(basename $$manpage).gz; \
+#		done
 
 install-tools: ../scripts/rethinkdb.bash
-	$(QUIET) install -m755 -d $(DESTDIR)$(bashcompletiondir)
-	$(QUIET) install -m644 ../scripts/rethinkdb.bash $(DESTDIR)$(bashcompletiondir)/rethinkdb
+	$(QUIET) install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
+	$(QUIET) install -m644 ../scripts/rethinkdb.bash $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
 
 install-docs:
-	$(QUIET) install -m755 -d $(DESTDIR)$(docdir)
-	$(QUIET) install -m644 -T ../docs/LICENSE $(DESTDIR)$(docdir)/copyright
+	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
+	$(QUIET) install -m644 -T ../docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
 
 install: install-binaries install-manpages install-docs install-tools
 install-rpm: install
 install-deb: install
-	$(QUIET) install -m755 -d $(DESTDIR)$(docdir)
+	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
 	$(QUIET) sed	-e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION_DEB)/' ../docs/changelog.Debian | \
 		gzip -c9 | \
-		install -m644 -T /dev/stdin $(DESTDIR)$(docdir)/changelog.Debian.gz
+		install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
 
 build-deb: all prepare_deb_package_dirs
@@ -322,25 +340,34 @@ build-deb: all prepare_deb_package_dirs
 		> $(DEB_CONTROL_ROOT)/md5sums
 
 # List configuration files in conffiles
-	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | grep '^/etc/' > $(DEB_CONTROL_ROOT)/conffiles
+	$(QUIET) find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | true) > $(DEB_CONTROL_ROOT)/conffiles
 
 # Copy {pre,post}{inst,rm} scripts
-	$(QUIET) for script in preinst postinst prerm postrm; do		                                \
-			cp ../packaging/$(DEBIAN_PKG_DIR)/$${script} $(DEB_CONTROL_ROOT);	                \
-			chmod 0755 $(DEB_CONTROL_ROOT)/$${script};						\
+	$(QUIET) for script in preinst postinst prerm postrm; do		                  		\
+			m4 																																						\
+					-D "BIN_DIR=$(bin_dir)" 																									\
+					-D "MAN1_DIR=$(man1_dir)" 																								\
+					-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 													\
+					-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" 				\
+					-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 																\
+					-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 						\
+					-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 													\
+				../packaging/$(DEBIAN_PKG_DIR)/$${script} > $(DEB_CONTROL_ROOT)/$${script}; \
+			chmod 0755 $(DEB_CONTROL_ROOT)/$${script};																		\
 		done
 
 # Replace version/size fields in the deb control file
-	$(QUIET) disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1);		                                \
-		m4												\
-				-D "SOLO=$(SOLO)"								\
-				-D "PACKAGE_NAME=$(PACKAGE_NAME)"						\
+	$(QUIET) disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1);	\
+		m4																													\
+				-D "SOLO=$(SOLO)"																				\
+				-D "PACKAGE_NAME=$(PACKAGE_NAME)"												\
+				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)"		\
 				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"				\
-				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"					\
-				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"					\
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)"						\
-				-D "TRIAL=$(TRIAL)"								\
-				-D "DISK_SIZE=$${disk_size}"							\
+				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
+				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
+				-D "TRIAL=$(TRIAL)"																			\
+				-D "DISK_SIZE=$${disk_size}"														\
 			../packaging/$(DEBIAN_PKG_DIR)/control >$(DEB_CONTROL_ROOT)/control
 
 # Finally, produce a debian package
@@ -356,7 +383,7 @@ deb: all prepare_deb_package_dirs
 	$(QUIET) for f in $(PACKAGES_DIR)/*.deb; do \
 			deb_name=`readlink -f $(PACKAGES_DIR)`/$$(basename $$f); \
 			echo "  $(ANSI_UL_ON)$${deb_name}$(ANSI_UL_OFF)"; \
-			lintian --color auto --suppress-tags "$(subst $(space),$(comma),$(SUPPRESSED_LINTIAN_TAGS))" $${deb_name} || true; \
+			lintian --color auto --suppress-tags "no-copyright-file,$(subst $(space),$(comma),$(SUPPRESSED_LINTIAN_TAGS))" $${deb_name} || true; \
 		done
 	$(QUIET) echo
 
@@ -366,16 +393,25 @@ build-rpm: all prepare_rpm_package_dirs
 	@echo
 
 # Replace version/topdir fields in the spec file
-	$(QUIET) m4												\
-				-D "SOLO=$(SOLO)"								\
-				-D "RPM_PACKAGE_DIR=`readlink -f $(RPM_PACKAGE_DIR)`"				\
-				-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)"					\
-				-D "PACKAGE_NAME=$(PACKAGE_NAME)"						\
-				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"				\
-				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"					\
-				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"					\
-				-D "LEGACY_LINUX=$(LEGACY_LINUX)"						\
-				-D "TRIAL=$(TRIAL)"								\
+	$(QUIET) m4																															\
+				-D "SOLO=$(SOLO)"																									\
+				-D "RPM_PACKAGE_DIR=`readlink -f $(RPM_PACKAGE_DIR)`"							\
+				-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)"													\
+				-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)"			\
+				-D "PACKAGE_NAME=$(PACKAGE_NAME)"																	\
+				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)"							\
+				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"									\
+				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"											\
+				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"											\
+				-D "LEGACY_LINUX=$(LEGACY_LINUX)"																	\
+				-D "PACKAGE_FOR_SUSE_10=$(PACKAGE_FOR_SUSE_10)"								    \
+				-D "TRIAL=$(TRIAL)"																						    \
+				-D "BIN_DIR=$(bin_dir)"																						\
+				-D "DOC_DIR=$(doc_dir)"																						\
+				-D "MAN1_DIR=$(man1_dir)"																					\
+				-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 									\
+				-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)"	\
+				-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 									\
 			$(RPM_SPEC_INPUT) >$(RPM_SPEC_FILE)
 
 # Copy files to their correct places
@@ -398,25 +434,33 @@ rpm: all prepare_rpm_package_dirs
 			echo "  $(ANSI_UL_ON)$${rpm_name}$(ANSI_UL_OFF)";		\
 		done
 	$(QUIET) echo
+
 else
+# Ubuntu/Debian
 deb: clean
-	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 deb
+	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 deb
 
-# RPM for redhat and centos
+# RPM for CentOS/RedHat
 rpm: clean
-	@$(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 RPM_SPEC_INPUT?=../packaging/rpm.spec rpm
+	$(QUIET) $(MAKE) PACKAGING=1 DEBUG=0 SYMBOLS=1 rpm
 
-# RPM for suse 10
-rpm-suse10: clean
-	@$(MAKE) DEBUG=0 SYMBOLS=1 RPM_SPEC_INPUT=../packaging/rpm-suse10.spec rpm
+# RPM for Suse 10
+rpm-suse10:
+	$(QUIET) $(MAKE) PACKAGE_FOR_SUSE_10=1 rpm
 endif
 
+# Build rules
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
 endif
 	$(QUIET) $(CXX) $(LDFLAGS) $(SERVER_EXEC_OBJS) $(STATIC_LIBRARY_PATHS) -o $(BUILD_DIR)/$(SERVER_EXEC_NAME)
+ifeq ($(NO_TCMALLOC),0)
+	@objdump -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) | c++filt | grep -q "tcmalloc::" || \
+		(echo "    Failed to link in TCMalloc. Either install it, or make with NO_TCMALLOC=1." && \
+		false)
+endif
 	@echo "    Finished building RethinkDB key-value store server version '${RETHINKDB_VERSION}'"
 
 $(BUILD_DIR)/$(EXTRACTOR_EXEC_NAME): CXXFLAGS+= -DEXTRACTOR
@@ -468,23 +512,23 @@ ifeq ($(VALGRIND),0)
 	$(error Using the 'valgrind' target doesn't automatically set VALGRIND to 1. Try again with \
 'make valgrind VALGRIND=1')
 endif
-	$(QUIET) rm -f rethinkdb_data*
-	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	$(QUIET) rm -f $(RUN_FILE)
+	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
 revalgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(VALGRIND),0)
 	$(error Using the 'revalgrind' target doesn't automatically set VALGRIND to 1. Try again with \
 'make valgrind VALGRIND=1')
 endif
-	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	valgrind $(VALGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
 callgrind: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 ifeq ($(CALLGRIND),0)
 	$(error Using the 'callgrind' target doesn't automatically set CALLGRIND to 1. Try again with \
 'make calgrind CALLGRIND=1')
 endif
-	$(QUIET) rm -f rethinkdb_data*
-	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) $(RUN_FLAGS)
+	$(QUIET) rm -f -f $(RUN_FILE)
+	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
 tags:
 	$(QUIET) ctags -R -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
@@ -502,12 +546,12 @@ clean:
 ifeq ($(VERBOSE),0)
 	@echo "    RM *~"
 	@echo "    RM -r $(BUILD_ROOT_DIR)"
-	@echo "    RM $(TAGS)"
-	@echo "    RM $(CSCOPE_XREF)"
+#	@echo "    RM $(TAGS)"
+#	@echo "    RM $(CSCOPE_XREF)"
 endif
 	$(QUIET) find -name '*~' -exec rm {} \;
 	$(QUIET) rm -rf $(BUILD_ROOT_DIR)
-	$(QUIET) rm -f $(TAGS) $(CSCOPE_XREF)
+#	$(QUIET) rm -f $(TAGS) $(CSCOPE_XREF)
 
 # Directories
 $(BUILD_DIR):
