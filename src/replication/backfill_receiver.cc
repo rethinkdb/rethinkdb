@@ -31,7 +31,7 @@ void backfill_receiver_t::send(stream_pair<net_sarc_t>& msg) {
 void backfill_receiver_t::send(stream_pair<net_backfill_set_t>& msg) {
     backfill_atom_t atom;
     atom.key.assign(msg->key_size, msg->keyvalue);
-    debugf("recv backfill_set(%.*s)\n", atom.key.size, atom.key.contents);
+    debugf("recv backfill_set(%.*s, t=%u, len=%ld)\n", atom.key.size, atom.key.contents, msg->timestamp.time, msg.stream->get_size());
     atom.value = msg.stream;
     atom.flags = msg->flags;
     atom.exptime = msg->exptime;

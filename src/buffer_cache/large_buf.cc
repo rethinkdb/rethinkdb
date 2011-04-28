@@ -249,7 +249,14 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
             for (; !ixer.done(); ixer.step()) {
                 int k = ixer.index();
                 lb_interval in = ixer.subinterval();
-                should_load_code_t child_code = k + 1 == ixer.end_index() && should_load_code == should_load_right_leaf ? should_load_right_leaf : no_load_leaves;
+
+                should_load_code_t child_code = should_load_code;
+                // If we have should_load_right_leaf, we check whether we are at the rightmost subtree (that is, k + 1 == ixer.end_index() ).
+                // In that case we continue loading with should_load_right_leaf, otherwise we don't need any leaves from that subtree.
+                if (should_load_code == should_load_right_leaf && k + 1 != ixer.end_index()) {
+                    child_code = no_load_leaves;
+                }
+
                 acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[k], in.offset, in.size, levels - 1, this, k, child_code);
                 fsm->go();
             }

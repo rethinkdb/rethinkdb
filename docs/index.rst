@@ -2,6 +2,8 @@
 .. sphinx-quickstart on Thu Jan 13 01:07:31 2011.
 .. You can adapt this file completely to your liking, but it should at least
 .. contain the root `toctree` directive.
+.. If you find yourself editing this and would like to preview it use
+.. http://www.tele3.cz/jbar/rest/rest.html
 
 ============
 Introduction
