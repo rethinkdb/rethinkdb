@@ -71,7 +71,7 @@ if [ -z "$version" -a "$repo_available" = 1 ]; then
     *$lf*)
       exit 1 ;;
     v[0-9]*)
-      git update-index -q --refresh || true
+      git update-index -q --refresh > /dev/null || true
       [ -n "$(git diff-index --name-only HEAD -- || true)" ] && version="${version}-dirty"
       ;;
   esac
@@ -84,5 +84,10 @@ if [ -z "$version" ]; then
 fi
 
 version=$(echo "$version" | sed -e 's/^v//')
+
+if [ "$short" -eq 1 ]; then
+    version=$(echo "$version" | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\)-.*/\1/')
+fi
+
 echo "$version"
 
