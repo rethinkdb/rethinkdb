@@ -10,15 +10,10 @@ namespace replication {
 
 enum multipart_aspect { SMALL = 0x81, FIRST = 0x82, MIDDLE = 0x83, LAST = 0x84 };
 
-enum message_code { MSGCODE_NIL = 0, BACKFILL = 0x01, BACKFILL_COMPLETE, BACKFILL_DELETE_EVERYTHING,
-                    ANNOUNCE, NOP, ACK,
-
+enum message_code { MSGCODE_NIL = 0, MASTER_INTRODUCE,
+                    BACKFILL, BACKFILL_COMPLETE, BACKFILL_DELETE_EVERYTHING, BACKFILL_SET, BACKFILL_DELETE,
                     // TODO: Explicitly number these
-                    GET_CAS, SARC, INCR, DECR, APPEND, PREPEND, DELETE, BACKFILL_SET, BACKFILL_DELETE };
-
-enum role_enum_t { role_master = 0, role_new_slave = 1, role_slave = 2 };
-
-
+                    GET_CAS, SARC, INCR, DECR, APPEND, PREPEND, DELETE, NOP };
 
 struct net_castime_t {
     cas_t proposed_cas;
@@ -28,9 +23,10 @@ struct net_castime_t {
 struct net_hello_t {
     char hello_magic[16];
     uint32_t replication_protocol_version;
-    uint32_t role;
-    creation_timestamp_t database_creation_timestamp;
-    char informal_name[32];
+} __attribute__((__packed__));
+
+struct net_master_introduce_t {
+    uint32_t database_creation_timestamp;
 } __attribute__((__packed__));
 
 struct net_header_t {
@@ -60,21 +56,11 @@ struct net_backfill_delete_everything_t {
     uint32_t padding;
 } __attribute__((__packed__));
 
-struct net_announce_t {
-    repli_timestamp from;
-    repli_timestamp to;
-} __attribute__((__packed__));
-
 // TODO: Get rid of one of these, and maybe just make the protocol
 // "layer" completely symmetric.
 struct net_nop_t {
     repli_timestamp timestamp;
 } __attribute__((__packed__));
-
-struct net_ack_t {
-    repli_timestamp timestamp;
-} __attribute__((__packed__));
-
 
 struct net_get_cas_t {
     cas_t proposed_cas;
