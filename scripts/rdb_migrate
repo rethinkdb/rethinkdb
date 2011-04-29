@@ -32,14 +32,17 @@ do
     filecl+=("-f" $file)
 done
 
-$old_rdb extract ${filecl[@]} -o /tmp/rdb_migration_swap
+$old_rdb extract ${filecl[@]} -o /tmp/rdb_migration_buffer
 flags=`$old_rdb fsck ${filecl[@]} -c | grep FLAGS: | sed s/FLAGS://`
 
-filecl=()
-for file in ${outfile[@]}
-do
-    filecl+=("-f" $file)
-done
+if [ ${outfile[@]} -ne 0 ]
+then
+    filecl=()
+    for file in ${outfile[@]}
+    do
+        filecl+=("-f" $file)
+    done
+fi
 
 port=`unused_port`
 if [ "${#port}" -eq 0 ]
