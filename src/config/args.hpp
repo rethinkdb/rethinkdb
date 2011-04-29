@@ -144,7 +144,7 @@
 // transactions will be throttled.
 // A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
 // times the max cache size
-#define DEFAULT_UNSAVED_DATA_LIMIT                0
+#define DEFAULT_UNSAVED_DATA_LIMIT                4096 * MEGABYTE
 
 // The unsaved data limit cannot exceed this fraction of the max cache size
 #define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.9
