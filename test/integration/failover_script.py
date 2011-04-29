@@ -7,6 +7,8 @@ up_file = "failover_test_elb_up"
 down_file = "failover_test_elb_down"
 
 def test(opts, server, repli_server, test_dir):
+    time.sleep(10) #sometimes servers seem to take slightly longer for listening on the elb port
+
     os.system("%s reset" % opts["failover-script"])
     if (os.path.exists(up_file) or os.path.exists(down_file)):
         raise ValueError("The files that the failover script is expected to create already exists and weren't removed when the scripts reset was called I can't work under these conditions.")
