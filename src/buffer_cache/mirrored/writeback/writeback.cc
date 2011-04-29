@@ -8,31 +8,17 @@ writeback_t::begin_transaction_fsm_t::begin_transaction_fsm_t(writeback_t *wb, m
 {
     txn->begin_callback = cb;
 
-    writeback->expected_delayed_change_count += transaction->expected_change_count;
-    const unsigned int delay_ms = writeback->throttle_delay_ms();
-    if (delay_ms > 0) {
-        fire_timer_once(delay_ms, &timer_callback, (void*)this);
-    } else {
-        timer_callback((void*)this);
-    }
-    
-}
-
-void writeback_t::begin_transaction_fsm_t::timer_callback(void *btfsm) {
-    begin_transaction_fsm_t *fsm = reinterpret_cast<begin_transaction_fsm_t*>(btfsm);
-
-    if (fsm->writeback->too_many_dirty_blocks()) {
+    if (writeback->too_many_dirty_blocks()) {
         /* When a flush happens, we will get popped off the throttled transactions list
 and given a green light. */
-        fsm->writeback->throttled_transactions_list.push_back(fsm);
+        writeback->throttled_transactions_list.push_back(this);
     } else {
-        fsm->green_light();
+        green_light();
     }
 }
 
 void writeback_t::begin_transaction_fsm_t::green_light() {
 
-    writeback->expected_delayed_change_count -= transaction->expected_change_count;
     writeback->expected_active_change_count += transaction->expected_change_count;
 
     // Lock the flush lock "for reading", but what we really mean is to lock it non-
@@ -82,7 +68,6 @@ writeback_t::writeback_t(
       flush_timer(NULL),
       outstanding_disk_writes(0),
       expected_active_change_count(0),
-      expected_delayed_change_count(0),
       writeback_in_progress(false),
       active_flushes(0),
       force_patch_storage_flush(false),
@@ -175,7 +160,7 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
             sync(NULL);
         }
 
-        if (!flush_timer && !flush_time_randomizer.is_never_flush()) {
+        if (!flush_timer && !flush_time_randomizer.is_never_flush() && !flush_time_randomizer.is_zero()) {
             /* Start the flush timer so that the modified data doesn't sit in memory for too long
             without being written to disk and the patches_size_ratio gets updated */
             flush_timer = fire_timer_once(flush_time_randomizer.next_time_interval(), flush_timer_callback, this);
@@ -185,41 +170,6 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
 
 unsigned int writeback_t::num_dirty_blocks() {
     return dirty_bufs.size();
-}
-
-//perfmon_sampler_t pm_delay("throttling_delay", secs_to_ticks(1.0));
-
-unsigned int writeback_t::throttle_delay_ms() {
-    /* TODO: For now, delay-based throttling is disabled as it causes reordering issues. 
-     * See issue #255 on github for further information.
-     */
-    return 0;
-
-    /*
-    const int max_delay_time = 500;
-    const size_t expected_dirty_blocks = num_dirty_blocks() + outstanding_disk_writes + expected_active_change_count + expected_delayed_change_count;
-    const size_t start_throttling_threshold = (size_t) ((double)max_dirty_blocks * START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION);
-
-    if (expected_dirty_blocks <= start_throttling_threshold) {
-        return 0;
-    }
-
-    const float overcommit_fraction = (float)(expected_dirty_blocks - start_throttling_threshold) / (max_dirty_blocks - start_throttling_threshold);
-
-    if (overcommit_fraction >= 1.0f) {
-        return max_delay_time;
-    }
-
-    float delay_ms = 1.0f / (1.0f - powf(overcommit_fraction, 0.05f)) - 1.0f; // The power (0.05) controls the steepness of throttling (the higher the value, the less steep it is)
-
-    if (std::isnan(delay_ms) || delay_ms < 0.0f) {
-        return max_delay_time;
-    }
-
-    delay_ms = std::min(delay_ms, (float)max_delay_time);
-    pm_delay.record(delay_ms);
-    return (int)delay_ms;
-    */
 }
 
 bool writeback_t::too_many_dirty_blocks() {
