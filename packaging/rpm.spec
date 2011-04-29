@@ -68,7 +68,7 @@ ALTERNATIVES=""
 for alt in update-alternatives alternatives; do
   for dir in /usr/sbin /sbin; do
     full_alt="$dir/$alt"
-    if [ -x full_alt ]; then
+    if [ -x "$full_alt" ]; then
       ALTERNATIVES="$full_alt"
       break 2
     fi
@@ -83,7 +83,9 @@ if [ -n "$ALTERNATIVES" ]; then
     --slave %{bash_completion_dir}/%{server_exec_name}.bash %{server_exec_name}.bash %{internal_bash_completion_dir}/%{server_exec_name_versioned}.bash
 else
   while read link path; do
-    [ -e "$link" ] || ln -s "$path" "$link"
+    if [ ! \( -e "$link" -o -h "$link" \) ]; then
+      ln -vs "$path" "$link"
+    fi
   done << END
 %{full_server_exec_name} %{full_server_exec_name_versioned}
 %{man1_dir}/%{server_exec_name}.1.gz %{man1_dir}/%{server_exec_name_versioned}.1.gz
@@ -97,7 +99,7 @@ ALTERNATIVES=""
 for alt in update-alternatives alternatives; do
   for dir in /usr/sbin /sbin; do
     full_alt="$dir/$alt"
-    if [ -x full_alt ]; then
+    if [ -x "$full_alt" ]; then
       ALTERNATIVES="$full_alt"
       break 2
     fi
@@ -109,11 +111,13 @@ if [ -n "$ALTERNATIVES"  -a -h %{full_server_exec_name} -a "$(readlink %{full_se
   $ALTERNATIVES --remove %{server_exec_name} %{full_server_exec_name_versioned}
 else
   while read link path; do
-    [ -h "$link" -a "$(readlink $link)" = "$path" ] && rm "$link"
+    if [ -h "$link" -a "$(readlink $link)" = "$path" ]; then
+      rm -v "$link"
+    fi
   done << END
 %{full_server_exec_name} %{full_server_exec_name_versioned}
 %{man1_dir}/%{server_exec_name}.1.gz %{man1_dir}/%{server_exec_name_versioned}.1.gz
-%{bash_completion_dir}/%{server_exec_name}.bash %{internal_bash_completion_dir}/%{server_exec_name}.bash
+%{bash_completion_dir}/%{server_exec_name}.bash %{internal_bash_completion_dir}/%{server_exec_name_versioned}.bash
 END
 fi
 
@@ -125,7 +129,12 @@ fi
 %defattr(-,root,root)
 %attr(0755,root,root) %{full_server_exec_name_versioned}
 
+%dir %attr(0755,root,root) %{bash_completion_dir}
+%dir %attr(0755,root,root) %{internal_bash_completion_dir}
 %attr(0444,root,root) %{internal_bash_completion_dir}/%{server_exec_name}.bash
+
 %doc %attr(0444,root,root) %{man1_dir}/%{server_exec_name_versioned}.1.gz
+
+%dir %attr(0755,root,root) %{doc_dir}
 %doc %attr(0444,root,root) %{doc_dir}/copyright
 

@@ -86,7 +86,7 @@ fi
 version=$(echo "$version" | sed -e 's/^v//')
 
 if [ "$short" -eq 1 ]; then
-    version=$(echo "$version" | sed 's/\([0-9]*\.[0-9]*\.[0-9]*\)-.*/\1/')
+    version=$(echo "$version" | sed 's/\([^-]*\).*/\1/')
 fi
 
 echo "$version"
