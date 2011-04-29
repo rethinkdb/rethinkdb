@@ -13,6 +13,8 @@ def test_connection(port, host = 'localhost'):
     s.close()
 
 def test(opts, server, repli_server, test_dir):
+    time.sleep(10) #sometimes servers seem to take slightly longer for listening on the elb port
+
     if (not test_connection(server.elb_port)):
         raise ValueError("master should be accepting elb connections but it isn't")
 

@@ -63,14 +63,12 @@ public:
         void green_light();
         void on_thread_switch();
         void on_lock_available();
-        static void timer_callback(void*);
     };
     intrusive_list_t<begin_transaction_fsm_t> throttled_transactions_list;
 
     unsigned int num_dirty_blocks();
 
     bool too_many_dirty_blocks();
-    unsigned int throttle_delay_ms();
     void possibly_unthrottle_transactions();
 
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
@@ -129,8 +127,6 @@ private:
     
     /* The sum of the expected_change_counts of the currently active write transactions. */
     int expected_active_change_count;
-    /* The same, but for transactions which are currently delayed and have not got the green light yet */
-    int expected_delayed_change_count;
 
     bool writeback_in_progress;
     unsigned int active_flushes;
