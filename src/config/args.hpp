@@ -144,15 +144,10 @@
 // transactions will be throttled.
 // A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
 // times the max cache size
-// (please note that we start throttling gradually at START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION times this value already)
-#define DEFAULT_UNSAVED_DATA_LIMIT                4096 * MEGABYTE
+#define DEFAULT_UNSAVED_DATA_LIMIT                0
 
 // The unsaved data limit cannot exceed this fraction of the max cache size
-#define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.5
-
-// We start delaying transactions when this fraction of the unsaved data limit is dirty.
-// The closer we get to unsaved data limit, the longer we delay new transactions.
-#define START_THROTTLING_AT_UNSAVED_DATA_LIMIT_FRACTION 0.3
+#define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.9
 
 // We start flushing dirty pages as soon as we hit this fraction of the unsaved data limit
 #define FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT   0.2
