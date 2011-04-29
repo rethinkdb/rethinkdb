@@ -24,35 +24,35 @@ struct backfill_and_streaming_manager_t :
             castime_t castime;
         
             mutation_t operator()(const get_cas_mutation_t& m) {
-                manager->coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::realtime_get_cas, manager,
+                manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_get_cas, manager,
                         m.key, castime));
                 return m;
             }
             mutation_t operator()(const sarc_mutation_t& m) {
                 unique_ptr_t<data_provider_t> dps[2];
                 duplicate_data_provider(m.data, 2, dps);
-                manager->coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
+                manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
                         m.key, dps[0], m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
                 sarc_mutation_t m2(m);
                 m2.data = dps[1];
                 return m2;
             }
             mutation_t operator()(const incr_decr_mutation_t& m) {
-                manager->coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::realtime_incr_decr, manager,
+                manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_incr_decr, manager,
                         m.kind, m.key, m.amount, castime));
                 return m;
             }
             mutation_t operator()(const append_prepend_mutation_t &m) {
                 unique_ptr_t<data_provider_t> dps[2];
                 duplicate_data_provider(m.data, 2, dps);
-                manager->coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
+                manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
                         m.kind, m.key, dps[0], castime));
                 append_prepend_mutation_t m2(m);
                 m2.data = dps[1];
                 return m2;
             }
             mutation_t operator()(const delete_mutation_t& m) {
-                manager->coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::realtime_delete_key, manager,
+                manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_delete_key, manager,
                         m.key, castime.timestamp));
                 return m;
             }
@@ -120,7 +120,7 @@ struct backfill_and_streaming_manager_t :
     void deletion_key(const btree_key_t *key) {
         // This runs on the scheduler thread.
         store_key_t tmp(key->size, key->contents);
-        coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, tmp));
+        coro_pool.queue_task(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, tmp));
     }
 
     /* The store calls this when it finishes the first phase of backfilling. It's redundant
@@ -131,14 +131,14 @@ struct backfill_and_streaming_manager_t :
     /* The store calls this when we need to send a key/value pair to the slave */
     void on_keyvalue(backfill_atom_t atom) {
         // This runs on the scheduler thread.
-        coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_set, handler_, atom));
+        coro_pool.queue_task(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_set, handler_, atom));
     }
 
     /* When we are finally done, the store calls done(). */
     void done() {
 
         // This runs in the scheduler, so we have to spawn a coroutine.
-        coro_pool.queue_task_on_home_thread(boost::bind(&backfill_and_streaming_manager_t::do_done, this));
+        coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::do_done, this));
     }
 
     void do_done() {
