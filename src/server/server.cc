@@ -248,7 +248,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                 /* Make it impossible for this database file to later be used as a slave, because
                 that would confuse the replication logic. */
-                store.set_replication_creation_timestamp(NOT_A_SLAVE);
+                store.set_replication_master_id(NOT_A_SLAVE);
 
                 replication::master_t master(cmd_config->replication_master_listen_port, &store, &gated_get_store, &gated_set_store);
 
@@ -271,7 +271,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                 /* Make it impossible for this database file to later be used as a slave, because
                 that would confuse the replication logic. */
-                store.set_replication_creation_timestamp(NOT_A_SLAVE);
+                store.set_replication_master_id(NOT_A_SLAVE);
 
                 // Open the gates to allow real queries
                 gated_get_store_t::open_t permit_gets(&gated_get_store);

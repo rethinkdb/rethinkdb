@@ -663,10 +663,9 @@ able to use them in slave-mode ever again!
 
 Don't use multiple slaves with the same master. If you try to connect a
 second slave while a slave is already connected, RethinkDB will kick the
-connection off. If you disconnect the slave and then connect another
-one, RethinkDB will not complain, but if you later reconnect the
-original slave, RethinkDB may become confused and the behavior is
-undefined in this case. Your data may be corrupted.
+connection off. If you disconnect the slave and then connect a new
+one, RethinkDB will accept the new slave, but if you later try to reconnect the
+original slave, RethinkDB will not allow the original slave to reconnect.
 
 -----------
 Other notes

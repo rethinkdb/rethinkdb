@@ -77,8 +77,10 @@ public:
     repli_timestamp get_replication_clock();
     void set_last_sync(repli_timestamp_t t);
     repli_timestamp get_last_sync();
-    void set_replication_creation_timestamp(uint32_t ts);
-    uint32_t get_replication_creation_timestamp();
+    void set_replication_master_id(uint32_t ts);
+    uint32_t get_replication_master_id();
+    void set_replication_slave_id(uint32_t ts);
+    uint32_t get_replication_slave_id();
 
     static uint32_t hash(const store_key_t &key);
 

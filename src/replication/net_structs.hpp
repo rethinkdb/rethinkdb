@@ -10,7 +10,7 @@ namespace replication {
 
 enum multipart_aspect { SMALL = 0x81, FIRST = 0x82, MIDDLE = 0x83, LAST = 0x84 };
 
-enum message_code { MSGCODE_NIL = 0, MASTER_INTRODUCE,
+enum message_code { MSGCODE_NIL = 0, INTRODUCE,
                     BACKFILL, BACKFILL_COMPLETE, BACKFILL_DELETE_EVERYTHING, BACKFILL_SET, BACKFILL_DELETE,
                     // TODO: Explicitly number these
                     GET_CAS, SARC, INCR, DECR, APPEND, PREPEND, DELETE, NOP };
@@ -25,8 +25,11 @@ struct net_hello_t {
     uint32_t replication_protocol_version;
 } __attribute__((__packed__));
 
-struct net_master_introduce_t {
+struct net_introduce_t {
     uint32_t database_creation_timestamp;
+    // When master sends net_introduce_t, this is ID of last slave seen. When slave sends
+    // net_introduce_t, this is unused.
+    uint32_t other_id;
 } __attribute__((__packed__));
 
 struct net_header_t {

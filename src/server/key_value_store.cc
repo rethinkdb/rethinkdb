@@ -206,12 +206,20 @@ repli_timestamp btree_key_value_store_t::get_last_sync() {
     return btrees[0]->get_last_sync();   /* Read the value from disk */
 }
 
-void btree_key_value_store_t::set_replication_creation_timestamp(uint32_t t) {
-    btrees[0]->set_replication_creation_timestamp(t);
+void btree_key_value_store_t::set_replication_master_id(uint32_t t) {
+    btrees[0]->set_replication_master_id(t);
 }
 
-uint32_t btree_key_value_store_t::get_replication_creation_timestamp() {
-    return btrees[0]->get_replication_creation_timestamp();
+uint32_t btree_key_value_store_t::get_replication_master_id() {
+    return btrees[0]->get_replication_master_id();
+}
+
+void btree_key_value_store_t::set_replication_slave_id(uint32_t t) {
+    btrees[0]->set_replication_slave_id(t);
+}
+
+uint32_t btree_key_value_store_t::get_replication_slave_id() {
+    return btrees[0]->get_replication_slave_id();
 }
 
 /* Hashing keys and choosing a slice for each key */
