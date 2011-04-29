@@ -7,7 +7,7 @@ up_file = "failover_test_elb_up"
 down_file = "failover_test_elb_down"
 
 def test(opts, server, repli_server, test_dir):
-    time.sleep(10) #sometimes servers seem to take slightly longer for listening on the elb port
+    time.sleep(10) # TODO: why is this necessary?
 
     os.system("%s reset" % opts["failover-script"])
     if (os.path.exists(up_file) or os.path.exists(down_file)):
