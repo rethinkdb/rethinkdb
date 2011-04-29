@@ -68,7 +68,7 @@ ALTERNATIVES=""
 for alt in update-alternatives alternatives; do
   for dir in /usr/sbin /sbin; do
     full_alt="$dir/$alt"
-    if [ -x full_alt ]; then
+    if [ -x "$full_alt" ]; then
       ALTERNATIVES="$full_alt"
       break 2
     fi
@@ -83,7 +83,7 @@ if [ -n "$ALTERNATIVES" ]; then
     --slave %{bash_completion_dir}/%{server_exec_name}.bash %{server_exec_name}.bash %{internal_bash_completion_dir}/%{server_exec_name_versioned}.bash
 else
   while read link path; do
-    if [ ! -e "$link" ]; then
+    if [ ! \( -e "$link" -o -h "$link" \) ]; then
       ln -vs "$path" "$link"
     fi
   done << END
@@ -99,7 +99,7 @@ ALTERNATIVES=""
 for alt in update-alternatives alternatives; do
   for dir in /usr/sbin /sbin; do
     full_alt="$dir/$alt"
-    if [ -x full_alt ]; then
+    if [ -x "$full_alt" ]; then
       ALTERNATIVES="$full_alt"
       break 2
     fi
@@ -129,7 +129,12 @@ fi
 %defattr(-,root,root)
 %attr(0755,root,root) %{full_server_exec_name_versioned}
 
+%dir %attr(0755,root,root) %{bash_completion_dir}
+%dir %attr(0755,root,root) %{internal_bash_completion_dir}
 %attr(0444,root,root) %{internal_bash_completion_dir}/%{server_exec_name}.bash
+
 %doc %attr(0444,root,root) %{man1_dir}/%{server_exec_name_versioned}.1.gz
+
+%dir %attr(0755,root,root) %{doc_dir}
 %doc %attr(0444,root,root) %{doc_dir}/copyright
 

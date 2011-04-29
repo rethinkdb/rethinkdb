@@ -38,7 +38,7 @@ template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t>
 template <> struct stream_type<net_prepend_t> { typedef stream_pair<net_prepend_t> type; };
 template <> struct stream_type<net_backfill_set_t> { typedef stream_pair<net_backfill_set_t> type; };
 
-size_t objsize(UNUSED const net_master_introduce_t *buf) { return sizeof(net_master_introduce_t); }
+size_t objsize(UNUSED const net_introduce_t *buf) { return sizeof(net_introduce_t); }
 size_t objsize(UNUSED const net_backfill_t *buf) { return sizeof(net_backfill_t); }
 size_t objsize(UNUSED const net_backfill_complete_t *buf) { return sizeof(net_backfill_complete_t); }
 size_t objsize(UNUSED const net_backfill_delete_everything_t *buf) { return sizeof(net_backfill_delete_everything_t); }
@@ -107,7 +107,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, const char
         size_t realsize = msgsize - sizeof(net_header_t);
 
         switch (hdr->msgcode) {
-        case MASTER_INTRODUCE: check_pass<net_master_introduce_t>(receiver, buf + realbegin, realsize); break;
+        case INTRODUCE: check_pass<net_introduce_t>(receiver, buf + realbegin, realsize); break;
         case BACKFILL: check_pass<net_backfill_t>(receiver, buf + realbegin, realsize); break;
         case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, buf + realbegin, realsize); break;
         case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver, buf + realbegin, realsize); break;
@@ -298,9 +298,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
     sendobj(msgcode, reinterpret_cast<net_struct_type *>(buf.get()));
 }
 
-void repli_stream_t::send(net_master_introduce_t *msg) {
+void repli_stream_t::send(net_introduce_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-    sendobj(MASTER_INTRODUCE, msg);
+    sendobj(INTRODUCE, msg);
 }
 
 void repli_stream_t::send(net_backfill_t *msg) {

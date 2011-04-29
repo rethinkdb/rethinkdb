@@ -78,9 +78,14 @@ public:
 
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
 
-    void send(UNUSED scoped_malloc<net_master_introduce_t>& message) {
-        // TODO: kill slave connection instead of crashing server when slave sends garbage.
-        crash("Slave claims to be master.");
+    void send(scoped_malloc<net_introduce_t>& message) {
+        uint32_t previous_slave = kvs_->get_replication_slave_id();
+        if (previous_slave != 0) {
+            rassert(message->database_creation_timestamp != previous_slave);
+            logWRN("The slave that was previously associated with this master is now being "
+                "forgotten; you will not be able to reconnect it later.\n");
+        }
+        kvs_->set_replication_slave_id(message->database_creation_timestamp);
     }
 
     void send(UNUSED scoped_malloc<net_backfill_t>& message) {
@@ -88,6 +93,8 @@ public:
     }
 
     void conn_closed() {
+        logINF("Connection to slave was closed.\n");
+
         assert_thread();
         mutex_acquisition_t ak(&stream_setup_teardown);
 

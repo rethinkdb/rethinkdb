@@ -64,7 +64,7 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     sb->delete_queue_block = delete_queue_block->get_block_id();
 
     sb->replication_clock = sb->last_sync = repli_timestamp_t::distant_past();
-    sb->replication_creation_timestamp = 0;
+    sb->replication_master_id = sb->replication_slave_id = 0;
 }
 
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
@@ -134,7 +134,10 @@ void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *ca
 }
 
 /* TODO: Storing replication clocks and last-sync information like this is kind of ugly because
-it's an abstraction break, which means it might not fit with clustering. */
+it's an abstraction break, which means it might not fit with clustering.
+
+These functions are intentionally verbose because they shouldn't exist at all. The code
+duplication is a protest against how horrible it is to have this data stored here. */
 
 void btree_slice_t::set_replication_clock(repli_timestamp_t t) {
     // Having saver before an on_thread_t means the saver's destructor
@@ -175,22 +178,40 @@ repli_timestamp btree_slice_t::get_last_sync() {
     return sb->last_sync;
 }
 
-void btree_slice_t::set_replication_creation_timestamp(uint32_t t) {
+void btree_slice_t::set_replication_master_id(uint32_t t) {
     thread_saver_t saver;
     on_thread_t th(cache()->home_thread);
     transactor_t transactor(saver, cache(), rwi_write, 0, repli_timestamp_t::distant_past());
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
-    sb->replication_creation_timestamp = t;
+    sb->replication_master_id = t;
 }
 
-uint32_t btree_slice_t::get_replication_creation_timestamp() {
+uint32_t btree_slice_t::get_replication_master_id() {
     thread_saver_t saver;
     on_thread_t th(cache()->home_thread);
     transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::distant_past());
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
-    return sb->replication_creation_timestamp;
+    return sb->replication_master_id;
+}
+
+void btree_slice_t::set_replication_slave_id(uint32_t t) {
+    thread_saver_t saver;
+    on_thread_t th(cache()->home_thread);
+    transactor_t transactor(saver, cache(), rwi_write, 0, repli_timestamp_t::distant_past());
+    buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
+    btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
+    sb->replication_slave_id = t;
+}
+
+uint32_t btree_slice_t::get_replication_slave_id() {
+    thread_saver_t saver;
+    on_thread_t th(cache()->home_thread);
+    transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::distant_past());
+    buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_read);
+    const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
+    return sb->replication_slave_id;
 }
 
 void btree_slice_t::add_dispatcher(mutation_dispatcher_t *mdisp) {

@@ -43,7 +43,7 @@ class message_callback_t {
 public:
     // These could call .swap on their parameter, taking ownership of the pointee.
     virtual void hello(net_hello_t message) = 0;
-    virtual void send(scoped_malloc<net_master_introduce_t>& message) = 0;
+    virtual void send(scoped_malloc<net_introduce_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_complete_t>& message) = 0;
     virtual void send(scoped_malloc<net_backfill_delete_everything_t>& message) = 0;
@@ -99,7 +99,7 @@ public:
         conn_->shutdown_read();
     }
 
-    void send(net_master_introduce_t *msg);
+    void send(net_introduce_t *msg);
     void send(net_backfill_t *msg);
     void send(net_backfill_complete_t *msg);
     void send(net_backfill_delete_everything_t msg);
