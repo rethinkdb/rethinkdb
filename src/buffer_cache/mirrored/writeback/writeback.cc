@@ -175,7 +175,7 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
             sync(NULL);
         }
 
-        if (!flush_timer && !flush_time_randomizer.is_never_flush()) {
+        if (!flush_timer && !flush_time_randomizer.is_never_flush() && !flush_time_randomizer.is_zero()) {
             /* Start the flush timer so that the modified data doesn't sit in memory for too long
             without being written to disk and the patches_size_ratio gets updated */
             flush_timer = fire_timer_once(flush_time_randomizer.next_time_interval(), flush_timer_callback, this);
