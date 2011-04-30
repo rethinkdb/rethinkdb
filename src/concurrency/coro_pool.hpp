@@ -30,7 +30,7 @@ public:
         rassert(active_worker_count == 0);
     }
 
-    void queue_task(const boost::function<void()> &task) {
+    void queue_task(const boost::function<void()> task) {
 
         if (get_thread_id() != home_thread) {
             do_on_thread(home_thread, boost::bind(&coro_pool_t::queue_task, this, task));
