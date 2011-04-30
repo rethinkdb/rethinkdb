@@ -10,7 +10,7 @@
 #include <vector>
 #include <endian.h>
 #include "errors.hpp"
-#include "arch/arch.hpp"
+#include "arch/core.hpp"
 #include "utils2.hpp"
 #include <string>
 

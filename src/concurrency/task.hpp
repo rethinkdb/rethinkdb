@@ -2,7 +2,7 @@
 #define __CONCURRENCY_TASK_HPP__
 
 #include "arch/arch.hpp"
-#include "concurrency/cond_var.hpp"
+#include "concurrency/promise.hpp"
 
 /* We need two versions of task_t, one of which is specialized for void */
 

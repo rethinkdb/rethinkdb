@@ -2,6 +2,7 @@
 #include "arch/linux/thread_pool.hpp"
 #include "arch/timing.hpp"
 #include "logger.hpp"
+#include "concurrency/cond_var.hpp"
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
@@ -59,7 +60,7 @@ ERROR_BREAKOUT:
 linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
     sock(connect_to(host, port)), event_watcher(sock.get(), this),
     read_in_progress(false), write_in_progress(false),
-    read_cond_watcher(new multicond_weak_ptr_t), write_cond_watcher(new multicond_weak_ptr_t),
+    read_cond_watcher(new cond_weak_ptr_t), write_cond_watcher(new cond_weak_ptr_t),
     read_was_shut_down(false), write_was_shut_down(false)
     { }
 
@@ -88,14 +89,14 @@ static fd_t connect_to(const ip_address_t &host, int port) {
 linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
     sock(connect_to(host, port)), event_watcher(sock.get(), this),
     read_in_progress(false), write_in_progress(false),
-    read_cond_watcher(new multicond_weak_ptr_t), write_cond_watcher(new multicond_weak_ptr_t),
+    read_cond_watcher(new cond_weak_ptr_t), write_cond_watcher(new cond_weak_ptr_t),
     read_was_shut_down(false), write_was_shut_down(false)
     { }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     sock(s), event_watcher(sock.get(), this),
     read_in_progress(false), write_in_progress(false),
-    read_cond_watcher(new multicond_weak_ptr_t), write_cond_watcher(new multicond_weak_ptr_t),
+    read_cond_watcher(new cond_weak_ptr_t), write_cond_watcher(new cond_weak_ptr_t),
     read_was_shut_down(false), write_was_shut_down(false)
 {
     rassert(sock.get() != INVALID_FD);
@@ -116,11 +117,17 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
             read_in_progress = true;
 
             /* There's no data available right now, so we must wait for a notification from the
-            epoll queue. We use a multicond_t because we can either be interrupted by a
-            notification from the event loop or by on_shutdown_read(). */
-            multicond_t cond;
+            epoll queue. `cond` will be pulsed when the socket is closed or when there is data
+            available. */
+            cond_t cond;
+
+            /* Set up the cond so it gets pulsed when the socket is closed */
             read_cond_watcher->watch(&cond);
-            event_watcher.watch(poll_event_in, &cond);
+
+            /* Set up the cond so it gets pulsed if an event comes */
+            event_watcher.watch(poll_event_in, boost::bind(&cond_t::pulse, &cond), &cond);
+
+            /* Wait for something to happen. */
             cond.wait_eagerly();
 
             read_in_progress = false;
@@ -253,9 +260,15 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
             write_in_progress = true;
 
             /* Wait for a notification from the event queue */
-            multicond_t cond;
+            cond_t cond;
+
+            /* Set up the cond so it gets pulsed when the socket is closed */
             write_cond_watcher->watch(&cond);
-            event_watcher.watch(poll_event_out, &cond);
+
+            /* Set up the cond so it gets pulsed if an event comes */
+            event_watcher.watch(poll_event_out, boost::bind(&cond_t::pulse, &cond), &cond);
+
+            /* Wait for something to happen. */
             cond.wait_eagerly();
 
             write_in_progress = false;
@@ -386,7 +399,7 @@ linux_tcp_listener_t::linux_tcp_listener_t(int port) :
     sock(socket(AF_INET, SOCK_STREAM, 0)),
     event_watcher(sock.get(), this),
     callback(NULL),
-    shutdown_signal(NULL), accept_loop_cond_watcher(new multicond_weak_ptr_t),
+    shutdown_signal(NULL), accept_loop_cond_watcher(new cond_weak_ptr_t),
     log_next_error(true)
 {
     int res;
@@ -475,9 +488,9 @@ void linux_tcp_listener_t::accept_loop() {
         } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
             /* Wait for a notification from the event loop, or for a command to shut down,
             before continuing */
-            multicond_t c;
+            cond_t c;
             accept_loop_cond_watcher->watch(&c);   // So we can be interrupted
-            event_watcher.watch(poll_event_in, &c);
+            event_watcher.watch(poll_event_in, boost::bind(&cond_t::pulse, &c), &c);
             c.wait();
             // At this point we might have been destroyed, so we cannot access member variables
 
@@ -494,9 +507,9 @@ void linux_tcp_listener_t::accept_loop() {
 
             /* Delay before retrying. We use pulse_after_time() instead of nap() so that we will
             be interrupted immediately if something wants to shut us down. */
-            multicond_t c;
+            cond_t c;
             accept_loop_cond_watcher->watch(&c);   // So we can be interrupted
-            pulse_after_time(&c, backoff_delay_ms);
+            call_with_delay(backoff_delay_ms, boost::bind(&cond_t::pulse, &c), &c);
             c.wait();
             // At this point we might have been destroyed, so we cannot access member variables
 

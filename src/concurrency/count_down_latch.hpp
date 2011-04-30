@@ -1,44 +1,26 @@
 #ifndef __CONCURRENCY_COUNT_DOWN_LATCH_HPP__
 #define __CONCURRENCY_COUNT_DOWN_LATCH_HPP__
 
-#include "concurrency/rwi_lock.hpp"
-#include "containers/intrusive_list.hpp"
+#include "concurrency/signal.hpp"
 
-class count_down_latch_t {
-    struct waiter_t : intrusive_list_node_t<waiter_t> {
-        coro_t * coro;
-        waiter_t(coro_t *coro) : coro(coro) { }
-    };
+/* A count_down_latch_t pulses its signal_t only after its count_down() method has
+been called a certain number of times. It is safe to call the cound_down() method
+on any thread. */
 
-    intrusive_list_t<waiter_t> waiters;
-    size_t count;
-public:
+struct count_down_latch_t : public signal_t {
+
     count_down_latch_t(size_t count) : count(count) { }
-    ~count_down_latch_t() {
-        guarantee(waiters.size() == 0);
-    }
-
-    void wait() {
-        if (count > 0) {
-            waiters.push_back(new waiter_t(coro_t::self()));
-
-            while (count > 0)
-                coro_t::wait();
-        }
-    }
 
     void count_down() {
-        rassert(count > 0);
-        if (--count == 0) {
-            // release all waiters
-            while (waiter_t *w = waiters.head()) {
-                w->coro->notify();
-                waiters.remove(w);
-                delete w;
-            }
-        }
+        do_on_thread(home_thread, boost::bind(&count_down_latch_t::do_count_down, this));
     }
 private:
+    void do_count_down() {
+        rassert(count > 0);
+        if (--count == 0) pulse();
+    }
+
+    size_t count;
     DISABLE_COPYING(count_down_latch_t);
 };
 

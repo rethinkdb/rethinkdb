@@ -1,14 +1,14 @@
 #include "btree/get_cas.hpp"
 
 #include "btree/modify_oper.hpp"
-#include "concurrency/cond_var.hpp"
+#include "concurrency/promise.hpp"
 #include "btree/btree_data_provider.hpp"
 
 // TODO: Use a shared_ptr to the transactor instead of a death_signalling_data_provider_t.
 
 struct death_signalling_data_provider_t : public data_provider_t {
 
-    death_signalling_data_provider_t(unique_ptr_t<data_provider_t> dp, threadsafe_cond_t *c) :
+    death_signalling_data_provider_t(unique_ptr_t<data_provider_t> dp, cond_t *c) :
         dp(dp), pulse_on_death(c) { }
     ~death_signalling_data_provider_t() {
         pulse_on_death->pulse();
@@ -26,7 +26,7 @@ struct death_signalling_data_provider_t : public data_provider_t {
 
 private:
     unique_ptr_t<data_provider_t> dp;
-    threadsafe_cond_t *pulse_on_death;
+    cond_t *pulse_on_death;
 };
 
 // This function is like get(), except that it sets a CAS value if there isn't
@@ -36,7 +36,7 @@ private:
 // be unnecessary.
 
 struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mixin_t {
-    btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t, threadsafe_cond_t> *res_)
+    btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
@@ -66,7 +66,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         unique_ptr_t<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
         if (value.is_large()) {
             // When dp2 is destroyed, it will signal to_signal_when_done.
-            threadsafe_cond_t to_signal_when_done;
+            cond_t to_signal_when_done;
             unique_ptr_t<death_signalling_data_provider_t> dp2(
                 new death_signalling_data_provider_t(dp, &to_signal_when_done));
             res->pulse(get_result_t(dp2, value.mcflags(), cas_to_report));
@@ -91,7 +91,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
 
     cas_t proposed_cas;
     get_result_t result;
-    promise_t<get_result_t, threadsafe_cond_t> *res;
+    promise_t<get_result_t> *res;
 
     union {
         char value_memory[MAX_BTREE_VALUE_SIZE];
@@ -100,13 +100,13 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
 };
 
 void co_btree_get_cas(const store_key_t &key, castime_t castime, btree_slice_t *slice,
-        promise_t<get_result_t, threadsafe_cond_t> *res) {
+        promise_t<get_result_t> *res) {
     btree_get_cas_oper_t oper(castime.proposed_cas, res);
     run_btree_modify_oper(&oper, slice, key, castime);
 }
 
 get_result_t btree_get_cas(const store_key_t &key, btree_slice_t *slice, castime_t castime) {
-    promise_t<get_result_t, threadsafe_cond_t> res;
+    promise_t<get_result_t> res;
     coro_t::spawn_now(boost::bind(co_btree_get_cas, key, castime, slice, &res));
     return res.wait();
 }

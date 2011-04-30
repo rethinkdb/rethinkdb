@@ -45,8 +45,8 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
 
     ~linux_event_watcher_guts_t() {
         rassert(registration_thread == -1);
-        rassert(!read_handler.mc);
-        rassert(!write_handler.mc);
+        rassert(!read_handler.callback && !read_handler.aborter);
+        rassert(!write_handler.callback && !write_handler.aborter);
     }
 
     fd_t fd;   // the file descriptor to watch
@@ -54,31 +54,43 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
     linux_event_callback_t *error_handler;   // What to call if there is an error
 
     /* These objects handle waiting for reads and writes. Mostly they exist to be subclasses
-    of multicond_t::waiter_t. */
-    struct waiter_t : public multicond_t::waiter_t {
-    
-        waiter_t(linux_event_watcher_guts_t *p) : parent(p), mc(NULL) { }
-    
+    of signal_t::waiter_t. */
+    struct waiter_t : public signal_t::waiter_t {
+
+        waiter_t(linux_event_watcher_guts_t *p) : parent(p), callback(0), aborter(NULL) { }
+
         linux_event_watcher_guts_t *parent;
-        multicond_t *mc;
-    
-        void watch(multicond_t *m) {
-            rassert(!mc);
-            mc = m;
-            mc->add_waiter(this);
-            parent->remask();
+
+        boost::function<void()> callback;
+        signal_t *aborter;
+
+        void watch(const boost::function<void()> &cb, signal_t *ab) {
+            rassert(!callback && !aborter);
+            if (!ab->is_pulsed()) {
+                callback = cb;
+                aborter = ab;
+                aborter->add_waiter(this);
+                parent->remask();
+            }
         }
+
         void pulse() {
-            rassert(mc, "%p got a pulse() when event mask is %d", parent, parent->old_mask);
-            mc->pulse();   // Calls on_multicond_pulsed()
+            rassert(callback && aborter, "%p got a pulse() when event mask is %d", parent, parent->old_mask);
+            aborter->remove_waiter(this);
+            boost::function<void()> temp = callback;
+            callback = 0;
+            aborter = NULL;
+            temp();
         }
-        void on_multicond_pulsed() {
-            rassert(mc);
-            mc = NULL;
+
+        void on_signal_pulsed() {
+            rassert(callback && aborter);
+            callback = 0;
+            aborter = NULL;
             parent->remask();
         }
-    };
-    waiter_t read_handler, write_handler;
+
+    } read_handler, write_handler;
 
     int old_mask;   // So remask() knows whether we were registered with the event queue before
 
@@ -117,10 +129,12 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
         if (should_destroy) delete this;
     }
 
-    void watch(int event, multicond_t *mc) {
+    void watch(int event, const boost::function<void()> &cb, signal_t *ab) {
         rassert(event == poll_event_in || event == poll_event_out);
+        rassert(cb);
+        rassert(ab);
         waiter_t *handler = event == poll_event_in ? &read_handler : &write_handler;
-        handler->watch(mc);
+        handler->watch(cb, ab);
     }
 
     void remask() {
@@ -128,8 +142,8 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
         we are actually waiting for. */
 
         int new_mask = 0;
-        if (read_handler.mc) new_mask |= poll_event_in;
-        if (write_handler.mc) new_mask |= poll_event_out;
+        if (read_handler.callback) new_mask |= poll_event_in;
+        if (write_handler.callback) new_mask |= poll_event_out;
 
         if (old_mask) {
             rassert(registration_thread == linux_thread_pool_t::thread_id);
@@ -164,7 +178,7 @@ linux_event_watcher_t::~linux_event_watcher_t() {
     }
 }
 
-void linux_event_watcher_t::watch(int event, multicond_t *to_signal) {
-    guts->watch(event, to_signal);
+void linux_event_watcher_t::watch(int event, const boost::function<void()> &cb, signal_t *ab) {
+    guts->watch(event, cb, ab);
 }
 

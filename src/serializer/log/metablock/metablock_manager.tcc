@@ -1,5 +1,6 @@
 #include "errors.hpp"
 #include "arch/arch.hpp"
+#include "concurrency/cond_var.hpp"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

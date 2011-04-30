@@ -1,8 +1,8 @@
 #include "server/control.hpp"
+#include "arch/spinlock.hpp"
 
 #include "logger.hpp"
 #include "errors.hpp"
-#include "concurrency/multi_wait.hpp"
 
 control_map_t& get_control_map() {
     /* Getter function so that we can be sure that control_list is initialized before it is needed,

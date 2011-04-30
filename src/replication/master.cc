@@ -48,8 +48,8 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
     assert_thread();
     if (stream_) {
         stream_->shutdown();   // Will cause conn_closed() to happen
-        stream_exists_cond_.wait();   // Waits until conn_closed() happens
-        streaming_cond_.wait();   // Waits until a running backfill is over
+        stream_exists_cond_.get_signal()->wait();   // Waits until conn_closed() happens
+        streaming_cond_.get_signal()->wait();   // Waits until a running backfill is over
     }
     rassert(stream_ == NULL);
 }
@@ -74,9 +74,9 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
         /* So we can't shut down yet */
         streaming_cond_.reset();
 
-        multicond_t mc; // when mc is pulsed, backfill_and_realtime_stream() will return
-        interrupt_streaming_cond_.watch(&mc);
-        backfill_and_realtime_stream(kvs_, since_when, this, &mc);
+        cond_t cond; // when cond is pulsed, backfill_and_realtime_stream() will return
+        interrupt_streaming_cond_.watch(&cond);
+        backfill_and_realtime_stream(kvs_, since_when, this, &cond);
 
         /* So we can shut down */
         streaming_cond_.pulse();

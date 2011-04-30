@@ -11,6 +11,7 @@
 #include "replication/load_balancer.hpp"
 #include "control.hpp"
 #include "gated_store.hpp"
+#include "concurrency/promise.hpp"
 
 int run_server(int argc, char *argv[]) {
 

@@ -135,16 +135,16 @@ private:
     backfill_storer_t backfill_storer_;
 
     // This is unpulsed iff stream_ is non-NULL.
-    cond_t stream_exists_cond_; 
+    resettable_cond_t stream_exists_cond_; 
 
     //
     mutex_t stream_setup_teardown;
 
     // This is unpulsed iff there is not a running backfill/stream operation
-    cond_t streaming_cond_;
+    resettable_cond_t streaming_cond_;
 
     // Pulse this to interrupt a running backfill/realtime stream operation
-    multicond_weak_ptr_t interrupt_streaming_cond_;
+    cond_weak_ptr_t interrupt_streaming_cond_;
 
     // TODO: Instead of having this, we should just remember if a slave was connected when we last
     // shut down.

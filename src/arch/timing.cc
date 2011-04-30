@@ -1,4 +1,5 @@
 #include "arch/timing.hpp"
+#include "arch/arch.hpp"
 
 // nap()
 
@@ -18,28 +19,41 @@ void nap(int ms) {
     }
 }
 
-// pulse_after_time()
+// call_with_delay()
 
-struct pulse_waiter_t : public multicond_t::waiter_t {
-    pulse_waiter_t(multicond_t *mc) : ttok(NULL), mc(mc) { }
+struct delayed_caller_t : public signal_t::waiter_t {
+
+    delayed_caller_t(int delay_ms, const boost::function<void()> &cb, signal_t *ab) :
+        ttok(NULL), callback(cb), aborter(ab)
+    {
+        rassert(callback);
+        if (aborter && aborter->is_pulsed()) {
+            delete this;
+        } else {
+            if (aborter) aborter->add_waiter(this);
+            ttok = fire_timer_once(delay_ms, &delayed_caller_t::on_timer, static_cast<void*>(this));
+        }
+    }
+
     timer_token_t *ttok;
-    multicond_t *mc;
-    void on_multicond_pulsed() {
+    boost::function<void()> callback;
+    signal_t *aborter;
+
+    void on_signal_pulsed() {
         cancel_timer(ttok);
         delete this;
     }
-    static void on_timer(void *pw) {
-        pulse_waiter_t *self = static_cast<pulse_waiter_t*>(pw);
-        self->mc->remove_waiter(self);
-        self->mc->pulse();
+
+    static void on_timer(void *s) {
+        delayed_caller_t *self = static_cast<delayed_caller_t*>(s);
+        if (self->aborter) self->aborter->remove_waiter(self);
+        self->callback();
         delete self;
     }
 };
 
-void pulse_after_time(multicond_t *mc, int ms) {
-    pulse_waiter_t *pw = new pulse_waiter_t(mc);
-    pw->ttok = fire_timer_once(ms, &pulse_waiter_t::on_timer, static_cast<void*>(pw));
-    mc->add_waiter(pw);
+void call_with_delay(int delay_ms, const boost::function<void()> &fun, signal_t *aborter) {
+    new delayed_caller_t(delay_ms, fun, aborter);
 }
 
 // repeating_timer_t

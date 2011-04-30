@@ -2,6 +2,7 @@
 #include "replication/backfill_out.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/pmap.hpp"
+#include "concurrency/count_down_latch.hpp"
 #include "btree/slice.hpp"
 #include "concurrency/coro_pool.hpp"
 
@@ -97,23 +98,23 @@ struct backfill_and_streaming_manager_t :
             all_delete_queues_so_far_can_send_keys_ = false;
 
             // We only send this once, and it is important that we
-            // send it before the delete_queues_can_send_keys_cond_
+            // send it before the delete_queues_can_send_keys_latch_
             // gets pulsed, because then a delete queue could finish
             // and start sending sets before we sent a
             // delete_everything message.
             handler_->backfill_delete_everything();
         }
 
-        delete_queues_can_send_keys_cond_.pulse();
+        delete_queues_can_send_keys_latch_.count_down();
 
-        // Wait until all slices have pulsed it.
-        delete_queues_can_send_keys_cond_.wait();
+        // Wait until all slices have gotten here.
+        delete_queues_can_send_keys_latch_.wait();
 
         return all_delete_queues_so_far_can_send_keys_;
     }
 
     void wait_and_maybe_send_delete_all_keys_message() {
-        delete_queues_can_send_keys_cond_.wait();
+        delete_queues_can_send_keys_latch_.wait();
     }
 
     /* The store calls this when we need to backfill a deletion. */
@@ -185,7 +186,7 @@ struct backfill_and_streaming_manager_t :
 
     /* Startup, shutdown, and member variables */
 
-    multicond_t delete_queues_can_send_keys_cond_;
+    count_down_latch_t delete_queues_can_send_keys_latch_;
     bool all_delete_queues_so_far_can_send_keys_;
 
     btree_key_value_store_t *internal_store_;
@@ -207,7 +208,7 @@ struct backfill_and_streaming_manager_t :
     backfill_and_streaming_manager_t(btree_key_value_store_t *kvs,
             backfill_and_realtime_streaming_callback_t *handler,
             repli_timestamp_t timestamp) :
-        delete_queues_can_send_keys_cond_(kvs->btree_static_config.n_slices),
+        delete_queues_can_send_keys_latch_(kvs->btree_static_config.n_slices),
         all_delete_queues_so_far_can_send_keys_(true),
         internal_store_(kvs),
         handler_(handler),
@@ -296,7 +297,7 @@ struct backfill_and_streaming_manager_t :
 };
 
 void backfill_and_realtime_stream(btree_key_value_store_t *kvs, repli_timestamp_t start_time,
-        backfill_and_realtime_streaming_callback_t *bfh, multicond_t *pulse_to_stop) {
+        backfill_and_realtime_streaming_callback_t *bfh, signal_t *pulse_to_stop) {
 
     {
         /* Constructing this object starts the backfill and the streaming. */

@@ -107,14 +107,14 @@ void run(slave_t *slave) {
     while (!shutting_down) {
         try {
 
-            multicond_t slave_multicond;
+            cond_t slave_cond;
 
             logINF("Attempting to connect as slave to: %s:%d\n",
                 slave->replication_config_.hostname, slave->replication_config_.port);
 
             boost::scoped_ptr<tcp_conn_t> conn(
                 new tcp_conn_t(slave->replication_config_.hostname, slave->replication_config_.port));
-            slave_stream_manager_t stream_mgr(&conn, slave->internal_store_, &slave_multicond);
+            slave_stream_manager_t stream_mgr(&conn, slave->internal_store_, &slave_cond);
 
             // No exception was thrown; it must have worked.
             slave->timeout_ = INITIAL_TIMEOUT;
@@ -124,7 +124,7 @@ void run(slave_t *slave) {
 
             // This makes it so that if we get a shutdown/reset command, the connection
             // will get closed.
-            slave->pulse_to_interrupt_run_loop_.watch(&slave_multicond);
+            slave->pulse_to_interrupt_run_loop_.watch(&slave_cond);
 
             // last_sync is the latest timestamp that we didn't get all the master's changes for
             repli_timestamp last_sync = slave->internal_store_->get_last_sync();
@@ -144,7 +144,7 @@ void run(slave_t *slave) {
             slave->failover_->on_backfill_end();
 
             debugf("slave_t: Waiting for things to fail...\n");
-            slave_multicond.wait();
+            slave_cond.wait();
             debugf("slave_t: Things failed.\n");
 
             if (shutting_down) {
@@ -177,8 +177,8 @@ void run(slave_t *slave) {
             int timeout = slave->timeout_;
             slave->timeout_ = std::min(slave->timeout_ * TIMEOUT_GROWTH_FACTOR, (long)TIMEOUT_CAP);
 
-            multicond_t c;
-            pulse_after_time(&c, timeout);
+            cond_t c;
+            call_with_delay(timeout, boost::bind(&cond_t::pulse, &c), &c);
             slave->pulse_to_interrupt_run_loop_.watch(&c);
             c.wait();
 
@@ -190,7 +190,7 @@ void run(slave_t *slave) {
                    slave->replication_config_.hostname, slave->replication_config_.port,
                    MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS);
 
-            multicond_t c;
+            cond_t c;
             slave->pulse_to_interrupt_run_loop_.watch(&c);
             c.wait();
         }

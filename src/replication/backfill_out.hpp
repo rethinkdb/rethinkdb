@@ -11,7 +11,7 @@ namespace replication {
 given backfill_and_realtime_streaming_callback_t. It will begin by concurrently streaming backfill
 and realtime updates, then call backfill_done() and just stream realtime updates.
 
-When you pulse the multicond_t that you give it (from another coroutine) it will stop streaming
+When you pulse the signal_t that you give it (from another coroutine) it will stop streaming
 and return. */
 
 void backfill_and_realtime_stream(
@@ -25,9 +25,9 @@ void backfill_and_realtime_stream(
     /* The place to send the backfill information and real-time streaming operations. */
     backfill_and_realtime_streaming_callback_t *cb,
 
-    /* If you pulse this multicond, then backfill_and_realtime_stream() will (eventually) return.
+    /* If you pulse this signal, then backfill_and_realtime_stream() will (eventually) return.
     Because it's impossible to interrupt a backfill, it won't return until the backfill is done. */
-    multicond_t *pulse_to_stop
+    signal_t *pulse_to_stop
 );
 
 }  // namespace replication

@@ -9,7 +9,7 @@
 
 /* Forward declaration to avoid circular header dependency */
 
-struct multicond_weak_ptr_t;
+struct cond_weak_ptr_t;
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
@@ -121,12 +121,12 @@ private:
     /* True if there is a pending read or write */
     bool read_in_progress, write_in_progress;
 
-    /* If there is a pending read or write, these point to the multicond_t that can be
+    /* If there is a pending read or write, these point to the cond_t that can be
     pulsed to interrupt the pending read or write.
 
     The reason for the boost::scoped_ptr<> is to avoid a circular dependency with
-    multicond_weak_ptr_t. */
-    boost::scoped_ptr<multicond_weak_ptr_t> read_cond_watcher, write_cond_watcher;
+    cond_weak_ptr_t. */
+    boost::scoped_ptr<cond_weak_ptr_t> read_cond_watcher, write_cond_watcher;
 
     // True when the half of the connection has been shut down but the linux_tcp_conn_t has not
     // been deleted yet
@@ -184,7 +184,7 @@ private:
     bool *shutdown_signal;
 
     // The boost::scoped_ptr<> is to avoid a circular header dependency
-    boost::scoped_ptr<multicond_weak_ptr_t> accept_loop_cond_watcher;
+    boost::scoped_ptr<cond_weak_ptr_t> accept_loop_cond_watcher;
     void handle(fd_t sock);
 
     /* event_watcher sends any error conditions to here */

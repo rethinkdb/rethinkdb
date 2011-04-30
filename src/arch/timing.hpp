@@ -1,17 +1,16 @@
 #ifndef __ARCH_TIMING_HPP__
 #define __ARCH_TIMING_HPP__
 
-#include "concurrency/cond_var.hpp"
+#include "concurrency/signal.hpp"
 
 /* Coroutine function that delays for some number of milliseconds. */
 
 void nap(int ms);
 
-/* Call pulse_after_time() to pulse a multicond later. If the multicond is pulsed
-by something else before the timeout elapses, then the timer started by pulse_after_time()
-is automatically cancelled. */
+/* Call call_with_delay() to schedule a function to be called later. If you pulse the given signal
+before the time has elapsed, then the timer will be aborted. */
 
-void pulse_after_time(multicond_t *mc, int ms);
+void call_with_delay(int delay_ms, const boost::function<void()> &fun, signal_t *aborter);
 
 /* Construct a repeating_timer_t to start a repeating timer. It will call its function
 when the timer "rings". */

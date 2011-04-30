@@ -7,23 +7,22 @@ namespace replication {
 slave_stream_manager_t::slave_stream_manager_t(
         boost::scoped_ptr<tcp_conn_t> *conn,
         btree_key_value_store_t *kvs,
-        multicond_t *multicond) :
+        cond_t *cond) :
     backfill_receiver_t(&backfill_storer_),
     stream_(NULL),
-    multicond_(NULL),
+    cond_(NULL),
     kvs_(kvs),
     backfill_storer_(kvs),
     interrupted_by_external_event_(false) {
 
-    /* This is complicated. "new repli_stream_t()" could call our conn_closed() method.
-    "multicond_->add_waiter()" could call our on_multicond_pulsed() method. on_multicond_pulsed()
-    accesses stream_ and conn_closed() accesses multicond_. Solution is to set multicond_ to NULL,
-    call "new repli_stream_t()", then set multicond_ to its final value, then call add_waiter(). */
-
     stream_ = new repli_stream_t(*conn, this);
 
-    multicond_ = multicond;
-    multicond_->add_waiter(this);
+    cond_ = cond;
+    if (cond_->is_pulsed()) {
+        on_signal_pulsed();
+    } else {
+        cond_->add_waiter(this);
+    }
 }
 
 slave_stream_manager_t::~slave_stream_manager_t() {
@@ -33,14 +32,14 @@ slave_stream_manager_t::~slave_stream_manager_t() {
 
 void slave_stream_manager_t::backfill(repli_timestamp since_when) {
 
-    multicond_t c;
+    cond_t c;
 
     net_backfill_t bf;
     bf.timestamp = since_when;
     if (stream_) stream_->send(&bf);
 
     backfill_done_cond_.watch(&c);   // Stop when the backfill finishes
-    multicond_link_t abort_if_connection_closed(&shutdown_cond_, &c);   // Stop if the connection is closed
+    cond_link_t abort_if_connection_closed(&shutdown_cond_, &c);   // Stop if the connection is closed
     c.wait();
 }
 
@@ -52,7 +51,7 @@ void slave_stream_manager_t::reverse_side_backfill(repli_timestamp since_when) {
 
     backfill_sender_t sender(&stream_);
 
-    multicond_t mc;
+    cond_t mc;
     mc.pulse();   // So that backfill_and_realtime_stream() returns as soon as the backfill part is over
     backfill_and_realtime_stream(kvs_, since_when, &sender, &mc);
 }
@@ -78,18 +77,18 @@ void slave_stream_manager_t::conn_closed() {
     stream_ = NULL;
     delete stream_copy;
 
-    // If the connection closed spontaneously, then notify the multicond_t so that
-    // the run loop gets unstuck. multicond_ could be NULL if we didn't finish our
+    // If the connection closed spontaneously, then notify the cond_t so that
+    // the run loop gets unstuck. cond_ could be NULL if we didn't finish our
     // constructor yet.
-    if (!interrupted_by_external_event_ && multicond_) {
-        multicond_->remove_waiter(this);   // So on_multicond_pulsed() doesn't get called
-        multicond_->pulse();
+    if (!interrupted_by_external_event_ && cond_) {
+        cond_->remove_waiter(this);   // So on_cond_pulsed() doesn't get called
+        cond_->pulse();
     }
 
     shutdown_cond_.pulse();
 }
 
-void slave_stream_manager_t::on_multicond_pulsed() {
+void slave_stream_manager_t::on_signal_pulsed() {
     assert_thread();
 
     interrupted_by_external_event_ = true;

@@ -22,14 +22,6 @@ struct mock_io_config_t {
     
     typedef typename inner_io_config_t::tcp_conn_t tcp_conn_t;
     
-    typedef typename inner_io_config_t::thread_message_t thread_message_t;
-    
-    static int get_thread_id() {
-        return inner_io_config_t::get_thread_id();
-    }
-    static int get_num_threads() {
-        return inner_io_config_t::get_num_threads();
-    }
     static bool continue_on_thread(int thread, thread_message_t *msg) {
         return inner_io_config_t::continue_on_thread(thread, msg);
     }

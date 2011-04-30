@@ -57,12 +57,11 @@ public:
     static void spawn_now(const boost::function<void()> &deed);
     static void spawn_on_thread(int thread, const boost::function<void()>& deed);
 
-    // Use coro_t::spawn(boost::bind(...)) for multiparamater spawnings.
+    // Use coro_t::spawn(boost::bind(...)) for spawning with parameters.
 
 public:
     static void wait();         // Pauses the current coroutine until it's notified
     static void yield();        // Pushes the current coroutine to the end of the notify queue and waits
-    static void nap(long ms);   // Pauses the current coroutine for at least ms amount of milliseconds
     static coro_t *self();      // Returns the current coroutine
     void notify_now();          // Switches to a coroutine immediately (will switch back when it returns or wait()s)
     void notify();              // Wakes up the coroutine, allowing the scheduler to trigger it to continue

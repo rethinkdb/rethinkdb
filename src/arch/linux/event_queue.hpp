@@ -4,6 +4,7 @@
 
 #include "perfmon.hpp"
 #include "linux_utils.hpp"
+#include <boost/function.hpp>
 
 // Event queue callback
 struct linux_event_callback_t {
@@ -52,8 +53,7 @@ typedef epoll_event_queue_t linux_event_queue_t;
 #endif
 
 /* linux_event_watcher_t can be used to wait for read and write events in the
-event queue. Construct one with an FD. Then call wait() with a multicond_t
-to cause the multicond_t to be pulsed when some event happens.
+event queue. Construct one with an FD. Then call wait() to wait for events.
 
 If the event loop produces a poll_event_{err,hup,rdhup}, then the provided
 error handler will be called. The provided error handler must cancel any
@@ -62,8 +62,8 @@ outstanding
 You can wait for read and write events concurrently, but not on two separate
 threads. */
 
-struct linux_event_watcher_guts_t;   // Forward declared due to circular dependency with multicond_t
-struct multicond_t;
+struct linux_event_watcher_guts_t;   // Forward declared due to circular dependency with signal_t
+struct signal_t;
 
 struct linux_event_watcher_t {
 
@@ -71,11 +71,10 @@ struct linux_event_watcher_t {
     ~linux_event_watcher_t();
 
     /* watch()'s first parameter should be poll_event_in or poll_event_out. The
-    second parameter is a multicond_t that will be signalled when that type of
-    event is recieved. If the multicond_t is signalled before that type of event
-    is recieved, then the linux_event_watcher_t will stop waiting for that
-    type of event. */
-    void watch(int event, multicond_t *mc);
+    second parameter is a function to call when the desired event is received. The
+    third parameter is a signal_t; if the signal_t is pulsed, the watch will be
+    cancelled. */
+    void watch(int event, const boost::function<void()> &callback, signal_t *aborter);
 
 private:
     /* The guts are a separate object so that if one of the callbacks we call destroys us,

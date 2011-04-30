@@ -1,8 +1,7 @@
 #ifndef __CONCURRENCY_DRAIN_SEMAPHORE_HPP__
 #define __CONCURRENCY_DRAIN_SEMAPHORE_HPP__
 
-#include "concurrency/cond_var.hpp"
-#include "cond_var.hpp"
+#include "concurrency/resettable_cond_var.hpp"
 
 /* A common paradigm is to have some resource and some number of processes using that
 resource, and to wait for all the processes to complete before destroying the resource
@@ -54,7 +53,7 @@ struct drain_semaphore_t {
     void drain() {
         draining = true;
         if (refcount) {
-            cond.wait();
+            cond.get_signal()->wait();
             cond.reset();
         }
         draining = false;
@@ -64,7 +63,7 @@ private:
     DISABLE_COPYING(drain_semaphore_t);
     bool draining;
     int refcount;
-    cond_t cond;
+    resettable_cond_t cond;
 };
 
 #endif /* __CONCURRENCY_DRAIN_SEMAPHORE_HPP__ */

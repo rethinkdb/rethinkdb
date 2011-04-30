@@ -9,22 +9,22 @@
 namespace replication {
 
 /* slave_stream_manager_t manages the connection to the master. Here's how it works:
-The run() function constructs a slave_stream_manager_t and attaches it to a multicond_t.
-It also attaches a multicond_weak_ptr_t to the multicond_t. Then it waits on the
-multicond_t. If the connection to the master dies, the multicond_t will be pulsed. If
+The run() function constructs a slave_stream_manager_t and attaches it to a cond_t.
+It also attaches a cond_weak_ptr_t to the cond_t. Then it waits on the
+cond_t. If the connection to the master dies, the cond_t will be pulsed. If
 it needs to shut down the connection for some other reason (like if the slave got a
-SIGINT) then it pulses the multicond, and the slave_stream_manager_t automatically closes
+SIGINT) then it pulses the cond, and the slave_stream_manager_t automatically closes
 the connection to the master. */
 
 struct slave_stream_manager_t :
     public backfill_receiver_t,
     public home_thread_mixin_t,
-    public multicond_t::waiter_t
+    public cond_t::waiter_t
 {
     // Give it a connection to the master, a pointer to the store to forward changes to, and a
-    // multicond. If the multicond is pulsed, it will kill the connection. If the connection dies,
-    // it will pulse the multicond.
-    slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn, btree_key_value_store_t *kvs, multicond_t *multicond);
+    // cond. If the cond is pulsed, it will kill the connection. If the connection dies,
+    // it will pulse the cond.
+    slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn, btree_key_value_store_t *kvs, cond_t *cond);
 
     ~slave_stream_manager_t();
 
@@ -93,19 +93,19 @@ struct slave_stream_manager_t :
         backfill_receiver_t::send(message);
         backfill_done_cond_.pulse_if_non_null();
     }
-    multicond_weak_ptr_t backfill_done_cond_;
+    cond_weak_ptr_t backfill_done_cond_;
 
     void conn_closed();
 
-    // Called when the multicond is pulsed for some other reason
-    void on_multicond_pulsed();
+    // Called when the cond is pulsed for some other reason
+    void on_signal_pulsed();
 
     // Our connection to the master
     repli_stream_t *stream_;
 
-    // If multicond_ is pulsed, we drop our connection to the master. If the connection
-    // to the master drops on its own, we pulse multicond_.
-    multicond_t *multicond_;
+    // If cond_ is pulsed, we drop our connection to the master. If the connection
+    // to the master drops on its own, we pulse cond_.
+    cond_t *cond_;
 
     btree_key_value_store_t *kvs_;
 
@@ -119,7 +119,7 @@ struct slave_stream_manager_t :
 
     // In our destructor, we block on shutdown_cond_ to make sure that the repli_stream_t
     // has actually completed its shutdown process.
-    multicond_t shutdown_cond_;
+    cond_t shutdown_cond_;
 };
 
 }

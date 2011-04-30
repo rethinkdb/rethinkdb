@@ -1,5 +1,5 @@
 #include "perfmon.hpp"
-#include "concurrency/multi_wait.hpp"
+#include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
 #include "utils.hpp"
 #include <stdarg.h>
@@ -30,30 +30,26 @@ spinlock_t &get_var_lock() {
 /* This is the function that actually gathers the stats. It is illegal to create or destroy
 perfmon_t objects while perfmon_get_stats is active. */
 
-void co_perfmon_visit(int thread, const std::vector<void*> &data, multi_wait_t *multi_wait) {
-    {
-        on_thread_t moving(thread);
-        int i = 0;
-        for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-            p->visit_stats(data[i++]);
-        }
+void co_perfmon_visit(int thread, const std::vector<void*> &data) {
+    on_thread_t moving(thread);
+    int i = 0;
+    for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
+        p->visit_stats(data[i++]);
     }
-    multi_wait->notify();
 }
 
 
 void perfmon_get_stats(perfmon_stats_t *dest) {
+
     std::vector<void*> data;
+
     data.reserve(get_var_list().size());
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
         data.push_back(p->begin_stats());
     }
-    int threads = get_num_threads();
-    multi_wait_t *multi_wait = new multi_wait_t(threads);
-    for (int i = 0; i < threads; i++) {
-        coro_t::spawn(boost::bind(co_perfmon_visit, i, data, multi_wait));
-    }
-    coro_t::wait();
+
+    pmap(get_num_threads(), boost::bind(&co_perfmon_visit, _1, data));
+
     int i = 0;
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
         p->end_stats(data[i++], dest);
