@@ -66,6 +66,7 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
 
         void watch(const boost::function<void()> &cb, signal_t *ab) {
             rassert(!callback && !aborter);
+            rassert(cb && ab);
             if (!ab->is_pulsed()) {
                 callback = cb;
                 aborter = ab;
@@ -80,6 +81,7 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
             boost::function<void()> temp = callback;
             callback = 0;
             aborter = NULL;
+            parent->remask();
             temp();
         }
 

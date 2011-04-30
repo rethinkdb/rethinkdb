@@ -8,7 +8,7 @@
 variable is pulsed. Typically you will construct a concrete subclass of signal_t, then pass
 a pointer to the underlying signal_t to another object which will wait on it.
 
-signal_t is not thread-safe.
+signal_t is generally not thread-safe, although wait() and wait_eagerly() are.
 
 Although you may be tempted to, please do not add a method that "unpulses" a signal_t. Part of
 the definition of a signal_t is that it does not return to the unpulsed state after being
@@ -29,6 +29,7 @@ public:
     bool is_pulsed();
 
     void wait() {
+        on_thread_t thread_switcher(home_thread);
         if (!is_pulsed()) {
             struct : public waiter_t {
                 coro_t *to_wake;
@@ -41,6 +42,7 @@ public:
     }
 
     void wait_eagerly() {
+        on_thread_t thread_switcher(home_thread);
         if (!is_pulsed()) {
             struct : public waiter_t {
                 coro_t *to_wake;

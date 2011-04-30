@@ -37,12 +37,6 @@ const size_t formatted_precise_time_length = 26;    // not including null
 void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars);
 std::string format_precise_time(const precise_time_t& time);
 
-
-// The signal handler for SIGSEGV
-void generic_crash_handler(int signum);
-void ignore_crash_handler(int signum);
-void install_generic_crash_handler();
-
 void print_hd(const void *buf, size_t offset, size_t length);
 
 // Fast string compare
@@ -89,7 +83,7 @@ public:
     }
 protected:
     home_thread_mixin_t() : home_thread(get_thread_id()) { }
-    ~home_thread_mixin_t() { assert_thread(); }
+    ~home_thread_mixin_t() { }
 
 private:
     // Things with home threads should not be copyable, since we don't

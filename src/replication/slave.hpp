@@ -37,7 +37,6 @@ public:
     friend void run(slave_t *);
 
     slave_t(btree_key_value_store_t *, replication_config_t, failover_config_t, failover_t *failover);
-    ~slave_t();
 
     failover_t *failover_;
 
@@ -111,20 +110,11 @@ private:
     replication_config_t replication_config_;
     failover_config_t failover_config_;
 
-    /* shutting_down_ points to a local variable within the run() coroutine; the
-    destructor sets *shutting_down_ to true and pulse pulse_to_interrupt_run_loop_
-    to shut down the slave. */
-    bool *shutting_down_;
+    cond_weak_ptr_t pulse_to_reset_failover_;
 
-    /* The run loop pulses this when it finishes */
-    cond_t pulsed_when_run_loop_done_;
-
-    /* pulse_to_interrupt_run_loop_ holds a pointer to whatever cond_t the run
-    loop is blocking on at the moment. */
-    cond_weak_ptr_t pulse_to_interrupt_run_loop_;
+    side_coro_handler_t side_coro_handler_;
+    void run(signal_t *shutdown_signal);
 };
-
-void run(slave_t *); //TODO make this static and private
 
 }  // namespace replication
 
