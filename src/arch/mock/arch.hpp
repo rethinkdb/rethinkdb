@@ -22,13 +22,6 @@ struct mock_io_config_t {
     
     typedef typename inner_io_config_t::tcp_conn_t tcp_conn_t;
     
-    static bool continue_on_thread(int thread, thread_message_t *msg) {
-        return inner_io_config_t::continue_on_thread(thread, msg);
-    }
-    static void call_later_on_this_thread(thread_message_t *msg) {
-        return inner_io_config_t::call_later_on_this_thread(msg);
-    }
-    
     static timer_token_t *add_timer(long ms, void (*callback)(void *), void *ctx) {
         return inner_io_config_t::add_timer(ms, callback, ctx);
     }

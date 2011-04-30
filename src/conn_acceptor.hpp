@@ -13,7 +13,6 @@ shuts down. It uses tcp_listener_t to actually accept the connections. Each conn
 lasts for the entire lifetime of the server. */
 
 class conn_acceptor_t :
-    public tcp_listener_callback_t,
     public home_thread_mixin_t
 {
 public:
@@ -38,7 +37,7 @@ private:
     boost::function<void(tcp_conn_t *)> handler;
 
     boost::scoped_ptr<tcp_listener_t> listener;
-    void on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t>& conn);
+    void on_conn(boost::scoped_ptr<tcp_conn_t>& conn);
 
     int next_thread;
 

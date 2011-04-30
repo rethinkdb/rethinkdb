@@ -11,7 +11,7 @@
 
 namespace replication {
 
-void master_t::on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
+void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     mutex_acquisition_t ak(&stream_setup_teardown);
     // TODO: Carefully handle case where a slave is already connected.
     if (stream_) { 

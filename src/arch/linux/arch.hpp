@@ -21,20 +21,6 @@ struct linux_io_config_t {
     
     typedef linux_tcp_conn_t tcp_conn_t;
     
-    static bool continue_on_thread(int thread, linux_thread_message_t *msg) {
-        if (thread == linux_thread_pool_t::thread_id) {
-            // The thread to continue on is the thread we are already on
-            return true;
-        } else {
-            linux_thread_pool_t::thread->message_hub.store_message(thread, msg);
-            return false;
-        }
-    }
-    
-    static void call_later_on_this_thread(linux_thread_message_t *msg) {
-        linux_thread_pool_t::thread->message_hub.store_message(linux_thread_pool_t::thread_id, msg);
-    }
-    
     static timer_token_t *add_timer(long ms, void (*callback)(void *), void *ctx) {
         return linux_thread_pool_t::thread->timer_handler.add_timer_internal(ms, callback, ctx, false);
     }

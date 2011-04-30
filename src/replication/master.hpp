@@ -21,7 +21,6 @@ namespace replication {
 // master_t is a class that manages a connection to a slave.
 
 class master_t :
-    public linux_tcp_listener_callback_t,
     public backfill_sender_t,
     public backfill_receiver_t {
 public:
@@ -40,8 +39,7 @@ public:
         logINF("If no slave was connected when the master last shut down, send "
             "\"rethinkdb dont-wait-for-slave\" to the server over telnet to go ahead "
             "without waiting for the slave to connect.\n");
-        listener_.reset(new tcp_listener_t(listener_port_));
-        listener_->set_callback(this);
+        listener_.reset(new tcp_listener_t(listener_port_, boost::bind(&master_t::on_conn, this, _1)));
 
         // Because stream_ is initially NULL
         stream_exists_cond_.pulse();
@@ -74,7 +72,7 @@ public:
     bool has_slave() { return stream_ != NULL; }
 
     // Listener callback functions
-    void on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn);
+    void on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn);
 
     void hello(UNUSED net_hello_t message) { debugf("Received hello from slave.\n"); }
 

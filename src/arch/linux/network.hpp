@@ -6,10 +6,8 @@
 #include <boost/scoped_ptr.hpp>
 #include "arch/linux/event_queue.hpp"
 #include "arch/address.hpp"
-
-/* Forward declaration to avoid circular header dependency */
-
-struct cond_weak_ptr_t;
+#include "concurrency/side_coro.hpp"
+#include "concurrency/cond_var.hpp"
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
@@ -152,7 +150,10 @@ struct linux_tcp_listener_callback_t {
 
 class linux_tcp_listener_t : public linux_event_callback_t {
 public:
-    explicit linux_tcp_listener_t(int port);
+    linux_tcp_listener_t(
+        int port,
+        boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> callback
+        );
     void set_callback(linux_tcp_listener_callback_t *cb);
     ~linux_tcp_listener_t();
 
@@ -173,18 +174,15 @@ private:
     linux_event_watcher_t event_watcher;
 
     // The callback to call when we get a connection
-    linux_tcp_listener_callback_t *callback;
+    boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> callback;
 
     /* accept_loop() runs in a separate coroutine. It repeatedly tries to accept
     new connections; when accept() blocks, then it waits for events from the
-    event loop. To shut down accept_loop(), ~linux_tcp_listener_t() sets
-    *shutdown_signal to true and then signals accept_loop_cond. */
+    event loop. When accept_loop_handler's destructor is called, accept_loop_handler
+    stops accept_loop() by pulsing the signal. */
+    boost::scoped_ptr<side_coro_handler_t> accept_loop_handler;
+    void accept_loop(signal_t *);
 
-    void accept_loop();
-    bool *shutdown_signal;
-
-    // The boost::scoped_ptr<> is to avoid a circular header dependency
-    boost::scoped_ptr<cond_weak_ptr_t> accept_loop_cond_watcher;
     void handle(fd_t sock);
 
     /* event_watcher sends any error conditions to here */

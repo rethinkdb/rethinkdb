@@ -395,11 +395,12 @@ void linux_tcp_conn_t::on_event(int events) {
 
 /* Network listener object */
 
-linux_tcp_listener_t::linux_tcp_listener_t(int port) :
+linux_tcp_listener_t::linux_tcp_listener_t(
+        int port,
+        boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> cb) :
     sock(socket(AF_INET, SOCK_STREAM, 0)),
     event_watcher(sock.get(), this),
-    callback(NULL),
-    shutdown_signal(NULL), accept_loop_cond_watcher(new cond_weak_ptr_t),
+    callback(cb),
     log_next_error(true)
 {
     int res;
@@ -447,30 +448,20 @@ linux_tcp_listener_t::linux_tcp_listener_t(int port) :
 
     res = fcntl(sock.get(), F_SETFL, O_NONBLOCK);
     guarantee_err(res == 0, "Could not make socket non-blocking");
+
+    // Start the accept loop
+    accept_loop_handler.reset(new side_coro_handler_t(
+        boost::bind(&linux_tcp_listener_t::accept_loop, this, _1)
+        ));
 }
 
-void linux_tcp_listener_t::set_callback(linux_tcp_listener_callback_t *cb) {
-    rassert(!callback);
-    rassert(cb);
-    callback = cb;
-
-    // Spawn a coroutine to wait for connections
-    coro_t::spawn_now(boost::bind(&linux_tcp_listener_t::accept_loop, this));
-}
-
-void linux_tcp_listener_t::accept_loop() {
+void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
 
     static const int initial_backoff_delay_ms = 10;   // Milliseconds
     static const int max_backoff_delay_ms = 160;
     int backoff_delay_ms = initial_backoff_delay_ms;
 
-    /* linux_tcp_listener_t's destructor sets *shutdown_signal to true and pulses
-    accept_loop_cond when it wants us to break out of our loop. We do this instead
-    of just watching a boolean member variable because we will still be able to
-    access do_shutdown if "this" is freed. */
-    bool do_shutdown = false;
-    shutdown_signal = &do_shutdown;
-    while (!do_shutdown) {
+    while (!shutdown_signal->is_pulsed()) {
 
         fd_t new_sock = accept(sock.get(), NULL, NULL);
 
@@ -489,10 +480,9 @@ void linux_tcp_listener_t::accept_loop() {
             /* Wait for a notification from the event loop, or for a command to shut down,
             before continuing */
             cond_t c;
-            accept_loop_cond_watcher->watch(&c);   // So we can be interrupted
+            cond_link_t interrupt_wait_on_shutdown(shutdown_signal, &c);
             event_watcher.watch(poll_event_in, boost::bind(&cond_t::pulse, &c), &c);
             c.wait();
-            // At this point we might have been destroyed, so we cannot access member variables
 
         } else if (errno == EINTR) {
             /* Harmless error; just try again. */ 
@@ -508,10 +498,9 @@ void linux_tcp_listener_t::accept_loop() {
             /* Delay before retrying. We use pulse_after_time() instead of nap() so that we will
             be interrupted immediately if something wants to shut us down. */
             cond_t c;
-            accept_loop_cond_watcher->watch(&c);   // So we can be interrupted
+            cond_link_t interrupt_wait_on_shutdown(shutdown_signal, &c);
             call_with_delay(backoff_delay_ms, boost::bind(&cond_t::pulse, &c), &c);
             c.wait();
-            // At this point we might have been destroyed, so we cannot access member variables
 
             /* Exponentially increase backoff time */
             if (backoff_delay_ms < max_backoff_delay_ms) backoff_delay_ms *= 2;
@@ -521,18 +510,13 @@ void linux_tcp_listener_t::accept_loop() {
 
 void linux_tcp_listener_t::handle(fd_t socket) {
     boost::scoped_ptr<linux_tcp_conn_t> conn(new linux_tcp_conn_t(socket));
-    callback->on_tcp_listener_accept(conn);
+    callback(conn);
 }
 
 linux_tcp_listener_t::~linux_tcp_listener_t() {
 
     /* Interrupt the accept loop */
-    if (callback) {
-        *shutdown_signal = true;
-        accept_loop_cond_watcher->pulse_if_non_null();
-    } else {
-        /* We never started an accept loop */
-    }
+    accept_loop_handler.reset();
 
     int res;
 
