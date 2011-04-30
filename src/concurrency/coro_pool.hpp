@@ -14,8 +14,7 @@ class coro_pool_t : public home_thread_mixin_t {
 public:
     coro_pool_t(size_t worker_count_) :
         max_worker_count(worker_count_),
-        active_worker_count(0),
-        task_queue(worker_count_ * 10)
+        active_worker_count(0)
     {
         rassert(max_worker_count > 0);
     }
@@ -31,6 +30,8 @@ public:
     }
 
     void queue_task(const boost::function<void()> task) {
+
+        rassert(task);
 
         if (get_thread_id() != home_thread) {
             do_on_thread(home_thread, boost::bind(&coro_pool_t::queue_task, this, task));
