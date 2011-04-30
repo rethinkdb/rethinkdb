@@ -83,7 +83,7 @@ public:
     }
 protected:
     home_thread_mixin_t() : home_thread(get_thread_id()) { }
-    ~home_thread_mixin_t() { assert_thread(); }
+    ~home_thread_mixin_t() { }
 
 private:
     // Things with home threads should not be copyable, since we don't
