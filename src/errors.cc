@@ -190,6 +190,58 @@ char *demangle_cpp_name(const char *mangled_name) {
     }
 }
 
+/* Handlers for various signals and for unexpected exceptions or calls to std::terminate() */
+
+void generic_crash_handler(int signum) {
+    if (signum == SIGSEGV) {
+        crash("Segmentation fault.");
+    } else {
+        crash("Unexpected signal: %d", signum);
+    }
+}
+
+void ignore_crash_handler(UNUSED int signum) { }
+
+void terminate_handler() {
+    std::type_info *t = abi::__cxa_current_exception_type();
+    if (t) {
+        char *name = demangle_cpp_name(t->name());
+        const char *name2 = name ? name : t->name();
+        try {
+            /* This will rethrow whatever unexpected exception was thrown. */
+            throw;
+        } catch (std::exception e) {
+            crash("Uncaught exception of type \"%s\"\n  what(): %s", name2, e.what());
+        } catch (...) {
+            crash("Uncaught exception of type \"%s\"", name2);
+        }
+        unreachable();
+    } else {
+        crash("std::terminate() called without any exception.");
+    }
+}
+
+void install_generic_crash_handler() {
+
+    struct sigaction action;
+    int res;
+
+#ifndef VALGRIND
+    bzero(&action, sizeof(action));
+    action.sa_handler = generic_crash_handler;
+    res = sigaction(SIGSEGV, &action, NULL);
+    guarantee_err(res == 0, "Could not install SEGV handler");
+#endif
+
+    bzero(&action, sizeof(action));
+    action.sa_handler = ignore_crash_handler;
+    res = sigaction(SIGPIPE, &action, NULL);
+    guarantee_err(res == 0, "Could not install PIPE handler");
+
+    std::set_terminate(&terminate_handler);
+}
+
+
 /* Boost will call this function when an assertion fails. */
 
 namespace boost {

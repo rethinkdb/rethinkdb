@@ -106,6 +106,8 @@ void report_user_error(const char*, ...);
 void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 char *demangle_cpp_name(const char *mangled_name);
 
+void install_generic_crash_handler();
+
 // If you include errors.hpp before including a Boost library, then Boost assertion
 // failures will be forwarded to the RethinkDB error mechanism.
 #define BOOST_ENABLE_ASSERT_HANDLER
