@@ -110,6 +110,11 @@ int linux_io_calls_base_t::queue_t::process_request_batch() {
                             submit_length,
                             &queue[0]);
         }
+        // Remove non-submitted requests from the dependencies structure
+        for (int i = std::max(0, res); i < (int)submit_length; ++i) {
+            dependencies.unregister_request(queue[i]);
+        }
+
         if (res > 0) {
             // TODO: erase will cause the vector to shift elements in
             // the back. Perhaps we should optimize this somehow.
