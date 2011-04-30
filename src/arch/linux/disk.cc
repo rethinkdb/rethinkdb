@@ -148,7 +148,7 @@ linux_file_t::account_t::~account_t() {
 /* Disk file object */
 
 linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, const linux_io_backend_t io_backend)
-    : fd(INVALID_FD)
+    : fd(INVALID_FD), file_size(0)
 {
     // Determine if it is a block device
 
