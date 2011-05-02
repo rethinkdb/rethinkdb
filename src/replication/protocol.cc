@@ -80,7 +80,7 @@ void check_first_size(message_callback_t *receiver, const char *buf, size_t real
 
         void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
 
-        if (!streams.add(ident, new std::pair<boost::function<void()>, std::pair<char *, size_t> >(boost::bind(fn, receiver, boost::ref(spair)), std::make_pair(spair.stream->peek() + m, reinterpret_cast<const T *>(buf)->value_size - m)))) {
+        if (!streams.add(ident, new std::pair<boost::function<void()>, std::pair<char *, size_t> >(boost::bind(fn, receiver, spair), std::make_pair(spair.stream->peek() + m, reinterpret_cast<const T *>(buf)->value_size - m)))) {
             throw protocol_exc_t("reused live ident code");
         }
 
@@ -301,6 +301,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
     sending anything over the wire. */
     buffer_group_t group;
     group.add_buffer(data->get_size(), buf.get() + sizeof(net_struct_type) + msg->key_size);
+    // TODO: This could theoretically block and that could cause
+    // reordering of sets.  The fact that it doesn't block is just a
+    // function of whatever data provider which we happen to use.
     data->get_data_into_buffers(&group);
 
     sendobj(msgcode, reinterpret_cast<net_struct_type *>(buf.get()));
