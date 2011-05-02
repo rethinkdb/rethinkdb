@@ -60,6 +60,7 @@ struct backfill_and_streaming_manager_t :
         };
     
         mutation_t dispatch_change(const mutation_t& m, castime_t castime) {
+            threadsafe_drain_semaphore_t::lock_t dont_destroy_parent(&manager_->realtime_mutation_drain_semaphore_);
             change_visitor_t functor;
             functor.manager = manager_;
             functor.castime = castime;
@@ -193,6 +194,8 @@ struct backfill_and_streaming_manager_t :
     backfill_and_realtime_streaming_callback_t *handler_;
 
     realtime_mutation_dispatcher_t *realtime_mutation_dispatchers[MAX_SLICES];
+    threadsafe_drain_semaphore_t realtime_mutation_drain_semaphore_;
+
     int outstanding_backfills;
 
     boost::scoped_ptr<repeating_timer_t> replication_clock_timer_;
@@ -212,7 +215,7 @@ struct backfill_and_streaming_manager_t :
         all_delete_queues_so_far_can_send_keys_(true),
         internal_store_(kvs),
         handler_(handler),
-        coro_pool(512) // TODO: Make this a define-constant or something
+        coro_pool(512, 2048) // TODO: Make this a define-constant or something
     {
         /* Read the old value of the replication clock. */
         replication_clock_ = internal_store_->get_replication_clock();
@@ -270,9 +273,13 @@ struct backfill_and_streaming_manager_t :
 
     ~backfill_and_streaming_manager_t() {
 
+        debugf("~backfill_and_streaming_manager_t() 1\n");
+
         /* We can't delete ourself until the backfill is over. It's impossible to interrupt
         a running backfill. The backfill logic takes care of calling handler_->backfill_done(). */
         pulsed_when_backfill_over.wait();
+
+        debugf("~backfill_and_streaming_manager_t() 2\n");
 
         /* Unregister for real-time updates */
         pmap(internal_store_->btree_static_config.n_slices,
@@ -282,6 +289,11 @@ struct backfill_and_streaming_manager_t :
         finish. */
         replication_clock_timer_.reset();
         replication_clock_drain_semaphore_.drain();
+
+        /* Wait for existing realtime updates to finish */
+        realtime_mutation_drain_semaphore_.drain();
+
+        debugf("~backfill_and_streaming_manager_t() 4\n");
 
         /* Now we can stop */
     }

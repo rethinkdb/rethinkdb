@@ -78,6 +78,8 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
         interrupt_streaming_cond_.watch(&cond);
         backfill_and_realtime_stream(kvs_, since_when, this, &cond);
 
+        debugf("backfill_and_realtime_stream() returned.\n");
+
         /* So we can shut down */
         streaming_cond_.pulse();
     }

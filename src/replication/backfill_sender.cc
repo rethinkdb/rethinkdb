@@ -115,6 +115,8 @@ void backfill_sender_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_
             on the master, so it's good if it's also never performed on the slave either. */
         }
     }
+
+    debugf("done send realtime_sarc(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
 }
 
 void backfill_sender_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
