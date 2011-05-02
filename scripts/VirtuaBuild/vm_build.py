@@ -19,7 +19,7 @@ def deb_install(path):
     return "dpkg -i %s" % path
 
 def deb_uninstall(cmd_name): 
-    return "which %s | xargs readlink -f | xargs rpm -qf | xargs dpkg -r" % cmd_name
+    return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\1/' | xargs sudo dpkg -r" % cmd_name
 
 class VM():
     def __init__(self, uuid, hostname, username = 'rethinkdb', rootname = 'root'):
