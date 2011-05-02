@@ -33,6 +33,8 @@ void usage() {
                 "Use 'rethinkdb --version' for the current version of rethinkdb.\n");
 }
 
+int dispatch_on_args(std::vector<char *> args);
+
 int main(int argc, char *argv[]) {
     initialize_precise_time();
     install_generic_crash_handler();
@@ -45,11 +47,12 @@ int main(int argc, char *argv[]) {
 #endif
 
     /* Put arguments into a vector so we can modify them if convenient */
-    std::vector<char *> args(argc);
-    for (int i = 0; i < argc; i++) {
-        args[i] = argv[i];
-    }
+    std::vector<char *> args(argv, argv + argc);
 
+    return dispatch_on_args(args);
+}
+
+int dispatch_on_args(std::vector<char *> args) {
     /* Default to "rethinkdb serve" */
     if (args.size() == 1) args.push_back(const_cast<char *>("serve"));
 
@@ -70,9 +73,9 @@ int main(int argc, char *argv[]) {
             } else if (!strcmp(args[2], "create")) {
                 usage_create();
             } else if (!strcmp(args[2], "extract")) {
-                extract::usage(argv[1]);
+                extract::usage(args[1]);
             } else if (!strcmp(args[2], "fsck")) {
-                fsck::usage(argv[1]);
+                fsck::usage(args[1]);
             } else {
                 printf("No such command %s.\n", args[2]);
             }
@@ -82,11 +85,12 @@ int main(int argc, char *argv[]) {
 
     } else if (!strcmp(args[1], "--version")) {
         print_version_message();
-
     } else {
         /* Default to "rethinkdb serve"; we get here if we are run without an explicit subcommand
         but with at least one flag */
         args.insert(args.begin() + 1, const_cast<char *>("serve"));
         return run_server(args.size() - 1, args.data() + 1);
     }
+
+    return 0;
 }

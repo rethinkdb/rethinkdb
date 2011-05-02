@@ -29,7 +29,7 @@ struct backfill_receiver_t :
     void send(scoped_malloc<net_nop_t>& message);
 
 private:
-    backfill_and_realtime_streaming_callback_t *cb;
+    backfill_and_realtime_streaming_callback_t *const cb;
 };
 
 }

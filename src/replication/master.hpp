@@ -94,7 +94,7 @@ public:
         logINF("Connection to slave was closed.\n");
 
         assert_thread();
-        mutex_acquisition_t ak(&stream_setup_teardown);
+        mutex_acquisition_t ak(&stream_setup_teardown_);
 
         /* The stream destructor may block, so we set stream_ to NULL before calling the stream
         destructor. */
@@ -116,16 +116,16 @@ private:
     // The stream to the slave, or NULL if there is no slave connected.
     repli_stream_t *stream_;
 
-    int listener_port_;
+    const int listener_port_;
     // Listens for incoming slave connections.
     boost::scoped_ptr<tcp_listener_t> listener_;
 
     // The key value store.
-    btree_key_value_store_t *kvs_;
+    btree_key_value_store_t *const kvs_;
 
     // Pointers to the gates we use to allow/disallow gets and sets
-    gated_get_store_t *get_gate_;
-    gated_set_store_interface_t *set_gate_;
+    gated_get_store_t *const get_gate_;
+    gated_set_store_interface_t *const set_gate_;
     boost::scoped_ptr<gated_get_store_t::open_t> get_permission_;
     boost::scoped_ptr<gated_set_store_interface_t::open_t> set_permission_;
 
@@ -136,7 +136,7 @@ private:
     resettable_cond_t stream_exists_cond_; 
 
     //
-    mutex_t stream_setup_teardown;
+    mutex_t stream_setup_teardown_;
 
     // This is unpulsed iff there is not a running backfill/stream operation
     resettable_cond_t streaming_cond_;
