@@ -86,7 +86,8 @@ fi
 version=$(echo "$version" | sed -e 's/^v//')
 
 if [ "$short" -eq 1 ]; then
-    version=$(echo "$version" | sed 's/\([^-]*\).*/\1/')
+    # only leave two parts of the version (separated by the dots, any non-dot characters allowed)
+    version=$(echo "$version" | sed 's/\([^.]\+\.[^.]\+\).*$/\1/')
 fi
 
 echo "$version"
