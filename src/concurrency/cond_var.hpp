@@ -61,10 +61,11 @@ private:
 /* cond_link_t pulses a given cond_t if a given signal_t is pulsed. */
 
 struct cond_link_t : private signal_t::waiter_t {
-    cond_link_t(signal_t *s, cond_t *d) : source(s) {
-        if (source->is_pulsed()) {
+    cond_link_t(signal_t *s, cond_t *d) : source(NULL) {
+        if (s->is_pulsed()) {
             d->pulse();
         } else {
+            source = s;
             dest.watch(d);
             source->add_waiter(this);
         }
