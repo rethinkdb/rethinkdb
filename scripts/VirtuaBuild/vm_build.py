@@ -12,14 +12,14 @@ def remove_local(string):
 def rpm_install(path):
     return "rpm -i %s" % path
 
-def rpm_uninstall(pkg_name): 
-    return "rpm -e %s" % pkg_name
+def rpm_uninstall(cmd_name): 
+    return "which %s | xargs readlink -f | xargs rpm -qf | xargs rpm -e" % cmd_name
 
 def deb_install(path):
     return "dpkg -i %s" % path
 
-def deb_uninstall(pkg_name): 
-    return "dpkg -r %s" % pkg_name
+def deb_uninstall(cmd_name): 
+    return "which %s | xargs readlink -f | xargs rpm -qf | xargs dpkg -r" % cmd_name
 
 class VM():
     def __init__(self, uuid, hostname, username = 'rethinkdb', rootname = 'root'):
