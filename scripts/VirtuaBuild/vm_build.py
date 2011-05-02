@@ -71,7 +71,7 @@ class target():
             if res != 0:
                 raise self.RunError(cmd + " returned on %d exit." % res)
 
-        run_checked("cd rethinkdb && git checkout %s && git pull" % branch)
+        run_checked("cd rethinkdb && git fetch -f origin {b}:refs/remotes/origin/{b} && git checkout -f origin/{b}".format(b=branch))
         run_checked("cd rethinkdb/src &&"+self.build_cl)
 
         dir = build_vm.popen("pwd", 'r').readline().strip('\n')
