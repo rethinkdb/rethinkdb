@@ -302,6 +302,9 @@ struct ls_block_writer_t :
     }
     
     bool do_write() {
+        // Updating the LBA + GC stats and submitting the write to the i/o subsystem should be atomic
+        ASSERT_NO_CORO_WAITING;
+
         if (write.buf_specified) {
 
             /* mark the garbage */
