@@ -18,7 +18,7 @@ namespace replication {
 template <class T>
 struct stream_pair {
     unique_ptr_t<buffered_data_provider_t> stream;
-    scoped_malloc<T> data;
+    unique_malloc_t<T> data;
 
     // This uses key_size, which is completely crap.
     stream_pair(const char *beg, const char *end, size_t size = 0) : stream(), data() {
@@ -27,8 +27,8 @@ struct stream_pair {
 
         const char *cutpoint = beg + m;
         {
-            scoped_malloc<T> tmp(beg, cutpoint);
-            data.swap(tmp);
+            unique_malloc_t<T> tmp(beg, cutpoint);
+            data = tmp;
         }
 
         stream.reset(new buffered_data_provider_t(size == 0 ? end - cutpoint : size, &p));
