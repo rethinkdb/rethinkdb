@@ -5,20 +5,7 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "serializer/translator.hpp"
 
-class mutation_dispatcher_t;
-
 class backfill_callback_t;
-
-class mutation_dispatcher_t : public intrusive_list_node_t<mutation_dispatcher_t> {
-public:
-    mutation_dispatcher_t() { }
-    // Dispatches a change, and returns a modified mutation_t.
-    virtual mutation_t dispatch_change(const mutation_t& m, castime_t castime) = 0;
-    virtual ~mutation_dispatcher_t() { }
-private:
-    DISABLE_COPYING(mutation_dispatcher_t);
-};
-
 
 /* btree_slice_t is a thin wrapper around cache_t that handles initializing the buffer
 cache for the purpose of storing a btree. There are many btree_slice_ts per
@@ -68,18 +55,12 @@ public:
     void set_replication_slave_id(uint32_t t);
     uint32_t get_replication_slave_id();
 
-    /* real-time monitoring interface (used for replication) TODO Move this to a separate object
-    that sits on top of the btree_slice_t. */
-    void add_dispatcher(mutation_dispatcher_t *mdisp);
-    void remove_dispatcher(mutation_dispatcher_t *mdisp);
-
     cache_t *cache() { return &cache_; }
     int64_t delete_queue_limit() { return delete_queue_limit_; }
 
 private:
     cache_t cache_;
     int64_t delete_queue_limit_;
-    intrusive_list_t<mutation_dispatcher_t> dispatchers_;
 
     DISABLE_COPYING(btree_slice_t);
 };

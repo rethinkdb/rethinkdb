@@ -106,15 +106,8 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
     castime_t ct;
 };
 
-mutation_result_t btree_slice_t::change(const mutation_t &mref, castime_t castime) {
+mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) {
     on_thread_t th(home_thread);
-
-    /* Give dispatchers a chance to modify/dispatch mutation. */
-    mutation_t m = mref;
-    for (intrusive_list_t<mutation_dispatcher_t>::iterator it = dispatchers_.begin();
-            it != dispatchers_.end(); it++) {
-        m = (*it).dispatch_change(m, castime);
-    }
 
     btree_slice_change_visitor_t functor;
     functor.parent = this;
@@ -212,12 +205,5 @@ uint32_t btree_slice_t::get_replication_slave_id() {
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
     return sb->replication_slave_id;
-}
-
-void btree_slice_t::add_dispatcher(mutation_dispatcher_t *mdisp) {
-    dispatchers_.push_back(mdisp);
-}
-void btree_slice_t::remove_dispatcher(mutation_dispatcher_t *mdisp) {
-    dispatchers_.remove(mdisp);
 }
 
