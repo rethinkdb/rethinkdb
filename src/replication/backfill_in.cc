@@ -1,5 +1,14 @@
 #include "replication/backfill_in.hpp"
 
+perfmon_duration_sampler_t
+    pm_slave_sarc("slave_sarc", secs_to_ticks(1.0)),
+    pm_slave_del("slave_del", secs_to_ticks(1.0)),
+    pm_slave_rt_get_cas("slave_rt_get_cas", secs_to_ticks(1.0)),
+    pm_slave_rt_sarc("slave_rt_sarc", secs_to_ticks(1.0)),
+    pm_slave_rt_incr_decr("slave_rt_incr_decr", secs_to_ticks(1.0)),
+    pm_slave_rt_app_prep("slave_rt_app_prep", secs_to_ticks(1.0)),
+    pm_slave_rt_del("slave_rt_del", secs_to_ticks(1.0));
+
 namespace replication {
 
 backfill_storer_t::backfill_storer_t(btree_key_value_store_t *underlying)
@@ -22,6 +31,7 @@ void backfill_storer_t::backfill_delete_everything() {
 }
 
 void backfill_storer_t::backfill_deletion(store_key_t key) {
+    block_pm_duration set_timer(&pm_slave_del);
     backfilling_ = true;
 
     delete_mutation_t mut;
@@ -35,6 +45,7 @@ void backfill_storer_t::backfill_deletion(store_key_t key) {
 }
 
 void backfill_storer_t::backfill_set(backfill_atom_t atom) {
+    block_pm_duration set_timer(&pm_slave_sarc);
     backfilling_ = true;
 
     sarc_mutation_t mut;
@@ -67,6 +78,7 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp) {
 }
 
 void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t castime) {
+    block_pm_duration set_timer(&pm_slave_rt_get_cas);
     get_cas_mutation_t mut;
     mut.key = key;
     internal_store_.handover(new mutation_t(mut), castime);
@@ -75,6 +87,7 @@ void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t casti
 void backfill_storer_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data,
         mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy,
         replace_policy_t replace_policy, cas_t old_cas) {
+    block_pm_duration set_timer(&pm_slave_rt_sarc);
 
     sarc_mutation_t mut;
     mut.key = key;
@@ -90,6 +103,7 @@ void backfill_storer_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_
 
 void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
         castime_t castime) {
+    block_pm_duration set_timer(&pm_slave_rt_incr_decr);
     incr_decr_mutation_t mut;
     mut.key = key;
     mut.kind = kind;
@@ -99,6 +113,7 @@ void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
 
 void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
         unique_ptr_t<data_provider_t> data, castime_t castime) {
+    block_pm_duration set_timer(&pm_slave_rt_app_prep);
     append_prepend_mutation_t mut;
     mut.key = key;
     mut.data = data;
@@ -107,6 +122,7 @@ void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, cons
 }
 
 void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp) {
+    block_pm_duration set_timer(&pm_slave_rt_del);
     delete_mutation_t mut;
     mut.key = key;
     mut.dont_put_in_delete_queue = true;
