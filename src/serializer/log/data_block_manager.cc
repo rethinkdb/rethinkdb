@@ -307,21 +307,6 @@ void data_block_manager_t::run_gc() {
         run_again = false;
         switch (gc_state.step()) {
             case gc_ready:
-                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) return;
-                
-                pm_serializer_data_extents_gced++;
-                
-                /* grab the entry */
-                gc_state.current_entry = gc_pq.pop();
-                gc_state.current_entry->our_pq_entry = NULL;
-                
-                rassert(gc_state.current_entry->state == gc_entry::state_old);
-                gc_state.current_entry->state = gc_entry::state_in_gc;
-                gc_stats.old_garbage_blocks -= gc_state.current_entry->g_array.count();
-                gc_stats.old_total_blocks -= static_config->blocks_per_extent();
-
-                /* read all the live data into buffers */
-
                 gc_state.set_step(gc_ready_lock_available);
                 serializer->main_mutex.lock(this);
                 break;
@@ -329,15 +314,26 @@ void data_block_manager_t::run_gc() {
             case gc_ready_lock_available:
                 serializer->main_mutex.unlock();
 
+                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) {
+                    gc_state.set_step(gc_ready);
+                    return;
+                }
+
+                pm_serializer_data_extents_gced++;
+
+                /* grab the entry */
+                gc_state.current_entry = gc_pq.pop();
+                gc_state.current_entry->our_pq_entry = NULL;
+
+                rassert(gc_state.current_entry->state == gc_entry::state_old);
+                gc_state.current_entry->state = gc_entry::state_in_gc;
+                gc_stats.old_garbage_blocks -= gc_state.current_entry->g_array.count();
+                gc_stats.old_total_blocks -= static_config->blocks_per_extent();
+
+                /* read all the live data into buffers */
+
                 /* make sure the read callback knows who we are */
                 gc_state.gc_read_callback.parent = this;
-
-                /* If other forces cause all of the blocks in the extent to become garbage
-                before we even finish GCing it, they will set current_entry to NULL. */
-                if (gc_state.current_entry == NULL) {
-                    gc_state.set_step(gc_ready);
-                    break;
-                }
 
                 rassert(gc_state.refcount == 0);
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
