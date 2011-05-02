@@ -6,17 +6,18 @@ from threading import Thread, Semaphore
 
 class Builder(Thread):
     def __init__(self, name, branch, target, semaphore):
+        Thread.__init__(self)
         self.name = name
         self.branch = branch
         self.target = target
         self.semaphore = semaphore
     def run(self):
+        self.success = False
         try:
             semaphore.acquire()
             self.target.run(self.branch, self.name)
             self.success = True
-        except target.RunError as err:
-            self.success = False
+        except self.target.RunError as err:
             self.exception = err
         finally:
             semaphore.release()
@@ -71,7 +72,7 @@ map(lambda x: x.start(), builders)
 map(lambda x: x.join(), builders)
 
 for b in builders:
-    sucess[b.name] = b.success
+    success[b.name] = b.success
     if not b.success:
         exception[b.name] = b.exception
 
