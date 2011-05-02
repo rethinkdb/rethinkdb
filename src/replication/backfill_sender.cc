@@ -1,6 +1,9 @@
 #include "replication/backfill_sender.hpp"
 
 namespace replication {
+perfmon_duration_sampler_t
+    master_del("master_bf_del", secs_to_ticks(1.0)),
+    master_set("master_bf_set", secs_to_ticks(1.0));
 
 backfill_sender_t::backfill_sender_t(repli_stream_t **stream) :
     stream_(stream), have_warned_about_expiration(false) { }
@@ -25,6 +28,7 @@ void backfill_sender_t::backfill_delete_everything() {
 }
 
 void backfill_sender_t::backfill_deletion(store_key_t key) {
+    block_pm_duration set_timer(&master_del);
 
     debugf("send backfill_deletion(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
 
@@ -40,6 +44,7 @@ void backfill_sender_t::backfill_deletion(store_key_t key) {
 }
 
 void backfill_sender_t::backfill_set(backfill_atom_t atom) {
+    block_pm_duration set_timer(&master_set);
 
     debugf("send backfill_set(%.*s, t=%u, len=%ld), %d\n", atom.key.size, atom.key.contents, atom.recency.time, atom.value->get_size(), int(bool(*stream_)));
 
