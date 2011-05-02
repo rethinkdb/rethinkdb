@@ -29,10 +29,6 @@ bool signal_t::is_pulsed() {
         case state_unpulsed:
             return false;
         case state_pulsing:
-            /* It's not clear what behavior makes sense in this case. The rationale for returning
-            `true` is that someone might call `wait()` again from within the on-pulse callback, and
-            we don't want to make them wait in that case. However, it might make more sense to
-            crash() in this case. */
             return true;
         case state_pulsed:
             return true;

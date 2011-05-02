@@ -33,10 +33,11 @@ typedef cond_t threadsafe_cond_t;
 cond_t is pulsed. */
 
 struct cond_weak_ptr_t : private signal_t::waiter_t {
-    cond_weak_ptr_t(cond_t *c = NULL) : cond(c) { }
+    cond_weak_ptr_t() : cond(NULL) { }
     virtual ~cond_weak_ptr_t() {}
     void watch(cond_t *c) {
         rassert(!cond);
+        rassert(c);
         if (!c->is_pulsed()) {
             cond = c;
             cond->add_waiter(this);
