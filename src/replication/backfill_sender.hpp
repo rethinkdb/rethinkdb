@@ -36,7 +36,7 @@ struct backfill_sender_t :
     void realtime_time_barrier(repli_timestamp_t timestamp);
 
 private:
-    repli_stream_t **stream_;
+    repli_stream_t **const stream_;
 
     void warn_about_expiration();
     bool have_warned_about_expiration;
