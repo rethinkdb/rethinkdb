@@ -12,6 +12,8 @@ void signal_t::add_waiter(waiter_t *w) {
         case state_pulsed:
             crash("Trying to add a waiter to a signal after it has been pulsed probably "
                 "indicates a programmer error.");
+        default:
+            unreachable();
     }
 }
 
