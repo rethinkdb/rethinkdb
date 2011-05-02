@@ -70,6 +70,8 @@ void check_first_size(message_callback_t *receiver, const char *buf, size_t real
     if (sizeof(T) >= realsize
         && sizeof(T) + reinterpret_cast<const T *>(buf)->key_size <= realsize) {
 
+        // TODO: this can't be right.  We make a boost function that
+        // uses a boost::ref of this thing which is on the stack.
         stream_pair<T> spair(buf, buf + realsize, reinterpret_cast<const T *>(buf)->value_size);
         size_t m = realsize - sizeof(T) - reinterpret_cast<const T *>(buf)->key_size;
 
@@ -293,6 +295,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
     sending anything over the wire. */
     buffer_group_t group;
     group.add_buffer(data->get_size(), buf.get() + sizeof(net_struct_type) + msg->key_size);
+    // TODO: This could theoretically block and that could cause
+    // reordering of sets.  The fact that it doesn't block is just a
+    // function of whatever data provider which we happen to use.
     data->get_data_into_buffers(&group);
 
     sendobj(msgcode, reinterpret_cast<net_struct_type *>(buf.get()));
