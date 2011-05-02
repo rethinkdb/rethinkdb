@@ -41,7 +41,7 @@ insert_freq = 8
 small_rget_freq = 2
 small_rget_size = (8,128)
 large_rget_freq = 1
-large_rget_size = 100000
+large_rget_size = (100000,100000)
 
 # Before running this script, full_bench copies it into a directory with libstress.so
 # and stress.py.
@@ -76,11 +76,10 @@ class RgetMixClient(object):
         self.client = stress.Client()
         self.insert_op = stress.InsertOp(self.key_generator, self.model.insert_chooser(), self.model, self.connection, values)
         self.client.add_op(insert_freq, self.insert_op)
-        # Temporary workaround so we can test this script even though the server crashes on
-        # rgets.
-        self.small_rget_op = stress.InsertOp(self.key_generator, self.model.insert_chooser(), self.model, self.connection, values)
+        # TODO: Does this specific workload make sense?
+        self.small_rget_op = stress.PercentageRangeReadOp(self.connection, percentage=(2,5), limit=small_rget_size )
         self.client.add_op(small_rget_freq, self.small_rget_op)
-        self.large_rget_op = stress.InsertOp(self.key_generator, self.model.insert_chooser(), self.model, self.connection, values)
+        self.large_rget_op = stress.PercentageRangeReadOp(self.connection, percentage=(30,100), limit=large_rget_size )
         self.client.add_op(large_rget_freq, self.large_rget_op)
     def poll_and_reset(self):
         queries = 0

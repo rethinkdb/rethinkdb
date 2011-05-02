@@ -12,12 +12,6 @@ elif [ $DATABASE == "mysql" ]; then
         {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
         {client}mysqlstress[$RGET_MIX_STRESS_CLIENT]:"-w special_rget_mix_workload" \
         iostat:1 vmstat:1
-elif [ $DATABASE == "membase" ]; then
-    ./dbench                                                                                   \
-        -d "$BENCH_DIR/bench_output/Range_read_mix" -H $SERVER_HOSTS -p 11211 \
-        {server}membase:"-d $MEMBASE_DATA_PATH -m 32768"                                       \
-        {client}stress[$RGET_MIX_STRESS_CLIENT]:"-w special_rget_mix_workload" \
-        iostat:1 vmstat:1
 else
     echo "No workload configuration for $DATABASE"
 fi

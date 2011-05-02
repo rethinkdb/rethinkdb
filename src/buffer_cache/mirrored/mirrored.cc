@@ -494,6 +494,7 @@ void mc_buf_t::release() {
 
     inner_buf->cache->assert_thread();
 
+    rassert(inner_buf->refcount > 0);
     --inner_buf->refcount;
 
     if (!non_locking_access) {
