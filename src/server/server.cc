@@ -20,7 +20,7 @@ int run_server(int argc, char *argv[]) {
 
     // Open the log file, if necessary.
     if (config.log_file_name[0]) {
-        log_file = fopen(config.log_file_name, "w");
+        log_file = fopen(config.log_file_name, "a");
     }
 
     // Initial thread message to start server
