@@ -143,9 +143,6 @@ void wait_for_sigint() {
 }
 
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
-    /* Create a server object. It only exists so we can give pointers to it to other things. */
-    server_t server(cmd_config, thread_pool);
-
     try {
         /* Start logger */
         log_controller_t log_controller;

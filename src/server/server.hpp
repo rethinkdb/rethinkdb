@@ -21,21 +21,5 @@ start. It will return right when the server shuts down. */
 
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool);
 
-/* server_t is mostly a holdover from before we had coroutines. It should eventually
-disappear. Right now it only exists so pointers to it can be passed around. */
-
-class server_t :
-    public home_thread_mixin_t
-{
-public:
-    server_t(cmd_config_t *cmd_config, thread_pool_t *thread_pool)
-        : cmd_config(cmd_config), thread_pool(thread_pool)
-    {
-    }
-
-    cmd_config_t *cmd_config;
-    thread_pool_t *thread_pool;
-};
-
 #endif // __SERVER_HPP__
 
