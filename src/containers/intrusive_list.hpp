@@ -13,7 +13,7 @@ class intrusive_list_node_t {
 public:
     intrusive_list_node_t() :
 #ifndef NDEBUG
-        in_a_list(false), 
+        in_a_list(false),
 #endif
         prev(NULL), next(NULL)
         {}
