@@ -27,12 +27,8 @@ public:
     ~coro_pool_t() {
         assert_thread();
 
-        debugf("Begin ~coro_pool_t()\n");
-
         task_drain_semaphore.drain();
         coro_drain_semaphore.drain();
-
-        debugf("End ~coro_pool_t()\n");
 
         rassert(task_queue.empty());
         rassert(active_worker_count == 0);
@@ -76,7 +72,6 @@ private:
             boost::function<void()> task = task_queue.front();
             task_queue.pop_front();
             task();
-            debugf("Done task.\n");
             queue_depth_sem.unlock();
             task_drain_semaphore.release();
             assert_thread(); // Make sure that task() didn't mess with us

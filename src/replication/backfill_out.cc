@@ -173,8 +173,6 @@ struct backfill_and_streaming_manager_t :
         /* We are sending heartbeat number "rc" */
         repli_timestamp_t rc = replication_clock_.next();
 
-        debugf("Initiating transition from %d to %d\n", replication_clock_.time, rc.time);
-
         replication_clock_ = rc;
 
         /* This blocks while the heartbeat goes to the key-value stores and back. Before we made
@@ -185,7 +183,6 @@ struct backfill_and_streaming_manager_t :
 
         /* Now that we're *sure* that no more operations are going to occur that have timestamps
         less than "rc", we can send a time-barrier to the slave. */
-        debugf("Sending heartbeat %d to slave\n", rc.time);
         handler_->realtime_time_barrier(rc);
     }
 
@@ -273,13 +270,9 @@ struct backfill_and_streaming_manager_t :
 
     ~backfill_and_streaming_manager_t() {
 
-        debugf("~backfill_and_streaming_manager_t() 1\n");
-
         /* We can't delete ourself until the backfill is over. It's impossible to interrupt
         a running backfill. The backfill logic takes care of calling handler_->backfill_done(). */
         pulsed_when_backfill_over.wait();
-
-        debugf("~backfill_and_streaming_manager_t() 2\n");
 
         /* Unregister for real-time updates */
         pmap(internal_store_->btree_static_config.n_slices,
@@ -292,8 +285,6 @@ struct backfill_and_streaming_manager_t :
 
         /* Wait for existing realtime updates to finish */
         realtime_mutation_drain_semaphore_.drain();
-
-        debugf("~backfill_and_streaming_manager_t() 4\n");
 
         /* Now we can stop */
     }
