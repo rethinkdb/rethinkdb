@@ -15,9 +15,11 @@ if [ $DATABASE == "rethinkdb" ]; then
         {server}rethinkdb[/tmp/rethinkdb]:\"-c 12 -m 32768 --master $MASTER_PORT $MASTER_SSD_DRIVES\"                                              \
         {client}stress[$MASTER_STRESS]:\"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/1/0/7 -i $MASTER_TMP_KEY_FILE\"     \
         iostat:1 vmstat:1 rdbstat:1 sleep:60 &
+    MASTER_PID=$!
 
     # Ok, timing is critical now. We have the sleep:60 above in order to give the slave enough time to connect to the server.
     # Stress client must only start after the slave has connected, otherwise it will fail with a client_error.
+    sleep 10
 
     # The slave part
     # TODO: We connect to master using the same network interface as the one which we are using for the stress client.
@@ -26,11 +28,11 @@ if [ $DATABASE == "rethinkdb" ]; then
     ssh $SLAVE_SERVER /home/teapot/rethinkdb/bench/dbench/dbench                                                                                        \
         -d \"/tmp/Replication_slave_performance\" -H $SLAVE_HOSTS            \
         {server}rethinkdb[/tmp/rethinkdb]:\"-c 12 -m 32768 --slave-of $MASTER_SERVER:$MASTER_PORT $SLAVE_SSD_DRIVES\"                                              \
-        {client}stress[$SLAVE_STRESS]:\"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/1/0/7 -i $SLAVE_TMP_KEY_FILE\"     \
-        iostat:1 vmstat:1 rdbstat:1
+        {client}stress[$SLAVE_STRESS]:\"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/0/0/1 -i $SLAVE_TMP_KEY_FILE\"     \
+        iostat:1 vmstat:1 rdbstat:1 sleep:40
         
     # Wait for dbenches to finish
-    wait
+    wait $MASTER_PID
     
     # Collect results
     mkdir -p $BENCH_DIR/bench_output
