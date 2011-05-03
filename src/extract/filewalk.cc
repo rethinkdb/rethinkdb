@@ -274,16 +274,20 @@ bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
                     } else {
                         leaf->pair_offsets[j] = cfg.block_size().value() - sizeof(btree_leaf_pair) - sizeof(btree_value);
                     }
+                } else  if ((signed int)cfg.block_size().value() - (signed int)pair_offset < 0) {
+                    logERR("A pair has an illegal offset. Truncating offset list.\n");
+                    leaf->npairs = j;
+                    num_pairs = leaf->npairs;
+                    break;
                 }
-
-                for (int j = 0; j < num_pairs; ++j) {
-                    uint16_t pair_offset = leaf->pair_offsets[j];
-                    btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
-                    if ((signed int)cfg.block_size().value() - (signed int)pair_offset < 0 || !leaf_pair_fits(pair, (signed int)cfg.block_size().value() - (signed int)pair_offset)) {
-                        logERR("A pair juts off the end of the block. Truncating.\n");
-                        pair->key.size = 0;
-                        pair->value()->size = 0;
-                    }
+            }
+            for (int j = 0; j < num_pairs; ++j) {
+                uint16_t pair_offset = leaf->pair_offsets[j];
+                btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
+                if (!leaf_pair_fits(pair, (signed int)cfg.block_size().value() - (signed int)pair_offset)) {
+                    logERR("A pair juts off the end of the block. Truncating pair.\n");
+                    pair->key.size = 0;
+                    pair->value()->size = 0;
                 }
             }
         } else {
