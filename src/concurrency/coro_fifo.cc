@@ -11,3 +11,4 @@ void coro_fifo_t::inform_ready_to_exit(coro_fifo_acq_t *acq) {
         acquisitor_queue_.remove(head);
     }
 }
+
