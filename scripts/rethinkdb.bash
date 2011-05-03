@@ -52,5 +52,5 @@ _complete_rethinkdb() {
     fi
 }
 
-complete -o default -F _complete_rethinkdb rethinkdb
-complete -o default -F _complete_rethinkdb rethinkdb-trial
+complete -o default -F _complete_rethinkdb SERVER_EXEC_NAME
+complete -o default -F _complete_rethinkdb SERVER_EXEC_NAME_VERSIONED
