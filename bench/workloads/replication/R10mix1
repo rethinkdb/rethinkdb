@@ -11,19 +11,22 @@ if [ $DATABASE == "rethinkdb" ]; then
     # The master part
     # TODO: We assume dbench being installed in that static directory on the master...
     ssh $MASTER_SERVER /home/teapot/rethinkdb/bench/dbench/dbench                                                                                        \
-        -d "/tmp/Replication_master_performance" -H $MASTER_HOSTS            \
-        {server}rethinkdb[/tmp/rethinkdb]:"-c 12 -m 32768 --master $MASTER_PORT $MASTER_SSD_DRIVES"                                              \
-        {client}stress[$MASTER_STRESS]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/1/0/7 -i $MASTER_TMP_KEY_FILE"     \
-        iostat:1 vmstat:1 rdbstat:1 &
+        -d \"/tmp/Replication_master_performance\" -H $MASTER_HOSTS            \
+        {server}rethinkdb[/tmp/rethinkdb]:\"-c 12 -m 32768 --master $MASTER_PORT $MASTER_SSD_DRIVES\"                                              \
+        {client}stress[$MASTER_STRESS]:\"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/1/0/7 -i $MASTER_TMP_KEY_FILE\"     \
+        iostat:1 vmstat:1 rdbstat:1 sleep:60 &
+
+    # Ok, timing is critical now. We have the sleep:60 above in order to give the slave enough time to connect to the server.
+    # Stress client must only start after the slave has connected, otherwise it will fail with a client_error.
 
     # The slave part
     # TODO: We connect to master using the same network interface as the one which we are using for the stress client.
     # Maybe it would be better to use just one interface for the client and a separate one for master<->client communication?
     # TODO: We assume dbench being installed in that static directory on the slave...
     ssh $SLAVE_SERVER /home/teapot/rethinkdb/bench/dbench/dbench                                                                                        \
-        -d "/tmp/Replication_slave_performance" -H $SLAVE_HOSTS            \
-        {server}rethinkdb[/tmp/rethinkdb]:"-c 12 -m 32768 --slave $MASTER_SERVER:$MASTER_PORT $SLAVE_SSD_DRIVES"                                              \
-        {client}stress[$SLAVE_STRESS]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/1/0/7 -i $SLAVE_TMP_KEY_FILE"     \
+        -d \"/tmp/Replication_slave_performance\" -H $SLAVE_HOSTS            \
+        {server}rethinkdb[/tmp/rethinkdb]:\"-c 12 -m 32768 --slave-of $MASTER_SERVER:$MASTER_PORT $SLAVE_SSD_DRIVES\"                                              \
+        {client}stress[$SLAVE_STRESS]:\"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/1/0/7 -i $SLAVE_TMP_KEY_FILE\"     \
         iostat:1 vmstat:1 rdbstat:1
         
     # Wait for dbenches to finish
