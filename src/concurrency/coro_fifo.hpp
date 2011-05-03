@@ -41,18 +41,36 @@ class coro_fifo_acq_t : public intrusive_list_node_t<coro_fifo_acq_t> {
 public:
     friend class coro_fifo_t;
 
-    explicit coro_fifo_acq_t(coro_fifo_t *fifo) : fifo_(fifo), is_waiting_to_exit_(false) {
+    coro_fifo_acq_t() : initialized_(false), fifo_(NULL), is_waiting_to_exit_(false) { }
+
+    void enter(coro_fifo_t *fifo) {
+        rassert(!initialized_);
+        rassert(!fifo_);
+        initialized_ = true;
+        fifo_ = fifo;
+        is_waiting_to_exit_ = false;
         fifo_->assert_thread();
         fifo_->acquisitor_queue_.push_back(this);
     }
 
+    void exit() {
+        rassert(initialized_);
+        if (initialized_) {
+            fifo_->inform_ready_to_exit(this);
+            ready_to_exit_.wait();
+            rassert(!in_a_list, "should have been removed from the acquisitor_queue_");
+            initialized_ = false;
+        }
+    }
+
     ~coro_fifo_acq_t() {
-        fifo_->inform_ready_to_exit(this);
-        ready_to_exit_.wait();
-        rassert(!in_a_list, "should have been removed from the acquisitor_queue_");
+        if (initialized_) {
+            exit();
+        }
     }
 
 private:
+    bool initialized_;
     coro_fifo_t *fifo_;
     cond_t ready_to_exit_;
     bool is_waiting_to_exit_;
