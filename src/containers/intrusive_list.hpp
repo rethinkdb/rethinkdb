@@ -12,22 +12,24 @@ class intrusive_list_node_t {
 
 public:
     intrusive_list_node_t() :
-        prev(NULL), next(NULL)
 #ifndef NDEBUG
-        , in_a_list(false)
+        in_a_list(false),
 #endif
+        prev(NULL), next(NULL)
         {}
     ~intrusive_list_node_t() {
         rassert(prev == NULL);
         rassert(next == NULL);
         rassert(!in_a_list);
     }
-    
-private:
-    derived_t *prev, *next;
+
+protected:
 #ifndef NDEBUG
     bool in_a_list;
 #endif
+
+private:
+    derived_t *prev, *next;
 
     DISABLE_COPYING(intrusive_list_node_t);
 };
