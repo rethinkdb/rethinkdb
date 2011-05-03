@@ -1,5 +1,6 @@
 #include "replication/protocol.hpp"
 
+#include "concurrency/coro_fifo.hpp"
 
 namespace replication {
 perfmon_duration_sampler_t slave_conn_reading("slave_conn_reading", secs_to_ticks(1.0));
@@ -35,8 +36,6 @@ void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
     receiver->hello(buf);
 }
 
-// TODO: Get rid of these functions, put static functions on each of
-// the types, even if it's redundant, because that way it's safer.
 template <class T> struct stream_type { typedef scoped_malloc<T> type; };
 template <> struct stream_type<net_sarc_t> { typedef stream_pair<net_sarc_t> type; };
 template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t> type; };
