@@ -7,6 +7,7 @@
 #include "concurrency/access.hpp"
 #include "server/cmd_args.hpp"
 #include "server/control.hpp"
+#include "server/dispatching_store.hpp"
 #include "arch/arch.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
@@ -21,8 +22,29 @@ namespace replication {
 // timestamp of the master.
 #define NOT_A_SLAVE uint32_t(0xFFFFFFFF)
 
-/* btree_key_value_store_t represents a collection of serializers and slices, possibly distributed
+/* sharded_key_value_store_t represents a collection of serializers and slices, possibly distributed
 across several cores. */
+
+struct shard_store_t :
+    public home_thread_mixin_t,
+    public set_store_interface_t,
+    public set_store_t,
+    public get_store_t
+{
+    shard_store_t(
+        translator_serializer_t *translator_serializer,
+        mirrored_cache_config_t *dynamic_config,
+        int64_t delete_queue_limit);
+
+    get_result_t get(const store_key_t &key);
+    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
+    mutation_result_t change(const mutation_t &m);
+    mutation_result_t change(const mutation_t &m, castime_t ct);
+
+    btree_slice_t btree;
+    dispatching_store_t dispatching_store;   // For replication
+    timestamping_set_store_interface_t timestamper;
+};
 
 class btree_key_value_store_t :
     public home_thread_mixin_t,
@@ -110,15 +132,9 @@ private:
 
     standard_serializer_t *serializers[MAX_SERIALIZERS];
     serializer_multiplexer_t *multiplexer;   // Helps us split the serializers among the slices
-    btree_slice_t *btrees[MAX_SLICES];
-    timestamping_set_store_interface_t *timestampers[MAX_SLICES];
 
+    shard_store_t *shards[MAX_SLICES];
     uint32_t slice_num(const store_key_t &key);
-    set_store_interface_t *slice_for_key_set_interface(const store_key_t &key);
-    set_store_t *slice_for_key_set(const store_key_t &key);
-    get_store_t *slice_for_key_get(const store_key_t &key);
-
-    void do_time_barrier_on_slice(repli_timestamp timestamp, int i);
 
     /* slice debug control_t which allows us to see slice and hash for a key */
     class hash_control_t :
@@ -145,7 +161,7 @@ private:
                 str_to_key(argv[i], &key);
                 uint32_t hash = btkvs->hash(key);
                 uint32_t slice = btkvs->slice_num(key);
-                int thread = btkvs->btrees[slice]->home_thread;
+                int thread = btkvs->shards[slice]->home_thread;
 
                 result += strprintf("%*s: %08x [slice: %03u, thread: %03d]\r\n", int(strlen(argv[i])), argv[i], hash, slice, thread);
             }
@@ -154,8 +170,6 @@ private:
     };
 
     hash_control_t hash_control;
-
-
 
     DISABLE_COPYING(btree_key_value_store_t);
 };

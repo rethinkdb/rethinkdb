@@ -7,6 +7,36 @@
 #include "replication/backfill.hpp"
 #include "replication/master.hpp"
 
+/* shard_store_t */
+
+shard_store_t::shard_store_t(
+    translator_serializer_t *translator_serializer,
+    mirrored_cache_config_t *dynamic_config,
+    int64_t delete_queue_limit) :
+    btree(translator_serializer, dynamic_config, delete_queue_limit),
+    dispatching_store(&btree),
+    timestamper(&dispatching_store)
+    { }
+
+get_result_t shard_store_t::get(const store_key_t &key) {
+    return btree.get(key);
+}
+
+rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
+    return btree.rget(left_mode, left_key, right_mode, right_key);
+}
+
+mutation_result_t shard_store_t::change(const mutation_t &m) {
+    return timestamper.change(m);
+}
+
+mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct) {
+    /* Bypass the timestamper because we already have a castime_t */
+    return dispatching_store.change(m, ct);
+}
+
+/* btree_key_value_store_t */
+
 void prep_for_serializer(
         btree_key_value_store_dynamic_config_t *dynamic_config,
         btree_key_value_store_static_config_t *static_config,
@@ -30,7 +60,7 @@ void create_existing_serializer(
         &dynamic_config->serializer_private[i]);
 }
 
-void prep_for_btree(
+void prep_for_shard(
         translator_serializer_t **pseudoserializers,
         mirrored_cache_static_config_t *static_config,
         int i) {
@@ -69,19 +99,17 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
         /* Create pseudoserializers */
         serializer_multiplexer_t multiplexer(serializers_for_multiplexer);
 
-        /* Initialize the btrees. Don't bother splitting the memory between the slices since we're just
-        creating, which takes almost no memory. */
-        pmap(multiplexer.proxies.size(), boost::bind(&prep_for_btree, multiplexer.proxies.data(), &static_config->cache, _1));
+        /* Initialize the btrees. */
+        pmap(multiplexer.proxies.size(), boost::bind(&prep_for_shard, multiplexer.proxies.data(), &static_config->cache, _1));
     }
 
     /* Shut down serializers */
     pmap(n_files, boost::bind(&destroy_serializer, serializers, _1));
 }
 
-void create_existing_btree(
+void create_existing_shard(
         translator_serializer_t **pseudoserializers,
-        btree_slice_t **btrees,
-        timestamping_set_store_interface_t **timestampers,
+        shard_store_t **shards,
         mirrored_cache_config_t *dynamic_config,
         int64_t delete_queue_limit,
         int i) {
@@ -90,8 +118,7 @@ void create_existing_btree(
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    btrees[i] = new btree_slice_t(pseudoserializers[i], dynamic_config, delete_queue_limit);
-    timestampers[i] = new timestamping_set_store_interface_t(btrees[i]);
+    shards[i] = new shard_store_t(pseudoserializers[i], dynamic_config, delete_queue_limit);
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config)
@@ -120,28 +147,26 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     per_slice_config.max_dirty_size /= btree_static_config.n_slices;
     per_slice_config.flush_dirty_size /= btree_static_config.n_slices;
     pmap(btree_static_config.n_slices,
-         boost::bind(&create_existing_btree,
-                     multiplexer->proxies.data(), btrees, timestampers,
+         boost::bind(&create_existing_shard,
+                     multiplexer->proxies.data(), shards,
                      &per_slice_config, dynamic_config->total_delete_queue_limit / btree_static_config.n_slices, _1));
 
     /* Initialize the timestampers to the correct timestamp */
     set_replication_clock(get_replication_clock());
 }
 
-void destroy_btree(
-        btree_slice_t **btrees,
-        timestamping_set_store_interface_t **timestampers,
+void destroy_shard(
+        shard_store_t **shards,
         int i) {
 
-    on_thread_t thread_switcher(btrees[i]->home_thread);
+    on_thread_t thread_switcher(shards[i]->home_thread);
 
-    delete timestampers[i];
-    delete btrees[i];
+    delete shards[i];
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {
     /* Shut down btrees */
-    pmap(btree_static_config.n_slices, boost::bind(&destroy_btree, btrees, timestampers, _1));
+    pmap(btree_static_config.n_slices, boost::bind(&destroy_shard, shards, _1));
 
     /* Destroy proxy-serializers */
     delete multiplexer;
@@ -181,45 +206,45 @@ void btree_key_value_store_t::check_existing(const std::vector<std::string>& fil
     new check_existing_fsm_t(filenames, cb);
 }
 
-static void set_one_timestamper(timestamping_set_store_interface_t **timestampers, int i, repli_timestamp_t t) {
-    timestampers[i]->set_timestamp(t);
+static void set_one_timestamper(shard_store_t **shards, int i, repli_timestamp_t t) {
+    shards[i]->timestamper.set_timestamp(t);
 }
 
 void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t) {
 
     /* Change what value will be assigned to new incoming operations */
-    pmap(btree_static_config.n_slices, boost::bind(&set_one_timestamper, timestampers, _1, t));
+    pmap(btree_static_config.n_slices, boost::bind(&set_one_timestamper, shards, _1, t));
 
     /* Update the value on disk */
-    btrees[0]->set_replication_clock(t);
+    shards[0]->btree.set_replication_clock(t);
 }
 
 repli_timestamp btree_key_value_store_t::get_replication_clock() {
-    return btrees[0]->get_replication_clock();   /* Read the value from disk */
+    return shards[0]->btree.get_replication_clock();   /* Read the value from disk */
 }
 
 void btree_key_value_store_t::set_last_sync(repli_timestamp_t t) {
-    btrees[0]->set_last_sync(t);   /* Write the value to disk */
+    shards[0]->btree.set_last_sync(t);   /* Write the value to disk */
 }
 
 repli_timestamp btree_key_value_store_t::get_last_sync() {
-    return btrees[0]->get_last_sync();   /* Read the value from disk */
+    return shards[0]->btree.get_last_sync();   /* Read the value from disk */
 }
 
 void btree_key_value_store_t::set_replication_master_id(uint32_t t) {
-    btrees[0]->set_replication_master_id(t);
+    shards[0]->btree.set_replication_master_id(t);
 }
 
 uint32_t btree_key_value_store_t::get_replication_master_id() {
-    return btrees[0]->get_replication_master_id();
+    return shards[0]->btree.get_replication_master_id();
 }
 
 void btree_key_value_store_t::set_replication_slave_id(uint32_t t) {
-    btrees[0]->set_replication_slave_id(t);
+    shards[0]->btree.set_replication_slave_id(t);
 }
 
 uint32_t btree_key_value_store_t::get_replication_slave_id() {
-    return btrees[0]->get_replication_slave_id();
+    return shards[0]->btree.get_replication_slave_id();
 }
 
 /* Hashing keys and choosing a slice for each key */
@@ -281,22 +306,10 @@ uint32_t btree_key_value_store_t::slice_num(const store_key_t &key) {
     return hash(key) % btree_static_config.n_slices;
 }
 
-set_store_interface_t *btree_key_value_store_t::slice_for_key_set_interface(const store_key_t &key) {
-    return timestampers[slice_num(key)];
-}
-
-set_store_t *btree_key_value_store_t::slice_for_key_set(const store_key_t &key) {
-    return btrees[slice_num(key)];
-}
-
-get_store_t *btree_key_value_store_t::slice_for_key_get(const store_key_t &key) {
-    return btrees[slice_num(key)];
-}
-
 /* get_store_t interface */
 
 get_result_t btree_key_value_store_t::get(const store_key_t &key) {
-    return slice_for_key_get(key)->get(key);
+    return shards[slice_num(key)]->get(key);
 }
 
 typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
@@ -308,7 +321,7 @@ rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const s
 
     unique_ptr_t<merged_results_iterator_t> merge_iterator(new merged_results_iterator_t());
     for (int s = 0; s < btree_static_config.n_slices; s++) {
-        merge_iterator->add_mergee(btrees[s]->rget(left_mode, left_key, right_mode, right_key).release());
+        merge_iterator->add_mergee(shards[s]->rget(left_mode, left_key, right_mode, right_key).release());
     }
     return merge_iterator;
 }
@@ -316,13 +329,13 @@ rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const s
 /* set_store_interface_t interface */
 
 mutation_result_t btree_key_value_store_t::change(const mutation_t &m) {
-    return slice_for_key_set_interface(m.get_key())->change(m);
+    return shards[slice_num(m.get_key())]->change(m);
 }
 
 /* set_store_t interface */
 
 mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t ct) {
-    const mutation_result_t& res = slice_for_key_set(m.get_key())->change(m, ct);
+    const mutation_result_t& res = shards[slice_num(m.get_key())]->change(m, ct);
     return res;
 }
 
@@ -330,6 +343,6 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t
 
 void btree_key_value_store_t::delete_all_keys_for_backfill() {
     for (int i = 0; i < btree_static_config.n_slices; ++i) {
-        btrees[i]->delete_all_keys_for_backfill();
+        shards[i]->btree.delete_all_keys_for_backfill();
     }
 }

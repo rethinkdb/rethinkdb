@@ -21,60 +21,53 @@ struct backfill_and_streaming_manager_t :
 {
     /* Realtime operation handlers */
 
-    /* realtime_mutation_dispatcher_t is used to listen for realtime mutations on the key-value
-    store. */
+    struct change_visitor_t : public boost::static_visitor<mutation_t> {
     
-    struct realtime_mutation_dispatcher_t : public mutation_dispatcher_t {
+        backfill_and_streaming_manager_t *manager;
+        castime_t castime;
     
-        struct change_visitor_t : public boost::static_visitor<mutation_t> {
-        
-            backfill_and_streaming_manager_t *manager;
-            castime_t castime;
-        
-            mutation_t operator()(const get_cas_mutation_t& m) {
-                manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_get_cas, manager,
-                        m.key, castime));
-                return m;
-            }
-            mutation_t operator()(const sarc_mutation_t& m) {
-                unique_ptr_t<data_provider_t> dps[2];
-                duplicate_data_provider(m.data, 2, dps);
-                manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
-                        m.key, dps[0], m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
-                sarc_mutation_t m2(m);
-                m2.data = dps[1];
-                return m2;
-            }
-            mutation_t operator()(const incr_decr_mutation_t& m) {
-                manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_incr_decr, manager,
-                        m.kind, m.key, m.amount, castime));
-                return m;
-            }
-            mutation_t operator()(const append_prepend_mutation_t &m) {
-                unique_ptr_t<data_provider_t> dps[2];
-                duplicate_data_provider(m.data, 2, dps);
-                manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
-                        m.kind, m.key, dps[0], castime));
-                append_prepend_mutation_t m2(m);
-                m2.data = dps[1];
-                return m2;
-            }
-            mutation_t operator()(const delete_mutation_t& m) {
-                manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_delete_key, manager,
-                        m.key, castime.timestamp));
-                return m;
-            }
-        };
-    
-        mutation_t dispatch_change(const mutation_t& m, castime_t castime) {
-            change_visitor_t functor;
-            functor.manager = manager_;
-            functor.castime = castime;
-            return boost::apply_visitor(functor, m.mutation);
+        mutation_t operator()(const get_cas_mutation_t& m) {
+            manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_get_cas, manager,
+                    m.key, castime));
+            return m;
         }
-    
-        backfill_and_streaming_manager_t *manager_;
+        mutation_t operator()(const sarc_mutation_t& m) {
+            unique_ptr_t<data_provider_t> dps[2];
+            duplicate_data_provider(m.data, 2, dps);
+            manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
+                    m.key, dps[0], m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
+            sarc_mutation_t m2(m);
+            m2.data = dps[1];
+            return m2;
+        }
+        mutation_t operator()(const incr_decr_mutation_t& m) {
+            manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_incr_decr, manager,
+                    m.kind, m.key, m.amount, castime));
+            return m;
+        }
+        mutation_t operator()(const append_prepend_mutation_t &m) {
+            unique_ptr_t<data_provider_t> dps[2];
+            duplicate_data_provider(m.data, 2, dps);
+            manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
+                    m.kind, m.key, dps[0], castime));
+            append_prepend_mutation_t m2(m);
+            m2.data = dps[1];
+            return m2;
+        }
+        mutation_t operator()(const delete_mutation_t& m) {
+            manager->coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_delete_key, manager,
+                    m.key, castime.timestamp));
+            return m;
+        }
     };
+
+    mutation_t dispatch_change(const mutation_t& m, castime_t castime) {
+        threadsafe_drain_semaphore_t::lock_t keep_alive(&realtime_mutation_drain_semaphore_);
+        change_visitor_t functor;
+        functor.manager = this;
+        functor.castime = castime;
+        return boost::apply_visitor(functor, m.mutation);
+    }
 
     void realtime_get_cas(const store_key_t& key, castime_t castime) {
         block_pm_duration set_timer(&master_rt_get_cas);
@@ -180,8 +173,6 @@ struct backfill_and_streaming_manager_t :
         /* We are sending heartbeat number "rc" */
         repli_timestamp_t rc = replication_clock_.next();
 
-        debugf("Initiating transition from %d to %d\n", replication_clock_.time, rc.time);
-
         replication_clock_ = rc;
 
         /* This blocks while the heartbeat goes to the key-value stores and back. Before we made
@@ -192,7 +183,6 @@ struct backfill_and_streaming_manager_t :
 
         /* Now that we're *sure* that no more operations are going to occur that have timestamps
         less than "rc", we can send a time-barrier to the slave. */
-        debugf("Sending heartbeat %d to slave\n", rc.time);
         handler_->realtime_time_barrier(rc);
     }
 
@@ -204,7 +194,8 @@ struct backfill_and_streaming_manager_t :
     btree_key_value_store_t *internal_store_;
     backfill_and_realtime_streaming_callback_t *handler_;
 
-    realtime_mutation_dispatcher_t *realtime_mutation_dispatchers[MAX_SLICES];
+    threadsafe_drain_semaphore_t realtime_mutation_drain_semaphore_;
+
     int outstanding_backfills;
 
     boost::scoped_ptr<repeating_timer_t> replication_clock_timer_;
@@ -224,7 +215,7 @@ struct backfill_and_streaming_manager_t :
         all_delete_queues_so_far_can_send_keys_(true),
         internal_store_(kvs),
         handler_(handler),
-        coro_pool(512) // TODO: Make this a define-constant or something
+        coro_pool(512, 2048) // TODO: Make this a define-constant or something
     {
         /* Read the old value of the replication clock. */
         replication_clock_ = internal_store_->get_replication_clock();
@@ -244,7 +235,7 @@ struct backfill_and_streaming_manager_t :
             outstanding_backfills++;
 
             // (we cannot use our coro_pool because it might run on a different thread)
-            coro_t::spawn_on_thread(internal_store_->btrees[i]->home_thread,
+            coro_t::spawn_on_thread(internal_store_->shards[i]->home_thread,
                 boost::bind(&backfill_and_streaming_manager_t::register_on_slice,
                     this,
                     i,
@@ -269,15 +260,12 @@ struct backfill_and_streaming_manager_t :
         /* We must register for realtime updates atomically together with starting the
         backfill operation. */
 
-        btree_slice_t *slice = internal_store_->btrees[i];
-
         /* Register for real-time updates */
-        realtime_mutation_dispatchers[i] = new realtime_mutation_dispatcher_t;
-        realtime_mutation_dispatchers[i]->manager_ = this;
-        slice->add_dispatcher(realtime_mutation_dispatchers[i]);
+        internal_store_->shards[i]->dispatching_store.set_dispatcher(
+            boost::bind(&backfill_and_streaming_manager_t::dispatch_change, this, _1, _2));
 
         /* Start a backfill operation */
-        slice->backfill(timestamp, this);
+        internal_store_->shards[i]->btree.backfill(timestamp, this);
     }
 
     ~backfill_and_streaming_manager_t() {
@@ -295,16 +283,16 @@ struct backfill_and_streaming_manager_t :
         replication_clock_timer_.reset();
         replication_clock_drain_semaphore_.drain();
 
+        /* Wait for existing realtime updates to finish */
+        realtime_mutation_drain_semaphore_.drain();
+
         /* Now we can stop */
     }
 
     void unregister_on_slice(int i) {
 
-        btree_slice_t *slice = internal_store_->btrees[i];
-
         /* Unregister for realtime updates */
-        slice->remove_dispatcher(realtime_mutation_dispatchers[i]);
-        delete realtime_mutation_dispatchers[i];
+        internal_store_->shards[i]->dispatching_store.set_dispatcher(0);
     }
 };
 
