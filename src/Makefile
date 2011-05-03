@@ -15,7 +15,7 @@ SOLO?=1
 ifeq ($(SOLO),1)
 RETHINKDB_CACHE_PRODUCT:=0
 RETHINKDB_SOLO_PRODUCT:=1
-PRODUCT_NAME:=RethinkDB Solo
+PRODUCT_NAME:=RethinkDB
 VANILLA_PACKAGE_NAME?=rethinkdb
 SERVER_EXEC_NAME?=rethinkdb
 else
@@ -280,6 +280,8 @@ DEB_PACKAGE_REVISION?=1
 RETHINKDB_VERSION_DEB=$(RETHINKDB_PACKAGING_VERSION)-$(DEB_PACKAGE_REVISION)
 
 VERSIONED_PACKAGE_NAME:=$(PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
+VERSIONED_TRIAL_PACKAGE_NAME:=$(TRIAL_PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
+
 VERSIONED_PRODUCT_SHARE_DIR:=/usr/share/$(VERSIONED_PACKAGE_NAME)
 
 prefix?=/usr
@@ -291,6 +293,9 @@ share_dir:=$(prefix)/share/$(VERSIONED_PACKAGE_NAME)
 bash_completion_dir:=/etc/bash_completion.d
 internal_bash_completion_dir:=$(share_dir)$(bash_completion_dir)
 
+FULL_SERVER_EXEC_NAME=$(bin_dir)/$(SERVER_EXEC_NAME)
+FULL_SERVER_EXEC_NAME_VERSIONED=$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
+
 prepare_deb_package_dirs:
 	$(QUIET) mkdir -p $(DEB_PACKAGE_DIR)
 	$(QUIET) mkdir -p $(DEB_CONTROL_ROOT)
@@ -301,9 +306,9 @@ prepare_rpm_package_dirs:
 
 install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$(QUIET) install -m755 -d $(DESTDIR)$(bin_dir)
-	$(QUIET) install -m755 -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
+	$(QUIET) install -m755 -T $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 ifeq ($(STRIP_ON_INSTALL),1)
-	$(QUIET) strip --strip-unneeded $(DESTDIR)$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
+	$(QUIET) strip --strip-unneeded $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 endif
 
 install-manpages: ../docs/man/rethinkdb.1
@@ -317,7 +322,10 @@ install-manpages: ../docs/man/rethinkdb.1
 install-tools: ../scripts/rethinkdb.bash
 	$(QUIET) install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
 	$(QUIET) install -m755 -d $(DESTDIR)$(bash_completion_dir)
-	$(QUIET) install -m644 ../scripts/rethinkdb.bash $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
+	$(QUIET) m4 																												\
+			-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 											\
+			-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 	\
+			../scripts/rethinkdb.bash | install -m644 /dev/stdin $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
 
 install-docs:
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
@@ -370,6 +378,7 @@ build-deb: all prepare_deb_package_dirs
 				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)"		\
 				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"				\
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"						\
+				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"						\
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"						\
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)"												\
 				-D "TRIAL=$(TRIAL)"																			\
@@ -408,6 +417,7 @@ build-rpm: all prepare_rpm_package_dirs
 				-D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)"							\
 				-D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)"									\
 				-D "TRIAL_PACKAGE_NAME=$(TRIAL_PACKAGE_NAME)"											\
+				-D "VERSIONED_TRIAL_PACKAGE_NAME=$(VERSIONED_TRIAL_PACKAGE_NAME)"	\
 				-D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)"											\
 				-D "LEGACY_LINUX=$(LEGACY_LINUX)"																	\
 				-D "PACKAGE_FOR_SUSE_10=$(PACKAGE_FOR_SUSE_10)"								    \
