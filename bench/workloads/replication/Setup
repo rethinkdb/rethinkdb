@@ -3,13 +3,13 @@
 export MASTER_CLIENT=puzzler
 export MASTER_STRESS=$MASTER_CLIENT:/home/teapot/stress
 export MASTER_SERVER=magneto
-export MASTER_HOSTS=magneto,magneto2
+export MASTER_HOSTS=magneto2    # We use magneto just for replication, while the stress client connects to magneto2
 export MASTER_PORT=12398
 export MASTER_SSD_DRIVES=$SSD_DRIVES
 export SLAVE_CLIENT=riddler
 export SLAVE_STRESS=$SLAVE_CLIENT:/home/teapot/stress
 export SLAVE_SERVER=electro
-export SLAVE_HOSTS=electro,electro2
+export SLAVE_HOSTS=electro2     # We use electro just for replication, while the stress client connects to electro2
 export SLAVE_SSD_DRIVES=$SSD_DRIVES
 
 if [ $DATABASE == "rethinkdb" ]; then
