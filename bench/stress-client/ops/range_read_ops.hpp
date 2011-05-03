@@ -25,21 +25,50 @@ struct base_range_read_op_t : public op_t {
     distr_t count;
     std::string prefix;
 
+    static const int number_length = 4;
+
     int generated_key_size() {
-        return prefix.length() + 4;
+        return prefix.length() + number_length;
     }
     void generate_key_for_percentile(float percentile, payload_t *key_out) {
-        uint32_t min_key, max_key, percentile_key;
-        memset(&min_key, SEED_MODEL_MIN_CHAR, 4);
-        memset(&max_key, SEED_MODEL_MAX_CHAR, 4);
-        percentile_key = min_key + (max_key - min_key) * (percentile / 100.0);
 
-        memcpy(key_out->first, prefix.data(), prefix.length());
-        for (int i = 0; i < 4; i++) {
-            unsigned char k = (percentile_key >> (3 - i) * 8) * 0xFF;
-            key_out->first[prefix.length() + i] = k;
+        if (percentile < 0.0 || percentile > 100.0) {
+            fprintf(stderr, "Percentile %f is out of range 0.0 to 100.0.\n", percentile);
+            exit(-1);
         }
-        key_out->second = prefix.length() + 4;
+
+        // Prepare the key, including prefix
+        key_out->grow_to(generated_key_size());
+        key_out->second = generated_key_size();
+        memcpy(key_out->first, prefix.data(), prefix.length());
+
+        /* We treat keys as numbers in base `B`, where `B` is the number of different
+        characters that are available for use in keys. We pick a key that is the correct
+        percentage of the way between 0 and the largest number that is `number_length`
+        digits long in base `B`. */
+
+        // The `base` is the number of characters available to us
+        static const int base = SEED_MODEL_MAX_CHAR - SEED_MODEL_MIN_CHAR + 1;
+
+        // `max` is the largest `number_length`-digit number in base `B`.
+        uint64_t max = 1;
+        for (int i = 0; i < number_length; i++) max *= base;
+        max -= 1;
+
+        // `number` is our chosen number; we will convert it to base `B` to form the key.
+        uint64_t number = max * (percentile / 100.0);
+
+        // Convert `number` to base `B`
+        for (int i = number_length - 1; i >= 0; i--) {
+            key_out->first[prefix.length() + i] = SEED_MODEL_MIN_CHAR + number % base;
+            number /= base;
+        }
+
+        // Confirm that we didn't make a mistake somewhere
+        if (number != 0) {
+            fprintf(stderr, "WTF, something funny happened in computing range get key.\n");
+            exit(-1);
+        }
     }
 
     void do_rget(float percentage) {
