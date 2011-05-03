@@ -37,8 +37,9 @@ duration = (20, "seconds")
 num_clients = 64
 keys = (8,16)
 values = (8,128)
-insert_freq = 8
-small_rget_freq = 2
+insert_freq = 30000
+# Run a lot of small rgets and a very occasional large one
+small_rget_freq = 10000
 small_rget_size = (8,128)
 large_rget_freq = 1
 large_rget_size = (100000,100000)
@@ -77,7 +78,7 @@ class RgetMixClient(object):
         self.insert_op = stress.InsertOp(self.key_generator, self.model.insert_chooser(), self.model, self.connection, values)
         self.client.add_op(insert_freq, self.insert_op)
         # TODO: Does this specific workload make sense?
-        self.small_rget_op = stress.PercentageRangeReadOp(self.connection, percentage=(2,5), limit=small_rget_size )
+        self.small_rget_op = stress.PercentageRangeReadOp(self.connection, percentage=(1,2), limit=small_rget_size )
         self.client.add_op(small_rget_freq, self.small_rget_op)
         self.large_rget_op = stress.PercentageRangeReadOp(self.connection, percentage=(30,100), limit=large_rget_size )
         self.client.add_op(large_rget_freq, self.large_rget_op)
