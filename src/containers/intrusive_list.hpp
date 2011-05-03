@@ -48,22 +48,29 @@ public:
             remove(n);
         }
     }
-    
-    node_t* head() {
+
+    node_t* front() {
         return _head;
     }
-    node_t* tail() {
+    node_t* back() {
         return _tail;
     }
-    
+
+    /* These are obsolete; use front() and back() instead. */
+    node_t* head() {
+        return front();
+    }
+    node_t* tail() {
+        return back();
+    }
+
     node_t *next(node_t *elem) {
         return ((intrusive_list_node_t<node_t>*)elem)->next;
     }
-    
     node_t *prev(node_t *elem) {
         return ((intrusive_list_node_t<node_t>*)elem)->prev;
     }
-    
+
     void push_front(node_t *_value) {
 #ifndef NDEBUG
         validate();
@@ -144,6 +151,15 @@ public:
 #ifndef NDEBUG
         validate();   // If this call fails, you probably removed from the wrong intrusive list
 #endif
+    }
+
+    void pop_front() {
+        rassert(!empty());
+        remove(front());
+    }
+    void pop_back() {
+        rassert(!empty());
+        remove(back());
     }
 
     void append_and_clear(intrusive_list_t<node_t> *list) {
