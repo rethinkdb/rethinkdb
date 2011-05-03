@@ -34,6 +34,8 @@ const int poll_event_err = 4;
 const int poll_event_hup = 8;
 const int poll_event_rdhup = 16;
 
+std::string format_poll_event(int event);
+
 // Queue stats (declared here so whichever queue is chosen can access it)
 extern perfmon_duration_sampler_t pm_eventloop;
 

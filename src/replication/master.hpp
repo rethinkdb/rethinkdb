@@ -104,7 +104,6 @@ public:
         delete stream_copy;
 
         stream_exists_cond_.pulse();    // If anything was waiting for stream to close, signal it
-        debugf("Pulsing interrupt_streaming_cond_\n");
         interrupt_streaming_cond_.pulse_if_non_null();   // Will interrupt any running backfill/stream operation
     }
 

@@ -5,6 +5,31 @@
 
 perfmon_duration_sampler_t pm_eventloop("eventloop", secs_to_ticks(1.0));
 
+std::string format_poll_event(int event) {
+    std::string s;
+    if (event & poll_event_in) {
+        s = "in";
+    }
+    if (event & poll_event_out) {
+        if (s != "") s += " ";
+        s += "out";
+    }
+    if (event & poll_event_err) {
+        if (s != "") s += " ";
+        s += "err";
+    }
+    if (event & poll_event_hup) {
+        if (s != "") s += " ";
+        s += "hup";
+    }
+    if (event & poll_event_rdhup) {
+        if (s != "") s += " ";
+        s += "rdhup";
+    }
+    if (s == "") s = "(none)";
+    return s;
+}
+
 // TODO: I guess signum is unused because we aren't interested, and
 // uctx is unused because we don't have any context data.  Is this the
 // true?
@@ -109,7 +134,9 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
 
         int error_mask = poll_event_err | poll_event_hup | poll_event_rdhup;
         guarantee((event & (error_mask | old_mask)) == event, "Unexpected event received (from operating system?).");
+
         if (event & error_mask) {
+
             error_handler->on_event(event & error_mask);
 
             /* The error handler might have cancelled some waits, which would

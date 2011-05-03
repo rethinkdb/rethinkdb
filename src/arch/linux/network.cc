@@ -351,6 +351,7 @@ void linux_tcp_conn_t::shutdown_write() {
 }
 
 void linux_tcp_conn_t::on_shutdown_write() {
+
     rassert(!write_was_shut_down);
     write_was_shut_down = true;
 
@@ -373,21 +374,26 @@ void linux_tcp_conn_t::on_event(int events) {
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
     poll_event_in/poll_event_out events are not sent through this function. */
 
-    if ((events & poll_event_err) && (events & poll_event_hup)) {
+    if (events == (poll_event_err & poll_event_hup) && write_in_progress) {
         /* We get this when the socket is closed but there is still data we are trying to send.
         For example, it can sometimes be reproduced by sending "nonsense\r\n" and then sending
         "set [key] 0 0 [length] noreply\r\n[value]\r\n" a hundred times then immediately closing the
         socket.
-        
+
         I speculate that the "error" part comes from the fact that there is undelivered data
         in the socket send buffer, and the "hup" part comes from the fact that the remote end
         has hung up.
-        
-        Ignore it; the other logic will handle it properly. */
+
+        Is it possible for an equivalent problem to occur for reads? How would we detect it? */
+
+        on_shutdown_write();
 
     } else if (events & poll_event_err) {
         /* We don't know why we got this, so shut the hell down. */
-        logERR("Unexpected poll_event_err. Events: %d\n", events);
+        logERR("Unexpected poll_event_err. events=%s, read=%s, write=%s\n",
+            format_poll_event(events).c_str(),
+            read_in_progress ? "yes" : "no",
+            write_in_progress ? "yes" : "no");
         if (!read_was_shut_down) shutdown_read();
         if (!write_was_shut_down) shutdown_write();
     }
