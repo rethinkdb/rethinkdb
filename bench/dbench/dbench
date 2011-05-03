@@ -572,7 +572,7 @@ class DBench(object):
         parser.add_argument('client', help='Client XXX', type=self.parse_worker)
         parser.add_argument('monitors', help='Monitors XXX', metavar='monitor',
                             nargs='*', type=self.parse_worker)
-        parser.add_argument('-i', '--insert', help='Insert XXX', type=self.parse_worker)
+        parser.add_argument('insert', help='Insert XXX', type=self.parse_worker, nargs='?')
         parser.add_argument('-f', '--force', help='Delete output directory before starting',
                             action='store_true')
         parser.add_argument('-P', '--prime-caches', help='Run client twice to prime caches',
