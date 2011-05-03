@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RGET_SCAN_WORKLOAD="2000/8000/16000/128000/0/0/0/1"   # Canonical workload, but with a rare (but potentially huge) rget mixed in
+RGET_SCAN_WORKLOAD="10000/40000/80000/640000/0/0/0/2"   # Canonical workload, but with a rare (but potentially huge) rget mixed in
 RGET_SIZE="100000-1000000"
 
 if [ $DATABASE == "rethinkdb" ]; then
