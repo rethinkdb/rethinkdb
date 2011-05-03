@@ -16,7 +16,9 @@ dnl   TRIAL - 0 or 1
 dnl
 %define _topdir RPM_PACKAGE_DIR
 %define packagename PACKAGE_NAME
+%define vanilla_packagename PACKAGE_NAME
 %define versioned_packagename VERSIONED_PACKAGE_NAME
+%define versioned_trial_packagename VERSIONED_TRIAL_PACKAGE_NAME
 %define server_exec_name SERVER_EXEC_NAME
 %define server_exec_name_versioned SERVER_EXEC_NAME_VERSIONED
 %define version patsubst(PACKAGE_VERSION, `-', `_')
@@ -41,13 +43,13 @@ Vendor:    Hexagram 49, Inc.
 Packager:  Package Maintainer <support@rethinkdb.com>
 URL:       http://rethinkdb.com/
 Group:     Productivity/Databases/Servers
-Provides:  %{packagename}, memcached
+Provides:  %{vanilla_packagename}, memcached
 Requires:  ifelse(PACKAGE_FOR_SUSE_10, 1,
   `glibc >= 2.4-31, libaio >= 0.3.104, update-alternatives',
   LEGACY_LINUX, 1,
   `glibc >= 2.5, libaio >= 0.3.106, chkconfig >= 1.3.30.2',
   `glibc >= 2.10.1, libaio >= 0.3.106, chkconfig >= 1.3.30.2')
-Conflicts: ifelse(TRIAL, 0, `TRIAL_PACKAGE_NAME', `VANILLA_PACKAGE_NAME')
+Conflicts: ifelse(TRIAL, 0, `%{versioned_trial_packagename} <= %{version}')
 
 
 %description
