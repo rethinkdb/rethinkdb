@@ -12,14 +12,14 @@ def remove_local(string):
 def rpm_install(path):
     return "rpm -i %s" % path
 
-def rpm_uninstall(pkg_name): 
-    return "rpm -e %s" % pkg_name
+def rpm_uninstall(cmd_name): 
+    return "which %s | xargs readlink -f | xargs rpm -qf | xargs rpm -e" % cmd_name
 
 def deb_install(path):
     return "dpkg -i %s" % path
 
-def deb_uninstall(pkg_name): 
-    return "dpkg -r %s" % pkg_name
+def deb_uninstall(cmd_name): 
+    return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\1/' | xargs dpkg -r" % cmd_name
 
 class VM():
     def __init__(self, uuid, hostname, username = 'rethinkdb', rootname = 'root'):
@@ -71,7 +71,7 @@ class target():
             if res != 0:
                 raise self.RunError(cmd + " returned on %d exit." % res)
 
-        run_checked("cd rethinkdb && git checkout %s && git pull" % branch)
+        run_checked("cd rethinkdb && git fetch -f origin {b}:refs/remotes/origin/{b} && git checkout -f origin/{b}".format(b=branch))
         run_checked("cd rethinkdb/src &&"+self.build_cl)
 
         dir = build_vm.popen("pwd", 'r').readline().strip('\n')

@@ -494,6 +494,7 @@ void mc_buf_t::release() {
 
     inner_buf->cache->assert_thread();
 
+    rassert(inner_buf->refcount > 0);
     --inner_buf->refcount;
 
     if (!non_locking_access) {
@@ -676,6 +677,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     block_available_callback_t *callback, bool should_load) {
     rassert(block_id != NULL_BLOCK_ID);
     rassert(is_read_mode(mode) || access != rwi_read);
+    rassert(should_load || access == rwi_write);
     assert_thread();
 
     inner_buf_t *inner_buf = cache->find_buf(block_id);

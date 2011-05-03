@@ -52,8 +52,7 @@ Conflicts: ifelse(TRIAL, 0, `TRIAL_PACKAGE_NAME', `VANILLA_PACKAGE_NAME')
 
 %description
 ifelse(SOLO,1,
-`FIXME: Persistent storage engine using the memcache protocol
-RethinkDB Solo is a key-value storage system designed for persistent
+`RethinkDB is a key-value storage system designed for persistent
 data.
 
 It conforms to the memcache text protocol, so any memcached client

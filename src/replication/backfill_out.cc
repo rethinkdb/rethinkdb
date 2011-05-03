@@ -6,6 +6,13 @@
 #include "btree/slice.hpp"
 #include "concurrency/coro_pool.hpp"
 
+perfmon_duration_sampler_t
+    master_rt_get_cas("master_rt_get_cas", secs_to_ticks(1.0)),
+    master_rt_sarc("master_rt_sarc", secs_to_ticks(1.0)),
+    master_rt_incr_decr("master_rt_incr_decr", secs_to_ticks(1.0)),
+    master_rt_app_prep("master_rt_app_prep", secs_to_ticks(1.0)),
+    master_rt_del("master_rt_del", secs_to_ticks(1.0));
+
 namespace replication {
 
 struct backfill_and_streaming_manager_t :
@@ -63,22 +70,27 @@ struct backfill_and_streaming_manager_t :
     }
 
     void realtime_get_cas(const store_key_t& key, castime_t castime) {
+        block_pm_duration set_timer(&master_rt_get_cas);
         handler_->realtime_get_cas(key, castime);
     }
     void realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data,
             mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy,
             replace_policy_t replace_policy, cas_t old_cas) {
+        block_pm_duration set_timer(&master_rt_sarc);
         handler_->realtime_sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
     }
     void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
             castime_t castime) {
+        block_pm_duration set_timer(&master_rt_incr_decr);
         handler_->realtime_incr_decr(kind, key, amount, castime);
     }
     void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
             unique_ptr_t<data_provider_t> data, castime_t castime) {
+        block_pm_duration set_timer(&master_rt_app_prep);
         handler_->realtime_append_prepend(kind, key, data, castime);
     }
     void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp) {
+        block_pm_duration set_timer(&master_rt_del);
         handler_->realtime_delete_key(key, timestamp);
     }
 

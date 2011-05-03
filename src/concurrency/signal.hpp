@@ -26,6 +26,8 @@ public:
 
     void add_waiter(waiter_t *);
     void remove_waiter(waiter_t *);
+
+    // Means that somebody has called pulse().
     bool is_pulsed();
 
     void wait() {

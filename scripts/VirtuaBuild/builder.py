@@ -2,6 +2,25 @@
 from vcoptparse import *
 import vm_build
 import sys
+from threading import Thread, Semaphore
+
+class Builder(Thread):
+    def __init__(self, name, branch, target, semaphore):
+        Thread.__init__(self)
+        self.name = name
+        self.branch = branch
+        self.target = target
+        self.semaphore = semaphore
+    def run(self):
+        self.success = False
+        try:
+            semaphore.acquire()
+            self.target.run(self.branch, self.name)
+            self.success = True
+        except self.target.RunError as err:
+            self.exception = err
+        finally:
+            semaphore.release()
 
 def help():
     print "Virtual builder:"
@@ -12,6 +31,8 @@ def help():
     print "                 defaults to all of them."
     print "     --branch branch_name"
     print "                 Which branch in git to build off of."
+    print "     --threads number"
+    print "                 The number of parallel threads to run."
 
 
 suse = vm_build.target('12c1cf78-5dc5-4baa-8e93-ac6fdd1ebf1f', '192.168.0.173', 'rethinkdb', 'make LEGACY_LINUX=1 LEGACY_GCC=1 NO_EVENTFD=1 DEBUG=0 rpm-suse10', 'rpm', vm_build.rpm_install, vm_build.rpm_uninstall)
@@ -26,6 +47,7 @@ o = OptParser()
 o["help"] = BoolFlag("--help")
 o["target"] = StringFlag("--target", None)
 o["branch"] = StringFlag("--branch", "master")
+o["threads"] = IntFlag("--threads", 3)
 
 try:
     opts = o.parse(sys.argv)
@@ -44,13 +66,15 @@ if (opts["target"]):
 
 success = {}
 exception = {}
-for name,target in targets.iteritems():
-    try:
-        target.run(opts["branch"], name)
-        success[name] = True
-    except target.RunError as err:
-        success[name] = False
-        exception[name] = err
+semaphore = Semaphore(opts["threads"])
+builders = map(lambda x: Builder(x[0], opts["branch"], x[1], semaphore), targets.iteritems())
+map(lambda x: x.start(), builders)
+map(lambda x: x.join(), builders)
+
+for b in builders:
+    success[b.name] = b.success
+    if not b.success:
+        exception[b.name] = b.exception
 
 print "Build summary:"
 from termcolor import colored

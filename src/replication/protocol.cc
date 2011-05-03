@@ -1,6 +1,8 @@
 #include "replication/protocol.hpp"
 
+
 namespace replication {
+perfmon_duration_sampler_t slave_conn_reading("slave_conn_reading", secs_to_ticks(1.0));
 
 class protocol_exc_t : public std::exception {
 public:
@@ -16,7 +18,10 @@ const char STANDARD_HELLO_MAGIC[16] = "13rethinkdbrepl";
 
 void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
     net_hello_t buf;
-    conn->read(&buf, sizeof(buf));
+    {
+        block_pm_duration set_timer(&slave_conn_reading);
+        conn->read(&buf, sizeof(buf));
+    }
 
     rassert(16 == sizeof(STANDARD_HELLO_MAGIC));
     if (0 != memcmp(buf.hello_magic, STANDARD_HELLO_MAGIC, sizeof(STANDARD_HELLO_MAGIC))) {
@@ -75,7 +80,7 @@ void check_first_size(message_callback_t *receiver, const char *buf, size_t real
 
         void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
 
-        if (!streams.add(ident, new std::pair<boost::function<void()>, std::pair<char *, size_t> >(boost::bind(fn, receiver, boost::ref(spair)), std::make_pair(spair.stream->peek() + m, reinterpret_cast<const T *>(buf)->value_size - m)))) {
+        if (!streams.add(ident, new std::pair<boost::function<void()>, std::pair<char *, size_t> >(boost::bind(fn, receiver, spair), std::make_pair(spair.stream->peek() + m, reinterpret_cast<const T *>(buf)->value_size - m)))) {
             throw protocol_exc_t("reused live ident code");
         }
 
@@ -195,7 +200,10 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
                 buffer.swap(new_buffer);
             }
 
-            num_read += conn->read_some(buffer.get() + offset + num_read, shbuf_size - (offset + num_read));
+            {
+                block_pm_duration set_timer(&slave_conn_reading);
+                num_read += conn->read_some(buffer.get() + offset + num_read, shbuf_size - (offset + num_read));
+            }
         }
     }
 }
@@ -293,6 +301,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
     sending anything over the wire. */
     buffer_group_t group;
     group.add_buffer(data->get_size(), buf.get() + sizeof(net_struct_type) + msg->key_size);
+    // TODO: This could theoretically block and that could cause
+    // reordering of sets.  The fact that it doesn't block is just a
+    // function of whatever data provider which we happen to use.
     data->get_data_into_buffers(&group);
 
     sendobj(msgcode, reinterpret_cast<net_struct_type *>(buf.get()));
@@ -381,8 +392,11 @@ void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_ac
     try_write(&msg, sizeof(msg));
 }
 
+perfmon_duration_sampler_t master_write("master_write", secs_to_ticks(1.0));
+
 void repli_stream_t::try_write(const void *data, size_t size) {
     try {
+        block_pm_duration set_timer(&master_write);
         conn_->write(data, size);
     } catch (tcp_conn_t::write_closed_exc_t &e) {
         /* Master died; we happened to be mid-write at the time. A tcp_conn_t::read_closed_exc_t

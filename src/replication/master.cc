@@ -12,7 +12,7 @@
 namespace replication {
 
 void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
-    mutex_acquisition_t ak(&stream_setup_teardown);
+    mutex_acquisition_t ak(&stream_setup_teardown_);
     // TODO: Carefully handle case where a slave is already connected.
     if (stream_) { 
         logWRN("Rejecting slave connection because I already have one.\n");
