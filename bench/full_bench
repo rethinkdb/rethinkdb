@@ -21,7 +21,7 @@ make clean
 make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
 git checkout master
 cd ../bench/stress-client
-make clean stress libstress.so
+make clean stress libstress.so LIBMEMCACHED=0
 scp stress puzzler:/home/teapot/stress
 scp libstress.so puzzler:/home/teapot/libstress.so
 scp stress.py puzzler:/home/teapot/stress.py
