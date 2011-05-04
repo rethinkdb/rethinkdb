@@ -39,7 +39,7 @@ values = (8,128)
 delete_freq = 1
 update_freq = 4
 insert_freq = 8
-read_freq = 64
+read_freq = 64 / 8 # We have to divide by the average batch factor
 
 large_rget_freq = 1
 large_rget_size = (200000,1000000)
@@ -81,7 +81,7 @@ class CanonicalClient(object):
         self.client.add_op(update_freq, self.update_op)
         self.delete_op = stress.DeleteOp(self.key_generator, self.model.delete_chooser(), self.model, self.connection)
         self.client.add_op(delete_freq, self.delete_op)
-        self.read_op = stress.ReadOp(self.key_generator, self.model.live_chooser(), self.connection)
+        self.read_op = stress.ReadOp(self.key_generator, self.model.live_chooser(), self.connection, (1, 16) )
         self.client.add_op(read_freq, self.read_op)
     def poll_and_reset(self):
         queries = 0

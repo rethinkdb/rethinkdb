@@ -9,6 +9,8 @@
 
 /* This mini-FSM loads a buf from disk. */
 
+perfmon_counter_t pm_registered_snapshots("registered_snapshots"),
+                  pm_registered_snapshot_blocks("registered_snapshot_blocks");
 perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1));
 
 struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
@@ -582,6 +584,12 @@ mc_transaction_t::~mc_transaction_t() {
     rassert(state == state_committed);
     pm_transactions_committing.end(&start_time);
     pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
+    pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
+}
+
+void mc_transaction_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data) {
+    pm_registered_snapshot_blocks++;
+    owned_buf_snapshots.push_back(std::make_pair(inner_buf, data));
 }
 
 void mc_transaction_t::green_light() {
@@ -880,6 +888,7 @@ block_size_t mc_cache_t::get_block_size() {
 }
 
 void mc_cache_t::register_snapshot(mc_transaction_t *txn) {
+    pm_registered_snapshots++;
     rassert(txn->snapshot_version == mc_inner_buf_t::faux_version_id, "Snapshot has been already created for this transaction");
 
     txn->snapshot_version = next_snapshot_version++;
@@ -893,6 +902,7 @@ void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
     } else {
         unreachable("Tried to unregister a snapshot which doesn't exist");
     }
+    pm_registered_snapshots--;
 }
 
 size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {

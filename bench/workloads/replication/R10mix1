@@ -23,8 +23,6 @@ if [ $DATABASE == "rethinkdb" ]; then
     sleep 20
 
     # The slave part
-    # TODO: We connect to master using the same network interface as the one which we are using for the stress client.
-    # Maybe it would be better to use just one interface for the client and a separate one for master<->client communication?
     # TODO: We assume dbench being installed in that static directory on the slave...
     ssh $SLAVE_SERVER /home/teapot/rethinkdb/bench/dbench/dbench                                                                                        \
         -d \"/tmp/Replication_slave_performance\" -H $SLAVE_HOSTS            \

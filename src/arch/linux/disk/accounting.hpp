@@ -3,13 +3,17 @@
 
 #include <boost/function.hpp>
 #include "containers/intrusive_list.hpp"
-#include <set>
+#include "concurrency/queue/accounting.hpp"
+#include "concurrency/queue/unlimited_fifo.hpp"
+#include "concurrency/queue/translate.hpp"
 
 template<class payload_t>
 struct accounting_diskmgr_t {
 
-    accounting_diskmgr_t(int target_queue_depth);
-    ~accounting_diskmgr_t();
+    accounting_diskmgr_t() :
+        producer(&caster),
+        caster(&queue)
+        { }
 
     struct account_t;
 
@@ -17,38 +21,35 @@ struct accounting_diskmgr_t {
         account_t *account;
     };
 
-    struct account_t : public intrusive_list_node_t<account_t> {
-        account_t(accounting_diskmgr_t *par, int pri) : parent(par), priority(pri) {
-            rassert(priority > 0);
-        }
+    /* Each account on the `accounting_diskmgr_t` has its own
+    `unlimited_fifo_queue_t` associated with it. Operations for that account
+    queue up on that queue while they wait for the `accounting_queue_t` on the
+    `accounting_diskmgr_t` to draw from that account. */
+    struct account_t {
+        account_t(accounting_diskmgr_t *par, int pri) :
+            parent(par),
+            account(&par->queue, &queue, pri)
+            { }
     private:
         friend class accounting_diskmgr_t;
         accounting_diskmgr_t *parent;
-        int priority;
-        intrusive_list_t<action_t> queue;
+        unlimited_fifo_queue_t<action_t *, intrusive_list_t<action_t> > queue;
+        typename accounting_queue_t<action_t *>::account_t account;
     };
 
-    void submit(action_t *a);
+    void submit(action_t *a) {
+        a->account->queue.push(a);
+    }
     boost::function<void (action_t *)> done_fun;
 
-    boost::function<void (payload_t *)> submit_fun;
-    void done(payload_t *);
+    passive_producer_t<payload_t *> * const producer;
+    void done(payload_t *p) {
+        done_fun(static_cast<action_t *>(p));
+    }
 
 private:
-    intrusive_list_t<account_t> active_accounts;
-    int total_priority;   // Sum of priorities of all active accounts
-    void activate_account(account_t *a);
-    void deactivate_account(account_t *a);
-
-    /* Used to evenly remove from all active accounts */
-    int last_dequeue_pointer;
-
-    /* `num_active` is how many operations we have sent through submit_fun() and not yet heard
-    back about. `target_num_active` is what we try to keep `num_active` at. */
-    int target_num_active, num_active;
-    void pump();
+    accounting_queue_t<action_t *> queue;
+    casting_passive_producer_t<action_t *, payload_t *> caster;
 };
-
-#include "arch/linux/disk/accounting.tcc"
 
 #endif /* __ARCH_LINUX_DISK_ACCOUNTING_HPP__ */

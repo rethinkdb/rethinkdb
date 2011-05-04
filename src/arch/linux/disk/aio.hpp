@@ -1,6 +1,6 @@
 
-#ifndef __ARCH_LINUX_DISK_AIO_COMMON_HPP__
-#define __ARCH_LINUX_DISK_AIO_COMMON_HPP__
+#ifndef __ARCH_LINUX_DISK_AIO_HPP__
+#define __ARCH_LINUX_DISK_AIO_HPP__
 
 #include <libaio.h>
 #include "errors.hpp"
@@ -10,6 +10,7 @@
 #include "utils2.hpp"
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
+#include "concurrency/queue/passive_producer.hpp"
 
 /* Simple wrapper around io_context_t that handles creation and destruction */
 
@@ -21,15 +22,21 @@ struct linux_aio_context_t {
 
 /* Disk manager that uses libaio. */
 
-class linux_diskmgr_aio_t {
+class linux_diskmgr_aio_t :
+
+    /* We provide `iocb*`s to the object whose job it is to actually submit the
+    IO operations to the OS. */
+    private passive_producer_t<iocb *>
+{
 
 public:
-    explicit linux_diskmgr_aio_t(linux_event_queue_t *queue);
-
-    /* To run disk operations, construct an action_t, call its set_*() methods to fill in its
-    information, and then call linux_diskmgr_aio_t::submit() to start it. When it is done,
-    done_fun() will be called. Typically you will subclass action_t and actually pass a pointer
-    to an instance of a subclass, then static_cast<>() back up to your subclass in done_fun(). */
+    /* `linux_diskmgr_aio_t` runs disk operations which are expressed as
+    `linux_diskmgr_aio_t::action_t` objects. It draws the disk operations to
+    run from a `passive_producer_t<action_t>*` which you pass to its
+    constructor. When it is done, it calls the `done_fun` which you provide,
+    passing the `action_t` that it completed. Typically you will subclass
+    `action_t` and then `static_cast<>()` up from `action_t*` to your subclass
+    in `done_fun()`. */
 
     struct action_t : private iocb {
         void make_write(fd_t fd, const void *buf, size_t count, off_t offset) {
@@ -47,7 +54,9 @@ public:
         friend class linux_diskmgr_aio_t;
     };
 
-    void submit(action_t *action);
+    explicit linux_diskmgr_aio_t(
+        linux_event_queue_t *queue,
+        passive_producer_t<action_t *> *source);
     boost::function<void(action_t *)> done_fun;
 
 public:
@@ -56,10 +65,12 @@ public:
     on the getter/submitter strategies rather than using abstract classes? */
 
     struct submit_strategy_t {
-        virtual ~submit_strategy_t() { }
 
-        /* Called to submit an IO operation to the OS */
-        virtual void submit(iocb *) = 0;
+        /* The `submit_strategy_t` subclass will be given a `linux_aio_context_t*`
+        and a `passive_provider_t<iocb*>*` when it is created. It will read from the
+        `passive_provider_t` and submit to the `linux_aio_context_t*`. */
+
+        virtual ~submit_strategy_t() { }
 
         /* Called to inform the submitter that the OS has completed an IO operation, so it can e.g.
         try to send more events to the OS. */
@@ -85,15 +96,21 @@ public:
 
     linux_event_queue_t *queue;
 
+    passive_producer_t<action_t *> *source;
+
     /* This must be declared before "submitter" and "getter" so that it gets created before they
     are created and destroyed after they are destroyed. */
     linux_aio_context_t aio_context;
 
     boost::scoped_ptr<submit_strategy_t> submitter;
-
     boost::scoped_ptr<getevents_strategy_t> getter;
-    void aio_notify(iocb *event, int result);   // Called by getter
+
+    /* We are a `passive_provider_t<iocb*>` for our `submitter`. */
+    iocb *produce_next_value();
+
+    /* `getter` calls `aio_notify()` when an operation is complete. */
+    void aio_notify(iocb *event, int result);
 };
 
-#endif // __ARCH_LINUX_DISK_AIO_COMMON_HPP__
+#endif // __ARCH_LINUX_DISK_AIO_HPP__
 

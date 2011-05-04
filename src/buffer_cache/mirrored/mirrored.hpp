@@ -251,9 +251,7 @@ private:
     explicit mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
     ~mc_transaction_t();
 
-    void register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data) {
-        owned_buf_snapshots.push_back(std::make_pair(inner_buf, data));
-    }
+    void register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data);
     void green_light();   // Called by the writeback when it's OK for us to start
     virtual void on_sync();
 
