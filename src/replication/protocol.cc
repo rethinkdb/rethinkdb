@@ -89,6 +89,27 @@ void check_first_size(message_callback_t *receiver, const char *buf, size_t real
     }
 }
 
+void message_parser_t::handle_small_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize) {
+    switch (msgcode) {
+    case INTRODUCE: check_pass<net_introduce_t>(receiver, realbuf, realsize); break;
+    case BACKFILL: check_pass<net_backfill_t>(receiver, realbuf, realsize); break;
+    case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, realbuf, realsize); break;
+    case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver, realbuf, realsize); break;
+    case NOP: check_pass<net_nop_t>(receiver, realbuf, realsize); break;
+    case GET_CAS: check_pass<net_get_cas_t>(receiver, realbuf, realsize); break;
+    case SARC: check_pass<net_sarc_t>(receiver, realbuf, realsize); break;
+    case INCR: check_pass<net_incr_t>(receiver, realbuf, realsize); break;
+    case DECR: check_pass<net_decr_t>(receiver, realbuf, realsize); break;
+    case APPEND: check_pass<net_append_t>(receiver, realbuf, realsize); break;
+    case PREPEND: check_pass<net_prepend_t>(receiver, realbuf, realsize); break;
+    case DELETE: check_pass<net_delete_t>(receiver, realbuf, realsize); break;
+    case BACKFILL_SET: check_pass<net_backfill_set_t>(receiver, realbuf, realsize); break;
+    case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver, realbuf, realsize); break;
+    default: throw protocol_exc_t("invalid message code");
+    }
+
+}
+
 size_t message_parser_t::handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
@@ -110,23 +131,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, const char
         size_t realbegin = sizeof(net_header_t);
         size_t realsize = msgsize - sizeof(net_header_t);
 
-        switch (hdr->msgcode) {
-        case INTRODUCE: check_pass<net_introduce_t>(receiver, buf + realbegin, realsize); break;
-        case BACKFILL: check_pass<net_backfill_t>(receiver, buf + realbegin, realsize); break;
-        case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, buf + realbegin, realsize); break;
-        case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver, buf + realbegin, realsize); break;
-        case NOP: check_pass<net_nop_t>(receiver, buf + realbegin, realsize); break;
-        case GET_CAS: check_pass<net_get_cas_t>(receiver, buf + realbegin, realsize); break;
-        case SARC: check_pass<net_sarc_t>(receiver, buf + realbegin, realsize); break;
-        case INCR: check_pass<net_incr_t>(receiver, buf + realbegin, realsize); break;
-        case DECR: check_pass<net_decr_t>(receiver, buf + realbegin, realsize); break;
-        case APPEND: check_pass<net_append_t>(receiver, buf + realbegin, realsize); break;
-        case PREPEND: check_pass<net_prepend_t>(receiver, buf + realbegin, realsize); break;
-        case DELETE: check_pass<net_delete_t>(receiver, buf + realbegin, realsize); break;
-        case BACKFILL_SET: check_pass<net_backfill_set_t>(receiver, buf + realbegin, realsize); break;
-        case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver, buf + realbegin, realsize); break;
-        default: throw protocol_exc_t("invalid message code");
-        }
+        handle_small_message(receiver, hdr->msgcode, buf + realbegin, realsize);
 
         return msgsize;
     } else {
