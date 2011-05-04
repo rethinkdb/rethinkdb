@@ -91,24 +91,67 @@ void check_first_size(message_callback_t *receiver, const char *buf, size_t real
 
 namespace internal {
 
-void handle_small_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize) {
-    switch (msgcode) {
-    case INTRODUCE: check_pass<net_introduce_t>(receiver, realbuf, realsize); break;
-    case BACKFILL: check_pass<net_backfill_t>(receiver, realbuf, realsize); break;
-    case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, realbuf, realsize); break;
-    case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver, realbuf, realsize); break;
-    case NOP: check_pass<net_nop_t>(receiver, realbuf, realsize); break;
-    case GET_CAS: check_pass<net_get_cas_t>(receiver, realbuf, realsize); break;
-    case SARC: check_pass<net_sarc_t>(receiver, realbuf, realsize); break;
-    case INCR: check_pass<net_incr_t>(receiver, realbuf, realsize); break;
-    case DECR: check_pass<net_decr_t>(receiver, realbuf, realsize); break;
-    case APPEND: check_pass<net_append_t>(receiver, realbuf, realsize); break;
-    case PREPEND: check_pass<net_prepend_t>(receiver, realbuf, realsize); break;
-    case DELETE: check_pass<net_delete_t>(receiver, realbuf, realsize); break;
-    case BACKFILL_SET: check_pass<net_backfill_set_t>(receiver, realbuf, realsize); break;
-    case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver, realbuf, realsize); break;
-    default: throw protocol_exc_t("invalid message code");
+template <class T>
+tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *buf, size_t size) {
+    if (sizeof(T) <= size
+        && sizeof(T) + reinterpret_cast<const T *>(buf)->key_size <= size) {
+
+        stream_pair<T> spair(buf, buf + size, reinterpret_cast<const T *>(buf)->value_size);
+        size_t m = size - sizeof(T) - reinterpret_cast<const T *>(buf)->key_size;
+
+        void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
+
+        return new tracker_obj_t(boost::bind(fn, receiver, spair), spair.stream->peek() + m, reinterpret_cast<const T *>(buf)->value_size - m);
+
+    } else {
+        throw protocol_exc_t("message too short for message code and key size");
     }
+}
+
+void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
+    if (!saw_first_part_) {
+        uint8_t msgcode = *reinterpret_cast<const uint8_t *>(buf);
+        ++buf;
+        --size;
+
+        switch (msgcode) {
+        case INTRODUCE: check_pass<net_introduce_t>(receiver_, buf, size); break;
+        case BACKFILL: check_pass<net_backfill_t>(receiver_, buf, size); break;
+        case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver_, buf, size); break;
+        case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver_, buf, size); break;
+        case NOP: check_pass<net_nop_t>(receiver_, buf, size); break;
+        case GET_CAS: check_pass<net_get_cas_t>(receiver_, buf, size); break;
+        case SARC: tracker_obj_ = check_value_streamer<net_sarc_t>(receiver_, buf, size); break;
+        case INCR: check_pass<net_incr_t>(receiver_, buf, size); break;
+        case DECR: check_pass<net_decr_t>(receiver_, buf, size); break;
+        case APPEND: tracker_obj_ = check_value_streamer<net_append_t>(receiver_, buf, size); break;
+        case PREPEND: tracker_obj_ = check_value_streamer<net_prepend_t>(receiver_, buf, size); break;
+        case DELETE: check_pass<net_delete_t>(receiver_, buf, size); break;
+        case BACKFILL_SET: tracker_obj_ = check_value_streamer<net_backfill_set_t>(receiver_, buf, size); break;
+        case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver_, buf, size); break;
+        default: throw protocol_exc_t("invalid message code");
+        }
+
+        saw_first_part_ = true;
+    } else {
+        rassert(false, "We don't expect saw_first_part_ to be true yet.\n");
+        throw protocol_exc_t("can't handle multipart messages here yet");
+    }
+}
+
+void replication_stream_handler_t::end_of_stream() {
+    rassert(saw_first_part_);
+    if (tracker_obj_) {
+        tracker_obj_->function();
+        delete tracker_obj_;
+        tracker_obj_ = NULL;
+    }
+}
+
+void handle_small_message(message_callback_t *receiver, const char *buf, size_t size) {
+    replication_stream_handler_t h(receiver);
+    h.stream_part(buf, size);
+    h.end_of_stream();
 }
 
 void handle_first_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams) {
@@ -165,10 +208,10 @@ size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_
             return 0;
         }
 
-        size_t realbegin = sizeof(net_header_t);
-        size_t realsize = msgsize - sizeof(net_header_t);
+        size_t realbegin = offsetof(net_header_t, msgcode);
+        size_t realsize = msgsize - offsetof(net_header_t, msgcode);
 
-        handle_small_message(receiver, hdr->msgcode, buf + realbegin, realsize);
+        handle_small_message(receiver, buf + realbegin, realsize);
 
         return msgsize;
     } else {
