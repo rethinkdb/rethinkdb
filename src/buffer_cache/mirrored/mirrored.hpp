@@ -30,6 +30,7 @@ typedef array_free_list_t free_list_t;
 #include "page_map.hpp"
 typedef array_map_t page_map_t;
 
+
 // This cache doesn't actually do any operations itself. Instead, it
 // provides a framework that collects all components of the cache
 // (memory allocation, page lookup, page replacement, writeback, etc.)

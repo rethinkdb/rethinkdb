@@ -1,11 +1,16 @@
 #include "btree/iteration.hpp"
 #include "btree/btree_data_provider.hpp"
 
+perfmon_counter_t
+    leaf_iterators("leaf_iterators"),
+    slice_leaves_iterators("slice_leaves_iterators");
+
 leaf_iterator_t::leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<transactor_t>& transactor) :
     leaf(leaf), index(index), lock(lock), transactor(transactor) {
 
     rassert(leaf != NULL);
     rassert(lock != NULL);
+    leaf_iterators++;
 }
 
 boost::optional<key_with_data_provider_t> leaf_iterator_t::next() {
@@ -27,6 +32,7 @@ void leaf_iterator_t::prefetch() {
 }
 
 leaf_iterator_t::~leaf_iterator_t() {
+    leaf_iterators--;
     done();
 }
 
@@ -52,6 +58,7 @@ slice_leaves_iterator_t::slice_leaves_iterator_t(const boost::shared_ptr<transac
         transactor(transactor), slice(slice),
         left_mode(left_mode), left_key(left_key), right_mode(right_mode), right_key(right_key),
         traversal_state(), started(false), nevermore(false) {
+            slice_leaves_iterators++;
 }
 
 boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::next() {
@@ -69,6 +76,7 @@ void slice_leaves_iterator_t::prefetch() {
 }
 
 slice_leaves_iterator_t::~slice_leaves_iterator_t() {
+    slice_leaves_iterators--;
     done();
 }
 
