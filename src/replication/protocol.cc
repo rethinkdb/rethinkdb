@@ -270,9 +270,9 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
     if (obsize + sizeof(net_header_t) <= 0xFFFF) {
         net_header_t hdr;
+        hdr.msgsize = sizeof(net_header_t) + obsize;
         hdr.message_multipart_aspect = SMALL;
         hdr.msgcode = msgcode;
-        hdr.msgsize = sizeof(net_header_t) + obsize;
 
         mutex_acquisition_t ak(&outgoing_mutex_);
 
@@ -280,11 +280,10 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         try_write(msg, obsize);
     } else {
         net_multipart_header_t hdr;
-        hdr.message_multipart_aspect = FIRST;
-        hdr.msgcode = msgcode;
         hdr.msgsize = 0xFFFF;
-        // Right now we send every message contiguously.
-        hdr.ident = 1;
+        hdr.message_multipart_aspect = FIRST;
+        hdr.ident = 1;        // TODO: This is an obvious bug.
+        hdr.msgcode = msgcode;
 
         size_t offset = 0xFFFF - sizeof(net_multipart_header_t);
 
