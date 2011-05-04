@@ -39,7 +39,7 @@ values = (8,128)
 delete_freq = 1
 update_freq = 4
 insert_freq = 8
-get_freq = 64
+read_freq = 64
 
 large_rget_freq = 1
 large_rget_size = (200000,1000000)
@@ -77,11 +77,16 @@ class CanonicalClient(object):
         self.client = stress.Client()
         self.insert_op = stress.InsertOp(self.key_generator, self.model.insert_chooser(), self.model, self.connection, values)
         self.client.add_op(insert_freq, self.insert_op)
-        # TODO!
+        self.update_op = stress.UpdateOp(self.key_generator, self.model.live_chooser(), self.model, self.connection, values)
+        self.client.add_op(update_freq, self.update_op)
+        self.delete_op = stress.DeleteOp(self.key_generator, self.model.delete_chooser(), self.model, self.connection)
+        self.client.add_op(delete_freq, self.delete_op)
+        self.read_op = stress.ReadOp(self.key_generator, self.model.live_chooser(), self.connection)
+        self.client.add_op(read_freq, self.read_op)
     def poll_and_reset(self):
         queries = 0
         latencies = []
-        for op in [self.insert_op, self.small_rget_op, self.large_rget_op]: # TODO
+        for op in [self.insert_op, self.update_op, self.delete_op, self.read_op]:
             op.lock()
             stats = op.poll()
             op.reset()
@@ -97,7 +102,8 @@ class RgetScanClient(object):
         self.model = stress.ConsecutiveSeedModel()
         self.connection = stress.Connection(options.servers[i % len(options.servers)])
         self.client = stress.Client()
-        # TODO!
+        self.large_rget_op = stress.PercentageRangeReadOp(self.connection, percentage=(30,100), limit=large_rget_size )
+        self.client.add_op(large_rget_freq, self.large_rget_op)
     def poll_and_reset(self):
         queries = 0
         latencies = []
