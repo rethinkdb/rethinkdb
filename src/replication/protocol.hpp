@@ -70,15 +70,12 @@ struct tracker_obj_t {
         : function(_function), buf(_buf), bufsize(_bufsize) { }
 };
 
-typedef thick_list<tracker_obj_t *, uint32_t> tracker_t;
-
 namespace internal {
 
 struct stream_handler_t {
     virtual void stream_part(const char *buf, size_t size) = 0;
     virtual void end_of_stream() = 0;
 
-protected:
     virtual ~stream_handler_t() { }
 };
 
@@ -87,6 +84,8 @@ struct connection_handler_t {
 protected:
     virtual ~connection_handler_t() { }
 };
+
+typedef thick_list<stream_handler_t *, uint32_t> tracker_t;
 
 struct replication_stream_handler_t : public stream_handler_t {
     replication_stream_handler_t(message_callback_t *receiver) : receiver_(receiver), saw_first_part_(false), tracker_obj_(NULL) { }

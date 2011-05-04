@@ -70,24 +70,6 @@ void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) 
     }
 }
 
-template <class T>
-void check_first_size(message_callback_t *receiver, const char *buf, size_t realsize, uint32_t ident, tracker_t& streams) {
-    if (sizeof(T) >= realsize
-        && sizeof(T) + reinterpret_cast<const T *>(buf)->key_size <= realsize) {
-
-        stream_pair<T> spair(buf, buf + realsize, reinterpret_cast<const T *>(buf)->value_size);
-        size_t m = realsize - sizeof(T) - reinterpret_cast<const T *>(buf)->key_size;
-
-        void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
-
-        if (!streams.add(ident, new tracker_obj_t(boost::bind(fn, receiver, spair), spair.stream->peek() + m, reinterpret_cast<const T *>(buf)->value_size - m))) {
-            throw protocol_exc_t("reused live ident code");
-        }
-
-    } else {
-        throw protocol_exc_t("message too short for message code and key size");
-    }
-}
 
 namespace internal {
 
@@ -134,8 +116,15 @@ void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
 
         saw_first_part_ = true;
     } else {
-        rassert(false, "We don't expect saw_first_part_ to be true yet.\n");
-        throw protocol_exc_t("can't handle multipart messages here yet");
+        if (tracker_obj_ == NULL) {
+            throw protocol_exc_t("multipart message received for an inappropriate message type");
+        }
+        if (size > tracker_obj_->bufsize) {
+            throw protocol_exc_t("buffer overflows value size");
+        }
+        memcpy(tracker_obj_->buf, buf, size);
+        tracker_obj_->buf += size;
+        tracker_obj_->bufsize -= size;
     }
 }
 
@@ -146,48 +135,6 @@ void replication_stream_handler_t::end_of_stream() {
         delete tracker_obj_;
         tracker_obj_ = NULL;
     }
-}
-
-void handle_small_message(message_callback_t *receiver, const char *buf, size_t size) {
-    replication_stream_handler_t h(receiver);
-    h.stream_part(buf, size);
-    h.end_of_stream();
-}
-
-void handle_first_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams) {
-    switch (msgcode) {
-    case SARC: check_first_size<net_sarc_t>(receiver, realbuf, realsize, ident, streams); break;
-    case APPEND: check_first_size<net_append_t>(receiver, realbuf, realsize, ident, streams); break;
-    case PREPEND: check_first_size<net_prepend_t>(receiver, realbuf, realsize, ident, streams); break;
-    case BACKFILL_SET: check_first_size<net_backfill_set_t>(receiver, realbuf, realsize, ident, streams); break;
-    default: throw protocol_exc_t("invalid message code for multipart message");
-    }
-}
-
-void handle_midlast_message(const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams) {
-    tracker_obj_t *tobj = streams[ident];
-
-    if (tobj == NULL) {
-        throw protocol_exc_t("inactive stream identifier");
-    }
-
-    if (realsize > tobj->bufsize) {
-        throw protocol_exc_t("buffer overflows value size");
-    }
-    memcpy(tobj->buf, realbuf, realsize);
-    tobj->buf += realsize;
-    tobj->bufsize -= realsize;
-}
-
-void handle_end_of_stream(uint32_t ident, tracker_t& streams) {
-    tracker_obj_t *tobj = streams[ident];
-    rassert(tobj != NULL, "this can't equal null because we must have just called handle_midlast_message");
-    if (tobj->bufsize != 0) {
-        throw protocol_exc_t("buffer left unfilled at LAST message");
-    }
-    tobj->function();
-    delete tobj;
-    streams.drop(ident);
 }
 
 size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams) {
@@ -211,7 +158,9 @@ size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_
         size_t realbegin = offsetof(net_header_t, msgcode);
         size_t realsize = msgsize - offsetof(net_header_t, msgcode);
 
-        handle_small_message(receiver, buf + realbegin, realsize);
+        replication_stream_handler_t h(receiver);
+        h.stream_part(buf + realbegin, realsize);
+        h.end_of_stream();
 
         return msgsize;
     } else {
@@ -230,11 +179,23 @@ size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_
         size_t realsize = msgsize - sizeof(multipart_hdr);
 
         if (multipart_hdr->message_multipart_aspect == FIRST) {
-            handle_first_message(receiver, multipart_hdr->msgcode, buf + realbegin, realsize, ident, streams);
+            if (!streams.add(ident, new replication_stream_handler_t(receiver))) {
+                throw protocol_exc_t("reused live ident code");
+            }
+
+            streams[ident]->stream_part(buf + offsetof(net_multipart_header_t, msgcode), msgsize - offsetof(net_multipart_header_t, msgcode));
+
         } else if (multipart_hdr->message_multipart_aspect == MIDDLE || multipart_hdr->message_multipart_aspect == LAST) {
-            handle_midlast_message(buf + realbegin, realsize, ident, streams);
+            stream_handler_t *h = streams[ident];
+            if (h == NULL) {
+                throw protocol_exc_t("inactive stream identifier");
+            }
+
+            h->stream_part(buf + realbegin, realsize);
             if (multipart_hdr->message_multipart_aspect == LAST) {
-                handle_end_of_stream(ident, streams);
+                h->end_of_stream();
+                delete h;
+                streams.drop(ident);
             }
         } else {
             throw protocol_exc_t("invalid message multipart aspect code");
