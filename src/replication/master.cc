@@ -14,6 +14,8 @@ namespace replication {
 void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     mutex_acquisition_t ak(&stream_setup_teardown_);
     // TODO: Carefully handle case where a slave is already connected.
+    // Note: As destroy_existing_slave_conn_if_it_exists() acquires stream_setup_teardown_ now,
+    // we must be careful in case we want to terminate existing slave connections.
     if (stream_) { 
         logWRN("Rejecting slave connection because I already have one.\n");
         return;
@@ -46,7 +48,13 @@ void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
 
 void master_t::destroy_existing_slave_conn_if_it_exists() {
     assert_thread();
+    // We acquire the stream_setup_teardown_ mutex to make sure that we don't interfere
+    // with half-opened or half-closed connections
+    boost::scoped_ptr<mutex_acquisition_t> ak(new mutex_acquisition_t(&stream_setup_teardown_));
     if (stream_) {
+        // We have to release the mutex, otherwise the following would dead-lock
+        ak.reset();
+
         stream_->shutdown();   // Will cause conn_closed() to happen
         stream_exists_cond_.get_signal()->wait();   // Waits until conn_closed() happens
         streaming_cond_.get_signal()->wait();   // Waits until a running backfill is over

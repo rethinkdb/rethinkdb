@@ -61,28 +61,37 @@ public:
     virtual ~message_callback_t() {}
 };
 
-typedef thick_list<std::pair<boost::function<void ()>, std::pair<char *, size_t> > *, uint32_t> tracker_t;
+struct tracker_obj_t {
+    boost::function<void ()> function;
+    char *buf;
+    size_t bufsize;
 
-class message_parser_t {
-public:
-    message_parser_t() {}
-    ~message_parser_t() {}
-
-    void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
-
-private:
-    size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams);
-    void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
-    void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams);
-
-    DISABLE_COPYING(message_parser_t);
+    tracker_obj_t(const boost::function<void ()>& _function, char * _buf, size_t _bufsize)
+        : function(_function), buf(_buf), bufsize(_bufsize) { }
 };
+
+typedef thick_list<tracker_obj_t *, uint32_t> tracker_t;
+
+namespace internal {
+
+void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
+
+void handle_small_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize);
+void handle_first_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams);
+void handle_midlast_message(const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams);
+void handle_end_of_stream(uint32_t ident, tracker_t& streams);
+
+size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams);
+void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
+void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams);
+
+}  // namespace internal
 
 class repli_stream_t : public home_thread_mixin_t {
 public:
     repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback) : recv_cb_(recv_callback) {
         conn_.swap(conn);
-        parser_.parse_messages(conn_.get(), recv_callback);
+        internal::parse_messages(conn_.get(), recv_callback);
         mutex_acquisition_t ak(&outgoing_mutex_);
         send_hello(ak);
     }
@@ -136,7 +145,6 @@ private:
     drain_semaphore_t drain_semaphore_;
 
     boost::scoped_ptr<tcp_conn_t> conn_;
-    message_parser_t parser_;
 };
 
 

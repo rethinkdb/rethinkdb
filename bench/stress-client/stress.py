@@ -314,6 +314,9 @@ class ReadOp(SimpleOp):
     2. A SeedChooser, which determines which keys it will look up
     3. A Connection, which is where it will submit its queries to
     4. The batch factor distribution, as a number or a tuple of (low, high)
+    Please note that add_op() does not account for batch_factor when it comes to
+    the frequency of a ReadOp! You might want to divide frequency by the average
+    batch_factor to get a more reasonable distribution of operations.
     """
 
     def __init__(self, skgen, sch, conn, batch_factor = (1,16)):

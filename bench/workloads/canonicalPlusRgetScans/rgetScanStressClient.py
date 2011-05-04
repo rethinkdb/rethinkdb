@@ -3,11 +3,10 @@
 import optparse, time, sys, random
 
 documentation = """
-The rget-mix workload cannot be expressed using the normal stress client, because it
-contains range-gets of two different sizes. This script mimics the stress client enough
-to be compatible with dbench. It accepts a subset of the parameters that the stress client
-accepts, but its "workload" parameter must always be "-w special_rget_mix_workload" and
-the workload itself is hard-coded."""
+XXX TODO
+This stress client runs the canonical workload. In addition, it runs one large rget scan at a time.
+Stats are only collected for the canonical operations. Therefore this client allows to measure
+the performance impact that long-running rget scans have on a canonical workload."""
 
 parser = optparse.OptionParser(description = documentation)
 parser.add_option("--client-suffix", dest="client_suffix", action="store_true", default=False,
@@ -22,27 +21,28 @@ parser.add_option("-s", "--server", dest="servers", action="append",
     help="Server to run against, in stress-client command-string format. If multiple are "
     "specified, queries will be split up among them.", metavar="CONN_STR")
 parser.add_option("-w", "--workload", dest="workload",
-    help="WORKLOAD must be the string 'special_rget_mix_workload'.", metavar="WORKLOAD")
+    help="WORKLOAD must be the string 'special_rget_scan_workload'.", metavar="WORKLOAD")
 
 (options, args) = parser.parse_args()
 
 # Validate options
 
 assert options.servers is not None
-assert options.workload == "special_rget_mix_workload"
+assert options.workload == "special_rget_scan_workload"
 
 # The workload parameters are hard-coded.
 
-duration = (900, "seconds")
+duration = (1800, "seconds")
 num_clients = 512
 keys = (8,16)
 values = (8,128)
-insert_freq = 30000
-# Run a lot of small rgets and a very occasional large one
-small_rget_freq = 10000
-small_rget_size = (8,128)
+delete_freq = 1
+update_freq = 4
+insert_freq = 8
+read_freq = 64 / 8 # We have to divide by the average batch factor
+
 large_rget_freq = 1
-large_rget_size = (100000,100000)
+large_rget_size = (200000,1000000)
 
 # Before running this script, full_bench copies it into a directory with libstress.so
 # and stress.py.
@@ -69,7 +69,7 @@ else: latencies_file = file(options.latencies, "w")
 
 # Set up the clients
 
-class RgetMixClient(object):
+class CanonicalClient(object):
     def __init__(self, i):
         self.key_generator = stress.SeedKeyGenerator((i, num_clients), keysize=keys)
         self.model = stress.ConsecutiveSeedModel()
@@ -77,31 +77,46 @@ class RgetMixClient(object):
         self.client = stress.Client()
         self.insert_op = stress.InsertOp(self.key_generator, self.model.insert_chooser(), self.model, self.connection, values)
         self.client.add_op(insert_freq, self.insert_op)
-        # TODO: Does this specific workload make sense?
-        self.small_rget_op = stress.PercentageRangeReadOp(self.connection, percentage=(1,2), limit=small_rget_size )
-        self.client.add_op(small_rget_freq, self.small_rget_op)
-        self.large_rget_op = stress.PercentageRangeReadOp(self.connection, percentage=(30,100), limit=large_rget_size )
-        self.client.add_op(large_rget_freq, self.large_rget_op)
+        self.update_op = stress.UpdateOp(self.key_generator, self.model.live_chooser(), self.model, self.connection, values)
+        self.client.add_op(update_freq, self.update_op)
+        self.delete_op = stress.DeleteOp(self.key_generator, self.model.delete_chooser(), self.model, self.connection)
+        self.client.add_op(delete_freq, self.delete_op)
+        self.read_op = stress.ReadOp(self.key_generator, self.model.live_chooser(), self.connection, (1, 16) )
+        self.client.add_op(read_freq, self.read_op)
     def poll_and_reset(self):
         queries = 0
         latencies = []
-        for op in [self.insert_op, self.small_rget_op, self.large_rget_op]:
+        for op in [self.insert_op, self.update_op, self.delete_op, self.read_op]:
             op.lock()
             stats = op.poll()
             op.reset()
             op.unlock()
             queries += stats["queries"]
-            # TODO: Differentiate between latencies from different operations
             latencies.extend(stats["latency_samples"])
             if op is self.insert_op: inserts = stats["queries"]
         return {"queries": queries, "latency_samples": latencies, "inserts": inserts}
+        
+class RgetScanClient(object):
+    def __init__(self, i):
+        self.key_generator = stress.SeedKeyGenerator((i, num_clients), keysize=keys)
+        self.model = stress.ConsecutiveSeedModel()
+        self.connection = stress.Connection(options.servers[i % len(options.servers)])
+        self.client = stress.Client()
+        self.large_rget_op = stress.PercentageRangeReadOp(self.connection, percentage=(30,100), limit=large_rget_size )
+        self.client.add_op(large_rget_freq, self.large_rget_op)
+    def poll_and_reset(self):
+        queries = 0
+        latencies = []
+        return {"queries": 0, "latency_samples": 0, "inserts": 0}
 
-clients = [RgetMixClient(i) for i in xrange(num_clients)]
+clients = [CanonicalClient(i) for i in xrange(num_clients-1)]
+rget_client = RgetScanClient(num_clients-1) # Instantiate an additional rget scan client
 
 # Start the clients
 
-print "Running special rget-mix workload."
+print "Running special canonical + rget-scan workload."
 for c in clients: c.client.start()
+rget_client.client.start();
 
 # Loop
 

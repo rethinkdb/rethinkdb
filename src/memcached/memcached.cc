@@ -125,10 +125,17 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         client_error(saver, "bad data chunk\r\n");
     }
 
-    void client_error_not_allowed(const thread_saver_t& saver) {
-        client_error(saver, "operation not allowed; maybe you're trying to write to a slave, or "
-            "maybe the database is currently in an inconsistent state, or maybe we're shutting "
-            "down.\r\n");
+    void client_error_not_allowed(const thread_saver_t& saver, bool op_is_write) {
+        // TODO: Do we have a way of figuring out what's going on more specifically?
+        // Like: Are we running in a replication setup? Are we actually shutting down?
+        std::string explanations;
+        if (op_is_write) {
+            explanations = "Maybe you are trying to write to a slave? We might also be shutting down, or master and slave are out of sync.";
+        } else {
+            explanations = "We might be shutting down, or master and slave are out of sync.";
+        }
+
+        client_error(saver, "operation not allowed; %s\r\n", explanations.c_str());
     }
 
     void server_error_object_too_large_for_cache(const thread_saver_t& saver) {
@@ -213,7 +220,7 @@ void do_get(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool with_
         for (int i = 0; i < (int)gets.size(); i++) {
             rassert(gets[i].res.is_not_allowed);
         }
-        rh->client_error_not_allowed(saver);
+        rh->client_error_not_allowed(saver, with_cas);
         return;
     }
 
@@ -311,7 +318,7 @@ void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc,
 
     /* Check if the query hit a gated_get_store_t */
     if (!results_iterator) {
-        rh->client_error_not_allowed(saver);
+        rh->client_error_not_allowed(saver, false);
         return;
     }
 
@@ -480,7 +487,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                 /* The error message will be written by do_storage() */
                 break;
             case sr_not_allowed:
-                rh->client_error_not_allowed(saver);
+                rh->client_error_not_allowed(saver, true);
                 break;
             default: unreachable();
             }
@@ -503,7 +510,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
                 /* The error message will be written by do_storage() */
                 break;
             case apr_not_allowed:
-                rh->client_error_not_allowed(saver);
+                rh->client_error_not_allowed(saver, true);
                 break;
             default: unreachable();
             }
@@ -640,7 +647,7 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount
                 rh->client_error(saver, "cannot increment or decrement non-numeric value\r\n");
                 break;
             case incr_decr_result_t::idr_not_allowed:
-                rh->client_error_not_allowed(saver);
+                rh->client_error_not_allowed(saver, true);
                 break;
             default: unreachable();
         }
@@ -711,7 +718,7 @@ void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
                 rh->writef(saver, "NOT_FOUND\r\n");
                 break;
             case dr_not_allowed:
-                rh->client_error_not_allowed(saver);
+                rh->client_error_not_allowed(saver, true);
                 break;
             default: unreachable();
         }

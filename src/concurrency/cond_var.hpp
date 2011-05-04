@@ -34,7 +34,9 @@ cond_t is pulsed. */
 
 struct cond_weak_ptr_t : private signal_t::waiter_t {
     cond_weak_ptr_t() : cond(NULL) { }
-    virtual ~cond_weak_ptr_t() {}
+    virtual ~cond_weak_ptr_t() {
+        rassert(!cond);
+    }
     void watch(cond_t *c) {
         rassert(!cond);
         rassert(c);
