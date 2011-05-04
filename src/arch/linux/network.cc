@@ -384,10 +384,13 @@ void linux_tcp_conn_t::on_event(int events) {
         in the socket send buffer, and the "hup" part comes from the fact that the remote end
         has hung up.
 
-        Is it possible for an equivalent problem to occur for reads? How would we detect it? */
+        The same can happen for reads, see next case. */
 
         on_shutdown_write();
 
+    } else if (events == (poll_event_err | poll_event_hup) && read_in_progress) {
+        /* See description for write case above */
+        on_shutdown_read();
     } else if (events & poll_event_err) {
         /* We don't know why we got this, so shut the hell down. */
         logERR("Unexpected poll_event_err. events=%s, read=%s, write=%s\n",
