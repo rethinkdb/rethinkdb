@@ -5,6 +5,7 @@
 namespace replication {
 perfmon_duration_sampler_t slave_conn_reading("slave_conn_reading", secs_to_ticks(1.0));
 
+// TODO: Do we ever really handle these?
 class protocol_exc_t : public std::exception {
 public:
     protocol_exc_t(const char *msg) : msg_(msg) { }
@@ -79,7 +80,7 @@ void check_first_size(message_callback_t *receiver, const char *buf, size_t real
 
         void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
 
-        if (!streams.add(ident, new std::pair<boost::function<void()>, std::pair<char *, size_t> >(boost::bind(fn, receiver, spair), std::make_pair(spair.stream->peek() + m, reinterpret_cast<const T *>(buf)->value_size - m)))) {
+        if (!streams.add(ident, new tracker_obj_t(boost::bind(fn, receiver, spair), spair.stream->peek() + m, reinterpret_cast<const T *>(buf)->value_size - m))) {
             throw protocol_exc_t("reused live ident code");
         }
 
@@ -152,25 +153,25 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, const char
             default: throw protocol_exc_t("invalid message code for multipart message");
             }
         } else if (multipart_hdr->message_multipart_aspect == MIDDLE || multipart_hdr->message_multipart_aspect == LAST) {
-            std::pair<boost::function<void ()>, std::pair<char *, size_t> > *pair = streams[ident];
+            tracker_obj_t *tobj = streams[ident];
 
-            if (pair == NULL) {
+            if (tobj == NULL) {
                 throw protocol_exc_t("inactive stream identifier");
             }
 
-            if (realsize > pair->second.second) {
+            if (realsize > tobj->bufsize) {
                 throw protocol_exc_t("buffer overflows value size");
             }
-            memcpy(pair->second.first, buf + realbegin, realsize);
-            pair->second.first += realsize;
-            pair->second.second -= realsize;
+            memcpy(tobj->buf, buf + realbegin, realsize);
+            tobj->buf += realsize;
+            tobj->bufsize -= realsize;
 
             if (multipart_hdr->message_multipart_aspect == LAST) {
-                if (pair->second.second != 0) {
+                if (tobj->bufsize != 0) {
                     throw protocol_exc_t("buffer left unfilled at LAST message");
                 }
-                pair->first();
-                delete pair;
+                tobj->function();
+                delete tobj;
                 streams.drop(ident);
             }
         } else {

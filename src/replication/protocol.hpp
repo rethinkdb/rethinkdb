@@ -61,7 +61,16 @@ public:
     virtual ~message_callback_t() {}
 };
 
-typedef thick_list<std::pair<boost::function<void ()>, std::pair<char *, size_t> > *, uint32_t> tracker_t;
+struct tracker_obj_t {
+    boost::function<void ()> function;
+    char *buf;
+    size_t bufsize;
+
+    tracker_obj_t(const boost::function<void ()>& _function, char * _buf, size_t _bufsize)
+        : function(_function), buf(_buf), bufsize(_bufsize) { }
+};
+
+typedef thick_list<tracker_obj_t *, uint32_t> tracker_t;
 
 class message_parser_t {
 public:

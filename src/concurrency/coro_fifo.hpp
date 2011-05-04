@@ -22,14 +22,14 @@ public:
     friend class coro_fifo_acq_t;
 
 private:
-    void inform_ready_to_exit(coro_fifo_acq_t *acq);
+    void inform_ready_to_leave(coro_fifo_acq_t *acq);
 
     // The acquisitor_queue_ is either empty, or it begins with a
-    // coro_fifo_acq_t for which is_waiting_to_exit_ is false.  When a
+    // coro_fifo_acq_t for which asked_to_leave_ is false.  When a
     // coro_fifo_acq_t is ready to die, it tells us so.  Then we set
-    // its is_waiting_to_exit_ to true and pulse the contiguous group
+    // its asked_to_leave_ to true and pulse the contiguous group
     // of coro_fifo_acq_t's at the front of the queue that have
-    // is_waiting_to_exit_ set to true.  This lets us shove stuff out
+    // asked_to_leave_ set to true.  This lets us shove stuff out
     // of the acquisitor_queue_ without waiting for another turn of
     // the event queue for every item we could remove.
     intrusive_list_t<coro_fifo_acq_t> acquisitor_queue_;
@@ -41,40 +41,16 @@ class coro_fifo_acq_t : public intrusive_list_node_t<coro_fifo_acq_t> {
 public:
     friend class coro_fifo_t;
 
-    coro_fifo_acq_t() : initialized_(false), fifo_(NULL), is_waiting_to_exit_(false) { }
-
-    void enter(coro_fifo_t *fifo) {
-        rassert(!initialized_);
-        rassert(!fifo_);
-        initialized_ = true;
-        fifo_ = fifo;
-        is_waiting_to_exit_ = false;
-        fifo_->assert_thread();
-        fifo_->acquisitor_queue_.push_back(this);
-    }
-
-    void exit() {
-        rassert(initialized_);
-        if (initialized_) {
-            fifo_->inform_ready_to_exit(this);
-            ready_to_exit_.wait();
-            rassert(!in_a_list, "should have been removed from the acquisitor_queue_");
-            initialized_ = false;
-        }
-    }
-
-    ~coro_fifo_acq_t() {
-        if (initialized_) {
-            exit();
-        }
-    }
+    coro_fifo_acq_t();
+    ~coro_fifo_acq_t();
+    void enter(coro_fifo_t *fifo);
+    void leave();
 
 private:
     bool initialized_;
     coro_fifo_t *fifo_;
-    cond_t ready_to_exit_;
-    bool is_waiting_to_exit_;
-
+    cond_t ready_to_leave_;
+    bool asked_to_leave_;
 
     DISABLE_COPYING(coro_fifo_acq_t);
 };
