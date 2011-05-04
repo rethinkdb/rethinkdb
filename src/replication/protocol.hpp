@@ -80,7 +80,7 @@ struct stream_handler_t {
 };
 
 struct connection_handler_t {
-    virtual stream_handler_t *make_stream_handler() = 0;
+    virtual stream_handler_t *new_stream_handler() = 0;
 protected:
     virtual ~connection_handler_t() { }
 };
@@ -100,7 +100,7 @@ private:
 };
 
 struct replication_connection_handler_t : public connection_handler_t {
-    stream_handler_t *make_stream_handler();
+    stream_handler_t *new_stream_handler() { return new replication_stream_handler_t(receiver_); }
     replication_connection_handler_t(message_callback_t *receiver) : receiver_(receiver) { }
 private:
     message_callback_t *receiver_;

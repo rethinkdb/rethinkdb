@@ -83,7 +83,9 @@ tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *bu
 
         void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
 
-        return new tracker_obj_t(boost::bind(fn, receiver, spair), spair.stream->peek() + m, reinterpret_cast<const T *>(buf)->value_size - m);
+        char *p = spair.stream->peek() + m;
+
+        return new tracker_obj_t(boost::bind(fn, receiver, spair), p, reinterpret_cast<const T *>(buf)->value_size - m);
 
     } else {
         throw protocol_exc_t("message too short for message code and key size");
@@ -137,7 +139,7 @@ void replication_stream_handler_t::end_of_stream() {
     }
 }
 
-size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams) {
+size_t handle_message(connection_handler_t *connection_handler, const char *buf, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
     if (num_read < sizeof(net_header_t)) {
@@ -158,9 +160,9 @@ size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_
         size_t realbegin = offsetof(net_header_t, msgcode);
         size_t realsize = msgsize - offsetof(net_header_t, msgcode);
 
-        replication_stream_handler_t h(receiver);
-        h.stream_part(buf + realbegin, realsize);
-        h.end_of_stream();
+        boost::scoped_ptr<stream_handler_t> h(connection_handler->new_stream_handler());
+        h->stream_part(buf + realbegin, realsize);
+        h->end_of_stream();
 
         return msgsize;
     } else {
@@ -179,7 +181,7 @@ size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_
         size_t realsize = msgsize - sizeof(multipart_hdr);
 
         if (multipart_hdr->message_multipart_aspect == FIRST) {
-            if (!streams.add(ident, new replication_stream_handler_t(receiver))) {
+            if (!streams.add(ident, connection_handler->new_stream_handler())) {
                 throw protocol_exc_t("reused live ident code");
             }
 
@@ -217,10 +219,11 @@ void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tr
     size_t offset = 0;
     size_t num_read = 0;
 
+    replication_connection_handler_t c(receiver);
     // We break out of this loop when we get a tcp_conn_t::read_closed_exc_t.
     while (true) {
         // Try handling the message.
-        size_t handled = handle_message(receiver, buffer.get() + offset, num_read, streams);
+        size_t handled = handle_message(&c, buffer.get() + offset, num_read, streams);
         if (handled > 0) {
             rassert(handled <= num_read);
             offset += handled;
