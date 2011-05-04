@@ -374,7 +374,7 @@ void linux_tcp_conn_t::on_event(int events) {
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
     poll_event_in/poll_event_out events are not sent through this function. */
 
-    if (events == (poll_event_err & poll_event_hup) && write_in_progress) {
+    if (events == (poll_event_err | poll_event_hup) && write_in_progress) {
         /* We get this when the socket is closed but there is still data we are trying to send.
         For example, it can sometimes be reproduced by sending "nonsense\r\n" and then sending
         "set [key] 0 0 [length] noreply\r\n[value]\r\n" a hundred times then immediately closing the
@@ -384,10 +384,13 @@ void linux_tcp_conn_t::on_event(int events) {
         in the socket send buffer, and the "hup" part comes from the fact that the remote end
         has hung up.
 
-        Is it possible for an equivalent problem to occur for reads? How would we detect it? */
+        The same can happen for reads, see next case. */
 
         on_shutdown_write();
 
+    } else if (events == (poll_event_err | poll_event_hup) && read_in_progress) {
+        /* See description for write case above */
+        on_shutdown_read();
     } else if (events & poll_event_err) {
         /* We don't know why we got this, so shut the hell down. */
         logERR("Unexpected poll_event_err. events=%s, read=%s, write=%s\n",

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#TODO: This should really use a customized stress client script, which runs no more than one rget scan at a time in a
+# separate thread
+
+RGET_SCAN_WORKLOAD="10000/40000/80000/640000/0/0/0/1"   # Canonical workload, but with a rare (but potentially huge) rget mixed in
+RGET_SIZE="100000-300000"
+
+if [ $DATABASE == "rethinkdb" ]; then
+    ./dbench                                                                                      \
+        -d "$BENCH_DIR/bench_output/Canonical_plus_range_scans" -H $SERVER_HOSTS    \
+        {server}rethinkdb:"--active-data-extents 1 -c 12 -m 32768 $SSD_DRIVES --unsaved-data-limit 32768"                                            \
+        {client}stress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w $RGET_SCAN_WORKLOAD -R $RGET_SIZE"\
+        iostat:1 vmstat:1 rdbstat:1
+elif [ $DATABASE == "mysql" ]; then
+    ./dbench                                                                                   \
+        -d "$BENCH_DIR/bench_output/Canonical_plus_range_scans" -H $SERVER_HOSTS             \
+        {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
+        {client}mysqlstress[$STRESS_CLIENT]:"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w $RGET_SCAN_WORKLOAD -R $RGET_SIZE" \
+        iostat:1 vmstat:1
+else
+    echo "No workload configuration for $DATABASE"
+fi
+

@@ -96,8 +96,8 @@ gets in and when not to. */
 failover_query_enabler_disabler_t::failover_query_enabler_disabler_t(gated_set_store_interface_t *sg, gated_get_store_t *gg)
     : set_gate(sg), get_gate(gg)
 {
-    /* Initially, allow gets but not sets */
-    permit_gets.reset(new gated_get_store_t::open_t(get_gate));
+    /* Initially, allow nothing until the master is up. */
+    get_gate->set_message("we started up in wait-for-backfill mode and won't accept gets until we've reached master and finished backfilling");
     set_gate->set_message("can't run sets against this server; we're still trying to reach master");
 }
 

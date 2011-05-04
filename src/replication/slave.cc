@@ -152,8 +152,7 @@ void slave_t::run(signal_t *shutdown_signal) {
             // would still be down when we come back up. But if that's not the case and it's
             // our first time connecting, we blame the failure to connect on user error.
             if (were_connected_before) {
-                crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up "
-                    "yet. But what do I know, I'm just a database.\n",
+                fail_due_to_user_error("Master at %s:%d is not responding. Perhaps you haven't brought it up yet?\n",
                     replication_config_.hostname, replication_config_.port);
             }
         }
