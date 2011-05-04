@@ -9,6 +9,8 @@
 
 /* This mini-FSM loads a buf from disk. */
 
+perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1));
+
 struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
@@ -579,6 +581,7 @@ mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access, int expected
 mc_transaction_t::~mc_transaction_t() {
     rassert(state == state_committed);
     pm_transactions_committing.end(&start_time);
+    pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
 }
 
 void mc_transaction_t::green_light() {

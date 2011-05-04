@@ -35,16 +35,16 @@ struct net_introduce_t {
 } __attribute__((__packed__));
 
 struct net_header_t {
+    uint16_t msgsize;
     uint8_t message_multipart_aspect;
     uint8_t msgcode;
-    uint16_t msgsize;
 } __attribute__((__packed__));
 
 struct net_multipart_header_t {
-    uint8_t message_multipart_aspect;
-    uint8_t msgcode;
     uint16_t msgsize;
+    uint8_t message_multipart_aspect;
     uint32_t ident;
+    uint8_t msgcode;
 } __attribute__((__packed__));
 
 struct net_backfill_t {
