@@ -91,22 +91,21 @@ void check_first_size(message_callback_t *receiver, const char *buf, size_t real
 size_t message_parser_t::handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
-    if (num_read < sizeof(net_multipart_header_t)) {
+    if (num_read < sizeof(net_header_t)) {
         return 0;
     }
 
     const net_header_t *hdr = reinterpret_cast<const net_header_t *>(buf);
-    size_t msgsize = hdr->msgsize;
-
-    if (msgsize < sizeof(net_multipart_header_t)) {
-        throw protocol_exc_t("invalid msgsize");
-    }
-
-    if (num_read < msgsize) {
-        return 0;
-    }
-
     if (hdr->message_multipart_aspect == SMALL) {
+        size_t msgsize = hdr->msgsize;
+        if (msgsize < sizeof(net_header_t)) {
+            throw protocol_exc_t("invalid msgsize");
+        }
+
+        if (num_read < msgsize) {
+            return 0;
+        }
+
         size_t realbegin = sizeof(net_header_t);
         size_t realsize = msgsize - sizeof(net_header_t);
 
@@ -127,21 +126,32 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, const char
         case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver, buf + realbegin, realsize); break;
         default: throw protocol_exc_t("invalid message code");
         }
+
+        return msgsize;
     } else {
         const net_multipart_header_t *multipart_hdr = reinterpret_cast<const net_multipart_header_t *>(buf);
+        size_t msgsize = multipart_hdr->msgsize;
+        if (msgsize < sizeof(net_multipart_header_t)) {
+            throw protocol_exc_t("invalid msgsize");
+        }
+
+        if (num_read < msgsize) {
+            return 0;
+        }
+
         uint32_t ident = multipart_hdr->ident;
         size_t realbegin = sizeof(multipart_hdr);
         size_t realsize = msgsize - sizeof(multipart_hdr);
 
-        if (hdr->message_multipart_aspect == FIRST) {
-            switch (hdr->msgcode) {
+        if (multipart_hdr->message_multipart_aspect == FIRST) {
+            switch (multipart_hdr->msgcode) {
             case SARC: check_first_size<net_sarc_t>(receiver, buf + realbegin, realsize, ident, streams); break;
             case APPEND: check_first_size<net_append_t>(receiver, buf + realbegin, realsize, ident, streams); break;
             case PREPEND: check_first_size<net_prepend_t>(receiver, buf + realbegin, realsize, ident, streams); break;
             case BACKFILL_SET: check_first_size<net_backfill_set_t>(receiver, buf + realbegin, realsize, ident, streams); break;
             default: throw protocol_exc_t("invalid message code for multipart message");
             }
-        } else if (hdr->message_multipart_aspect == MIDDLE || hdr->message_multipart_aspect == LAST) {
+        } else if (multipart_hdr->message_multipart_aspect == MIDDLE || multipart_hdr->message_multipart_aspect == LAST) {
             std::pair<boost::function<void ()>, std::pair<char *, size_t> > *pair = streams[ident];
 
             if (pair == NULL) {
@@ -155,7 +165,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, const char
             pair->second.first += realsize;
             pair->second.second -= realsize;
 
-            if (hdr->message_multipart_aspect == LAST) {
+            if (multipart_hdr->message_multipart_aspect == LAST) {
                 if (pair->second.second != 0) {
                     throw protocol_exc_t("buffer left unfilled at LAST message");
                 }
@@ -166,9 +176,9 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, const char
         } else {
             throw protocol_exc_t("invalid message multipart aspect code");
         }
-    }
 
-    return msgsize;
+        return msgsize;
+    }
 }
 
 void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams) {
