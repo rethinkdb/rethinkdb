@@ -107,7 +107,16 @@ void message_parser_t::handle_small_message(message_callback_t *receiver, int ms
     case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver, realbuf, realsize); break;
     default: throw protocol_exc_t("invalid message code");
     }
+}
 
+void message_parser_t::handle_first_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams) {
+    switch (msgcode) {
+    case SARC: check_first_size<net_sarc_t>(receiver, realbuf, realsize, ident, streams); break;
+    case APPEND: check_first_size<net_append_t>(receiver, realbuf, realsize, ident, streams); break;
+    case PREPEND: check_first_size<net_prepend_t>(receiver, realbuf, realsize, ident, streams); break;
+    case BACKFILL_SET: check_first_size<net_backfill_set_t>(receiver, realbuf, realsize, ident, streams); break;
+    default: throw protocol_exc_t("invalid message code for multipart message");
+    }
 }
 
 size_t message_parser_t::handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams) {
@@ -150,13 +159,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, const char
         size_t realsize = msgsize - sizeof(multipart_hdr);
 
         if (multipart_hdr->message_multipart_aspect == FIRST) {
-            switch (multipart_hdr->msgcode) {
-            case SARC: check_first_size<net_sarc_t>(receiver, buf + realbegin, realsize, ident, streams); break;
-            case APPEND: check_first_size<net_append_t>(receiver, buf + realbegin, realsize, ident, streams); break;
-            case PREPEND: check_first_size<net_prepend_t>(receiver, buf + realbegin, realsize, ident, streams); break;
-            case BACKFILL_SET: check_first_size<net_backfill_set_t>(receiver, buf + realbegin, realsize, ident, streams); break;
-            default: throw protocol_exc_t("invalid message code for multipart message");
-            }
+            handle_first_message(receiver, multipart_hdr->msgcode, buf + realbegin, realsize, ident, streams);
         } else if (multipart_hdr->message_multipart_aspect == MIDDLE || multipart_hdr->message_multipart_aspect == LAST) {
             tracker_obj_t *tobj = streams[ident];
 
