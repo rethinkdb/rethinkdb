@@ -149,18 +149,6 @@ struct net_backfill_delete_t {
     char key[];
 } __attribute__((__packed__));
 
-template <class T>
-struct headed {
-    net_header_t hdr;
-    T data;
-} __attribute__((__packed__));
-
-template <class T>
-struct multipart_headed {
-    net_multipart_header_t hdr;
-    T data;
-} __attribute__((__packed__));
-
 }  // namespace replication
 
 #endif  // __REPLICATION_NET_STRUCTS_HPP__
