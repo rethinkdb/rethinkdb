@@ -56,8 +56,7 @@ struct net_backfill_complete_t {
 } __attribute__((__packed__));
 
 struct net_backfill_delete_everything_t {
-    // We need at least 4 bytes so that we do not get a msgsize
-    // smaller than sizeof(net_multipart_header_t).
+    // Unnecessary padding.
     uint32_t padding;
 } __attribute__((__packed__));
 
