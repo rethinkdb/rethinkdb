@@ -89,7 +89,9 @@ void check_first_size(message_callback_t *receiver, const char *buf, size_t real
     }
 }
 
-void message_parser_t::handle_small_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize) {
+namespace internal {
+
+void handle_small_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize) {
     switch (msgcode) {
     case INTRODUCE: check_pass<net_introduce_t>(receiver, realbuf, realsize); break;
     case BACKFILL: check_pass<net_backfill_t>(receiver, realbuf, realsize); break;
@@ -109,7 +111,7 @@ void message_parser_t::handle_small_message(message_callback_t *receiver, int ms
     }
 }
 
-void message_parser_t::handle_first_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams) {
+void handle_first_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams) {
     switch (msgcode) {
     case SARC: check_first_size<net_sarc_t>(receiver, realbuf, realsize, ident, streams); break;
     case APPEND: check_first_size<net_append_t>(receiver, realbuf, realsize, ident, streams); break;
@@ -119,7 +121,7 @@ void message_parser_t::handle_first_message(message_callback_t *receiver, int ms
     }
 }
 
-void message_parser_t::handle_midlast_message(const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams) {
+void handle_midlast_message(const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams) {
     tracker_obj_t *tobj = streams[ident];
 
     if (tobj == NULL) {
@@ -134,7 +136,7 @@ void message_parser_t::handle_midlast_message(const char *realbuf, size_t realsi
     tobj->bufsize -= realsize;
 }
 
-void message_parser_t::handle_end_of_stream(uint32_t ident, tracker_t& streams) {
+void handle_end_of_stream(uint32_t ident, tracker_t& streams) {
     tracker_obj_t *tobj = streams[ident];
     rassert(tobj != NULL, "this can't equal null because we must have just called handle_midlast_message");
     if (tobj->bufsize != 0) {
@@ -145,7 +147,7 @@ void message_parser_t::handle_end_of_stream(uint32_t ident, tracker_t& streams) 
     streams.drop(ident);
 }
 
-size_t message_parser_t::handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams) {
+size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
     if (num_read < sizeof(net_header_t)) {
@@ -199,7 +201,7 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, const char
     }
 }
 
-void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams) {
+void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams) {
 
     // This is slightly inefficient: we do excess copying since
     // handle_message is forced to accept a contiguous message, even
@@ -236,7 +238,7 @@ void message_parser_t::do_parse_normal_messages(tcp_conn_t *conn, message_callba
 }
 
 
-void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
 
     try {
         do_parse_hello_message(conn, receiver);
@@ -256,12 +258,14 @@ void message_parser_t::do_parse_messages(tcp_conn_t *conn, message_callback_t *r
     receiver->conn_closed();
 }
 
-void message_parser_t::parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+void parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
 
-    coro_t::spawn(boost::bind(&message_parser_t::do_parse_messages, this, conn, receiver));
+    coro_t::spawn(boost::bind(&internal::do_parse_messages, conn, receiver));
 }
 
-// REPLI_STREAM_T
+}  // namespace internal
+
+
 
 template <class net_struct_type>
 void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
