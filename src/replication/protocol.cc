@@ -119,6 +119,32 @@ void message_parser_t::handle_first_message(message_callback_t *receiver, int ms
     }
 }
 
+void message_parser_t::handle_midlast_message(const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams) {
+    tracker_obj_t *tobj = streams[ident];
+
+    if (tobj == NULL) {
+        throw protocol_exc_t("inactive stream identifier");
+    }
+
+    if (realsize > tobj->bufsize) {
+        throw protocol_exc_t("buffer overflows value size");
+    }
+    memcpy(tobj->buf, realbuf, realsize);
+    tobj->buf += realsize;
+    tobj->bufsize -= realsize;
+}
+
+void message_parser_t::handle_end_of_stream(uint32_t ident, tracker_t& streams) {
+    tracker_obj_t *tobj = streams[ident];
+    rassert(tobj != NULL, "this can't equal null because we must have just called handle_midlast_message");
+    if (tobj->bufsize != 0) {
+        throw protocol_exc_t("buffer left unfilled at LAST message");
+    }
+    tobj->function();
+    delete tobj;
+    streams.drop(ident);
+}
+
 size_t message_parser_t::handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
@@ -161,26 +187,9 @@ size_t message_parser_t::handle_message(message_callback_t *receiver, const char
         if (multipart_hdr->message_multipart_aspect == FIRST) {
             handle_first_message(receiver, multipart_hdr->msgcode, buf + realbegin, realsize, ident, streams);
         } else if (multipart_hdr->message_multipart_aspect == MIDDLE || multipart_hdr->message_multipart_aspect == LAST) {
-            tracker_obj_t *tobj = streams[ident];
-
-            if (tobj == NULL) {
-                throw protocol_exc_t("inactive stream identifier");
-            }
-
-            if (realsize > tobj->bufsize) {
-                throw protocol_exc_t("buffer overflows value size");
-            }
-            memcpy(tobj->buf, buf + realbegin, realsize);
-            tobj->buf += realsize;
-            tobj->bufsize -= realsize;
-
+            handle_midlast_message(buf + realbegin, realsize, ident, streams);
             if (multipart_hdr->message_multipart_aspect == LAST) {
-                if (tobj->bufsize != 0) {
-                    throw protocol_exc_t("buffer left unfilled at LAST message");
-                }
-                tobj->function();
-                delete tobj;
-                streams.drop(ident);
+                handle_end_of_stream(ident, streams);
             }
         } else {
             throw protocol_exc_t("invalid message multipart aspect code");
