@@ -12,3 +12,30 @@ void coro_fifo_t::inform_ready_to_leave(coro_fifo_acq_t *acq) {
     }
 }
 
+coro_fifo_acq_t::coro_fifo_acq_t() : initialized_(false), fifo_(NULL), asked_to_leave_(false) { }
+
+coro_fifo_acq_t::~coro_fifo_acq_t() {
+    if (initialized_) {
+        leave();
+    }
+}
+
+void coro_fifo_acq_t::enter(coro_fifo_t *fifo) {
+    rassert(!initialized_);
+    rassert(!fifo_);
+    initialized_ = true;
+    fifo_ = fifo;
+    asked_to_leave_ = false;
+    fifo_->assert_thread();
+    fifo_->acquisitor_queue_.push_back(this);
+}
+
+void coro_fifo_acq_t::leave() {
+    rassert(initialized_);
+    if (initialized_) {
+        fifo_->inform_ready_to_leave(this);
+        ready_to_leave_.wait();
+        rassert(!in_a_list, "should have been removed from the acquisitor_queue_");
+        initialized_ = false;
+    }
+}
