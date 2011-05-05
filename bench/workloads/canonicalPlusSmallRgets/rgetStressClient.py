@@ -120,8 +120,7 @@ class RgetClient(object):
             op.unlock()
             queries += stats["queries"]
             latencies.extend(stats["latency_samples"])
-            if op is self.insert_op: inserts = stats["queries"]
-        return {"queries": queries, "latency_samples": latencies, "inserts": inserts}
+        return {"queries": queries, "latency_samples": latencies, "inserts": 0}
 
 clients = [CanonicalClient(i) for i in xrange(num_canonical_clients)]
 rget_clients = [RgetClient(i) for i in xrange(num_rget_clients)]
