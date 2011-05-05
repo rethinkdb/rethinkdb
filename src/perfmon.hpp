@@ -9,6 +9,7 @@
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 #include <limits>
+#include "server/control.hpp"
 
 #include <sstream>
 
@@ -160,7 +161,9 @@ public:
  * ones, this perfmon_duration_sampler_t has an ignore_global_full_perfmon
  * field on it.  */
 
-struct perfmon_duration_sampler_t {
+struct perfmon_duration_sampler_t 
+    : public control_t
+{
 
 private:
     perfmon_counter_t active;
@@ -169,7 +172,8 @@ private:
     bool ignore_global_full_perfmon;
 public:
     perfmon_duration_sampler_t(std::string name, ticks_t length, bool ignore_global_full_perfmon = false) 
-        : active(name + "_active_count"), total(name + "_total") , recent(name, length, true), 
+        : control_t(std::string("pm_") + name + "_toggle", name + " toggle on and off", true),
+          active(name + "_active_count"), total(name + "_total") , recent(name, length, true), 
           ignore_global_full_perfmon(ignore_global_full_perfmon)
         { }
     void begin(ticks_t *v) {
@@ -181,6 +185,14 @@ public:
     void end(ticks_t *v) {
         active--;
         if (*v != 0) recent.record(ticks_to_secs(get_ticks() - *v));
+    }
+
+//Control interface used for enabling and disabling duration samplers at run time
+public:
+    std::string call(UNUSED int argc, UNUSED char **argv) {
+        ignore_global_full_perfmon = !ignore_global_full_perfmon;
+        if (ignore_global_full_perfmon) return std::string("Enabled\n");
+        else                            return std::string("Disabled\n");
     }
 };
 
