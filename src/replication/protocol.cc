@@ -239,14 +239,13 @@ void do_parse_normal_messages(tcp_conn_t *conn, connection_handler_t *conn_handl
 }
 
 
-void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
 
     try {
-        replication_connection_handler_t c(receiver);
-        do_parse_hello_message(conn, &c);
+        do_parse_hello_message(conn, conn_handler);
 
         tracker_t streams;
-        do_parse_normal_messages(conn, &c, streams);
+        do_parse_normal_messages(conn, conn_handler, streams);
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
         // Do nothing; this was to be expected.
@@ -257,12 +256,12 @@ void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
 #endif
     }
 
-    receiver->conn_closed();
+    conn_handler->conn_closed();
 }
 
-void parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
+void parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
 
-    coro_t::spawn(boost::bind(&internal::do_parse_messages, conn, receiver));
+    coro_t::spawn(boost::bind(&internal::do_parse_messages, conn, conn_handler));
 }
 
 }  // namespace internal

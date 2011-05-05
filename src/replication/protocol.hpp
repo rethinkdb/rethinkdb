@@ -91,6 +91,7 @@ struct stream_handler_t {
 struct connection_handler_t {
     virtual void process_hello_message(net_hello_t msg) = 0;
     virtual stream_handler_t *new_stream_handler() = 0;
+    virtual void conn_closed() = 0;
 protected:
     virtual ~connection_handler_t() { }
 };
@@ -113,23 +114,24 @@ struct replication_connection_handler_t : public connection_handler_t {
     void process_hello_message(net_hello_t msg);
     stream_handler_t *new_stream_handler() { return new replication_stream_handler_t(receiver_); }
     replication_connection_handler_t(message_callback_t *receiver) : receiver_(receiver) { }
+    void conn_closed() { receiver_->conn_closed(); }
 private:
     message_callback_t *receiver_;
 };
 
 
-void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
+void parse_messages(tcp_conn_t *conn, connection_handler_t *receiver);
 
-void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
+void do_parse_messages(tcp_conn_t *conn, connection_handler_t *receiver);
 void do_parse_normal_messages(tcp_conn_t *conn, connection_handler_t *conn_handler, tracker_t& streams);
 
 }  // namespace internal
 
 class repli_stream_t : public home_thread_mixin_t {
 public:
-    repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback) : recv_cb_(recv_callback) {
+    repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback) : conn_handler_(recv_callback) {
         conn_.swap(conn);
-        internal::parse_messages(conn_.get(), recv_callback);
+        internal::parse_messages(conn_.get(), &conn_handler_);
         mutex_acquisition_t ak(&outgoing_mutex_);
         send_hello(ak);
     }
@@ -173,7 +175,7 @@ private:
 
     void try_write(const void *data, size_t size);
 
-    message_callback_t *recv_cb_;
+    internal::replication_connection_handler_t conn_handler_;
 
     /* outgoing_mutex_ is used to prevent messages from being interlaced on the wire */
     mutex_t outgoing_mutex_;
