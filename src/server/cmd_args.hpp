@@ -146,7 +146,6 @@ struct replication_config_t {
 /* Configuration for failover */
 struct failover_config_t {
     char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
-    int     heartbeat_timeout; /* noncommunicative period after which the other server is considered to be unreachable we can maybe take this out TODO @jdoliner */
     bool    active;
     int     elb_port;
     bool    no_rogue; /* whether to go rogue when the master is struggling to stay up */
@@ -225,7 +224,6 @@ public:
     void set_master_addr(const char *value);
     void set_total_delete_queue_limit(const char *value);
     void set_failover_file(const char* value);
-    void set_heartbeat_timeout(const char* value);
     void set_elb_port(const char* value);
     void set_io_backend(const char* value);
     void push_private_config(const char* value);

@@ -176,7 +176,6 @@ enum {
     master_port,
     slave_of,
     failover_script,
-    heartbeat_timeout,
     flush_concurrency,
     flush_threshold,
     run_behind_elb,
@@ -239,7 +238,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"master",               required_argument, 0, master_port},
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
-                {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO @sam push this through to where you want it
                 {"run-behind-elb",       required_argument, 0, run_behind_elb},
                 {"failover",             no_argument, 0, failover}, //TODO hook this up
                 {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
@@ -321,8 +319,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_master_addr(optarg); break;
             case failover_script:
                 config.set_failover_file(optarg); break;
-            case heartbeat_timeout:
-                not_implemented(); break;
             case run_behind_elb:
                 config.set_elb_port(optarg); break;
             case full_perfmon:
@@ -712,12 +708,6 @@ void parsing_cmd_config_t::set_failover_file(const char* value) {
         fail_due_to_user_error("Failover script path is too long");
 
     strcpy(failover_config.failover_script_path, value);
-}
-void parsing_cmd_config_t::set_heartbeat_timeout(const char* value) {
-    failover_config.heartbeat_timeout = parse_int(value);
-
-    if (failover_config.heartbeat_timeout < 0)
-        fail_due_to_user_error("Heartbeat cannot be negative");
 }
 
 void parsing_cmd_config_t::set_elb_port(const char *value) {
