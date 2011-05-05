@@ -15,7 +15,7 @@ class TestFailure(Exception):
 class StdoutAsLog(object):
     def __init__(self, name, test_dir):
         self.name = name
-        self.test_dir = test_dir
+        self.test_dir = test_dirstress
     def __enter__(self):
         self.path = self.test_dir.make_file(self.name)
         print "Writing log file %r." % self.path
@@ -142,9 +142,9 @@ def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "in
     command_line = [executable_path,
         "-s", "%s:%d" % (host, port),
         "-d", duration,
-        "-w", "%d/%d/%d/%d/%d/%d/%d" % (workload.get("deletes", 0), workload.get("updates", 0),
+        "-w", "%d/%d/%d/%d/%d/%d/%d/%d" % (workload.get("deletes", 0), workload.get("updates", 0),
             workload.get("inserts", 0), workload.get("gets", 0), workload.get("appends", 0),
-            workload.get("prepends", 0), workload.get("verifies", 0)),
+            workload.get("prepends", 0), workload.get("verifies", 0), workload.get("rgets", 0)),
         "-c", str(clients),
         ] + extra_flags
     
