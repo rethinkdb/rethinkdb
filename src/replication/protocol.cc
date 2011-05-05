@@ -144,15 +144,19 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         try_write(&msgcode, sizeof(msgcode));
         try_write(msg, obsize);
     } else {
+        // Right now we don't really split up messages into
+        // submessages.
+        mutex_acquisition_t ak(&outgoing_mutex_);
+
         net_multipart_header_t hdr;
         hdr.msgsize = MAX_MESSAGE_SIZE;
         hdr.message_multipart_aspect = FIRST;
-        hdr.ident = 1;        // TODO: This is an obvious bug.
+        hdr.ident = 1;        // TODO: This is an obvious bug, when we can split up our messages (but right now it is fine because we hold the mutex_acquisition_t the whole time).
 
         size_t offset = MAX_MESSAGE_SIZE - (sizeof(net_multipart_header_t) + 1);
 
         {
-            mutex_acquisition_t ak(&outgoing_mutex_);
+            //            mutex_acquisition_t ak(&outgoing_mutex_);
             try_write(&hdr, sizeof(net_multipart_header_t));
             rassert(sizeof(msgcode) == 1);
             try_write(&msgcode, sizeof(msgcode));
@@ -162,7 +166,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         char *buf = reinterpret_cast<char *>(msg);
 
         while (offset + MAX_MESSAGE_SIZE < obsize) {
-            mutex_acquisition_t ak(&outgoing_mutex_);
+            //            mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = MIDDLE;
             try_write(&hdr, sizeof(net_multipart_header_t));
             try_write(buf + offset, MAX_MESSAGE_SIZE);
@@ -171,7 +175,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
         {
             rassert(obsize - offset <= MAX_MESSAGE_SIZE);
-            mutex_acquisition_t ak(&outgoing_mutex_);
+            //            mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = LAST;
             try_write(&hdr, sizeof(net_multipart_header_t));
             try_write(buf + offset, obsize - offset);
