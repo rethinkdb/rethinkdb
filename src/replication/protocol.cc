@@ -70,84 +70,76 @@ void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) 
     }
 }
 
-template <class T>
-void check_first_size(message_callback_t *receiver, const char *buf, size_t realsize, uint32_t ident, tracker_t& streams) {
-    if (sizeof(T) >= realsize
-        && sizeof(T) + reinterpret_cast<const T *>(buf)->key_size <= realsize) {
 
-        stream_pair<T> spair(buf, buf + realsize, reinterpret_cast<const T *>(buf)->value_size);
-        size_t m = realsize - sizeof(T) - reinterpret_cast<const T *>(buf)->key_size;
+namespace internal {
+
+template <class T>
+tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *buf, size_t size) {
+    if (sizeof(T) <= size
+        && sizeof(T) + reinterpret_cast<const T *>(buf)->key_size <= size) {
+
+        stream_pair<T> spair(buf, buf + size, reinterpret_cast<const T *>(buf)->value_size);
+        size_t m = size - sizeof(T) - reinterpret_cast<const T *>(buf)->key_size;
 
         void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
 
-        if (!streams.add(ident, new tracker_obj_t(boost::bind(fn, receiver, spair), spair.stream->peek() + m, reinterpret_cast<const T *>(buf)->value_size - m))) {
-            throw protocol_exc_t("reused live ident code");
-        }
+        char *p = spair.stream->peek() + m;
+
+        return new tracker_obj_t(boost::bind(fn, receiver, spair), p, reinterpret_cast<const T *>(buf)->value_size - m);
 
     } else {
         throw protocol_exc_t("message too short for message code and key size");
     }
 }
 
-namespace internal {
+void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
+    if (!saw_first_part_) {
+        uint8_t msgcode = *reinterpret_cast<const uint8_t *>(buf);
+        ++buf;
+        --size;
 
-void handle_small_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize) {
-    switch (msgcode) {
-    case INTRODUCE: check_pass<net_introduce_t>(receiver, realbuf, realsize); break;
-    case BACKFILL: check_pass<net_backfill_t>(receiver, realbuf, realsize); break;
-    case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver, realbuf, realsize); break;
-    case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver, realbuf, realsize); break;
-    case NOP: check_pass<net_nop_t>(receiver, realbuf, realsize); break;
-    case GET_CAS: check_pass<net_get_cas_t>(receiver, realbuf, realsize); break;
-    case SARC: check_pass<net_sarc_t>(receiver, realbuf, realsize); break;
-    case INCR: check_pass<net_incr_t>(receiver, realbuf, realsize); break;
-    case DECR: check_pass<net_decr_t>(receiver, realbuf, realsize); break;
-    case APPEND: check_pass<net_append_t>(receiver, realbuf, realsize); break;
-    case PREPEND: check_pass<net_prepend_t>(receiver, realbuf, realsize); break;
-    case DELETE: check_pass<net_delete_t>(receiver, realbuf, realsize); break;
-    case BACKFILL_SET: check_pass<net_backfill_set_t>(receiver, realbuf, realsize); break;
-    case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver, realbuf, realsize); break;
-    default: throw protocol_exc_t("invalid message code");
+        switch (msgcode) {
+        case INTRODUCE: check_pass<net_introduce_t>(receiver_, buf, size); break;
+        case BACKFILL: check_pass<net_backfill_t>(receiver_, buf, size); break;
+        case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver_, buf, size); break;
+        case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver_, buf, size); break;
+        case NOP: check_pass<net_nop_t>(receiver_, buf, size); break;
+        case GET_CAS: check_pass<net_get_cas_t>(receiver_, buf, size); break;
+        case SARC: tracker_obj_ = check_value_streamer<net_sarc_t>(receiver_, buf, size); break;
+        case INCR: check_pass<net_incr_t>(receiver_, buf, size); break;
+        case DECR: check_pass<net_decr_t>(receiver_, buf, size); break;
+        case APPEND: tracker_obj_ = check_value_streamer<net_append_t>(receiver_, buf, size); break;
+        case PREPEND: tracker_obj_ = check_value_streamer<net_prepend_t>(receiver_, buf, size); break;
+        case DELETE: check_pass<net_delete_t>(receiver_, buf, size); break;
+        case BACKFILL_SET: tracker_obj_ = check_value_streamer<net_backfill_set_t>(receiver_, buf, size); break;
+        case BACKFILL_DELETE: check_pass<net_backfill_delete_t>(receiver_, buf, size); break;
+        default: throw protocol_exc_t("invalid message code");
+        }
+
+        saw_first_part_ = true;
+    } else {
+        if (tracker_obj_ == NULL) {
+            throw protocol_exc_t("multipart message received for an inappropriate message type");
+        }
+        if (size > tracker_obj_->bufsize) {
+            throw protocol_exc_t("buffer overflows value size");
+        }
+        memcpy(tracker_obj_->buf, buf, size);
+        tracker_obj_->buf += size;
+        tracker_obj_->bufsize -= size;
     }
 }
 
-void handle_first_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams) {
-    switch (msgcode) {
-    case SARC: check_first_size<net_sarc_t>(receiver, realbuf, realsize, ident, streams); break;
-    case APPEND: check_first_size<net_append_t>(receiver, realbuf, realsize, ident, streams); break;
-    case PREPEND: check_first_size<net_prepend_t>(receiver, realbuf, realsize, ident, streams); break;
-    case BACKFILL_SET: check_first_size<net_backfill_set_t>(receiver, realbuf, realsize, ident, streams); break;
-    default: throw protocol_exc_t("invalid message code for multipart message");
+void replication_stream_handler_t::end_of_stream() {
+    rassert(saw_first_part_);
+    if (tracker_obj_) {
+        tracker_obj_->function();
+        delete tracker_obj_;
+        tracker_obj_ = NULL;
     }
 }
 
-void handle_midlast_message(const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams) {
-    tracker_obj_t *tobj = streams[ident];
-
-    if (tobj == NULL) {
-        throw protocol_exc_t("inactive stream identifier");
-    }
-
-    if (realsize > tobj->bufsize) {
-        throw protocol_exc_t("buffer overflows value size");
-    }
-    memcpy(tobj->buf, realbuf, realsize);
-    tobj->buf += realsize;
-    tobj->bufsize -= realsize;
-}
-
-void handle_end_of_stream(uint32_t ident, tracker_t& streams) {
-    tracker_obj_t *tobj = streams[ident];
-    rassert(tobj != NULL, "this can't equal null because we must have just called handle_midlast_message");
-    if (tobj->bufsize != 0) {
-        throw protocol_exc_t("buffer left unfilled at LAST message");
-    }
-    tobj->function();
-    delete tobj;
-    streams.drop(ident);
-}
-
-size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams) {
+size_t handle_message(connection_handler_t *connection_handler, const char *buf, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
 
     if (num_read < sizeof(net_header_t)) {
@@ -157,7 +149,7 @@ size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_
     const net_header_t *hdr = reinterpret_cast<const net_header_t *>(buf);
     if (hdr->message_multipart_aspect == SMALL) {
         size_t msgsize = hdr->msgsize;
-        if (msgsize < sizeof(net_header_t)) {
+        if (msgsize < sizeof(net_header_t) + 1) {
             throw protocol_exc_t("invalid msgsize");
         }
 
@@ -168,7 +160,9 @@ size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_
         size_t realbegin = sizeof(net_header_t);
         size_t realsize = msgsize - sizeof(net_header_t);
 
-        handle_small_message(receiver, hdr->msgcode, buf + realbegin, realsize);
+        boost::scoped_ptr<stream_handler_t> h(connection_handler->new_stream_handler());
+        h->stream_part(buf + realbegin, realsize);
+        h->end_of_stream();
 
         return msgsize;
     } else {
@@ -183,15 +177,25 @@ size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_
         }
 
         uint32_t ident = multipart_hdr->ident;
-        size_t realbegin = sizeof(multipart_hdr);
-        size_t realsize = msgsize - sizeof(multipart_hdr);
 
         if (multipart_hdr->message_multipart_aspect == FIRST) {
-            handle_first_message(receiver, multipart_hdr->msgcode, buf + realbegin, realsize, ident, streams);
+            if (!streams.add(ident, connection_handler->new_stream_handler())) {
+                throw protocol_exc_t("reused live ident code");
+            }
+
+            streams[ident]->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
+
         } else if (multipart_hdr->message_multipart_aspect == MIDDLE || multipart_hdr->message_multipart_aspect == LAST) {
-            handle_midlast_message(buf + realbegin, realsize, ident, streams);
+            stream_handler_t *h = streams[ident];
+            if (h == NULL) {
+                throw protocol_exc_t("inactive stream identifier");
+            }
+
+            h->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
             if (multipart_hdr->message_multipart_aspect == LAST) {
-                handle_end_of_stream(ident, streams);
+                h->end_of_stream();
+                delete h;
+                streams.drop(ident);
             }
         } else {
             throw protocol_exc_t("invalid message multipart aspect code");
@@ -213,10 +217,11 @@ void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tr
     size_t offset = 0;
     size_t num_read = 0;
 
+    replication_connection_handler_t c(receiver);
     // We break out of this loop when we get a tcp_conn_t::read_closed_exc_t.
     while (true) {
         // Try handling the message.
-        size_t handled = handle_message(receiver, buffer.get() + offset, num_read, streams);
+        size_t handled = handle_message(&c, buffer.get() + offset, num_read, streams);
         if (handled > 0) {
             rassert(handled <= num_read);
             offset += handled;
@@ -272,28 +277,30 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
     size_t obsize = objsize(msg);
 
-    if (obsize + sizeof(net_header_t) <= 0xFFFF) {
+    if (obsize + sizeof(net_header_t) + 1 <= 0xFFFF) {
         net_header_t hdr;
-        hdr.msgsize = sizeof(net_header_t) + obsize;
+        hdr.msgsize = sizeof(net_header_t) + 1 + obsize;
         hdr.message_multipart_aspect = SMALL;
-        hdr.msgcode = msgcode;
 
         mutex_acquisition_t ak(&outgoing_mutex_);
 
         try_write(&hdr, sizeof(net_header_t));
+        rassert(1 == sizeof(msgcode));
+        try_write(&msgcode, sizeof(msgcode));
         try_write(msg, obsize);
     } else {
         net_multipart_header_t hdr;
         hdr.msgsize = 0xFFFF;
         hdr.message_multipart_aspect = FIRST;
         hdr.ident = 1;        // TODO: This is an obvious bug.
-        hdr.msgcode = msgcode;
 
-        size_t offset = 0xFFFF - sizeof(net_multipart_header_t);
+        size_t offset = 0xFFFF - (sizeof(net_multipart_header_t) + 1);
 
         {
             mutex_acquisition_t ak(&outgoing_mutex_);
             try_write(&hdr, sizeof(net_multipart_header_t));
+            rassert(sizeof(msgcode) == 1);
+            try_write(&msgcode, sizeof(msgcode));
             try_write(msg, offset);
         }
 
@@ -303,7 +310,6 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
             mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = MIDDLE;
             try_write(&hdr, sizeof(net_multipart_header_t));
-            // TODO change protocol so that 0 means 0x10000 mmkay?
             try_write(buf + offset, 0xFFFF);
             offset += 0xFFFF;
         }
@@ -416,8 +422,8 @@ void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_ac
 
     net_hello_t msg;
     rassert(sizeof(msg.hello_magic) == 16);
-    // TODO make a #define for this.
-    memcpy(msg.hello_magic, "13rethinkdbrepl", 16);
+    rassert(sizeof(STANDARD_HELLO_MAGIC) == 16);
+    memcpy(msg.hello_magic, STANDARD_HELLO_MAGIC, 16);
     msg.replication_protocol_version = 1;
 
     try_write(&msg, sizeof(msg));

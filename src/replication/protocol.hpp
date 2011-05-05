@@ -70,9 +70,42 @@ struct tracker_obj_t {
         : function(_function), buf(_buf), bufsize(_bufsize) { }
 };
 
-typedef thick_list<tracker_obj_t *, uint32_t> tracker_t;
-
 namespace internal {
+
+struct stream_handler_t {
+    virtual void stream_part(const char *buf, size_t size) = 0;
+    virtual void end_of_stream() = 0;
+
+    virtual ~stream_handler_t() { }
+};
+
+struct connection_handler_t {
+    virtual stream_handler_t *new_stream_handler() = 0;
+protected:
+    virtual ~connection_handler_t() { }
+};
+
+typedef thick_list<stream_handler_t *, uint32_t> tracker_t;
+
+struct replication_stream_handler_t : public stream_handler_t {
+    replication_stream_handler_t(message_callback_t *receiver) : receiver_(receiver), saw_first_part_(false), tracker_obj_(NULL) { }
+    ~replication_stream_handler_t() { delete tracker_obj_; }
+    void stream_part(const char *buf, size_t size);
+    void end_of_stream();
+
+private:
+    message_callback_t *const receiver_;
+    bool saw_first_part_;
+    tracker_obj_t *tracker_obj_;
+};
+
+struct replication_connection_handler_t : public connection_handler_t {
+    stream_handler_t *new_stream_handler() { return new replication_stream_handler_t(receiver_); }
+    replication_connection_handler_t(message_callback_t *receiver) : receiver_(receiver) { }
+private:
+    message_callback_t *receiver_;
+};
+
 
 void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
 
