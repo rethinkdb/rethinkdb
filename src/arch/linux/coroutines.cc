@@ -334,7 +334,7 @@ void coro_t::notify() {
 
 void coro_t::move_to_thread(int thread) {   /* class method */
     assert_good_thread_id(thread);
-    if (thread == self()->current_thread_) {
+    if (thread == linux_thread_pool_t::thread_id) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
