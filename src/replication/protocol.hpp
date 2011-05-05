@@ -15,6 +15,15 @@
 
 namespace replication {
 
+// TODO: Do we ever really handle these?
+class protocol_exc_t : public std::exception {
+public:
+    protocol_exc_t(const char *msg) : msg_(msg) { }
+    const char *what() throw() { return msg_; }
+private:
+    const char *msg_;
+};
+
 template <class T>
 struct stream_pair {
     unique_ptr_t<buffered_data_provider_t> stream;

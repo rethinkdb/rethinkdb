@@ -5,14 +5,6 @@
 namespace replication {
 perfmon_duration_sampler_t slave_conn_reading("slave_conn_reading", secs_to_ticks(1.0));
 
-// TODO: Do we ever really handle these?
-class protocol_exc_t : public std::exception {
-public:
-    protocol_exc_t(const char *msg) : msg_(msg) { }
-    const char *what() throw() { return msg_; }
-private:
-    const char *msg_;
-};
 
 // The 16 bytes conveniently include a \0 at the end.
 // 13 is the length of the text.
