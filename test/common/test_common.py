@@ -525,7 +525,11 @@ class FailoverMemcachedWrapper(object):
 
         assert self.down[jesus]
         print "Resurrecting %s..." % jesus
+
+        # Bring up the other server, and make sure that _both_ can
+        # accept gets, so that we know backfilling is complete.
         self.server[jesus].start()
+        self.server["master" if jesus == "slave" else "slave"].block_until_up()
         self.mc[jesus] = self.mc_maker[jesus]()
         self.down[jesus] = False
 
