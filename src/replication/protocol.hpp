@@ -119,7 +119,7 @@ private:
 void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
 
 void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
-void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams);
+void do_parse_normal_messages(tcp_conn_t *conn, connection_handler_t *conn_handler, tracker_t& streams);
 
 }  // namespace internal
 

@@ -198,7 +198,7 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
     }
 }
 
-void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams) {
+void do_parse_normal_messages(tcp_conn_t *conn, connection_handler_t *conn_handler, tracker_t& streams) {
 
     // This is slightly inefficient: we do excess copying since
     // handle_message is forced to accept a contiguous message, even
@@ -210,11 +210,10 @@ void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tr
     size_t offset = 0;
     size_t num_read = 0;
 
-    replication_connection_handler_t c(receiver);
     // We break out of this loop when we get a tcp_conn_t::read_closed_exc_t.
     while (true) {
         // Try handling the message.
-        size_t handled = handle_message(&c, buffer.get() + offset, num_read, streams);
+        size_t handled = handle_message(conn_handler, buffer.get() + offset, num_read, streams);
         if (handled > 0) {
             rassert(handled <= num_read);
             offset += handled;
@@ -242,7 +241,8 @@ void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
         do_parse_hello_message(conn, receiver);
 
         tracker_t streams;
-        do_parse_normal_messages(conn, receiver, streams);
+        replication_connection_handler_t c(receiver);
+        do_parse_normal_messages(conn, &c, streams);
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
         // Do nothing; this was to be expected.
