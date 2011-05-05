@@ -148,11 +148,17 @@ public:
     void end_stats(void *, perfmon_stats_t *);
 };
 
-/* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a starting and ending
-time. When something starts, call begin(); when something ends, call end() with the same value
-as begin. It will produce stats for the number of active events, the average length of an event,
-and so on. If `global_full_perfmon` is false, it won't report any timing-related stats because
-`get_ticks()` is rather slow. */
+/* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a
+ * starting and ending time. When something starts, call begin(); when
+ * something ends, call end() with the same value as begin. It will produce
+ * stats for the number of active events, the average length of an event, and
+ * so on. If `global_full_perfmon` is false, it won't report any timing-related
+ * stats because `get_ticks()` is rather slow.  
+ *
+ * Frequently we're in the case
+ * where we'd like to have a single slow perfmon up, but don't want the other
+ * ones, this perfmon_duration_sampler_t has an ignore_global_full_perfmon
+ * field on it.  */
 
 struct perfmon_duration_sampler_t {
 
@@ -160,14 +166,16 @@ private:
     perfmon_counter_t active;
     perfmon_counter_t total;
     perfmon_sampler_t recent;
+    bool ignore_global_full_perfmon;
 public:
-    perfmon_duration_sampler_t(std::string name, ticks_t length)
-        : active(name + "_active_count"), total(name + "_total") , recent(name, length, true)
+    perfmon_duration_sampler_t(std::string name, ticks_t length, bool ignore_global_full_perfmon = false) 
+        : active(name + "_active_count"), total(name + "_total") , recent(name, length, true), 
+          ignore_global_full_perfmon(ignore_global_full_perfmon)
         { }
     void begin(ticks_t *v) {
         active++;
         total++;
-        if (global_full_perfmon) *v = get_ticks();
+        if (global_full_perfmon || ignore_global_full_perfmon) *v = get_ticks();
         else *v = 0;
     }
     void end(ticks_t *v) {
