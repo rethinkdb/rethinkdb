@@ -149,7 +149,7 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
     const net_header_t *hdr = reinterpret_cast<const net_header_t *>(buf);
     if (hdr->message_multipart_aspect == SMALL) {
         size_t msgsize = hdr->msgsize;
-        if (msgsize < sizeof(net_header_t)) {
+        if (msgsize < sizeof(net_header_t) + 1) {
             throw protocol_exc_t("invalid msgsize");
         }
 
@@ -157,8 +157,8 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
             return 0;
         }
 
-        size_t realbegin = offsetof(net_header_t, msgcode);
-        size_t realsize = msgsize - offsetof(net_header_t, msgcode);
+        size_t realbegin = sizeof(net_header_t);
+        size_t realsize = msgsize - sizeof(net_header_t);
 
         boost::scoped_ptr<stream_handler_t> h(connection_handler->new_stream_handler());
         h->stream_part(buf + realbegin, realsize);
@@ -177,15 +177,13 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
         }
 
         uint32_t ident = multipart_hdr->ident;
-        size_t realbegin = sizeof(multipart_hdr);
-        size_t realsize = msgsize - sizeof(multipart_hdr);
 
         if (multipart_hdr->message_multipart_aspect == FIRST) {
             if (!streams.add(ident, connection_handler->new_stream_handler())) {
                 throw protocol_exc_t("reused live ident code");
             }
 
-            streams[ident]->stream_part(buf + offsetof(net_multipart_header_t, msgcode), msgsize - offsetof(net_multipart_header_t, msgcode));
+            streams[ident]->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
 
         } else if (multipart_hdr->message_multipart_aspect == MIDDLE || multipart_hdr->message_multipart_aspect == LAST) {
             stream_handler_t *h = streams[ident];
@@ -193,7 +191,7 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
                 throw protocol_exc_t("inactive stream identifier");
             }
 
-            h->stream_part(buf + realbegin, realsize);
+            h->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
             if (multipart_hdr->message_multipart_aspect == LAST) {
                 h->end_of_stream();
                 delete h;
@@ -279,28 +277,30 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
     size_t obsize = objsize(msg);
 
-    if (obsize + sizeof(net_header_t) <= 0xFFFF) {
+    if (obsize + sizeof(net_header_t) + 1 <= 0xFFFF) {
         net_header_t hdr;
-        hdr.msgsize = sizeof(net_header_t) + obsize;
+        hdr.msgsize = sizeof(net_header_t) + 1 + obsize;
         hdr.message_multipart_aspect = SMALL;
-        hdr.msgcode = msgcode;
 
         mutex_acquisition_t ak(&outgoing_mutex_);
 
         try_write(&hdr, sizeof(net_header_t));
+        rassert(1 == sizeof(msgcode));
+        try_write(&msgcode, sizeof(msgcode));
         try_write(msg, obsize);
     } else {
         net_multipart_header_t hdr;
         hdr.msgsize = 0xFFFF;
         hdr.message_multipart_aspect = FIRST;
         hdr.ident = 1;        // TODO: This is an obvious bug.
-        hdr.msgcode = msgcode;
 
-        size_t offset = 0xFFFF - sizeof(net_multipart_header_t);
+        size_t offset = 0xFFFF - (sizeof(net_multipart_header_t) + 1);
 
         {
             mutex_acquisition_t ak(&outgoing_mutex_);
             try_write(&hdr, sizeof(net_multipart_header_t));
+            rassert(sizeof(msgcode) == 1);
+            try_write(&msgcode, sizeof(msgcode));
             try_write(msg, offset);
         }
 
