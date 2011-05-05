@@ -310,7 +310,6 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
             mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = MIDDLE;
             try_write(&hdr, sizeof(net_multipart_header_t));
-            // TODO change protocol so that 0 means 0x10000 mmkay?
             try_write(buf + offset, 0xFFFF);
             offset += 0xFFFF;
         }
