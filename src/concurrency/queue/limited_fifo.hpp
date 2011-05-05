@@ -13,14 +13,14 @@ template<class value_t, class queue_t = std::list<value_t> >
 struct limited_fifo_queue_t : public passive_producer_t<value_t> {
 
     limited_fifo_queue_t(int depth) :
-        passive_producer_t(&available_var),
+        passive_producer_t<value_t>(&available_var),
         semaphore(depth)
     {
         rassert(depth > 0);
     }
 
     void push(const value_t &value) {
-        semaphore.lock();
+        semaphore.co_lock();
         queue.push_back(value);
         available_var.set(!queue.empty());
     }

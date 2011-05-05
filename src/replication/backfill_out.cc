@@ -5,6 +5,8 @@
 #include "concurrency/count_down_latch.hpp"
 #include "btree/slice.hpp"
 #include "concurrency/coro_pool.hpp"
+#include "concurrency/queue/limited_fifo.hpp"
+#include "concurrency/queue/accounting.hpp"
 
 perfmon_duration_sampler_t
     master_rt_get_cas("master_rt_get_cas", secs_to_ticks(1.0)),
@@ -12,6 +14,9 @@ perfmon_duration_sampler_t
     master_rt_incr_decr("master_rt_incr_decr", secs_to_ticks(1.0)),
     master_rt_app_prep("master_rt_app_prep", secs_to_ticks(1.0)),
     master_rt_del("master_rt_del", secs_to_ticks(1.0));
+
+#define MAX_REPLICATION_COROUTINES 512
+#define REPLICATION_JOB_QUEUE_DEPTH 2048
 
 namespace replication {
 
@@ -27,35 +32,35 @@ struct backfill_and_streaming_manager_t :
         castime_t castime;
     
         mutation_t operator()(const get_cas_mutation_t& m) {
-            manager->realtime_coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_get_cas, manager,
+            manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_get_cas, manager,
                     m.key, castime));
             return m;
         }
         mutation_t operator()(const sarc_mutation_t& m) {
             unique_ptr_t<data_provider_t> dps[2];
             duplicate_data_provider(m.data, 2, dps);
-            manager->realtime_coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
+            manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
                     m.key, dps[0], m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
             sarc_mutation_t m2(m);
             m2.data = dps[1];
             return m2;
         }
         mutation_t operator()(const incr_decr_mutation_t& m) {
-            manager->realtime_coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_incr_decr, manager,
+            manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_incr_decr, manager,
                     m.kind, m.key, m.amount, castime));
             return m;
         }
         mutation_t operator()(const append_prepend_mutation_t &m) {
             unique_ptr_t<data_provider_t> dps[2];
             duplicate_data_provider(m.data, 2, dps);
-            manager->realtime_coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
+            manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
                     m.kind, m.key, dps[0], castime));
             append_prepend_mutation_t m2(m);
             m2.data = dps[1];
             return m2;
         }
         mutation_t operator()(const delete_mutation_t& m) {
-            manager->realtime_coro_pool.queue_task(boost::bind(&backfill_and_streaming_manager_t::realtime_delete_key, manager,
+            manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_delete_key, manager,
                     m.key, castime.timestamp));
             return m;
         }
@@ -107,7 +112,7 @@ struct backfill_and_streaming_manager_t :
             // gets pulsed, because then a delete queue could finish
             // and start sending sets before we sent a
             // delete_everything message.
-            backfill_coro_pool.queue_task(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_delete_everything, handler_));
+            backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_delete_everything, handler_));
             handler_->backfill_delete_everything();
         }
 
@@ -127,7 +132,7 @@ struct backfill_and_streaming_manager_t :
     void deletion_key(const btree_key_t *key) {
         // This runs on the scheduler thread.
         store_key_t tmp(key->size, key->contents);
-        backfill_coro_pool.queue_task(boost::bind(
+        backfill_job_queue.push(boost::bind(
             &backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, tmp));
     }
 
@@ -139,7 +144,7 @@ struct backfill_and_streaming_manager_t :
     /* The store calls this when we need to backfill a key/value pair to the slave */
     void on_keyvalue(backfill_atom_t atom) {
         // This runs on the scheduler thread.
-        backfill_coro_pool.queue_task(boost::bind(
+        backfill_job_queue.push(boost::bind(
             &backfill_and_realtime_streaming_callback_t::backfill_set, handler_, atom));
     }
 
@@ -161,7 +166,7 @@ struct backfill_and_streaming_manager_t :
             less than that timestamp. That's why we call `.next()`; if it was "less than or equal"
             instead of "less than", we wouldn't call `.next()`. */
             debugf("Backfilled up to %d\n", initial_replication_clock_.next().time);
-            backfill_coro_pool.queue_task(boost::bind(
+            backfill_job_queue.push(boost::bind(
                 &backfill_and_realtime_streaming_callback_t::backfill_done,
                 handler_,
                 initial_replication_clock_.next()));
@@ -192,7 +197,7 @@ struct backfill_and_streaming_manager_t :
         less than "rc", we can send a time-barrier to the slave. We need to queue it through
         the realtime_coro_pool so that ordering constraints are preserved relative to other realtime
         operations. */
-        realtime_coro_pool.queue_task(boost::bind(
+        realtime_job_queue.push(boost::bind(
             &backfill_and_realtime_streaming_callback_t::realtime_time_barrier,
             handler_,
             rc));
@@ -213,10 +218,14 @@ struct backfill_and_streaming_manager_t :
     boost::scoped_ptr<repeating_timer_t> replication_clock_timer_;
     drain_semaphore_t replication_clock_drain_semaphore_;
 
-    /* In order to not stress the coroutine limit too much, we use coro_pool_ts to handle our work.
-    We have two separate coro pools: one for realtime operations, and one for backfill operations.
-    That way, realtime operations won't be choked out by a backfill or vis versa. */
-    coro_pool_t realtime_coro_pool, backfill_coro_pool;
+    /* In order to not stress the coroutine limit too much, we use a `coro_pool_t` to handle
+    our work. We feed the coro_pool_t from an `accounting_queue_t` with two accounts, one for
+    realtime operations and one for backfills. This way, backfills don't choke out realtime
+    operations or vice versa. */
+    accounting_queue_t<boost::function<void()> > combined_job_queue;
+    coro_pool_t coro_pool;
+    limited_fifo_queue_t<boost::function<void()> > backfill_job_queue, realtime_job_queue;
+    accounting_queue_t<boost::function<void()> >::account_t backfill_job_account, realtime_job_account;
 
     /* We can't stop until backfill is over and we can't interrupt a running backfill operation,
     so we have to use pulsed_when_backfill_over to wait for the backfill operation to finish. */
@@ -229,8 +238,11 @@ struct backfill_and_streaming_manager_t :
         all_delete_queues_so_far_can_send_keys_(true),
         internal_store_(kvs),
         handler_(handler),
-        realtime_coro_pool(512, 2048),   // TODO: Make this a define-constant or something
-        backfill_coro_pool(512, 2048)
+        coro_pool(MAX_REPLICATION_COROUTINES, &combined_job_queue),
+        backfill_job_queue(REPLICATION_JOB_QUEUE_DEPTH),
+        realtime_job_queue(REPLICATION_JOB_QUEUE_DEPTH),
+        backfill_job_account(&combined_job_queue, &backfill_job_queue, 1),
+        realtime_job_account(&combined_job_queue, &realtime_job_queue, 1)
     {
         /* Read the old value of the replication clock. */
         replication_clock_ = internal_store_->get_replication_clock();
