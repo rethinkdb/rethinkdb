@@ -33,7 +33,7 @@ assert options.workload == "special_rget_workload"
 
 duration = (1800, "seconds")
 num_clients = 512
-num_rget_clients = 64
+num_rget_clients = 448
 num_canonical_clients = num_clients - num_rget_clients
 keys = (8,16)
 values = (8,128)
@@ -42,7 +42,7 @@ update_freq = 4
 insert_freq = 8
 read_freq = 64 / 8 # We have to divide by the average batch factor
 
-rget_size = (32,256)
+rget_size = (16,64)
 
 # Before running this script, full_bench copies it into a directory with libstress.so
 # and stress.py.
