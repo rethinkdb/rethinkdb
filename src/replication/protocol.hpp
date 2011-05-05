@@ -10,6 +10,7 @@
 #include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
 #include "data_provider.hpp"
+#include "replication/multistream.hpp"
 #include "replication/net_structs.hpp"
 
 
@@ -72,21 +73,6 @@ struct tracker_obj_t {
 
 namespace internal {
 
-struct stream_handler_t {
-    virtual void stream_part(const char *buf, size_t size) = 0;
-    virtual void end_of_stream() = 0;
-
-    virtual ~stream_handler_t() { }
-};
-
-struct connection_handler_t {
-    virtual stream_handler_t *new_stream_handler() = 0;
-protected:
-    virtual ~connection_handler_t() { }
-};
-
-typedef thick_list<stream_handler_t *, uint32_t> tracker_t;
-
 struct replication_stream_handler_t : public stream_handler_t {
     replication_stream_handler_t(message_callback_t *receiver) : receiver_(receiver), saw_first_part_(false), tracker_obj_(NULL) { }
     ~replication_stream_handler_t() { delete tracker_obj_; }
@@ -100,31 +86,23 @@ private:
 };
 
 struct replication_connection_handler_t : public connection_handler_t {
+    void process_hello_message(net_hello_t msg);
     stream_handler_t *new_stream_handler() { return new replication_stream_handler_t(receiver_); }
     replication_connection_handler_t(message_callback_t *receiver) : receiver_(receiver) { }
+    void conn_closed() { receiver_->conn_closed(); }
 private:
     message_callback_t *receiver_;
 };
 
 
-void parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
-
-void handle_small_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize);
-void handle_first_message(message_callback_t *receiver, int msgcode, const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams);
-void handle_midlast_message(const char *realbuf, size_t realsize, uint32_t ident, tracker_t& streams);
-void handle_end_of_stream(uint32_t ident, tracker_t& streams);
-
-size_t handle_message(message_callback_t *receiver, const char *buf, size_t num_read, tracker_t& streams);
-void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver);
-void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams);
 
 }  // namespace internal
 
 class repli_stream_t : public home_thread_mixin_t {
 public:
-    repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback) : recv_cb_(recv_callback) {
+    repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback) : conn_handler_(recv_callback) {
         conn_.swap(conn);
-        internal::parse_messages(conn_.get(), recv_callback);
+        parse_messages(conn_.get(), &conn_handler_);
         mutex_acquisition_t ak(&outgoing_mutex_);
         send_hello(ak);
     }
@@ -168,7 +146,7 @@ private:
 
     void try_write(const void *data, size_t size);
 
-    message_callback_t *recv_cb_;
+    internal::replication_connection_handler_t conn_handler_;
 
     /* outgoing_mutex_ is used to prevent messages from being interlaced on the wire */
     mutex_t outgoing_mutex_;

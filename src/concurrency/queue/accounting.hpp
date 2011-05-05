@@ -17,8 +17,10 @@ will `pop()` from when its own `pop()` method is called. When one of the sub-
 available. */
 
 template<class value_t>
-struct accounting_queue_t : public passive_producer_t<value_t> {
-
+struct accounting_queue_t :
+    public passive_producer_t<value_t>,
+    public home_thread_mixin_t
+{
     accounting_queue_t() :
         passive_producer_t<value_t>(&available_var),
         total_shares(0),
@@ -36,21 +38,27 @@ struct accounting_queue_t : public passive_producer_t<value_t> {
         account_t(accounting_queue_t *p, passive_producer_t<value_t> *s, int shares) :
             parent(p), source(s), shares(shares), active(false)
         {
+            on_thread_t thread_switcher(parent->home_thread);
             rassert(shares > 0);
-            source->available->add_watcher(this);
             if (source->available->get()) activate();
             else parent->inactive_accounts.push_back(this);
+            source->available->add_watcher(this);
+            parent->available_var.set(!parent->active_accounts.empty());
         }
         ~account_t() {
+            on_thread_t thread_switcher(parent->home_thread);
+            parent->assert_thread();
+            source->available->remove_watcher(this);
             if (active) deactivate();
             else parent->inactive_accounts.remove(this);
-            source->available->remove_watcher(this);
+            parent->available_var.set(!parent->active_accounts.empty());
         }
 
     private:
         friend class accounting_queue_t;
 
         void on_watchable_changed() {
+            parent->assert_thread();
             if (source->available->get() && !active) {
                 parent->inactive_accounts.remove(this);
                 activate();
@@ -58,19 +66,18 @@ struct accounting_queue_t : public passive_producer_t<value_t> {
                 deactivate();
                 parent->inactive_accounts.push_back(this);
             }
+            parent->available_var.set(!parent->active_accounts.empty());
         }
 
         void activate() {
             active = true;
             parent->active_accounts.push_back(this);
             parent->total_shares += shares;
-            parent->available_var.set(true);
         }
         void deactivate() {
             active = false;
             parent->active_accounts.remove(this);
             parent->total_shares -= shares;
-            if (parent->active_accounts.empty()) parent->available_var.set(false);
         }
 
         accounting_queue_t *parent;
@@ -88,6 +95,7 @@ private:
 
     watchable_var_t<bool> available_var;
     value_t produce_next_value() {
+        assert_thread();
         selector %= total_shares;
         typename intrusive_list_t<account_t>::iterator it = active_accounts.begin();
         int count = 0;

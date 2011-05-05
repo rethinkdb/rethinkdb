@@ -3,39 +3,10 @@
 #include "concurrency/coro_fifo.hpp"
 
 namespace replication {
-perfmon_duration_sampler_t slave_conn_reading("slave_conn_reading", secs_to_ticks(1.0));
-
-// TODO: Do we ever really handle these?
-class protocol_exc_t : public std::exception {
-public:
-    protocol_exc_t(const char *msg) : msg_(msg) { }
-    const char *what() throw() { return msg_; }
-private:
-    const char *msg_;
-};
 
 // The 16 bytes conveniently include a \0 at the end.
 // 13 is the length of the text.
 const char STANDARD_HELLO_MAGIC[16] = "13rethinkdbrepl";
-
-void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
-    net_hello_t buf;
-    {
-        block_pm_duration set_timer(&slave_conn_reading);
-        conn->read(&buf, sizeof(buf));
-    }
-
-    rassert(16 == sizeof(STANDARD_HELLO_MAGIC));
-    if (0 != memcmp(buf.hello_magic, STANDARD_HELLO_MAGIC, sizeof(STANDARD_HELLO_MAGIC))) {
-        throw protocol_exc_t("bad hello magic");  // TODO details
-    }
-
-    if (buf.replication_protocol_version != 1) {
-        throw protocol_exc_t("bad protocol version");  // TODO details
-    }
-
-    receiver->hello(buf);
-}
 
 template <class T> struct stream_type { typedef scoped_malloc<T> type; };
 template <> struct stream_type<net_sarc_t> { typedef stream_pair<net_sarc_t> type; };
@@ -59,6 +30,9 @@ size_t objsize(const net_backfill_set_t *buf) { return sizeof(net_backfill_set_t
 size_t objsize(const net_backfill_delete_t *buf) { return sizeof(net_backfill_delete_t) + buf->key_size; }
 
 
+
+namespace internal {
+
 template <class T>
 void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) {
     if (sizeof(T) <= realsize && objsize(reinterpret_cast<const T *>(buf)) == realsize) {
@@ -69,9 +43,6 @@ void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) 
         throw protocol_exc_t("message wrong length for message code");
     }
 }
-
-
-namespace internal {
 
 template <class T>
 tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *buf, size_t size) {
@@ -139,133 +110,17 @@ void replication_stream_handler_t::end_of_stream() {
     }
 }
 
-size_t handle_message(connection_handler_t *connection_handler, const char *buf, size_t num_read, tracker_t& streams) {
-    // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
-
-    if (num_read < sizeof(net_header_t)) {
-        return 0;
+void replication_connection_handler_t::process_hello_message(net_hello_t buf) {
+    rassert(16 == sizeof(STANDARD_HELLO_MAGIC));
+    if (0 != memcmp(buf.hello_magic, STANDARD_HELLO_MAGIC, sizeof(STANDARD_HELLO_MAGIC))) {
+        throw protocol_exc_t("bad hello magic");  // TODO details
     }
 
-    const net_header_t *hdr = reinterpret_cast<const net_header_t *>(buf);
-    if (hdr->message_multipart_aspect == SMALL) {
-        size_t msgsize = hdr->msgsize;
-        if (msgsize < sizeof(net_header_t) + 1) {
-            throw protocol_exc_t("invalid msgsize");
-        }
-
-        if (num_read < msgsize) {
-            return 0;
-        }
-
-        size_t realbegin = sizeof(net_header_t);
-        size_t realsize = msgsize - sizeof(net_header_t);
-
-        boost::scoped_ptr<stream_handler_t> h(connection_handler->new_stream_handler());
-        h->stream_part(buf + realbegin, realsize);
-        h->end_of_stream();
-
-        return msgsize;
-    } else {
-        const net_multipart_header_t *multipart_hdr = reinterpret_cast<const net_multipart_header_t *>(buf);
-        size_t msgsize = multipart_hdr->msgsize;
-        if (msgsize < sizeof(net_multipart_header_t)) {
-            throw protocol_exc_t("invalid msgsize");
-        }
-
-        if (num_read < msgsize) {
-            return 0;
-        }
-
-        uint32_t ident = multipart_hdr->ident;
-
-        if (multipart_hdr->message_multipart_aspect == FIRST) {
-            if (!streams.add(ident, connection_handler->new_stream_handler())) {
-                throw protocol_exc_t("reused live ident code");
-            }
-
-            streams[ident]->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
-
-        } else if (multipart_hdr->message_multipart_aspect == MIDDLE || multipart_hdr->message_multipart_aspect == LAST) {
-            stream_handler_t *h = streams[ident];
-            if (h == NULL) {
-                throw protocol_exc_t("inactive stream identifier");
-            }
-
-            h->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
-            if (multipart_hdr->message_multipart_aspect == LAST) {
-                h->end_of_stream();
-                delete h;
-                streams.drop(ident);
-            }
-        } else {
-            throw protocol_exc_t("invalid message multipart aspect code");
-        }
-
-        return msgsize;
-    }
-}
-
-void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tracker_t& streams) {
-
-    // This is slightly inefficient: we do excess copying since
-    // handle_message is forced to accept a contiguous message, even
-    // the _value_ part of the message (which could very well be
-    // discontiguous and we wouldn't really care).  Worst case
-    // scenario: we copy everything over the network one extra time.
-    const size_t shbuf_size = 0x10000;
-    scoped_malloc<char> buffer(shbuf_size);
-    size_t offset = 0;
-    size_t num_read = 0;
-
-    replication_connection_handler_t c(receiver);
-    // We break out of this loop when we get a tcp_conn_t::read_closed_exc_t.
-    while (true) {
-        // Try handling the message.
-        size_t handled = handle_message(&c, buffer.get() + offset, num_read, streams);
-        if (handled > 0) {
-            rassert(handled <= num_read);
-            offset += handled;
-            num_read -= handled;
-        } else {
-            if (offset + num_read == shbuf_size) {
-                scoped_malloc<char> new_buffer(shbuf_size);
-                memcpy(new_buffer.get(), buffer.get() + offset, num_read);
-                offset = 0;
-                buffer.swap(new_buffer);
-            }
-
-            {
-                block_pm_duration set_timer(&slave_conn_reading);
-                num_read += conn->read_some(buffer.get() + offset + num_read, shbuf_size - (offset + num_read));
-            }
-        }
-    }
-}
-
-
-void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
-
-    try {
-        do_parse_hello_message(conn, receiver);
-
-        tracker_t streams;
-        do_parse_normal_messages(conn, receiver, streams);
-
-    } catch (tcp_conn_t::read_closed_exc_t& e) {
-        // Do nothing; this was to be expected.
-#ifndef NDEBUG
-    } catch (protocol_exc_t& e) {
-        debugf("catch 'n throwing protocol_exc_t: %s\n", e.what());
-        throw;
-#endif
+    if (buf.replication_protocol_version != 1) {
+        throw protocol_exc_t("bad protocol version");  // TODO details
     }
 
-    receiver->conn_closed();
-}
-
-void parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
-
-    coro_t::spawn(boost::bind(&internal::do_parse_messages, conn, receiver));
+    receiver_->hello(buf);
 }
 
 }  // namespace internal
@@ -277,7 +132,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
     size_t obsize = objsize(msg);
 
-    if (obsize + sizeof(net_header_t) + 1 <= 0xFFFF) {
+    if (obsize + sizeof(net_header_t) + 1 <= MAX_MESSAGE_SIZE) {
         net_header_t hdr;
         hdr.msgsize = sizeof(net_header_t) + 1 + obsize;
         hdr.message_multipart_aspect = SMALL;
@@ -289,15 +144,20 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         try_write(&msgcode, sizeof(msgcode));
         try_write(msg, obsize);
     } else {
-        net_multipart_header_t hdr;
-        hdr.msgsize = 0xFFFF;
-        hdr.message_multipart_aspect = FIRST;
-        hdr.ident = 1;        // TODO: This is an obvious bug.
+        // Right now we don't really split up messages into
+        // submessages, even though the other end of the protocol
+        // supports that.
+        mutex_acquisition_t ak(&outgoing_mutex_);
 
-        size_t offset = 0xFFFF - (sizeof(net_multipart_header_t) + 1);
+        net_multipart_header_t hdr;
+        hdr.msgsize = MAX_MESSAGE_SIZE;
+        hdr.message_multipart_aspect = FIRST;
+        hdr.ident = 1;        // TODO: This is an obvious bug, when we can split up our messages (but right now it is fine because we hold the mutex_acquisition_t the whole time).
+
+        size_t offset = MAX_MESSAGE_SIZE - (sizeof(net_multipart_header_t) + 1);
 
         {
-            mutex_acquisition_t ak(&outgoing_mutex_);
+            //            mutex_acquisition_t ak(&outgoing_mutex_);
             try_write(&hdr, sizeof(net_multipart_header_t));
             rassert(sizeof(msgcode) == 1);
             try_write(&msgcode, sizeof(msgcode));
@@ -306,17 +166,17 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
         char *buf = reinterpret_cast<char *>(msg);
 
-        while (offset + 0xFFFF < obsize) {
-            mutex_acquisition_t ak(&outgoing_mutex_);
+        while (offset + MAX_MESSAGE_SIZE < obsize) {
+            //            mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = MIDDLE;
             try_write(&hdr, sizeof(net_multipart_header_t));
-            try_write(buf + offset, 0xFFFF);
-            offset += 0xFFFF;
+            try_write(buf + offset, MAX_MESSAGE_SIZE);
+            offset += MAX_MESSAGE_SIZE;
         }
 
         {
-            rassert(obsize - offset <= 0xFFFF);
-            mutex_acquisition_t ak(&outgoing_mutex_);
+            rassert(obsize - offset <= MAX_MESSAGE_SIZE);
+            //            mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = LAST;
             try_write(&hdr, sizeof(net_multipart_header_t));
             try_write(buf + offset, obsize - offset);
