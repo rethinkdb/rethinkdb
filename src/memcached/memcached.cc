@@ -283,6 +283,7 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
     }
 }
 
+perfmon_duration_sampler_t rget_iteration_next("rget_iteration_next", secs_to_ticks(1));
 void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv) {
     if (argc != 6) {
         rh->client_error_bad_command_line_format(saver);
@@ -324,7 +325,9 @@ void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc,
 
     boost::optional<key_with_data_provider_t> pair;
     uint64_t count = 0;
-    while (++count <= max_items && (pair = results_iterator->next())) {
+    ticks_t next_time;
+    while (++count <= max_items && (rget_iteration_next.begin(&next_time), pair = results_iterator->next())) {
+        rget_iteration_next.end(&next_time);
         const key_with_data_provider_t& kv = pair.get();
 
         const std::string& key = kv.key;
