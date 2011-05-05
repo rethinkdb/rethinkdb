@@ -15,6 +15,8 @@
 #include "utils2.hpp"
 #include "logger.hpp"
 
+/* linux_aio_context_t */
+
 linux_aio_context_t::linux_aio_context_t(int max_concurrent) {
     id = 0;
     int res = io_setup(max_concurrent, &id);
@@ -26,16 +28,20 @@ linux_aio_context_t::~linux_aio_context_t() {
     guarantee_xerr(res == 0, -res, "Could not destroy aio context");
 }
 
-/* Async IO scheduler - the common base */
-linux_diskmgr_aio_t::linux_diskmgr_aio_t(linux_event_queue_t *queue) :
+/* linux_diskmgr_aio_t */
+
+linux_diskmgr_aio_t::linux_diskmgr_aio_t(
+        linux_event_queue_t *queue,
+        passive_producer_t<action_t *> *source) :
+    passive_producer_t<iocb *>(source->available),
     queue(queue),
+    source(source),
     aio_context(MAX_CONCURRENT_IO_REQUESTS)
 {
-#ifdef IO_SUBMIT_THREADED
-    submitter.reset(new linux_aio_submit_threaded_t(this));
-#else
-    submitter.reset(new linux_aio_submit_sync_t(this));
-#endif
+    submitter.reset(new linux_aio_submit_sync_t(
+        &aio_context,
+        static_cast<passive_producer_t<iocb *>*>(this)
+        ));
 
 #ifdef NO_EVENTFD
     getter.reset(new linux_aio_getevents_noeventfd_t(this));
@@ -44,10 +50,13 @@ linux_diskmgr_aio_t::linux_diskmgr_aio_t(linux_event_queue_t *queue) :
 #endif
 }
 
-void linux_diskmgr_aio_t::submit(action_t *a) {
-
-    getter->prep(a);
-    submitter->submit(a);
+iocb *linux_diskmgr_aio_t::produce_next_value() {
+    /* The `submitter` calls this (via the `passive_producer_t<iocb *>` interface)
+    when it is ready for the next operation. */
+    action_t *next_action = source->pop();
+    iocb *next_iocb = next_action;
+    getter->prep(next_iocb);
+    return next_iocb;
 }
 
 void linux_diskmgr_aio_t::aio_notify(iocb *event, int result) {

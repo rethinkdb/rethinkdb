@@ -49,54 +49,49 @@ struct linux_disk_manager_t {
 template<class backend_t>
 struct linux_templated_disk_manager_t : public linux_disk_manager_t {
 
-    /* This is the whole IO stack in reverse order. At the top level, we allocate a new
-    action_t object for each operation and record its callback. Then it passes through
-    the conflict resolver, which enforces ordering constraints between IO operations by
-    holding back operations that must be run after other, currently-running, operations.
-    Then it goes to the account manager, which queues up running IO operations according
-    to which account they are part of. Finally the account manager passes the IO
-    operations to the backend, which might use a thread pool or might be AIO-based.
-
-    At two points in the process -- once as soon as it is submitted, and again right
-    before it is sent to the backend -- its statistics are recorded. The "stack stats"
-    will tell you how many IO opeations are queued. The "backend stats" will tell you
-    how long the OS takes to perform the operations. Note that it's not perfect, because
-    it counts operations that have been queued by the backend but not sent to the OS yet
-    as having been sent to the OS. */
-
-    backend_t backend;
-
-    typedef stats_diskmgr_t<typename backend_t::action_t> backend_stats_t;
-    backend_stats_t backend_stats;
-
+    typedef stats_diskmgr_2_t<typename backend_t::action_t> backend_stats_t;
     typedef accounting_diskmgr_t<typename backend_stats_t::action_t> accounter_t;
-    accounter_t accounter;
-
     typedef conflict_resolving_diskmgr_t<typename accounter_t::action_t> conflict_resolver_t;
-    conflict_resolver_t conflict_resolver;
-
     typedef stats_diskmgr_t<typename conflict_resolver_t::action_t> stack_stats_t;
-    stack_stats_t stack_stats;
-
     struct action_t : public stack_stats_t::action_t {
         linux_iocallback_t *cb;
     };
 
+    /* These fields describe the entire IO stack. At the top level, we allocate a new
+    action_t object for each operation and record its callback. Then it passes through
+    the conflict resolver, which enforces ordering constraints between IO operations by
+    holding back operations that must be run after other, currently-running, operations.
+    Then it goes to the account manager, which queues up running IO operations according
+    to which account they are part of. Finally the backend (which may be either AIO-based
+    or thread-pool-based) pops the IO operations from the queue.
+
+    At two points in the process--once as soon as it is submitted, and again right
+    as the backend pops it off the queue--its statistics are recorded. The "stack stats"
+    will tell you how many IO operations are queued. The "backend stats" will tell you
+    how long the OS takes to perform the operations. Note that it's not perfect, because
+    it counts operations that have been queued by the backend but not sent to the OS yet
+    as having been sent to the OS. */
+
+    stack_stats_t stack_stats;
+    conflict_resolver_t conflict_resolver;
+    accounter_t accounter;
+    backend_stats_t backend_stats;
+    backend_t backend;
+
     linux_templated_disk_manager_t(linux_event_queue_t *queue) :
-        backend(queue),
-        backend_stats(&pm_io_disk_backend_reads, &pm_io_disk_backend_writes),
-        /* The parameter to `accounter` is how many IO operations it will pass on to `backend`
-        before waiting for some of them to complete. If it is too high, then the accounting will be
-        biased. If it is too low, then `backend`'s pipeline won't always be full. */
-        accounter(TARGET_IO_QUEUE_DEPTH * 2),
-        stack_stats(&pm_io_disk_stack_reads, &pm_io_disk_stack_writes)
+        stack_stats(&pm_io_disk_stack_reads, &pm_io_disk_stack_writes),
+        conflict_resolver(),
+        accounter(),
+        backend_stats(&pm_io_disk_backend_reads, &pm_io_disk_backend_writes, accounter.producer),
+        backend(queue, backend_stats.producer)
     {
-        /* Hook up the different elements in the stack to one another by setting their callback
-        functions appropriately */
+        /* Hook up the `submit_fun`s of the parts of the IO stack that are above the
+        queue. (The parts below the queue use the `passive_producer_t` interface instead
+        of a callback function.) */
         stack_stats.submit_fun = boost::bind(&conflict_resolver_t::submit, &conflict_resolver, _1);
         conflict_resolver.submit_fun = boost::bind(&accounter_t::submit, &accounter, _1);
-        accounter.submit_fun = boost::bind(&backend_stats_t::submit, &backend_stats, _1);
-        backend_stats.submit_fun = boost::bind(&backend_t::submit, &backend, _1);
+
+        /* Hook up everything's `done_fun`. */
         backend.done_fun = boost::bind(&backend_stats_t::done, &backend_stats, _1);
         backend_stats.done_fun = boost::bind(&accounter_t::done, &accounter, _1);
         accounter.done_fun = boost::bind(&conflict_resolver_t::done, &conflict_resolver, _1);

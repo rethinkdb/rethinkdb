@@ -3,15 +3,15 @@
 
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/blocker_pool.hpp"
+#include "concurrency/queue/passive_producer.hpp"
 #include <boost/function.hpp>
 
 /* The pool disk manager uses a thread pool in conjunction with synchronous
 (blocking) IO calls to asynchronously run IO requests. */
 
-struct pool_diskmgr_t {
-
-    pool_diskmgr_t(linux_event_queue_t *queue);
-
+struct pool_diskmgr_t :
+    private watchable_t<bool>::watcher_t
+{
     struct action_t : private blocker_pool_t::job_t {
 
         void make_write(fd_t f, const void *b, size_t c, off_t o) {
@@ -49,13 +49,19 @@ struct pool_diskmgr_t {
         void done();
     };
 
-    /* Call submit() to start an operation. done_fun() will be called when the operation is
-    over. */
-    void submit(action_t *action);
+    /* The `pool_diskmgr_t` will draw actions to run from `source`. It will call `done_fun`
+    on each one when it's done. */
+    pool_diskmgr_t(linux_event_queue_t *queue, passive_producer_t<action_t *> *source);
     boost::function<void(action_t *)> done_fun;
+    ~pool_diskmgr_t();
 
 private:
+    passive_producer_t<action_t *> *source;
     blocker_pool_t blocker_pool;
+
+    void on_watchable_changed();
+    int n_pending;
+    void pump();
 };
 
 #endif /* __ARCH_LINUX_DISK_POOL_HPP__ */
