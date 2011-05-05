@@ -11,25 +11,6 @@ const uint32_t MAX_MESSAGE_SIZE = 65535;
 // 13 is the length of the text.
 const char STANDARD_HELLO_MAGIC[16] = "13rethinkdbrepl";
 
-void do_parse_hello_message(tcp_conn_t *conn, message_callback_t *receiver) {
-    net_hello_t buf;
-    {
-        block_pm_duration set_timer(&slave_conn_reading);
-        conn->read(&buf, sizeof(buf));
-    }
-
-    rassert(16 == sizeof(STANDARD_HELLO_MAGIC));
-    if (0 != memcmp(buf.hello_magic, STANDARD_HELLO_MAGIC, sizeof(STANDARD_HELLO_MAGIC))) {
-        throw protocol_exc_t("bad hello magic");  // TODO details
-    }
-
-    if (buf.replication_protocol_version != 1) {
-        throw protocol_exc_t("bad protocol version");  // TODO details
-    }
-
-    receiver->hello(buf);
-}
-
 template <class T> struct stream_type { typedef scoped_malloc<T> type; };
 template <> struct stream_type<net_sarc_t> { typedef stream_pair<net_sarc_t> type; };
 template <> struct stream_type<net_append_t> { typedef stream_pair<net_append_t> type; };
@@ -130,6 +111,29 @@ void replication_stream_handler_t::end_of_stream() {
         delete tracker_obj_;
         tracker_obj_ = NULL;
     }
+}
+
+void replication_connection_handler_t::process_hello_message(net_hello_t buf) {
+    rassert(16 == sizeof(STANDARD_HELLO_MAGIC));
+    if (0 != memcmp(buf.hello_magic, STANDARD_HELLO_MAGIC, sizeof(STANDARD_HELLO_MAGIC))) {
+        throw protocol_exc_t("bad hello magic");  // TODO details
+    }
+
+    if (buf.replication_protocol_version != 1) {
+        throw protocol_exc_t("bad protocol version");  // TODO details
+    }
+
+    receiver_->hello(buf);
+}
+
+void do_parse_hello_message(tcp_conn_t *conn, connection_handler_t *h) {
+    net_hello_t buf;
+    {
+        block_pm_duration set_timer(&slave_conn_reading);
+        conn->read(&buf, sizeof(buf));
+    }
+
+    h->process_hello_message(buf);
 }
 
 size_t handle_message(connection_handler_t *connection_handler, const char *buf, size_t num_read, tracker_t& streams) {
@@ -238,10 +242,10 @@ void do_parse_normal_messages(tcp_conn_t *conn, connection_handler_t *conn_handl
 void do_parse_messages(tcp_conn_t *conn, message_callback_t *receiver) {
 
     try {
-        do_parse_hello_message(conn, receiver);
+        replication_connection_handler_t c(receiver);
+        do_parse_hello_message(conn, &c);
 
         tracker_t streams;
-        replication_connection_handler_t c(receiver);
         do_parse_normal_messages(conn, &c, streams);
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
