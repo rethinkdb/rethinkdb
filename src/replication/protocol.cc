@@ -145,7 +145,8 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         try_write(msg, obsize);
     } else {
         // Right now we don't really split up messages into
-        // submessages.
+        // submessages, even though the other end of the protocol
+        // supports that.
         mutex_acquisition_t ak(&outgoing_mutex_);
 
         net_multipart_header_t hdr;

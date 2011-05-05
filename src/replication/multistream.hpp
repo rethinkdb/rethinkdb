@@ -6,6 +6,9 @@
 // TODO: We include this for net_hello_t, and it is in the wrong place or this is.
 #include "replication/net_structs.hpp"
 
+// TODO: Right now we only have the code for reading from a stream
+// here.  We haven't generified the code for writing to a stream.
+
 namespace replication {
 extern const uint32_t MAX_MESSAGE_SIZE;
 
