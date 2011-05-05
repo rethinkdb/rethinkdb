@@ -5,6 +5,7 @@
 namespace replication {
 perfmon_duration_sampler_t slave_conn_reading("slave_conn_reading", secs_to_ticks(1.0));
 
+const uint32_t MAX_MESSAGE_SIZE = 65535;
 
 // The 16 bytes conveniently include a \0 at the end.
 // 13 is the length of the text.
@@ -204,7 +205,7 @@ void do_parse_normal_messages(tcp_conn_t *conn, message_callback_t *receiver, tr
     // the _value_ part of the message (which could very well be
     // discontiguous and we wouldn't really care).  Worst case
     // scenario: we copy everything over the network one extra time.
-    const size_t shbuf_size = 0x10000;
+    const size_t shbuf_size = MAX_MESSAGE_SIZE;
     scoped_malloc<char> buffer(shbuf_size);
     size_t offset = 0;
     size_t num_read = 0;
@@ -269,7 +270,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
     size_t obsize = objsize(msg);
 
-    if (obsize + sizeof(net_header_t) + 1 <= 0xFFFF) {
+    if (obsize + sizeof(net_header_t) + 1 <= MAX_MESSAGE_SIZE) {
         net_header_t hdr;
         hdr.msgsize = sizeof(net_header_t) + 1 + obsize;
         hdr.message_multipart_aspect = SMALL;
@@ -282,11 +283,11 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         try_write(msg, obsize);
     } else {
         net_multipart_header_t hdr;
-        hdr.msgsize = 0xFFFF;
+        hdr.msgsize = MAX_MESSAGE_SIZE;
         hdr.message_multipart_aspect = FIRST;
         hdr.ident = 1;        // TODO: This is an obvious bug.
 
-        size_t offset = 0xFFFF - (sizeof(net_multipart_header_t) + 1);
+        size_t offset = MAX_MESSAGE_SIZE - (sizeof(net_multipart_header_t) + 1);
 
         {
             mutex_acquisition_t ak(&outgoing_mutex_);
@@ -298,16 +299,16 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
         char *buf = reinterpret_cast<char *>(msg);
 
-        while (offset + 0xFFFF < obsize) {
+        while (offset + MAX_MESSAGE_SIZE < obsize) {
             mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = MIDDLE;
             try_write(&hdr, sizeof(net_multipart_header_t));
-            try_write(buf + offset, 0xFFFF);
-            offset += 0xFFFF;
+            try_write(buf + offset, MAX_MESSAGE_SIZE);
+            offset += MAX_MESSAGE_SIZE;
         }
 
         {
-            rassert(obsize - offset <= 0xFFFF);
+            rassert(obsize - offset <= MAX_MESSAGE_SIZE);
             mutex_acquisition_t ak(&outgoing_mutex_);
             hdr.message_multipart_aspect = LAST;
             try_write(&hdr, sizeof(net_multipart_header_t));
