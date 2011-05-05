@@ -30,6 +30,9 @@ size_t objsize(const net_backfill_set_t *buf) { return sizeof(net_backfill_set_t
 size_t objsize(const net_backfill_delete_t *buf) { return sizeof(net_backfill_delete_t) + buf->key_size; }
 
 
+
+namespace internal {
+
 template <class T>
 void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) {
     if (sizeof(T) <= realsize && objsize(reinterpret_cast<const T *>(buf)) == realsize) {
@@ -40,9 +43,6 @@ void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) 
         throw protocol_exc_t("message wrong length for message code");
     }
 }
-
-
-namespace internal {
 
 template <class T>
 tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *buf, size_t size) {
