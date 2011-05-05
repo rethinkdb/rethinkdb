@@ -179,7 +179,6 @@ enum {
     flush_concurrency,
     flush_threshold,
     run_behind_elb,
-    failover,
     full_perfmon,
     total_delete_queue_limit
 };
@@ -239,7 +238,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
                 {"run-behind-elb",       required_argument, 0, run_behind_elb},
-                {"failover",             no_argument, 0, failover}, //TODO hook this up
                 {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
