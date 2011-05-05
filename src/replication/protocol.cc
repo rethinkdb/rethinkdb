@@ -422,8 +422,8 @@ void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_ac
 
     net_hello_t msg;
     rassert(sizeof(msg.hello_magic) == 16);
-    // TODO make a #define for this.
-    memcpy(msg.hello_magic, "13rethinkdbrepl", 16);
+    rassert(sizeof(STANDARD_HELLO_MAGIC) == 16);
+    memcpy(msg.hello_magic, STANDARD_HELLO_MAGIC, 16);
     msg.replication_protocol_version = 1;
 
     try_write(&msg, sizeof(msg));
