@@ -34,7 +34,7 @@ assert options.workload == "special_rget_workload"
 duration = (1800, "seconds")
 num_clients = 512
 num_rget_clients = 64
-num_canonical_clients = num_clients - num_canonical_clients
+num_canonical_clients = num_clients - num_rget_clients
 keys = (8,16)
 values = (8,128)
 delete_freq = 1
