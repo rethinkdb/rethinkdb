@@ -37,15 +37,21 @@ struct net_introduce_t {
 struct net_header_t {
     uint16_t msgsize;
     uint8_t message_multipart_aspect;
-    uint8_t msgcode;
 } __attribute__((__packed__));
 
 struct net_multipart_header_t {
     uint16_t msgsize;
     uint8_t message_multipart_aspect;
     uint32_t ident;
-    uint8_t msgcode;
 } __attribute__((__packed__));
+
+// Non-multipart messages consist of a net_header_t, followed by a
+// uint8_t message_code, followed by a structure type defined below.
+
+// Multipart messages consist of a net_multipart_header_t, followed by
+// { a uint8_t message_code, then some structure type defined below,
+// if it's the first message of the stream | another piece of the
+// message, if it's not the first message in the stream }
 
 struct net_backfill_t {
     repli_timestamp timestamp;
