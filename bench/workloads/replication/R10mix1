@@ -14,10 +14,10 @@ if [ $DATABASE == "rethinkdb" ]; then
         -d \"/tmp/Replication_master_performance\" -H $MASTER_HOSTS            \
         {server}rethinkdb[/tmp/rethinkdb]:\"-c 12 -m 32768 --master $MASTER_PORT $MASTER_SSD_DRIVES\"                                              \
         {client}stress[$MASTER_STRESS]:\"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/1/0/7 -i $MASTER_TMP_KEY_FILE\"     \
-        iostat:1 vmstat:1 rdbstat:1 sleep:330 &
+        iostat:1 vmstat:1 rdbstat:1 sleep:830 &
     MASTER_PID=$!
 
-    # Ok, timing is critical now. We have the sleep:330 above in order to give the slave enough time to connect to the server,
+    # Ok, timing is critical now. We have the sleep:830 above in order to give the slave enough time to connect to the server,
     # and also to let it do backfilling.
     # Stress client must only start after the slave has connected, otherwise it will fail with a client_error.
     sleep 20
@@ -28,7 +28,7 @@ if [ $DATABASE == "rethinkdb" ]; then
         -d \"/tmp/Replication_slave_performance\" -H $SLAVE_HOSTS            \
         {server}rethinkdb[/tmp/rethinkdb]:\"-c 12 -m 32768 --slave-of $MASTER_SERVER:$MASTER_PORT $SLAVE_SSD_DRIVES\"                                              \
         {client}stress[$SLAVE_STRESS]:\"-c $CANONICAL_CLIENTS -d $CANONICAL_DURATION -w 0/0/0/1 -i $SLAVE_TMP_KEY_FILE\"     \
-        iostat:1 vmstat:1 rdbstat:1 sleep:300
+        iostat:1 vmstat:1 rdbstat:1 sleep:800
         
     # Wait for dbenches to finish
     wait $MASTER_PID
