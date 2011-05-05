@@ -10,19 +10,11 @@
 #include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
 #include "data_provider.hpp"
+#include "replication/multistream.hpp"
 #include "replication/net_structs.hpp"
 
 
 namespace replication {
-
-// TODO: Do we ever really handle these?
-class protocol_exc_t : public std::exception {
-public:
-    protocol_exc_t(const char *msg) : msg_(msg) { }
-    const char *what() throw() { return msg_; }
-private:
-    const char *msg_;
-};
 
 template <class T>
 struct stream_pair {
@@ -81,23 +73,6 @@ struct tracker_obj_t {
 
 namespace internal {
 
-struct stream_handler_t {
-    virtual void stream_part(const char *buf, size_t size) = 0;
-    virtual void end_of_stream() = 0;
-
-    virtual ~stream_handler_t() { }
-};
-
-struct connection_handler_t {
-    virtual void process_hello_message(net_hello_t msg) = 0;
-    virtual stream_handler_t *new_stream_handler() = 0;
-    virtual void conn_closed() = 0;
-protected:
-    virtual ~connection_handler_t() { }
-};
-
-typedef thick_list<stream_handler_t *, uint32_t> tracker_t;
-
 struct replication_stream_handler_t : public stream_handler_t {
     replication_stream_handler_t(message_callback_t *receiver) : receiver_(receiver), saw_first_part_(false), tracker_obj_(NULL) { }
     ~replication_stream_handler_t() { delete tracker_obj_; }
@@ -120,10 +95,6 @@ private:
 };
 
 
-void parse_messages(tcp_conn_t *conn, connection_handler_t *receiver);
-
-void do_parse_messages(tcp_conn_t *conn, connection_handler_t *receiver);
-void do_parse_normal_messages(tcp_conn_t *conn, connection_handler_t *conn_handler, tracker_t& streams);
 
 }  // namespace internal
 
@@ -131,7 +102,7 @@ class repli_stream_t : public home_thread_mixin_t {
 public:
     repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback) : conn_handler_(recv_callback) {
         conn_.swap(conn);
-        internal::parse_messages(conn_.get(), &conn_handler_);
+        parse_messages(conn_.get(), &conn_handler_);
         mutex_acquisition_t ak(&outgoing_mutex_);
         send_hello(ak);
     }
