@@ -158,8 +158,9 @@ public:
  *
  * Frequently we're in the case
  * where we'd like to have a single slow perfmon up, but don't want the other
- * ones, this perfmon_duration_sampler_t has an ignore_global_full_perfmon
- * field on it.  */
+ * ones, perfmon_duration_sampler_t has an ignore_global_full_perfmon
+ * field on it, which when true makes it run regardless of --full-perfmon flag
+ * this can also be enable and disabled at runtime. */
 
 struct perfmon_duration_sampler_t 
     : public control_t
