@@ -177,7 +177,7 @@ struct get_t {
 
 void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i) {
     if (with_cas) {
-        gets[i].res = rh->set_store->get_cas(gets[i].key);
+        gets[i].res = rh->set_store->get_cas(gets[i].key, order_token_t::ignore);
     } else {
         gets[i].res = rh->get_store->get(gets[i].key);
     }
@@ -466,8 +466,8 @@ void run_storage_command(txt_memcached_handler_t *rh,
         }
 
         set_result_t res = rh->set_store->sarc(key, data, metadata.mcflags, metadata.exptime,
-                                               add_policy, replace_policy, metadata.unique);
-        
+                                               add_policy, replace_policy, metadata.unique, order_token_t::ignore);
+
         if (!noreply) {
             switch (res) {
             case sr_stored:
@@ -500,7 +500,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
         append_prepend_result_t res =
             rh->set_store->append_prepend(
                 sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
-                key, data);
+                key, data, order_token_t::ignore);
 
         if (!noreply) {
             switch (res) {
@@ -636,7 +636,7 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount
 
     incr_decr_result_t res = rh->set_store->incr_decr(
         incr ? incr_decr_INCR : incr_decr_DECR,
-        key, amount);
+        key, amount, order_token_t::ignore);
 
     if (!noreply) {
         switch (res.res) {
@@ -710,7 +710,7 @@ void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
 
     block_pm_duration set_timer(&pm_cmd_set);
 
-    delete_result_t res = rh->set_store->delete_key(key);
+    delete_result_t res = rh->set_store->delete_key(key, order_token_t::ignore);
 
     if (!noreply) {
         switch (res) {
@@ -859,7 +859,7 @@ void do_quickset(const thread_saver_t& saver, txt_memcached_handler_t *rh, std::
         }
         unique_ptr_t<buffered_data_provider_t> value(new buffered_data_provider_t(args[i + 1], strlen(args[i + 1])));
 
-        set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0);
+        set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0, order_token_t::ignore);
 
         if (res == sr_stored) {
             rh->writef(saver, "STORED key %s\r\n", args[i]);

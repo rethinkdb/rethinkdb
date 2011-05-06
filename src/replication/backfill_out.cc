@@ -30,73 +30,78 @@ struct backfill_and_streaming_manager_t :
     
         backfill_and_streaming_manager_t *manager;
         castime_t castime;
-    
+        order_token_t order_token;
         mutation_t operator()(const get_cas_mutation_t& m) {
             manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_get_cas, manager,
-                    m.key, castime));
+                                                         m.key, castime, order_token));
             return m;
         }
         mutation_t operator()(const sarc_mutation_t& m) {
             unique_ptr_t<data_provider_t> dps[2];
             duplicate_data_provider(m.data, 2, dps);
-            manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
-                    m.key, dps[0], m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
+
+            {
+                sarc_mutation_t m3(m);
+                m3.data = dps[0];
+                manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager, m3, castime, order_token));
+            }
+
             sarc_mutation_t m2(m);
             m2.data = dps[1];
             return m2;
         }
         mutation_t operator()(const incr_decr_mutation_t& m) {
             manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_incr_decr, manager,
-                    m.kind, m.key, m.amount, castime));
+                                                         m.kind, m.key, m.amount, castime, order_token));
             return m;
         }
         mutation_t operator()(const append_prepend_mutation_t &m) {
             unique_ptr_t<data_provider_t> dps[2];
             duplicate_data_provider(m.data, 2, dps);
             manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
-                    m.kind, m.key, dps[0], castime));
+                                                         m.kind, m.key, dps[0], castime, order_token));
             append_prepend_mutation_t m2(m);
             m2.data = dps[1];
             return m2;
         }
         mutation_t operator()(const delete_mutation_t& m) {
             manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_delete_key, manager,
-                    m.key, castime.timestamp));
+                                                         m.key, castime.timestamp, order_token));
             return m;
         }
     };
 
-    mutation_t dispatch_change(const mutation_t& m, castime_t castime) {
+    mutation_t dispatch_change(const mutation_t& m, castime_t castime, order_token_t token) {
         threadsafe_drain_semaphore_t::lock_t keep_alive(&realtime_mutation_drain_semaphore_);
         change_visitor_t functor;
         functor.manager = this;
         functor.castime = castime;
+        functor.order_token = token;
         return boost::apply_visitor(functor, m.mutation);
     }
 
-    void realtime_get_cas(const store_key_t& key, castime_t castime) {
+    void realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t order_token) {
         block_pm_duration set_timer(&master_rt_get_cas);
-        handler_->realtime_get_cas(key, castime);
+        handler_->realtime_get_cas(key, castime, order_token);
     }
-    void realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data,
-            mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy,
-            replace_policy_t replace_policy, cas_t old_cas) {
+    void realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t order_token) {
         block_pm_duration set_timer(&master_rt_sarc);
-        handler_->realtime_sarc(key, data, flags, exptime, castime, add_policy, replace_policy, old_cas);
+        handler_->realtime_sarc(m, castime, order_token);
     }
     void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
-            castime_t castime) {
+                            castime_t castime, order_token_t order_token) {
         block_pm_duration set_timer(&master_rt_incr_decr);
-        handler_->realtime_incr_decr(kind, key, amount, castime);
+        handler_->realtime_incr_decr(kind, key, amount, castime, order_token);
     }
     void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-            unique_ptr_t<data_provider_t> data, castime_t castime) {
+                                 unique_ptr_t<data_provider_t> data, castime_t castime,
+                                 order_token_t order_token) {
         block_pm_duration set_timer(&master_rt_app_prep);
-        handler_->realtime_append_prepend(kind, key, data, castime);
+        handler_->realtime_append_prepend(kind, key, data, castime, order_token);
     }
-    void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp) {
+    void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t order_token) {
         block_pm_duration set_timer(&master_rt_del);
-        handler_->realtime_delete_key(key, timestamp);
+        handler_->realtime_delete_key(key, timestamp, order_token);
     }
 
     /* backfill_callback_t implementation */
@@ -199,8 +204,7 @@ struct backfill_and_streaming_manager_t :
         operations. */
         realtime_job_queue.push(boost::bind(
             &backfill_and_realtime_streaming_callback_t::realtime_time_barrier,
-            handler_,
-            rc));
+            handler_, rc, order_token_t::ignore));
     }
 
     /* Startup, shutdown, and member variables */
@@ -282,13 +286,13 @@ struct backfill_and_streaming_manager_t :
     }
 
     void register_on_slice(int i, repli_timestamp_t timestamp) {
+        assert(internal_store_->shards[i]->home_thread == get_thread_id());
 
         /* We must register for realtime updates atomically together with starting the
         backfill operation. */
 
         /* Register for real-time updates */
-        internal_store_->shards[i]->dispatching_store.set_dispatcher(
-            boost::bind(&backfill_and_streaming_manager_t::dispatch_change, this, _1, _2));
+        internal_store_->shards[i]->dispatching_store.set_dispatcher(boost::bind(&backfill_and_streaming_manager_t::dispatch_change, this, _1, _2, _3));
 
         /* Start a backfill operation */
         internal_store_->shards[i]->btree.backfill(timestamp, this);

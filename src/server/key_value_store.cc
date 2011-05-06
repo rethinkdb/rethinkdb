@@ -12,9 +12,10 @@
 shard_store_t::shard_store_t(
     translator_serializer_t *translator_serializer,
     mirrored_cache_config_t *dynamic_config,
-    int64_t delete_queue_limit) :
+    int64_t delete_queue_limit,
+    int bucket) :
     btree(translator_serializer, dynamic_config, delete_queue_limit),
-    dispatching_store(&btree),
+    dispatching_store(&btree, bucket),
     timestamper(&dispatching_store)
     { }
 
@@ -26,14 +27,14 @@ rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t
     return btree.rget(left_mode, left_key, right_mode, right_key);
 }
 
-mutation_result_t shard_store_t::change(const mutation_t &m) {
-    return timestamper.change(m);
+mutation_result_t shard_store_t::change(const mutation_t &m, order_token_t token) {
+    return timestamper.change(m, token);
 }
 
-mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct) {
+mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order_token_t token) {
     /* Bypass the timestamper because we already have a castime_t */
     assert_thread();
-    return dispatching_store.change(m, ct);
+    return dispatching_store.change(m, ct, token);
 }
 
 /* btree_key_value_store_t */
@@ -119,7 +120,7 @@ void create_existing_shard(
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    shards[i] = new shard_store_t(pseudoserializers[i], dynamic_config, delete_queue_limit);
+    shards[i] = new shard_store_t(pseudoserializers[i], dynamic_config, delete_queue_limit, i);
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config)
@@ -331,14 +332,15 @@ rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const s
 
 /* set_store_interface_t interface */
 
-mutation_result_t btree_key_value_store_t::change(const mutation_t &m) {
-    return shards[slice_num(m.get_key())]->change(m);
+mutation_result_t btree_key_value_store_t::change(const mutation_t &m, order_token_t token) {
+    return shards[slice_num(m.get_key())]->change(m, token);
 }
 
 /* set_store_t interface */
 
-mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t ct) {
-    const mutation_result_t& res = shards[slice_num(m.get_key())]->change(m, ct);
+mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t ct, order_token_t token) {
+    order_sink.check_out(token);
+    const mutation_result_t& res = shards[slice_num(m.get_key())]->change(m, ct, token);
     return res;
 }
 
