@@ -4,7 +4,6 @@
 #include <queue>
 
 #include "replication/protocol.hpp"
-#include "replication/queueing_store.hpp"
 #include "server/cmd_args.hpp"
 #include "server/control.hpp"
 #include "store.hpp"

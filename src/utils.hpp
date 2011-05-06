@@ -15,6 +15,7 @@
 #include <string>
 
 // Precise time (time+nanoseconds) for logging, etc.
+
 struct precise_time_t : public tm {
     uint32_t ns;    // nanoseconds since the start of the second
                     // beware:
@@ -37,17 +38,18 @@ const size_t formatted_precise_time_length = 26;    // not including null
 void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars);
 std::string format_precise_time(const precise_time_t& time);
 
+/* Printing binary data to stdout in a nice format */
+
 void print_hd(const void *buf, size_t offset, size_t length);
 
 // Fast string compare
+
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
 std::string strip_spaces(std::string); 
 
-/* The home thread mixin is a simple mixin for objects that are primarily associated with
-a single thread. It just keeps track of the thread that the object was created on and
-makes sure that it is destroyed from the same thread. It exposes the ID of that thread
-as the "home_thread" variable. */
+/* `thread_saver_t` makes sure that its destructor returns on the same thread that its
+constructor was called on. */
 
 class thread_saver_t {
 public:
@@ -65,6 +67,11 @@ private:
     int thread_id_;
     DISABLE_COPYING(thread_saver_t);
 };
+
+/* The home thread mixin is a simple mixin for objects that are primarily associated with
+a single thread. It just keeps track of the thread that the object was created on and
+makes sure that it is destroyed from the same thread. It exposes the ID of that thread
+as the "home_thread" variable. */
 
 class home_thread_mixin_t {
 public:
@@ -91,6 +98,18 @@ private:
     DISABLE_COPYING(home_thread_mixin_t);
 };
 
+/* `on_thread_t` switches to the given thread in its constructor, then switches
+back in its destructor. For example:
+
+    printf("Suppose we are on thread 1.\n");
+    {
+        on_thread_t thread_switcher(2);
+        printf("Now we are on thread 2.\n");
+    }
+    printf("And now we are on thread 1 again.\n");
+
+*/
+
 struct on_thread_t : public home_thread_mixin_t {
     on_thread_t(int thread) {
         coro_t::move_to_thread(thread);
@@ -99,6 +118,8 @@ struct on_thread_t : public home_thread_mixin_t {
         coro_t::move_to_thread(home_thread);
     }
 };
+
+/* `is_sorted()` returns true if the given range is sorted. */
 
 template <class ForwardIterator, class StrictWeakOrdering>
 bool is_sorted(ForwardIterator first, ForwardIterator last,
@@ -122,6 +143,7 @@ template<class callable_t>
 void do_later(const callable_t &callable);
 
 // Provides a compare operator which compares the dereferenced values of pointers T* (for use in std:sort etc)
+
 template <typename obj_t>
 class dereferencing_compare_t {
 public:
@@ -129,6 +151,33 @@ public:
         return *o1 < *o2;
     }
 };
+
+/* `make_vector()` provides a more concise way of constructing vectors with
+only a few members. */
+
+template<class value_t>
+std::vector<value_t> make_vector(value_t v1) {
+    std::vector<value_t> vec;
+    vec.push_back(v1);
+    return vec;
+}
+
+template<class value_t>
+std::vector<value_t> make_vector(value_t v1, value_t v2) {
+    std::vector<value_t> vec;
+    vec.push_back(v1);
+    vec.push_back(v2);
+    return vec;
+}
+
+template<class value_t>
+std::vector<value_t> make_vector(value_t v1, value_t v2, value_t v3) {
+    std::vector<value_t> vec;
+    vec.push_back(v1);
+    vec.push_back(v2);
+    vec.push_back(v3);
+    return vec;
+}
 
 #include "utils.tcc"
 
