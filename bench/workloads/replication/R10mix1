@@ -20,7 +20,7 @@ if [ $DATABASE == "rethinkdb" ]; then
     # Ok, timing is critical now. We have the sleep:830 above in order to give the slave enough time to connect to the server,
     # and also to let it do backfilling.
     # Stress client must only start after the slave has connected, otherwise it will fail with a client_error.
-    sleep 20
+    sleep 30
 
     # The slave part
     # TODO: We assume dbench being installed in that static directory on the slave...
