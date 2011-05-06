@@ -32,6 +32,7 @@ DB_SIZE=50000000i
 if [ $DATABASE == "rethinkdb" ]; then
     # Insert a number of keys on the master
     # TODO: This assumes that we are running on the master...
+    # TODO: Should be bring up the slave now and replicate while inserting instead of when we startup master and slave later?
     ./dbench                                                                                        \
         -f -d "/tmp/replication_setup_out" -H $SERVER_HOSTS            \
         {server}rethinkdb:"-c 12 -m 32768 $MASTER_SSD_DRIVES"                                              \

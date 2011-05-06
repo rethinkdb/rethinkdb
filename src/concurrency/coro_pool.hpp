@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include "concurrency/queue/passive_producer.hpp"
+#include "concurrency/drain_semaphore.hpp"
 
 /* coro_pool_t maintains a bunch of coroutines; when you give it tasks, it
 distributes them among the coroutines. It draws its tasks from a

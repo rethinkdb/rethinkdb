@@ -12,7 +12,6 @@
 #include "containers/thick_list.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
-#include "replication/queueing_store.hpp"
 
 class btree_key_value_store_t;
 
