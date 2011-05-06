@@ -15,7 +15,7 @@ class TestFailure(Exception):
 class StdoutAsLog(object):
     def __init__(self, name, test_dir):
         self.name = name
-        self.test_dir = test_dirstress
+        self.test_dir = test_dir
     def __enter__(self):
         self.path = self.test_dir.make_file(self.name)
         print "Writing log file %r." % self.path
