@@ -72,5 +72,6 @@ castime_t timestamping_set_store_interface_t::make_castime() {
 }
 
 void timestamping_set_store_interface_t::set_timestamp(repli_timestamp_t ts) {
+    assert_thread();
     timestamp = ts;
 }

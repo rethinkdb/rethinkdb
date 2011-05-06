@@ -208,6 +208,8 @@ void btree_key_value_store_t::check_existing(const std::vector<std::string>& fil
 }
 
 static void set_one_timestamper(shard_store_t **shards, int i, repli_timestamp_t t) {
+    // TODO: Do we really need to wait for the operation to finish before returning?
+    on_thread_t th(shards[i]->timestamper.home_thread);
     shards[i]->timestamper.set_timestamp(t);
 }
 
