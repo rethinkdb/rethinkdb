@@ -198,10 +198,21 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
     buffer_group_t group;
     group.add_buffer(data->get_size(), buf.get() + sizeof(net_struct_type) + msg->key_size);
 
-    // TODO: This could theoretically block and that could cause
-    // reordering of sets.  The fact that it doesn't block is just a
-    // function of whatever data provider which we happen to use.
-    data->get_data_into_buffers(&group);
+    {
+#ifndef NDEBUG
+        order_token_t tok = sendobj_get_data_into_buffers_source_.check_in();
+#endif
+
+        // This could theoretically block and that could cause
+        // reordering of sets.  The fact that it doesn't block is just
+        // a function of whatever data provider which we happen to
+        // use.
+        data->get_data_into_buffers(&group);
+
+#ifndef NDEBUG
+        sendobj_get_data_into_buffers_sink_.check_out(tok);
+#endif
+    }
 
     sendobj(msgcode, reinterpret_cast<net_struct_type *>(buf.get()));
 }
