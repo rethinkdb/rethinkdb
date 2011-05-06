@@ -318,6 +318,7 @@ struct backfill_and_streaming_manager_t :
     void unregister_on_slice(int i) {
 
         /* Unregister for realtime updates */
+        on_thread_t th(internal_store_->shards[i]->home_thread);
         internal_store_->shards[i]->dispatching_store.set_dispatcher(0);
     }
 };

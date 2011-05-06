@@ -123,7 +123,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 1800,
                     "fsck"        : False},
-                  repeat=3, timeout=2400 * ec2)
+                  repeat=2, timeout=2400 * ec2)
 
     # Run an modify-heavy workload for half hour
     do_test_cloud("integration/stress_load.py",
@@ -139,7 +139,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "ninserts"    : 10,
                     "nreads"      : 1,
                     "fsck"        : False},
-                  repeat=3, timeout=2400)
+                  repeat=2, timeout=2400)
 
     do_test_cloud("integration/stress_load.py",
                   { "auto"        : True,
@@ -158,7 +158,35 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "fsck"        : False,
                     #"min-qps"     : 20 # a very reasonable limit #this is temporarily disabled because cmd_set_persec isn't available on servers
                     },
-                  repeat=3, timeout=2400)
+                  repeat=2, timeout=2400)
+
+    # Run a canonical + rget workload for twenty minutes
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 1200,
+                    "nrgets"      : 1,
+                    "fsck"        : False},
+                  repeat=2, timeout=1800 * ec2)
+                  
+    # Run a canonical + rget workload for twenty minutes under memory pressure
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "memory"      : 8,
+                    "diff-log-size" : 4,
+                    "duration"    : 1200,
+                    "nrgets"      : 1,
+                    "fsck"        : False},
+                  repeat=2, timeout=1800 * ec2)
 
     do_test_cloud("integration/replication_stress_load.py",
                   { "auto"        : True,
