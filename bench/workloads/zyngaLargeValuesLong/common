@@ -6,7 +6,8 @@ function run_with_clients {
     
     
     # Create a database containing $DATABASE_SIZE values
-    DATABASE_SIZE=3000000i
+    #DATABASE_SIZE=3000000i # doesn't fit into memory with Membase on magneto :-(
+    DATABASE_SIZE=1500000i
 
     #MEM_SIZE=59392
     #MEM_SIZE=10360

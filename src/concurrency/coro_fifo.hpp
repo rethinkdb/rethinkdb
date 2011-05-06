@@ -11,7 +11,10 @@
 // acquire it.  This could, for example, prevent sets from hopping
 // over one another.
 
-// This must run on the same thread, which limits its usefulness.
+// This must run on a single thread, which limits its usefulness.
+
+// Note that nobody has ever used this type, so you might want to be
+// paranoid the first time it's used.
 
 class coro_fifo_acq_t;
 

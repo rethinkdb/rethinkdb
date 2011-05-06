@@ -5,8 +5,9 @@
 #include <boost/function.hpp>
 
 #include "arch/arch.hpp"
-#include "concurrency/mutex.hpp"
+#include "concurrency/fifo_checker.hpp"
 #include "concurrency/drain_semaphore.hpp"
+#include "concurrency/mutex.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
 #include "data_provider.hpp"
