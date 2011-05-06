@@ -5,8 +5,9 @@
 #include <boost/function.hpp>
 
 #include "arch/arch.hpp"
-#include "concurrency/mutex.hpp"
+#include "concurrency/fifo_checker.hpp"
 #include "concurrency/drain_semaphore.hpp"
+#include "concurrency/mutex.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
 #include "data_provider.hpp"
@@ -156,6 +157,11 @@ private:
     drain_semaphore_t drain_semaphore_;
 
     boost::scoped_ptr<tcp_conn_t> conn_;
+
+#ifndef NDEBUG
+    order_source_t sendobj_get_data_into_buffers_source_;
+    contiguous_order_sink_t sendobj_get_data_into_buffers_sink_;
+#endif
 };
 
 
