@@ -32,6 +32,7 @@ mutation_result_t shard_store_t::change(const mutation_t &m) {
 
 mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct) {
     /* Bypass the timestamper because we already have a castime_t */
+    assert_thread();
     return dispatching_store.change(m, ct);
 }
 
