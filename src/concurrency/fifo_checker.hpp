@@ -4,9 +4,13 @@
 #include "utils2.hpp"
 
 class order_token_t {
+public:
+    static const order_token_t ignore;
+private:
     explicit order_token_t(int64_t x) : value_(x) { }
     int64_t value_;
 
+    static const int64_t ignore_value_ = -1;
     friend class order_source_t;
     friend class order_sink_t;
     friend class contiguous_order_sink_t;
@@ -29,8 +33,10 @@ public:
     order_sink_t() : last_seen_(0) { }
 
     void check_out(order_token_t token) {
-        rassert(token.value_ > last_seen_);
-        last_seen_ = token.value_;
+        if (token.value_ != order_token_t::ignore_value_) {
+            rassert(token.value_ > last_seen_);
+            last_seen_ = token.value_;
+        }
     }
 
 private:
@@ -45,8 +51,10 @@ public:
     contiguous_order_sink_t() : last_seen_(0) { }
 
     void check_out(order_token_t token) {
-        rassert(token.value_ == last_seen_ + 1);
-        last_seen_ = token.value_;
+        if (token.value_ != order_token_t::ignore_value_) {
+            rassert(token.value_ == last_seen_ + 1);
+            last_seen_ = token.value_;
+        }
     }
 
 private:
