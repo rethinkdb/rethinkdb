@@ -3,7 +3,7 @@
 
 #include "store.hpp"
 
-struct dispatching_store_t : public set_store_t {
+struct dispatching_store_t : public set_store_t, public home_thread_mixin_t {
 
     dispatching_store_t(set_store_t *substore);
     void set_dispatcher(boost::function<mutation_t(const mutation_t &, castime_t)> disp);
