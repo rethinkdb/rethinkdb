@@ -39,10 +39,9 @@ void backfill_storer_t::backfill_deletion(store_key_t key) {
     // timestamp is part of the "->change" interface in a way not
     // relevant to slaves -- it's used when putting deletions into the
     // delete queue.
-    // mutation_result_t (btree_key_value_store_t::*)(mutation_t, castime_t) fun = 
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_,
-        mut, castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid)
+        mut, castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid), order_token_t::ignore
         ));
 }
 
@@ -59,7 +58,7 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom) {
     mut.old_cas = NO_CAS_SUPPLIED;
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_,
-        mut, castime_t(atom.cas_or_zero, atom.recency)
+        mut, castime_t(atom.cas_or_zero, atom.recency), order_token_t::ignore
         ));
 
     if (atom.cas_or_zero != 0) {
@@ -73,8 +72,7 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom) {
         cas_mut.key = mut.key;
         backfill_queue_.push(boost::bind(
             &btree_key_value_store_t::change, kvs_,
-            cas_mut, castime_t(atom.cas_or_zero, atom.recency)
-            ));
+            cas_mut, castime_t(atom.cas_or_zero, atom.recency), order_token_t::ignore));
     }
 }
 
@@ -107,68 +105,53 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp) {
             &backfill_queue_, &realtime_queue_));
 }
 
-void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t castime) {
+void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token) {
     get_cas_mutation_t mut;
     mut.key = key;
-    realtime_queue_.push(boost::bind(
-        &btree_key_value_store_t::change, kvs_, mut, castime));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, mut, castime, token));
 }
 
-void backfill_storer_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data,
-        mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy,
-        replace_policy_t replace_policy, cas_t old_cas) {
-
-    sarc_mutation_t mut;
-    mut.key = key;
-    mut.data = data;
-    mut.flags = flags;
-    mut.exptime = exptime;
-    mut.add_policy = add_policy;
-    mut.replace_policy = replace_policy;
-    mut.old_cas = old_cas;
-    realtime_queue_.push(boost::bind(
-        &btree_key_value_store_t::change, kvs_, mut, castime));
+void backfill_storer_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token) {
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, m, castime, token));
 }
 
 void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
-        castime_t castime) {
+                                           castime_t castime, order_token_t token) {
     incr_decr_mutation_t mut;
     mut.key = key;
     mut.kind = kind;
     mut.amount = amount;
-    realtime_queue_.push(boost::bind(
-        &btree_key_value_store_t::change, kvs_, mut, castime));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, mut, castime, token));
 }
 
 void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-        unique_ptr_t<data_provider_t> data, castime_t castime) {
+                                                unique_ptr_t<data_provider_t> data, castime_t castime, order_token_t token) {
     append_prepend_mutation_t mut;
     mut.key = key;
     mut.data = data;
     mut.kind = kind;
-    realtime_queue_.push(boost::bind(
-        &btree_key_value_store_t::change, kvs_, mut, castime));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, mut, castime, token));
 }
 
-void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp) {
+void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token) {
     delete_mutation_t mut;
     mut.key = key;
     mut.dont_put_in_delete_queue = true;
     // TODO: where does "timestamp" go???  IS THIS RIGHT?? WHO KNOWS.
     realtime_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_, mut,
-        castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, timestamp)
+        castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, timestamp),
+        token
         ));
 }
 
-void backfill_storer_t::realtime_time_barrier(repli_timestamp_t timestamp) {
+void backfill_storer_t::realtime_time_barrier(repli_timestamp_t timestamp, UNUSED order_token_t token) {
+    // TODO order_token_t: use the token.
     /* Write replication clock before timestamp so that if the flush happens
     between them, we will redo the backfill instead of proceeding with a wrong
     replication clock. */
-    realtime_queue_.push(boost::bind(
-        &btree_key_value_store_t::set_replication_clock, kvs_, timestamp));
-    realtime_queue_.push(boost::bind(
-        &btree_key_value_store_t::set_last_sync, kvs_, timestamp));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, timestamp));
+    realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, timestamp));
 }
 
 }
