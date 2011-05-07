@@ -84,7 +84,7 @@ void blocker_pool_t::do_job(job_t *job) {
     or_cond.signal();
 }
 
-void blocker_pool_t::on_event(int event) {
+void blocker_pool_t::on_event(UNUSED int event) {
 
     rassert(event == poll_event_in);
     ce_signal.read();   // So pipe doesn't get backed up

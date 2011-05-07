@@ -2,20 +2,22 @@
 #define __ARCH_LINUX_DISK_AIO_SUBMIT_SYNC_HPP__
 
 #include "arch/linux/disk/aio.hpp"
-#include "arch/linux/disk/reordering_io_queue.hpp"
+#include <vector>
 
-struct linux_aio_submit_sync_t : public linux_aio_submit_t {
-
-    linux_aio_submit_sync_t(linux_diskmgr_aio_t *parent);
+struct linux_aio_submit_sync_t :
+    public linux_diskmgr_aio_t::submit_strategy_t,
+    public watchable_t<bool>::watcher_t
+{
+    linux_aio_submit_sync_t(linux_aio_context_t *context, passive_producer_t<iocb *> *source);
     ~linux_aio_submit_sync_t();
-    void submit(iocb *);
-    void notify_done(iocb *);
+    void notify_done();
 
 private:
+    void on_watchable_changed();
     void pump();
-    linux_diskmgr_aio_t *parent;
+    linux_aio_context_t *context;
+    passive_producer_t<iocb *> *source;
     int n_pending;
-    reordering_io_queue_t queue;
     std::vector<iocb *> request_batch;
 };
 

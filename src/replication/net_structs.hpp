@@ -10,15 +10,12 @@ namespace replication {
 
 enum multipart_aspect { SMALL = 0x81, FIRST = 0x82, MIDDLE = 0x83, LAST = 0x84 };
 
-enum message_code { MSGCODE_NIL = 0, BACKFILL = 0x01, ANNOUNCE = 0x02, NOP = 0x03, ACK = 0x04, SHUTTING_DOWN = 0x05,
-                    GOODBYE = 0x06,
+enum message_code { MSGCODE_NIL = 0, INTRODUCE = 1,
+                    BACKFILL = 2, BACKFILL_COMPLETE = 3, BACKFILL_DELETE_EVERYTHING = 4,
+                    BACKFILL_SET = 5, BACKFILL_DELETE = 6,
 
-                    GET_CAS = 0x21, SET = 0x22, ADD = 0x23, REPLACE = 0x24, CAS = 0x25,
-                    INCR = 0x26, DECR = 0x27, APPEND = 0x28, PREPEND = 0x29, DELETE = 0x2A };
-
-enum role_enum_t { role_master = 0, role_new_slave = 1, role_slave = 2 };
-
-
+                    GET_CAS = 7, SARC = 8, INCR = 9, DECR = 10, APPEND = 11, PREPEND = 12,
+                    DELETE = 13, NOP = 14 };
 
 struct net_castime_t {
     cas_t proposed_cas;
@@ -28,49 +25,50 @@ struct net_castime_t {
 struct net_hello_t {
     char hello_magic[16];
     uint32_t replication_protocol_version;
-    uint32_t role;
-    creation_timestamp_t database_creation_timestamp;
-    char informal_name[32];
+} __attribute__((__packed__));
+
+struct net_introduce_t {
+    uint32_t database_creation_timestamp;
+    // When master sends net_introduce_t, this is ID of last slave seen. When slave sends
+    // net_introduce_t, this is unused.
+    uint32_t other_id;
 } __attribute__((__packed__));
 
 struct net_header_t {
-    uint8_t message_multipart_aspect;
-    uint8_t msgcode;
     uint16_t msgsize;
+    uint8_t message_multipart_aspect;
 } __attribute__((__packed__));
 
 struct net_multipart_header_t {
-    uint8_t message_multipart_aspect;
-    uint8_t msgcode;
     uint16_t msgsize;
+    uint8_t message_multipart_aspect;
     uint32_t ident;
 } __attribute__((__packed__));
+
+// Non-multipart messages consist of a net_header_t, followed by a
+// uint8_t message_code, followed by a structure type defined below.
+
+// Multipart messages consist of a net_multipart_header_t, followed by
+// { a uint8_t message_code, then some structure type defined below,
+// if it's the first message of the stream | another piece of the
+// message, if it's not the first message in the stream }
 
 struct net_backfill_t {
     repli_timestamp timestamp;
 } __attribute__((__packed__));
 
-struct net_announce_t {
-    repli_timestamp from;
-    repli_timestamp to;
+struct net_backfill_complete_t {
+    repli_timestamp time_barrier_timestamp;
+} __attribute__((__packed__));
+
+struct net_backfill_delete_everything_t {
+    // Unnecessary padding.
+    uint32_t padding;
 } __attribute__((__packed__));
 
 struct net_nop_t {
     repli_timestamp timestamp;
 } __attribute__((__packed__));
-
-struct net_ack_t {
-    repli_timestamp timestamp;
-} __attribute__((__packed__));
-
-struct net_shutting_down_t {
-    repli_timestamp timestamp;
-} __attribute__((__packed__));
-
-struct net_goodbye_t {
-    repli_timestamp timestamp;
-} __attribute__((__packed__));
-
 
 struct net_get_cas_t {
     cas_t proposed_cas;
@@ -79,42 +77,26 @@ struct net_get_cas_t {
     char key[];
 } __attribute__((__packed__));
 
-struct net_set_t {
+// TODO: Make this structure more efficient, use optional fields for
+// flags, exptime, add_policy, old_cas.
+struct net_sarc_t {
     repli_timestamp timestamp;
     cas_t proposed_cas;
     mcflags_t flags;
     exptime_t exptime;
     uint16_t key_size;
     uint32_t value_size;
+    uint8_t add_policy;
+    uint8_t replace_policy;
+    cas_t old_cas;
     char keyvalue[];
 } __attribute__((__packed__));
 
-struct net_add_t {
+struct net_backfill_set_t {
     repli_timestamp timestamp;
-    cas_t proposed_cas;
     mcflags_t flags;
     exptime_t exptime;
-    uint16_t key_size;
-    uint32_t value_size;
-    char keyvalue[];
-} __attribute__((__packed__));
-
-struct net_replace_t {
-    repli_timestamp timestamp;
-    cas_t proposed_cas;
-    mcflags_t flags;
-    exptime_t exptime;
-    uint16_t key_size;
-    uint32_t value_size;
-    char keyvalue[];
-} __attribute__((__packed__));
-
-struct net_cas_t {
-    repli_timestamp timestamp;
-    cas_t expected_cas;
-    cas_t proposed_cas;
-    mcflags_t flags;
-    exptime_t exptime;
+    cas_t cas_or_zero;
     uint16_t key_size;
     uint32_t value_size;
     char keyvalue[];
@@ -124,12 +106,16 @@ struct net_incr_t {
     repli_timestamp timestamp;
     cas_t proposed_cas;
     uint64_t amount;
+    uint16_t key_size;
+    char key[];
 } __attribute__((__packed__));
 
 struct net_decr_t {
     repli_timestamp timestamp;
     cas_t proposed_cas;
     uint64_t amount;
+    uint16_t key_size;
+    char key[];
 } __attribute__((__packed__));
 
 struct net_append_t {
@@ -160,16 +146,12 @@ struct net_delete_t {
     char key[];
 } __attribute__((__packed__));
 
-template <class T>
-struct headed {
-    net_header_t hdr;
-    T data;
-} __attribute__((__packed__));
-
-template <class T>
-struct multipart_headed {
-    net_multipart_header_t hdr;
-    T data;
+struct net_backfill_delete_t {
+    // We need at least 4 bytes so that we do not get a msgsize
+    // smaller than sizeof(net_multipart_header_t).
+    uint16_t padding;
+    uint16_t key_size;
+    char key[];
 } __attribute__((__packed__));
 
 }  // namespace replication

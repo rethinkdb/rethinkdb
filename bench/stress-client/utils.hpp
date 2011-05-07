@@ -18,6 +18,7 @@ struct rnd_gen_t
     rnd_distr_t rnd_distr;
     int mu;
 };
+rnd_distr_t distr_with_name(const char *name);
 rnd_gen_t xrandom_create(rnd_distr_t rnd_distr, int mu);
 size_t xrandom(size_t min, size_t max);
 size_t xrandom(rnd_gen_t rnd, size_t min, size_t max);
@@ -46,6 +47,9 @@ private:
     spinlock_t(const spinlock_t &);
     spinlock_t &operator=(const spinlock_t &);
 };
+
+/* Return the number of digits in the number */
+int count_decimal_digits(int);
 
 /* We want to collect a fixed number of latency samples over each second, but we don't know how
 many there are going to be. This type magically solves that problem using reservoir sampling. */

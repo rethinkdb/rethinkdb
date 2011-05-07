@@ -34,7 +34,7 @@ int ser_size(const T &value,
 }
 
 template<class T>
-void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, T *value,
+void unserialize(cluster_inpipe_t *pipe, UNUSED unserialize_extra_storage_t *es, T *value,
         typename boost::enable_if< boost::is_arithmetic<T> >::type * = 0) {
     pipe->read(value, sizeof(*value));
 }
@@ -54,7 +54,7 @@ int ser_size(const T &value,
 }
 
 template<class T>
-void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, T *value,
+void unserialize(cluster_inpipe_t *pipe, UNUSED unserialize_extra_storage_t *es, T *value,
         typename boost::enable_if< boost::is_enum<T> >::type * = 0) {
     pipe->read(value, sizeof(*value));
 }

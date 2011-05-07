@@ -17,6 +17,18 @@ typedef uint64_t cas_t;
 struct store_key_t {
     uint8_t size;
     char contents[MAX_KEY_SIZE];
+
+    store_key_t() { }
+    store_key_t(int sz, const char *buf) {
+        assign(sz, buf);
+    }
+
+    void assign(int sz, const char *buf) {
+        rassert(sz <= MAX_KEY_SIZE);
+        size = sz;
+        memcpy(contents, buf, sz);
+    }
+
     void print() const {
         printf("%*.*s", size, size, contents);
     }
@@ -58,26 +70,31 @@ struct key_with_data_provider_t {
     };
 };
 
+// A NULL unique pointer means not allowed
 typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
 struct get_result_t {
-    get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c, threadsafe_cond_t *s) :
-        value(v), flags(f), cas(c), to_signal_when_done(s) { }
+    get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c) :
+        is_not_allowed(false), value(v), flags(f), cas(c) { }
     get_result_t() :
-        value(), flags(0), cas(0), to_signal_when_done(NULL) { }
+        is_not_allowed(false), value(), flags(0), cas(0) { }
+
+    /* If true, then all other fields should be ignored. */
+    bool is_not_allowed;
 
     // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
     // so don't hold on to it forever.
     unique_ptr_t<data_provider_t> value;
+
     mcflags_t flags;
     cas_t cas;
-    threadsafe_cond_t *to_signal_when_done;
 };
 
 struct get_store_t {
     virtual get_result_t get(const store_key_t &key) = 0;
     virtual rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key,
         rget_bound_mode_t right_mode, const store_key_t &right_key) = 0;
+    virtual ~get_store_t() {}
 };
 
 // A castime_t contains proposed cas information (if it's needed) and
@@ -89,6 +106,7 @@ struct castime_t {
 
     castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
         : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
+    // TODO: ugh.
     castime_t() { }
 };
 
@@ -112,12 +130,29 @@ enum replace_policy_t {
 
 #define NO_CAS_SUPPLIED 0
 
-struct set_mutation_t {
+struct sarc_mutation_t {
+
+    /* The key to operate on */
     store_key_t key;
-    data_provider_t *data;
+
+    /* The value to give the key; must not be NULL.
+    TODO: Should NULL mean a deletion? */
+    unique_ptr_t<data_provider_t> data;
+
+    /* The flags to store with the value */
     mcflags_t flags;
+
+    /* When to make the value expire */
     exptime_t exptime;
+
+    /* If add_policy is add_policy_no and the key doesn't already exist, then the operation
+    will be cancelled and the return value will be sr_didnt_add */
     add_policy_t add_policy;
+
+    /* If replace_policy is replace_policy_no and the key already exists, or if
+    replace_policy is replace_policy_if_cas_matches and the key is either missing a
+    CAS or has a CAS different from old cas, then the operation will be cancelled and
+    the return value will be sr_didnt_replace. */
     replace_policy_t replace_policy;
     cas_t old_cas;
 };
@@ -140,6 +175,10 @@ enum set_result_t {
 
 struct delete_mutation_t {
     store_key_t key;
+
+    /* This is a hack for replication. If true, the btree will not record the change
+    in the delete queue. */
+    bool dont_put_in_delete_queue;
 };
 
 enum delete_result_t {
@@ -176,7 +215,7 @@ enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
 struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
     store_key_t key;
-    data_provider_t *data;
+    unique_ptr_t<data_provider_t> data;
 };
 
 enum append_prepend_result_t {
@@ -188,12 +227,14 @@ enum append_prepend_result_t {
 };
 
 struct mutation_t {
-
-    typedef boost::variant<get_cas_mutation_t, set_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation_variant_t;
+    typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation_variant_t;
     mutation_variant_t mutation;
 
     mutation_t() { }
-    template<class T> mutation_t(const T &m) : mutation(m) { }
+
+    // implicit
+    template<class T>
+    mutation_t(const T &m) : mutation(m) { }
 
     /* get_key() extracts the "key" field from whichever sub-mutation we actually are */
     store_key_t get_key() const;
@@ -205,7 +246,10 @@ struct mutation_result_t {
     result_variant_t result;
 
     mutation_result_t() { }
-    template<class T> mutation_result_t(const T &r) : result(r) { }
+
+    // implicit
+    template<class T>
+    mutation_result_t(const T &r) : result(r) { }
 };
 
 /* It's not safe to copy a mutation_t and then use both copies, because the mutation_t may contain
@@ -224,10 +268,10 @@ class set_store_interface_t {
 public:
     /* These NON-VIRTUAL methods all construct a mutation_t and then call change(). */
     get_result_t get_cas(const store_key_t &key);
-    set_result_t sarc(const store_key_t &key, data_provider_t *data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    set_result_t sarc(const store_key_t &key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
     incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, data_provider_t *data);
-    delete_result_t delete_key(const store_key_t &key);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data);
+    delete_result_t delete_key(const store_key_t &key, bool dont_store_in_delete_queue=false);
 
     virtual mutation_result_t change(const mutation_t&) = 0;
 
@@ -265,10 +309,15 @@ public:
 
     mutation_result_t change(const mutation_t &);
 
+    /* When we pass a mutation through, we give it a timestamp determined by the last call to
+    set_timestamp(). */
+    void set_timestamp(repli_timestamp_t ts);
+
 private:
     castime_t make_castime();
     set_store_t *target;
-    int cas_counter;
+    uint32_t cas_counter;
+    repli_timestamp_t timestamp;
 };
 
 #endif /* __STORE_HPP__ */

@@ -28,7 +28,7 @@ log_controller_t::log_controller_t() {
     pmap(get_num_threads(), boost::bind(&install_log_controller, this, _1));
 }
 
-static void uninstall_log_controller(log_controller_t *lc, int thread) {
+static void uninstall_log_controller(UNUSED log_controller_t *lc, int thread) {
     on_thread_t thread_switcher(thread);
     rassert(log_controller == lc);
     log_controller = NULL;

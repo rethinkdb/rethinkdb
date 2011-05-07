@@ -10,6 +10,8 @@
 #include "replication/slave.hpp"
 #include "replication/load_balancer.hpp"
 #include "control.hpp"
+#include "gated_store.hpp"
+#include "concurrency/promise.hpp"
 
 int run_server(int argc, char *argv[]) {
 
@@ -18,7 +20,7 @@ int run_server(int argc, char *argv[]) {
 
     // Open the log file, if necessary.
     if (config.log_file_name[0]) {
-        log_file = fopen(config.log_file_name, "w");
+        log_file = fopen(config.log_file_name, "a");
     }
 
     // Initial thread message to start server
@@ -82,16 +84,15 @@ struct periodic_checker_t {
     }
 
     ~periodic_checker_t() {
-        timer_token_lock.lock();
+        spinlock_acq_t lock(&timer_token_lock);
         no_more_checking = true;
         if (timer_token) {
             cancel_timer(const_cast<timer_token_t*>(timer_token));
         } 
-        timer_token_lock.unlock();
     }
 
     static void check(periodic_checker_t *timebomb_checker) {
-        timer_token_lock.lock();
+        spinlock_acq_t lock(&timer_token_lock);
         if (!no_more_checking) {
             bool exploded = false;
             time_t time_now = time(NULL);
@@ -120,11 +121,10 @@ struct periodic_checker_t {
             } else {
                 // schedule next check
                 long seconds_left = ceil(double(TIMEBOMB_DAYS)*seconds_in_a_day - seconds_since_created) + 1;
-                long seconds_till_check = min(seconds_left, timebomb_check_period_in_sec);
+                long seconds_till_check = seconds_left < timebomb_check_period_in_sec ? seconds_left : timebomb_check_period_in_sec;
                 timebomb_checker->timer_token = fire_timer_once(seconds_till_check * 1000, (void (*)(void*)) &check, timebomb_checker);
             }
         }
-        timer_token_lock.unlock();
     }
 private:
     creation_timestamp_t creation_timestamp;
@@ -133,28 +133,29 @@ private:
 }
 #endif
 
+void wait_for_sigint() {
+
+    struct : public thread_message_t, public cond_t {
+        void on_thread_switch() { pulse(); }
+    } interrupt_cond;
+    thread_pool_t::set_interrupt_message(&interrupt_cond);
+    interrupt_cond.wait();
+}
+
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
-    /* Create a server object. It only exists so we can give pointers to it to other things. */
-    server_t server(cmd_config, thread_pool);
-
-    {
-        /* Pointers to our stores 
-           these are allocated dynamically so that we have explicit control of when and where their destructors get called*/
-        //btree_key_value_store_t *store = NULL;
-        replication::slave_t *slave_store = NULL;
-
+    try {
         /* Start logger */
         log_controller_t log_controller;
-    
+
         /* Copy database filenames from private serializer configurations into a single vector of strings */
         std::vector<std::string> db_filenames;
         std::vector<log_serializer_private_dynamic_config_t>& serializer_private = cmd_config->store_dynamic_config.serializer_private;
         std::vector<log_serializer_private_dynamic_config_t>::iterator it;
-    
+
         for (it = serializer_private.begin(); it != serializer_private.end(); ++it) {
             db_filenames.push_back((*it).db_filename);
         }
-    
+
         /* Check to see if there is an existing database */
         struct : public btree_key_value_store_t::check_callback_t, public promise_t<bool> {
             void on_store_check(bool ok) { pulse(ok); }
@@ -174,14 +175,11 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         /* Record information about disk drives to log file */
         log_disk_info(cmd_config->store_dynamic_config.serializer_private);
 
-        replication::master_t master;
-
         /* Create store if necessary */
         if (cmd_config->create_store) {
             logINF("Creating database...\n");
             btree_key_value_store_t::create(&cmd_config->store_dynamic_config,
                                             &cmd_config->store_static_config);
-
             logINF("Done creating.\n");
         }
 
@@ -189,62 +187,111 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
             /* Start key-value store */
             logINF("Loading database...\n");
-            //store = new btree_key_value_store_t(&cmd_config->store_dynamic_config);
-            btree_key_value_store_t store(&cmd_config->store_dynamic_config, NULL /* &master - commented out because master eats the data_provider */);
-            server.get_store = &store;   // Gets always go straight to the key-value store
-
-            /* Are we a replication slave? */
-            if (cmd_config->replication_config.active) {
-                logINF("Starting up as a slave...\n");
-                slave_store = new replication::slave_t(&store, cmd_config->replication_config, cmd_config->failover_config);
-                server.set_store = slave_store;
-            } else {
-                server.set_store = &store;   /* So things can access it */
-            }
-
-            /* Start connection acceptor */
-            struct : public conn_acceptor_t::handler_t {
-                server_t *parent;
-                void handle(tcp_conn_t *conn) {
-                    serve_memcache(conn, parent->get_store, parent->set_store);
-                }
-            } handler;
-            handler.parent = &server;
-
-            if (cmd_config->replication_config.active && cmd_config->failover_config.elb_port != -1) {
-                elb_t elb(elb_t::slave, cmd_config->port);
-                slave_store->failover.add_callback(&elb);
-            }
-
-            try {
-                conn_acceptor_t conn_acceptor(cmd_config->port, &handler);
-
-                logINF("Server is now accepting memcache connections on port %d.\n", cmd_config->port);
-
-                /* Wait for an order to shut down */
-                struct : public thread_message_t, public cond_t {
-                    void on_thread_switch() { pulse(); }
-                } interrupt_cond;
-                thread_pool_t::set_interrupt_message(&interrupt_cond);
+            btree_key_value_store_t store(&cmd_config->store_dynamic_config);
 
 #ifdef TIMEBOMB_DAYS
-                timebomb::periodic_checker_t timebomb_checker(store.multiplexer->creation_timestamp);
+            /* This continuously checks to see if RethinkDB has expired */
+            timebomb::periodic_checker_t timebomb_checker(store.get_creation_timestamp());
 #endif
 
-                interrupt_cond.wait();
+            /* Start accepting connections. We use gated-stores so that the code can
+            forbid gets and sets at appropriate times. */
+            gated_get_store_t gated_get_store(&store);
+            gated_set_store_interface_t gated_set_store(&store);
+            conn_acceptor_t conn_acceptor(cmd_config->port,
+                boost::bind(&serve_memcache, _1, &gated_get_store, &gated_set_store));
 
-                logINF("Shutting down... this may take time if there is a lot of unsaved data.\n");
-            } catch (conn_acceptor_t::address_in_use_exc_t) {
-                logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
+            if (cmd_config->replication_config.active) {
+
+                /* Failover callbacks. It's not safe to add or remove them when the slave is
+                running, so we have to set them all up now. */
+                failover_t failover;   // Keeps track of all the callbacks
+
+                /* So that Amazon's Elastic Load Balancer (ELB) can tell when master goes down */
+                boost::scoped_ptr<elb_t> elb;
+                if (cmd_config->failover_config.elb_port != -1) {
+                    elb.reset(new elb_t(elb_t::slave, cmd_config->failover_config.elb_port));
+                    failover.add_callback(elb.get());
+                }
+
+                /* So that we call the appropriate user-defined callback on failure */
+                boost::scoped_ptr<failover_script_callback_t> failover_script;
+                if (strlen(cmd_config->failover_config.failover_script_path) > 0) {
+                    failover_script.reset(new failover_script_callback_t(
+                        cmd_config->failover_config.failover_script_path));
+                    failover.add_callback(failover_script.get());
+                }
+
+                /* So that we accept/reject gets and sets at the appropriate times */
+                failover_query_enabler_disabler_t query_enabler(&gated_set_store, &gated_get_store);
+                failover.add_callback(&query_enabler);
+
+                {
+                    logINF("Starting up as a slave...\n");
+                    replication::slave_t slave(&store, cmd_config->replication_config,
+                        cmd_config->failover_config, &failover);
+
+                    wait_for_sigint();
+
+                    logINF("Waiting for running operations to finish...\n");
+
+                    /* Slave destructor called here */
+                }
+
+                /* query_enabler destructor called here; has the side effect of draining queries. */
+
+                /* Other failover destructors called here */
+
+            } else if (cmd_config->replication_master_active) {
+
+                /* Make it impossible for this database file to later be used as a slave, because
+                that would confuse the replication logic. */
+                store.set_replication_master_id(NOT_A_SLAVE);
+
+                replication::master_t master(cmd_config->replication_master_listen_port, &store, &gated_get_store, &gated_set_store);
+
+                /* So that Amazon's Elastic Load Balancer (ELB) can tell when
+                 * master is up. TODO: This might report us as being up when we aren't actually
+                 accepting queries. */
+                boost::scoped_ptr<elb_t> elb;
+                if (cmd_config->failover_config.elb_port != -1) {
+                    elb.reset(new elb_t(elb_t::master, cmd_config->failover_config.elb_port));
+                }
+
+                wait_for_sigint();
+
+                logINF("Waiting for running operations to finish...\n");
+                /* Master destructor called here */
+
+            } else {
+
+                /* We aren't doing any sort of replication. */
+
+                /* Make it impossible for this database file to later be used as a slave, because
+                that would confuse the replication logic. */
+                store.set_replication_master_id(NOT_A_SLAVE);
+
+                // Open the gates to allow real queries
+                gated_get_store_t::open_t permit_gets(&gated_get_store);
+                gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
+
+                logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
+
+                wait_for_sigint();
+
+                logINF("Waiting for running operations to finish...\n");
             }
 
-            if (slave_store)
-                delete slave_store;
+            logINF("Waiting for changes to flush to disk...\n");
+            // Connections closed here
+            // Store destructor called here
 
-            // store destructor called here
         } else {
             logINF("Shutting down...\n");
         }
+
+    } catch (conn_acceptor_t::address_in_use_exc_t) {
+        logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
     }
 
     /* The penultimate step of shutting down is to make sure that all messages
@@ -268,7 +315,7 @@ struct shutdown_control_t : public control_t
     shutdown_control_t(std::string key)
         : control_t(key, "Shut down the server.")
     {}
-    std::string call(int argc, char **argv) {
+    std::string call(UNUSED int argc, UNUSED char **argv) {
         server_shutdown();
         // TODO: Only print this if there actually *is* a lot of unsaved data.
         return std::string("Shutting down... this may take time if there is a lot of unsaved data.\r\n");
@@ -277,3 +324,27 @@ struct shutdown_control_t : public control_t
 
 shutdown_control_t shutdown_control(std::string("shutdown"));
 
+struct malloc_control_t : public control_t {
+    malloc_control_t(std::string key)
+        : control_t(key, "tcmalloc-testing control.", true) { }
+
+    std::string call(UNUSED int argc, UNUSED char **argv) {
+        std::vector<void *> ptrs;
+        ptrs.reserve(100000);
+        std::string ret("HundredThousandComplete\r\n");
+        for (int i = 0; i < 100000; ++i) {
+            void *ptr;
+            int res = posix_memalign(&ptr, 4096, 131072);
+            if (res != 0) {
+                ret = strprintf("Failed at i = %d\r\n", i);
+                break;
+            }
+        }
+
+        for (int j = 0; j < int(ptrs.size()); ++j) {
+            free(ptrs[j]);
+        }
+
+        return ret;
+    }
+} malloc_control("malloc_control");

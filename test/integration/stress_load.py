@@ -11,7 +11,8 @@ def test_function(opts, port, test_dir):
                                     "inserts":  opts["ninserts"],
                                     "gets":     opts["nreads"],
                                     "appends":  opts["nappends"],
-                                    "prepends": opts["nprepends"] },
+                                    "prepends": opts["nprepends"],
+                                    "rgets": opts["nrgets"] },
                   duration="%ds" % opts["duration"], test_dir=test_dir)
         
 if __name__ == "__main__":
@@ -22,6 +23,7 @@ if __name__ == "__main__":
     op["nreads"]    = IntFlag("--nreads",    64)
     op["nappends"]  = IntFlag("--nappends",  0)
     op["nprepends"] = IntFlag("--nprepends", 0)
+    op["nrgets"] = IntFlag("--nrgets", 0)
     opts = op.parse(sys.argv)
     opts["netrecord"] = False   # We don't want to slow down the network
     auto_server_test_main(test_function, opts, timeout = opts["duration"] + 120)

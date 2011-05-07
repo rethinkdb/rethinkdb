@@ -1,0 +1,54 @@
+{
+   GLibCBacktrace1
+   Memcheck:Cond
+   obj:/lib/libgcc_s.so.1
+   fun:_Unwind_Backtrace
+   fun:backtrace
+}
+
+{
+   GLibCBacktrace2
+   Memcheck:Leak
+   fun:malloc
+   fun:_dl_map_object_deps
+   fun:dl_open_worker
+   fun:_dl_catch_error
+   fun:_dl_open
+   fun:do_dlopen
+   fun:_dl_catch_error
+   fun:__libc_dlopen_mode
+   fun:init
+   fun:pthread_once
+   fun:backtrace
+   fun:_Z15print_backtraceP8_IO_FILEb
+}
+
+{
+   GLibCBacktraceSymbols1
+   Memcheck:Cond
+   ...
+   fun:backtrace_symbols
+   fun:_Z15print_backtraceP8_IO_FILEb
+}
+
+{
+   GLibCBacktraceSymbols2
+   Memcheck:Value8
+   ...
+   fun:backtrace_symbols
+   fun:_Z15print_backtraceP8_IO_FILEb
+}
+
+{
+    PrintBacktrace1
+    Memcheck:Cond
+    ...
+    fun:_Z15print_backtraceP8_IO_FILEb
+}
+
+{
+    PrintBacktrace2
+    Memcheck:Value8
+    ...
+    fun:_Z15print_backtraceP8_IO_FILEb
+}

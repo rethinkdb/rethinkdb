@@ -29,6 +29,8 @@ bool page_repl_random_t::is_full(unsigned int space_needed) {
     return array.size() + space_needed > unload_threshold;
 }
 
+perfmon_counter_t pm_n_blocks_evicted("blocks_evicted");
+
 // make_space tries to make sure that the number of blocks currently in memory is at least
 // 'space_needed' less than the user-specified memory limit.
 void page_repl_random_t::make_space(unsigned int space_needed) {
@@ -57,6 +59,9 @@ void page_repl_random_t::make_space(unsigned int space_needed) {
             /* inner_buf_t's destructor, and the destructors of the local_buf_ts, take care of the
             details */
             delete block_to_unload;
+
+            pm_n_blocks_evicted++;
+
         } else {
             if (array.size() > target + (target / 100) + 10) {
                 logDBG("cache %p exceeding memory target. %d blocks in memory, %d dirty, target is %d.\n",

@@ -16,7 +16,7 @@
 #define IO_SHUTDOWN_NOTIFY_SIGNAL     (SIGRTMIN + 4)
 
 /* Async IO scheduler - the io_getevents part */
-void shutdown_signal_handler(int signum, siginfo_t *siginfo, void *uctx) {
+void shutdown_signal_handler(UNUSED int signum, UNUSED siginfo_t *siginfo, UNUSED void *uctx) {
     // Don't do shit...
 }
 
@@ -35,7 +35,7 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
     io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
 
     do {
-        int nevents = io_getevents(parent->parent->aio_context, 1, MAX_IO_EVENT_PROCESSING_BATCH_SIZE,
+        int nevents = io_getevents(parent->parent->aio_context.id, 1, MAX_IO_EVENT_PROCESSING_BATCH_SIZE,
                                    events, NULL);
         if(nevents == -EINTR) {
             if(parent->shutting_down)
@@ -108,7 +108,7 @@ linux_aio_getevents_noeventfd_t::~linux_aio_getevents_noeventfd_t()
     parent->queue->forget_resource(aio_notify_event.get_notify_fd(), this);
 }
 
-void linux_aio_getevents_noeventfd_t::prep(iocb *req) {
+void linux_aio_getevents_noeventfd_t::prep(UNUSED iocb *req) {
     /* Do nothing. aio_prep() exists for the benefit of linux_aio_getevents_eventfd_t. */
 }
 

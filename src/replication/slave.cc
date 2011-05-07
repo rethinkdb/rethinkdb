@@ -6,147 +6,59 @@
 #include "logger.hpp"
 #include "net_structs.hpp"
 #include "server/key_value_store.hpp"
+#include "replication/backfill.hpp"
+#include "replication/slave_stream_manager.hpp"
 
 namespace replication {
 
-
 // TODO unit test offsets
 
+slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t replication_config,
+        failover_config_t failover_config, failover_t *failover) :
+    failover_(failover),
+    timeout_(INITIAL_TIMEOUT),
+    failover_reset_control_(this),
+    new_master_control_(this),
+    internal_store_(internal_store),
+    replication_config_(replication_config),
+    failover_config_(failover_config),
+    side_coro_handler_(boost::bind(&slave_t::run, this, _1))
+    { }
 
-slave_t::slave_t(btree_key_value_store_t *internal_store_, replication_config_t replication_config_, failover_config_t failover_config_)
-    : failover_script(failover_config_.failover_script_path),
-      timeout(INITIAL_TIMEOUT),
-      timer_token(NULL),
-      failover_reset_control(std::string("failover_reset"), this),
-      new_master_control(std::string("new_master"), this),
-      internal_store(internal_store_),
-      replication_config(replication_config_),
-      failover_config(failover_config_),
-      conn(NULL),
-      shutting_down(false)
-{
-    coro_t::spawn(boost::bind(&run, this));
+void slave_t::failover_reset() {
+    on_thread_t thread_switch(home_thread);
+    give_up_.reset();
+    timeout_ = INITIAL_TIMEOUT;
+
+    /* If there is an open connection to the master, this will kill it. If we gave up
+    on connecting to the master, this will cause us to resume trying to connect. If we
+    are in a timeout before retrying the connection, this will cut the timout short. */
+    pulse_to_reset_failover_.pulse_if_non_null();
 }
 
-slave_t::~slave_t() {
-    shutting_down = true;
-    coro_t::move_to_thread(home_thread);
-    kill_conn();
-    
-    /* cancel the timer */
-    if(timer_token) cancel_timer(timer_token);
-}
+void slave_t::new_master(std::string host, int port) {
+    on_thread_t thread_switcher(home_thread);
 
-void slave_t::kill_conn() {
-    struct : public message_parser_t::message_parser_shutdown_callback_t, public cond_t {
-            void on_parser_shutdown() { pulse(); }
-    } parser_shutdown_cb;
+    /* redo the replication_config info */
+    strcpy(replication_config_.hostname, host.c_str());
+    replication_config_.port = port;
 
-    {
-        on_thread_t thread_switch(home_thread);
-
-        if (!parser.shutdown(&parser_shutdown_cb))
-            parser_shutdown_cb.wait();
-    }
-
-    { //on_thread_t scope
-        on_thread_t thread_switch(get_num_threads() - 2);
-        if (conn) {
-            delete conn;
-            conn = NULL;
-        }
-    }
-}
-
-struct not_allowed_visitor_t : public boost::static_visitor<mutation_result_t> {
-    mutation_result_t operator()(const get_cas_mutation_t &m) const {
-        /* TODO: This is a hack. We can't give a valid result because the CAS we return will
-        not be usable with the master. But currently there's no way to signal an error on
-        gets. So we pretend the value was not found. Technically this is a lie, but screw
-        it. */
-        return get_result_t();
-    }
-    mutation_result_t operator()(const set_mutation_t &m) const {
-        return sr_not_allowed;
-    }
-    mutation_result_t operator()(const incr_decr_mutation_t &m) const {
-        return incr_decr_result_t(incr_decr_result_t::idr_not_allowed);
-    }
-    mutation_result_t operator()(const append_prepend_mutation_t &m) const {
-        return apr_not_allowed;
-    }
-    mutation_result_t operator()(const delete_mutation_t &m) const {
-        return dr_not_allowed;
-    }
-};
-
-mutation_result_t slave_t::change(const mutation_t &m) {
-
-    if (respond_to_queries) {
-        return internal_store->change(m);
-
-    } else {
-        /* Construct a "failure" response of the right sort */
-        return boost::apply_visitor(not_allowed_visitor_t(), m.mutation);
-    }
-}
-
-std::string slave_t::failover_reset() {
-    on_thread_t thread_switch(get_num_threads() - 2);
-    give_up.reset();
-    timeout = INITIAL_TIMEOUT;
-
-    if (timer_token) {
-        cancel_timer(timer_token);
-        timer_token = NULL;
-    }
-
-    if (conn) kill_conn(); //this will cause a notify
-    else coro->notify();
-
-    return std::string("Reseting failover\n");
-}
-
- /* message_callback_t interface */
-void slave_t::hello(net_hello_t message) { }
-void slave_t::send(buffed_data_t<net_backfill_t>& message) { }
-void slave_t::send(buffed_data_t<net_announce_t>& message) { }
-void slave_t::send(buffed_data_t<net_get_cas_t>& message) { }
-void slave_t::send(stream_pair<net_set_t>& message) { }
-void slave_t::send(stream_pair<net_add_t>& message) { }
-void slave_t::send(stream_pair<net_replace_t>& message) { }
-void slave_t::send(stream_pair<net_cas_t>& message) { }
-void slave_t::send(buffed_data_t<net_incr_t>& message) { }
-void slave_t::send(buffed_data_t<net_decr_t>& message) { }
-void slave_t::send(stream_pair<net_append_t>& message) { }
-void slave_t::send(stream_pair<net_prepend_t>& message) { }
-void slave_t::send(buffed_data_t<net_delete_t>& message) { }
-void slave_t::send(buffed_data_t<net_nop_t>& message) { }
-void slave_t::send(buffed_data_t<net_ack_t>& message) { }
-void slave_t::send(buffed_data_t<net_shutting_down_t>& message) { }
-void slave_t::send(buffed_data_t<net_goodbye_t>& message) { }
-void slave_t::conn_closed() {
-    coro->notify();
-}
-
-/* failover driving functions */
-void slave_t::reconnect_timer_callback(void *ctx) {
-    slave_t *self = static_cast<slave_t*>(ctx);
-    self->coro->notify();
+    failover_reset();
 }
 
 /* give_up_t interface: the give_up_t struct keeps track of the last N times
  * the server failed. If it's failing to frequently then it will tell us to
  * give up on the server and stop trying to reconnect */
 void slave_t::give_up_t::on_reconnect() {
-    succesful_reconnects.push(ticks_to_secs(get_ticks()));
+    successful_reconnects.push(ticks_to_secs(get_ticks()));
     limit_to(MAX_RECONNECTS_PER_N_SECONDS);
 }
 
 bool slave_t::give_up_t::give_up() {
     limit_to(MAX_RECONNECTS_PER_N_SECONDS);
 
-    return (succesful_reconnects.size() == MAX_RECONNECTS_PER_N_SECONDS && (succesful_reconnects.back() - ticks_to_secs(get_ticks())) < N_SECONDS);
+    return (successful_reconnects.size() == MAX_RECONNECTS_PER_N_SECONDS &&
+            (successful_reconnects.back() - ticks_to_secs(get_ticks())) < N_SECONDS);
 }
 
 void slave_t::give_up_t::reset() {
@@ -154,96 +66,123 @@ void slave_t::give_up_t::reset() {
 }
 
 void slave_t::give_up_t::limit_to(unsigned int limit) {
-    while (succesful_reconnects.size() > limit)
-        succesful_reconnects.pop();
+    while (successful_reconnects.size() > limit)
+        successful_reconnects.pop();
 }
 
-/* failover callback */
-void slave_t::on_failure() {
-    respond_to_queries = true;
-}
+void slave_t::run(signal_t *shutdown_signal) {
 
-void slave_t::on_resume() {
-    respond_to_queries = false;
-}
+    /* Determine if we were connected to the master at the time that we last shut down. We figure
+    that if the last timestamp (get_replication_clock()) is the same as the last timestamp that
+    we are up to date with the master on (get_last_sync()), then we were connected to the master at
+    the time that we shut down. If this is our first time starting up, then both will be 0, so they
+    will be equal anyway, which produces the correct behavior because the way we act when we first
+    connect is the same as the way we act when we reconnect after we went down. */
+    bool were_connected_before =
+        internal_store_->get_replication_clock() == internal_store_->get_last_sync();
 
-void run(slave_t *slave) {
-    slave->coro = coro_t::self();
-    slave->failover.add_callback(slave);
-    slave->respond_to_queries = false;
-    bool first_connect = true;
-    while (!slave->shutting_down) {
+    if (!were_connected_before) {
+        logINF("We didn't have contact with the master at the time that we last shut down, so "
+            "we will now resume accepting writes.\n");
+        failover_->on_failure();
+    }
+
+    while (!shutdown_signal->is_pulsed()) {
         try {
-            if (slave->conn) { 
-                delete slave->conn;
-                slave->conn = NULL;
+
+            cond_t slave_cond;
+
+            logINF("Attempting to connect as slave to: %s:%d\n",
+                replication_config_.hostname, replication_config_.port);
+
+            boost::scoped_ptr<tcp_conn_t> conn(
+                new tcp_conn_t(replication_config_.hostname, replication_config_.port));
+            slave_stream_manager_t stream_mgr(&conn, internal_store_, &slave_cond);
+
+            // No exception was thrown; it must have worked.
+            timeout_ = INITIAL_TIMEOUT;
+            give_up_.on_reconnect();
+            failover_->on_resume();
+            logINF("Connected as slave to: %s:%d\n", replication_config_.hostname, replication_config_.port);
+
+            // This makes it so that if we get a reset command, the connection
+            // will get closed.
+            pulse_to_reset_failover_.watch(&slave_cond);
+
+            // This makes it so that if we get a shutdown command, the connection gets closed.
+            cond_link_t close_connection_on_shutdown(shutdown_signal, &slave_cond);
+
+            // last_sync is the latest timestamp that we didn't get all the master's changes for
+            repli_timestamp last_sync = internal_store_->get_last_sync();
+            debugf("Last sync: %d\n", last_sync.time);
+
+            if (!were_connected_before) {
+                failover_->on_reverse_backfill_begin();
+                // We use last_sync.next() so that we don't send any of the master's own changes back
+                // to it. This makes sense in conjunction with incrementing the replication clock when
+                // we lose contact with the master.
+                stream_mgr.reverse_side_backfill(last_sync.next());
+                failover_->on_reverse_backfill_end();
             }
-            coro_t::move_to_thread(get_num_threads() - 2);
-            logINF("Attempting to connect as slave to: %s:%d\n", slave->replication_config.hostname, slave->replication_config.port);
-            slave->conn = new tcp_conn_t(slave->replication_config.hostname, slave->replication_config.port);
-            slave->timeout = INITIAL_TIMEOUT;
-            slave->give_up.on_reconnect();
 
-            slave->parser.parse_messages(slave->conn, slave);
-            if (!first_connect) //UGLY :( but it's either this or code duplication
-                slave->failover.on_resume(); //Call on_resume if we've failed before
-            first_connect = false;
-            logINF("Connected as slave to: %s:%d\n", slave->replication_config.hostname, slave->replication_config.port);
+            failover_->on_backfill_begin();
+            stream_mgr.backfill(last_sync);
+            failover_->on_backfill_end();
 
+            debugf("slave_t: Waiting for things to fail...\n");
+            slave_cond.wait();
+            debugf("slave_t: Things failed.\n");
 
-            coro_t::wait(); //wait for things to fail
-            slave->failover.on_failure();
-            if (slave->shutting_down) break;
+            if (shutdown_signal->is_pulsed()) {
+                break;
+            }
+
+            /* Make sure that any sets we run are assigned a timestamp later than the latest
+            timestamp we got from the master. */
+            repli_timestamp_t rc = internal_store_->get_replication_clock();
+            debugf("Incrementing clock from %d to %d\n", rc.time, rc.time+1);
+            internal_store_->set_replication_clock(rc.next());
+
+            failover_->on_failure();
+
+            were_connected_before = false;
 
         } catch (tcp_conn_t::connect_failed_exc_t& e) {
-            //Presumably if the master doesn't even accept an initial
-            //connection then this is a user error rather than some sort of
-            //failure
-            if (first_connect)
-                crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up yet. But what do I know I'm just a database\n", slave->replication_config.hostname, slave->replication_config.port); 
+            // If the master was down when we last shut down, it's not so remarkable that it
+            // would still be down when we come back up. But if that's not the case and it's
+            // our first time connecting, we blame the failure to connect on user error.
+            if (were_connected_before) {
+                fail_due_to_user_error("Master at %s:%d is not responding. Perhaps you haven't brought it up yet?\n",
+                    replication_config_.hostname, replication_config_.port);
+            }
         }
 
-        /* The connection has failed. Let's see what se should do */
-        if (!slave->give_up.give_up()) {
-            slave->timer_token = fire_timer_once(slave->timeout, &slave->reconnect_timer_callback, slave);
+        /* The connection has failed. Let's see what we should do */
+        if (failover_config_.no_rogue || !give_up_.give_up()) {
+            int timeout = timeout_;
+            timeout_ = std::min(timeout_ * TIMEOUT_GROWTH_FACTOR, (long)TIMEOUT_CAP);
 
-            slave->timeout *= TIMEOUT_GROWTH_FACTOR;
-            if (slave->timeout > TIMEOUT_CAP) slave->timeout = TIMEOUT_CAP;
+            cond_t c;
+            call_with_delay(timeout, boost::bind(&cond_t::pulse, &c), &c);
+            pulse_to_reset_failover_.watch(&c);
+            cond_link_t abort_delay_on_shutdown(shutdown_signal, &c);
+            c.wait();
 
-            coro_t::wait(); //waiting on a timer
-            slave->timer_token = NULL;
         } else {
-            logINF("Master at %s:%d has failed %d times in the last %d seconds," \
-                    "going rogue. To resume slave behavior send the command" \
-                    "\"rethinkdb failover reset\" (over telnet)\n",
-                    slave->replication_config.hostname, slave->replication_config.port,
-                    MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS); 
-            coro_t::wait(); //the only thing that can save us now is a reset
+            logINF("Master at %s:%d has failed %d times in the last %d seconds. "
+                   "The slave is now going rogue; it will stop trying to reconnect to the master "
+                   "and it will accept writes. To resume normal slave behavior, send the command "
+                   "\"rethinkdb failover-reset\" (over telnet).\n",
+                   replication_config_.hostname, replication_config_.port,
+                   MAX_RECONNECTS_PER_N_SECONDS, N_SECONDS);
+
+            cond_t c;
+            pulse_to_reset_failover_.watch(&c);
+            cond_link_t abort_delay_on_shutdown(shutdown_signal, &c);
+            c.wait();
         }
     }
 }
 
-std::string slave_t::new_master(int argc, char **argv) {
-    guarantee(argc == 3); // TODO: Handle argc = 0.
-    string host = string(argv[1]);
-    if (host.length() >  MAX_HOSTNAME_LEN - 1)
-        return std::string("That hostname is too long; use a shorter one.\n");
-
-    /* redo the replication_config info */
-    strcpy(replication_config.hostname, host.c_str());
-    replication_config.port = atoi(argv[2]); //TODO this is ugly
-
-    failover_reset();
-    
-    return std::string("New master set\n");
-}
-
-std::string slave_t::failover_reset_control_t::call(int argc, char **argv) {
-    return slave->failover_reset();
-}
-
-std::string slave_t::new_master_control_t::call(int argc, char **argv) {
-    return slave->new_master(argc, argv);
-}
-
 }  // namespace replication
+

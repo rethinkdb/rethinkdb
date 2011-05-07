@@ -1,6 +1,7 @@
-import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, datetime, shutil
+import subprocess, shlex, signal, os, time, shutil, tempfile, sys, traceback, types, gitroot, shutil
 import socket
 from vcoptparse import *
+from datetime import datetime
 
 reports = []
 
@@ -71,6 +72,9 @@ class SmartTemporaryDirectory(object):
                 # now. Unfortunate that we won't get to delete the
                 # temp directory, but alas
                 pass
+
+def shell_escape(string):
+    return string.replace("\\", "\\\\").replace("\"", "\\\"")
 
 class Result(object):
     """The Result class represents the result of a test. It is either a pass or a fail; if it is a
@@ -246,7 +250,9 @@ def do_test(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
     
     # Build up the command line
     command = cmd
-    for arg in cmd_args:
+    cmd_args_keys = [k for k in cmd_args]
+    cmd_args_keys.sort()
+    for arg in cmd_args_keys:
         command += " "
         # GNU cmd line builder
         if cmd_format == "gnu":
@@ -254,7 +260,7 @@ def do_test(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
                 if cmd_args[arg]:
                     command += "--%s" % arg
             else:
-                command += "--%s \"%s\"" % (arg, str(cmd_args[arg]).replace("\\", "\\\\").replace("\"", "\\\""))
+                command += "--%s \"%s\"" % (arg, shell_escape(str(cmd_args[arg])))
         # Make cmd line builder
         elif cmd_format == "make":
             command += "%s=%s" % (arg, str(cmd_args[arg]))
@@ -286,7 +292,7 @@ def do_test(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
     reports.append((command, results))
 
 retest_output_dir = os.path.expanduser("~/retest_output")
-retest_output_dir_subdir_lifetime = 60 * 60 * 24   # Output expires after 24 hours
+retest_output_dir_subdir_lifetime = 28 * 60 * 60 * 24   # Output expires after 28 days
 
 def process_output_file(path):
     """Examine the file and return:
@@ -373,6 +379,9 @@ def process_output_dir(result):
     process_output_file.
     """
     
+    global retest_output_dir
+    global retest_output_dir_subdir_lifetime
+
     # Create retest_output_dir if necessary
     if not os.path.isdir(retest_output_dir):
         os.mkdir(retest_output_dir)
@@ -384,11 +393,26 @@ def process_output_dir(result):
         if time.time() - mod_time > retest_output_dir_subdir_lifetime:
             shutil.rmtree(old_dir)
     
-    # Pick a name for our newest addition to retest_output_dir and copy the directory there
+    # Create a subdirectory for the current date/time
+    formatted_datetime = datetime.now().strftime('%F.%R.%a')
+    output_dir = os.path.join(retest_output_dir, formatted_datetime)
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+
+    # Pick a name for our newest addition to output_dir and copy the directory there
     i = 1
-    while os.path.exists(os.path.join(retest_output_dir, str(i))): i += 1
-    output_dir = os.path.join(retest_output_dir, str(i))
+    while os.path.exists(os.path.join(output_dir, str(i))): i += 1
+    output_dir = os.path.join(output_dir, str(i))
     shutil.move(result.output_dir.take_dir(), output_dir)
+    
+    # Recursively make permissions friendly
+    for root, dirs, files in os.walk(output_dir):
+        os.chmod(root, 0755)
+        for file in files:
+            if os.access(os.path.join(root, file), os.X_OK):
+                os.chmod(os.path.join(root, file), 0755)
+            else:
+                os.chmod(os.path.join(root, file), 0644)
     
     # Make a generator that scans all the files in the directory
     def walker():
@@ -615,13 +639,13 @@ def print_results_as_html(opts, tests):
         print """</div>"""
 
 def send_email(opts, message, recipient):
-    
+
     print "Sending email to %r..." % recipient
-    
+
     num_tries = 10
     try_interval = 10   # Seconds
     smtp_server, smtp_port = os.environ.get("RETESTER_SMTP", "smtp.gmail.com:587").split(":")
-    
+
     import smtplib
 
     for tries in range(num_tries):
@@ -634,17 +658,27 @@ def send_email(opts, message, recipient):
             break
     else:
         raise Exception("Cannot connect to SMTP server '%s'" % smtp_server)
-    
+
     sender, sender_pw = os.environ["RETESTER_EMAIL_SENDER"].split(":")
-    
+
     s.starttls()
-    s.login(sender, sender_pw)
+
+    for tries in range(num_tries):
+        try:
+            s.login(sender, sender_pw)
+        except smtplib.SMTPAuthenticationError:
+            # Try again later
+            time.sleep(try_interval)
+        else:
+            break
+
     s.sendmail(sender, [recipient], message.as_string())
+
     s.quit()
-    
+
     print "Email message sent."
 
-global_start_time = datetime.datetime.now()
+global_start_time = datetime.now()
 
 def send_results_by_email(opts, tests, recipient, message):
     global global_start_time
@@ -671,7 +705,7 @@ def send_results_by_email(opts, tests, recipient, message):
     message = email.mime.text.MIMEText(output, mime_type)
     running_user = os.getenv("USER", "N/A")
     start_time = global_start_time
-    end_time = datetime.datetime.now()
+    end_time = datetime.now()
     if os.getenv("USE_CLOUD", "false") == "false":
         cloud_flag_str = ""
     else:

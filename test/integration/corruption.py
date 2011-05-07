@@ -11,7 +11,9 @@ from test_common import *
 if __name__ == "__main__":
 
     op = make_option_parser()
-    op["mclib"].default = "memcache"   # memcache plays nicer with this test than pylibmc does
+    op["mclib"].default = "memcache"    # memcache plays nicer with this test than pylibmc does.
+                                        # However, it causes connection hangups during verification for weird reasons.
+                                        # We always use pylibmc during verification for that reason.
     op["extract"] = BoolFlag("--no-extract", invert = True)
     op["verify_timeout"] = IntFlag("--verify-timeout", 120) # Should be proportional to duration.
     op["missing_value_threshold"] = IntFlag("--missing-value-threshold", 0)
@@ -24,7 +26,6 @@ if __name__ == "__main__":
 
     opts_without_valgrind = dict(opts)
     opts_without_valgrind["valgrind"] = False
-    # TODO: Should this use --unsaved-data-limit?
     insertion_server = Server(opts_without_valgrind, name="insertion server", extra_flags = ["--wait-for-flush", "y", "--flush-timer", "0"], test_dir = test_dir)
     insertion_server.start()
     server_killed = False
@@ -83,7 +84,8 @@ if __name__ == "__main__":
             [get_executable_path(opts, "rethinkdb"), "extract", "-o", dump_path] + insertion_server.data_files.rethinkdb_flags(),
             "extractor_output.txt",
             valgrind_tool = opts["valgrind-tool"] if opts["valgrind"] else None,
-            test_dir = test_dir)
+            test_dir = test_dir,
+            timeout = opts["verify_timeout"])
 
         dumpfile = open(dump_path, "r")
         dumplines = dumpfile.readlines()
@@ -107,11 +109,14 @@ if __name__ == "__main__":
             unchecked_keys.remove(key)
 
         if len(unchecked_keys) != 0:
-            raise ValueError("%d keys not found; one is '%s'" % unchecked_keys[0])
+            raise ValueError("%d keys not found; one is '%s'" % (len(unchecked_keys), unchecked_keys[0]))
 
     # Check to make sure that the values are all present
 
     def verify_values(test_dir):
+        # memcache seems to cause connection problems during verification. Switch over to pylibmc...
+        original_mclib = opts["mclib"]
+        opts["mclib"] = "pylibmc"
         mc = connect_to_port(opts, verification_server.port)
         successes = fails = 0
         for key in mutual_dict:
@@ -123,10 +128,11 @@ if __name__ == "__main__":
                 # then raise an error saying that
                 raise ValueError("Expected %s, got %s" % (repr(value), repr(value2)))
         mc.disconnect_all()
+        opts["mclib"] = original_mclib
         print "Out of %d values written, %d survived the server shutdown." % \
             (len(mutual_dict), successes)
         if fails > opts["missing_value_threshold"]:
-            raise ValueError("Unacceptably many values were missing.")
+            raise ValueError("Unacceptably many values were missing: %d" % fails)
     run_with_timeout(verify_values, timeout = opts["verify_timeout"], name = "verification test", test_dir = test_dir)
 
     # Clean up

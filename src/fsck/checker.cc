@@ -205,10 +205,11 @@ public:
     btree_block() : raw_block() { }
 
     // Uses and modifies knog->block_info[cx.to_ser_block_id(block_id)].
-    bool init(slicecx &cx, block_id_t block_id) {
+    bool init(slicecx &cx, block_id_t block_id, bool replay_patches) {
         std::list<buf_patch_t*> *patches_list = NULL;
-        if (cx.patch_map.find(block_id) != cx.patch_map.end())
+        if (replay_patches && cx.patch_map.find(block_id) != cx.patch_map.end()) {
             patches_list = &cx.patch_map.find(block_id)->second;
+        }
         return init(cx.file, cx.knog, cx.to_ser_block_id(block_id), patches_list);
     }
 
@@ -396,7 +397,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge *knog, metablock_err
             // There can be bad CRCs for metablocks that haven't been
             // used yet, if the database is very young.
             bool all_zero = true;
-            byte *buf = ptr_cast<byte>(b.realbuf);
+            char *buf = ptr_cast<char>(b.realbuf);
             for (int i = 0; i < DEVICE_BLOCK_SIZE; ++i) {
                 all_zero &= (buf[i] == 0);
             }
@@ -652,8 +653,9 @@ struct diff_log_errors {
     int missing_log_block_count; // must be 0
     int deleted_log_block_count; // must be 0
     int non_sequential_logs; // must be 0
+    int corrupted_patch_blocks; // must be 0
 
-    diff_log_errors() : missing_log_block_count(0), deleted_log_block_count(0), non_sequential_logs(0) { }
+    diff_log_errors() : missing_log_block_count(0), deleted_log_block_count(0), non_sequential_logs(0), corrupted_patch_blocks(0) { }
 };
 
 static char LOG_BLOCK_MAGIC[] = {'L','O','G','B','0','0'};
@@ -688,8 +690,13 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
             if (strncmp((char*)buf_data, LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0) {
                 uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cx.block_size().value()) {
-                    // TODO: Catch guarantees in load_patch instead of failing instantly
-                    buf_patch_t *patch = buf_patch_t::load_patch((char*)buf_data + current_offset);
+                    buf_patch_t *patch;
+                    try {
+                        patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
+                    } catch (patch_deserialization_error_t &e) {
+                        ++errs->corrupted_patch_blocks;
+                        break;
+                    }
                     if (!patch) {
                         break;
                     }
@@ -811,22 +818,22 @@ bool is_valid_hash(const slicecx& cx, const btree_key_t *key) {
     return btree_key_value_store_t::hash(store_key) % cx.knog->config_block->n_proxies == (unsigned)cx.global_slice_id;
 }
 
-void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, value_error *errs);
+void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, value_error *errs, const config_t& cfg);
 
-void check_large_buf_children(slicecx& cx, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, value_error *errs) {
+void check_large_buf_children(slicecx& cx, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, value_error *errs, const config_t& cfg) {
     int64_t step = large_buf_t::compute_max_offset(cx.block_size(), sublevels);
 
     for (int64_t i = floor_aligned(offset, step), e = ceil_aligned(offset + size, step); i < e; i += step) {
         int64_t beg = std::max(offset, i) - i;
         int64_t end = std::min(offset + size, i + step) - i;
 
-        check_large_buf_subtree(cx, sublevels, beg, end - beg, block_ids[i / step], errs);
+        check_large_buf_subtree(cx, sublevels, beg, end - beg, block_ids[i / step], errs, cfg);
     }
 }
 
-void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, value_error *errs) {
+void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, value_error *errs, const config_t& cfg) {
     btree_block b;
-    if (!b.init(cx, block_id)) {
+    if (!b.init(cx, block_id, !cfg.ignore_diff_log)) {
         value_error::segment_error err;
         err.block_id = block_id;
         err.block_code = b.err;
@@ -844,12 +851,12 @@ void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t si
         }
 
         if (levels > 1) {
-            check_large_buf_children(cx, levels - 1, offset, size, ptr_cast<large_buf_internal>(b.buf)->kids, errs);
+            check_large_buf_children(cx, levels - 1, offset, size, ptr_cast<large_buf_internal>(b.buf)->kids, errs, cfg);
         }
     }
 }
 
-void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, value_error *errs) {
+void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, value_error *errs, const config_t& cfg) {
     if (ref_size_bytes >= (int)sizeof(large_buf_ref)) {
 
         // We check that ref->size > MAX_IN_NODE_VALUE_SIZE in check_value.
@@ -876,7 +883,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, 
                             errs->lv_not_left_shifted = true;
                         }
 
-                        check_large_buf_children(cx, sublevels, ref->offset, ref->size, ref->block_ids, errs);
+                        check_large_buf_children(cx, sublevels, ref->offset, ref->size, ref->block_ids, errs, cfg);
 
                         return;
                     }
@@ -888,7 +895,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, 
     errs->lv_bogus_ref = true;
 }
 
-void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_errs, value_error *errs) {
+void check_value(slicecx& cx, const btree_value *value, value_error *errs, const config_t& cfg) {
     errs->bad_metadata_flags = !!(value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
 
     size_t size = value->value_size();
@@ -897,7 +904,7 @@ void check_value(slicecx& cx, const btree_value *value, subtree_errors *tree_err
     } else {
         errs->lv_too_small = (size <= MAX_IN_NODE_VALUE_SIZE);
 
-        check_large_buf(cx, value->lb_ref(), value->size, errs);
+        check_large_buf(cx, value->lb_ref(), value->size, errs, cfg);
     }
 }
 
@@ -908,7 +915,7 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
         && offset >= buf->frontmost_offset) {
         const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
         const btree_value *value = pair->value();
-        uint32_t value_offset = (ptr_cast<byte>(value) - ptr_cast<byte>(pair)) + offset;
+        uint32_t value_offset = (ptr_cast<char>(value) - ptr_cast<char>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
         if (value_offset <= cx.block_size().value() - 2) {
             uint32_t tot_offset = value_offset + value->full_size();
@@ -918,7 +925,7 @@ bool leaf_node_inspect_range(const slicecx& cx, const leaf_node_t *buf, uint16_t
     return false;
 }
 
-void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs, const config_t& cfg) {
     {
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -946,7 +953,7 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
         errs->out_of_order |= !(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0);
 
         value_error valerr(errs->block_id);
-        check_value(cx, pair->value(), tree_errs, &valerr);
+        check_value(cx, pair->value(), &valerr, cfg);
 
         if (valerr.is_bad()) {
             valerr.key = std::string(pair->key.contents, pair->key.contents + pair->key.size);
@@ -960,12 +967,12 @@ void check_subtree_leaf_node(slicecx& cx, const leaf_node_t *buf, const btree_ke
 }
 
 bool internal_node_begin_offset_in_range(const slicecx& cx, const internal_node_t *buf, uint16_t offset) {
-    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<byte>(buf) + offset)->key.size <= cx.block_size().value();
+    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<char>(buf) + offset)->key.size <= cx.block_size().value();
 }
 
-void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs);
+void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs, const config_t& cfg);
 
-void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs) {
+void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *tree_errs, node_error *errs, const config_t& cfg) {
     {
         std::vector<uint16_t> sorted_offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
         std::sort(sorted_offsets.begin(), sorted_offsets.end());
@@ -997,9 +1004,9 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const 
             if (errs->out_of_order) {
                 // It's not like we can restrict a subtree when our
                 // keys are out of order.
-                check_subtree(cx, pair->lnode, NULL, NULL, tree_errs);
+                check_subtree(cx, pair->lnode, NULL, NULL, tree_errs, cfg);
             } else {
-                check_subtree(cx, pair->lnode, prev_key, &pair->key, tree_errs);
+                check_subtree(cx, pair->lnode, prev_key, &pair->key, tree_errs, cfg);
             }
         } else {
             errs->last_internal_node_key_nonempty = (pair->key.size != 0);
@@ -1007,9 +1014,9 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const 
             errs->out_of_order |= !(prev_key == NULL || hi == NULL || internal_key_comp::compare(prev_key, hi) <= 0);
 
             if (errs->out_of_order) {
-                check_subtree(cx, pair->lnode, NULL, NULL, tree_errs);
+                check_subtree(cx, pair->lnode, NULL, NULL, tree_errs, cfg);
             } else {
-                check_subtree(cx, pair->lnode, prev_key, hi, tree_errs);
+                check_subtree(cx, pair->lnode, prev_key, hi, tree_errs, cfg);
             }
         }
 
@@ -1017,11 +1024,11 @@ void check_subtree_internal_node(slicecx& cx, const internal_node_t *buf, const 
     }
 }
 
-void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs) {
+void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs, const config_t& cfg) {
     /* Walk tree */
 
     btree_block node;
-    if (!node.init(cx, id)) {
+    if (!node.init(cx, id, !cfg.ignore_diff_log)) {
         node_error err(id);
         err.block_not_found_error = node.err;
         errs->add_error(err);
@@ -1041,9 +1048,9 @@ void check_subtree(slicecx& cx, block_id_t id, const btree_key_t *lo, const btre
         }
 
         if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
-            check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
+            check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err, cfg);
         } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
-            check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
+            check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err, cfg);
         } else {
             node_err.bad_magic = true;
         }
@@ -1072,7 +1079,7 @@ private:
     DISABLE_COPYING(other_block_errors);
 };
 
-void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
+void check_slice_other_blocks(slicecx& cx, other_block_errors *errs, const config_t& cfg) {
     ser_block_id_t min_block = translator_serializer_t::translate_block_id(0, cx.mod_count, cx.local_slice_id, CONFIG_BLOCK_ID);
 
     ser_block_id_t::number_t end;
@@ -1119,7 +1126,7 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs) {
                 desc.block_id = id;
 
                 btree_block zeroblock;
-                if (!zeroblock.init(cx.file, cx.knog, ser_block_id_t::make(id))) {
+                if (!zeroblock.init(cx.file, cx.knog, ser_block_id_t::make(id)), !cfg.ignore_diff_log) {
                     desc.loading_error = zeroblock.err;
                     errs->allegedly_deleted_blocks.push_back(desc);
                 } else {
@@ -1153,7 +1160,7 @@ struct slice_errors {
     }
 };
 
-void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_number, slice_errors *errs) {
+void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_number, slice_errors *errs, const config_t& cfg) {
     slicecx cx(file, knog, global_slice_number);
 
     check_and_load_diff_log(cx, &errs->diff_log_errs);
@@ -1161,7 +1168,7 @@ void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_
     block_id_t root_block_id;
     {
         btree_block btree_superblock;
-        if (!btree_superblock.init(cx, SUPERBLOCK_ID)) {
+        if (!btree_superblock.init(cx, SUPERBLOCK_ID, !cfg.ignore_diff_log)) {
             errs->superblock_code = btree_superblock.err;
             return;
         }
@@ -1174,10 +1181,10 @@ void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_
     }
 
     if (root_block_id != NULL_BLOCK_ID) {
-        check_subtree(cx, root_block_id, NULL, NULL, &errs->tree_errs);
+        check_subtree(cx, root_block_id, NULL, NULL, &errs->tree_errs, cfg);
     }
 
-    check_slice_other_blocks(cx, &errs->other_block_errs);
+    check_slice_other_blocks(cx, &errs->other_block_errs, cfg);
 
     cx.clear_buf_patches();
 }
@@ -1258,26 +1265,28 @@ struct all_slices_errors {
 };
 
 struct slice_parameter_t {
+    slice_parameter_t(const config_t& cfg) : cfg(cfg) { }
     nondirect_file_t *file;
     file_knowledge *knog;
     int global_slice_number;
     slice_errors *errs;
+    const config_t& cfg;
 };
 
 void *do_check_slice(void *slice_param) {
     slice_parameter_t *p = reinterpret_cast<slice_parameter_t *>(slice_param);
-    check_slice(p->file, p->knog, p->global_slice_number, p->errs);
+    check_slice(p->file, p->knog, p->global_slice_number, p->errs, p->cfg);
     delete p;
     return NULL;
 }
 
-void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t>& threads, file_knowledge *knog, all_slices_errors *errs) {
+void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t>& threads, file_knowledge *knog, all_slices_errors *errs, const config_t& cfg) {
     int step = knog->config_block->n_files;
 
     for (int i = knog->config_block->this_serializer; i < errs->n_slices; i += step) {
         errs->slice[i].global_slice_number = i;
         errs->slice[i].home_filename = knog->filename;
-        slice_parameter_t *param = new slice_parameter_t;
+        slice_parameter_t *param = new slice_parameter_t(cfg);
         param->file = file;
         param->knog = knog;
         param->global_slice_number = i;
@@ -1476,6 +1485,10 @@ bool report_diff_log_errors(const diff_log_errors *errs) {
         printf("ERROR %s The diff log for %d blocks has non-sequential patch counters\n", state, errs->non_sequential_logs);
         ok = false;
     }
+    if (errs->corrupted_patch_blocks > 0) {
+        printf("ERROR %s %d blocks of the diff log contain at least one corrupted patch\n", state, errs->corrupted_patch_blocks);
+        ok = false;
+    }
 
     return ok;
 }
@@ -1559,7 +1572,7 @@ bool check_files(const config_t& cfg) {
     std::vector<pthread_t> threads(n_slices);
     all_slices_errors slices_errs(n_slices);
     for (int i = 0; i < num_files; ++i) {
-        launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs);
+        launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs, cfg);
     }
 
     // Wait for all threads to finish.

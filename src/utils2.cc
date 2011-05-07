@@ -3,9 +3,8 @@
 #include <unistd.h>
 #include <limits.h>
 #include <stdlib.h>
-
+#include <sys/time.h>
 #include <boost/scoped_array.hpp>
-
 
 #include "arch/arch.hpp"
 
@@ -32,14 +31,12 @@ repli_timestamp repli_time(time_t t) {
     return ret;
 }
 
-repli_timestamp current_time() {
-    // Get the current time, cast it to 32 bits.  The lack of
-    // precision will not break things in 2038 or 2106 if we compare
-    // times correctly.
-
-    // time(NULL) does not do a system call (on Linux), last time we
-    // checked, but it's still kind of slow.
-    return repli_time(time(NULL));
+microtime_t current_microtime() {
+    // This could be done more efficiently, surely.
+    struct timeval t;
+    int res __attribute__((unused)) = gettimeofday(&t, NULL);
+    rassert(0 == res);
+    return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
 
 int repli_compare(repli_timestamp x, repli_timestamp y) {
@@ -54,7 +51,15 @@ repli_timestamp repli_max(repli_timestamp x, repli_timestamp y) {
 void *malloc_aligned(size_t size, size_t alignment) {
     void *ptr = NULL;
     int res = posix_memalign(&ptr, alignment, size);
-    if(res != 0) crash_or_trap("Out of memory.");
+    if (res != 0) {
+        if (res == EINVAL) {
+            crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);
+        } else if (res == ENOMEM) {
+            crash_or_trap("Out of memory.");
+        } else {
+            crash_or_trap("posix_memalign failed with unknown result: %d.", res);
+        }
+    }
     return ptr;
 }
 

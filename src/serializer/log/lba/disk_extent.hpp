@@ -20,7 +20,7 @@ public:
     int count;
 
 public:
-    lba_disk_extent_t(extent_manager_t *em, direct_file_t *file)
+    lba_disk_extent_t(extent_manager_t *em, direct_file_t *file, file_t::account_t *io_account)
         : em(em), data(new extent_t(em, file)), offset(data->offset), count(0)
     {
         // Make sure that the size of the header is a multiple of the size of one entry, so that the
@@ -31,7 +31,7 @@ public:
         lba_extent_t::header_t header;
         bzero(&header, sizeof(header));
         memcpy(header.magic, lba_magic, LBA_MAGIC_SIZE);
-        data->append(&header, sizeof(header));
+        data->append(&header, sizeof(header), io_account);
     }
     
     lba_disk_extent_t(extent_manager_t *em, direct_file_t *file, off64_t offset, int count)
@@ -44,20 +44,20 @@ public:
         return data->amount_filled == em->extent_size;
     }
     
-    void add_entry(lba_entry_t entry) {
+    void add_entry(lba_entry_t entry, file_t::account_t *io_account) {
         // Make sure that entries will align with DEVICE_BLOCK_SIZE
         rassert(DEVICE_BLOCK_SIZE % sizeof(lba_entry_t) == 0);
         
         // Make sure that there is room
         rassert(data->amount_filled + sizeof(lba_entry_t) <= em->extent_size);
         
-        data->append(&entry, sizeof(lba_entry_t));
+        data->append(&entry, sizeof(lba_entry_t), io_account);
         count++;
     }
     
-    void sync(extent_t::sync_callback_t *cb) {
+    void sync(file_t::account_t *io_account, extent_t::sync_callback_t *cb) {
         while (data->amount_filled % DEVICE_BLOCK_SIZE != 0) {
-            add_entry(lba_entry_t::make_padding_entry());
+            add_entry(lba_entry_t::make_padding_entry(), io_account);
         }
         
         data->sync(cb);

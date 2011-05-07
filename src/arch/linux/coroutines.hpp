@@ -12,6 +12,27 @@ const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
 struct coro_context_t;
 
+#ifndef NDEBUG
+// coro_t::wait() asserts that this is zero.
+extern __thread int coro_no_waiting;
+
+// Put this in methods that should not be called in a coroutine
+// context.
+struct assert_no_coro_waiting_t {
+    assert_no_coro_waiting_t() {
+        ++coro_no_waiting;
+    }
+    ~assert_no_coro_waiting_t() {
+        --coro_no_waiting;
+    }
+};
+
+#define ASSERT_NO_CORO_WAITING assert_no_coro_waiting_t assert_no_coro_waiting_var
+#else  // NDEBUG
+#define ASSERT_NO_CORO_WAITING do { } while (0)
+#endif  // NDEBUG
+
+
 /* Please only construct one coro_globals_t per thread. Coroutines can only be used when
 a coro_globals_t exists. It exists to take advantage of RAII. */
 
@@ -34,17 +55,13 @@ struct coro_t : private linux_thread_message_t {
 public:
     static void spawn(const boost::function<void()>& deed);
     static void spawn_now(const boost::function<void()> &deed);
+    static void spawn_on_thread(int thread, const boost::function<void()>& deed);
 
-    // Use coro_t::spawn(boost::bind(...)) for multiparamater spawnings.
-
-    static void spawn_on_thread(int thread, const boost::function<void()>& deed) {
-        (new coro_t(deed, thread))->notify();
-    }
+    // Use coro_t::spawn(boost::bind(...)) for spawning with parameters.
 
 public:
     static void wait();         // Pauses the current coroutine until it's notified
     static void yield();        // Pushes the current coroutine to the end of the notify queue and waits
-    static void nap(long ms);   // Pauses the current coroutine for at least ms amount of milliseconds
     static coro_t *self();      // Returns the current coroutine
     void notify_now();          // Switches to a coroutine immediately (will switch back when it returns or wait()s)
     void notify();              // Wakes up the coroutine, allowing the scheduler to trigger it to continue
@@ -66,6 +83,7 @@ private:
     virtual void on_thread_switch();
 
     int current_thread_;
+    int original_free_contexts_thread_;
 
     // Sanity check variables
     bool notified_;

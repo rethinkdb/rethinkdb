@@ -1,3 +1,5 @@
+#include <map>
+
 #include "extract/filewalk.hpp"
 
 #include "arch/arch.hpp"
@@ -5,7 +7,6 @@
 #include "btree/leaf_node.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/large_buf.hpp"
-#include "buffer_cache/buf_patch.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "utils.hpp"
@@ -31,8 +32,8 @@ public:
 };
 
 
-struct byteslice {
-    const byte *buf;
+struct charslice {
+    const char *buf;
     size_t len;
 };
 
@@ -40,6 +41,7 @@ struct byteslice {
 class dumper_t {
 public:
     explicit dumper_t(const char *path) {
+        logINF("Opening `%s' for extraction output...\n", path);
         fp = fopen(path, "wbx");
         if (fp == NULL) {
             fail_due_to_user_error("Could not open `%s' for writing: %s", path, strerror(errno));
@@ -51,7 +53,7 @@ public:
         }
     }
     void dump(const btree_key_t *key, mcflags_t flags, exptime_t exptime,
-              byteslice *slices, size_t num_slices) {
+              charslice *slices, size_t num_slices) {
         int len = 0;
         for (size_t i = 0; i < num_slices; ++i) {
             len += slices[i].len;
@@ -84,10 +86,10 @@ void clear_buf_patches() {
 
 void walk_extents(dumper_t &dumper, nondirect_file_t &file, const cfg_t static_config);
 void observe_blocks(block_registry &registry, nondirect_file_t &file, const cfg_t cfg, uint64_t filesize);
-void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
-void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
+void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
+void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 bool check_config(const cfg_t& cfg);
-void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter);
+void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter);
 void walkfile(dumper_t &dumper, const char *path);
 
 
@@ -127,23 +129,23 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
     observe_blocks(registry, file, cfg, filesize);
 
     // 2.  Pass 2.  Load diff log / Visit leaf nodes, dump their values.
-    const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets = registry.destroy_transaction_ids();
+    const std::map<size_t, off64_t>& offsets = registry.destroy_transaction_ids();
 
-    size_t n = offsets.get_size();
-    if (n == 0) {
+    if (offsets.empty()) {
         logERR("No block offsets found.\n");
         return;
     }
+    size_t n = offsets.rbegin()->first;
 
     if (cfg.mod_count == config_t::NO_FORCED_MOD_COUNT) {
-        if (!(CONFIG_BLOCK_ID.ser_id.value < n && offsets[CONFIG_BLOCK_ID.ser_id.value] != block_registry::null)) {
+        std::map<size_t, off64_t>::const_iterator config_offset_it = offsets.find(CONFIG_BLOCK_ID.ser_id.value);
+        if (!(CONFIG_BLOCK_ID.ser_id.value < n && config_offset_it != offsets.end())) {
             fail_due_to_user_error(
-                "Config block cannot be found (CONFIG_BLOCK_ID = %u, offsets.get_size() = %u)."
+                "Config block cannot be found (CONFIG_BLOCK_ID = %u, highest block id = %u)."
                 "  Use --force-slice-count to override.\n",
                  CONFIG_BLOCK_ID, n);
         }
-
-        off64_t off = offsets[CONFIG_BLOCK_ID.ser_id.value];
+        off64_t off = config_offset_it->second;
 
         block serblock;
         serblock.init(cfg.block_size(), &file, off, CONFIG_BLOCK_ID.ser_id);
@@ -195,7 +197,7 @@ void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_
     }
 }
 
-void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
+void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, UNUSED uint64_t filesize) {
     // Scan through all log blocks, build a map block_id -> patch list
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
          offset <= max_offset;
@@ -205,13 +207,19 @@ void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, non
 
         ser_block_id_t block_id = b.buf_data().block_id;
 
-        if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
-            const void *data = (char*)b.buf;
-            if (memcmp((const char*)data, "LOGB00", 6) == 0) {
+        if (offsets.find(block_id.value) != offsets.end() && offsets.find(block_id.value)->second == offset) {
+            const void *data = b.buf;
+            if (memcmp(reinterpret_cast<const char *>(data), "LOGB00", 6) == 0) {
                 int num_patches = 0;
                 uint16_t current_offset = 6; //sizeof(LOG_BLOCK_MAGIC);
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(buf_data_t)) {
-                    buf_patch_t *patch = buf_patch_t::load_patch((char*)data + current_offset);
+                    buf_patch_t *patch;
+                    try {
+                        patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
+                    } catch (patch_deserialization_error_t &e) {
+                        logERR("Corrupted patch. Ignoring the rest of the log block.\n");
+                        break;
+                    }
                     if (!patch) {
                         break;
                     }
@@ -235,7 +243,71 @@ void load_diff_log(const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, non
     }
 }
 
-void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize) {
+/* recover_basic_block_consistency checks whether offsets and sizes in the supplied buffer are valid.
+ This check is used to determine whether we can safely apply patches to this block.
+ If problems are found, the inconsistencies are corrected as well as possible.
+ In case of an incorrectable problem, false is returned. If all problems could
+ be recovered from, true is returned.
+ Please note that this check is valid only because of the way that we are flushing
+ patches in the current implementation of RethinkDB. Namely, it assumes that the buf
+ as it is on disk is always valid. In theory it is perfectly fine though, if a buf
+ is in an invalid state, and only becomes valid again after all applicable patches
+ have been replayed. The reason this does not happen with our writeback is that
+ writeback acquires the flush lock (so all buffers are in a valid state) and then either
+ flushes *only* patches, but does not touch the existing block, or applies *all*
+ outstanding patches and only then writes the block to disk, so it's consistent again. */
+bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
+    leaf_node_t *leaf = (leaf_node_t *)buf;
+    if (check_magic<leaf_node_t>(leaf->magic)) {
+        // Check that the number of pairs is not too high and that the offsets are fine
+        int num_pairs = leaf->npairs;
+        int pair_offsets_back_offset = offsetof(leaf_node_t, pair_offsets) + sizeof(*leaf->pair_offsets) * num_pairs;
+        if (unsigned(pair_offsets_back_offset) < cfg.block_size().value()) {
+            for (int j = 0; j < num_pairs; ++j) {
+                uint16_t pair_offset = leaf->pair_offsets[j];
+                if (!(pair_offset >= pair_offsets_back_offset && pair_offset + sizeof(btree_leaf_pair) + sizeof(btree_value) <= cfg.block_size().value())) {
+                    // Illegal pair offset
+                    // Recover...
+                    logERR("Recovering from a corrupted leaf node block. Data might be lost.\n");
+                    if (pair_offset < pair_offsets_back_offset) {
+                        leaf->pair_offsets[j] = pair_offsets_back_offset;
+                    } else {
+                        leaf->pair_offsets[j] = cfg.block_size().value() - sizeof(btree_leaf_pair) - sizeof(btree_value);
+                    }
+                } else  if ((signed int)cfg.block_size().value() - (signed int)pair_offset < 0) {
+                    logERR("A pair has an illegal offset. Truncating offset list.\n");
+                    leaf->npairs = j;
+                    num_pairs = leaf->npairs;
+                    break;
+                }
+            }
+            for (int j = 0; j < num_pairs; ++j) {
+                uint16_t pair_offset = leaf->pair_offsets[j];
+                btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
+                if (!leaf_pair_fits(pair, (signed int)cfg.block_size().value() - (signed int)pair_offset)) {
+                    logERR("A pair juts off the end of the block. Truncating pair.\n");
+                    pair->key.size = 0;
+                    pair->value()->size = 0;
+                }
+            }
+        } else {
+            // Too many pairs
+            return false;
+        }
+
+        return true;
+    } else {
+        // For now, we only handle leaf nodes.
+        // In theory, there can be patches which change the magic of the block, such that a
+        // non-leaf block can become a leaf node only after patches have been applied.
+        // HOWEVER we are lucky, because all init() functions in RethinkDB currently use
+        // get_buf_major_write(). thereby disabling the patching. This makes sure that
+        // the block magic always finds its way to the on-disk version of the block.
+        return false;
+    }
+}
+
+void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, UNUSED uint64_t filesize) {
     // If the database has been copied to a normal filesystem, it's
     // _way_ faster to rescan the file in order of offset than in
     // order of block id.  However, we still do some random access
@@ -249,24 +321,31 @@ void get_all_values(dumper_t& dumper, const segmented_vector_t<off64_t, MAX_BLOC
         
         ser_block_id_t block_id = b.buf_data().block_id;
 
+        if (offsets.find(block_id.value) != offsets.end() && offsets.find(block_id.value)->second == offset) {
+            int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(block_id, cfg.mod_count, CONFIG_BLOCK_ID);
+            block_id_t cache_block_id = translator_serializer_t::untranslate_block_id_to_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
 
-        int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(block_id, cfg.mod_count, CONFIG_BLOCK_ID);
-        block_id_t cache_block_id = translator_serializer_t::untranslate_block_id_to_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
-
-        if (block_id.value < offsets.get_size() && offsets[block_id.value] == offset) {
             if (!cfg.ignore_diff_log) {
-                // Replay patches
-                std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = buf_patches.find(cache_block_id);
-                if (patches != buf_patches.end()) {
-                    // We apply only patches which match exactly the provided transaction ID.
-                    // Sepcifically, this ensures that we only replay patches which are for the right slice,
-                    // as transaction IDs are disjoint across slices (this relies on the current implementation
-                    // details of the cache and serializer though)
-                    for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
-                        //fprintf(stdout, "Checking patch with TID %d against TID %d...\n", (int)(*patch)->get_transaction_id(), (int)b.buf_data().transaction_id);
-                        if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
-                            (*patch)->apply_to_buf((char*)b.buf);
+                // See comments for recover_basic_block_consistency above
+                if (recover_basic_block_consistency(cfg, b.buf)) {
+                    // Replay patches
+                    std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = buf_patches.find(cache_block_id);
+                    if (patches != buf_patches.end()) {
+                        // We apply only patches which match exactly the provided transaction ID.
+                        // Sepcifically, this ensures that we only replay patches which are for the right slice,
+                        // as transaction IDs are disjoint across slices (this relies on the current implementation
+                        // details of the cache and serializer though)
+                        for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
+                            if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
+                                (*patch)->apply_to_buf((char*)b.buf);
+                            }
                         }
+                    }
+                } else {
+                    const leaf_node_t *leaf = (leaf_node_t *)b.buf;
+                    // If the block is not considered consistent, but still is a leaf, something is wrong with the block.
+                    if (check_magic<leaf_node_t>(leaf->magic)) {
+                        logERR("Not replaying patches for block %u. The block seems to be corrupted.\n", block_id.value);
                     }
                 }
             }
@@ -306,9 +385,9 @@ private:
 };
 
 
-bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks);
+bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks);
 
-bool get_large_buf_segments_from_children(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
+bool get_large_buf_segments_from_children(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks) {
 
     int64_t step = large_buf_t::compute_max_offset(cfg.block_size(), sublevels);
 
@@ -324,16 +403,14 @@ bool get_large_buf_segments_from_children(const cfg_t& cfg, const btree_key_t *k
     return true;
 }
 
-bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
+bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks) {
 
     ser_block_id_t trans = translator_serializer_t::translate_block_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
     ser_block_id_t::number_t trans_id = trans.value;
 
-    if (!(trans_id < offsets.get_size())) {
-        logERR("With key '%.*s': large value has invalid block id: %u (buffer_cache block id = %u, mod_id = %d, mod_count = %d)\n", key->size, key->contents, trans_id, block_id, mod_id, cfg.mod_count);
-        return false;
-    }
-    if (offsets[trans_id] == block_registry::null) {
+    std::map<size_t, off64_t>::const_iterator offset_it = offsets.find(trans_id);
+
+    if (offset_it == offsets.end()) {
         logERR("With key '%.*s': no blocks seen with block id: %u\n",
                key->size, key->contents, trans.value);
         return false;
@@ -342,26 +419,27 @@ bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *ke
     if (levels == 1) {
         block *b = new block();
         segblocks->bs.push_back(b);
-        b->init(cfg.block_size(), &file, offsets[trans_id], trans);
+        
+        b->init(cfg.block_size(), &file, offset_it->second, trans);
 
         const large_buf_leaf *leafbuf = reinterpret_cast<const large_buf_leaf *>(b->buf);
 
         if (!check_magic<large_buf_leaf>(leafbuf->magic)) {
             logERR("With key '%.*s': large_buf_leaf (offset %lu) has invalid magic: '%.*s'\n",
-                   key->size, key->contents, offsets[trans.value], (int)sizeof(leafbuf->magic), leafbuf->magic.bytes);
+                   key->size, key->contents, offset_it->second, (int)sizeof(leafbuf->magic), leafbuf->magic.bytes);
             return false;
         }
 
         return true;
     } else {
         block internal;
-        internal.init(cfg.block_size(), &file, offsets[trans.value], trans);
+        internal.init(cfg.block_size(), &file, offset_it->second, trans);
 
         const large_buf_internal *buf = reinterpret_cast<const large_buf_internal *>(internal.buf);
 
         if (!check_magic<large_buf_internal>(buf->magic)) {
             logERR("With key '%.*s': large_buf_internal (offset %lu) has invalid magic: '%.*s'\n",
-                   key->size, key->contents, offsets[trans.value], (int)sizeof(buf->magic), buf->magic.bytes);
+                   key->size, key->contents, offset_it->second, (int)sizeof(buf->magic), buf->magic.bytes);
             return false;
         }
 
@@ -369,7 +447,7 @@ bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *ke
     }
 }
 
-bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, const large_buf_ref *ref, int ref_size_bytes, const cfg_t& cfg, int mod_id, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, blocks *segblocks) {
+bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, const large_buf_ref *ref, int ref_size_bytes, const cfg_t& cfg, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks) {
 
     // This is copied and pasted from fsck's check_large_buf in checker.cc.
 
@@ -402,15 +480,16 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
         }
     }
 
-    logERR("With key '%.*s': invalid large_buf_ref\n", key->size, key->contents);
+    logERR("With key '%.*s': invalid large_buf_ref or just a corrupted value\n", key->size, key->contents);
     return false;
 }
 
 
 // Dumps the values for a given pair.
-void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const segmented_vector_t<off64_t, MAX_BLOCK_ID>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter) {
+void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter) {
     if (pair_size_limiter < 0 || !leaf_pair_fits(pair, pair_size_limiter)) {
         logERR("(In block %u) A pair juts off the end of the block.\n", this_block.value);
+        return;
     }
 
     const btree_key_t *key = &pair->key;
@@ -420,10 +499,10 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
     exptime_t exptime = value->exptime();
     // We can't save the cas right now.
 
-    const byte *valuebuf = value->value();
+    const char *valuebuf = value->value();
 
     // We're going to write the value, split into pieces, into this set of pieces.
-    std::vector<byteslice> pieces;
+    std::vector<charslice> pieces;
     blocks segblocks;
 
 
@@ -432,23 +511,29 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
 
 
     if (value->is_large()) {
-        int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
+        if (value->size >= sizeof(large_buf_ref) && ((value->size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0)) {
 
-        int64_t seg_size = large_buf_t::bytes_per_leaf(cfg.block_size());
+            int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
 
-        const large_buf_ref *ref = value->lb_ref();
-        if (!get_large_buf_segments(key, file, ref, value->size, cfg, mod_id, offsets, &segblocks)) {
+            int64_t seg_size = large_buf_t::bytes_per_leaf(cfg.block_size());
+
+            const large_buf_ref *ref = value->lb_ref();
+            if (!get_large_buf_segments(key, file, ref, value->size, cfg, mod_id, offsets, &segblocks)) {
+                return;
+            }
+
+            pieces.resize(segblocks.bs.size());
+
+            int64_t bytes_left = ref->size;
+            for (int64_t i = 0, n = segblocks.bs.size(); i < n; ++i) {
+                int64_t beg = (i == 0 ? ref->offset % seg_size : 0);
+                pieces[i].buf = reinterpret_cast<const large_buf_leaf *>(segblocks.bs[i]->buf)->buf;
+                pieces[i].len = (i == n - 1 ? bytes_left : seg_size) - beg;
+                bytes_left -= pieces[i].len;
+            }
+        } else {
+            logERR("(In block %u) Value for key '%.*s' is corrupted.\n", this_block.value, int(key->size), key->contents);
             return;
-        }
-
-        pieces.resize(segblocks.bs.size());
-
-        int64_t bytes_left = ref->size;
-        for (int64_t i = 0, n = segblocks.bs.size(); i < n; ++i) {
-            int64_t beg = (i == 0 ? ref->offset % seg_size : 0);
-            pieces[i].buf = reinterpret_cast<const large_buf_leaf *>(segblocks.bs[i]->buf)->buf;
-            pieces[i].len = (i == n - 1 ? bytes_left : seg_size) - beg;
-            bytes_left -= pieces[i].len;
         }
     } else {
         pieces.resize(1);
@@ -506,7 +591,6 @@ void dumpfile(const config_t& config) {
     for (unsigned i = 0; i < config.input_files.size(); ++i) {
         walkfile(dumper, config.input_files[i], config.overrides);
     }
-
 }
 
 }  // namespace extract

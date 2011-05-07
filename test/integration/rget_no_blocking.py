@@ -87,12 +87,15 @@ def test_function(opts, port, test_dir):
 
     try:
         us.setblocking(1)
+        print "  Sending concurrent set"
         us.send('set %s 0 0 %d\r\n%s\r\n' % (updated_key, len(updated_value), updated_value))
         uf = us.makefile()
         us.settimeout(10.0)
+        print "  Waiting for set result"
         set_res = sock_readline(uf).rstrip()
         if set_res != 'STORED':
             raise ValueError("update failed: %s" % set_res)
+        print "  Concurrent set finished"
     finally:
         us.close()
 
@@ -103,7 +106,6 @@ def test_function(opts, port, test_dir):
     res = get_results(s)
     if len(res) != rget_keys:
         raise ValueError("received unexpected number of results from rget (expected %d, got %d)" % (rget_keys, len(res)))
-    print res[updated_key_id]
     if res[updated_key_id]['value'] != orig_value:
         raise ValueError("rget results are not consistent (update changed the contents of a part of running rget query)")
     s.close()
@@ -113,9 +115,11 @@ def test_function(opts, port, test_dir):
         raise ValueError("update didn't take effect")
 
     mc.disconnect_all()
+    print "Done"
 
 
 if __name__ == "__main__":
     op = make_option_parser()
-    auto_server_test_main(test_function, op.parse(sys.argv), timeout = 90)
+    opts = op.parse(sys.argv)
+    auto_server_test_main(test_function, opts, timeout = 210)
 

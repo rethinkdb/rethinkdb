@@ -8,12 +8,29 @@
 #include <fcntl.h>
 #include <sstream>
 #include <iomanip>
+#include <stdarg.h>
 
 #include "perfmon.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
 
 /* Class to represent and parse the contents of /proc/[pid]/stat */
+
+struct proc_pid_stat_exc_t : public std::exception {
+    proc_pid_stat_exc_t(const char *format, ...) {
+        char buffer[2000];
+        va_list l;
+        va_start(l, format);
+        vsnprintf(buffer, sizeof(buffer), format, l);
+        va_end(l);
+        msg = buffer;
+    }
+    std::string msg;
+    const char *what() const throw () {
+        return msg.c_str();
+    }
+    ~proc_pid_stat_exc_t() throw () { }
+};
 
 struct proc_pid_stat_t {
     int pid;
@@ -33,39 +50,38 @@ struct proc_pid_stat_t {
     long long unsigned int delayacct_blkio_ticks;
     long unsigned int guest_time;
     long int cguest_time;
-    
-    bool read_stats(pid_t pid) {
+
+    static proc_pid_stat_t for_pid(pid_t pid) {
         char path[100];
         snprintf(path, sizeof(path), "/proc/%d/stat", pid);
-        return read(path);
+        proc_pid_stat_t stat;
+        stat.read_from_file(path);
+        return stat;
     }
 
-    bool read_task_stats(pid_t pid, pid_t tid) {
+    static proc_pid_stat_t for_pid_and_tid(pid_t pid, pid_t tid) {
         char path[100];
         snprintf(path, sizeof(path), "/proc/%d/task/%d/stat", pid, tid);
-        return read(path);
+        proc_pid_stat_t stat;
+        stat.read_from_file(path);
+        return stat;
     }
 
 private:
-    bool read(char * path) {
-        int stat_file = open(path, O_RDONLY);
-        if (stat_file == -1) {
-            logWRN("Could not open '%s': %s (errno = %d)\n", path, strerror(errno), errno);
-            return false;
+    void read_from_file(char * path) {
+        scoped_fd_t stat_file(open(path, O_RDONLY));
+        if (stat_file.get() == INVALID_FD) {
+            throw proc_pid_stat_exc_t("Could not open '%s': %s (errno = %d)", path, strerror(errno), errno);
         }
         
         char buffer[1000];
-        int res = ::read(stat_file, buffer, sizeof(buffer));
+        int res = ::read(stat_file.get(), buffer, sizeof(buffer));
         if (res <= 0) {
-            logWRN("Could not read '%s': %s (errno = %d)", path, strerror(errno), errno);
-            close(stat_file);
-            return false;
+            throw proc_pid_stat_exc_t("Could not read '%s': %s (errno = %d)", path, strerror(errno), errno);
         }
 
         buffer[res] = '\0';
-        
-        close(stat_file);
-        
+
         // TODO rewrite this mess to use something more safe and sane, e.g. iostreams
         const int items_to_parse = 44;
         int res2 = sscanf(buffer, "%d %s %c %d %d %d %d %d %u %lu %lu %lu %lu %lu %lu %ld %ld "
@@ -79,33 +95,44 @@ private:
             &nswap, &cnswap, &exit_signal, &processor, &rt_priority, &processor,
             &rt_priority, &policy, &delayacct_blkio_ticks, &guest_time, &cguest_time);
         if (res2 != items_to_parse) {
-            logWRN("Could not parse '%s': expected to parse %d items, parsed %d. Buffer contents: %s", path, items_to_parse, res2, buffer);
-            return false;
+            throw proc_pid_stat_exc_t("Could not parse '%s': expected to parse %d items, parsed "
+                "%d. Buffer contents: %s", path, items_to_parse, res2, buffer);
         }
-        return true;
     }
 };
 
 /* perfmon_system_t is used to monitor system stats that do not need to be polled. */
 
-class perfmon_system_t :
+struct perfmon_system_t :
     public perfmon_t
 {
+    bool have_reported_error;
+    perfmon_system_t() : have_reported_error(false) { }
+
     void *begin_stats() {
         return NULL;
     }
     void visit_stats(void *) {
     }
     void end_stats(void *, perfmon_stats_t *dest) {
+        put_timestamp(dest);
+        (*dest)["version"] = std::string(RETHINKDB_VERSION);
+        (*dest)["pid"] = format(getpid());
+
         proc_pid_stat_t pid_stat;
-        if (pid_stat.read_stats(getpid())) {
-            (*dest)["version"] = std::string(RETHINKDB_VERSION);
-            (*dest)["pid"] = format(pid_stat.pid);
-            (*dest)["memory_virtual[bytes]"] = format(pid_stat.vsize);
-            (*dest)["memory_real[bytes]"] = format(pid_stat.rss * sysconf(_SC_PAGESIZE));
+        try {
+            pid_stat = proc_pid_stat_t::for_pid(getpid());
+        } catch (proc_pid_stat_exc_t e) {
+            if (!have_reported_error) {
+                logWRN("Error in reporting system stats: %s (Further errors like this will "
+                    "be suppressed.)\n", e.what());
+                have_reported_error = true;
+            }
+            return;
         }
 
-        put_timestamp(dest);
+        (*dest)["memory_virtual[bytes]"] = format(pid_stat.vsize);
+        (*dest)["memory_real[bytes]"] = format(pid_stat.rss * sysconf(_SC_PAGESIZE));
     }
     void put_timestamp(perfmon_stats_t *dest) {
         timespec uptime = get_uptime();
@@ -130,14 +157,22 @@ perfmon_sampler_t
 
 static __thread proc_pid_stat_t last_stats;
 static __thread ticks_t last_ticks = 0;
+static __thread bool have_reported_stats_error = false;
 
 void poll_system_stats(void *) {
-    pid_t tid = syscall(SYS_gettid);
-    
+
     proc_pid_stat_t current_stats;
-    current_stats.read_task_stats(getpid(), tid);
+    try {
+        current_stats = proc_pid_stat_t::for_pid_and_tid(getpid(), syscall(SYS_gettid));
+    } catch (proc_pid_stat_exc_t e) {
+        if (!have_reported_stats_error) {
+            logWRN("Error in reporting per-thread stats: %s (Further errors like this will "
+                "be suppressed.)\n", e.what());
+            have_reported_stats_error = true;
+        }
+    }
     ticks_t current_ticks = get_ticks();
-    
+
     if (last_ticks == 0) {
         last_stats = current_stats;
         last_ticks = current_ticks;

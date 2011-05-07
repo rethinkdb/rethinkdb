@@ -2,6 +2,7 @@
 #ifndef __BUFFER_CACHE_WRITEBACK_HPP__
 #define __BUFFER_CACHE_WRITEBACK_HPP__
 
+#include <set>
 #include "concurrency/rwi_lock.hpp"
 #include "flush_time_randomizer.hpp"
 #include "utils.hpp"
@@ -124,9 +125,9 @@ private:
     /* The number of writes that we dispatched to the disk that have not come back yet. */
     unsigned long long outstanding_disk_writes;
     
-    /* The number of currently active write transactions */
-    int active_write_transactions;
-    
+    /* The sum of the expected_change_counts of the currently active write transactions. */
+    int expected_active_change_count;
+
     bool writeback_in_progress;
     unsigned int active_flushes;
 
@@ -171,13 +172,24 @@ private:
     };
     std::vector<deleted_block_t> deleted_blocks;
 
+    // List of block ids which have to be rejected when offered as part of read ahead.
+    // Specifically, blocks which have been deleted but which deletion has not been
+    // passed on to the serializer yet are listed here.
+    std::set<block_id_t> reject_read_ahead_blocks;
+
     /* Internal variables used only during a flush operation. */
 
     ticks_t start_time;
 
 public:
+    // This just considers objections which writeback knows about Other subsystems
+    // might have their own objections to accepting a read-ahead block...
+    // (mc_cache_t::can_read_ahead_block_be_accepted() should consider everything)
+    bool can_read_ahead_block_be_accepted(block_id_t block_id);
+
     // A separate type to support concurrent flushes
     class concurrent_flush_t :
+            public serializer_t::write_tid_callback_t,
             public serializer_t::write_txn_callback_t,
             public lock_available_callback_t {
 
@@ -195,9 +207,15 @@ public:
         void do_writeback();  // Called on cache thread
         virtual void on_lock_available();   // Called on cache thread
         void acquire_bufs();   // Called on cache thread
-        bool do_write(const bool write_issued);   // Called on serializer thread
+        bool do_write();       // Called on serializer thread
+        virtual void on_serializer_write_tid();   // Called on serializer thread
         virtual void on_serializer_write_txn();   // Called on serializer thread
+        void update_transaction_ids();  // Called on cache thread
         bool do_cleanup();   // Called on cache thread
+
+        bool transaction_ids_have_been_updated;
+        struct buf_writer_t;
+        std::vector<buf_writer_t *> buf_writers;
 
         writeback_t* parent; // We need this for flush concurrency control (i.e. flush_lock, active_flushes etc.)
 

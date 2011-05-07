@@ -1,6 +1,7 @@
 #ifndef __CONTAINERS_ITERATOR_HPP__
 #define __CONTAINERS_ITERATOR_HPP__
 
+#include "errors.hpp"
 #include <algorithm>
 #include <functional>
 #include <queue>
@@ -44,7 +45,7 @@ public:
     }
 
     void add_mergee(mergee_t *mergee) {
-        assert(!next_to_pop_from);
+        rassert(!next_to_pop_from);
         mergees.insert(mergee);
     }
 

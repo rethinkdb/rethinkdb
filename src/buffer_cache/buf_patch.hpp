@@ -12,7 +12,36 @@ class buf_patch_t;
 #include "serializer/types.hpp"
 
 typedef uint32_t patch_counter_t;
-typedef byte patch_operation_code_t;
+typedef char patch_operation_code_t;
+
+/*
+ * As the buf_patch code is used in both extract and server, it should not crash
+ * in case of a failed patch deserialization (i.e. loading a patch from disk).
+ * Instead patches should emit a patch_deserialization_error_t exception.
+ */
+class patch_deserialization_error_t {
+    std::string message;
+public:
+    patch_deserialization_error_t(const char *file, int line, const char *msg) {
+        if (msg[0]) {
+            message = "Patch deserialization error: " + std::string(msg);
+        } else {
+            message = "Patch deserialization error.";
+        }
+        std::stringstream conv;
+        conv << line;
+        std::string line_str;
+        conv >> line_str;
+        message += " (in " + std::string(file) + ":" + line_str + ")";
+    }
+    const char *c_str() { return message.c_str(); }
+};
+#define guarantee_patch_format(cond, msg...) do {    \
+        if (!(cond)) {                  \
+            throw patch_deserialization_error_t(__FILE__, __LINE__, "" msg); \
+        }                               \
+    } while (0)
+
 
 /*
  * A buf_patch_t is an in-memory representation for a patch. A patch describes
@@ -34,16 +63,18 @@ public:
 
     // Unserializes a patch an returns a buf_patch_t object
     // If *(uint16_t*)source is 0, it returns NULL
-    static buf_patch_t* load_patch(char* source);
+    //
+    // TODO: This allocates a patch, which you have to manually delete it.  Fix it.
+    static buf_patch_t* load_patch(const char* source);
 
     // Serializes the patch to the given destination address
     void serialize(char* destination) const;
 
     inline uint16_t get_serialized_size() const {
-        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_transaction_id) + sizeof(operation_code) + get_data_size();
+        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter_t) + sizeof(ser_transaction_id_t) + sizeof(patch_operation_code_t) + get_data_size();
     }
     inline static uint16_t get_min_serialized_size() {
-        return sizeof(uint16_t) + sizeof(block_id) + sizeof(patch_counter) + sizeof(applies_to_transaction_id) + sizeof(operation_code);
+        return sizeof(uint16_t) + sizeof(block_id_t) + sizeof(patch_counter_t) + sizeof(ser_transaction_id_t) + sizeof(patch_operation_code_t);
     }
 
     inline patch_counter_t get_patch_counter() const {

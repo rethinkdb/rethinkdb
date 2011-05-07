@@ -5,31 +5,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <cxxabi.h>
 #include "arch/arch.hpp"
 #include "db_thread_info.hpp"
-
-void generic_crash_handler(int signum) {
-    if (signum == SIGSEGV) {
-        crash("Segmentation fault.");
-    } else {
-        crash("Unexpected signal: %d\n", signum);
-    }
-}
-
-void ignore_crash_handler(int signum) {}
-
-void install_generic_crash_handler() {
-    struct sigaction action;
-    bzero(&action, sizeof(action));
-    action.sa_handler = generic_crash_handler;
-    int res = sigaction(SIGSEGV, &action, NULL);
-    guarantee_err(res == 0, "Could not install SEGV handler");
-
-    bzero(&action, sizeof(action));
-    action.sa_handler = ignore_crash_handler;
-    res = sigaction(SIGPIPE, &action, NULL);
-    guarantee_err(res == 0, "Could not install PIPE handler");
-}
 
 // fast non-null terminated string comparison
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2) {
@@ -54,7 +32,7 @@ std::string strip_spaces(std::string str) {
 void print_hd(const void *vbuf, size_t offset, size_t ulength) {
     flockfile(stderr);
 
-    const char *buf = (const char *)vbuf;
+    const char *buf = reinterpret_cast<const char *>(vbuf);
     ssize_t length = ulength;
 
     char bd_sample[16] = { 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 0xBD, 

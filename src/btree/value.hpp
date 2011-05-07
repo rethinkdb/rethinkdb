@@ -51,7 +51,7 @@ void metadata_set_large_value_bit(metadata_flags_t *mf, bool bit);
 struct btree_value {
     uint8_t size;
     metadata_flags_t metadata_flags;
-    byte contents[];
+    char contents[];
 
 public:
     static const lbref_limit_t lbref_limit;
@@ -88,8 +88,8 @@ public:
 
     bool is_large() const { return metadata_flags.flags & LARGE_VALUE; }
 
-    byte *value() { return contents + metadata_size(metadata_flags); }
-    const byte *value() const { return contents + metadata_size(metadata_flags); }
+    char *value() { return contents + metadata_size(metadata_flags); }
+    const char *value() const { return contents + metadata_size(metadata_flags); }
 
 #ifndef NDEBUG
     void large_buf_assertions() const {
@@ -133,6 +133,11 @@ public:
     void set_cas(cas_t new_cas) {
         cas_t *ptr = metadata_force_memcached_casptr(&metadata_flags, contents, contents + full_size());
         *ptr = new_cas;
+    }
+    void add_cas() {
+        /* Create a cas, but its initial value is undefined. TODO: This is implemented
+        in a kind of hacky way. */
+        set_cas(0xCA5ADDED);
     }
 
     void print() const {

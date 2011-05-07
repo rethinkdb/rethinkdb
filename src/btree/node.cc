@@ -68,7 +68,7 @@ void print(const node_t *node) {
     }
 }
 
-void validate(block_size_t block_size, const node_t *node) {
+void validate(UNUSED block_size_t block_size, UNUSED const node_t *node) {
 #ifndef NDEBUG
     if (check_magic<leaf_node_t>(node->magic)) {
         leaf::validate(block_size, (leaf_node_t *)node);

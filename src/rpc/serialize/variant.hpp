@@ -52,7 +52,7 @@ template<class typelist_t, class variant_t>
 struct unserialize_nth_from_typelist_t {
 
     struct load_null {
-        static void invoke(cluster_inpipe_t *inpipe, unserialize_extra_storage_t *es, variant_t *out, int which) {
+        static void invoke(cluster_inpipe_t* , unserialize_extra_storage_t* , variant_t* , int) {
             crash("The number which is supposed to identify which type the variant was is too "
                 "high.");
         }

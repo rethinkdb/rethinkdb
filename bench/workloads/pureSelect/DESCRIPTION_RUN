@@ -8,5 +8,5 @@ if [ $DATABASE == "rethinkdb" ]; then
 elif [ $DATABASE == "mysql" ]; then
     echo "Server parameters: $MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"
 elif [ $DATABASE == "membase" ]; then
-    echo "Server parameters: -d $PERSISTENT_DATA_DIR -m 32768"
+    echo "Server parameters: -d $PERSISTENT_DATA_DIR -m 32768 -c"
 fi

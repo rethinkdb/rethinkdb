@@ -52,7 +52,6 @@ private:
     DISABLE_COPYING(lb_indexer);
 };
 
-
 int64_t large_buf_t::bytes_per_leaf(block_size_t block_size) {
     return block_size.value() - sizeof(large_buf_leaf);
 }
@@ -96,13 +95,13 @@ int large_buf_t::num_ref_inlined() const {
     return compute_large_buf_ref_num_inlined(block_size(), root_ref->size + root_ref->offset, root_ref_limit);
 }
 
-large_buf_t::large_buf_t(transaction_t *txn_, large_buf_ref *root_ref_, lbref_limit_t ref_limit_, access_t access_)
-    : root_ref(root_ref_), root_ref_limit(ref_limit_), access(access_), txn(txn_)
+large_buf_t::large_buf_t(const boost::shared_ptr<transactor_t>& _txor, large_buf_ref *_root_ref, lbref_limit_t _ref_limit, access_t _access)
+    : root_ref(_root_ref), root_ref_limit(_ref_limit), access(_access), txor(_txor)
 #ifndef NDEBUG
     , state(not_loaded), num_bufs(0)
 #endif
 {
-    rassert(txn);
+    rassert(txor && txor->get());
     rassert(root_ref);
 }
 
@@ -125,7 +124,7 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
     ret->level = levels;
 #endif
 
-    ret->buf = txn->allocate();
+    ret->buf = (*txor)->allocate();
     *block_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
@@ -209,21 +208,21 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     buftree_t *tr;
     int index;
     large_buf_t *lb;
-    bool should_load_leaves;
+    should_load_code_t should_load_code;
 
     // When this becomes 0, we return and destroy.
     int life_counter;
 
-    acquire_buftree_fsm_t(large_buf_t *lb_, block_id_t block_id_, int64_t offset_, int64_t size_, int levels_, tree_available_callback_t *cb_, int index_, bool should_load_leaves_)
-        : block_id(block_id_), offset(offset_), size(size_), levels(levels_), cb(cb_), tr(new buftree_t()), index(index_), lb(lb_), should_load_leaves(should_load_leaves_) {
+    acquire_buftree_fsm_t(large_buf_t *lb_, block_id_t block_id_, int64_t offset_, int64_t size_, int levels_, tree_available_callback_t *cb_, int index_, should_load_code_t should_load_code_)
+        : block_id(block_id_), offset(offset_), size(size_), levels(levels_), cb(cb_), tr(new buftree_t()), index(index_), lb(lb_), should_load_code(should_load_code_) {
 #ifndef NDEBUG
         tr->level = levels_;
 #endif
 }
 
     void go() {
-        bool should_load = should_load_leaves || levels != 1;
-        buf_t *buf = lb->txn->acquire(block_id, lb->access, this, should_load);
+        bool should_load = should_load_code > no_load_leaves || levels != 1;
+        buf_t *buf = (*lb->txor)->acquire(block_id, lb->access, this, should_load);
         if (buf) {
             on_block_available(buf);
         }
@@ -250,7 +249,15 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
             for (; !ixer.done(); ixer.step()) {
                 int k = ixer.index();
                 lb_interval in = ixer.subinterval();
-                acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[k], in.offset, in.size, levels - 1, this, k, should_load_leaves);
+
+                should_load_code_t child_code = should_load_code;
+                // If we have should_load_right_leaf, we check whether we are at the rightmost subtree (that is, k + 1 == ixer.end_index() ).
+                // In that case we continue loading with should_load_right_leaf, otherwise we don't need any leaves from that subtree.
+                if (should_load_code == should_load_right_leaf && k + 1 != ixer.end_index()) {
+                    child_code = no_load_leaves;
+                }
+
+                acquire_buftree_fsm_t *fsm = new acquire_buftree_fsm_t(lb, node->kids[k], in.offset, in.size, levels - 1, this, k, child_code);
                 fsm->go();
             }
         }
@@ -271,27 +278,36 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     }
 };
 
-void large_buf_t::co_enqueue(transaction_t *txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, void *buf, int64_t n) {
+void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, const void *buf, int64_t n) {
+    thread_saver_t saver;
     rassert(root_ref->size - amount_to_dequeue + n > 0);
-    boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txn, root_ref, ref_limit, rwi_write));
 
-    // 1. Enqueue.
-    if (root_ref->size == 0) {
-        lb->allocate(n);
-        rassert(lb->state == loaded);
-    } else {
-        co_acquire_large_buf_slice(lb.get(), root_ref->size - 1, 1);
-        rassert(lb->state == loaded);
+    {
+        boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
 
-        int refsize_adjustment;
-        lb->append(n, &refsize_adjustment);
+        int64_t original_size = root_ref->size;
+
+        // 1. Enqueue.
+        if (original_size == 0) {
+            lb->allocate(n);
+            rassert(lb->state == loaded);
+        } else {
+            co_acquire_large_buf_slice(saver, lb.get(), original_size - 1, 1);
+            rassert(lb->state == loaded);
+
+            int refsize_adjustment;
+            lb->append(n, &refsize_adjustment);
+        }
+
+        lb->fill_at(original_size, buf, n);
     }
-
-    fill_at(root_ref->size, buf, n);
 
     // 2. Dequeue.
     if (amount_to_dequeue > 0) {
-        co_acquire_large_buf_for_unprepend(lb.get(), amount_to_dequeue);
+        boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
+
+        // TODO: We could do this operation concurrently with co_acquire_large_buf_slice.
+        co_acquire_large_buf_for_unprepend(saver, lb.get(), amount_to_dequeue);
 
         int refsize_adjustment;
         lb->unprepend(amount_to_dequeue, &refsize_adjustment);
@@ -300,14 +316,26 @@ void large_buf_t::co_enqueue(transaction_t *txn, large_buf_ref *root_ref, lbref_
 
 
 void large_buf_t::acquire_for_unprepend(int64_t extra_size, large_buf_available_callback_t *callback) {
-    do_acquire_slice(root_ref->offset, extra_size, callback, false);
+    // TODO: this is _slightly_ inefficient (considering the way we
+    // use it in the delete queue), and crap.
+
+    rassert(extra_size < root_ref->size);
+
+    // This is disgusting, but it works.  Usually it acquires one of
+    // the nodes more eagerly than necessary (the right leaf node,
+    // obviously).  We use extra_size + 1 because we sometimes want to
+    // acquire and load the left-most surviving leaf node, and its
+    // parents.  This is due to the unshifting and shrinking of the
+    // tree that we do in unprepend.
+
+    do_acquire_slice(root_ref->offset, extra_size + 1, callback, should_load_right_leaf);
 }
 
 void large_buf_t::acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_) {
-    do_acquire_slice(root_ref->offset + slice_offset, slice_size, callback_, true);
+    do_acquire_slice(root_ref->offset + slice_offset, slice_size, callback_, should_load_everything);
 }
 
-void large_buf_t::do_acquire_slice(int64_t raw_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_) {
+void large_buf_t::do_acquire_slice(int64_t raw_offset, int64_t slice_size, large_buf_available_callback_t *callback_, should_load_code_t should_load_code_) {
     rassert(0 <= raw_offset);
     rassert(0 <= slice_size);
     rassert(raw_offset + slice_size <= root_ref->offset + root_ref->size);
@@ -318,25 +346,30 @@ void large_buf_t::do_acquire_slice(int64_t raw_offset, int64_t slice_size, large
 
     DEBUG_ONLY(state = loading);
 
-    int sublevels = num_sublevels(root_ref->offset + root_ref->size);
+    if (slice_size > 0) {
+        int sublevels = num_sublevels(root_ref->offset + root_ref->size);
 
-    lb_indexer ixer(raw_offset, slice_size, max_offset(sublevels));
-    roots.resize(ixer.end_index(), NULL);
-    num_to_acquire = ixer.end_index() - ixer.index();
+        lb_indexer ixer(raw_offset, slice_size, max_offset(sublevels));
+        roots.resize(ixer.end_index(), NULL);
+        num_to_acquire = ixer.end_index() - ixer.index();
 
-    // TODO: This duplicates logic inside acquire_buftree_fsm_t, and
-    // we could fix that, but it's not that important.
+        // TODO: This duplicates logic inside acquire_buftree_fsm_t, and
+        // we could fix that, but it's not that important.
 
-    for (; !ixer.done(); ixer.step()) {
-        int k = ixer.index();
-        lb_interval in = ixer.subinterval();
-        acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[k], in.offset, in.size, sublevels, this, k, should_load_leaves_);
-        f->go();
+        for (; !ixer.done(); ixer.step()) {
+            int k = ixer.index();
+            lb_interval in = ixer.subinterval();
+            acquire_buftree_fsm_t *f = new acquire_buftree_fsm_t(this, root_ref->block_ids[k], in.offset, in.size, sublevels, this, k, should_load_code_);
+            f->go();
+        }
+    } else {
+        DEBUG_ONLY(state = loaded);
+        callback->on_large_buf_available(this);
     }
 }
 
 void large_buf_t::acquire_for_delete(large_buf_available_callback_t *callback_) {
-    do_acquire_slice(root_ref->offset, root_ref->size, callback_, false);
+    do_acquire_slice(root_ref->offset, root_ref->size, callback_, no_load_leaves);
 }
 
 void large_buf_t::on_available(buftree_t *tr, int index) {
@@ -356,7 +389,7 @@ void large_buf_t::on_available(buftree_t *tr, int index) {
     }
 }
 
-void large_buf_t::adds_level(block_id_t *ids
+void large_buf_t::adds_level(block_id_t *ids, int num_roots
 #ifndef NDEBUG
                              , int nextlevels
 #endif
@@ -368,9 +401,8 @@ void large_buf_t::adds_level(block_id_t *ids
     ret->level = nextlevels;
 #endif
 
-    block_id_t new_id;
-    ret->buf = txn->allocate();
-    new_id = ret->buf->get_block_id();
+    ret->buf = (*txor)->allocate();
+    block_id_t new_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
     num_bufs++;
@@ -387,7 +419,7 @@ void large_buf_t::adds_level(block_id_t *ids
     }
 #endif
 
-    for (int i = 0, ie = roots.size(); i < ie; i++) {
+    for (int i = 0, ie = num_roots; i < ie; i++) {
         node->kids[i] = ids[i];
 #ifndef NDEBUG
         ids[i] = NULL_BLOCK_ID;
@@ -398,7 +430,9 @@ void large_buf_t::adds_level(block_id_t *ids
 
     // Make sure that our .swap logic works the way we expect it to.
     rassert(roots.size() == 0);
+
     roots.push_back(ret);
+    ids[0] = new_id;
 }
 
 void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {
@@ -412,7 +446,7 @@ void large_buf_t::append(int64_t extra_size, int *refsize_adjustment_out) {
     int new_sublevels = num_sublevels(back + extra_size);
 
     for (int i = prev_sublevels; i < new_sublevels; ++i) {
-        adds_level(root_ref->block_ids
+        adds_level(root_ref->block_ids, ceil_divide(back, max_offset(i))
 #ifndef NDEBUG
                    , i + 1
 #endif
@@ -444,8 +478,9 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         root_ref->size += extra_size;
     } else {
 
+        int sublevels = num_sublevels(back);
     tryagain:
-        int64_t shiftsize = max_offset(num_sublevels(back));
+        int64_t shiftsize = max_offset(sublevels);
 
         // Find minimal k s.t. newoffset + k * shiftsize >= 0.
         // I.e. find min k s.t. newoffset >= -k * shiftsize.
@@ -457,11 +492,12 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
         int64_t max_k = (root_ref_limit.value - sizeof(large_buf_ref)) / sizeof(block_id_t);
 
         if (k + back_k > max_k) {
-            adds_level(root_ref->block_ids
+            adds_level(root_ref->block_ids, back_k
 #ifndef NDEBUG
-                       , num_sublevels(back) + 1
+                       , sublevels + 1
 #endif
                        );
+            sublevels++;
             goto tryagain;
         }
 
@@ -497,7 +533,7 @@ void large_buf_t::prepend(int64_t extra_size, int *refsize_adjustment_out) {
 void large_buf_t::bufs_at(int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out) {
     rassert(state == loaded);
     rassert(0 <= pos && pos <= root_ref->size);
-    rassert(read_size <= root_ref->size - pos);
+    rassert(read_size <= root_ref->size - pos, "read_size+pos too big: read_size = %ld\n, root_ref->size = %ld, pos = %ld\n", read_size, root_ref->size, pos);
 
     if (read_size == 0) {
         // We need a special case for read_size, otherwise we'll
@@ -557,7 +593,7 @@ void large_buf_t::fill_at(int64_t pos, const void *data, int64_t fill_size) {
     buffer_group_t group;
     bufs_at(pos, fill_size, false, &group);
 
-    const byte *dat = reinterpret_cast<const byte *>(data);
+    const char *dat = reinterpret_cast<const char *>(data);
     int64_t off = 0;
     for (int i = 0, n = group.num_buffers(); i < n; ++i) {
         buffer_group_t::buffer_t buf = group.get_buffer(i);
@@ -589,31 +625,7 @@ void large_buf_t::removes_level(block_id_t *ids, int copyees) {
     delete tr;
 }
 
-void large_buf_t::unappend(int64_t extra_size, int *refsize_adjustment_out) {
-    rassert(state == loaded);
-    rassert(extra_size < root_ref->size);
-
-    int original_refsize = root_ref->refsize(block_size(), root_ref_limit);
-
-    int64_t back = root_ref->offset + root_ref->size - extra_size;
-
-    int64_t delbeg = ceil_aligned(back, num_leaf_bytes());
-    int64_t delend = ceil_aligned(back + extra_size, num_leaf_bytes());
-    if (delbeg < delend) {
-        delete_tree_structures(&roots, delbeg, delend - delbeg, num_sublevels(root_ref->offset + root_ref->size));
-    }
-
-    for (int i = num_sublevels(root_ref->offset + root_ref->size), e = num_sublevels(back); i > e; --i) {
-        removes_level(root_ref->block_ids, ceil_divide(back, max_offset(i - 1)));
-    }
-
-    root_ref->size -= extra_size;
-
-    *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
-    rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
-}
-
-void large_buf_t::walk_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *)) {
+void large_buf_t::walk_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels, void (*bufdoer)(large_buf_t *, buf_t *, bool, bool), buftree_t *(*buftree_cleaner)(buftree_t *, bool, bool)) {
     rassert(0 <= offset);
     rassert(0 < size);
 
@@ -629,7 +641,7 @@ void large_buf_t::walk_tree_structures(std::vector<buftree_t *> *trs, int64_t of
     }
 }
 
-buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *)) {
+buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *, bool, bool), buftree_t *(*buftree_cleaner)(buftree_t *, bool, bool)) {
     rassert(0 <= offset);
     rassert(0 < size);
     rassert(offset + size <= max_offset(levels));
@@ -637,48 +649,85 @@ buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64
     if (tr != NULL) {
         rassert(tr->level == levels, "tr->level=%d, levels=%d, offset=%d, size=%d\n", tr->level, levels, offset, size);
 
-        if (levels == 1) {
-            bufdoer(this, tr->buf);
-            return buftree_cleaner(tr);
-        } else {
+        if (levels != 1) {
             walk_tree_structures(&tr->children, offset, size, levels - 1, bufdoer, buftree_cleaner);
-
-            if (offset == 0 && size == max_offset(levels)) {
-                bufdoer(this, tr->buf);
-                return buftree_cleaner(tr);
-            } else {
-                return tr;
-            }
         }
+
+        int64_t maxoff = max_offset(levels);
+        bufdoer(this, tr->buf, offset == 0, offset + size == maxoff);
+        return buftree_cleaner(tr, offset == 0, offset + size == maxoff);
     } else {
         return tr;
     }
 }
 
-void mark_deleted_and_release(large_buf_t *lb, buf_t *b) {
+void mark_deleted_and_release(UNUSED large_buf_t *lb, buf_t *b, bool left_edge_touches, bool right_edge_touches) {
+    if (left_edge_touches && right_edge_touches) {
+        b->mark_deleted(false);
+        b->release();
+#ifndef NDEBUG
+        lb->num_bufs--;
+#endif
+    }
+}
+
+void mark_deleted_and_release_for_unprepend(UNUSED large_buf_t *lb, buf_t *b, UNUSED bool left_edge_touches, bool right_edge_touches) {
+    if (right_edge_touches) {
+        b->mark_deleted(false);
+        b->release();
+#ifndef NDEBUG
+        lb->num_bufs--;
+#endif
+    }
+}
+
+void mark_deleted_and_release_for_unappend(UNUSED large_buf_t *lb, buf_t *b, bool left_edge_touches, UNUSED bool right_edge_touches) {
+    if (left_edge_touches) {
+        b->mark_deleted(false);
+        b->release();
+#ifndef NDEBUG
+        lb->num_bufs--;
+#endif
+    }
+}
+
+void mark_deleted_only(UNUSED large_buf_t *lb, buf_t *b, UNUSED bool left_edge_touches, UNUSED bool right_edge_touches) {
     b->mark_deleted(false);
+}
+void release_only(UNUSED large_buf_t *lb, buf_t *b, UNUSED bool left_edge_touches, UNUSED bool right_edge_touches) {
     b->release();
 #ifndef NDEBUG
     lb->num_bufs--;
 #endif
 }
 
-void mark_deleted_only(large_buf_t *lb, buf_t *b) {
-    b->mark_deleted(false);
-}
-void release_only(large_buf_t *lb, buf_t *b) {
-    b->release();
-#ifndef NDEBUG
-    lb->num_bufs--;
-#endif
-}
-
-buftree_t *buftree_delete(buftree_t *tr) {
+buftree_t *buftree_delete(buftree_t *tr, UNUSED bool left_edge_touches, UNUSED bool right_edge_touches) {
     delete tr;
     return NULL;
 }
 
-buftree_t *buftree_nothing(buftree_t *tr) {
+
+buftree_t *buftree_delete_for_unprepend(buftree_t *tr, UNUSED bool left_edge_touches, bool right_edge_touches) {
+    if (right_edge_touches) {
+        delete tr;
+        return NULL;
+    } else {
+        return tr;
+    }
+}
+
+
+buftree_t *buftree_delete_for_unappend(buftree_t *tr, bool left_edge_touches, UNUSED bool right_edge_touches) {
+    if (left_edge_touches) {
+        delete tr;
+        return NULL;
+    } else {
+        return tr;
+    }
+}
+
+
+buftree_t *buftree_nothing(buftree_t *tr, UNUSED bool left_edge_touches, UNUSED bool right_edge_touches) {
     return tr;
 }
 
@@ -703,11 +752,34 @@ int large_buf_t::try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_i
         for (int i = ret; i < backindex; ++i) {
             block_ids[i - ret] = block_ids[i];
         }
-        rassert(ret < (int)trs->size());
+        rassert(ret <= (int)trs->size());
         trs->erase(trs->begin(), trs->begin() + std::min((int)trs->size(), ret));
     }
 
     return ret;
+}
+
+void large_buf_t::unappend(int64_t extra_size, int *refsize_adjustment_out) {
+    rassert(state == loaded);
+    rassert(extra_size < root_ref->size);
+
+    int original_refsize = root_ref->refsize(block_size(), root_ref_limit);
+
+    int64_t back = root_ref->offset + root_ref->size - extra_size;
+
+    int64_t delbeg = ceil_aligned(back, num_leaf_bytes());
+    int64_t delend = ceil_aligned(back + extra_size, num_leaf_bytes());
+    if (delbeg < delend) {
+        walk_tree_structures(&roots, delbeg, delend - delbeg, num_sublevels(root_ref->offset + root_ref->size), mark_deleted_and_release_for_unappend, buftree_delete_for_unappend);
+    }
+
+    for (int i = num_sublevels(root_ref->offset + root_ref->size), e = num_sublevels(back); i > e; --i) {
+        removes_level(root_ref->block_ids, ceil_divide(back, max_offset(i - 1)));
+    }
+
+    root_ref->size -= extra_size;
+
+    *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
 }
 
 void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
@@ -717,12 +789,14 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
     int original_refsize = root_ref->refsize(block_size(), root_ref_limit);
 
     int64_t sublevels = num_sublevels(root_ref->offset + root_ref->size);
-    rassert(roots[0]->level == sublevels);
+    rassert(roots.size() == 0 || roots[0]->level == sublevels);
 
-    int64_t delbeg = floor_aligned(root_ref->offset, num_leaf_bytes());
-    int64_t delend = floor_aligned(root_ref->offset + extra_size, num_leaf_bytes());
-    if (delbeg < delend) {
-        delete_tree_structures(&roots, delbeg, delend - delbeg, sublevels);
+    {
+        int64_t delbeg = floor_aligned(root_ref->offset, num_leaf_bytes());
+        int64_t delend = floor_aligned(root_ref->offset + extra_size, num_leaf_bytes());
+        if (delbeg < delend) {
+            walk_tree_structures(&roots, delbeg, delend - delbeg, sublevels, mark_deleted_and_release_for_unprepend, buftree_delete_for_unprepend);
+        }
     }
 
     root_ref->offset += extra_size;
@@ -735,11 +809,16 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
 
  tryagain:
     if (ceil_divide(root_ref->offset + root_ref->size, stepsize) == 1) {
-        rassert(roots.size() == 1 && roots[0] != NULL);
+        rassert(roots.size() == 1);
+        rassert(roots[0] != NULL);
 
         // Now we've gotta shift the block _before_ considering whether to remove a level.
 
         if (sublevels == 1) {
+            // We can't shift leaf nodes.  The reason is that we have
+            // only acquired the leaf node for deletion, and haven't
+            // actually loaded the leaf node block.
+
             if (root_ref->offset > 0) {
                 large_buf_leaf *leaf = ptr_cast<large_buf_leaf>(roots[0]->buf->get_data_major_write());
                 rassert(uint64_t(root_ref->offset) <= block_size().value() - offsetof(large_buf_leaf, buf));
@@ -758,13 +837,15 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
             int num_copied = ceil_divide(root_ref->offset + root_ref->size, substepsize);
             if (num_copied <= int((root_ref_limit.value - sizeof(large_buf_ref)) / sizeof(block_id_t))) {
                 removes_level(root_ref->block_ids, num_copied);
+                sublevels --;
+                stepsize = max_offset(sublevels);
                 goto tryagain;
             }
         }
     }
 
     *refsize_adjustment_out = root_ref->refsize(block_size(), root_ref_limit) - original_refsize;
-    rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
+    rassert(roots.size() == 0 || roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
 }
 
 
@@ -779,9 +860,10 @@ void large_buf_t::mark_deleted() {
 }
 
 void large_buf_t::lv_release() {
-    rassert(state == loaded || state == deleted);
+    thread_saver_t saver;
+    (*txor)->ensure_thread(saver);
 
-    txn->ensure_thread();
+    rassert(state == loaded || state == deleted);
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
     release_tree_structures(&roots, 0, max_offset(sublevels) * num_ref_inlined(), sublevels);
 

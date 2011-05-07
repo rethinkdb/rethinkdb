@@ -29,9 +29,9 @@ cluster_t &get_cluster() {
 
 void cluster_t::start(int port, cluster_delegate_t *d) {
     delegate.reset(d);
-    listener = new tcp_listener_t(port);
+    listener = new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1));
 
-    listener->set_callback(this);
+    //listener->set_callback(this); @jdoliner remove me
 
     /* Initially there is only one node in the cluster: us */
     us = 0;
@@ -41,12 +41,12 @@ void cluster_t::start(int port, cluster_delegate_t *d) {
 
 void cluster_t::start(int port, const char *contact_host, int contact_port,
                       boost::function<cluster_delegate_t *(cluster_inpipe_t *)> startup_function) {
-    listener = new tcp_listener_t(port);
+    listener = new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1));
 
     population::Join_initial initial;
     population::Join_welcome welcome;
 
-    listener->set_callback(this);
+    //listener->set_callback(this);
 
     /* Get in touch with our specified contact */
     tcp_conn_t contact_conn(contact_host, contact_port);

@@ -182,8 +182,18 @@ class TestingNode:
                 return self.get_file(remote_path, destination_path, retry-1)
             else:
                 raise e
-        
-        
+
+    def get_file_gz(self, remote_path, destination_path, retry = 3):
+        f = open(destination_path, "w")
+        result = self.run_command("gzip -c \"%s\"" % remote_path) # TODO: Escape filename
+        if not result[0] == 0:
+            print "gzip returned an error"
+            # TODO: Handle properly
+            return
+        f.write(result[1])
+        f.close()
+
+
     def put_directory(self, local_path, destination_path, retry = 3):
         
         print "Sending directory %r to cloud..." % local_path
@@ -472,7 +482,12 @@ def copy_basedata_to_testing_node(node):
     command_result = node.run_command("chmod +x " + node.global_bench_path + "/*/*")
     if command_result[0] != 0:
         print "Unable to make bench files executable"
-        
+    try:
+        node.put_file(base_directory + "/../bench/stress-client/libstress.so", node.global_bench_path + "/stress-client/libstress.so")
+        node.put_file(base_directory + "/../bench/stress-client/stress.py", node.global_bench_path + "/stress-client/stress.py")
+    except Exception as e:
+        print "Failed copying stress auxiliary files: %s" % e
+    
     # Copy test hierarchy
     node.make_directory(node.global_test_path)
     node.put_directory(base_directory, node.global_test_path)
@@ -566,7 +581,8 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         # Prepare for test...
         copy_per_test_data_to_testing_node(node, test_reference)
         # Store test_command and test_timeout into files on the remote node for the wrapper script to pick it up
-        command_result = node.run_command("echo -n %s > cloud_retest/%s/test/test_command" % (test_command, test_reference))
+        command_result = node.run_command("echo -n %s > cloud_retest/%s/test/test_command" % \
+            (retester.shell_escape(test_command), test_reference))
         if command_result[0] != 0:
             print "Unable to store command"
             # TODO: Throw an exception
@@ -594,7 +610,8 @@ def start_test_on_node(node, test_command, test_timeout = None, locking_timeout 
         
     return (node, test_reference)
 
-
+# TODO: Move budget to configuration file
+gz_budget_left = 512 * 1024 * 1024 # 512 MiB 
 def get_report_for_test(test_reference):
     print "Downloading results for test %s" % test_reference[1]
     
@@ -621,6 +638,7 @@ def get_report_for_test(test_reference):
     result.output_dir = SmartTemporaryDirectory("out_")
     
     def get_directory(remote_path, destination_path):
+        global gz_budget_left
         assert os.path.isdir(destination_path)
         for file in node.list_directory(remote_path):
             max_file_size = 100000
@@ -632,6 +650,10 @@ def get_report_for_test(test_reference):
                 get_directory(r_path, d_path)
             elif file.st_size <= max_file_size:
                 node.get_file(r_path, d_path)
+            elif gz_budget_left > 0:
+                # Retrieve complete gzipped file as long as we have some budget left for this
+                node.get_file_gz(r_path, "%s.gz" % d_path)
+                gz_budget_left -= (os.stat("%s.gz" % d_path))[ST_SIZE]
             else:
                 f = open(d_path, "w")
                 res = node.run_command("head -c %d \"%s\"" % (max_file_size / 2, r_path))
@@ -746,7 +768,9 @@ def do_test_cloud(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
     
     # Build up the command line
     command = cmd
-    for arg in cmd_args:
+    cmd_args_keys = [k for k in cmd_args]
+    cmd_args_keys.sort()
+    for arg in cmd_args_keys:
         command += " "
         # GNU cmd line builder
         if cmd_format == "gnu":
@@ -754,7 +778,7 @@ def do_test_cloud(cmd, cmd_args={}, cmd_format="gnu", repeat=1, timeout=60):
                 if cmd_args[arg]:
                     command += "--%s" % arg
             else:
-                command += "--%s \"%s\"" % (arg, str(cmd_args[arg]).replace("\\", "\\\\").replace("\"", "\\\""))
+                command += "--%s \"%s\"" % (arg, retester.shell_escape(str(cmd_args[arg])))
         # Make cmd line builder
         elif cmd_format == "make":
             command += "%s=%s" % (arg, str(cmd_args[arg]))

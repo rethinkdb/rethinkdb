@@ -7,6 +7,9 @@
 #include "config/args.hpp"
 #include "perfmon.hpp"
 
+/* This file must only be included from event_queue.hpp, because it needs
+event_queue_base_t. */
+
 // Event queue structure
 struct epoll_event_queue_t : public event_queue_base_t {
 public:
@@ -24,6 +27,13 @@ private:
     // resources that are being destroyed.
     epoll_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
     int nevents;
+
+#ifndef NDEBUG
+    /* In debug mode, check to make sure epoll() doesn't give us events that
+    we didn't ask for. The ints stored here are combinations of poll_event_in
+    and poll_event_out. */
+    std::map<linux_event_callback_t*, int> events_requested;
+#endif
 
 public:
     // These should only be called by the event queue itself or by the

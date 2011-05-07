@@ -1,6 +1,7 @@
 #ifndef __BTREE_ITERATION_HPP__
 #define __BTREE_ITERATION_HPP__
 
+#include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 #include "containers/iterators.hpp"
 #include "btree/internal_node.hpp"

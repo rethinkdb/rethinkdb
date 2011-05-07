@@ -2,6 +2,7 @@
 #define __REPLICATION_DELETE_QUEUE_HPP__
 
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/transactor.hpp"
 
 /*
                        D E L E T E   Q U E U E
@@ -59,9 +60,27 @@ the work across cores.
 
 */
 
+struct btree_key_t;
 struct store_key_t;
 
 namespace replication {
+
+namespace delete_queue {
+
+struct t_and_o {
+    repli_timestamp timestamp;
+    off64_t offset;
+} __attribute__((__packed__));
+
+}  // namespace delete_queue
+
+struct delete_queue_block_t {
+    block_magic_t magic;
+
+    static const block_magic_t expected_magic;
+};
+
+void initialize_empty_delete_queue(boost::shared_ptr<transactor_t>& txor, delete_queue_block_t *dqb, block_size_t block_size);
 
 // Instead of passing keys one by one, we just pass the buffers that
 // contain all the keys.  These can then get passed in the same manner
@@ -71,21 +90,25 @@ namespace replication {
 // sequence of buffers contains a bunch of concatenated btree keys.
 class deletion_key_stream_receiver_t {
 public:
-    virtual void receive_keys(const void *data, size_t size) = 0;
+    virtual bool should_send_deletion_keys(bool can_send_deletion_keys) = 0;
+    virtual void deletion_key(const btree_key_t *key) = 0;
+    virtual void done_deletion_keys() = 0;
 protected:
-    ~deletion_key_stream_receiver_t() { }
+    virtual ~deletion_key_stream_receiver_t() { }
 };
 
 // Acquires a delete queue, appends a (timestamp, key) pair to the
 // queue, and releases the queue.  The delete queue is identified by
 // queue_root.  This must be called on the transaction's home thread.
-void add_key_to_delete_queue(transaction_t *txn, block_id_t queue_root, repli_timestamp timestamp, const store_key_t *key);
+void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp timestamp, const store_key_t *key);
 
 // Dumps keys from the delete queue, blocking until all the keys in
 // the interval have been passed to the recipient.  All keys whose
 // timestamps are grequal to the begin_timestamp and less than the
 // end_timestamp are passed to recipient, in no particular order.
-void dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root, repli_timestamp begin_timestamp, repli_timestamp end_timestamp, deletion_key_stream_receiver_t *recipient);
+//
+// Returns false if we should send _everything_ when backfilling.
+bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient);
 
 
 

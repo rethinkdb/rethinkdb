@@ -1,3 +1,4 @@
+#ifndef NO_EVENTFD
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -28,4 +29,6 @@ void eventfd_event_t::write(uint64_t value) {
     int res = eventfd_write(_eventfd, value);
     guarantee_err(res == 0, "Could not write to eventfd");
 }
+
+#endif // NO_EVENTFD
 

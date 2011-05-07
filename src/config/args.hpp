@@ -30,6 +30,23 @@
 // decrease concurrency
 #define MAX_IO_EVENT_PROCESSING_BATCH_SIZE        50
 
+// Currently, each cache uses two IO accounts:
+// one account for writes, and one account for reads.
+// By adjusting the priorities of these accounts, reads
+// can be prioritized over writes or the other way around.
+// This is a one-per-cache/slice priority.
+#define CACHE_READS_IO_PRIORITY                   70
+#define CACHE_WRITES_IO_PRIORITY                 30
+
+// Garbage Colletion uses its own IO account.
+// Its IO priority should not be too low, as it should be able to keep up
+// with the other write activity going on in the system.
+// Because GC does only submit small "bursts" of IO operations anyway (up to one extent
+// worth of reads or writes), a high IO priority for GC should not harm latency
+// in other parts of the system very much.
+// This is a one-per-serializer/file priority.
+#define GC_IO_PRIORITY                            155
+
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
 
@@ -75,15 +92,22 @@
 // more cores without migrating the database file).
 #define DEFAULT_BTREE_SHARD_FACTOR                64
 
-// The size allocated to the on-disk diff log for newly created databases
+// If --diff-log-size is not specified, then the patch log size will default to the
+// smaller of DEFAULT_PATCH_LOG_SIZE and (DEFAULT_PATCH_LOG_FRACTION * cache size).
 #ifdef NDEBUG
 #define DEFAULT_PATCH_LOG_SIZE                     (512 * MEGABYTE)
 #else
 #define DEFAULT_PATCH_LOG_SIZE                     (4 * MEGABYTE)
 #endif
+#define DEFAULT_PATCH_LOG_FRACTION                 0.2
 
 // Default port to listen on
 #define DEFAULT_LISTEN_PORT                       11211
+
+// Default port to do replication on
+#define DEFAULT_REPLICATION_PORT                  11319
+
+#define DEFAULT_TOTAL_DELETE_QUEUE_LIMIT          GIGABYTE
 
 // Default extension for the semantic file which is appended to the database name
 #define DEFAULT_SEMANTIC_EXTENSION                ".semantic"
@@ -120,13 +144,13 @@
 // transactions will be throttled.
 // A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
 // times the max cache size
-#define DEFAULT_UNSAVED_DATA_LIMIT                0
+#define DEFAULT_UNSAVED_DATA_LIMIT                4096 * MEGABYTE
 
 // The unsaved data limit cannot exceed this fraction of the max cache size
 #define MAX_UNSAVED_DATA_LIMIT_FRACTION           0.9
 
 // We start flushing dirty pages as soon as we hit this fraction of the unsaved data limit
-#define FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT   0.9
+#define FLUSH_AT_FRACTION_OF_UNSAVED_DATA_LIMIT   0.2
 
 // How many times the page replacement algorithm tries to find an eligible page before giving up.
 // Note that (MAX_UNSAVED_DATA_LIMIT_FRACTION ** PAGE_REPL_NUM_TRIES) is the probability that the
@@ -148,14 +172,14 @@
 #define MAX_BTREE_VALUE_AUXILIARY_SIZE            (sizeof(btree_value) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint64_t))
 #define MAX_BTREE_VALUE_SIZE                      (MAX_BTREE_VALUE_AUXILIARY_SIZE + MAX_IN_NODE_VALUE_SIZE)
 
-// memcached specifies the maximum value size to be 1MB
-#define MAX_VALUE_SIZE                            MEGABYTE
+// memcached specifies the maximum value size to be 1MB, but customers asked this to be much higher
+#define MAX_VALUE_SIZE                            10 * MEGABYTE
 
 // Values larger than this will be streamed in a set operation.
-#define MAX_BUFFERED_SET_SIZE                     32768
+#define MAX_BUFFERED_SET_SIZE                     MAX_VALUE_SIZE // streaming is too slow for now, so we disable it completely
 
 // Values larger than this will be streamed in a get operation
-#define MAX_BUFFERED_GET_SIZE                     32768
+#define MAX_BUFFERED_GET_SIZE                     MAX_VALUE_SIZE // streaming is too slow for now, so we disable it completely
 
 // If a single connection sends this many 'noreply' commands, the next command will
 // have to wait until the first one finishes
@@ -181,11 +205,21 @@
 // any one time. The value is computed by dividing 50 GB by the smallest reasonable block size.
 #define MAX_BLOCKS_IN_MEMORY                      (50 * GIGABYTE / KILOBYTE)
 
-// This special block ID indicates the superblock. It doesn't really belong here because it's more
-// of a magic constant than a tunable parameter.
-#define SUPERBLOCK_ID                             0
 
-// The ratio at which we should start GCing.
+// Special block IDs.  These don't really belong here because they're
+// more magic constants than tunable parameters.
+
+// The btree superblock, which has a reference to the root node block
+// id.
+#define SUPERBLOCK_ID                             0
+// HEY: This is kind of fragile because some patch disk storage code
+// expects this value to be 1 (since the free list returns 1 the first
+// time a block id is generated, or something).
+#define MC_CONFIGBLOCK_ID                         (SUPERBLOCK_ID + 1)
+
+// The ratio at which we should start GCing.  (HEY: What's the extra
+// 0.000001 in MAX_GC_HIGH_RATIO for?  Is it because we told the user
+// that 0.99 was too high?)
 #define DEFAULT_GC_HIGH_RATIO                     0.65
 #define MAX_GC_HIGH_RATIO                         0.990001
 
@@ -223,6 +257,8 @@
 
 // XXX: I increased this from 65536; make sure it's actually needed.
 #define COROUTINE_STACK_SIZE                      131072
+
+#define MAX_COROS_PER_THREAD                      10000
 
 
 // TODO: It would be nice if we didn't need MAX_HOSTNAME_LEN and

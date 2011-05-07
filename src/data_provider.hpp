@@ -1,12 +1,13 @@
 #ifndef __DATA_PROVIDER_HPP__
 #define __DATA_PROVIDER_HPP__
 
+#include "errors.hpp"
 #include <boost/scoped_array.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <vector>
 #include <exception>
 #include "containers/buffer_group.hpp"
-#include "errors.hpp"
+#include "containers/unique_ptr.hpp"
 
 #include "concurrency/cond_var.hpp"
 
@@ -79,11 +80,15 @@ provides the data from. */
 
 class buffered_data_provider_t : public auto_copying_data_provider_t {
 public:
-    explicit buffered_data_provider_t(data_provider_t *dp);   // Create with contents of another
+    explicit buffered_data_provider_t(unique_ptr_t<data_provider_t> dp);   // Create with contents of another
     buffered_data_provider_t(const void *, size_t);   // Create by copying out of a buffer
     buffered_data_provider_t(size_t, void **);    // Allocate buffer, let creator fill it
     size_t get_size() const;
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+
+    /* TODO: This is bad. */
+    char *peek() { return buffer.get(); }
+
 private:
     size_t size;
     const_buffer_group_t bg;
@@ -96,7 +101,7 @@ it buffers the other data_provider_t if it is sufficiently small, improving perf
 
 class maybe_buffered_data_provider_t : public data_provider_t {
 public:
-    maybe_buffered_data_provider_t(data_provider_t *dp, int threshold);
+    maybe_buffered_data_provider_t(unique_ptr_t<data_provider_t> dp, int threshold);
 
     size_t get_size() const;
     void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
@@ -104,7 +109,7 @@ public:
 
 private:
     int size;
-    data_provider_t *original;
+    unique_ptr_t<data_provider_t> original;
     // true if we decide to buffer but there is an exception. We catch the exception in the
     // constructor and then set this variable to true, then throw data_provider_failed_exc_t()
     // when our data is requested. This way we behave exactly the same whether or not we buffer.
@@ -120,40 +125,16 @@ of get_data_as_buffers() for the second destination. This can be used to save a 
 
 data_provider_splitter_t is less specialized, but also a bit less efficient. */
 
-class buffer_borrowing_data_provider_t : public data_provider_t {
+class bad_data_provider_t : public data_provider_t {
 public:
-    class side_data_provider_t : public auto_copying_data_provider_t {
-    public:
-        // Takes the thread that the reader reads from.  Soon after
-        // construction, this serves as the de facto home thread of
-        // the side_data_provider_t.
-        side_data_provider_t(int reading_thread, size_t size);
-        ~side_data_provider_t();
+    bad_data_provider_t(size_t size);
 
-        size_t get_size() const;
-        const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
-        void supply_buffers_and_wait(const buffer_group_t *buffers);
-
-    private:
-        int reading_thread_;
-        unicond_t<const const_buffer_group_t *> cond_;
-        cond_t done_cond_;
-        size_t size_;
-    };
-
-
-    buffer_borrowing_data_provider_t(int side_reader_thread, data_provider_t *inner);
-    ~buffer_borrowing_data_provider_t();
     size_t get_size() const;
-
     void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
-
     const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
-    side_data_provider_t *side_provider();
+
 private:
-    data_provider_t *inner_;
-    side_data_provider_t *side_;
-    bool side_owned_;
+    size_t size;
 };
 
 /* Make a data_provider_splitter_t to send a single data provider to multiple locations. Call
@@ -183,5 +164,10 @@ private:
         }
     } reusable_provider;
 };
+/* duplicate_data_provider() makes a bunch of data providers that are all equivalent to the original
+data provider. Internally it makes many copies of the data, so the created data providers are
+completely independent. */
+
+void duplicate_data_provider(unique_ptr_t<data_provider_t> original, int n, unique_ptr_t<data_provider_t> *dps_out);
 
 #endif /* __DATA_PROVIDER_HPP__ */

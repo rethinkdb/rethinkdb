@@ -1,7 +1,6 @@
 #include "btree/get.hpp"
-
-#include <boost/shared_ptr.hpp>
 #include "utils.hpp"
+#include <boost/shared_ptr.hpp>
 #include "btree/delete_expired.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
@@ -14,22 +13,21 @@
 #include "btree/btree_data_provider.hpp"
 
 get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
-    block_pm_duration get_time(&pm_cmd_get);
 
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
 
     /* In theory moving back might not be necessary, but not doing it causes problems right now. */
+    // This saver's destructor is a no-op because the mover's
+    // destructor runs right before it.
+    thread_saver_t saver;
     on_thread_t mover(slice->home_thread);
-
-    block_pm_duration get_time_2(&pm_cmd_get_without_threads);
-
-    boost::shared_ptr<transactor_t> transactor(new transactor_t(&slice->cache(), rwi_read));
+    boost::shared_ptr<transactor_t> transactor(new transactor_t(saver, slice->cache(), rwi_read, repli_timestamp::invalid));
 
     // Acquire the superblock
 
-    buf_lock_t buf_lock(*transactor, SUPERBLOCK_ID, rwi_read);
-    block_id_t node_id = ptr_cast<btree_superblock_t>(buf_lock.buf()->get_data_read())->root_block;
+    buf_lock_t buf_lock(saver, *transactor, SUPERBLOCK_ID, rwi_read);
+    block_id_t node_id = ptr_cast<btree_superblock_t>(buf_lock->get_data_read())->root_block;
     rassert(node_id != SUPERBLOCK_ID);
 
     if (node_id == NULL_BLOCK_ID) {
@@ -41,15 +39,15 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
 
     while (true) {
         {
-            buf_lock_t tmp(*transactor, node_id, rwi_read);
+            buf_lock_t tmp(saver, *transactor, node_id, rwi_read);
             buf_lock.swap(tmp);
         }
 
 #ifndef NDEBUG
-        node::validate(slice->cache().get_block_size(), ptr_cast<node_t>(buf_lock.buf()->get_data_read()));
+        node::validate(slice->cache()->get_block_size(), ptr_cast<node_t>(buf_lock->get_data_read()));
 #endif
 
-        const node_t *node = ptr_cast<node_t>(buf_lock.buf()->get_data_read());
+        const node_t *node = ptr_cast<node_t>(buf_lock->get_data_read());
         if (!node::is_internal(node)) {
             break;
         }
@@ -63,7 +61,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
 
     // Got down to the leaf, now examine it
 
-    const leaf_node_t * leaf = ptr_cast<leaf_node_t>(buf_lock.buf()->get_data_read());
+    const leaf_node_t * leaf = ptr_cast<leaf_node_t>(buf_lock->get_data_read());
     int key_index = leaf::impl::find_key(leaf, key);
     bool found = key_index != leaf::impl::key_not_found;
     if (found) {
@@ -83,7 +81,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
             // lock.
             buf_lock.release();
 
-            return get_result_t(dp, value->mcflags(), 0, NULL);
+            return get_result_t(dp, value->mcflags(), 0);
         }
     } else {
         /* Key not found. */

@@ -276,7 +276,9 @@ class TimeSeriesCollection():
                 data_to_use = normalize(series_data)
             else:
                 data_to_use = series_data
-            labels.append((ax.plot(range(len(series_data)), data_to_use, colors[color_index]), series, 'bo'))
+            #labels.append((ax.plot(range(len(series_data)), data_to_use, colors[color_index]), series, 'bo'))
+            labels.append((ax.plot(range(len(series_data)), data_to_use, colors[color_index], linestyle="None", marker="."), series, 'bo'))
+
             color_index += 1
          
         for tick in ax.xaxis.get_major_ticks():

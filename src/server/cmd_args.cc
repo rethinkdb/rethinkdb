@@ -8,6 +8,7 @@
 #include "help.hpp"
 #include "arch/arch.hpp"
 #include "cmd_args.hpp"
+#include "perfmon.hpp"   // For `global_full_perfmon`
 
 /* Note that this file only parses arguments for the 'serve' and 'create' subcommands. */
 
@@ -76,7 +77,10 @@ void usage_serve() {
                 "Output options:\n"
                 "  -v, --verbose         Print extra information to standard output.\n");
     help->pagef("  -l, --log-file        File to log to. If not provided, messages will be\n"
-                "                        printed to stderr.\n");
+                "                        printed to stderr.\n"
+                "      --full-perfmon    Report more detailed statistics in response to a\n"
+                "                        \"stats\" request. Collecting the more detailed stats\n"
+                "                        will slow the server down somewhat.\n");
 #ifdef SEMANTIC_SERIALIZER_CHECK
     help->pagef("  -S, --semantic-file   Path to the semantic file for the previously specified\n"
                 "                        database file. Can only be specified after the path to\n"
@@ -89,10 +93,14 @@ void usage_serve() {
                 "                        Defaults to %d\n", COROUTINE_STACK_SIZE); */ 
     help->pagef("\n"
                 "Replication & Failover options:\n"
-                "      --slave-of host:port Run this server as a slave of a master server. As a\n"
+                "      --master [port]\n"
+                "                        The port on which to listen for a slave, or OFF or ON.\n"
+                "                        If ON, defaults to %d.\n", DEFAULT_REPLICATION_PORT);
+    help->pagef("      --slave-of host:port\n"
+                "                        Run this server as a slave of a master server. As a\n"
                 "                        slave it will be replica of the master and will respond\n"
-                "                        only to gets. When the master goes down it will begin\n"
-                "                        responding to writes.\n"
+                "                        only to get and rget. When the master goes down it will\n"
+                "                        begin responding to writes.\n"
                 "      --failover-script Used in conjunction with --slave-of to specify a script\n"
                 "                        that will be run when the master fails and comes back up\n"
                 "                        see manual for an example script.\n" //TODO @jdoliner add this to the manual slava where is the manual?
@@ -165,13 +173,14 @@ enum {
     diff_log_size,
     force_create,
     coroutine_stack_size,
+    master_port,
     slave_of,
     failover_script,
-    heartbeat_timeout,
     flush_concurrency,
     flush_threshold,
     run_behind_elb,
-    failover
+    full_perfmon,
+    total_delete_queue_limit
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -197,6 +206,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     {
         int do_help = 0;
         int do_force_create = 0;
+        int do_full_perfmon = 0;
         struct option long_options[] =
             {
                 {"wait-for-flush",       required_argument, 0, wait_for_flush},
@@ -224,11 +234,13 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
                 {"help",                 no_argument, &do_help, 1},
-                {"slave_of",             required_argument, 0, slave_of},
+                {"master",               required_argument, 0, master_port},
+                {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
-                {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO @sam push this through to where you want it
                 {"run-behind-elb",       required_argument, 0, run_behind_elb},
-                {"failover",             no_argument, 0, failover}, //TODO @sam @jdoliner push this through when we know where it goes
+                {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
+                {"full-perfmon",         no_argument, &do_full_perfmon, 1},
+                {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
                 {0, 0, 0, 0}
             };
 
@@ -239,6 +251,9 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             c = 'h';
         if (do_force_create)
             c = force_create;
+        if (do_full_perfmon) {
+            c = full_perfmon;
+        }
      
         /* Detect the end of the options. */
         if (c == -1)
@@ -258,7 +273,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_cores(optarg); break;
             case 's':
                 slices_set_by_user = true;
-                config.set_slices(optarg); break;
+                config.set_slices(optarg);
+                break;
             case 'f':
                 config.push_private_config(optarg); break;
 #ifdef SEMANTIC_SERIALIZER_CHECK
@@ -295,15 +311,18 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_coroutine_stack_size(optarg); break;
             case force_create:
                 config.force_create = true; break;
+            case master_port:
+                config.set_master_listen_port(optarg); break;
             case slave_of:
                 config.set_master_addr(optarg); break;
             case failover_script:
                 config.set_failover_file(optarg); break;
-            case heartbeat_timeout:
-                not_implemented();
-                break;
             case run_behind_elb:
                 config.set_elb_port(optarg); break;
+            case full_perfmon:
+                global_full_perfmon = true; break;
+            case total_delete_queue_limit:
+                config.set_total_delete_queue_limit(optarg); break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
@@ -395,12 +414,17 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     }
 
     /* Convert values which depends on others to be set first */
+    int patch_log_memory;
     if (override_diff_log_size >= 0) {
-        config.store_static_config.cache.n_patch_log_blocks = override_diff_log_size / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
+        patch_log_memory = override_diff_log_size;
     } else {
-        config.store_static_config.cache.n_patch_log_blocks = DEFAULT_PATCH_LOG_SIZE / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
+        patch_log_memory = std::min(
+            DEFAULT_PATCH_LOG_SIZE,
+            (long)(DEFAULT_PATCH_LOG_FRACTION * config.store_dynamic_config.cache.max_dirty_size)
+            );
     }
-    
+    config.store_static_config.cache.n_patch_log_blocks = patch_log_memory / config.store_static_config.serializer.block_size().ser_value() / config.store_static_config.btree.n_slices;
+
     return config;
 }
 
@@ -481,7 +505,7 @@ void parsing_cmd_config_t::set_extent_size(const char* value) {
     const long long int minimum_value = 1ll;
     const long long int maximum_value = TERABYTE;
     
-    target = parse_longlong(optarg);
+    target = parse_longlong(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Extent size must be a number from %d to %d.", minimum_value, maximum_value);
         
@@ -489,10 +513,10 @@ void parsing_cmd_config_t::set_extent_size(const char* value) {
 }
 
 void parsing_cmd_config_t::set_read_ahead(const char* value) {
-    if (strlen(optarg) != 1 || !(optarg[0] == 'y' || optarg[0] == 'n'))
+    if (strlen(value) != 1 || !(value[0] == 'y' || value[0] == 'n'))
         fail_due_to_user_error("Read-ahead expects 'y' or 'n'.");
 
-    store_dynamic_config.serializer.read_ahead = optarg[0] == 'y';
+    store_dynamic_config.serializer.read_ahead = (value[0] == 'y');
 }
 
 long long parsing_cmd_config_t::parse_diff_log_size(const char* value) {
@@ -500,7 +524,7 @@ long long parsing_cmd_config_t::parse_diff_log_size(const char* value) {
     const long long int minimum_value = 0ll;
     const long long int maximum_value = TERABYTE;
 
-    result = parse_longlong(optarg) * MEGABYTE;
+    result = parse_longlong(value) * MEGABYTE;
     if (parsing_failed || !is_in_range(result, minimum_value, maximum_value))
         fail_due_to_user_error("Diff log size must be a number from %d to %d.", minimum_value, maximum_value);
 
@@ -512,7 +536,7 @@ void parsing_cmd_config_t::set_block_size(const char* value) {
     const int minimum_value = 1;
     const int maximum_value = DEVICE_BLOCK_SIZE * 1000;
     
-    target = parse_int(optarg);
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Block size must be a number from %d to %d.", minimum_value, maximum_value);
     if (target % DEVICE_BLOCK_SIZE != 0)
@@ -525,8 +549,8 @@ void parsing_cmd_config_t::set_active_data_extents(const char* value) {
     int target;
     const int minimum_value = 1;
     const int maximum_value = MAX_ACTIVE_DATA_EXTENTS;
-    
-    target = parse_int(optarg);
+
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Active data extents must be a number from %d to %d.", minimum_value, maximum_value);
     
@@ -537,7 +561,7 @@ void parsing_cmd_config_t::set_gc_range(const char* value) {
     float low = 0.0;
     float high = 0.0;
     int consumed = 0;
-    if (2 != sscanf(value, "%f-%f%n", &low, &high, &consumed) || ((size_t)consumed) != strlen(optarg)) {
+    if (2 != sscanf(value, "%f-%f%n", &low, &high, &consumed) || ((size_t)consumed) != strlen(value)) {
         fail_due_to_user_error("gc-range expects \"low-high\"");
     }
     if (!(MIN_GC_LOW_RATIO <= low && low < high && high <= MAX_GC_HIGH_RATIO)) {
@@ -549,24 +573,28 @@ void parsing_cmd_config_t::set_gc_range(const char* value) {
 }
 
 void parsing_cmd_config_t::set_unsaved_data_limit(const char* value) {
-    int int_value = parse_int(optarg);
-    if (parsing_failed || !is_positive(int_value))
+    int int_value = parse_int(value);
+    if (parsing_failed || !is_positive(int_value)) {
         fail_due_to_user_error("Unsaved data limit must be a positive number.");
-        
+    }
     store_dynamic_config.cache.max_dirty_size = (long long)(int_value) * MEGABYTE;
 }
 
 void parsing_cmd_config_t::set_wait_for_flush(const char* value) {
-    if (strlen(optarg) != 1 || !(optarg[0] == 'y' || optarg[0] == 'n'))
+    // TODO: duplicated 'y' 'n' code.
+    if (strlen(value) != 1 || !(value[0] == 'y' || value[0] == 'n'))
         fail_due_to_user_error("Wait-for-flush expects 'y' or 'n'.");
     
-    store_dynamic_config.cache.wait_for_flush = optarg[0] == 'y';
+    store_dynamic_config.cache.wait_for_flush = value[0] == 'y';
 }
 
 void parsing_cmd_config_t::set_max_cache_size(const char* value) {
-    int int_value = parse_int(optarg);
+    int int_value = parse_int(value);
     if (parsing_failed || !is_positive(int_value))
         fail_due_to_user_error("Cache size must be a positive number.");
+
+    // TODO: Explain why this code is commented out, for wtf is there commented out code without explanation?
+
     //if (is_at_most(int_value, static_cast<int>(get_total_ram() / 1024 / 1024)))
     //    fail_due_to_user_error("Cache size is larger than this machine's total memory (%s MB).", get_total_ram() / 1024 / 1024);
         
@@ -578,7 +606,7 @@ void parsing_cmd_config_t::set_slices(const char* value) {
     const int minimum_value = 1;
     const int maximum_value = MAX_SLICES;
     
-    target = parse_int(optarg);
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Number of slices must be a number from %d to %d.", minimum_value, maximum_value);
 }
@@ -594,15 +622,15 @@ void parsing_cmd_config_t::set_log_file(const char* value) {
     else
         fclose(logfile);
     
-    strncpy(log_file_name, optarg, MAX_LOG_FILE_NAME);
+    strncpy(log_file_name, value, MAX_LOG_FILE_NAME);
 }
 
 void parsing_cmd_config_t::set_port(const char* value) {
     int& target = port;
-    const int minimum_value = 0;
+    const int minimum_value = 1;
     const int maximum_value = 65535;
     
-    target = parse_int(optarg);
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Invalid TCP port (must be a number from %d to %d).", minimum_value, maximum_value);
 }
@@ -613,7 +641,7 @@ void parsing_cmd_config_t::set_cores(const char* value) {
     // Subtract one because of utility cpu
     const int maximum_value = MAX_THREADS - 1;
     
-    target = parse_int(optarg);
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Number of CPUs must be a number from %d to %d.", minimum_value, maximum_value);
 }
@@ -622,27 +650,55 @@ void parsing_cmd_config_t::set_coroutine_stack_size(const char* value) {
     const int minimum_value = 8126;
     const int maximum_value = MAX_COROUTINE_STACK_SIZE;
     
-    int target = parse_int(optarg);
+    int target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Coroutine stack size must be a number from %d to %d.", minimum_value, maximum_value);
 
-    coro_t::set_coroutine_stack_size(parse_int(optarg));
+    coro_t::set_coroutine_stack_size(target);
 }
 
-void parsing_cmd_config_t::set_master_addr(char *value) {
-    char *token = strtok(value, ":");
-    if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN - 1)
-        fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
+void parsing_cmd_config_t::set_master_listen_port(const char *value) {
+    if (!strcmp("ON", value)) {
+        replication_master_active = true;
+    } else if (!strcmp("OFF", value)) {
+        replication_master_active = false;
+    } else {
+        replication_master_listen_port = parse_int(value);
+        const int minimum_value = 1, maximum_value = 65535;
+        if (parsing_failed || !is_in_range(replication_master_listen_port, minimum_value, maximum_value)) {
+            fail_due_to_user_error("Master listen port must be between %d and %d.", minimum_value, maximum_value);
+        }
 
-    strcpy(replication_config.hostname, token);
+        replication_master_active = true;
+    }
+}
+
+void parsing_cmd_config_t::set_master_addr(const char *value) {
+    std::vector<char> copy(value, value + 1 + strlen(value));
+    char *token = strtok(copy.data(), ":");
+    if (token == NULL || strlen(token) > MAX_HOSTNAME_LEN - 1) {
+        fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
+    }
+
+    strncpy(replication_config.hostname, token, MAX_HOSTNAME_LEN);
+    replication_config.hostname[MAX_HOSTNAME_LEN - 1] = '\0';
 
     token = strtok(NULL, ":");
-    if (token == NULL)
+    if (token == NULL) {
         fail_due_to_user_error("Invalid master address, address should be of the form hostname:port");
+    }
 
     replication_config.port = parse_int(token);
 
     replication_config.active = true;
+}
+
+void parsing_cmd_config_t::set_total_delete_queue_limit(const char *value) {
+    int64_t target = parse_longlong(value);
+    if (parsing_failed || target < 0)
+        fail_due_to_user_error("Total delete queue limit must be non-negative\n");
+
+    store_dynamic_config.total_delete_queue_limit = target;
 }
 
 void parsing_cmd_config_t::set_failover_file(const char* value) {
@@ -651,19 +707,13 @@ void parsing_cmd_config_t::set_failover_file(const char* value) {
 
     strcpy(failover_config.failover_script_path, value);
 }
-void parsing_cmd_config_t::set_heartbeat_timeout(const char* value) {
-    failover_config.heartbeat_timeout = parse_int(value);
-
-    if (failover_config.heartbeat_timeout < 0)
-        fail_due_to_user_error("Heartbeat cannot be negative");
-}
 
 void parsing_cmd_config_t::set_elb_port(const char *value) {
     int& target = failover_config.elb_port;
     const int minimum_value = 0;
     const int maximum_value = 65535;
     
-    target = parse_int(optarg);
+    target = parse_int(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Invalid TCP port (must be a number from %d to %d).", minimum_value, maximum_value);
 }
@@ -789,8 +839,9 @@ void cmd_config_t::print() {
 }
 
 cmd_config_t::cmd_config_t() {
-    bzero(this, sizeof(*this));
-    
+    bzero(&replication_config, sizeof(replication_config));
+    bzero(&failover_config, sizeof(failover_config));
+
     verbose = false;
     port = DEFAULT_LISTEN_PORT;
     n_workers = get_cpu_count();
@@ -812,13 +863,22 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.cache.wait_for_flush = false;
     store_dynamic_config.cache.flush_timer_ms = DEFAULT_FLUSH_TIMER_MS;
     store_dynamic_config.cache.max_dirty_size = DEFAULT_UNSAVED_DATA_LIMIT;
+    store_dynamic_config.cache.flush_dirty_size = 0;
     store_dynamic_config.cache.flush_waiting_threshold = DEFAULT_FLUSH_WAITING_THRESHOLD;
     store_dynamic_config.cache.max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
-    
+
+    store_dynamic_config.total_delete_queue_limit = DEFAULT_TOTAL_DELETE_QUEUE_LIMIT;
+
     create_store = false;
     force_create = false;
     shutdown_after_creation = false;
-    
+
+    replication_config.port = DEFAULT_REPLICATION_PORT;
+    memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
+    replication_config.active = false;
+    replication_master_listen_port = DEFAULT_REPLICATION_PORT;
+    replication_master_active = false;
+
     store_static_config.serializer.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
     store_static_config.serializer.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;
     

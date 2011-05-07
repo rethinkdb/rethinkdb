@@ -26,7 +26,7 @@ public:
     };
     void read(size_t pos, size_t length, void *buffer, read_callback_t *);
     
-    void append(void *buffer, size_t length);
+    void append(void *buffer, size_t length, file_t::account_t *io_account);
     
     struct sync_callback_t {
         virtual void on_extent_sync() = 0;

@@ -2,21 +2,23 @@
 #ifndef __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 #define __SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP__
 
-class log_serializer_t;
+#include <functional>
+#include <queue>
+#include <utility>
 
 #include "arch/arch.hpp"
 #include "server/cmd_args.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/two_level_array.hpp"
 #include "containers/bitset.hpp"
+#include "concurrency/mutex.hpp"
 #include "extents/extent_manager.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/types.hpp"
-#include <functional>
-#include <queue>
-#include <utility>
-#include <sys/time.h>
 #include "perfmon.hpp"
+#include "utils2.hpp"
+
+class log_serializer_t;
 
 // Stats
 
@@ -31,10 +33,12 @@ extern perfmon_counter_t
 struct data_block_manager_gc_write_callback_t {
 
     virtual void on_gc_write_done() = 0;
+    virtual ~data_block_manager_gc_write_callback_t() {}
 };
 
 class data_block_manager_t :
-    public data_block_manager_gc_write_callback_t
+    public data_block_manager_gc_write_callback_t,
+    public lock_available_callback_t
 {
 
     friend class dbm_read_ahead_fsm_t;
@@ -51,7 +55,8 @@ public:
     
     struct gc_writer_t {
     
-        virtual bool write_gcs(gc_write_t *writes, int num_writes, gc_write_callback_t *cb) = 0;
+        virtual bool write_gcs(gc_write_t *writes, int num_writes, file_t::account_t *io_account, gc_write_callback_t *cb) = 0;
+        virtual ~gc_writer_t() {}
     };
 
 public:
@@ -98,12 +103,12 @@ public:
     void start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock);
 
 public:
-    bool read(off64_t off_in, void *buf_out, iocallback_t *cb);
+    bool read(off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb);
 
     /* The offset that the data block manager chose will be left in off_out as soon as write()
     returns. The callback will be called when the data is actually on disk and it is safe to reuse
     the buffer. */
-    bool write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb);
+    bool write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, file_t::account_t *io_account, iocallback_t *cb);
 
 public:
     /* exposed gc api */
@@ -173,6 +178,7 @@ private:
     log_serializer_t *serializer;
 
     direct_file_t* dbfile;
+    boost::scoped_ptr<file_t::account_t> gc_io_account;
 
     off64_t gimme_a_new_offset();
 
@@ -191,13 +197,11 @@ private:
         public intrusive_list_node_t<gc_entry>
     {
     public:
-        typedef uint64_t timestamp_t;
-        
         data_block_manager_t *parent;
         
         off64_t offset; /* !< the offset that this extent starts at */
         bitset_t g_array; /* !< bit array for whether or not each block is garbage */
-        timestamp_t timestamp; /* !< when we started writing to the extent */
+        microtime_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
         
         enum state_t {
@@ -220,7 +224,7 @@ private:
             : parent(parent),
               offset(parent->extent_manager->gen_extent()),
               g_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_timestamp())
+              timestamp(current_microtime())
         {
             rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
             parent->entries.set(offset / parent->extent_manager->extent_size, this);
@@ -235,7 +239,7 @@ private:
             : parent(parent),
               offset(offset),
               g_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_timestamp())
+              timestamp(current_microtime())
         {
             parent->extent_manager->reserve_extent(offset);
             rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
@@ -266,14 +270,6 @@ private:
             debugf("\n");
             debugf("\n");
 #endif
-        }
-
-        // Returns the current timestamp in microseconds.
-        static timestamp_t current_timestamp() {
-            struct timeval t;
-            int res __attribute__((unused)) = gettimeofday(&t, NULL);
-            rassert(0 == res);
-            return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
         }
     };
     
@@ -317,10 +313,14 @@ private:
 
     void on_gc_write_done();
 
+    void on_lock_available();
+
     enum gc_step {
         gc_reconstruct, /* reconstructing on startup */
         gc_ready, /* ready to start */
-        gc_read,  /* waiting for reads, sending out writes */
+        gc_ready_lock_available, /* ready to start, got main_mutex */
+        gc_read,  /* waiting for reads, acquiring main_mutex */
+        gc_read_lock_available,  /* waiting for reads, sending out writes */
         gc_write, /* waiting for writes */
     };
 

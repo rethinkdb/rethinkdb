@@ -1,6 +1,9 @@
+#include <boost/smart_ptr/scoped_ptr.hpp>
+
 #include "data_block_manager.hpp"
 #include "log_serializer.hpp"
 #include "utils.hpp"
+#include "concurrency/mutex.hpp"
 #include "arch/arch.hpp"
 
 /* TODO: Right now we perform garbage collection via the do_write() interface on the
@@ -67,6 +70,7 @@ void data_block_manager_t::end_reconstruct() {
 void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
     rassert(state == state_unstarted);
     dbfile = file;
+    gc_io_account.reset(new file_t::account_t(file, GC_IO_PRIORITY));
     
     /* Reconstruct the active data block extents from the metablock. */
     
@@ -127,7 +131,7 @@ struct dbm_read_ahead_fsm_t :
     off64_t off_in;
     void *buf_out;
 
-    dbm_read_ahead_fsm_t(data_block_manager_t *p, off64_t off_in, void *buf_out, iocallback_t *cb)
+    dbm_read_ahead_fsm_t(data_block_manager_t *p, off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb)
         : parent(p), callback(cb), read_ahead_buf(NULL), off_in(off_in), buf_out(buf_out)
     {
         extent = floor_aligned(off_in, parent->static_config->extent_size());
@@ -137,7 +141,7 @@ struct dbm_read_ahead_fsm_t :
         // We divide the extent into chunks of size read_ahead_size, then select the one which contains off_in
         read_ahead_offset = extent + (off_in - extent) / read_ahead_size * read_ahead_size;
         read_ahead_buf = malloc_aligned(read_ahead_size, DEVICE_BLOCK_SIZE);
-        parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, this);
+        parent->dbfile->read_async(read_ahead_offset, read_ahead_size, read_ahead_buf, io_account, this);
     }
 
     void on_io_complete() {
@@ -171,11 +175,13 @@ struct dbm_read_ahead_fsm_t :
                     continue;
                 }
 
-                buf_data_t *data = (buf_data_t*)parent->serializer->malloc();
+                const repli_timestamp recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
+
+                buf_data_t *data = ptr_cast<buf_data_t>(parent->serializer->malloc());
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
-                if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data)) {
+                if (!parent->serializer->offer_buf_to_read_ahead_callbacks(block_id, data, recency_timestamp)) {
                     // If there is no interest anymore, delete the buffer again
                     parent->serializer->free(data);
                     continue;
@@ -190,23 +196,23 @@ struct dbm_read_ahead_fsm_t :
     }
 };
 
-bool data_block_manager_t::read(off64_t off_in, void *buf_out, iocallback_t *cb) {
+bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_t::account_t *io_account, iocallback_t *cb) {
     rassert(state == state_ready);
 
     if (serializer->should_perform_read_ahead()) {
         // We still need an fsm for read ahead as additional work has to be done on io complete...
-        new dbm_read_ahead_fsm_t(this, off_in, buf_out, cb);
+        new dbm_read_ahead_fsm_t(this, off_in, buf_out, io_account, cb);
     }
     else {
         buf_data_t *data = (buf_data_t*)buf_out;
         data--;
-        dbfile->read_async(off_in, static_config->block_size().ser_value(), data, cb);
+        dbfile->read_async(off_in, static_config->block_size().ser_value(), data, io_account, cb);
     }
 
     return false;
 }
 
-bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, iocallback_t *cb) {
+bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, file_t::account_t *io_account, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
@@ -216,13 +222,15 @@ bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, se
 
     pm_serializer_data_blocks_written++;
 
-    buf_data_t *data = (buf_data_t*)buf_in;
+    const buf_data_t *data = ptr_cast<buf_data_t>(buf_in);
     data--;
     if (transaction_id != NULL_SER_TRANSACTION_ID) {
         *const_cast<buf_data_t *>(data) = make_buf_data_t(block_id, transaction_id);
+    } else {
+        rassert(data->block_id == block_id);
     }
 
-    dbfile->write_async(offset, static_config->block_size().ser_value(), data, cb);
+    dbfile->write_async(offset, static_config->block_size().ser_value(), data, io_account, cb);
 
     return false;
 }
@@ -287,20 +295,36 @@ void data_block_manager_t::on_gc_write_done() {
     run_gc();
 }
 
+void data_block_manager_t::on_lock_available() {
+    rassert(gc_state.step() == gc_ready_lock_available || gc_state.step() == gc_read_lock_available);
+    run_gc();
+}
+
 void data_block_manager_t::run_gc() {
+    // TODO: Convert this to a coroutine!
     bool run_again = true;
     while (run_again) {
         run_again = false;
         switch (gc_state.step()) {
             case gc_ready:
-                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) return;
-                
+                gc_state.set_step(gc_ready_lock_available);
+                serializer->main_mutex.lock(this);
+                break;
+
+            case gc_ready_lock_available:
+                serializer->main_mutex.unlock();
+
+                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) {
+                    gc_state.set_step(gc_ready);
+                    return;
+                }
+
                 pm_serializer_data_extents_gced++;
-                
+
                 /* grab the entry */
                 gc_state.current_entry = gc_pq.pop();
                 gc_state.current_entry->our_pq_entry = NULL;
-                
+
                 rassert(gc_state.current_entry->state == gc_entry::state_old);
                 gc_state.current_entry->state = gc_entry::state_in_gc;
                 gc_stats.old_garbage_blocks -= gc_state.current_entry->g_array.count();
@@ -311,11 +335,13 @@ void data_block_manager_t::run_gc() {
                 /* make sure the read callback knows who we are */
                 gc_state.gc_read_callback.parent = this;
 
+                rassert(gc_state.refcount == 0);
                 for (unsigned int i = 0, bpe = static_config->blocks_per_extent(); i < bpe; i++) {
                     if (!gc_state.current_entry->g_array[i]) {
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
                                            gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
+                                           gc_io_account.get(),
                                            &(gc_state.gc_read_callback));
                         gc_state.refcount++;
                     }
@@ -329,15 +355,22 @@ void data_block_manager_t::run_gc() {
                 if (gc_state.refcount > 0) {
                     /* We got a block, but there are still more to go */
                     break;
-                }    
-                
+                }
+
+                gc_state.set_step(gc_read_lock_available);
+                serializer->main_mutex.lock(this); // The mutex gets released in write_gcs!
+                break;
+            }
+            
+            case gc_read_lock_available: {
                 /* If other forces cause all of the blocks in the extent to become garbage
                 before we even finish GCing it, they will set current_entry to NULL. */
                 if (gc_state.current_entry == NULL) {
+                    serializer->main_mutex.unlock();
                     gc_state.set_step(gc_ready);
                     break;
                 }
-                
+
                 /* an array to put our writes in */
 #ifndef NDEBUG
                 int num_writes = static_config->blocks_per_extent() - gc_state.current_entry->g_array.count();
@@ -351,8 +384,9 @@ void data_block_manager_t::run_gc() {
                     out-of-date data. */
                     if (gc_state.current_entry->g_array[i]) continue;
 
-                    byte *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
-                    ser_block_id_t id = *reinterpret_cast<ser_block_id_t *>(block);
+                    char *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
+                    ser_block_id_t id = (reinterpret_cast<buf_data_t *>(block))->block_id;
+                    rassert(id != ser_block_id_t::null());
                     void *data = block + sizeof(buf_data_t);
 
                     gc_writes.push_back(gc_write_t(id, data));
@@ -360,11 +394,10 @@ void data_block_manager_t::run_gc() {
 
                 rassert(gc_writes.size() == (size_t)num_writes);
 
-                /* make sure the callback knows who we are */
                 gc_state.set_step(gc_write);
 
                 /* schedule the write */
-                bool done = gc_writer->write_gcs(gc_writes.data(), gc_writes.size(), this);
+                bool done = gc_writer->write_gcs(gc_writes.data(), gc_writes.size(), gc_io_account.get(), this);
                 if (!done) break;
             }
                 
@@ -373,7 +406,7 @@ void data_block_manager_t::run_gc() {
                 /* Our write should have forced all of the blocks in the extent to become garbage,
                 which should have caused the extent to be released and gc_state.current_offset to
                 become NULL. */
-                rassert(gc_state.current_entry == NULL);
+                rassert(gc_state.current_entry == NULL, "%d live blocks left on the extent.\n", (int)gc_state.current_entry->g_array.count());
                 
                 rassert(gc_state.refcount == 0);
 
@@ -504,7 +537,7 @@ void data_block_manager_t::mark_unyoung_entries() {
         remove_last_unyoung_entry();
     }
 
-    gc_entry::timestamp_t current_time = gc_entry::current_timestamp();
+    uint64_t current_time = current_microtime();
 
     while (young_extent_queue.head()
            && current_time - young_extent_queue.head()->timestamp > GC_YOUNG_EXTENT_TIMELIMIT_MICROS) {
@@ -534,7 +567,7 @@ void data_block_manager_t::remove_last_unyoung_entry() {
 // look, it's the next largest entry.  Should we keep gc'ing?  Returns
 // false when the entry is active or young, or when its garbage ratio
 // is lower than GC_THRESHOLD_RATIO_*.
-bool data_block_manager_t::should_we_keep_gcing(const gc_entry& entry) const {
+bool data_block_manager_t::should_we_keep_gcing(UNUSED const gc_entry& entry) const {
     return !gc_state.should_be_stopped && garbage_ratio() > dynamic_config->gc_low_ratio;
 }
 

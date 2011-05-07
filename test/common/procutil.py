@@ -45,11 +45,13 @@ class SubProcess(object):
         self.valgrind_tool = valgrind_tool
         if valgrind_tool is not None:
             cmd_line = ["valgrind",
+                "--log-file=%s" % test_dir.make_file(output_path + ".valgrind"),
                 "--tool=%s" % valgrind_tool,
                 "--error-exitcode=%d" % valgrind_error_code]
             if valgrind_tool == "memcheck":
                 cmd_line.append("--leak-check=full")
                 cmd_line.append("--track-origins=yes")
+                cmd_line.append("--show-reachable=yes")
             if valgrind_tool == "drd":
                 cmd_line.append("--read-var-info=yes")
             if interactive: cmd_line.append("--db-attach=yes")
@@ -136,8 +138,14 @@ class SubProcess(object):
 def run_executable(command_line, output_path, test_dir, timeout=60, valgrind_tool=None):
 
     summary = os.path.basename(command_line[0])
-    if len(command_line) > 4: summary += " " + cmd_join(command_line[1:4]) + " [...]"
-    else: summary += " " + cmd_join(command_line[1:])
+    for chunk in command_line[1:]:
+        if len(summary) + len(chunk) > 200:
+            summary += " [...]"
+            break
+        elif " " in chunk:
+            summary += " \"%s\"" % chunk
+        else:
+            summary += " " + chunk
     print "Running %r;" % summary,
     sys.stdout.flush()
 

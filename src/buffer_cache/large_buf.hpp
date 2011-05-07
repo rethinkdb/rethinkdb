@@ -1,7 +1,11 @@
 #ifndef __LARGE_BUF_HPP__
 #define __LARGE_BUF_HPP__
 
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/transactor.hpp"
 #include "config/args.hpp"
 
 #include "containers/buffer_group.hpp"
@@ -13,7 +17,7 @@ struct large_buf_available_callback_t :
     public intrusive_list_node_t<large_buf_available_callback_t> {
     virtual void on_large_buf_available(large_buf_t *large_buf) = 0;
 protected:
-    ~large_buf_available_callback_t() {}
+    virtual ~large_buf_available_callback_t() {}
 };
 
 // struct large_buf_ref is defined in buffer_cache/types.hpp.
@@ -29,7 +33,7 @@ struct large_buf_internal {
 // Disk format struct.
 struct large_buf_leaf {
     block_magic_t magic;
-    byte buf[];
+    char buf[];
 
     static const block_magic_t expected_magic;
 };
@@ -42,6 +46,11 @@ struct tree_available_callback_t {
     virtual ~tree_available_callback_t() {}
 };
 
+enum should_load_code_t {
+    no_load_leaves,
+    should_load_everything,
+    should_load_right_leaf
+};
 
 
 class large_buf_t : public tree_available_callback_t {
@@ -63,7 +72,7 @@ private:
     access_t const access;
 
     // The transaction in which this large_buf_t's lifetime exists.
-    transaction_t *const txn;
+    boost::shared_ptr<transactor_t> const txor;
 
     // When we allocate or acquire a large buffer, we create a tree of
     // butrees, parallel to the on-disk tree, where each node holds
@@ -99,7 +108,7 @@ public:
     int64_t num_bufs;
 #endif
 
-    explicit large_buf_t(transaction_t *txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, access_t access);
+    explicit large_buf_t(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, access_t access);
     ~large_buf_t();
 
     // This is a COMPLETE HACK
@@ -114,7 +123,8 @@ public:
     void acquire_for_delete(large_buf_available_callback_t *callback);
     void acquire_for_unprepend(int64_t extra_size, large_buf_available_callback_t *callback);
 
-    void co_enqueue(transaction_t *txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, void *buf, int64_t n);
+    // HEY: Just put this in co_functions.
+    static void co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, const void *buf, int64_t n);
 
 
 
@@ -133,7 +143,7 @@ public:
     void mark_deleted();
 
     // TODO:  Stop being a bad programmer and start knowing what thread you're on.
-    void ensure_thread() const { txn->ensure_thread(); }
+    void ensure_thread(const thread_saver_t& saver) const { (*txor)->ensure_thread(saver); }
 
     void on_block_available(buf_t *buf);
 
@@ -169,27 +179,27 @@ private:
     buftree_t *allocate_buftree(int64_t size, int64_t offset, int levels, block_id_t *block_id);
     buftree_t *acquire_buftree(block_id_t block_id, int64_t offset, int64_t size, int levels, tree_available_callback_t *cb);
 
-    void do_acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, bool should_load_leaves_);
+    void do_acquire_slice(int64_t slice_offset, int64_t slice_size, large_buf_available_callback_t *callback_, should_load_code_t should_load_code);
 
     void trees_bufs_at(const std::vector<buftree_t *>& trees, int sublevels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);
     void tree_bufs_at(buftree_t *tr, int levels, int64_t pos, int64_t read_size, bool use_read_mode, buffer_group_t *bufs_out);
 
-    void adds_level(block_id_t *ids
+    void adds_level(block_id_t *ids, int num_roots
 #ifndef NDEBUG
                     , int nextlevels
 #endif
                     );
     void allocate_part_of_tree(buftree_t *tr, int64_t offset, int64_t size, int levels);
     void allocates_part_of_tree(std::vector<buftree_t *> *ptrs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t sublevels);
-    buftree_t *walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *));
-    void walk_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels, void (*bufdoer)(large_buf_t *, buf_t *), buftree_t *(*buftree_cleaner)(buftree_t *));
+    buftree_t *walk_tree_structure(buftree_t *tr, int64_t offset, int64_t size, int levels, void (*bufdoer)(large_buf_t *, buf_t *, bool, bool), buftree_t *(*buftree_cleaner)(buftree_t *, bool, bool));
+    void walk_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels, void (*bufdoer)(large_buf_t *, buf_t *, bool, bool), buftree_t *(*buftree_cleaner)(buftree_t *, bool, bool));
     void delete_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels);
     void only_mark_deleted_tree_structures(std::vector<buftree_t *> *trees, int64_t offset, int64_t size, int sublevels);
     void release_tree_structures(std::vector<buftree_t *> *trs, int64_t offset, int64_t size, int sublevels);
     void removes_level(block_id_t *ids, int copyees);
     int try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t stepsize);
 
-    block_size_t block_size() const { return txn->cache->get_block_size(); }
+    block_size_t block_size() const { return (*txor)->cache->get_block_size(); }
 
     void lv_release();
 

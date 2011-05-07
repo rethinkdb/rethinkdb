@@ -11,6 +11,7 @@ TEST(BitsetTest, ClearedAtStart) {
     for (int i = 0; i < 100; i++) {
         ASSERT_FALSE(b.test(i));
     }
+    b.verify();
 }
 
 TEST(BitsetTest, SetsGets) {
@@ -32,6 +33,25 @@ TEST(BitsetTest, SetsGets) {
 
     ASSERT_TRUE(100 == b.count());
     ASSERT_TRUE(b[80]);
+
+    b.verify();
+}
+
+TEST(BitsetTest, Resize) {
+
+    bitset_t b(100);
+    b.set(98, true);
+    b.set(99, true);
+    ASSERT_EQ(b.count(), 2);
+    b.resize(99);
+    b.verify();
+    ASSERT_EQ(b.count(), 1);
+    b.resize(100);
+    b.verify();
+    ASSERT_EQ(b.count(), 1);
+    b.set(99, true);
+    ASSERT_EQ(b.count(), 2);
+    b.verify();
 }
 
 TEST(BitsetTest, BoundsChecking) {
@@ -42,6 +62,7 @@ TEST(BitsetTest, BoundsChecking) {
     ASSERT_DEATH(b.test(-1), "");
     b.set(99, true);
     ASSERT_TRUE(b.test(99));
+    b.verify();
 }
 
 }

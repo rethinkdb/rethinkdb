@@ -56,7 +56,10 @@ def generate_async_message_template(nargs):
         print "            { }"
     for i in xrange(nargs):
         print "        const arg%d_t &arg%d;" % (i, i)
-    print "        void serialize(cluster_outpipe_t *p) {"
+    if nargs > 0:
+        print "        void serialize(cluster_outpipe_t *p) {"
+    else:
+        print "        void serialize(UNUSED cluster_outpipe_t *p) {"
     for i in xrange(nargs):
         print "            global_serialize(p, arg%d);" % i
     print "        }"
@@ -83,7 +86,10 @@ def generate_async_message_template(nargs):
     print "    }"
     print
     print "    boost::function< void(%s) > callback;" % args
-    print "    void run(cluster_message_t *cm) {"
+    if nargs > 0:
+        print "    void run(cluster_message_t *cm) {"
+    else:
+        print "    void run(UNUSED cluster_message_t *cm) {"
     if nargs:
         print "        message_t *m = static_cast<message_t *>(cm);"
     for i in xrange(nargs):
@@ -144,7 +150,10 @@ def generate_sync_message_template(nargs, void):
         print "                    else pulsed = true;"
         print "                    pulse(true);"
     print "                }"
-    print "                void run(cluster_message_t *msg) {"
+    if not void:
+        print "                void run(cluster_message_t *msg) {"
+    else:
+        print "                void run(UNUSED cluster_message_t *msg) {"
     if not void:
         print "                    ret_message_t *m = static_cast<ret_message_t *>(msg);"
         print "                    ret_t ret = m->ret;"
@@ -205,7 +214,10 @@ def generate_sync_message_template(nargs, void):
     for i in xrange(nargs):
         print "        const arg%d_t &arg%d;" % (i, i)
     print "        cluster_address_t reply_to;"
-    print "        void serialize(cluster_outpipe_t *p) {"
+    if nargs > 0:
+        print "        void serialize(cluster_outpipe_t *p) {"
+    else:
+        print "        void serialize(UNUSED cluster_outpipe_t *p) {"
     for i in xrange(nargs):
         print "            global_serialize(p, arg%d);" % i
     print "            global_serialize(p, reply_to);"
@@ -227,7 +239,10 @@ def generate_sync_message_template(nargs, void):
     print "    struct ret_message_t : public cluster_message_t {"
     if not void:
         print "        ret_t ret;"
-    print "        void serialize(cluster_outpipe_t *p) {"
+    if not void:
+        print "        void serialize(cluster_outpipe_t *p) {"
+    else:
+        print "        void serialize(UNUSED cluster_outpipe_t *p) {"
     if not void:
         print "            global_serialize(p, ret);"
     print "        }"
@@ -283,6 +298,7 @@ if __name__ == "__main__":
     print "#include \"rpc/serialize/serialize.hpp\""
     print "#include \"rpc/serialize/serialize_macros.hpp\""
     print "#include \"concurrency/cond_var.hpp\""
+    print "#include \"concurrency/promise.hpp\""
     print "#include \"rpc/core/cluster.hpp\""
     print "#include \"rpc/core/peer.hpp\""
     print

@@ -11,6 +11,8 @@ struct mock_iocallback_t {
     virtual ~mock_iocallback_t() {}
 };
 
+#define DEFAULT_DISK_ACCOUNT NULL
+
 template<class inner_io_config_t>
 class mock_file_t
 {
@@ -21,6 +23,10 @@ public:
         mode_read = 1 << 0,
         mode_write = 1 << 1,
         mode_create = 1 << 2
+    };
+
+    struct account_t {
+        account_t(UNUSED mock_file_t *f, UNUSED int p) { }
     };
 
 protected:
@@ -78,14 +84,14 @@ protected:
     
     /* These always return 'false'; the reason they return bool instead of void
     is for consistency with other asynchronous-callback methods */
-    bool read_async(size_t offset, size_t length, void *buf, mock_iocallback_t *cb) {
+    bool read_async(size_t offset, size_t length, void *buf, UNUSED account_t *account, mock_iocallback_t *cb) {
         rassert(mode & mode_read);
         read_blocking(offset, length, buf);
         random_delay(cb, &mock_iocallback_t::on_io_complete);
         return false;
     }
     
-    bool write_async(size_t offset, size_t length, void *buf, mock_iocallback_t *cb) {
+    bool write_async(size_t offset, size_t length, const void *buf, UNUSED account_t *account, mock_iocallback_t *cb) {
         rassert(mode & mode_write);
         write_blocking(offset, length, buf);
         random_delay(cb, &mock_iocallback_t::on_io_complete);
@@ -100,7 +106,7 @@ protected:
         }
     }
     
-    void write_blocking(size_t offset, size_t length, void *buf) {
+    void write_blocking(size_t offset, size_t length, const void *buf) {
         rassert(mode & mode_write);
         verify(offset, length, buf);
         for (unsigned i = 0; i < length / DEVICE_BLOCK_SIZE; i += 1) {
@@ -143,7 +149,7 @@ private:
     };
     segmented_vector_t<block_t, 10*GIGABYTE/DEVICE_BLOCK_SIZE> blocks;
     
-    void verify(size_t offset, size_t length, void *buf) {
+    void verify(UNUSED size_t offset, UNUSED size_t length, UNUSED const void *buf) {
         rassert(buf);
         rassert(offset + length <= get_size());
         rassert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
@@ -155,7 +161,7 @@ private:
 };
 
 template <class inner_io_config_t>
-class mock_direct_file_t : private mock_file_t<inner_io_config_t> {
+class mock_direct_file_t : public mock_file_t<inner_io_config_t> {
 public:
     using mock_file_t<inner_io_config_t>::exists;
     using mock_file_t<inner_io_config_t>::is_block_device;

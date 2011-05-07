@@ -6,6 +6,11 @@ SSD_DRIVES="/dev/sdf /dev/sdg /dev/sdh /dev/sdi"
 
 sleep 3
 
+# To get a more realistic state, we don't prime all of the drive.
+# Under usual workloads with RethinkDB, the drives will never get completely
+# full (more specifically: the higher block offsets should never get touched).
+PRIME_SIZE_PERCENT=90
+
 for DRIVE in $SSD_DRIVES
 do
     echo Performing security erase on $DRIVE
@@ -16,6 +21,14 @@ done
 
 for DRIVE in $SSD_DRIVES
 do
+    #
+    PRIME_SIZE_BLOCKS=$[ `sfdisk -uB -s $DRIVE` / 100 * $PRIME_SIZE_PERCENT]
+    echo Creating partition of size $PRIME_SIZE_BLOCKS blocks on $DRIVE
+    # Start at block 1024 to guarantee proper alignment (hope that works)
+    echo 1024 $PRIME_SIZE_BLOCKS | sudo sfdisk -q -L -uB $DRIVE
+    DRIVE=${DRIVE}1
+    #
+    
     echo Starting to prime $DRIVE
     ./serializer-bench/serializer-bench -f $DRIVE --forever --active-data-extents 1 --extent-size 8388608 --concurrent 8 &
 done
@@ -23,6 +36,4 @@ done
 echo Waiting for all prime tasks to complete
 wait
 echo Priming completed
-
-
 

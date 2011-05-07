@@ -1,74 +1,116 @@
 
-#ifndef __ARCH_LINUX_DISK_AIO_COMMON_HPP__
-#define __ARCH_LINUX_DISK_AIO_COMMON_HPP__
+#ifndef __ARCH_LINUX_DISK_AIO_HPP__
+#define __ARCH_LINUX_DISK_AIO_HPP__
 
 #include <libaio.h>
+#include "errors.hpp"
 #include <boost/scoped_ptr.hpp>
+#include <boost/function.hpp>
 #include "arch/linux/system_event.hpp"
 #include "utils2.hpp"
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
-#include "arch/linux/disk/diskmgr.hpp"
+#include "concurrency/queue/passive_producer.hpp"
 
-/* Disk manager that uses libaio. We have two strategies for calling io_submit() and two
-strategies for calling io_getevents() depending on the platform.
+/* Simple wrapper around io_context_t that handles creation and destruction */
 
-TODO: linux_diskmgr_aio_t should only be used for IO strategies that use libaio and io_context_t.
-However, as a hack we are temporarily implementing thread-pool-based IO as an io_submit()
-strategy instead of as a separate class of disk manager. The motive for this hack was to make it
-easier to share reordering/locking logic between the libaio-based and pool-based disk managers,
-because for now the reordering/locking logic is implemented in terms of iocb* objects. This is bad
-and we should get rid of it later. */
-
-struct linux_aio_submit_t {
-    virtual ~linux_aio_submit_t() { }
-
-    /* Called to submit an IO operation to the OS */
-    virtual void submit(iocb *) = 0;
-
-    /* Called to inform the submitter that the OS has completed an IO operation, so it can e.g.
-    try to send more events to the OS. */
-    virtual void notify_done(iocb *) = 0;
+struct linux_aio_context_t {
+    linux_aio_context_t(int max_concurrent);
+    ~linux_aio_context_t();
+    io_context_t id;
 };
 
-struct linux_aio_getevents_t {
+/* Disk manager that uses libaio. */
 
-    /* The linux_aio_getevents_t subclass will be given a pointer to the linux_diskmgr_aio_t when
-    it is created, and it must call aio_notify() whenever it gets some events. */
+class linux_diskmgr_aio_t :
 
-    virtual ~linux_aio_getevents_t() { }
-
-    /* Will be called on every IO request before it's sent to the OS. Some subclasses of
-    linux_aio_getevents_t use it to call io_set_eventfd(). */
-    virtual void prep(iocb *) = 0;
-};
-
-/* IO requests are sent to the linux_diskmgr_aio_t via pwrite() and pread(). It constructs iocbs
-for them, calls linux_aio_getevents_t::prep() on them, and then calls linux_aio_submit_t::submit().
-When the OS is done, the linux_aio_getevents_t finds out and calls linux_diskmgr_aio_t::aio_notify(),
-which calls linux_aio_submit_t::notify_done() as well as the callback that was passed to
-pwrite()/pread(). */
-
-class linux_diskmgr_aio_t : public linux_diskmgr_t {
+    /* We provide `iocb*`s to the object whose job it is to actually submit the
+    IO operations to the OS. */
+    private passive_producer_t<iocb *>
+{
 
 public:
-    explicit linux_diskmgr_aio_t(linux_event_queue_t *queue, const linux_io_backend_t io_backend);
-    virtual ~linux_diskmgr_aio_t();
-    void pread(fd_t fd, void *buf, size_t count, off_t offset, linux_disk_op_t *cb);
-    void pwrite(fd_t fd, const void *buf, size_t count, off_t offset, linux_disk_op_t *cb);
+    /* `linux_diskmgr_aio_t` runs disk operations which are expressed as
+    `linux_diskmgr_aio_t::action_t` objects. It draws the disk operations to
+    run from a `passive_producer_t<action_t>*` which you pass to its
+    constructor. When it is done, it calls the `done_fun` which you provide,
+    passing the `action_t` that it completed. Typically you will subclass
+    `action_t` and then `static_cast<>()` up from `action_t*` to your subclass
+    in `done_fun()`. */
+
+    struct action_t : private iocb {
+        void make_write(fd_t fd, const void *buf, size_t count, off_t offset) {
+            io_prep_pwrite(this, fd, const_cast<void*>(buf), count, offset);
+        }
+        void make_read(fd_t fd, void *buf, size_t count, off_t offset) {
+            io_prep_pread(this, fd, buf, count, offset);
+        }
+        fd_t get_fd() const { return this->aio_fildes; }
+        void *get_buf() const { return this->u.c.buf; }
+        bool get_is_read() const { return (this->aio_lio_opcode == IO_CMD_PREAD); }
+        off_t get_offset() const { return this->u.c.offset; }
+        size_t get_count() const { return this->u.c.nbytes; }
+    private:
+        friend class linux_diskmgr_aio_t;
+    };
+
+    explicit linux_diskmgr_aio_t(
+        linux_event_queue_t *queue,
+        passive_producer_t<action_t *> *source);
+    boost::function<void(action_t *)> done_fun;
+
+public:
+    /* We have two strategies for calling io_submit() and two strategies for calling
+    io_getevents() depending on the platform. TODO: Should we do this by templatizing
+    on the getter/submitter strategies rather than using abstract classes? */
+
+    struct submit_strategy_t {
+
+        /* The `submit_strategy_t` subclass will be given a `linux_aio_context_t*`
+        and a `passive_provider_t<iocb*>*` when it is created. It will read from the
+        `passive_provider_t` and submit to the `linux_aio_context_t*`. */
+
+        virtual ~submit_strategy_t() { }
+
+        /* Called to inform the submitter that the OS has completed an IO operation, so it can e.g.
+        try to send more events to the OS. */
+        virtual void notify_done() = 0;
+    };
+
+    struct getevents_strategy_t {
+
+        /* The getevents_strategy_t subclass will be given a pointer to the linux_diskmgr_aio_t when
+        it is created, and it must call linux_diskmgr_aio_t::aio_notify() whenever it gets some
+        events. */
+
+        virtual ~getevents_strategy_t() { }
+
+        /* Will be called on every IO request before it's sent to the OS. Some subclasses of
+        getevents_strategy_t use it to call io_set_eventfd(). */
+        virtual void prep(iocb *) = 0;
+    };
 
 public:
     /* Internal stuff which is public so that our linux_aio_submit_t and linux_aio_getevents_t
     objects can access it. */
 
     linux_event_queue_t *queue;
-    io_context_t aio_context;
 
-    boost::scoped_ptr<linux_aio_submit_t> submitter;
+    passive_producer_t<action_t *> *source;
 
-    boost::scoped_ptr<linux_aio_getevents_t> getter;
-    void aio_notify(iocb *event, int result);   // Called by getter
+    /* This must be declared before "submitter" and "getter" so that it gets created before they
+    are created and destroyed after they are destroyed. */
+    linux_aio_context_t aio_context;
+
+    boost::scoped_ptr<submit_strategy_t> submitter;
+    boost::scoped_ptr<getevents_strategy_t> getter;
+
+    /* We are a `passive_provider_t<iocb*>` for our `submitter`. */
+    iocb *produce_next_value();
+
+    /* `getter` calls `aio_notify()` when an operation is complete. */
+    void aio_notify(iocb *event, int result);
 };
 
-#endif // __ARCH_LINUX_DISK_AIO_COMMON_HPP__
+#endif // __ARCH_LINUX_DISK_AIO_HPP__
 

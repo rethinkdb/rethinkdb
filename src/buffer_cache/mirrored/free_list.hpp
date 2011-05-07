@@ -15,6 +15,7 @@ public:
     ~array_free_list_t();
     
     int num_blocks_in_use;
+    void reserve_block_id(block_id_t id);
     block_id_t gen_block_id();
     void release_block_id(block_id_t);
 

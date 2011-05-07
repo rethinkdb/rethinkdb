@@ -7,6 +7,7 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include "rpc/serialize/serialize.hpp"
 #include "rpc/serialize/serialize_macros.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/promise.hpp"
 #include "rpc/core/cluster.hpp"
 #include "rpc/core/peer.hpp"
 
@@ -55,7 +56,7 @@ private:
     struct message_t : public cluster_message_t {
         message_t()
             { }
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
         }
         int ser_size() {
              int size = 0;
@@ -75,7 +76,7 @@ private:
     }
 
     boost::function< void() > callback;
-    void run(cluster_message_t *cm) {
+    void run(UNUSED cluster_message_t *cm) {
         callback();
     }
 };
@@ -106,7 +107,7 @@ public:
                     else pulsed = true;
                     pulse(true);
                 }
-                void run(cluster_message_t *msg) {
+                void run(UNUSED cluster_message_t *msg) {
                     on_thread_t syncer(home_thread);
                     if (pulsed) return;
                     else pulsed = true;
@@ -148,7 +149,7 @@ private:
         call_message_t()
             { }
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
             global_serialize(p, reply_to);
         }
         int ser_size() {
@@ -164,7 +165,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
         }
         int ser_size() {
              return 0;
@@ -267,7 +268,7 @@ private:
         call_message_t()
             { }
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
             global_serialize(p, reply_to);
         }
         int ser_size() {
@@ -404,7 +405,7 @@ public:
                     else pulsed = true;
                     pulse(true);
                 }
-                void run(cluster_message_t *msg) {
+                void run(UNUSED cluster_message_t *msg) {
                     on_thread_t syncer(home_thread);
                     if (pulsed) return;
                     else pulsed = true;
@@ -465,7 +466,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
         }
         int ser_size() {
              return 0;
@@ -718,7 +719,7 @@ public:
                     else pulsed = true;
                     pulse(true);
                 }
-                void run(cluster_message_t *msg) {
+                void run(UNUSED cluster_message_t *msg) {
                     on_thread_t syncer(home_thread);
                     if (pulsed) return;
                     else pulsed = true;
@@ -782,7 +783,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
         }
         int ser_size() {
              return 0;
@@ -1048,7 +1049,7 @@ public:
                     else pulsed = true;
                     pulse(true);
                 }
-                void run(cluster_message_t *msg) {
+                void run(UNUSED cluster_message_t *msg) {
                     on_thread_t syncer(home_thread);
                     if (pulsed) return;
                     else pulsed = true;
@@ -1115,7 +1116,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
         }
         int ser_size() {
              return 0;
@@ -1394,7 +1395,7 @@ public:
                     else pulsed = true;
                     pulse(true);
                 }
-                void run(cluster_message_t *msg) {
+                void run(UNUSED cluster_message_t *msg) {
                     on_thread_t syncer(home_thread);
                     if (pulsed) return;
                     else pulsed = true;
@@ -1464,7 +1465,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
         }
         int ser_size() {
              return 0;
@@ -1756,7 +1757,7 @@ public:
                     else pulsed = true;
                     pulse(true);
                 }
-                void run(cluster_message_t *msg) {
+                void run(UNUSED cluster_message_t *msg) {
                     on_thread_t syncer(home_thread);
                     if (pulsed) return;
                     else pulsed = true;
@@ -1829,7 +1830,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
         }
         int ser_size() {
              return 0;
@@ -2134,7 +2135,7 @@ public:
                     else pulsed = true;
                     pulse(true);
                 }
-                void run(cluster_message_t *msg) {
+                void run(UNUSED cluster_message_t *msg) {
                     on_thread_t syncer(home_thread);
                     if (pulsed) return;
                     else pulsed = true;
@@ -2210,7 +2211,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
         }
         int ser_size() {
              return 0;
@@ -2528,7 +2529,7 @@ public:
                     else pulsed = true;
                     pulse(true);
                 }
-                void run(cluster_message_t *msg) {
+                void run(UNUSED cluster_message_t *msg) {
                     on_thread_t syncer(home_thread);
                     if (pulsed) return;
                     else pulsed = true;
@@ -2607,7 +2608,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
         }
         int ser_size() {
              return 0;
@@ -2938,7 +2939,7 @@ public:
                     else pulsed = true;
                     pulse(true);
                 }
-                void run(cluster_message_t *msg) {
+                void run(UNUSED cluster_message_t *msg) {
                     on_thread_t syncer(home_thread);
                     if (pulsed) return;
                     else pulsed = true;
@@ -3020,7 +3021,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
         }
         int ser_size() {
              return 0;
@@ -3364,7 +3365,7 @@ public:
                     else pulsed = true;
                     pulse(true);
                 }
-                void run(cluster_message_t *msg) {
+                void run(UNUSED cluster_message_t *msg) {
                     on_thread_t syncer(home_thread);
                     if (pulsed) return;
                     else pulsed = true;
@@ -3449,7 +3450,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) {
         }
         int ser_size() {
              return 0;

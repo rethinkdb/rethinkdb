@@ -123,6 +123,8 @@ struct btree_key_value_store_dynamic_config_t {
     std::vector<log_serializer_private_dynamic_config_t> serializer_private;
 
     mirrored_cache_config_t cache;
+
+    int64_t total_delete_queue_limit;
 };
 
 /* Configuration for the store (btree, cache, and serializers) that is set at database
@@ -132,8 +134,6 @@ struct btree_key_value_store_static_config_t {
     log_serializer_static_config_t serializer;
     btree_config_t btree;
     mirrored_cache_static_config_t cache;
-    // Explicit padding for alignment.
-    int32_t padding;
 };
 
 /* Configuration for replication */
@@ -146,13 +146,15 @@ struct replication_config_t {
 /* Configuration for failover */
 struct failover_config_t {
     char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
-    int     heartbeat_timeout; /* noncommunicative period after which the other server is considered to be unreachable we can maybe take this out TODO @jdoliner */
     bool    active;
     int     elb_port;
+    bool    no_rogue; /* whether to go rogue when the master is struggling to stay up */
 
     failover_config_t()
-        : active(false), elb_port(-1)
-    {}
+        : active(false), elb_port(-1), no_rogue(false)
+    {
+        *failover_script_path = 0;
+    }
 };
 
 /* All the configuration together */
@@ -184,6 +186,8 @@ struct cmd_config_t {
 
     //replication configuration
     replication_config_t replication_config;
+    int replication_master_listen_port;
+    bool replication_master_active;
 
     // Configuration for failover
     failover_config_t failover_config;
@@ -216,9 +220,10 @@ public:
 #ifdef SEMANTIC_SERIALIZER_CHECK
     void set_last_semantic_file(const char* value);
 #endif
-    void set_master_addr(char *value);
+    void set_master_listen_port(const char *value);
+    void set_master_addr(const char *value);
+    void set_total_delete_queue_limit(const char *value);
     void set_failover_file(const char* value);
-    void set_heartbeat_timeout(const char* value);
     void set_elb_port(const char* value);
     void set_io_backend(const char* value);
     void push_private_config(const char* value);

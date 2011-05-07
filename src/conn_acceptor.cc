@@ -3,14 +3,13 @@
 #include "concurrency/pmap.hpp"
 #include "perfmon.hpp"
 
-conn_acceptor_t::conn_acceptor_t(int port, handler_t *handler)
-    : handler(handler), listener(new tcp_listener_t(port)), next_thread(0)
-{
-    listener->set_callback(this);
-    if (listener->defunct) throw address_in_use_exc_t();
-}
+conn_acceptor_t::conn_acceptor_t(int port, const boost::function<void(tcp_conn_t *)> &handler) :
+    handler(handler),
+    listener(new tcp_listener_t(port, boost::bind(&conn_acceptor_t::on_conn, this, _1))),
+    next_thread(0)
+    { }
 
-void conn_acceptor_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t>& conn) {
+void conn_acceptor_t::on_conn(boost::scoped_ptr<tcp_conn_t>& conn) {
 
     conn_agent_t agent(this, conn.get());
     agent.run();
@@ -37,7 +36,7 @@ void conn_acceptor_t::conn_agent_t::run() {
         parent->shutdown_locks[thread].co_lock(rwi_read);
         parent->conn_agents[thread].push_back(this);
     
-        parent->handler->handle(conn);
+        parent->handler(conn);
         if (conn->is_read_open()) conn->shutdown_read();
         if (conn->is_write_open()) conn->shutdown_write();
     

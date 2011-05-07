@@ -4,7 +4,7 @@ struct extent_block_t :
     public extent_t::sync_callback_t,
     public iocallback_t
 {
-    byte *data;
+    char *data;
     extent_t *parent;
     size_t offset;
     std::vector< extent_t::sync_callback_t* > sync_cbs;
@@ -13,13 +13,13 @@ struct extent_block_t :
     extent_block_t(extent_t *parent, size_t offset)
         : parent(parent), offset(offset)
     {
-        data = (byte *)malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+        data = reinterpret_cast<char *>(malloc_aligned(DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE));
     }
     ~extent_block_t() {
         free(data);
     }
     
-    void write() {
+    void write(file_t::account_t *io_account) {
         waiting_for_prev = true;
         have_finished_sync = false;
         
@@ -29,7 +29,7 @@ struct extent_block_t :
         parent->last_block = this;
         is_last_block = true;
         
-        parent->file->write_async(parent->offset + offset, DEVICE_BLOCK_SIZE, data, this);
+        parent->file->write_async(parent->offset + offset, DEVICE_BLOCK_SIZE, data, io_account, this);
     }
     
     void on_extent_sync() {
@@ -89,10 +89,10 @@ extent_t::~extent_t() {
 
 void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb) {
     rassert(!last_block);
-    file->read_async(offset + pos, length, buffer, cb);
+    file->read_async(offset + pos, length, buffer, DEFAULT_DISK_ACCOUNT, cb);
 }
 
-void extent_t::append(void *buffer, size_t length) {
+void extent_t::append(void *buffer, size_t length, file_t::account_t *io_account) {
     rassert(amount_filled + length <= em->extent_size);
     
     while (length > 0) {
@@ -113,11 +113,11 @@ void extent_t::append(void *buffer, size_t length) {
         if (amount_filled % DEVICE_BLOCK_SIZE == 0) {
             extent_block_t *b = current_block;
             current_block = NULL;
-            b->write();
+            b->write(io_account);
         }
         
         length -= chunk;
-        buffer = (void*)((byte *)buffer + chunk);
+        buffer = reinterpret_cast<char *>(buffer) + chunk;
     }
 }
 

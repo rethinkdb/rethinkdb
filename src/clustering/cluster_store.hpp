@@ -8,7 +8,7 @@
 #include "rpc/serialize/variant.hpp"
 
 RDB_MAKE_SERIALIZABLE_1(get_cas_mutation_t, key)
-RDB_MAKE_SERIALIZABLE_7(set_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas)
+RDB_MAKE_SERIALIZABLE_7(sarc_mutation_t, key, data, flags, exptime, add_policy, replace_policy, old_cas)
 RDB_MAKE_SERIALIZABLE_1(delete_mutation_t, key)
 RDB_MAKE_SERIALIZABLE_3(incr_decr_mutation_t, kind, key, amount)
 RDB_MAKE_SERIALIZABLE_3(append_prepend_mutation_t, key, kind, data)
@@ -66,8 +66,8 @@ public:
             get_result_t res;
             return res;
         }
-        rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key,
-                rget_bound_mode_t right_mode, const store_key_t &right_key) {
+        rget_result_t rget(UNUSED rget_bound_mode_t left_mode, UNUSED const store_key_t &left_key,
+                UNUSED rget_bound_mode_t right_mode, UNUSED const store_key_t &right_key) {
             not_implemented();
             rget_result_t res;
             return res;
@@ -124,7 +124,6 @@ inline void serialize(cluster_outpipe_t *conn, const get_result_t &res) {
     ::serialize(conn, res.value);
     ::serialize(conn, res.flags);
     ::serialize(conn, res.cas);
-    if (res.to_signal_when_done) res.to_signal_when_done->pulse();
 }
 
 inline int ser_size(const get_result_t &res) {
@@ -135,7 +134,6 @@ inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es,
     ::unserialize(conn, es, &res->value);
     ::unserialize(conn, es, &res->flags);
     ::unserialize(conn, es, &res->cas);
-    res->to_signal_when_done = NULL;
 }
 
 #endif /* __CLUSTERING_CLUSTER_STORE_HPP__ */

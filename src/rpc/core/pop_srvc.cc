@@ -77,7 +77,7 @@ void kill_propose_srvc_t::handle(cluster_peer_t *sndr) {
     sndr->write(&respond);
 }
 
-void kill_mk_official_srvc_t::handle(cluster_peer_t *sndr) {
+void kill_mk_official_srvc_t::handle(UNUSED cluster_peer_t *sndr) {
     int prop_id = msg.addr().id();
 
     //TODO all these guarantees should really be exception instead, since they

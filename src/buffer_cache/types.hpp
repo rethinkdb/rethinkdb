@@ -52,4 +52,13 @@ struct large_buf_ref {
 } __attribute((__packed__));
 
 
+// HEY: put this somewhere else.
+class get_subtree_recencies_callback_t {
+public:
+    virtual void got_subtree_recencies() = 0;
+protected:
+    ~get_subtree_recencies_callback_t() { }
+};
+
+
 #endif /* __BUFFER_CACHE_TYPES_HPP__ */

@@ -1,4 +1,3 @@
-
 #ifndef __ERRORS_HPP__
 #define __ERRORS_HPP__
 
@@ -7,6 +6,7 @@
 #include <cstdlib>
 #include <signal.h>
 #include <stdexcept>
+#include <string.h>
 
 #include "debug.hpp"
 
@@ -39,6 +39,8 @@
  * every single time it gets included.
  */
 
+#define UNUSED __attribute__((unused))
+
 // TODO: Abort probably is not the right thing to do here.
 #define fail_due_to_user_error(msg, ...) do {                       \
         report_user_error(msg, ##__VA_ARGS__);                                     \
@@ -47,6 +49,7 @@
 
 #define crash(msg, ...) do {                                        \
         report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
+        BREAKPOINT; /* this used to be abort(), but it didn't cause VALGRIND to print a backtrace */ \
         abort();                                                    \
     } while (0)
 
@@ -100,10 +103,16 @@ void report_user_error(const char*, ...);
     } while (0)
 #endif
 
-
-#ifndef NDEBUG
 void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
-char *demangle_cpp_name(const char *mangled_name, char* buffer = NULL, size_t* buffer_length = NULL);
-#endif
+char *demangle_cpp_name(const char *mangled_name);
+
+void install_generic_crash_handler();
+
+// If you include errors.hpp before including a Boost library, then Boost assertion
+// failures will be forwarded to the RethinkDB error mechanism.
+#define BOOST_ENABLE_ASSERT_HANDLER
+namespace boost {
+    void assertion_failed(char const * expr, char const * function, char const * file, long line);
+}
 
 #endif /* __ERRORS_HPP__ */

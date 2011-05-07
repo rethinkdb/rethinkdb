@@ -81,7 +81,7 @@ inline int ser_size(const ip_address_t *addr) {
     return sizeof(*addr);
 }
 
-inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, ip_address_t *addr) {
+inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, ip_address_t *addr) {
     rassert(sizeof(ip_address_t) == 4);
     conn->read(addr, sizeof(ip_address_t));
 }
@@ -100,7 +100,7 @@ inline int ser_size(const store_key_t &key) {
     return size;
 }
 
-inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, store_key_t *key) {
+inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, store_key_t *key) {
     conn->read(&key->size, sizeof(key->size));
     conn->read(key->contents, key->size);
 }
@@ -109,6 +109,7 @@ inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es,
 unique_ptr_t<data_provider_t>, and one that works with raw data_provider_t*. */
 
 inline void serialize(cluster_outpipe_t *conn,  data_provider_t *data) {
+    BREAKPOINT;
     if (data) {
         ::serialize(conn, true);
         int size = data->get_size();

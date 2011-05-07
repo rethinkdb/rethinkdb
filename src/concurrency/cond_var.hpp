@@ -1,80 +1,69 @@
 #ifndef __CONCURRENCY_COND_VAR_HPP__
 #define __CONCURRENCY_COND_VAR_HPP__
 
-#include "arch/arch.hpp"
-#include "errors.hpp"
+#include "arch/core.hpp"
+#include "concurrency/signal.hpp"
 
-// Let's use C++0x and use std::move!  Let's do it!  NOWWWWW!
+/* A cond_t is the simplest form of signal. It just exposes the pulse() method directly.
+It is safe to call pulse() on any thread.
 
-// value_type should be something copyable.
-template <class value_type>
-class unicond_t {
-public:
-    unicond_t() : waiter_(NULL), satisfied_(false), done_waiting_(false), value_() { }
+If you want something that's like a cond_t but that you can "un-pulse", you should
+use resettable_cond_t. */
 
-    void pulse(value_type value) {
-        guarantee(!satisfied_);
-        value_ = value;
-        satisfied_ = true;
-        if (waiter_) {
-            waiter_->notify();
-        }
-    }
-
-    value_type wait() {
-        guarantee(waiter_ == NULL);
-        if (!satisfied_) {
-            waiter_ = coro_t::self();
-            coro_t::wait();
-            guarantee(satisfied_);
-        }
-        done_waiting_ = true;
-        return value_;
-    }
-
-    void reset() {
-        guarantee(done_waiting_);
-        waiter_ = NULL;
-        satisfied_ = false;
-        done_waiting_ = false;
-        value_ = value_type();
-    }
-
-private:
-    coro_t *waiter_;
-    bool satisfied_;
-    bool done_waiting_;
-    value_type value_;
-
-    DISABLE_COPYING(unicond_t);
-};
-
-
-
-/* A cond_t is a condition variable suitable for use between coroutines. It is unsafe to use it
-except between multiple coroutines on the same thread. It can only be used once. */
-
-struct cond_t {
-
-    cond_t() : ready(false), waiter(NULL) { }
+struct cond_t : public signal_t {
+    cond_t() { }
     void pulse() {
-        rassert(!ready);
-        ready = true;
-        if (waiter) waiter->notify();
+        do_on_thread(home_thread, boost::bind(&cond_t::do_pulse, this));
     }
-    void wait() {
-        if (!ready) {
-            waiter = coro_t::self();
-            coro_t::wait();
-        }
-        rassert(ready);
-    }
-
 private:
+    void do_pulse() {
+        signal_t::pulse();
+    }
+    using home_thread_mixin_t::home_thread;
+
     bool ready;
     coro_t *waiter;
 
     DISABLE_COPYING(cond_t);
+};
+
+/* It used to be that cond_t was not thread-safe, and instead there was a "threadsafe_cond_t"
+that was thread-safe. Now cond_t is thread-safe, so "threadsafe_cond_t" is obsolete and should
+eventually go away. TODO: Get rid of this. */
+
+typedef cond_t threadsafe_cond_t;
+
+/* cond_weak_ptr_t is a pointer to a cond_t, but it NULLs itself when the
+cond_t is pulsed. */
+
+struct cond_weak_ptr_t : private signal_t::waiter_t {
+    cond_weak_ptr_t() : cond(NULL) { }
+    virtual ~cond_weak_ptr_t() {
+        rassert(!cond);
+    }
+    void watch(cond_t *c) {
+        rassert(!cond);
+        rassert(c);
+        if (!c->is_pulsed()) {
+            cond = c;
+            cond->add_waiter(this);
+        }
+    }
+
+    void pulse_if_non_null() {
+        if (cond) {
+            cond->pulse();  // Calls on_signal_pulsed()
+                            // It's not safe to access local variables at this point; we might have
+                            // been deleted.
+        }
+    }
+
+private:
+    cond_t *cond;
+    void on_signal_pulsed() {
+        rassert(cond);
+        cond = NULL;
+    }
 };
 
 /* A multi_cond is a condition variable that can be waited on by multiple
@@ -113,62 +102,28 @@ private:
      waiter_list_t waiters;
 };
 
-/* A threadsafe_cond_t is a thread-safe condition variable. It's like cond_t except it can be
-used with multiple coroutines on different threads. */
+/* cond_link_t pulses a given cond_t if a given signal_t is pulsed. */
 
-struct threadsafe_cond_t {
-
-    threadsafe_cond_t() : ready(false), waiter(NULL) { }
-    void pulse() {
-        lock.lock();
-        rassert(!ready);
-        ready = true;
-        if (waiter) waiter->notify();
-        lock.unlock();
-    }
-    void wait() {
-        lock.lock();
-        if (!ready) {
-            waiter = coro_t::self();
-            lock.unlock();
-            coro_t::wait();
+struct cond_link_t : private signal_t::waiter_t {
+    cond_link_t(signal_t *s, cond_t *d) : source(NULL) {
+        if (s->is_pulsed()) {
+            d->pulse();
         } else {
-            lock.unlock();
+            source = s;
+            dest.watch(d);
+            source->add_waiter(this);
         }
-        rassert(ready);
     }
-
+    ~cond_link_t() {
+        if (source) source->remove_waiter(this);
+    }
 private:
-    bool ready;
-    coro_t *waiter;
-    spinlock_t lock;
-
-    DISABLE_COPYING(threadsafe_cond_t);
-};
-
-/* A promise_t is a condition variable combined with a "return value", of sorts, that
-is transmitted to the thing waiting on the condition variable. It's parameterized on an underlying
-cond_t type so that you can make it thread-safe if you need to. */
-
-template<class val_t, class underlying_cond_t = cond_t>
-struct promise_t {
-
-    promise_t() : value(NULL) { }
-    void pulse(const val_t &v) {
-        value = new val_t(v);
-        cond.pulse();
+    signal_t *source;
+    void on_signal_pulsed() {
+        source = NULL;   // So we don't do an extra remove_waiter() in our destructor
+        dest.pulse_if_non_null();
     }
-    val_t wait() {
-        cond.wait();
-        return *value;
-    }
-    ~promise_t() {
-        if (value) delete value;
-    }
-
-private:
-    underlying_cond_t cond;
-    val_t *value;
+    cond_weak_ptr_t dest;
 };
 
 #endif /* __CONCURRENCY_COND_VAR_HPP__ */

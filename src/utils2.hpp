@@ -5,9 +5,10 @@
 The reason it is separate from utils.hpp is that the IO layer needs some of the things in
 utils2.hpp, but utils.hpp needs some things in the IO layer. */
 
-#include "config/args.hpp"
+#include <cstdlib>
 #include <stdint.h>
 #include <time.h>
+#include "config/args.hpp"
 #include "errors.hpp"
 
 typedef uint64_t cas_t;
@@ -16,15 +17,48 @@ int get_cpu_count();
 long get_available_ram();
 long get_total_ram();
 
-// This may be surprising to some people.
-typedef char byte;
+/* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
+counter. */
 
 // for safety  TODO: move this to a different file
 struct repli_timestamp {
     uint32_t time;
-
+    bool operator==(repli_timestamp t) {
+        return time == t.time;
+    }
+    bool operator!=(repli_timestamp t) {
+        return time != t.time;
+    }
+    bool operator<(repli_timestamp t) {
+        return time < t.time;
+    }
+    bool operator>(repli_timestamp t) {
+        return time > t.time;
+    }
+    bool operator<=(repli_timestamp t) {
+        return time <= t.time;
+    }
+    bool operator>=(repli_timestamp t) {
+        return time >= t.time;
+    }
+    static repli_timestamp distant_past() {
+        repli_timestamp t;
+        t.time = 0;
+        return t;
+    }
+    repli_timestamp next() {
+        repli_timestamp t;
+        t.time = time + 1;
+        return t;
+    }
     static const repli_timestamp invalid;
 };
+typedef repli_timestamp repli_timestamp_t;   // TODO switch name over completely to "_t" version
+
+// Converts a time_t (in seconds) to a repli_timestamp, but avoids
+// returning the invalid repli_timestamp value, which might matter
+// once every 116 years.
+repli_timestamp repli_time(time_t t);
 
 struct charslice {
     char *beg, *end;
@@ -38,15 +72,9 @@ struct const_charslice {
     const_charslice() : beg(NULL), end(NULL) { }
 };
 
+typedef uint64_t microtime_t;
 
-
-// Converts a time_t (in seconds) to a repli_timestamp.  The important
-// thing here is that this will never return repli_timestamp::invalid,
-// which will matter for one second every 116 years.
-repli_timestamp repli_time(time_t t);
-
-// TODO: move this to a different file
-repli_timestamp current_time();
+microtime_t current_microtime();
 
 // This is not a transitive operation.  It compares times "locally."
 // Imagine a comparison function that compares angles, in the range
@@ -104,9 +132,24 @@ bool maybe_random_delay(cb_t *cb, void (cb_t::*method)());
 template<class cb_t, class arg1_t>
 bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
 
+// HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
+// debug.hpp (and debug.cc).
 /* Debugging printing API (prints current thread in addition to message) */
 
-void debugf(const char *msg, ...);
+void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
+
+#ifndef NDEBUG
+#define trace_call(fn, args...) do {                                          \
+        debugf("%s:%u: %s: entered\n", __FILE__, __LINE__, stringify(fn));  \
+        fn(args);                                                           \
+        debugf("%s:%u: %s: returned\n", __FILE__, __LINE__, stringify(fn)); \
+    } while (0)
+#define TRACEPOINT debugf("%s:%u reached\n", __FILE__, __LINE__)
+#else
+#define trace_call(fn, args...) fn(args)
+// TRACEPOINT is not defined in release, so that TRACEPOINTS do not linger in the code unnecessarily
+#endif
+
 
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
@@ -121,6 +164,18 @@ inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); 
 
 template <class T>
 inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
+
+inline bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
+    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
+    const uint8_t *range8 = ptr_cast<const uint8_t>(range_start);
+    return range8 <= p8 && p8 < range8 + size_in_bytes;
+}
+
+inline bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes) {
+    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
+    return ptr_in_byte_range(p, range_start, size_in_bytes) &&
+        (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
+}
 
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins with a minus
@@ -149,7 +204,7 @@ std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1
 template<typename value_t>
 struct cache_line_padded_t {
     value_t value;
-    byte padding[CACHE_LINE_SIZE - sizeof value];
+    char padding[CACHE_LINE_SIZE - sizeof(value_t)];
 };
 
 #include "utils2.tcc"

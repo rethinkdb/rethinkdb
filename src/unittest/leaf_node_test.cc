@@ -12,6 +12,7 @@ namespace unittest {
 
 #include "btree/leaf_node.cc" // Build a local variant which uses test_buf_t!
 
+repli_timestamp fake_timestamp = { -2 };
 
 // TODO: Sperg out and make these tests much more brutal.
 
@@ -87,7 +88,7 @@ TEST(LeafNodeTest, Offsets) {
 
     btree_leaf_pair p;
     p.key.size = 173;
-    EXPECT_EQ(174, reinterpret_cast<byte *>(p.value()) - reinterpret_cast<byte *>(&p));
+    EXPECT_EQ(174, reinterpret_cast<char *>(p.value()) - reinterpret_cast<char *>(&p));
 
     EXPECT_EQ(1, sizeof(btree_key_t));
     EXPECT_EQ(1, offsetof(btree_key_t, contents));
@@ -187,7 +188,7 @@ public:
 
 private:
     union {
-        byte keyval_padding[sizeof(btree_key_t) + MAX_KEY_SIZE];
+        char keyval_padding[sizeof(btree_key_t) + MAX_KEY_SIZE];
         btree_key_t keyval;
     };
 };
@@ -208,7 +209,7 @@ public:
     }
 private:
     union {
-        byte val_padding[MAX_BTREE_VALUE_SIZE];
+        char val_padding[MAX_BTREE_VALUE_SIZE];
         btree_value val;
     };
 };
@@ -237,7 +238,7 @@ public:
 
     void init() {
         SCOPED_TRACE("init");
-        leaf::init(bs, *node_buf, repli_timestamp::invalid);
+        leaf::init(bs, *node_buf, fake_timestamp);
         initialized = true;
         validate();
     }
@@ -259,9 +260,9 @@ public:
         StackValue sval(v, bs);
 
         if (expected_space() < int((1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets))) {
-            ASSERT_FALSE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), repli_timestamp::invalid));
+            ASSERT_FALSE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), fake_timestamp));
         } else {
-            ASSERT_TRUE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), repli_timestamp::invalid));
+            ASSERT_TRUE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), fake_timestamp));
 
             std::pair<expected_t::iterator, bool> res = expected.insert(std::make_pair(k, v));
             if (res.second) {
@@ -306,7 +307,7 @@ public:
 
         ASSERT_TRUE(leaf::lookup(node, skey.look(), sval.look_write()));
 
-        leaf::remove(bs, node, skey.look());
+        leaf::remove(node, skey.look());
         expected.erase(p);
         expected_frontmost_offset += (1 + k.size()) + sval.look()->full_size();
         -- expected_npairs;

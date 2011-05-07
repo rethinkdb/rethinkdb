@@ -17,7 +17,7 @@
 #include "btree/slice.hpp"
 #include "serializer/translator.hpp"
 #include "clustering/master_map.hpp"
-#include "control.hpp"
+#include "server/control.hpp"
 
 /* demo_delegate_t */
 
@@ -132,13 +132,13 @@ void serve(int id, demo_delegate_t *delegate) {
     serializer_multiplexer_t multiplexer(serializers);
 
     btree_slice_t::create(multiplexer.proxies[0], &config.store_static_config.cache);
-    btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache);
+    btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache, 1000);
 
     set_store_mailbox_t change_mailbox(&slice);
     get_store_mailbox_t get_mailbox(&slice);
     delegate->registration_address.call(get_cluster().us, &change_mailbox, &get_mailbox);
 
-    struct : public conn_acceptor_t::handler_t {
+    /* struct : public conn_acceptor_t::handler_t {
         get_store_t *get_store;
         set_store_interface_t *set_store;
         void handle(tcp_conn_t *conn) {
@@ -146,17 +146,17 @@ void serve(int id, demo_delegate_t *delegate) {
         }
     } handler;
     handler.get_store = &delegate->master_get_store;
-    handler.set_store = &delegate->master_store;
+    handler.set_store = &delegate->master_store; */
 
     int serve_port = 31400 + id;
-    conn_acceptor_t conn_acceptor(serve_port, &handler);
+    conn_acceptor_t conn_acceptor(serve_port, boost::bind(&serve_memcache, _1, &delegate->master_get_store, &delegate->master_store));
     logINF("Accepting connections on port %d\n", serve_port);
 
     wait_for_interrupt();
 }
 
-void add_listener(int peer, dispatching_store_t *dispatcher, set_store_mailbox_t::address_t set_addr, get_store_mailbox_t::address_t get_addr) {
-    dispatching_store_t::dispatchee_t dispatchee(peer, dispatcher, make_pair(&set_addr, &get_addr));
+void add_listener(int peer, clustered_store_t *dispatcher, set_store_mailbox_t::address_t set_addr, get_store_mailbox_t::address_t get_addr) {
+    clustered_store_t::dispatchee_t dispatchee(peer, dispatcher, make_pair(&set_addr, &get_addr));
     struct 
         : public cond_t, public cluster_peer_t::kill_cb_t 
     {
@@ -165,13 +165,13 @@ void add_listener(int peer, dispatching_store_t *dispatcher, set_store_mailbox_t
     kill_waiter.wait();
 }
 
-void cluster_main(cluster_config_t config, thread_pool_t *thread_pool) {
+void cluster_main(cluster_config_t config, UNUSED thread_pool_t *thread_pool) {
 
     if (config.contact_id == -1) {
 
         /* Start the master-components */
 
-        dispatching_store_t dispatcher;
+        clustered_store_t dispatcher;
         registration_mailbox_t registration_mailbox(boost::bind(&add_listener, _1, &dispatcher, _2, _3));
 
         timestamping_set_store_interface_t timestamper(&dispatcher);

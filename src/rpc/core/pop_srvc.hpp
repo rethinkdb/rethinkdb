@@ -5,6 +5,7 @@
 #include "rpc/core/population.pb.h"
 #include "rpc/core/srvc.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/promise.hpp"
 
 /* in general services should be named after the type of packet which they
  * listen for, this may become ambigous when we want to do different things at
@@ -43,8 +44,8 @@ public:
         return (msg.addr().id() == addr->id());
     }
 
-    void handle(cluster_peer_t *peer) { 
-        accepted && msg.agree();
+    void handle(UNUSED cluster_peer_t *peer) { 
+        accepted = accepted && msg.agree();
     }
 
     bool wait() {
@@ -88,7 +89,7 @@ public:
         return (msg.addr().id() == addr->id());
     }
 
-    void handle(cluster_peer_t *peer) { }
+    void handle(UNUSED cluster_peer_t *peer) { }
 
     void on_completion() { pulse(); }
     void wait() { 
@@ -128,8 +129,8 @@ public:
         return (msg.addr().id() == addr->id());
     }
 
-    void handle(cluster_peer_t *peer) { 
-        accepted && msg.agree();
+    void handle(UNUSED cluster_peer_t *peer) { 
+        accepted = accepted && msg.agree();
     }
 
     bool wait() {

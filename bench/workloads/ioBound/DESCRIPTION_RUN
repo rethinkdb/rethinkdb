@@ -3,9 +3,8 @@ echo "Stress client location: $STRESS_CLIENT"
 echo "$CANONICAL_CLIENTS concurrent clients"
 echo "Server hosts: $SERVER_HOSTS"
 if [ $DATABASE == "rethinkdb" ]; then
-    echo "Server parameters: --active-data-extents 1 -c 12 -m 256 $SSD_DRIVES"
+    echo "Creation parameters: --diff-log-size 192"
+    echo "Server parameters: --active-data-extents 1 -c 12 -m 512 $SSD_DRIVES"
 elif [ $DATABASE == "mysql" ]; then
-    echo "Server parameters: $MYSQL_COMMON_FLAGS --innodb_buffer_pool_size=256m $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"
-elif [ $DATABASE == "membase" ]; then
-    echo "Server parameters: -d $MEMBASE_DATA_PATH -m 256"
+    echo "Server parameters: $MYSQL_COMMON_FLAGS --innodb_buffer_pool_size=512m $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"
 fi

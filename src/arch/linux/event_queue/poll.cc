@@ -7,9 +7,10 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
+#include <poll.h>
 #include "config/args.hpp"
 #include "utils2.hpp"
-#include "arch/linux/disk.hpp"
+#include "arch/linux/event_queue.hpp"
 #include "arch/linux/event_queue/poll.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "logger.hpp"
@@ -75,7 +76,9 @@ void poll_event_queue_t::run() {
         // The only likely poll error here is ENOMEM, which we
         // have no way of handling, and it's probably fatal.
         guarantee_err(res != -1, "Waiting for poll events failed");
-        
+
+        block_pm_duration event_loop_timer(&pm_eventloop);
+
         int count = 0;
         for (unsigned int i = 0; i < watched_fds.size(); i++) {
             if(watched_fds[i].revents != 0) {
@@ -135,7 +138,7 @@ void poll_event_queue_t::adjust_resource(fd_t resource, int events, linux_event_
     }
 }
 
-void poll_event_queue_t::forget_resource(fd_t resource, linux_event_callback_t *cb) {
+void poll_event_queue_t::forget_resource(fd_t resource, UNUSED linux_event_callback_t *cb) {
     rassert(cb);
 
     // Erase the callback from the map

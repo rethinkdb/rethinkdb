@@ -15,7 +15,7 @@ class TestFailure(Exception):
 class StdoutAsLog(object):
     def __init__(self, name, test_dir):
         self.name = name
-        self.test_dir = test_dir
+        self.test_dir = test_dirstress
     def __enter__(self):
         self.path = self.test_dir.make_file(self.name)
         print "Writing log file %r." % self.path
@@ -52,6 +52,11 @@ def make_option_parser():
     o["mem-cap"] = IntFlag("--mem-cap", None)
     o["min-qps"] = IntFlag("--min-qps", None)
     o["garbage-range"] = MultiValueFlag("--garbage-range", [float_converter, float_converter], default = None)
+    o["failover"] = BoolFlag("--failover")
+    o["kill_failover_server_prob"] = FloatFlag("--kill-failover-server-prob", .01)
+    o["resurrect_failover_server_prob"] = FloatFlag("--resurrect-failover-server-prob", .01)
+    o["elb"] = BoolFlag("--elb")
+    o["failover-script"] = StringFlag("--failover-script", "")
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -137,9 +142,9 @@ def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "in
     command_line = [executable_path,
         "-s", "%s:%d" % (host, port),
         "-d", duration,
-        "-w", "%d/%d/%d/%d/%d/%d/%d" % (workload.get("deletes", 0), workload.get("updates", 0),
+        "-w", "%d/%d/%d/%d/%d/%d/%d/%d" % (workload.get("deletes", 0), workload.get("updates", 0),
             workload.get("inserts", 0), workload.get("gets", 0), workload.get("appends", 0),
-            workload.get("prepends", 0), workload.get("verifies", 0)),
+            workload.get("prepends", 0), workload.get("verifies", 0), workload.get("rgets", 0)),
         "-c", str(clients),
         ] + extra_flags
     
@@ -258,44 +263,77 @@ class TestDir(object):
 class Server(object):
     # Server should not take more than %(server_start_time)d seconds to start up
     server_start_time = 60 * ec2
-    
-    # If server does not respond to SIGINT, give SIGquit and then, after %(server_sigquit_time)
-    # seconds, send SIGKILL 
-    server_sigquit_time = 15
-    
-    wait_interval = 0.25
-    
-    valgrind_error_code = 100
-    
+
     def __init__(self, opts, test_dir, name = "server", extra_flags = [], data_files = None):
         self.running = False
         self.opts = opts
         self.base_name = name
         self.extra_flags = extra_flags
         self.test_dir = test_dir
-        
+
         if self.opts["database"] == "rethinkdb":
             self.executable_path = get_executable_path(self.opts, "rethinkdb")
             if data_files is not None:
                 self.data_files = data_files
             else:
                 self.data_files = DataFiles(self.opts, test_dir=test_dir)
-        
+
         self.times_started = 0
         self.server = None
-    
-    def start(self):
+
+    def block_until_up(self, require_gets = True, timeout = server_start_time):
+
+        print "Waiting for %s to %s;" % (self.name, "accept operations" if require_gets else "load"),
+        sys.stdout.flush()
+
+        start_time = time.time()
+        deadline = start_time + timeout
+
+        while time.time() < deadline:
+            self.verify()
+            s = socket.socket()
+            try:
+                s.connect(("localhost", self.internal_server_port))
+            except Exception, e:
+                if "Connection refused" in str(e):
+                    time.sleep(0.1)
+                else:
+                    raise
+            else:
+                break
+        else:
+            raise RuntimeError("Server took longer than %.2f seconds to start." % timeout)
+
+        if require_gets:
+            while time.time() < deadline:
+                s.settimeout(deadline - time.time())
+                s.send("get are_you_up\r\n")
+                line = s.makefile().readline()
+
+                if line.startswith("VALUE") or line == "END\r\n":
+                    break
+                elif line.startswith("CLIENT_ERROR"):
+                    time.sleep(0.1)
+                else:
+                    raise RuntimeError("Unexpected response from server: %r" % line)
+            else:
+                raise RuntimeError("Server took longer than %.2f seconds to start." % timeout)
+
+        print "took %.2f seconds to start." % (time.time() - start_time)
+        time.sleep(0.2)
+
+    def start(self, require_gets=True):
 
         self.times_started += 1
         if self.times_started == 1: self.name = self.base_name
         else: self.name = self.base_name + " %d" % self.times_started
         print "Starting %s." % self.name
 
-        server_port = find_unused_port()
+        self.internal_server_port = find_unused_port()
 
         if self.opts["database"] == "rethinkdb":
             command_line = [self.executable_path,
-                "-p", str(server_port),
+                "-p", str(self.internal_server_port),
                 "-c", str(self.opts["cores"]),
                 "-m", str(self.opts["memory"]),
                 ] + self.data_files.rethinkdb_flags() + \
@@ -303,10 +341,11 @@ class Server(object):
                 self.extra_flags
 
         elif self.opts["database"] == "memcached":
-            command_line = ["memcached", "-p", str(server_port), "-M"]
+            command_line = ["memcached", "-p", str(self.internal_server_port), "-M"]
 
         # Start the server
         assert self.server is None
+        print "%s command line:" % self.name.capitalize(), cmd_join(command_line)
         self.server = SubProcess(
             command_line,
             "%s_output.txt" % self.name.replace(" ","_"),
@@ -317,62 +356,59 @@ class Server(object):
         # Start netrecord if necessary
 
         if self.opts["netrecord"]:
-            self.nrc = NetRecord(target_port=server_port, test_dir=self.test_dir, name=self.name)
+            self.nrc = NetRecord(target_port=self.internal_server_port,
+                test_dir=self.test_dir, name=self.name)
             self.port = self.nrc.port
         else:
-            self.port = server_port
-        
+            self.port = self.internal_server_port
+
         # Wait for server to start accepting connections
-        
-        waited = 0
-        while waited < self.server_start_time:
-            self.verify()
-            s = socket.socket()
-            try: s.connect(("localhost", server_port))
-            except Exception, e:
-                if "Connection refused" in str(e):
-                    time.sleep(0.01)
-                    waited += 0.01
-                    continue
-                else: raise
-            else: break
-            finally: s.close()
-        else:
-            raise RuntimeError("%s took longer than %.2f seconds to start." % \
-                (self.name.capitalize(), self.server_start_time))
-        print "%s took %.2f seconds to start." % (self.name.capitalize(), waited)
-        time.sleep(0.2)
-        
+
+        self.block_until_up(require_gets)
+
         # Make sure nothing went wrong during startup
-        
+
         self.verify()
-        
+
     def verify(self):
         self.server.verify()
-    
+
     def shutdown(self):
         if self.opts["interactive"]:
             # We're in interactive mode, probably in GDB. Don't kill it.
             return True
-        
+
         # Shut down the server
         self.server.interrupt(timeout = self.opts["sigint-timeout"])
         self.server = None
         if self.opts["netrecord"]: self.nrc.stop()
         print "%s shut down successfully." % self.name.capitalize()
         if self.opts["fsck"]: self.data_files.fsck()
-        
+
     def kill(self):
         if self.opts["interactive"]:
             # We're in interactive mode, probably in GDB. Don't kill it.
             return True
-        
+
         # Kill the server rudely
         self.server.kill()
         self.server = None
         if self.opts["netrecord"]: self.nrc.stop()
         print "Killed %s." % self.name
         if self.opts["fsck"]: self.data_files.fsck()
+
+#A forked memcache wrapper invisibly sends
+class ForkedMemcachedWrapper(object):
+    def __init__(self, opts, server, internal_mc_maker, replica_mc_maker, test_dir):
+        self.opts = opts
+        self.server = server
+        self.internal_mc_maker = internal_mc_maker
+        self.internal_mc = self.internal_mc_maker()
+        self.replica_mc_maker = replica_mc_maker
+        self.replica_mcs = replica_mc_maker() #should be a list of mcs
+        self.test_dir = test_dir
+    def __getattr__(self, name):
+        return getattr(random.choice([self.internal_mc] + replica_mcs), name)
 
 class MemcachedWrapperThatRestartsServer(object):
     def __init__(self, opts, server, internal_mc_maker, test_dir):
@@ -406,6 +442,97 @@ class MemcachedWrapperThatRestartsServer(object):
         print "Done restarting server; now resuming test."
         self.internal_mc = self.internal_mc_maker()
 
+class FailoverMemcachedWrapper(object):
+    def __init__(self, opts, master, slave, master_mc_maker, slave_mc_maker, test_dir):
+
+        self.opts = opts
+        self.test_dir = test_dir
+        self.server = {'master' : master, 'slave' : slave}
+
+        # The master won't accept operations until the slave connects to it
+        master.start(require_gets = False)
+        slave.start()
+        master.block_until_up(require_gets = True)
+
+        self.down = {'master' : False, 'slave' : False}
+        self.mc_maker = {'master' : master_mc_maker, 'slave' : slave_mc_maker}
+        self.mc = {'master' : master_mc_maker(), 'slave' : slave_mc_maker()}
+
+        self.ops_since_last_transition = 0
+
+    def __getattr__(self, name):
+        if (random.random() < self.opts["kill_failover_server_prob"]) and not self.down["master"] and not self.down["slave"]:
+            self.kill_server(random.choice(["master", "slave"]))
+        if (random.random() < self.opts["resurrect_failover_server_prob"]) and (self.down["master"] or self.down["slave"]):
+            self.resurrect_server("slave" if not self.down["master"] else "master")
+
+        target = "master" if not self.down["master"] else "slave"
+        mc_to_use = self.mc[target]
+        self.ops_since_last_transition += 1
+
+        return getattr(mc_to_use, name)
+
+    def disconnect_all(self):
+        self.print_and_reset_ops()
+        if self.mc["master"]:
+            self.mc["master"].disconnect_all()
+        if self.mc["slave"]:
+            self.mc["slave"].disconnect_all()
+
+    def print_and_reset_ops(self):
+        print "Performed %d operations." % self.ops_since_last_transition
+        self.ops_since_last_transition = 0
+
+    def wait_for_slave_to_assume_masterhood(self):
+        print "Waiting for slave to assume masterhood..."
+        if self.opts["mclib"] == "pylibmc":
+            import pylibmc
+            exc_class = pylibmc.ClientError
+        else:
+            # What kind of exception does python-memcache throw in this situation?
+            raise NotImplementedError()
+        n_tries = 30
+        try_interval = 1
+        for i in xrange(n_tries):
+            time.sleep(try_interval)
+            try:
+                self.mc["slave"].set("are_you_accepting_sets", "yes")
+            except exc_class:
+                pass
+            else:
+                break
+        else:
+            raise ValueError("Slave hasn't realized master is down after %d seconds." % \
+                n_tries * try_interval)
+        print "Slave has assumed role of master."
+
+    def kill_server(self, victim):
+
+        self.print_and_reset_ops()
+
+        assert not self.down[victim]
+        print "Stopping %s..." % victim
+        self.mc[victim].disconnect_all()
+        self.mc[victim] = None
+        self.server[victim].shutdown()
+        self.down[victim] = True
+
+        if victim == "master": self.wait_for_slave_to_assume_masterhood()
+
+    def resurrect_server(self, jesus):
+
+        self.print_and_reset_ops()
+
+        assert self.down[jesus]
+        print "Resurrecting %s..." % jesus
+
+        # Bring up the other server, and make sure that _both_ can
+        # accept gets, so that we know backfilling is complete.
+        self.server[jesus].start()
+        self.server["master" if jesus == "slave" else "slave"].block_until_up()
+        self.mc[jesus] = self.mc_maker[jesus]()
+        self.down[jesus] = False
+
 def connect_to_port(opts, port):
     if opts["mclib"] == "pylibmc":
         import pylibmc
@@ -423,7 +550,6 @@ def connect_to_server(opts, server, test_dir):
     if opts.get("restart_server_prob", 0) > 0:
         mc_maker = lambda: connect_to_port(opts, server.port)
         mc = MemcachedWrapperThatRestartsServer(opts, server, mc_maker, test_dir)
-    
     else:
         mc = connect_to_port(opts, server.port)
     
@@ -500,24 +626,35 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
     do not shut down or start up again."""
     try:
         if opts["auto"]:
-            server = Server(opts, extra_flags=extra_flags, test_dir=test_dir)
-            server.start()
+            if (opts["failover"]):
+                repli_port = find_unused_port()
+                master = Server(opts, extra_flags=extra_flags + ["--master", "%d" % repli_port], name="master", test_dir=test_dir)
+                slave = Server(opts, extra_flags=extra_flags + ["--slave-of", "localhost:%d" % repli_port, "--no-rogue"], name="slave", test_dir=test_dir)
+                servers = [master, slave]
+                mc = FailoverMemcachedWrapper(opts, master, slave, lambda: (connect_to_server(opts, master, test_dir=test_dir)), lambda: (connect_to_server(opts, slave, test_dir=test_dir)), test_dir=test_dir)
+                stat_checkers = []   # Stat checking doesn't play nicely with server restarting
 
-            stat_checker = start_stats(opts, server.port)
+            else:
+                server = Server(opts, extra_flags=extra_flags, test_dir=test_dir)
+                server.start()
 
-            mc = connect_to_server(opts, server, test_dir=test_dir)
+                servers = [server]
+
+                stat_checkers = [start_stats(opts, server.port)]
+
+                mc = connect_to_server(opts, server, test_dir=test_dir)
             try:
                 run_with_timeout(test_function, args=(opts, mc), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
             except Exception, e:
                 test_failure = e
             else:
                 test_failure = None
-            mc.disconnect_all()
 
-            if stat_checker:
-                stat_checker.stop()
+            for stat_checker in stat_checkers:
+                if stat_checker: stat_checker.stop()
 
-            if server.running: server.shutdown()
+            for server in servers:
+                if server.running: server.shutdown()
 
             if test_failure: raise test_failure
 
@@ -550,3 +687,116 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
     
     sys.exit(0)
 
+def start_master_slave_pair(opts, extra_flags, test_dir):
+    repli_port = find_unused_port()
+    if opts["elb"]:
+        elb_ports = (find_unused_port(), find_unused_port())
+
+    m_flags = ["--master", "%d" % repli_port] 
+    if opts["elb"]:
+        m_flags += ["--run-behind-elb", "%d" % elb_ports[0]]
+
+    server = Server(opts, extra_flags=extra_flags + m_flags, name="master", test_dir=test_dir)
+    server.master_port = repli_port
+
+    if opts["elb"]:
+        server.elb_port = elb_ports[0]
+    server.start(False)
+
+    while 1:
+        try:
+            print "Trying to connect to: %d" % repli_port
+            s = socket.create_connection(('localhost', repli_port))
+        except:
+            time.sleep(2)
+            continue
+        s.close()
+        break
+
+    s_flags = ["--slave-of", "localhost:%d" % repli_port, "--no-rogue"]
+
+    if opts["elb"]:
+        s_flags += ["--run-behind-elb", "%d" % elb_ports[1]]
+
+    if opts["failover-script"]:
+        s_flags += ["--failover-script", opts["failover-script"]]
+
+    repli_server = Server(opts, extra_flags=extra_flags + s_flags, name="slave", test_dir=test_dir)
+    if opts["elb"]:
+        repli_server.elb_port = elb_ports[1]
+    repli_server.start()
+
+    return (server, repli_server)
+
+
+def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], test_dir=TestDir()):
+    try:
+        if opts["auto"]:
+            (server, repli_server) = start_master_slave_pair(opts, extra_flags, test_dir)
+
+            stat_checker = start_stats(opts, server.port)
+
+            mc = connect_to_server(opts, server, test_dir=test_dir)
+            repli_mc = connect_to_server(opts, server, test_dir=test_dir)
+
+            if opts["elb"]:
+                mc.elb_port = elb_ports[0]
+                repli_mc.elb_port = elb_ports[1]
+            else:
+                mc.elb_port = None
+                repli_mc.elb_port = None
+
+            try:
+                run_with_timeout(test_function, args=(opts,mc,repli_mc), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
+            except Exception, e:
+                test_failure = e
+            else:
+                test_failure = None
+            mc.disconnect_all()
+            repli_mc.disconnect_all()
+            
+            if stat_checker:
+                stat_checker.stop()
+
+            if server.running: server.shutdown()
+            if repli_server.running: repli_server.shutdown()
+    
+            if test_failure: raise test_failure
+
+    except ValueError, e:
+        # Handle ValueError explicitly to give nicer error output
+        print ""
+        print "[FAILURE]Value Error: %s[/FAILURE]" % e
+        sys.exit(1)
+    
+    sys.exit(0)
+
+def master_slave_main(test_function, opts, timeout = 30, extra_flags = [], test_dir=TestDir()):
+    try:
+        if opts["auto"]:
+            (server, repli_server) = start_master_slave_pair(opts, extra_flags, test_dir)
+
+            stat_checker = start_stats(opts, server.port)
+
+            try:
+                run_with_timeout(test_function, args=(opts,server,repli_server), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
+            except Exception, e:
+                test_failure = e
+            else:
+                test_failure = None
+
+            if stat_checker:
+                stat_checker.stop()
+
+            if server.running: server.shutdown()
+            if repli_server.running: repli_server.shutdown()
+    
+            if test_failure: raise test_failure
+
+    except ValueError, e:
+        # Handle ValueError explicitly to give nicer error output
+        print ""
+        print "[FAILURE]Value Error: %s[/FAILURE]" % e
+        sys.exit(1)
+    
+    sys.exit(0)

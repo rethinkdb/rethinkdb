@@ -8,17 +8,19 @@ do_test("cd ../src/; make clean")
 for mode in ["debug", "release"]:
     # Build our targets
     do_test("cd ../src/; nice make -j",
-            { "DEBUG"            : 1 if mode    == "debug"    else 0 },
-            cmd_format="make")
+            { "DEBUG"            : 1 if mode    == "debug"    else 0,
+              "UNIT_TESTS" : 1 },
+            cmd_format="make", timeout=180)
 
 for special in ["NO_EPOLL", "MOCK_IO_LAYER", "MOCK_CACHE_CHECK", "VALGRIND"]:
     do_test("cd ../src/; nice make -j",
             { "DEBUG" : 1,
-              special : 1},
-            cmd_format="make")
+              special : 1,
+              "UNIT_TESTS" : 1 },
+            cmd_format="make", timeout=180)
 
 # Make sure auxillary tools compile
-do_test("cd ../bench/stress-client/; make clean; make",
+do_test("cd ../bench/stress-client/; make clean; make stress libstress.so",
         {},
         cmd_format="make")
 do_test("cd ../bench/serializer-bench/; make clean; make",
@@ -32,8 +34,17 @@ try:
 
     # Do quick smoke tests in some environments
     for (mode, checker, protocol) in [("debug", "valgrind", "text")]:
+
+        do_test("../build/%s-%s/rethinkdb-unittest" % (mode, checker))
+
         # VERY basic tests
         do_test_cloud("integration/append_prepend.py",
+                { "auto"        : True,
+                  "mode"        : mode,
+                  "no-valgrind" : not checker,
+                  "protocol"    : protocol })
+
+        do_test_cloud("integration/unappend_unprepend.py",
                 { "auto"        : True,
                   "mode"        : mode,
                   "no-valgrind" : not checker,
@@ -67,7 +78,7 @@ try:
                 { "auto"        : True,
                   "mode"        : mode,
                   "no-valgrind" : not checker,
-                  "protocol"    : protocol })
+                  "protocol"    : protocol }, timeout=180)
 
         do_test_cloud("integration/extraction.py",
                       { "auto"        : True,

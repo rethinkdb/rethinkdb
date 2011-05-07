@@ -1,6 +1,11 @@
 #!/bin/bash
 
-RETHINKDB_BRANCH="v_0.1.x"
+usage() {
+    echo "Usage:"
+    echo "      $0 [-e email] [-w workload1 -w workload2 ...]"
+}
+
+RETHINKDB_BRANCH="master"
 
 # Set up the directory
 BENCH_DIR="$HOME/bench/$(date +%Y-%m-%d-%H:%M)"
@@ -12,7 +17,20 @@ ln -s $BENCH_DIR $HOME/bench/latest
 
 # Horrible but working way of finding the argument after --email.
 # TODO
-email="$(perl -e 'use List::Util qw(first); my $email_idx = 1 + first { $ARGV[$_] eq "--email" } 0 .. $#ARGV; print $ARGV[$email_idx]' -- "$@")"
+#email="$(perl -e 'use List::Util qw(first); my $email_idx = 1 + first { $ARGV[$_] eq "--email" } 0 .. $#ARGV; print $ARGV[$email_idx]' -- "$@")"
+
+email=""
+workloads=()
+
+while getopts e:w: name
+do
+    case "$name" in
+    e)      email="$OPTARG";;
+    w)      workloads+=("$PWD/$OPTARG");;
+    ?)      usage
+            exit 2;;
+    esac
+done
 
 # Build the server and the stress client
 cd src
@@ -21,8 +39,11 @@ make clean
 make -j DEBUG=0 VALGRIND=0 FAST_PERFMON=1
 git checkout master
 cd ../bench/stress-client
-make
+make clean stress libstress.so LIBMEMCACHED=0
 scp stress puzzler:/home/teapot/stress
+scp libstress.so puzzler:/home/teapot/libstress.so
+scp stress.py puzzler:/home/teapot/stress.py
+STRESS_CLIENT="puzzler:/home/teapot/stress"
 cd ../dbench
 
 # Some helper functions
@@ -45,12 +66,22 @@ CANONICAL_CLIENTS="512"
 CANONICAL_DURATION="1800s"
 CANONICAL_MULTIRUN_DURATION="300s"
 
-STRESS_CLIENT="puzzler:/home/teapot/stress"
-
 DATABASE="rethinkdb"
 
+if [ ${#workloads[@]} -eq 0 ]
+then
+    for workload in ../workloads/*;
+    do
+        workloads+=("$workload")
+    done
+fi
+
+for WORKLOAD in ${workloads[@]}; do
+    echo "$WORKLOAD"
+done
+
 # Run workloads
-for WORKLOAD in ../workloads/*; do
+for WORKLOAD in ${workloads[@]}; do
     if [ -d "$WORKLOAD" ]; then
         echo -e "\n\E[37;44m\033[1m<----- Running workload in $WORKLOAD ----->\033[0m\n"
         export BENCH_DIR

@@ -4,8 +4,8 @@
 
 struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
-    btree_append_prepend_oper_t(data_provider_t *data_, bool append_)
-        : data(data_), append(append_)
+    btree_append_prepend_oper_t(unique_ptr_t<data_provider_t> _data, bool _append)
+        : data(_data), append(_append)
     { }
 
     bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
@@ -32,7 +32,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
                 // The vaule_size setter only behaves correctly when we're
                 // setting a new large value.
-                value.value_size(new_size, slice->cache().get_block_size());
+                value.value_size(new_size, slice->cache()->get_block_size());
             }
 
             buffer_group_t buffer_group;
@@ -42,7 +42,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
             if (new_size <= MAX_IN_NODE_VALUE_SIZE) { // small -> small
                 rassert(!old_value->is_large());
-                // XXX This does unnecessary copying now.
+                // This does unnecessary copying now.
                 if (append) {
                     buffer_group.add_buffer(data->get_size(), value.value() + old_value->value_size());
                 } else { // prepend
@@ -52,7 +52,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
             } else {
                 // Prepare the large value if necessary.
                 if (!old_value->is_large()) { // small -> large; allocate a new large value and copy existing value into it.
-                    large_buflock.reset(new large_buf_t(txor->transaction(), value.lb_ref(), btree_value::lbref_limit, rwi_write));
+                    large_buflock.reset(new large_buf_t(txor, value.lb_ref(), btree_value::lbref_limit, rwi_write));
                     large_buflock->allocate(new_size);
                     if (append) large_buflock->fill_at(0, old_value->value(), old_value->value_size());
                     else        large_buflock->fill_at(data->get_size(), old_value->value(), old_value->value_size());
@@ -62,6 +62,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                     large_buflock.swap(old_large_buflock);
                     large_buflock->HACK_root_ref(value.lb_ref());
                     int refsize_adjustment;
+
 
                     if (append) {
                         // TIED large_buflock TO value.
@@ -126,27 +127,38 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         }
     }
 
-    void actually_acquire_large_value(large_buf_t *lb) {
-        if (append) {
-            co_acquire_large_buf_rhs(lb);
+    int compute_expected_change_count(const size_t block_size) {
+        if (data->get_size() < MAX_IN_NODE_VALUE_SIZE) {
+            return 1;
         } else {
-            co_acquire_large_buf_lhs(lb);
+            size_t size = ceil_aligned(data->get_size(), block_size);
+            // one for the leaf node plus the number of blocks required to hold the large value
+            return 1 + size / block_size;
+        }
+    }
+
+    void actually_acquire_large_value(large_buf_t *lb) {
+        thread_saver_t saver;
+        if (append) {
+            co_acquire_large_buf_rhs(saver, lb);
+        } else {
+            co_acquire_large_buf_lhs(saver, lb);
         }
     }
 
     append_prepend_result_t result;
 
-    data_provider_t *data;
+    unique_ptr_t<data_provider_t> data;
     bool append;   // true = append, false = prepend
 
     union {
-        byte value_memory[MAX_BTREE_VALUE_SIZE];
+        char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
     boost::scoped_ptr<large_buf_t> large_buflock;
 };
 
-append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, data_provider_t *data, bool append, castime_t castime) {
+append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, unique_ptr_t<data_provider_t> data, bool append, castime_t castime) {
     btree_append_prepend_oper_t oper(data, append);
     run_btree_modify_oper(&oper, slice, key, castime);
     return oper.result;

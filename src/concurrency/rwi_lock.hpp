@@ -81,7 +81,8 @@ private:
     void enqueue_request(access_t access, lock_available_callback_t *callback);
     void process_queue();
 
-private:
+    //private:
+public:
     rwi_state state;
     int nreaders; // not counting reader with intent
     request_list_t queue;

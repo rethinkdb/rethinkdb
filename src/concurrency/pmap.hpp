@@ -4,6 +4,7 @@
 
 #include "concurrency/cond_var.hpp"
 #include "utils.hpp"
+#include "errors.hpp"
 #include <boost/function.hpp>
 
 template<typename callable_t, typename value_t>

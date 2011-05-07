@@ -20,6 +20,25 @@ array_free_list_t::array_free_list_t(translator_serializer_t *serializer)
 array_free_list_t::~array_free_list_t() {
 }
 
+void array_free_list_t::reserve_block_id(block_id_t id) {
+    if (id >= next_new_block_id) {
+        for (block_id_t i = next_new_block_id; i < id; i++) {
+            free_ids.push_back(i);
+        }
+        next_new_block_id = id + 1;
+        num_blocks_in_use++;
+    } else {
+        for (std::deque<block_id_t>::iterator it = free_ids.begin(); it != free_ids.end(); it++) {
+            if (*it == id) {
+                free_ids.erase(it);
+                num_blocks_in_use++;
+                return;
+            }
+        }
+        unreachable("Tried to reserve a block id which is already taken.");
+    }
+}
+
 block_id_t array_free_list_t::gen_block_id() {
     block_id_t id;
     if (free_ids.empty()) {

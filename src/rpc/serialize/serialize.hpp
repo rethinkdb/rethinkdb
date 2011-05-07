@@ -163,7 +163,7 @@ inline int ser_size(const cluster_address_t &addr) {
     return cluster_outpipe_t::address_ser_size(&addr);
 }
 
-inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, cluster_address_t *addr) {
+inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, cluster_address_t *addr) {
     conn->read_address(addr);
 }
 

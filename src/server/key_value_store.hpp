@@ -2,24 +2,49 @@
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
 #include "btree/slice.hpp"
-#include "server/slice_dispatching_to_master.hpp"
 #include "btree/node.hpp"
 #include "utils.hpp"
 #include "concurrency/access.hpp"
 #include "server/cmd_args.hpp"
+#include "server/control.hpp"
+#include "server/dispatching_store.hpp"
 #include "arch/arch.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "store.hpp"
-#include "control.hpp"
 
 namespace replication {
-class master_t;
+    class backfill_and_streaming_manager_t;
 }  // namespace replication
 
+// If the database is not a slave, then get_replication_creation_timestamp() is NOT_A_SLAVE.
+// If the database is a slave, then get_replication_creation_timestamp() returns the creation
+// timestamp of the master.
+#define NOT_A_SLAVE uint32_t(0xFFFFFFFF)
 
-/* btree_key_value_store_t represents a collection of serializers and slices, possibly distributed
+/* sharded_key_value_store_t represents a collection of serializers and slices, possibly distributed
 across several cores. */
+
+struct shard_store_t :
+    public home_thread_mixin_t,
+    public set_store_interface_t,
+    public set_store_t,
+    public get_store_t
+{
+    shard_store_t(
+        translator_serializer_t *translator_serializer,
+        mirrored_cache_config_t *dynamic_config,
+        int64_t delete_queue_limit);
+
+    get_result_t get(const store_key_t &key);
+    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
+    mutation_result_t change(const mutation_t &m);
+    mutation_result_t change(const mutation_t &m, castime_t ct);
+
+    btree_slice_t btree;
+    dispatching_store_t dispatching_store;   // For replication
+    timestamping_set_store_interface_t timestamper;
+};
 
 class btree_key_value_store_t :
     public home_thread_mixin_t,
@@ -36,8 +61,7 @@ public:
                        btree_key_value_store_static_config_t *static_config);
 
     // Blocks
-    btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config,
-                            replication::master_t *master);
+    btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config);
 
     // Blocks
     ~btree_key_value_store_t();
@@ -62,7 +86,31 @@ public:
 
     mutation_result_t change(const mutation_t &m, castime_t ct);
 
-public:
+    /* btree_key_value_store_t interface */
+
+    void delete_all_keys_for_backfill();
+
+    // The current value of the "replication clock" is the timestamp that new operations
+    // will be assigned. It is persisted to disk. You can read and write it with
+    // {s,g}et_replication_clock(). "last_sync" is also persisted, but it doesn't have any
+    // direct effect.
+
+    void set_replication_clock(repli_timestamp_t t);
+    repli_timestamp get_replication_clock();
+    void set_last_sync(repli_timestamp_t t);
+    repli_timestamp get_last_sync();
+    void set_replication_master_id(uint32_t ts);
+    uint32_t get_replication_master_id();
+    void set_replication_slave_id(uint32_t ts);
+    uint32_t get_replication_slave_id();
+
+    static uint32_t hash(const store_key_t &key);
+
+    creation_timestamp_t get_creation_timestamp() const { return multiplexer->creation_timestamp; }
+
+private:
+    friend class replication::backfill_and_streaming_manager_t;
+
     int n_files;
     btree_config_t btree_static_config;
     mirrored_cache_static_config_t cache_static_config;
@@ -84,34 +132,19 @@ public:
 
     standard_serializer_t *serializers[MAX_SERIALIZERS];
     serializer_multiplexer_t *multiplexer;   // Helps us split the serializers among the slices
-    btree_slice_t *btrees[MAX_SLICES];
-    btree_slice_dispatching_to_master_t *dispatchers[MAX_SLICES];
-    timestamping_set_store_interface_t *timestampers[MAX_SLICES];
 
+    shard_store_t *shards[MAX_SLICES];
     uint32_t slice_num(const store_key_t &key);
-    set_store_interface_t *slice_for_key_set_interface(const store_key_t &key);
-    set_store_t *slice_for_key_set(const store_key_t &key);
-    get_store_t *slice_for_key_get(const store_key_t &key);
 
-    static uint32_t hash(const store_key_t &key);
-
-private:
-    DISABLE_COPYING(btree_key_value_store_t);
-
-private:
     /* slice debug control_t which allows us to see slice and hash for a key */
     class hash_control_t :
         public control_t
     {
     public:
         hash_control_t(btree_key_value_store_t *btkvs)
-#ifndef NDEBUG  //No documentation if we're in release mode.
-            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash key")), btkvs(btkvs)
-#else
-            : control_t("hash", std::string("")), btkvs(btkvs)
-#endif
+            : control_t("hash", std::string("Get hash, slice, and thread of a key. Syntax: rdb hash key"), true), btkvs(btkvs)
         {}
-        ~hash_control_t() {};
+        virtual ~hash_control_t() {};
 
     private:
         btree_key_value_store_t *btkvs;
@@ -128,7 +161,7 @@ private:
                 str_to_key(argv[i], &key);
                 uint32_t hash = btkvs->hash(key);
                 uint32_t slice = btkvs->slice_num(key);
-                int thread = btkvs->btrees[slice]->home_thread;
+                int thread = btkvs->shards[slice]->home_thread;
 
                 result += strprintf("%*s: %08x [slice: %03u, thread: %03d]\r\n", int(strlen(argv[i])), argv[i], hash, slice, thread);
             }
@@ -137,6 +170,8 @@ private:
     };
 
     hash_control_t hash_control;
+
+    DISABLE_COPYING(btree_key_value_store_t);
 };
 
 #endif /* __BTREE_KEY_VALUE_STORE_HPP__ */

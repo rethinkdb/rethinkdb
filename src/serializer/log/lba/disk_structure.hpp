@@ -30,12 +30,12 @@ public:
 
     // Put entries in an LBA and then call sync() to write to disk
     void add_entry(ser_block_id_t block_id, repli_timestamp recency,
-                   flagged_off64_t offset);
+                   flagged_off64_t offset, file_t::account_t *io_account);
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;
         virtual ~sync_callback_t() {}
     };
-    void sync(sync_callback_t *cb);
+    void sync(file_t::account_t *io_account, sync_callback_t *cb);
     
     // If you call read(), then the in_memory_index_t will be populated and then the read_callback_t
     // will be called when it is done.

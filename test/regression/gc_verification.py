@@ -6,7 +6,7 @@ import time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
-extent_size = 1024 * 1024
+extent_size = 8 * 1024 * 1024
 block_size = 4096
 lbaent_size = 16
 lba_shard_factor = 16
@@ -75,11 +75,14 @@ def test_function(opts, port, test_dir):
         
         summarize(stats)
         
-        if int(stats["blocks_in_memory[blocks]"]) != int(stats["blocks_total[blocks]"]):
-            raise RuntimeError("Server has gone out of memory. Aborting test because it would "
+        if int(stats["blocks_evicted"]) > 0:
+            raise RuntimeError("Server has gone out of memory. (blocks_total=%d, "
+                "blocks_in_memory=%d, blocks_evicted=%d) Aborting test because it would "
                 "be very slow to continue. Try again with a smaller duration or a larger memory "
                 "parameter (this time we were going %d inserts with a %dMB cache, and we went "
-                "out of memory after %d inserts)" % (opts["duration"], opts["memory"], inserts))
+                "out of memory after %d inserts)" % (int(stats["blocks_total[blocks]"]),
+                int(stats["blocks_in_memory[blocks]"]), int(stats["blocks_evicted"]),
+                opts["duration"], opts["memory"], inserts))
 
 if __name__ == "__main__":
     op = make_option_parser()

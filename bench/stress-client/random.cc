@@ -6,6 +6,7 @@
 #include <gsl/gsl_randist.h>
 #endif
 #include "utils.hpp"
+#include "string.h"
 
 /* Really fast random function */
 static unsigned long x=123456789, y=362436069, z=521288629;
@@ -49,6 +50,18 @@ size_t seeded_random(size_t min, size_t max, unsigned long seed) {
     return seeded_xorshf96(seed) % (max - min + 1) + min;
 }
 
+rnd_distr_t distr_with_name(const char *distr_name) {
+    if (strcmp(distr_name, "uniform") == 0) {
+        return rnd_uniform_t;
+    } else if (strcmp(distr_name, "normal") == 0) {
+        return rnd_normal_t;
+    } else {
+        fprintf(stderr, "There is no such thing as a \"%s\" distribution. At least, I don't know "
+            "what that means. I only know about \"uniform\" and \"normal\".\n", distr_name);
+        exit(-1);
+    }
+}
+
 /* Returns random number between [min, max] using various distributions */
 rnd_gen_t xrandom_create(rnd_distr_t rnd_distr, int mu) {
     rnd_gen_t rnd;
@@ -64,13 +77,15 @@ rnd_gen_t xrandom_create(rnd_distr_t rnd_distr, int mu) {
 size_t xrandom(size_t min, size_t max) {
     rnd_gen_t rnd;
     rnd.rnd_distr = rnd_uniform_t;
-    xrandom(rnd, min, max);
+    return xrandom(rnd, min, max);
 }
 
 size_t xrandom(rnd_gen_t rnd, size_t min, size_t max) {
     double tmp;
+#ifdef USE_LIBGSL
     int len = (min + max) / 2;
-    
+#endif
+
     switch(rnd.rnd_distr) {
     case rnd_uniform_t:
         tmp = random(min, max);
@@ -85,26 +100,30 @@ size_t xrandom(rnd_gen_t rnd, size_t min, size_t max) {
         exit(-1);
         break;
 #endif
-    };
-    
-    if(tmp < min)
+    }
+
+    if(tmp < min) {
         tmp = min;
-    if(tmp > max)
+    }
+    if (tmp > max) {
         tmp = max;
-    //printf("%lu\n", (size_t)tmp);
+    }
+
     return tmp;
 }
 
 size_t seeded_xrandom(size_t min, size_t max, unsigned long seed) {
     rnd_gen_t rnd;
     rnd.rnd_distr = rnd_uniform_t;
-    seeded_xrandom(rnd, min, max, seed);
+    return seeded_xrandom(rnd, min, max, seed);
 }
 
 size_t seeded_xrandom(rnd_gen_t rnd, size_t min, size_t max, unsigned long seed) {
     double tmp;
+#ifdef USE_LIBGSL
     int len = (min + max) / 2;
-    
+#endif
+
     switch(rnd.rnd_distr) {
     case rnd_uniform_t:
         tmp = seeded_random(min, max, seed);
@@ -119,8 +138,8 @@ size_t seeded_xrandom(rnd_gen_t rnd, size_t min, size_t max, unsigned long seed)
         exit(-1);
         break;
 #endif
-    };
-    
+    }
+
     if(tmp < min)
         tmp = min;
     if(tmp > max)

@@ -8,6 +8,8 @@
 #include <ucontext.h>
 #include <arch/arch.hpp>
 
+#include "utils.hpp"
+
 #ifdef VALGRIND
 #include <valgrind/valgrind.h>
 #endif
@@ -124,6 +126,13 @@ static __thread coro_t *prev_coro = NULL;
 /* A list of coro_context_t objects that are not in use. */
 static __thread intrusive_list_t<coro_context_t> *free_contexts = NULL;
 
+/* An array of ints counting the number of coros on each thread */
+static __thread int coro_context_count = 0;
+
+#ifndef NDEBUG
+__thread int coro_no_waiting = 0;
+#endif  // NDEBUG
+
 /* coro_globals_t */
 
 coro_globals_t::coro_globals_t() {
@@ -150,6 +159,10 @@ coro_globals_t::~coro_globals_t() {
 
 coro_context_t::coro_context_t() {
     pm_allocated_coroutines++;
+    coro_context_count++;
+    rassert(coro_context_count < MAX_COROS_PER_THREAD, "Too many coroutines "
+            "allocated on this thread. This is problem due to a misuse of the "
+            "coroutines\n");
 
     stack = malloc_aligned(coro_stack_size, getpagesize());
 
@@ -198,6 +211,7 @@ coro_context_t::~coro_context_t() {
     free(stack);
 
     pm_allocated_coroutines--;
+    coro_context_count--;
 }
 
 /* coro_t */
@@ -206,9 +220,11 @@ coro_context_t::~coro_context_t() {
 coro_t::coro_t(const boost::function<void()>& deed, int thread) :
     deed_(deed),
     current_thread_(thread),
+    original_free_contexts_thread_(linux_thread_pool_t::thread_id),
     notified_(false),
     waiting_(true)
 {
+    assert_good_thread_id(thread);
 
     pm_active_coroutines++;
 
@@ -221,9 +237,13 @@ coro_t::coro_t(const boost::function<void()>& deed, int thread) :
     }
 }
 
-coro_t::~coro_t() {
-    /* Return the context to the free-contexts list */
+void return_context_to_free_contexts(coro_context_t *context) {
     free_contexts->push_back(context);
+}
+
+coro_t::~coro_t() {
+    /* Return the context to the free-contexts list we took it from. */
+    do_on_thread(original_free_contexts_thread_, boost::bind(return_context_to_free_contexts, context));
 
     pm_active_coroutines--;
 }
@@ -243,6 +263,7 @@ coro_t *coro_t::self() {   /* class method */
 
 void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
+    rassert(coro_no_waiting == 0, "This code path is not supposed to use waiting.");
 
 #ifndef NDEBUG
     /* It's not safe to wait() in a catch clause of an exception handler. We use the non-standard
@@ -273,27 +294,16 @@ void coro_t::yield() {  /* class method */
     self()->wait();
 }
 
-static void coro_t_wakeup(cond_t *turnstile) {
-    turnstile->pulse();
-}
-
-void coro_t::nap(long ms) {   /* class method */
-    rassert(self(), "Not in a coroutine context");
-    rassert(ms >= 0);
-
-    if (ms != 0) {
-        cond_t turnstile;
-        (void) fire_timer_once(ms, (void (*)(void*)) coro_t_wakeup, &turnstile);
-        turnstile.wait();
-    } else {
-        coro_t::yield();
-    }
-}
-
 void coro_t::notify_now() {
     rassert(waiting_);
     rassert(!notified_);
     rassert(current_thread_ == linux_thread_pool_t::thread_id);
+
+#ifndef NDEBUG
+    /* It's not safe to notify_now() in the catch-clause of an exception handler for the same
+    reason we can't wait(). */
+    rassert(!abi::__cxa_current_exception_type());
+#endif
 
     coro_t *prev_prev_coro = prev_coro;
     prev_coro = current_coro;
@@ -323,7 +333,8 @@ void coro_t::notify() {
 }
 
 void coro_t::move_to_thread(int thread) {   /* class method */
-    if (thread == self()->current_thread_) {
+    assert_good_thread_id(thread);
+    if (thread == linux_thread_pool_t::thread_id) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
@@ -359,3 +370,8 @@ void coro_t::spawn(const boost::function<void()>& deed) {
 void coro_t::spawn_now(const boost::function<void()> &deed) {
     (new coro_t(deed, linux_thread_pool_t::thread_id))->notify_now();
 }
+
+void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
+    (new coro_t(deed, thread))->notify();
+}
+

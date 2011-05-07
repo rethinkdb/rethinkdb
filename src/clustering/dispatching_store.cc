@@ -5,10 +5,10 @@
  * the correct storage nodes, it also takes gets from this machine and forwards
  * them directly to the correct storage node */
 
-dispatching_store_t::dispatching_store_t() {
+clustered_store_t::clustered_store_t() {
 }
 
-dispatching_store_t::~dispatching_store_t() {
+clustered_store_t::~clustered_store_t() {
     rassert(dispatchees.empty());
 }
 
@@ -18,15 +18,10 @@ static void do_mutation(int i, mutation_result_t *out, std::pair<set_store_t *, 
         *out = s.first->change(splitter->branch(), castime);
     } else {
         mutation_result_t r = s.first->change(splitter->branch(), castime);
-        /* Special case: If it was a get_cas, we need to signal the cond to indicate we are throwing
-        the result away. */
-        if (get_result_t *gr = boost::get<get_result_t>(&r.result)) {
-            if (gr->to_signal_when_done) gr->to_signal_when_done->pulse();
-        }
     }
 }
 
-mutation_result_t dispatching_store_t::change(const mutation_t &mut, castime_t castime) {
+mutation_result_t clustered_store_t::change(const mutation_t &mut, castime_t castime) {
     rassert(!dispatchees.empty());
     mutation_splitter_t splitter(mut);
     mutation_result_t res;
@@ -34,16 +29,16 @@ mutation_result_t dispatching_store_t::change(const mutation_t &mut, castime_t c
     return res;
 }
 
-get_result_t dispatching_store_t::get(const store_key_t &key) {
+get_result_t clustered_store_t::get(const store_key_t &key) {
     rassert(!dispatchees.empty());
     return (*dispatchees.get_storage(key)).second->get(key);
 }
 
-dispatching_store_t::dispatchee_t::dispatchee_t(int bucket, dispatching_store_t *p, std::pair<set_store_t *, get_store_t *> c)
+clustered_store_t::dispatchee_t::dispatchee_t(int bucket, clustered_store_t *p, std::pair<set_store_t *, get_store_t *> c)
     : client(c), parent(p), bucket(bucket) {
     parent->dispatchees.add_storage(bucket, c);
 }
 
-dispatching_store_t::dispatchee_t::~dispatchee_t() {
+clustered_store_t::dispatchee_t::~dispatchee_t() {
     parent->dispatchees.remove_storage(bucket);
 }

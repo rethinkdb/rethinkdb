@@ -1,4 +1,3 @@
-
 #ifndef __UTILS_HPP__
 #define __UTILS_HPP__
 
@@ -11,7 +10,7 @@
 #include <vector>
 #include <endian.h>
 #include "errors.hpp"
-#include "arch/arch.hpp"
+#include "arch/core.hpp"
 #include "utils2.hpp"
 #include <string>
 
@@ -38,12 +37,6 @@ const size_t formatted_precise_time_length = 26;    // not including null
 void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars);
 std::string format_precise_time(const precise_time_t& time);
 
-
-// The signal handler for SIGSEGV
-void generic_crash_handler(int signum);
-void ignore_crash_handler(int signum);
-void install_generic_crash_handler();
-
 void print_hd(const void *buf, size_t offset, size_t length);
 
 // Fast string compare
@@ -56,20 +49,46 @@ a single thread. It just keeps track of the thread that the object was created o
 makes sure that it is destroyed from the same thread. It exposes the ID of that thread
 as the "home_thread" variable. */
 
+class thread_saver_t {
+public:
+    thread_saver_t() : thread_id_(get_thread_id()) {
+        assert_good_thread_id(thread_id_);
+    }
+    explicit thread_saver_t(int thread_id) : thread_id_(thread_id) {
+        assert_good_thread_id(thread_id_);
+    }
+    ~thread_saver_t() {
+        coro_t::move_to_thread(thread_id_);
+    }
+
+private:
+    int thread_id_;
+    DISABLE_COPYING(thread_saver_t);
+};
+
 class home_thread_mixin_t {
 public:
-    int home_thread;
+    const int home_thread;
 
     void assert_thread() {
         rassert(home_thread == get_thread_id());
     }
 
-    void ensure_thread() {
+    // We force callers to pass a thread_saver_t to ensure that they
+    // know exactly what they're doing.
+    void ensure_thread(UNUSED const thread_saver_t& saver) {
+        // TODO: make sure nobody is calling move_to_thread except us
+        // and thread_saver_t.
         coro_t::move_to_thread(home_thread);
     }
 protected:
     home_thread_mixin_t() : home_thread(get_thread_id()) { }
-    ~home_thread_mixin_t() { assert_thread(); }
+    ~home_thread_mixin_t() { }
+
+private:
+    // Things with home threads should not be copyable, since we don't
+    // want to nonchalantly copy their home_thread variable.
+    DISABLE_COPYING(home_thread_mixin_t);
 };
 
 struct on_thread_t : public home_thread_mixin_t {
@@ -79,16 +98,6 @@ struct on_thread_t : public home_thread_mixin_t {
     ~on_thread_t() {
         coro_t::move_to_thread(home_thread);
     }
-};
-
-struct thread_saver_t {
-    thread_saver_t() : thread_id(get_thread_id()) { }
-    thread_saver_t(int thread_id) : thread_id(thread_id) { }
-    ~thread_saver_t() {
-        coro_t::move_to_thread(thread_id);
-    }
-
-    int thread_id;
 };
 
 template <class ForwardIterator, class StrictWeakOrdering>
@@ -108,9 +117,6 @@ the current thread, returns the method's return value. Otherwise, returns false.
 
 template<class callable_t>
 void do_on_thread(int thread, const callable_t& callable);
-
-template <class obj_t, class fun_t>
-void spawn_on_home(const obj_t& obj, const fun_t& fun);
 
 template<class callable_t>
 void do_later(const callable_t &callable);

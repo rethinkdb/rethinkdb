@@ -86,7 +86,7 @@ public:
     public:
         virtual ~read_ahead_callback_t() { }
         /* The callee must take care of freeing buf by calling free(buf) */
-        virtual void offer_read_ahead_buf(block_id_t block_id, void *buf) = 0;
+        virtual void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) = 0;
     };
     void register_read_ahead_cb(read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
@@ -105,14 +105,12 @@ public:
     // needs to be exposed in some way because recovery tools depend
     // on it.
     static ser_block_id_t translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid);
+    ser_block_id_t translate_block_id(block_id_t id);
 
     // "Inverts" translate_block_id, converting inner_id back to mod_id (not back to id).
     static int untranslate_block_id_to_mod_id(ser_block_id_t inner_id, int mod_count, config_block_id_t cfgid);
     static block_id_t untranslate_block_id_to_id(ser_block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid);
 
-private:
-    ser_block_id_t xlate(block_id_t id);
-    
 public:
     /* The translator serializer will only use block IDs on the inner serializer that
     are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */ 
@@ -122,7 +120,10 @@ public:
     virtual void *clone(void*);
     void free(void *ptr);
 
-    bool do_read(block_id_t block_id, void *buf, serializer_t::read_callback_t *callback);
+    /* Allocates a new io account for the underlying file */
+    file_t::account_t *make_io_account(int priority);
+
+    bool do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, serializer_t::read_callback_t *callback);
     ser_transaction_id_t get_current_transaction_id(block_id_t block_id, const void* buf);
     struct write_t {
         block_id_t block_id;
@@ -143,15 +144,11 @@ public:
         }
 
     private:
-        static write_t make_internal(block_id_t block_id_, const void *buf_, serializer_t::write_block_callback_t *callback_) {
-            return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, true, callback_, false);
-        }
-
         write_t(block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
                 bool buf_specified_, const void *buf_, bool write_empty_deleted_block_, serializer_t::write_block_callback_t *callback_, bool assign_transaction_id)
             : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), write_empty_deleted_block(write_empty_deleted_block_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
     };
-    bool do_write(write_t *writes, int num_writes, serializer_t::write_txn_callback_t *callback);
+    bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, serializer_t::write_txn_callback_t *callback, serializer_t::write_tid_callback_t *tid_callback = NULL);
     block_size_t get_block_size();
 
     // Returns the first never-used block id.  Every block with id
@@ -164,7 +161,7 @@ public:
     repli_timestamp get_recency(block_id_t id);
 
 public:
-    bool offer_read_ahead_buf(ser_block_id_t block_id, void *buf);
+    bool offer_read_ahead_buf(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
 };
 
 #endif /* __SERIALIZER_TRANSLATOR_HPP__ */

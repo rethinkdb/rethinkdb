@@ -37,7 +37,7 @@ public:
 
     // adds a value, returning a token_t (a numeric type) for
     // accessing it.  The expression value != T() _must_ be true.
-    token_type add(T& value) {
+    token_type add(T const& value) {
         rassert(value != T());
 
         if (free_.empty()) {
@@ -62,7 +62,7 @@ public:
     // most recently dropped token.
 
     // TODO: Consider throwing an exception, instead of returning false.
-    bool add(token_type known_token, T& value) {
+    bool add(token_type known_token, T const& value) {
         if (free_.empty()) {
             if (known_token == values_.size()) {
                 values_.push_back(value);

@@ -4,6 +4,7 @@ echo "Commands are issued to the database with the following frequency in random
 echo "1 delete, 4 updates, 8 inserts, 64 reads"
 echo "(Read: For each delete, there are 4 update / 8 insert / 64 read operations)"
 echo "The workload involves keys of sizes between 8 to 16 bytes with corresponding values of sizes between 8 and 128 bytes."
+echo "The databases are configured to expose performance figures as achievable for in-memory database sizes. They are allowed to keep a high amount of unflushed data in memory. This also improves comparability to Membase, which does not support any different behavior (as of Membase version 1.6.0.1)."
 echo ""
 echo "[h]Rationale[/h]"
 echo "The canonical workload reveals the performance of a database under a mixed workload, and provides a one-stop figure for overall database performance under \"typical\" conditions."

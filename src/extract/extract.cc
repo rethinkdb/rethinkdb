@@ -10,7 +10,8 @@
 
 namespace extract {
 
-void usage(const char *name) {
+// TODO: This parameter should be used, neh?
+void usage(UNUSED const char *name) {
     // Note: some error messages may refer to the names of command
     // line options here, so keep them updated accordingly.
     Help_Pager *help = Help_Pager::instance();

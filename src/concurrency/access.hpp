@@ -24,5 +24,8 @@ enum access_t {
     rwi_upgrade
 };
 
+bool is_read_mode(access_t mode);
+bool is_write_mode(access_t mode);
+
 #endif // __ACCESS_HPP__
 

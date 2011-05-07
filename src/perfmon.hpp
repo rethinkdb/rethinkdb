@@ -8,6 +8,8 @@
 #include "utils2.hpp"
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
+#include <limits>
+#include "server/control.hpp"
 
 #include <sstream>
 
@@ -63,6 +65,12 @@ public:
     virtual void end_stats(void *, perfmon_stats_t *) = 0;
 };
 
+/* When `global_full_perfmon` is true, some perfmons will perform more elaborate stat
+calculations, which might take longer but will produce more informative performance
+stats. The command-line flag `--full-perfmon` sets `global_full_perfmon` to true. */
+
+extern bool global_full_perfmon;
+
 /* perfmon_counter_t is a perfmon_t that keeps a global counter that can be incremented
 and decremented. (Internally, it keeps many individual counters for thread-safety.) */
 
@@ -97,14 +105,38 @@ class perfmon_sampler_t :
 public:
     typedef double value_t;
 private:
-    friend class perfmon_sampler_step_t;
-    struct sample_t {
-        value_t value;
-        ticks_t timestamp;
-        sample_t(value_t v, time_t t) : value(v), timestamp(t) { }
+    struct stats_t {
+        int count;
+        value_t sum, min, max;
+        stats_t() : count(0), sum(0),
+            min(std::numeric_limits<value_t>::max()),
+            max(std::numeric_limits<value_t>::min())
+            { }
+        void record(value_t v) {
+            count++;
+            sum += v;
+            if (count) {
+                min = std::min(min, v);
+                max = std::max(max, v);
+            } else {
+                min = max = v;
+            }
+        }
+        void aggregate(const stats_t &s) {
+            count += s.count;
+            sum += s.sum;
+            if (s.count) {
+                min = std::min(min, s.min);
+                max = std::max(max, s.max);
+            }
+        }
     };
-    std::deque<sample_t> values[MAX_THREADS];
-    void expire();
+    struct thread_info_t {
+        stats_t current_stats, last_stats;
+        int current_interval;
+    } thread_info[MAX_THREADS];
+    void update(ticks_t now);
+
     std::string name;
     ticks_t length;
     bool include_rate;
@@ -117,41 +149,51 @@ public:
     void end_stats(void *, perfmon_stats_t *);
 };
 
-/* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a starting and ending
-time. When something starts, call begin(); when something ends, call end() with the same value
-as begin. It will produce stats for the number of active events, the average length of an event,
-and the like. */
+/* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a
+ * starting and ending time. When something starts, call begin(); when
+ * something ends, call end() with the same value as begin. It will produce
+ * stats for the number of active events, the average length of an event, and
+ * so on. If `global_full_perfmon` is false, it won't report any timing-related
+ * stats because `get_ticks()` is rather slow.  
+ *
+ * Frequently we're in the case
+ * where we'd like to have a single slow perfmon up, but don't want the other
+ * ones, perfmon_duration_sampler_t has an ignore_global_full_perfmon
+ * field on it, which when true makes it run regardless of --full-perfmon flag
+ * this can also be enable and disabled at runtime. */
 
-struct perfmon_duration_sampler_t {
-    /* It turns out to be expensive to call get_ticks() every time anything begins or ends.
-    If we compile with FAST_PERFMON defined, then get_ticks() will not be called and it will
-    not report stats about timing. */
-    
+struct perfmon_duration_sampler_t 
+    : public control_t
+{
+
 private:
     perfmon_counter_t active;
     perfmon_counter_t total;
-#ifndef FAST_PERFMON
     perfmon_sampler_t recent;
-#endif
+    bool ignore_global_full_perfmon;
 public:
-    perfmon_duration_sampler_t(std::string name, ticks_t length)
-        : active(name + "_active_count"), total(name + "_total")
-#ifndef FAST_PERFMON
-        , recent(name, length, true)
-#endif
+    perfmon_duration_sampler_t(std::string name, ticks_t length, bool ignore_global_full_perfmon = false) 
+        : control_t(std::string("pm_") + name + "_toggle", name + " toggle on and off", true),
+          active(name + "_active_count"), total(name + "_total") , recent(name, length, true), 
+          ignore_global_full_perfmon(ignore_global_full_perfmon)
         { }
     void begin(ticks_t *v) {
         active++;
         total++;
-#ifndef FAST_PERFMON
-        *v = get_ticks();
-#endif
+        if (global_full_perfmon || ignore_global_full_perfmon) *v = get_ticks();
+        else *v = 0;
     }
     void end(ticks_t *v) {
         active--;
-#ifndef FAST_PERFMON
-        recent.record(ticks_to_secs(get_ticks() - *v));
-#endif
+        if (*v != 0) recent.record(ticks_to_secs(get_ticks() - *v));
+    }
+
+//Control interface used for enabling and disabling duration samplers at run time
+public:
+    std::string call(UNUSED int argc, UNUSED char **argv) {
+        ignore_global_full_perfmon = !ignore_global_full_perfmon;
+        if (ignore_global_full_perfmon) return std::string("Enabled\n");
+        else                            return std::string("Disabled\n");
     }
 };
 

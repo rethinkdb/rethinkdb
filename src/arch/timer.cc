@@ -4,6 +4,8 @@
 #include "arch/linux/event_queue.hpp"
 #include "arch/timer.hpp"
 #include "logger.hpp"
+#include "arch/arch.hpp"
+#include "concurrency/cond_var.hpp"
 
 /* Timer token */
 struct timer_token_t :
@@ -36,9 +38,15 @@ timer_handler_t::timer_handler_t(linux_event_queue_t *queue)
 timer_handler_t::~timer_handler_t() {
     // Delete the registered timers
     while (timer_token_t *t = timers.head()) {
-        rassert(t->deleted);
         timers.remove(t);
-        delete t;
+        if (t->deleted) {
+	    delete t;
+        } else {
+            /* This is an error. However, the best way to debug this error is to have
+            the timer token leak and have Valgrind tell us where the leaked block originated
+            from. So we just write a warning message. */
+            logERR("Internal error: leaked timer.\n");
+        }
     }
 }
 
@@ -96,4 +104,3 @@ timer_token_t *timer_handler_t::add_timer_internal(long ms, void (*callback)(voi
 void timer_handler_t::cancel_timer(timer_token_t *timer) {
     timer->deleted = true;
 }
-
