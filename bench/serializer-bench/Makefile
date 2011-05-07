@@ -1,5 +1,5 @@
 DEBUG?=0
-CXXFLAGS=-Wall -pg -g -DUSE_UCONTEXT
+CXXFLAGS=-Wall -pg -g -DUSE_UCONTEXT -DNDEBUG=1
 LDFLAGS=-Wall -rdynamic -lrt -laio -pg -g -lgsl -lgslcblas -lgtest
 OBJDIR:=../../build/release/obj
 
