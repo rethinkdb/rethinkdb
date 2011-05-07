@@ -28,12 +28,13 @@ rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t
 }
 
 mutation_result_t shard_store_t::change(const mutation_t &m, order_token_t token) {
+    on_thread_t th(home_thread);
     return timestamper.change(m, token);
 }
 
 mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order_token_t token) {
     /* Bypass the timestamper because we already have a castime_t */
-    assert_thread();
+    on_thread_t th(home_thread);
     return dispatching_store.change(m, ct, token);
 }
 

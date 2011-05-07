@@ -58,11 +58,12 @@ timestamping_set_store_interface_t::timestamping_set_store_interface_t(set_store
     : target(target), cas_counter(0), timestamp(repli_timestamp_t::distant_past()) { }
 
 mutation_result_t timestamping_set_store_interface_t::change(const mutation_t &mutation, order_token_t token) {
-    on_thread_t thread_switcher(home_thread);
+    assert_thread();
     return target->change(mutation, make_castime(), token);
 }
 
 castime_t timestamping_set_store_interface_t::make_castime() {
+    assert_thread();
     /* The cas-value includes the current time and a counter. The time is so that we don't assign
     the same CAS twice across multiple runs of the database. The counter is so that we don't assign
     the same CAS twice to two requests received in the same second. */
