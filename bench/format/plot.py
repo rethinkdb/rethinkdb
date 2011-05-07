@@ -199,6 +199,11 @@ class TimeSeriesCollection():
     def histogram(self, out_fname, large = False):
         assert self.data
 
+        # Hacky workaround in the case that a run had no data.
+        for x in self.data.values():
+            if len(x) == 0: x.extend([0,0])
+        import pdb; pdb.set_trace()
+
         if not large:
             font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
             mpl.rcParams['xtick.major.pad'] = 4
@@ -216,7 +221,7 @@ class TimeSeriesCollection():
 
         data = map(lambda x: x[1], self.data.iteritems())
         mean = stats.mean(map(lambda x: x, reduce(lambda x, y: x + y, data)))
-        stdev= stats.stdev(map(lambda x: x, reduce(lambda x, y: x + y, data)))
+        stdev = stats.stdev(map(lambda x: x, reduce(lambda x, y: x + y, data)))
         labels = []
         hists = []
         for series, color in zip(self.data.iteritems(), colors):
@@ -253,6 +258,10 @@ class TimeSeriesCollection():
 
     def plot(self, out_fname, large = False, normalize = False):
         assert self.data
+
+        # Hacky workaround in the case that no run had any data.
+        if all(len(x) == 0 for x in self.data.values()):
+            self.data['Error: No data'] = [0]
 
         queries_formatter = FuncFormatter(lambda x, pos: '%1.fk' % (x*1e-3))
         if not large:
@@ -294,8 +303,9 @@ class TimeSeriesCollection():
         if normalize:
             ax.set_ylim(0, 1.2)
         else:
-            reduced_list = reduce(lambda x,y :x + y, self.data.values())
-            ax.set_ylim(0, 1.2 * max(reduced_list[(len(reduced_list) / 10):])) # Ignore first 10 % of the data for ylim calculation, as they might contain high peeks
+            reduced_list = reduce(lambda x,y: x + y, self.data.values())
+            max_relevant_value = max(reduced_list[(len(reduced_list) / 10):]) # Ignore first 10% of the data for ylim calculation, as they might contain high peaks
+            ax.set_ylim(0, 1.2 * max_relevant_value)
         ax.grid(True)
         plt.legend(tuple(map(lambda x: x[0], labels)), tuple(map(lambda x: x[1], labels)), loc=1, prop = font)
 
