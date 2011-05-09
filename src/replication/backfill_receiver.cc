@@ -13,7 +13,7 @@ void backfill_receiver_t::send(UNUSED scoped_malloc<net_backfill_delete_everythi
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_get_cas_t>& msg) {
-    order_token_t token = order_source.check_in();
+    order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->key);
     debugf("recv realtime_get_cas(%.*s)\n", key.size, key.contents);
     castime_t castime(msg->proposed_cas, msg->timestamp);
@@ -21,7 +21,7 @@ void backfill_receiver_t::send(scoped_malloc<net_get_cas_t>& msg) {
 }
 
 void backfill_receiver_t::send(stream_pair<net_sarc_t>& msg) {
-    order_token_t token = order_source.check_in();
+    order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->keyvalue);
     debugf("recv realtime_sarc(%.*s)\n", key.size, key.contents);
     castime_t castime(msg->proposed_cas, msg->timestamp);
@@ -43,7 +43,7 @@ void backfill_receiver_t::send(stream_pair<net_backfill_set_t>& msg) {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_incr_t>& msg) {
-    order_token_t token = order_source.check_in();
+    order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->key);
     debugf("recv realtime_incr_decr(%.*s)\n", key.size, key.contents);
     castime_t castime(msg->proposed_cas, msg->timestamp);
@@ -51,7 +51,7 @@ void backfill_receiver_t::send(scoped_malloc<net_incr_t>& msg) {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_decr_t>& msg) {
-    order_token_t token = order_source.check_in();
+    order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->key);
     debugf("recv realtime_incr_decr(%.*s)\n", key.size, key.contents);
     castime_t castime(msg->proposed_cas, msg->timestamp);
@@ -59,7 +59,7 @@ void backfill_receiver_t::send(scoped_malloc<net_decr_t>& msg) {
 }
 
 void backfill_receiver_t::send(stream_pair<net_append_t>& msg) {
-    order_token_t token = order_source.check_in();
+    order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->keyvalue);
     debugf("recv realtime_append_prepend(%.*s)\n", key.size, key.contents);
     castime_t castime(msg->proposed_cas, msg->timestamp);
@@ -67,7 +67,7 @@ void backfill_receiver_t::send(stream_pair<net_append_t>& msg) {
 }
 
 void backfill_receiver_t::send(stream_pair<net_prepend_t>& msg) {
-    order_token_t token = order_source.check_in();
+    order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->keyvalue);
     debugf("recv realtime_append_prepend(%.*s)\n", key.size, key.contents);
     castime_t castime(msg->proposed_cas, msg->timestamp);
@@ -75,7 +75,7 @@ void backfill_receiver_t::send(stream_pair<net_prepend_t>& msg) {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_delete_t>& msg) {
-    order_token_t token = order_source.check_in();
+    order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->key);
     debugf("recv realtime_delete(%.*s)\n", key.size, key.contents);
     cb->realtime_delete_key(key, msg->timestamp, token);
@@ -88,7 +88,7 @@ void backfill_receiver_t::send(scoped_malloc<net_backfill_delete_t>& msg) {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_nop_t>& message) {
-    order_token_t token = order_source.check_in();
+    order_token_t token = order_source->check_in();
     debugf("recv realtime_time_barrier()\n");
     cb->realtime_time_barrier(message->timestamp, token);
 }

@@ -4,11 +4,11 @@
 
 namespace replication {
 
-slave_stream_manager_t::slave_stream_manager_t(
-        boost::scoped_ptr<tcp_conn_t> *conn,
-        btree_key_value_store_t *kvs,
-        cond_t *cond) :
-    backfill_receiver_t(&backfill_storer_),
+slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn,
+                                               btree_key_value_store_t *kvs,
+                                               cond_t *cond,
+                                               order_source_t *slave_order_source) :
+    backfill_receiver_t(&backfill_storer_, slave_order_source),
     stream_(NULL),
     cond_(NULL),
     kvs_(kvs),

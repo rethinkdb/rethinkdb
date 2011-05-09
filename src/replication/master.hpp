@@ -23,9 +23,9 @@ class master_t :
     public backfill_sender_t,
     public backfill_receiver_t {
 public:
-    master_t(int port, btree_key_value_store_t *kv_store, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate) :
+    master_t(int port, btree_key_value_store_t *kv_store, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate, order_source_t *master_order_source) :
         backfill_sender_t(&stream_),
-        backfill_receiver_t(&backfill_storer_),
+        backfill_receiver_t(&backfill_storer_, master_order_source),
         stream_(NULL),
         listener_port_(port),
         kvs_(kv_store),
