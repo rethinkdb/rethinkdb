@@ -17,13 +17,15 @@ struct limited_fifo_queue_t :
     public home_thread_mixin_t,
     public passive_producer_t<value_t>
 {
-    limited_fifo_queue_t(int capacity, float trickle_fraction = 0.0) :
+    limited_fifo_queue_t(int capacity, float trickle_fraction = 0.0, perfmon_counter_t *counter = NULL) :
         passive_producer_t<value_t>(&available_var),
-        semaphore(capacity, trickle_fraction)
+        semaphore(capacity, trickle_fraction),
+        counter(counter)
         { }
 
     void push(const value_t &value) {
         on_thread_t thread_switcher(home_thread);
+        if (counter) (*counter)++;
         semaphore.co_lock();
         queue.push_back(value);
         available_var.set(!queue.empty());
@@ -36,15 +38,21 @@ struct limited_fifo_queue_t :
 private:
     adjustable_semaphore_t semaphore;
     watchable_var_t<bool> available_var;
+
+    perfmon_counter_t *counter;
+
     value_t produce_next_value() {
         assert_thread();
         value_t v = queue.front();
         queue.pop_front();
         semaphore.unlock();
+        if (counter) (*counter)--;
         available_var.set(!queue.empty());
         return v;
     }
+
     queue_t queue;
+
     DISABLE_COPYING(limited_fifo_queue_t);
 };
 
