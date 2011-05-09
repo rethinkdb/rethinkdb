@@ -5,6 +5,10 @@
 
 #include "utils2.hpp"
 
+// The memcached order_source_t and the backfill_receiver_t will want
+// to be in distinct buckets.
+const int BACKFILL_RECEIVER_BUCKET = 0;
+
 class order_token_t {
 public:
     static const order_token_t ignore;
