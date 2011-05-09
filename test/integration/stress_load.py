@@ -26,5 +26,5 @@ if __name__ == "__main__":
     op["nrgets"] = IntFlag("--nrgets", 0)
     opts = op.parse(sys.argv)
     opts["netrecord"] = False   # We don't want to slow down the network
-    auto_server_test_main(test_function, opts, timeout = opts["duration"] + 120)
+    auto_server_test_main(test_function, opts, timeout = opts["duration"] + 240)
 
