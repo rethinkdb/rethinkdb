@@ -2,6 +2,8 @@
 
 namespace replication {
 
+perfmon_counter_t pm_replication_slave_realtime_queue("replication_slave_realtime_queue");
+
 #define BACKFILL_QUEUE_CAPACITY 2048
 #define REALTIME_QUEUE_CAPACITY 2048
 #define CORO_POOL_SIZE 512
@@ -9,7 +11,7 @@ namespace replication {
 backfill_storer_t::backfill_storer_t(btree_key_value_store_t *underlying) :
     kvs_(underlying), backfilling_(true), print_backfill_warning_(false),
     backfill_queue_(BACKFILL_QUEUE_CAPACITY),
-    realtime_queue_(SEMAPHORE_NO_LIMIT, 0.5),
+    realtime_queue_(SEMAPHORE_NO_LIMIT, 0.5, &pm_replication_slave_realtime_queue),
     queue_picker_(make_vector<passive_producer_t<boost::function<void()> > *>(&backfill_queue_)),
     coro_pool_(CORO_POOL_SIZE, &queue_picker_)
     { }
