@@ -98,16 +98,14 @@ struct backfill_storer_t : public backfill_and_realtime_streaming_callback_t {
     void backfill_set(backfill_atom_t atom);
     void backfill_done(repli_timestamp_t timestamp);
 
-    void realtime_get_cas(const store_key_t& key, castime_t castime);
-    void realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data,
-        mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy,
-        replace_policy_t replace_policy, cas_t old_cas);
+    void realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token);
+    void realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token);
     void realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
-        castime_t castime);
+                            castime_t castime, order_token_t token);
     void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-        unique_ptr_t<data_provider_t> data, castime_t castime);
-    void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp);
-    void realtime_time_barrier(repli_timestamp_t timestamp);
+                                 unique_ptr_t<data_provider_t> data, castime_t castime, order_token_t token);
+    void realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token);
+    void realtime_time_barrier(repli_timestamp_t timestamp, order_token_t token);
 
 private:
     btree_key_value_store_t *kvs_;
@@ -115,6 +113,8 @@ private:
     limited_fifo_queue_t<boost::function<void()> > backfill_queue_, realtime_queue_;
     listing_passive_producer_t<boost::function<void()> > queue_picker_;
     coro_pool_t coro_pool_;
+
+    order_sink_t realtime_order_sink_;
 };
 
 }

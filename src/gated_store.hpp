@@ -35,7 +35,7 @@ struct gated_set_store_interface_t : public set_store_interface_t {
 
     gated_set_store_interface_t(set_store_interface_t *internal);
 
-    mutation_result_t change(const mutation_t&);
+    mutation_result_t change(const mutation_t&, order_token_t);
 
     struct open_t {
         open_t(gated_set_store_interface_t *s) : open(&s->gate) { }

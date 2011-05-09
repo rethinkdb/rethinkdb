@@ -106,7 +106,8 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
     castime_t ct;
 };
 
-mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) {
+mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, UNUSED order_token_t token) {
+    // TODO: Use this order token for leaf and internal nodes, eh?
     on_thread_t th(home_thread);
 
     btree_slice_change_visitor_t functor;

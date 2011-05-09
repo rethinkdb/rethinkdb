@@ -36,7 +36,7 @@ public:
 
     /* set_store_t interface */
 
-    mutation_result_t change(const mutation_t &m, castime_t castime);
+    mutation_result_t change(const mutation_t &m, castime_t castime, order_token_t token);
 
     /* btree_slice_t interface */
 

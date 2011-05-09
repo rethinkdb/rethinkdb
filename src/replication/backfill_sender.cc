@@ -75,9 +75,10 @@ void backfill_sender_t::backfill_done(repli_timestamp_t timestamp_when_backfill_
     if (*stream_) (*stream_)->send(&msg);
 }
 
-void backfill_sender_t::realtime_get_cas(const store_key_t& key, castime_t castime) {
+void backfill_sender_t::realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token) {
     assert_thread();
 
+    order_sink_before_send.check_out(token);
     // debugf("send realtime_get_cas(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
 
     if (*stream_) {
@@ -91,14 +92,17 @@ void backfill_sender_t::realtime_get_cas(const store_key_t& key, castime_t casti
 
         if (*stream_) (*stream_)->send(msg.get());
     }
+
+    order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+void backfill_sender_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token) {
     assert_thread();
 
-    // debugf("send realtime_sarc(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
+    order_sink_before_send.check_out(token);
+    // debugf("send realtime_sarc(%.*s), %d\n", m.key.size, m.key.contents, int(bool(*stream_)));
 
-    if (exptime != 0) {
+    if (m.exptime != 0) {
         warn_about_expiration();
     }
 
@@ -106,27 +110,29 @@ void backfill_sender_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_
         net_sarc_t stru;
         stru.timestamp = castime.timestamp;
         stru.proposed_cas = castime.proposed_cas;
-        stru.flags = flags;
-        stru.exptime = exptime;
-        stru.key_size = key.size;
-        stru.value_size = data->get_size();
-        stru.add_policy = add_policy;
-        stru.replace_policy = replace_policy;
-        stru.old_cas = old_cas;
+        stru.flags = m.flags;
+        stru.exptime = m.exptime;
+        stru.key_size = m.key.size;
+        stru.value_size = m.data->get_size();
+        stru.add_policy = m.add_policy;
+        stru.replace_policy = m.replace_policy;
+        stru.old_cas = m.old_cas;
         try {
-            if (*stream_) (*stream_)->send(&stru, key.contents, data);
+            if (*stream_) (*stream_)->send(&stru, m.key.contents, m.data);
         } catch (data_provider_failed_exc_t) {
             /* Do nothing. Because the data provider failed, the operation was never performed
             on the master, so it's good if it's also never performed on the slave either. */
         }
     }
 
-    // debugf("done send realtime_sarc(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
+    order_sink_after_send.check_out(token);
+    // debugf("done send realtime_sarc(%.*s), %d\n", m.key.size, m.key.contents, int(bool(*stream_)));
 }
 
-void backfill_sender_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime) {
+void backfill_sender_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime, order_token_t token) {
     assert_thread();
 
+    order_sink_before_send.check_out(token);
     // debugf("send realtime_incr_decr(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
 
     if (*stream_) {
@@ -137,6 +143,8 @@ void backfill_sender_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
             incr_decr_like<net_decr_t>(key, amount, castime);
         }
     }
+
+    order_sink_after_send.check_out(token);
 }
 
 template <class net_struct_type>
@@ -155,8 +163,9 @@ void backfill_sender_t::incr_decr_like(const store_key_t &key, uint64_t amount, 
     if (*stream_) (*stream_)->send(msg.get());
 }
 
-void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data, castime_t castime) {
+void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data, castime_t castime, order_token_t token) {
     assert_thread();
+    order_sink_before_send.check_out(token);
 
     // debugf("send realtime_append_prepend(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
 
@@ -189,10 +198,12 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
             }
         }
     }
+    order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp) {
+void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token) {
     assert_thread();
+    order_sink_before_send.check_out(token);
 
     // debugf("send realtime_delete_key(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
 
@@ -205,14 +216,18 @@ void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timest
 
         if (*stream_) (*stream_)->send(msg.get());
     }
+
+    order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::realtime_time_barrier(repli_timestamp timestamp) {
+void backfill_sender_t::realtime_time_barrier(repli_timestamp timestamp, order_token_t token) {
+    order_sink_before_send.check_out(token);
     // debugf("send realtime_time_barrier(), %d\n", int(bool(*stream_)));
     assert_thread();
     net_nop_t msg;
     msg.timestamp = timestamp;
     if (*stream_) (*stream_)->send(msg);
+    order_sink_after_send.check_out(token);
 }
 
 }

@@ -51,10 +51,10 @@ struct not_allowed_visitor_t : public boost::static_visitor<mutation_result_t> {
     }
 };
 
-mutation_result_t gated_set_store_interface_t::change(const mutation_t &mut) {
+mutation_result_t gated_set_store_interface_t::change(const mutation_t &mut, order_token_t token) {
     if (gate.is_open()) {
         threadsafe_gate_t::entry_t entry(&gate);
-        return internal->change(mut);
+        return internal->change(mut, token);
     } else {
         return boost::apply_visitor(not_allowed_visitor_t(), mut.mutation);
     }
