@@ -37,7 +37,7 @@ struct backfill_and_streaming_manager_t :
             return m;
         }
         mutation_t operator()(const sarc_mutation_t& m) {
-            unique_ptr_t<data_provider_t> dps[2];
+            boost::shared_ptr<data_provider_t> dps[2];
             duplicate_data_provider(m.data, 2, dps);
             manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_sarc, manager,
                     m.key, dps[0], m.flags, m.exptime, castime, m.add_policy, m.replace_policy, m.old_cas));
@@ -51,7 +51,7 @@ struct backfill_and_streaming_manager_t :
             return m;
         }
         mutation_t operator()(const append_prepend_mutation_t &m) {
-            unique_ptr_t<data_provider_t> dps[2];
+            boost::shared_ptr<data_provider_t> dps[2];
             duplicate_data_provider(m.data, 2, dps);
             manager->realtime_job_queue.push(boost::bind(&backfill_and_streaming_manager_t::realtime_append_prepend, manager,
                     m.kind, m.key, dps[0], castime));
@@ -78,7 +78,7 @@ struct backfill_and_streaming_manager_t :
         block_pm_duration set_timer(&master_rt_get_cas);
         handler_->realtime_get_cas(key, castime);
     }
-    void realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data,
+    void realtime_sarc(const store_key_t& key, boost::shared_ptr<data_provider_t> data,
             mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy,
             replace_policy_t replace_policy, cas_t old_cas) {
         block_pm_duration set_timer(&master_rt_sarc);
@@ -90,7 +90,7 @@ struct backfill_and_streaming_manager_t :
         handler_->realtime_incr_decr(kind, key, amount, castime);
     }
     void realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-            unique_ptr_t<data_provider_t> data, castime_t castime) {
+            boost::shared_ptr<data_provider_t> data, castime_t castime) {
         block_pm_duration set_timer(&master_rt_app_prep);
         handler_->realtime_append_prepend(kind, key, data, castime);
     }

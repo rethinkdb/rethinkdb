@@ -84,7 +84,7 @@ void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t casti
     internal_store_.handover(new mutation_t(mut), castime);
 }
 
-void backfill_storer_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data,
+void backfill_storer_t::realtime_sarc(const store_key_t& key, boost::shared_ptr<data_provider_t> data,
         mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy,
         replace_policy_t replace_policy, cas_t old_cas) {
     block_pm_duration set_timer(&pm_slave_rt_sarc);
@@ -112,7 +112,7 @@ void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
 }
 
 void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
-        unique_ptr_t<data_provider_t> data, castime_t castime) {
+        boost::shared_ptr<data_provider_t> data, castime_t castime) {
     block_pm_duration set_timer(&pm_slave_rt_app_prep);
     append_prepend_mutation_t mut;
     mut.key = key;

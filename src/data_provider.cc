@@ -36,7 +36,7 @@ void auto_copying_data_provider_t::get_data_into_buffers(const buffer_group_t *d
 
 /* buffered_data_provider_t */
 
-buffered_data_provider_t::buffered_data_provider_t(unique_ptr_t<data_provider_t> dp) :
+buffered_data_provider_t::buffered_data_provider_t(boost::shared_ptr<data_provider_t> dp) :
     size(dp->get_size()), buffer(new char[size])
 {
     buffer_group_t writable_bg;
@@ -61,14 +61,14 @@ size_t buffered_data_provider_t::get_size() const {
 }
 
 const const_buffer_group_t *buffered_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
-    rassert(bg.num_buffers() == 0);   // This should be our first time here
-    bg.add_buffer(size, buffer.get());
+    if (bg.num_buffers() == 0)   // This should be our first time here
+        bg.add_buffer(size, buffer.get());
     return &bg;
 }
 
 /* maybe_buffered_data_provider_t */
 
-maybe_buffered_data_provider_t::maybe_buffered_data_provider_t(unique_ptr_t<data_provider_t> dp, int threshold) :
+maybe_buffered_data_provider_t::maybe_buffered_data_provider_t(boost::shared_ptr<data_provider_t> dp, int threshold) :
     size(dp->get_size()), original(), exception_was_thrown(false), buffer()
 {
     if (size >= threshold) {
@@ -126,7 +126,7 @@ const const_buffer_group_t *bad_data_provider_t::get_data_as_buffers() throw (da
 
 /* duplicate_data_provider() */
 
-void duplicate_data_provider(unique_ptr_t<data_provider_t> original, int n, unique_ptr_t<data_provider_t> *dps_out) {
+void duplicate_data_provider(boost::shared_ptr<data_provider_t> original, int n, boost::shared_ptr<data_provider_t> *dps_out) {
 
     if (n > 0) {
 
@@ -163,7 +163,7 @@ void duplicate_data_provider(unique_ptr_t<data_provider_t> original, int n, uniq
     }
 }
 
-data_provider_splitter_t::data_provider_splitter_t(data_provider_t *dp) {
+/* data_provider_splitter_t::data_provider_splitter_t(data_provider_t *dp) {
     BREAKPOINT;
     reusable_provider.size = dp->get_size();
     try {
@@ -175,4 +175,4 @@ data_provider_splitter_t::data_provider_splitter_t(data_provider_t *dp) {
 
 data_provider_t *data_provider_splitter_t::branch() {
     return &reusable_provider;
-}
+} */

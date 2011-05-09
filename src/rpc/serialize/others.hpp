@@ -106,10 +106,9 @@ inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage
 }
 
 /* Serializing and unserializing data_provider_ts. Two flavors are provided: one that works with
-unique_ptr_t<data_provider_t>, and one that works with raw data_provider_t*. */
+boost::shared_ptr<data_provider_t>, and one that works with raw data_provider_t*. */
 
 inline void serialize(cluster_outpipe_t *conn,  data_provider_t *data) {
-    BREAKPOINT;
     if (data) {
         ::serialize(conn, true);
         int size = data->get_size();
@@ -150,15 +149,15 @@ inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es,
     }
 }
 
-inline void serialize(cluster_outpipe_t *conn, const unique_ptr_t<data_provider_t> &data) {
+inline void serialize(cluster_outpipe_t *conn, const boost::shared_ptr<data_provider_t> &data) {
     serialize(conn, data.get());
 }
 
-inline int ser_size(const unique_ptr_t<data_provider_t> &data) {
+inline int ser_size(const boost::shared_ptr<data_provider_t> &data) {
     return ser_size(data.get());
 }
 
-inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, unique_ptr_t<data_provider_t> *data) {
+inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, boost::shared_ptr<data_provider_t> *data) {
     bool non_null;
     ::unserialize(conn, es, &non_null);
     if (non_null) {

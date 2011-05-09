@@ -17,13 +17,13 @@ struct mutation_get_data_provider_functor_t : public boost::static_visitor<data_
 };
 
 struct mutation_replace_data_provider_functor_t : public boost::static_visitor<mutation_t> {
-    data_provider_splitter_t *data_splitter;
+    //data_provider_splitter_t *data_splitter;
     mutation_t operator()(const get_cas_mutation_t &m) {
         return m;
     }
     mutation_t operator()(const sarc_mutation_t &m) {
         sarc_mutation_t m2 = m;
-        m2.data.reset(data_splitter->branch());
+        duplicate_data_provider(m.data, 1, &m2.data);
         return m2;
     }
     mutation_t operator()(const delete_mutation_t &m) {
@@ -34,23 +34,17 @@ struct mutation_replace_data_provider_functor_t : public boost::static_visitor<m
     }
     mutation_t operator()(const append_prepend_mutation_t &m) {
         append_prepend_mutation_t m2 = m;
-        m2.data.reset(data_splitter->branch());
+        duplicate_data_provider(m.data, 1, &m2.data);
         return m2;
     }
 };
 
 mutation_splitter_t::mutation_splitter_t(const mutation_t &mut)
     : original(mut)
-{
-    mutation_get_data_provider_functor_t functor;
-    if (data_provider_t *dp = boost::apply_visitor(functor, original.mutation)) {
-        dp_splitter.reset(new data_provider_splitter_t(dp));
-    }
-}
+{ }
 
 mutation_t mutation_splitter_t::branch() {
     mutation_replace_data_provider_functor_t functor;
-    functor.data_splitter = dp_splitter.get();
     return boost::apply_visitor(functor, original.mutation);
 }
 
@@ -65,7 +59,7 @@ get_result_t set_store_interface_t::get_cas(const store_key_t &key) {
     return boost::get<get_result_t>(change(mut).result);
 }
 
-set_result_t set_store_interface_t::sarc(const store_key_t &key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+set_result_t set_store_interface_t::sarc(const store_key_t &key, boost::shared_ptr<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     sarc_mutation_t mut;
     mut.key = key;
     mut.data = data;
@@ -74,7 +68,8 @@ set_result_t set_store_interface_t::sarc(const store_key_t &key, unique_ptr_t<da
     mut.add_policy = add_policy;
     mut.replace_policy = replace_policy;
     mut.old_cas = old_cas;
-    return boost::get<set_result_t>(change(mut).result);
+    mutation_result_t foo(change(mut));
+    return boost::get<set_result_t>(foo.result);
 }
 
 incr_decr_result_t set_store_interface_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount) {
@@ -85,7 +80,7 @@ incr_decr_result_t set_store_interface_t::incr_decr(incr_decr_kind_t kind, const
     return boost::get<incr_decr_result_t>(change(mut).result);
 }
 
-append_prepend_result_t set_store_interface_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data) {
+append_prepend_result_t set_store_interface_t::append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::shared_ptr<data_provider_t> data) {
     append_prepend_mutation_t mut;
     mut.kind = kind;
     mut.key = key;

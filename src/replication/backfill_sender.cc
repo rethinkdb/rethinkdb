@@ -93,7 +93,7 @@ void backfill_sender_t::realtime_get_cas(const store_key_t& key, castime_t casti
     }
 }
 
-void backfill_sender_t::realtime_sarc(const store_key_t& key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
+void backfill_sender_t::realtime_sarc(const store_key_t& key, boost::shared_ptr<data_provider_t> data, mcflags_t flags, exptime_t exptime, castime_t castime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas) {
     assert_thread();
 
     debugf("send realtime_sarc(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
@@ -155,7 +155,7 @@ void backfill_sender_t::incr_decr_like(const store_key_t &key, uint64_t amount, 
     if (*stream_) (*stream_)->send(msg.get());
 }
 
-void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data, castime_t castime) {
+void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::shared_ptr<data_provider_t> data, castime_t castime) {
     assert_thread();
 
     debugf("send realtime_append_prepend(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));

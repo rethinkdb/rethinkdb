@@ -9,7 +9,7 @@ class btree_slice_t;
 
 struct backfill_atom_t {
     store_key_t key;
-    unique_ptr_t<data_provider_t> value;
+    boost::shared_ptr<data_provider_t> value;
     mcflags_t flags;
     exptime_t exptime;
     repli_timestamp recency;

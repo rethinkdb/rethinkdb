@@ -71,10 +71,10 @@ struct key_with_data_provider_t {
 };
 
 // A NULL unique pointer means not allowed
-typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
+typedef boost::shared_ptr<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
 struct get_result_t {
-    get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c) :
+    get_result_t(boost::shared_ptr<data_provider_t> v, mcflags_t f, cas_t c) :
         is_not_allowed(false), value(v), flags(f), cas(c) { }
     get_result_t() :
         is_not_allowed(false), value(), flags(0), cas(0) { }
@@ -84,7 +84,7 @@ struct get_result_t {
 
     // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
     // so don't hold on to it forever.
-    unique_ptr_t<data_provider_t> value;
+    boost::shared_ptr<data_provider_t> value;
 
     mcflags_t flags;
     cas_t cas;
@@ -137,7 +137,7 @@ struct sarc_mutation_t {
 
     /* The value to give the key; must not be NULL.
     TODO: Should NULL mean a deletion? */
-    unique_ptr_t<data_provider_t> data;
+    boost::shared_ptr<data_provider_t> data;
 
     /* The flags to store with the value */
     mcflags_t flags;
@@ -155,6 +155,8 @@ struct sarc_mutation_t {
     the return value will be sr_didnt_replace. */
     replace_policy_t replace_policy;
     cas_t old_cas;
+
+    //sarc_mutation_t() { BREAKPOINT; }
 };
 
 enum set_result_t {
@@ -215,7 +217,7 @@ enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
 struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
     store_key_t key;
-    unique_ptr_t<data_provider_t> data;
+    boost::shared_ptr<data_provider_t> data;
 };
 
 enum append_prepend_result_t {
@@ -230,7 +232,8 @@ struct mutation_t {
     typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation_variant_t;
     mutation_variant_t mutation;
 
-    mutation_t() { }
+    mutation_t() { 
+    }
 
     // implicit
     template<class T>
@@ -260,7 +263,7 @@ struct mutation_splitter_t {
     mutation_t branch();
 private:
     mutation_t original;
-    boost::scoped_ptr<data_provider_splitter_t> dp_splitter;
+    boost::scoped_ptr<data_provider_t> dp;
 };
 
 class set_store_interface_t {
@@ -268,9 +271,9 @@ class set_store_interface_t {
 public:
     /* These NON-VIRTUAL methods all construct a mutation_t and then call change(). */
     get_result_t get_cas(const store_key_t &key);
-    set_result_t sarc(const store_key_t &key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
+    set_result_t sarc(const store_key_t &key, boost::shared_ptr<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
     incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::shared_ptr<data_provider_t> data);
     delete_result_t delete_key(const store_key_t &key, bool dont_store_in_delete_queue=false);
 
     virtual mutation_result_t change(const mutation_t&) = 0;

@@ -433,8 +433,8 @@ void run_storage_command(txt_memcached_handler_t *rh,
 
     thread_saver_t saver;
 
-    unique_ptr_t<memcached_data_provider_t> unbuffered_data(new memcached_data_provider_t(rh, value_size, value_read_promise));
-    unique_ptr_t<maybe_buffered_data_provider_t> data(new maybe_buffered_data_provider_t(unbuffered_data, MAX_BUFFERED_SET_SIZE));
+    boost::shared_ptr<memcached_data_provider_t> unbuffered_data(new memcached_data_provider_t(rh, value_size, value_read_promise));
+    boost::shared_ptr<maybe_buffered_data_provider_t> data(new maybe_buffered_data_provider_t(unbuffered_data, MAX_BUFFERED_SET_SIZE));
 
     block_pm_duration set_timer(&pm_cmd_set);
 
@@ -857,7 +857,7 @@ void do_quickset(const thread_saver_t& saver, txt_memcached_handler_t *rh, std::
             rh->writef(saver, "CLIENT_ERROR Invalid key %s\r\n", args[i]);
             return;
         }
-        unique_ptr_t<buffered_data_provider_t> value(new buffered_data_provider_t(args[i + 1], strlen(args[i + 1])));
+        boost::shared_ptr<buffered_data_provider_t> value(new buffered_data_provider_t(args[i + 1], strlen(args[i + 1])));
 
         set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0);
 

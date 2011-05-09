@@ -4,6 +4,7 @@
 #include "errors.hpp"
 #include <boost/scoped_array.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <vector>
 #include <exception>
 #include "containers/buffer_group.hpp"
@@ -80,7 +81,7 @@ provides the data from. */
 
 class buffered_data_provider_t : public auto_copying_data_provider_t {
 public:
-    explicit buffered_data_provider_t(unique_ptr_t<data_provider_t> dp);   // Create with contents of another
+    explicit buffered_data_provider_t(boost::shared_ptr<data_provider_t> dp);   // Create with contents of another
     buffered_data_provider_t(const void *, size_t);   // Create by copying out of a buffer
     buffered_data_provider_t(size_t, void **);    // Allocate buffer, let creator fill it
     size_t get_size() const;
@@ -101,7 +102,7 @@ it buffers the other data_provider_t if it is sufficiently small, improving perf
 
 class maybe_buffered_data_provider_t : public data_provider_t {
 public:
-    maybe_buffered_data_provider_t(unique_ptr_t<data_provider_t> dp, int threshold);
+    maybe_buffered_data_provider_t(boost::shared_ptr<data_provider_t> dp, int threshold);
 
     size_t get_size() const;
     void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
@@ -109,7 +110,7 @@ public:
 
 private:
     int size;
-    unique_ptr_t<data_provider_t> original;
+    boost::shared_ptr<data_provider_t> original;
     // true if we decide to buffer but there is an exception. We catch the exception in the
     // constructor and then set this variable to true, then throw data_provider_failed_exc_t()
     // when our data is requested. This way we behave exactly the same whether or not we buffer.
@@ -141,13 +142,13 @@ private:
 branch() every time you want a separate data provider. All the data providers returned by branch()
 will become invalid once the data_provider_splitter_t is destroyed. */
 
-class data_provider_splitter_t {
+//class data_provider_splitter_t {
 
     /* TODO: Special-case the situation where we only intend to call branch() once, by just
     returning the original data-provider again. This will require cooperation from the code
     that uses data_provider_splitter_t. */
 
-public:
+/* public:
     data_provider_splitter_t(data_provider_t *dp);
     data_provider_t *branch();
 
@@ -163,11 +164,11 @@ private:
             else throw data_provider_failed_exc_t();
         }
     } reusable_provider;
-};
+}; */
 /* duplicate_data_provider() makes a bunch of data providers that are all equivalent to the original
 data provider. Internally it makes many copies of the data, so the created data providers are
 completely independent. */
 
-void duplicate_data_provider(unique_ptr_t<data_provider_t> original, int n, unique_ptr_t<data_provider_t> *dps_out);
+void duplicate_data_provider(boost::shared_ptr<data_provider_t> original, int n, boost::shared_ptr<data_provider_t> *dps_out);
 
 #endif /* __DATA_PROVIDER_HPP__ */
