@@ -334,6 +334,7 @@ rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const s
 /* set_store_interface_t interface */
 
 mutation_result_t btree_key_value_store_t::change(const mutation_t &m, order_token_t token) {
+    order_sink.check_out(token);
     return shards[slice_num(m.get_key())]->change(m, token);
 }
 
@@ -341,8 +342,7 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, order_tok
 
 mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t ct, order_token_t token) {
     order_sink.check_out(token);
-    const mutation_result_t& res = shards[slice_num(m.get_key())]->change(m, ct, token);
-    return res;
+    return shards[slice_num(m.get_key())]->change(m, ct, token);
 }
 
 /* btree_key_value_store_t interface */

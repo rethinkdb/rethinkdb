@@ -117,6 +117,7 @@ void backfill_storer_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, ord
 
 void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
                                            castime_t castime, order_token_t token) {
+    realtime_order_sink_.check_out(token);
     incr_decr_mutation_t mut;
     mut.key = key;
     mut.kind = kind;
@@ -126,6 +127,7 @@ void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
 
 void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
                                                 unique_ptr_t<data_provider_t> data, castime_t castime, order_token_t token) {
+    realtime_order_sink_.check_out(token);
     append_prepend_mutation_t mut;
     mut.key = key;
     mut.data = data;
@@ -134,6 +136,7 @@ void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, cons
 }
 
 void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token) {
+    realtime_order_sink_.check_out(token);
     delete_mutation_t mut;
     mut.key = key;
     mut.dont_put_in_delete_queue = true;
