@@ -15,8 +15,6 @@ import time
 from line import *
 from statlib import stats
 import math
-import pdb
-import math
 
 FONT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), 'aurulent_sans_regular.ttf'))
 
@@ -202,7 +200,6 @@ class TimeSeriesCollection():
         # Hacky workaround in the case that a run had no data.
         for x in self.data.values():
             if len(x) == 0: x.extend([0,0])
-        import pdb; pdb.set_trace()
 
         if not large:
             font = fm.FontProperties(family=['sans-serif'],size='small',fname=FONT_FILE)
