@@ -137,7 +137,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         hdr.msgsize = sizeof(net_header_t) + 1 + obsize;
         hdr.message_multipart_aspect = SMALL;
 
-        mutex_acquisition_t ak(&outgoing_mutex_);
+        mutex_acquisition_t ak(&outgoing_mutex_, true);
 
         try_write(&hdr, sizeof(net_header_t));
         rassert(1 == sizeof(msgcode));
@@ -147,7 +147,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         // Right now we don't really split up messages into
         // submessages, even though the other end of the protocol
         // supports that.
-        mutex_acquisition_t ak(&outgoing_mutex_);
+        mutex_acquisition_t ak(&outgoing_mutex_, true);
 
         net_multipart_header_t hdr;
         hdr.msgsize = MAX_MESSAGE_SIZE;
@@ -157,7 +157,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         size_t offset = MAX_MESSAGE_SIZE - (sizeof(net_multipart_header_t) + 1);
 
         {
-            //            mutex_acquisition_t ak(&outgoing_mutex_);
+            //            mutex_acquisition_t ak(&outgoing_mutex_, true);
             try_write(&hdr, sizeof(net_multipart_header_t));
             rassert(sizeof(msgcode) == 1);
             try_write(&msgcode, sizeof(msgcode));
@@ -167,7 +167,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         char *buf = reinterpret_cast<char *>(msg);
 
         while (offset + MAX_MESSAGE_SIZE < obsize) {
-            //            mutex_acquisition_t ak(&outgoing_mutex_);
+            //            mutex_acquisition_t ak(&outgoing_mutex_, true);
             hdr.message_multipart_aspect = MIDDLE;
             try_write(&hdr, sizeof(net_multipart_header_t));
             try_write(buf + offset, MAX_MESSAGE_SIZE);
@@ -176,7 +176,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
         {
             rassert(obsize - offset <= MAX_MESSAGE_SIZE);
-            //            mutex_acquisition_t ak(&outgoing_mutex_);
+            //            mutex_acquisition_t ak(&outgoing_mutex_, true);
             hdr.message_multipart_aspect = LAST;
             try_write(&hdr, sizeof(net_multipart_header_t));
             try_write(buf + offset, obsize - offset);

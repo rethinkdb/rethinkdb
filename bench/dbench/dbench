@@ -279,6 +279,29 @@ class RethinkDB(MemcachedLikeServer):
         self.run_process(self.find_binary('rethinkdb'), args)
         self.wait_for_server_ready()
 
+    MAX_WAIT_TIME = 3600
+    WAIT_INTERVAL = 0.5
+
+    # Replication setups require us to wait until the nodes are in sync before sending queries
+    def wait_for_server_ready(self):
+        bound = time.time() + self.MAX_WAIT_TIME
+        print "Waiting: %d\n" % time.time()
+        while time.time() < bound:
+            try:
+                s = socket.socket()
+                s.connect(('localhost', self.dbench.port))
+                s.send('set test 0 0 0\r\n\r\n')
+                res = s.makefile().readline()
+                if res == 'STORED\r\n':
+                    print "Waiting done: %d\n" % time.time()
+                    return
+            except socket.error, e:
+                pass
+            finally:
+                s.close()
+            time.sleep(self.WAIT_INTERVAL)
+        self.dbench.die('Unable to connect to server (localhost:%d)' % (self.dbench.port))
+
 class Memcached(MemcachedLikeServer):
     binary_paths = []
 
@@ -667,6 +690,14 @@ class DBench(object):
                 print >> f, msg
 
     def start_workers(self):
+        # Make sure the insert client finishes first
+        if self.insert:
+            self.info('%s started for insert' % self.insert)
+            self.info('Waiting for client...')
+            self.insert.start()
+            self.insert.wait()
+            self.info('Client completed')
+    
         if self.args.prime_caches:
             # Run client twice to prime caches of the server
             self.client.start()

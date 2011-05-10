@@ -15,7 +15,9 @@ perfmon_duration_sampler_t
     master_rt_app_prep("master_rt_app_prep", secs_to_ticks(1.0)),
     master_rt_del("master_rt_del", secs_to_ticks(1.0));
 
-#define MAX_REPLICATION_COROUTINES 512
+perfmon_counter_t pm_master_queue_depth("master_queue_depth");
+
+#define MAX_REPLICATION_COROUTINES 2034
 #define REPLICATION_JOB_QUEUE_DEPTH 2048
 
 namespace replication {
@@ -243,8 +245,8 @@ struct backfill_and_streaming_manager_t :
         internal_store_(kvs),
         handler_(handler),
         coro_pool(MAX_REPLICATION_COROUTINES, &combined_job_queue),
-        backfill_job_queue(REPLICATION_JOB_QUEUE_DEPTH),
-        realtime_job_queue(REPLICATION_JOB_QUEUE_DEPTH),
+        backfill_job_queue(REPLICATION_JOB_QUEUE_DEPTH, 0.0, &pm_master_queue_depth),
+        realtime_job_queue(REPLICATION_JOB_QUEUE_DEPTH, 0.0, &pm_master_queue_depth),
         backfill_job_account(&combined_job_queue, &backfill_job_queue, 1),
         realtime_job_account(&combined_job_queue, &realtime_job_queue, 1)
     {

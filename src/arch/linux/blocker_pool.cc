@@ -32,8 +32,16 @@ void* blocker_pool_t::event_loop(void *arg) {
             request->run();
 
             // Notify that the request is done
-            system_mutex_t::lock_t ce_lock(&parent->ce_mutex);
-            parent->completed_events.push_back(request);
+            {
+                system_mutex_t::lock_t ce_lock(&parent->ce_mutex);
+                parent->completed_events.push_back(request);
+            }
+            // It seems critical for performance that we release ce_lock *before* we write to the signal!
+            // This is probably because the kernel thinks "hey, somebody is blocking on the signal.
+            // Now that it has been written to, that thread will want to handle it, so let's wake it up."
+            // If we don't have ce_lock released at that point, the following happens:
+            // The signalled thread immediately has to acquire ce_lock, so the kernel has to yield control
+            // again. Only after an additional scheduler roundtrip, we get control again and can release the ce_lock.
             parent->ce_signal.write(1);
         }
     }
