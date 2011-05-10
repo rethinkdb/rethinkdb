@@ -283,7 +283,7 @@ void check_filesize(nondirect_file_t *file, file_knowledge *knog) {
 const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes" };
 enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes };
 
-bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_config_error *err) {
+bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_config_error *err, const config_t &cfg) {
     block header;
     header.init(DEVICE_BLOCK_SIZE, file, 0);
     static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
@@ -306,7 +306,7 @@ bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_co
         *err = bad_software_name;
         return false;
     }
-    if (0 != strcmp(buf->version, VERSION_STRING)) {
+    if (0 != strcmp(buf->version, VERSION_STRING) && !cfg.print_command_line) {
         *err = bad_version;
         return false;
     }
@@ -1214,10 +1214,10 @@ struct check_to_config_block_errors {
 };
 
 
-bool check_to_config_block(nondirect_file_t *file, file_knowledge *knog, check_to_config_block_errors *errs) {
+bool check_to_config_block(nondirect_file_t *file, file_knowledge *knog, check_to_config_block_errors *errs, const config_t &cfg) {
     check_filesize(file, knog);
 
-    return check_static_config(file, knog, &errs->static_config_err.use())
+    return check_static_config(file, knog, &errs->static_config_err.use(), cfg)
         && check_metablock(file, knog, &errs->metablock_errs.use())
         && check_lba(file, knog, &errs->lba_errs.use())
         && check_config_block(file, knog, &errs->config_block_errs.use());
@@ -1571,7 +1571,7 @@ bool check_files(const config_t& cfg) {
     bool any = false;
     for (int i = 0; i < num_files; ++i) {
         check_to_config_block_errors errs;
-        if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs)) {
+        if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs, cfg)) {
             any = true;
             std::string s = std::string("(in file '") + knog.file_knog[i]->filename + "')";
             state = s.c_str();
