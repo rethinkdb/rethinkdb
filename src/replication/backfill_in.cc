@@ -108,12 +108,14 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp) {
 }
 
 void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token) {
+    realtime_order_sink_.check_out(token);
     get_cas_mutation_t mut;
     mut.key = key;
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, mut, castime, token));
 }
 
 void backfill_storer_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token) {
+    realtime_order_sink_.check_out(token);
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, m, castime, token));
 }
 

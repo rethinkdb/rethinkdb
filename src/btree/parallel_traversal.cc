@@ -71,13 +71,13 @@ protected:
 
 class traversal_state_t {
 public:
-    traversal_state_t(const thread_saver_t& saver, btree_slice_t *_slice, repli_timestamp _transaction_tstamp, btree_traversal_helper_t *_helper)
+    traversal_state_t(boost::shared_ptr<transactor_t>& txor, btree_slice_t *_slice, btree_traversal_helper_t *_helper)
         : slice(_slice),
           /* We can't compute the expected change count (we're either
              doing nothing or deleting the entire tree or something),
              so we just pass 0.  You could let this be a
              helper-supplied value, if you cared. */
-          transactor_ptr(boost::make_shared<transactor_t>(saver, _slice->cache(), _helper->transaction_mode(), 0, _transaction_tstamp)),
+          transactor_ptr(txor),
           helper(_helper) { }
 
     // The slice whose btree we're traversing
@@ -253,9 +253,9 @@ struct internal_node_releaser_t : public parent_releaser_t {
     internal_node_releaser_t(buf_t *buf, traversal_state_t *state) : buf_(buf), state_(state) { }
 };
 
-void btree_parallel_traversal(btree_slice_t *slice, repli_timestamp transaction_tstamp, btree_traversal_helper_t *helper) {
+void btree_parallel_traversal(boost::shared_ptr<transactor_t>& txor, btree_slice_t *slice, btree_traversal_helper_t *helper) {
     thread_saver_t saver;
-    traversal_state_t state(saver, slice, transaction_tstamp, helper);
+    traversal_state_t state(txor, slice, helper);
     buf_lock_t superblock_buf(saver, *state.transactor_ptr, SUPERBLOCK_ID, helper->btree_superblock_mode());
 
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
