@@ -3,6 +3,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/parallel_traversal.hpp"
+#include "btree/slice.hpp"
 #include "buffer_cache/co_functions.hpp"
 
 struct delete_all_keys_traversal_helper_t : public btree_traversal_helper_t {
@@ -63,8 +64,11 @@ void btree_delete_all_keys_for_backfill(btree_slice_t *slice) {
 
     delete_all_keys_traversal_helper_t helper;
 
+    thread_saver_t saver;
+    boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(saver, slice->cache(), helper.transaction_mode(), 0, repli_timestamp::invalid);
+
     // The timestamp never gets used, because we're just deleting
     // stuff.  The use of repli_timestamp::invalid here might trip
     // some assertions, though.
-    btree_parallel_traversal(slice, repli_timestamp::invalid, &helper);
+    btree_parallel_traversal(txor, slice, &helper);
 }

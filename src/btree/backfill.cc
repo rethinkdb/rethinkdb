@@ -10,6 +10,7 @@
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/parallel_traversal.hpp"
+#include "btree/slice.hpp"
 
 class btree_slice_t;
 
@@ -122,7 +123,12 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
 
     backfill_traversal_helper_t helper(callback, since_when);
 
-    btree_parallel_traversal(slice, repli_timestamp::invalid, &helper);
+    {
+        thread_saver_t saver;
+        boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(saver, slice->cache(), helper.transaction_mode(), 0, repli_timestamp::invalid);
+
+        btree_parallel_traversal(txor, slice, &helper);
+    }
 
     callback->done();
 }

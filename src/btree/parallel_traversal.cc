@@ -253,9 +253,8 @@ struct internal_node_releaser_t : public parent_releaser_t {
     internal_node_releaser_t(buf_t *buf, traversal_state_t *state) : buf_(buf), state_(state) { }
 };
 
-void btree_parallel_traversal(btree_slice_t *slice, repli_timestamp transaction_tstamp, btree_traversal_helper_t *helper) {
+void btree_parallel_traversal(boost::shared_ptr<transactor_t>& txor, btree_slice_t *slice, btree_traversal_helper_t *helper) {
     thread_saver_t saver;
-    boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(saver, slice->cache(), helper->transaction_mode(), 0, transaction_tstamp);
     traversal_state_t state(txor, slice, helper);
     buf_lock_t superblock_buf(saver, *state.transactor_ptr, SUPERBLOCK_ID, helper->btree_superblock_mode());
 
