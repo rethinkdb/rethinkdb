@@ -104,6 +104,5 @@ int run_migrate(int argc, char **argv) {
         command_line.push_back(*it);
     }
 
-    system(boost::algorithm::join(command_line, " ").c_str());
-    return 0;
+    return system(boost::algorithm::join(command_line, " ").c_str());
 }
