@@ -3,13 +3,15 @@
 namespace replication {
 
 void backfill_receiver_t::send(scoped_malloc<net_backfill_complete_t>& message) {
+    order_token_t token = order_source->check_in();
     // debugf("recv backfill_done()\n");
-    cb->backfill_done(message->time_barrier_timestamp);
+    cb->backfill_done(message->time_barrier_timestamp, token);
 }
 
 void backfill_receiver_t::send(UNUSED scoped_malloc<net_backfill_delete_everything_t>& msg) {
+    order_token_t token = order_source->check_in();
     // debugf("recv backfill_delete_everything()\n");
-    cb->backfill_delete_everything();
+    cb->backfill_delete_everything(token);
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_get_cas_t>& msg) {
@@ -31,6 +33,7 @@ void backfill_receiver_t::send(stream_pair<net_sarc_t>& msg) {
 }
 
 void backfill_receiver_t::send(stream_pair<net_backfill_set_t>& msg) {
+    order_token_t token = order_source->check_in();
     backfill_atom_t atom;
     atom.key.assign(msg->key_size, msg->keyvalue);
     // debugf("recv backfill_set(%.*s, t=%u, len=%ld)\n", atom.key.size, atom.key.contents, msg->timestamp.time, msg.stream->get_size());
@@ -39,7 +42,7 @@ void backfill_receiver_t::send(stream_pair<net_backfill_set_t>& msg) {
     atom.exptime = msg->exptime;
     atom.recency = msg->timestamp;
     atom.cas_or_zero = msg->cas_or_zero;
-    cb->backfill_set(atom);
+    cb->backfill_set(atom, token);
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_incr_t>& msg) {
@@ -82,9 +85,10 @@ void backfill_receiver_t::send(scoped_malloc<net_delete_t>& msg) {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_backfill_delete_t>& msg) {
+    order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->key);
     // debugf("recv backfill_deletion(%.*s)\n", key.size, key.contents);
-    cb->backfill_deletion(key);
+    cb->backfill_deletion(key, token);
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_nop_t>& message) {

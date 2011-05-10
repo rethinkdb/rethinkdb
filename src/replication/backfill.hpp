@@ -8,13 +8,13 @@ namespace replication {
 
 struct backfill_and_realtime_streaming_callback_t {
 
-    virtual void backfill_delete_everything() = 0;
-    virtual void backfill_deletion(store_key_t key) = 0;
-    virtual void backfill_set(backfill_atom_t atom) = 0;
+    virtual void backfill_delete_everything(order_token_t token) = 0;
+    virtual void backfill_deletion(store_key_t key, order_token_t token) = 0;
+    virtual void backfill_set(backfill_atom_t atom, order_token_t token) = 0;
 
     // `backfill_done()` is called when all the backfilled changes with timestamps less than
     // `timestamp` have been sent.
-    virtual void backfill_done(repli_timestamp_t timestamp) = 0;
+    virtual void backfill_done(repli_timestamp_t timestamp, order_token_t token) = 0;
 
     virtual void realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token) = 0;
     virtual void realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token) = 0;
