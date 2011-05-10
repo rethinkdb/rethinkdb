@@ -6,10 +6,11 @@
 
 class mutex_t {
     struct lock_request_t :
-        public intrusive_list_node_t<lock_request_t>
+        public intrusive_list_node_t<lock_request_t>,
+        public thread_message_t
     {
         lock_available_callback_t *cb;
-        void go() {
+        void on_thread_switch() {
             cb->on_lock_available();
             delete this;
         }
@@ -32,11 +33,12 @@ public:
         }
     }
 
-    void unlock() {
+    void unlock(bool eager = false) {
         rassert(locked);
         if (lock_request_t *h = waiters.head()) {
             waiters.remove(h);
-            h->go();
+            if (eager) h->on_thread_switch();
+            else call_later_on_this_thread(h);
         } else {
             locked = false;
         }
@@ -56,14 +58,15 @@ void co_lock_mutex(mutex_t *mutex);
 
 class mutex_acquisition_t {
 public:
-    mutex_acquisition_t(mutex_t *lock) : lock_(lock) {
+    mutex_acquisition_t(mutex_t *lock, bool eager = false) : lock_(lock), eager_(eager) {
         co_lock_mutex(lock_);
     }
     ~mutex_acquisition_t() {
-        lock_->unlock();
+        lock_->unlock(eager_);
     }
 private:
     mutex_t *lock_;
+    bool eager_;
     DISABLE_COPYING(mutex_acquisition_t);
 };
 
