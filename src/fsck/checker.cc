@@ -327,6 +327,23 @@ bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_co
     return true;
 }
 
+std::string extract_static_config_flags(direct_file_t *file, file_knowledge *knog) {
+    block header;
+    header.init(DEVICE_BLOCK_SIZE, file, 0);
+    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
+
+    log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
+
+    block_size_t block_size = static_cfg->block_size();
+    uint64_t extent_size = static_cfg->extent_size();
+
+
+    char flags[100];
+    snprintf(flags, 100, " --block-size %lu --extent-size %lu", block_size.ser_value(), extent_size);
+
+    return std::string(flags);
+}
+
 struct metablock_errors {
     int bad_crc_count;  // should be zero
     int bad_markers_count;  // must be zero
@@ -1530,7 +1547,14 @@ void print_interfile_summary(const multiplexer_config_block_t& c, const mc_confi
     printf("config_block n_log_blocks: %d\n", mcc.cache.n_patch_log_blocks);
 }
 
+std::string extract_slices_flags(const serializer_config_block_t& c) {
+    char flags[100];
+    snprintf(flags, 100, " -s %d ", c.btree_config.n_slices);
+    return std::string(flags);
+}
+
 bool check_files(const config_t& cfg) {
+    //BREAKPOINT;
     // 1. Open.
     knowledge knog(cfg.input_filenames);
 
@@ -1565,24 +1589,58 @@ bool check_files(const config_t& cfg) {
         return false;
     }
 
-    print_interfile_summary(*knog.file_knog[0]->config_block, *knog.file_knog[0]->mc_config_block);
+    if (!cfg.print_command_line) {
+        print_interfile_summary(*knog.file_knog[0]->config_block);
 
-    // A thread for every slice.
-    int n_slices = knog.file_knog[0]->config_block->n_proxies;
-    std::vector<pthread_t> threads(n_slices);
-    all_slices_errors slices_errs(n_slices);
-    for (int i = 0; i < num_files; ++i) {
-        launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs, cfg);
+        // A thread for every slice.
+        int n_slices = knog.file_knog[0]->config_block->btree_config.n_slices;
+        std::vector<pthread_t> threads(n_slices);
+        all_slices_errors slices_errs(n_slices);
+        for (int i = 0; i < num_files; ++i) {
+            launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs);
+        }
+
+        // Wait for all threads to finish.
+        for (int i = 0; i < n_slices; ++i) {
+            guarantee_err(!pthread_join(threads[i], NULL), "pthread_join failing");
+        }
+
+        bool ok = report_post_config_block_errors(slices_errs);
+        return ok;
+    } else {
+        std::string flags("FLAGS: ");
+        flags.append(extract_static_config_flags(knog.files[0], knog.file_knog[0]));
+        flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
+        printf("%s\n", flags.c_str());
+        return true;
     }
-
-    // Wait for all threads to finish.
-    for (int i = 0; i < n_slices; ++i) {
-        guarantee_err(!pthread_join(threads[i], NULL), "pthread_join failing");
-    }
-
-    bool ok = report_post_config_block_errors(slices_errs);
-    return ok;
+    return false;
 }
 
+//extract the command line arguments from the file
+std::string extract_command_line_args(const config_t& cfg) {
+    std::string flags;
+    knowledge knog(cfg.input_filenames);
+
+    if (!knog.files[0]->exists()) {
+        fail_due_to_user_error("No such file \"%s\"", knog.file_knog[0]->filename.c_str());
+    }
+
+    flags.append(extract_static_config_flags(knog.files[0], knog.file_knog[0]));
+
+    config_block_errors errs;
+    check_config_block(knog.files[0], knog.file_knog[0], &errs);
+    /* btree_block config_block;
+    if (!config_block.init(knog.files[0], knog.file_knog[0], CONFIG_BLOCK_ID.ser_id)) {
+        logINF("Error, taking command line of corrupted file\n");
+        exit(1);
+    }
+    const serializer_config_block_t *buf = ptr_cast<serializer_config_block_t>(config_block.buf); */
+
+    flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
+
+
+    return flags;
+}
 
 }  // namespace fsck

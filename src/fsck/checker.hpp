@@ -55,9 +55,13 @@ struct config_t {
         // Default values
         ignore_diff_log = false;
     }
+    bool print_command_line;
+
+    config_t() :print_command_line(false) {}
 };
 
 bool check_files(const config_t& config);
+std::string extract_command_line_args(const config_t& cfg);
 
 
 
