@@ -16,7 +16,6 @@ do
     case "$name" in
     i)      infile+=("$OPTARG");;
     o)      outfile+=("$OPTARG");;
-    p)      old_rdb=("$OPTARG");;
     r)      new_rdb=("$OPTARG");;
     ?)      usage
             exit 2;;
@@ -31,6 +30,13 @@ for file in ${infile[@]}
 do
     filecl+=("-f" $file)
 done
+
+version=`$new_rdb fsck ${filecl[@]} -c | grep version: | sed 's/static_header version: \([0-9\.]*\)/\1/'`
+
+if [ $version = "0.1" ]
+then
+    old_rdb=/usr/bin/rethinkdb1.0
+fi
 
 $old_rdb extract ${filecl[@]} -o /tmp/rdb_migration_buffer
 flags=`$old_rdb fsck ${filecl[@]} -c | grep FLAGS: | sed s/FLAGS://`
@@ -50,6 +56,7 @@ then
     port=12345
 fi
 
+$new_rdb create --force ${filecl[@]} $flags
 $new_rdb ${filecl[@]} $flags -p "$port"&
 while ! nc -q 1 localhost "$port" </dev/null; do sleep 2; done
-(cat /tmp/rdb_migration_swap && echo "rdb shutdown") | nc localhost "$port"
+(cat /tmp/rdb_migration_buffer && echo "rdb shutdown") | nc localhost "$port"
