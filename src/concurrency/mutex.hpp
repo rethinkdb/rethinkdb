@@ -6,11 +6,10 @@
 
 class mutex_t {
     struct lock_request_t :
-        public intrusive_list_node_t<lock_request_t>,
-        public thread_message_t
+        public intrusive_list_node_t<lock_request_t>
     {
         lock_available_callback_t *cb;
-        void on_thread_switch() {
+        void go() {
             cb->on_lock_available();
             delete this;
         }
@@ -37,7 +36,7 @@ public:
         rassert(locked);
         if (lock_request_t *h = waiters.head()) {
             waiters.remove(h);
-            call_later_on_this_thread(h);
+            h->go();
         } else {
             locked = false;
         }
