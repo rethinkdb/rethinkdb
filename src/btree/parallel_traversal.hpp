@@ -51,14 +51,13 @@ struct btree_traversal_helper_t {
 
     virtual void filter_interesting_children(boost::shared_ptr<transactor_t>& txor, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb) = 0;
 
-    virtual access_t transaction_mode() = 0;
     virtual access_t btree_superblock_mode() = 0;
     virtual access_t btree_node_mode() = 0;
 
     virtual ~btree_traversal_helper_t() { }
 };
 
-void btree_parallel_traversal(btree_slice_t *slice, repli_timestamp transaction_tstamp, btree_traversal_helper_t *helper);
+void btree_parallel_traversal(boost::shared_ptr<transactor_t>& txor, btree_slice_t *slice, btree_traversal_helper_t *helper);
 
 
 #endif  // __BTREE_PARALLEL_TRAVERSAL_HPP__

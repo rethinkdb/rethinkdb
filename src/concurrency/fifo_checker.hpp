@@ -7,7 +7,10 @@
 
 // The memcached order_source_t and the backfill_receiver_t will want
 // to be in distinct buckets.
-const int BACKFILL_RECEIVER_BUCKET = 0;
+
+// The master and slave never happen in the same process.
+const int SLAVE_ORDER_SOURCE_BUCKET = 0;
+const int MASTER_ORDER_SOURCE_BUCKET = 0;
 
 class order_token_t {
 public:
@@ -54,7 +57,7 @@ public:
             // We tolerate equality in this comparison because it can
             // be used to ensure that multiple actions don't get
             // interrupted.
-            rassert(token.value_ >= last_seens_[token.bucket_]);
+            rassert(token.value_ >= last_seens_[token.bucket_], "token.value_ = %ld, last_seens_[token.bucket_] = %ld", token.value_, last_seens_[token.bucket_]);
             last_seens_[token.bucket_] = token.value_;
         }
     }
