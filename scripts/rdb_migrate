@@ -1,14 +1,8 @@
-#!/bin/bash -vx
-usage() {
-    echo "Usage:"
-    echo "      $0 [OPTIONS] -i <old_file_1> [-i <old_file_2> ...] -o <new_file_1> [-o <new_file_2> ...]"
-    echo "      Migrate from old rethinkdb database"
-    echo "Options:"
-}
+#!/bin/bash
 
 infile=()
 outfile=()
-old_rdb='old_rethinkdb' #previous rethinkdb version
+old_rdb='' #previous rethinkdb version
 new_rdb='rethinkdb' #new rethinkdb version
 
 while getopts i:o:p:r: name
@@ -36,6 +30,8 @@ version=`$new_rdb fsck ${filecl[@]} -c | grep version: | sed 's/static_header ve
 if [ $version = "0.1" ]
 then
     old_rdb=/usr/bin/rethinkdb1.0
+else
+    echo "Unrecognized file version: $version" >&2
 fi
 
 $old_rdb extract ${filecl[@]} -o /tmp/rdb_migration_buffer

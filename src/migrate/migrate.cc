@@ -110,7 +110,5 @@ int run_migrate(int argc, char **argv) {
     }
 
     system(boost::algorithm::join(command_line, " ").c_str());
-
-    BREAKPOINT;
     return 0;
 }
