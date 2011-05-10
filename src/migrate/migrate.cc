@@ -8,23 +8,18 @@ namespace migrate {
 void usage(UNUSED const char *name) {
     Help_Pager *help = Help_Pager::instance();
     help->pagef("Usage:\n"
-                "        rethinkdb fsck [OPTIONS] -f <file_1> [-f <file_2> ...]\n");
+                "        rethinkdb migrate -f <file_1> [-f <file_2> ...]\n");
     help->pagef("\n"
-                "Options:\n"
-                "  -f  --file                Path to file or block device where part or all of\n"
-                "                            the database exists.\n"
-                "      --ignore-diff-log     Do not apply patches from the diff log while\n"
-                "                            checking the database.\n");
-    help->pagef("\n"
-                "Output options:\n"
-                "  -l  --log-file            File to log to.  If not provided, messages will be\n"
-                "                            printed to stderr.\n");
-#ifndef NDEBUG
-    help->pagef("  -c  --command-line        Print the command line arguments that were used\n"
-                "                            to start this server.\n");
-#endif
-    help->pagef("\n"
-                "Fsck is used to check one or more files for consistency\n");
+                "Migrate converts rethinkdb files from one version to another.\n"
+                "Interrupting mid migration is very ill advised.  However if it\n"
+                "should happen it is less than apocalyptic. If the server has\n"
+                "yet to begin converting the file (indicated by the message\n"
+                "\"Converting file...\" then no harm has been done and the\n"
+                "old data files are intact. If migration was stopped during\n"
+                "this stage then the file /tmp/rdb_migration_buffer will\n"
+                "hold your data as a series of memcached commands this file\n"
+                "should be copied to a safe location. Please refer to the\n"
+                "manual or contact support for how to enter this data.\n");
     exit(0);
 }
 

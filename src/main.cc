@@ -29,6 +29,7 @@ void usage() {
                 "Administrating databases:\n"
                 "    extract     Extract as much data as possible from a corrupted database.\n"
                 "    fsck        Check a database for corruption.\n"
+                "    migrate     Convert between file versions.\n"
                 "\n"
                 "Use 'rethinkdb help COMMAND' for help on a single command.\n"
                 "Use 'rethinkdb --version' for the current version of rethinkdb.\n");
