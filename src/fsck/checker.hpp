@@ -51,13 +51,9 @@ struct config_t {
     std::string log_file_name;
     bool ignore_diff_log;
 
-    config_t() {
-        // Default values
-        ignore_diff_log = false;
-    }
     bool print_command_line;
 
-    config_t() :print_command_line(false) {}
+    config_t() : ignore_diff_log(false), print_command_line(false) {}
 };
 
 bool check_files(const config_t& config);

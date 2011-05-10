@@ -327,7 +327,7 @@ bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_co
     return true;
 }
 
-std::string extract_static_config_flags(direct_file_t *file, file_knowledge *knog) {
+std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_knowledge *knog) {
     block header;
     header.init(DEVICE_BLOCK_SIZE, file, 0);
     static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
@@ -1547,9 +1547,9 @@ void print_interfile_summary(const multiplexer_config_block_t& c, const mc_confi
     printf("config_block n_log_blocks: %d\n", mcc.cache.n_patch_log_blocks);
 }
 
-std::string extract_slices_flags(const serializer_config_block_t& c) {
+std::string extract_slices_flags(const multiplexer_config_block_t& c) {
     char flags[100];
-    snprintf(flags, 100, " -s %d ", c.btree_config.n_slices);
+    snprintf(flags, 100, " -s %d ", c.n_proxies);
     return std::string(flags);
 }
 
@@ -1590,14 +1590,14 @@ bool check_files(const config_t& cfg) {
     }
 
     if (!cfg.print_command_line) {
-        print_interfile_summary(*knog.file_knog[0]->config_block);
+        print_interfile_summary(*knog.file_knog[0]->config_block, *knog.file_knog[0]->mc_config_block);
 
         // A thread for every slice.
-        int n_slices = knog.file_knog[0]->config_block->btree_config.n_slices;
+        int n_slices = knog.file_knog[0]->config_block->n_proxies;
         std::vector<pthread_t> threads(n_slices);
         all_slices_errors slices_errs(n_slices);
         for (int i = 0; i < num_files; ++i) {
-            launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs);
+            launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs, cfg);
         }
 
         // Wait for all threads to finish.
