@@ -1,14 +1,8 @@
-#!/bin/bash -vx
-usage() {
-    echo "Usage:"
-    echo "      $0 [OPTIONS] -i <old_file_1> [-i <old_file_2> ...] -o <new_file_1> [-o <new_file_2> ...]"
-    echo "      Migrate from old rethinkdb database"
-    echo "Options:"
-}
+#!/bin/bash
 
 infile=()
 outfile=()
-old_rdb='old_rethinkdb' #previous rethinkdb version
+old_rdb='' #previous rethinkdb version
 new_rdb='rethinkdb' #new rethinkdb version
 
 while getopts i:o:p:r: name
@@ -16,15 +10,14 @@ do
     case "$name" in
     i)      infile+=("$OPTARG");;
     o)      outfile+=("$OPTARG");;
-    p)      old_rdb=("$OPTARG");;
     r)      new_rdb=("$OPTARG");;
     ?)      usage
             exit 2;;
     esac
 done
 
-echo ${infile[@]}
-echo ${outfile[@]}
+#echo ${infile[@]}
+#echo ${outfile[@]}
 
 filecl=()
 for file in ${infile[@]}
@@ -32,10 +25,19 @@ do
     filecl+=("-f" $file)
 done
 
-$old_rdb extract ${filecl[@]} -o /tmp/rdb_migration_buffer
-flags=`$old_rdb fsck ${filecl[@]} -c | grep FLAGS: | sed s/FLAGS://`
+version=`$new_rdb fsck ${filecl[@]} -c | grep version: | sed 's/static_header version: \([0-9\.]*\)/\1/'`
 
-if [ ${outfile[@]} -ne 0 ]
+if [ $version = "0.1" ]
+then
+    old_rdb=/usr/bin/rethinkdb1.0
+else
+    echo "Unrecognized file version: $version" >&2
+fi
+
+$old_rdb extract ${filecl[@]} -o /tmp/rdb_migration_buffer -l /dev/null
+flags=`$old_rdb fsck ${filecl[@]} -c -l /dev/null | grep FLAGS: | sed s/FLAGS://`
+
+if [ ${#outfile[@]} -gt "0" ]
 then
     filecl=()
     for file in ${outfile[@]}
@@ -50,6 +52,8 @@ then
     port=12345
 fi
 
-$new_rdb ${filecl[@]} $flags -p "$port"&
+$new_rdb create --force ${filecl[@]} $flags -l /dev/null
+$new_rdb ${filecl[@]} $flags -p "$port" -l /dev/null&
+sleep 5
 while ! nc -q 1 localhost "$port" </dev/null; do sleep 2; done
-(cat /tmp/rdb_migration_swap && echo "rdb shutdown") | nc localhost "$port"
+(cat /tmp/rdb_migration_buffer && echo "rdb shutdown") | nc localhost "$port"

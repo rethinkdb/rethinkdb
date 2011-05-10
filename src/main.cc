@@ -6,6 +6,7 @@
 #include "extract/extract.hpp"
 #include "utils.hpp"
 #include "help.hpp"
+#include "migrate/migrate.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION
@@ -28,6 +29,7 @@ void usage() {
                 "Administrating databases:\n"
                 "    extract     Extract as much data as possible from a corrupted database.\n"
                 "    fsck        Check a database for corruption.\n"
+                "    migrate     Convert between file versions.\n"
                 "\n"
                 "Use 'rethinkdb help COMMAND' for help on a single command.\n"
                 "Use 'rethinkdb --version' for the current version of rethinkdb.\n");
@@ -65,6 +67,9 @@ int dispatch_on_args(std::vector<char *> args) {
 
     } else if (!strcmp(args[1], "fsck")) {
         return run_fsck(args.size() - 1, args.data() + 1);
+
+    } else if (!strcmp(args[1], "migrate")) {
+        return run_migrate(args.size(), args.data()); //migrate requires the exec path
 
     } else if (!strcmp(args[1], "help") || !strcmp(args[1], "-h") || !strcmp(args[1], "--help")) {
         if (args.size() >= 3) {
