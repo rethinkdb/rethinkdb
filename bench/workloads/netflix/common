@@ -12,7 +12,6 @@ function run_with_clients {
     #MEM_SIZE=11000     # For EC2 large memory
     MEM_SIZE=24000      # For local tests
 
-    rm -f /tmp/keys
     if [ $DATABASE == "rethinkdb" ]; then
         ../../build/release/rethinkdb create $SSD_DRIVES --force -s 120
         #./dbench                                                                                      \

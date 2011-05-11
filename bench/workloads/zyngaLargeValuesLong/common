@@ -6,21 +6,19 @@ function run_with_clients {
     
     
     # Create a database containing $DATABASE_SIZE values
-    #DATABASE_SIZE=3000000i # doesn't fit into memory with Membase on magneto :-(
-    DATABASE_SIZE=1500000i
+    DATABASE_SIZE=3000000i
 
-    #MEM_SIZE=59392
-    #MEM_SIZE=10360
-    MEM_SIZE=24000
+    #MEM_SIZE=59392 # EC2 quadruple memory extra large
+    #MEM_SIZE=10360 # EC2 extra large
+    MEM_SIZE=24000  # magneto
 
-    rm -f /tmp/keys
     if [ $DATABASE == "rethinkdb" ]; then
         ../../build/release/rethinkdb create $SSD_DRIVES --force --block-size 16384
-        ./dbench                                                                                      \
-            -f -d "/tmp/zynga_insert" -H $SERVER_HOSTS    \
-            {server}rethinkdb:"-m ${MEM_SIZE} $SSD_DRIVES"                                            \
-            {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
-            iostat:1 vmstat:1 
+        #./dbench                                                                                      \
+        #    -f -d "/tmp/zynga_insert" -H $SERVER_HOSTS    \
+        #    {server}rethinkdb:"-m ${MEM_SIZE} $SSD_DRIVES"                                            \
+        #    {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
+        #    iostat:1 vmstat:1 
     elif [ $DATABASE == "mysql" ]; then
         if [ "$NUMBER_OF_CLIENTS" -lt "1025" ]; then
             ./dbench                                                                                   \
@@ -30,11 +28,11 @@ function run_with_clients {
                 iostat:1 vmstat:1
         fi
     elif [ $DATABASE == "membase" ]; then
-        ./dbench                                                                                   \
-            -f -d "/tmp/zynga_insert" -H $SERVER_HOSTS -p 11211 \
-            {server}membase:"-d $MEMBASE_DATA_PATH -m ${MEM_SIZE}"                                       \
-            {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
-            iostat:1 vmstat:1
+        #./dbench                                                                                   \
+        #    -f -d "/tmp/zynga_insert" -H $SERVER_HOSTS -p 11211 \
+        #    {server}membase:"-d $MEMBASE_DATA_PATH -m ${MEM_SIZE}"                                       \
+        #    {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
+        #    iostat:1 vmstat:1
     fi
     
     # Kill the page cache!
@@ -48,7 +46,8 @@ function run_with_clients {
     if [ $DATABASE == "rethinkdb" ]; then
         ./dbench                                                                                      \
             -d "$BENCH_DIR/bench_output/Zynga_workload_long" -H $SERVER_HOSTS    \
-            {server}rethinkdb:"-m ${MEM_SIZE} $SSD_DRIVES --read-ahead y --unsaved-data-limit ${MEM_SIZE}"                                            \
+            {server}rethinkdb:"-m ${MEM_SIZE} $SSD_DRIVES --unsaved-data-limit ${MEM_SIZE}"                                            \
+            -i {insert}stressinsert[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
             {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_DURATION -v 10240-16384 -w 1/90/1/8 -i /tmp/keys" \
             iostat:1 vmstat:1 rdbstat:1
     elif [ $DATABASE == "mysql" ]; then
@@ -64,7 +63,8 @@ function run_with_clients {
     elif [ $DATABASE == "membase" ]; then
         ./dbench                                                                                   \
             -d "$BENCH_DIR/bench_output/Zynga_workload_long" -H $SERVER_HOSTS -p 11211 \
-            {server}membase:"-d $MEMBASE_DATA_PATH -m ${MEM_SIZE} -c yes"                                       \
+            {server}membase:"-d $MEMBASE_DATA_PATH -m ${MEM_SIZE}"                                       \
+            -i {insert}stressinsert[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
             {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_DURATION -v 10240-16384 -w 1/90/1/8 -i /tmp/keys" \
             iostat:1 vmstat:1
     else
