@@ -298,6 +298,9 @@ man1_dir:=$(man_dir)/man1
 share_dir:=$(prefix)/share/$(VERSIONED_PACKAGE_NAME)
 bash_completion_dir:=/etc/bash_completion.d
 internal_bash_completion_dir:=$(share_dir)$(bash_completion_dir)
+scripts_dir:=$(share_dir)/scripts
+
+ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate $(ASSETS_DIR)/scripts/unused_port
 
 FULL_SERVER_EXEC_NAME=$(bin_dir)/$(SERVER_EXEC_NAME)
 FULL_SERVER_EXEC_NAME_VERSIONED=$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
@@ -325,13 +328,15 @@ install-manpages: $(ASSETS_DIR)/man/rethinkdb.1
 #			gzip -9 < $$manpage | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$$(basename $$manpage).gz; \
 #		done
 
-install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash
+install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash $(ASSET_SCRIPTS)
 	$(QUIET) install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
 	$(QUIET) install -m755 -d $(DESTDIR)$(bash_completion_dir)
 	$(QUIET) m4 																												\
 			-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 											\
 			-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 	\
 			$(ASSETS_DIR)/scripts/rethinkdb.bash | install -m644 /dev/stdin $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
+	$(QUIET) install -m755 -d $(DESTDIR)$(scripts_dir)
+	$(QUIET) for s in $(ASSET_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(scripts_dir)/$$(basename $$s); done
 
 install-docs:
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
@@ -433,6 +438,7 @@ build-rpm: all prepare_rpm_package_dirs
 				-D "MAN1_DIR=$(man1_dir)"																					\
 				-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 									\
 				-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)"	\
+				-D "SCRIPTS_DIR=$(scripts_dir)"																		\
 				-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 									\
 			$(RPM_SPEC_INPUT) >$(RPM_SPEC_FILE)
 
