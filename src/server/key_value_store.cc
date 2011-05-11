@@ -321,8 +321,7 @@ rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const s
 
     boost::shared_ptr<merged_results_iterator_t> merge_iterator(new merged_results_iterator_t());
     for (int s = 0; s < btree_static_config.n_slices; s++) {
-        merge_iterator->add_mergee(shards[s]->rget(left_mode, left_key, right_mode, right_key).get());
-        //@jdoliner this is probably a memory leak here
+        merge_iterator->add_mergee(shards[s]->rget(left_mode, left_key, right_mode, right_key));
     }
     return merge_iterator;
 }

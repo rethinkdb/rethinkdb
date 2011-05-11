@@ -46,7 +46,7 @@ public:
     }
 
     void add_mergee(mergee_t mergee) {
-        rassert(!next_to_pop_from);
+        rassert(!next_to_pop_from.get());
         mergees.insert(mergee);
     }
 
@@ -57,7 +57,7 @@ public:
 
     typename boost::optional<T> next() {
         // if we are getting the first element, we have to request the data from all of the mergees
-        if (!next_to_pop_from) {
+        if (!next_to_pop_from.get()) {
             prefetch();
             for (typename mergees_t::iterator it = mergees.begin(); it != mergees.end();) {
                 mergee_t mergee = *it;
