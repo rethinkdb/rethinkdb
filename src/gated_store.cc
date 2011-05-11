@@ -21,7 +21,7 @@ rget_result_t gated_get_store_t::rget(rget_bound_mode_t left_mode, const store_k
         threadsafe_gate_t::entry_t entry(&gate);
         return internal->rget(left_mode, left_key, right_mode, right_key);
     } else {
-        return rget_result_t((one_way_iterator_t<key_with_data_provider_t> *) NULL);
+        return rget_result_t();
     }
 }
 
