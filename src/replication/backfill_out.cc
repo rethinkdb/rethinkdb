@@ -114,13 +114,14 @@ struct backfill_and_streaming_manager_t :
         if (all_delete_queues_so_far_can_send_keys_ && !can_send_deletion_keys) {
             all_delete_queues_so_far_can_send_keys_ = false;
 
+
+
             // We only send this once, and it is important that we
             // send it before the delete_queues_can_send_keys_latch_
             // gets pulsed, because then a delete queue could finish
             // and start sending sets before we sent a
             // delete_everything message.
-            backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_delete_everything, handler_));
-            handler_->backfill_delete_everything();
+            backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_delete_everything, handler_, order_token_t::ignore));
         }
 
         delete_queues_can_send_keys_latch_.count_down();
@@ -139,8 +140,7 @@ struct backfill_and_streaming_manager_t :
     void deletion_key(const btree_key_t *key) {
         // This runs on the scheduler thread.
         store_key_t tmp(key->size, key->contents);
-        backfill_job_queue.push(boost::bind(
-            &backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, tmp));
+        backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, tmp, order_token_t::ignore));
     }
 
     /* The store calls this when it finishes the first phase of backfilling. It's redundant
@@ -151,8 +151,7 @@ struct backfill_and_streaming_manager_t :
     /* The store calls this when we need to backfill a key/value pair to the slave */
     void on_keyvalue(backfill_atom_t atom) {
         // This runs on the scheduler thread.
-        backfill_job_queue.push(boost::bind(
-            &backfill_and_realtime_streaming_callback_t::backfill_set, handler_, atom));
+        backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_set, handler_, atom, order_token_t::ignore));
     }
 
     /* When we are finally done with the backfill, the store calls done(). */
@@ -176,7 +175,8 @@ struct backfill_and_streaming_manager_t :
             backfill_job_queue.push(boost::bind(
                 &backfill_and_realtime_streaming_callback_t::backfill_done,
                 handler_,
-                initial_replication_clock_.next()));
+                initial_replication_clock_.next(),
+                order_token_t::ignore));
 
             /* This allows us to shut down */
             pulsed_when_backfill_over.pulse();

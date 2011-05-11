@@ -93,10 +93,10 @@ struct backfill_storer_t : public backfill_and_realtime_streaming_callback_t {
     backfill_storer_t(btree_key_value_store_t *underlying);
     ~backfill_storer_t();
 
-    void backfill_delete_everything();
-    void backfill_deletion(store_key_t key);
-    void backfill_set(backfill_atom_t atom);
-    void backfill_done(repli_timestamp_t timestamp);
+    void backfill_delete_everything(order_token_t token);
+    void backfill_deletion(store_key_t key, order_token_t token);
+    void backfill_set(backfill_atom_t atom, order_token_t token);
+    void backfill_done(repli_timestamp_t timestamp, order_token_t token);
 
     void realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token);
     void realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token);
@@ -114,7 +114,7 @@ private:
     listing_passive_producer_t<boost::function<void()> > queue_picker_;
     coro_pool_t coro_pool_;
 
-    order_sink_t realtime_order_sink_;
+    order_sink_t order_sink_;
 };
 
 }
