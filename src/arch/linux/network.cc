@@ -278,8 +278,11 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
 
     /* Set things up so the semaphore gets released and the buffer gets freed
     once the write is over */
-    write_queue.push(boost::bind(delete_ptr_t<std::vector<char> >(), buffer));
     write_queue.push(boost::bind(&semaphore_t::unlock, &write_queue_limiter, (int)buffer->size()));
+
+    /* Careful--this operation might succeed immediately, so you can't access `buffer`
+    after `push()` returns. */
+    write_queue.push(boost::bind(delete_ptr_t<std::vector<char> >(), buffer));
 }
 
 void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
