@@ -27,7 +27,7 @@ void co_acquire_large_buf_rhs(const thread_saver_t& saver, large_buf_t *large_va
 void co_acquire_large_buf_for_delete(large_buf_t *large_value);
 
 // Avoid using this, use transactor_t instead.
-transaction_t *co_begin_transaction(const thread_saver_t& saver, cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+transaction_t *co_begin_transaction(const thread_saver_t& saver, cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token);
 
 // Avoid using this, use transactor_t instead.
 void co_commit_transaction(const thread_saver_t& saver, transaction_t *transaction);

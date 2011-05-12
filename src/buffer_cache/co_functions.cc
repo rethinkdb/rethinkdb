@@ -91,7 +91,7 @@ struct transaction_begun_callback_t : public transaction_begin_callback_t {
     }
 };
 
-transaction_t *co_begin_transaction(const thread_saver_t& saver, cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp) {
+transaction_t *co_begin_transaction(const thread_saver_t& saver, cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, UNUSED order_token_t token) {
     // TODO: ensure_thread is retarded.
     cache->ensure_thread(saver);
     transaction_begun_callback_t cb;
