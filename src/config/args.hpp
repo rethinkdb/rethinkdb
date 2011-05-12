@@ -34,18 +34,22 @@
 // one account for writes, and one account for reads.
 // By adjusting the priorities of these accounts, reads
 // can be prioritized over writes or the other way around.
-// This is a one-per-cache/slice priority.
-#define CACHE_READS_IO_PRIORITY                   70
-#define CACHE_WRITES_IO_PRIORITY                 30
+//
+// This is a one-per-serializer/file priority.
+// The per-cache priorities are dynamically derived by dividing these priorities
+// by the number of slices on a specific file.
+#define CACHE_READS_IO_PRIORITY                   2000
+#define CACHE_WRITES_IO_PRIORITY                  200
 
 // Garbage Colletion uses its own IO account.
 // Its IO priority should not be too low, as it should be able to keep up
 // with the other write activity going on in the system.
-// Because GC does only submit small "bursts" of IO operations anyway (up to one extent
-// worth of reads or writes), a high IO priority for GC should not harm latency
-// in other parts of the system very much.
+// An update-intensive large-value workload with an out-of-memory database
+// size on EC2 EBS volumes has uncovered that a too high GC priority can have
+// disastrous effects on query throughput though, so we choose a rather low priority.
+//
 // This is a one-per-serializer/file priority.
-#define GC_IO_PRIORITY                            155
+#define GC_IO_PRIORITY                            200
 
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)

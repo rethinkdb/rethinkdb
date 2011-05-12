@@ -697,6 +697,7 @@ class DBench(object):
             self.insert.start()
             self.insert.wait()
             self.info('Client completed')
+            time.sleep(180) # Wait a bit for the database to be able to flush stuff...
     
         if self.args.prime_caches:
             # Run client twice to prime caches of the server

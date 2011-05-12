@@ -6,6 +6,7 @@
 #include "db_thread_info.hpp"
 #include "replication/backfill.hpp"
 #include "replication/master.hpp"
+#include "cmd_args.hpp"
 
 /* shard_store_t */
 
@@ -121,7 +122,12 @@ void create_existing_shard(
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    shards[i] = new shard_store_t(pseudoserializers[i], dynamic_config, delete_queue_limit, i);
+    /* Divide the i/o priorities between all slices on the same file. */
+    mirrored_cache_config_t individual_shard_config = *dynamic_config;
+    individual_shard_config.io_priority_reads = individual_shard_config.io_priority_reads / pseudoserializers[i]->get_n_slices_for_file() + 1;
+    individual_shard_config.io_priority_writes = individual_shard_config.io_priority_writes / pseudoserializers[i]->get_n_slices_for_file() + 1;
+
+    shards[i] = new shard_store_t(pseudoserializers[i], &individual_shard_config, delete_queue_limit, i);
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config)
