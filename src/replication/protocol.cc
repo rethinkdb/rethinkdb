@@ -211,16 +211,19 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
 void repli_stream_t::send(net_introduce_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(INTRODUCE, msg);
+    flush();
 }
 
 void repli_stream_t::send(net_backfill_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL, msg);
+    flush();
 }
 
 void repli_stream_t::send(net_backfill_complete_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL_COMPLETE, msg);
+    flush();
 }
 
 void repli_stream_t::send(net_backfill_delete_everything_t msg) {
@@ -276,6 +279,7 @@ void repli_stream_t::send(net_backfill_delete_t *msg) {
 void repli_stream_t::send(net_nop_t msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(NOP, &msg);
+    flush();
 }
 
 void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_acquisition) {
@@ -301,6 +305,14 @@ void repli_stream_t::try_write(const void *data, size_t size) {
         /* Master died; we happened to be mid-write at the time. A tcp_conn_t::read_closed_exc_t
         will be thrown somewhere and that will cause us to shut down. So we can ignore this
         exception. */
+    }
+}
+
+void repli_stream_t::flush() {
+    try {
+        conn_->flush_buffer();
+    } catch (tcp_conn_t::write_closed_exc_t &e) {
+        /* Ignore; see `repli_stream_t::try_write()`. */
     }
 }
 
