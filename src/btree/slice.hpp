@@ -62,6 +62,8 @@ private:
     cache_t cache_;
     int64_t delete_queue_limit_;
 
+    plain_sink_t order_sink_;
+
     DISABLE_COPYING(btree_slice_t);
 };
 
