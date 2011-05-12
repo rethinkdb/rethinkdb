@@ -3,8 +3,8 @@
 #include "concurrency/pmap.hpp"
 #include "perfmon.hpp"
 
-conn_acceptor_t::conn_acceptor_t(int port, const boost::function<void(tcp_conn_t *)> &handler) :
-    handler(handler),
+conn_acceptor_t::conn_acceptor_t(int port, conn_acceptor_callback_t *_acceptor_callback) :
+    acceptor_callback(_acceptor_callback),
     listener(new tcp_listener_t(port, boost::bind(&conn_acceptor_t::on_conn, this, _1))),
     next_thread(0)
     { }
@@ -28,6 +28,9 @@ void conn_acceptor_t::conn_agent_t::run() {
 
     int thread = parent->next_thread++ % get_num_db_threads();
     {
+        boost::scoped_ptr<conn_handler_with_special_lifetime_t> handler;
+        parent->acceptor_callback->make_handler_for_conn_thread(handler);
+
         on_thread_t thread_switcher(thread);
     
         /* Lock the shutdown_lock so the parent can't shut stuff down without our connection closing
@@ -36,7 +39,7 @@ void conn_acceptor_t::conn_agent_t::run() {
         parent->shutdown_locks[thread].co_lock(rwi_read);
         parent->conn_agents[thread].push_back(this);
     
-        parent->handler(conn);
+        handler->talk_on_connection(conn);
         if (conn->is_read_open()) conn->shutdown_read();
         if (conn->is_write_open()) conn->shutdown_write();
     
