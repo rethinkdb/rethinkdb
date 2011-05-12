@@ -290,7 +290,7 @@ void coro_t::wait() {   /* class method */
 
 void coro_t::yield() {  /* class method */
     rassert(self(), "Not in a coroutine context");
-    self()->notify();
+    self()->notify_later();
     self()->wait();
 }
 
@@ -320,11 +320,11 @@ void coro_t::notify_now() {
     prev_coro = prev_prev_coro;
 }
 
-void coro_t::notify() {
+void coro_t::notify_later() {
     rassert(!notified_);
     notified_ = true;
 
-    /* notify() doesn't switch to the coroutine immediately; instead, it just pushes
+    /* notify_later() doesn't switch to the coroutine immediately; instead, it just pushes
     the coroutine onto the event queue. */
 
     /* current_thread is the thread that the coroutine lives on, which may or may not be the
@@ -339,7 +339,7 @@ void coro_t::move_to_thread(int thread) {   /* class method */
         return;
     }
     self()->current_thread_ = thread;
-    self()->notify();
+    self()->notify_later();
     wait();
 }
 
@@ -363,7 +363,7 @@ bool is_coroutine_stack_overflow(void *addr) {
     return current_coro && current_coro->context->stack == base;
 }
 
-void coro_t::spawn(const boost::function<void()>& deed) {
+void coro_t::spawn_later(const boost::function<void()>& deed) {
     spawn_on_thread(linux_thread_pool_t::thread_id, deed);
 }
 
@@ -372,6 +372,6 @@ void coro_t::spawn_now(const boost::function<void()> &deed) {
 }
 
 void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
-    (new coro_t(deed, thread))->notify();
+    (new coro_t(deed, thread))->notify_later();
 }
 
