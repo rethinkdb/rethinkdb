@@ -41,9 +41,9 @@ struct coro_globals_t {
     ~coro_globals_t();
 };
 
-/* A coro_t represents a fiber of execution within a thread. Create one with spawn(). Within a
+/* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
-another fiber calls notify() on it.
+another fiber calls notify_*() on it.
 
 coro_t objects can switch threads with move_to_thread(), but it is recommended that you use
 on_thread_t for more safety. */
@@ -53,19 +53,28 @@ struct coro_t : private linux_thread_message_t {
     friend bool is_coroutine_stack_overflow(void *);
 
 public:
-    static void spawn(const boost::function<void()>& deed);
+    static void spawn_later(const boost::function<void()> &deed);
     static void spawn_now(const boost::function<void()> &deed);
-    static void spawn_on_thread(int thread, const boost::function<void()>& deed);
+    static void spawn_on_thread(int thread, const boost::function<void()> &deed);
 
-    // Use coro_t::spawn(boost::bind(...)) for spawning with parameters.
+    // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
 
 public:
     static void wait();         // Pauses the current coroutine until it's notified
     static void yield();        // Pushes the current coroutine to the end of the notify queue and waits
     static coro_t *self();      // Returns the current coroutine
     void notify_now();          // Switches to a coroutine immediately (will switch back when it returns or wait()s)
-    void notify();              // Wakes up the coroutine, allowing the scheduler to trigger it to continue
+    void notify_later();        // Wakes up the coroutine, allowing the scheduler to trigger it to continue
     static void move_to_thread(int thread); // Wait and notify self on the CPU (avoiding race conditions)
+
+    // `spawn()` and `notify()` are synonyms for `spawn_later()` and `notify_later()`; their
+    // use is discouraged because they are ambiguous.
+    static void spawn(const boost::function<void()> &deed) {
+        spawn_later(deed);
+    }
+    void notify() {
+        notify_later();
+    }
 
 public:
     static void set_coroutine_stack_size(size_t size);
