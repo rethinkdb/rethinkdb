@@ -28,7 +28,9 @@ void conn_acceptor_t::conn_agent_t::run() {
 
     int thread = parent->next_thread++ % get_num_db_threads();
     {
+        home_thread_mixin_t::rethread_t unregister_conn(conn, INVALID_THREAD);
         on_thread_t thread_switcher(thread);
+        home_thread_mixin_t::rethread_t reregister_conn(conn, get_thread_id());
     
         /* Lock the shutdown_lock so the parent can't shut stuff down without our connection closing
         first. Put ourselves in the conn_agents list so it can come close our connection if it needs

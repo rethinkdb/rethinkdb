@@ -68,29 +68,63 @@ private:
     DISABLE_COPYING(thread_saver_t);
 };
 
-/* The home thread mixin is a simple mixin for objects that are primarily associated with
-a single thread. It just keeps track of the thread that the object was created on and
-makes sure that it is destroyed from the same thread. It exposes the ID of that thread
-as the "home_thread" variable. */
+/* The home thread mixin is a mixin for objects that can only be used on
+a single thread. Its thread ID is exposed as the `home_thread` variable. Some
+subclasses of `home_thread_mixin_t` can be moved to another thread; to do this,
+you can use the `rethread_t` type or the `rethread()` method. */
+
+#define INVALID_THREAD (-1)
 
 class home_thread_mixin_t {
 public:
-    const int home_thread;
+    const int &home_thread;
 
-    void assert_thread() {
-        rassert(home_thread == get_thread_id());
+    void assert_thread() const {
+        if (home_thread == INVALID_THREAD) {
+            crash("This object cannot be used because it currently does not have a home thread.\n");
+        } else {
+            rassert(home_thread == get_thread_id());
+        }
     }
 
     // We force callers to pass a thread_saver_t to ensure that they
     // know exactly what they're doing.
     void ensure_thread(UNUSED const thread_saver_t& saver) {
+        if (home_thread == INVALID_THREAD) {
+            crash("This object cannot be used because it currently does not have a home thread.\n");
+        }
         // TODO: make sure nobody is calling move_to_thread except us
         // and thread_saver_t.
         coro_t::move_to_thread(home_thread);
     }
+
+    virtual void rethread(UNUSED int thread) {
+        crash("This class is not rethreadable.\n");
+    }
+
+    struct rethread_t {
+        rethread_t(home_thread_mixin_t *m, int thread) :
+                mixin(m), old_thread(mixin->home_thread), new_thread(thread) {
+            mixin->rethread(new_thread);
+            rassert(mixin->home_thread == new_thread);
+        }
+        ~rethread_t() {
+            rassert(mixin->home_thread == new_thread);
+            mixin->rethread(old_thread);
+            rassert(mixin->home_thread == old_thread);
+        }
+    private:
+        home_thread_mixin_t *mixin;
+        int old_thread, new_thread;
+    };
+
 protected:
-    home_thread_mixin_t() : home_thread(get_thread_id()) { }
+    home_thread_mixin_t() :
+        home_thread(real_home_thread), real_home_thread(get_thread_id()) { }
     ~home_thread_mixin_t() { }
+
+    // `home_thread` is a read-only version of `real_home_thread`.
+    int real_home_thread;
 
 private:
     // Things with home threads should not be copyable, since we don't

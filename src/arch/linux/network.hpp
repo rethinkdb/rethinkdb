@@ -12,7 +12,8 @@
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
 struct linux_tcp_conn_t :
-    public linux_event_callback_t
+    public home_thread_mixin_t,
+    private linux_event_callback_t
 {
     friend class linux_tcp_listener_t;
 
@@ -114,7 +115,12 @@ private:
 
     scoped_fd_t sock;
 
-    linux_event_watcher_t event_watcher;
+    /* Overrides `home_thread_mixin_t`'s `rethread()` method */
+    void rethread(int);
+
+    /* Object that we use to watch for events. It's NULL when we are not registered on any
+    thread, and otherwise is an object that's valid for the current thread. */
+    linux_event_watcher_t *event_watcher;
 
     /* True if there is a pending read or write */
     bool read_in_progress, write_in_progress;

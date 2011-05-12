@@ -58,7 +58,8 @@ ERROR_BREAKOUT:
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
-    sock(connect_to(host, port)), event_watcher(sock.get(), this),
+    sock(connect_to(host, port)),
+    event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
     read_cond_watcher(new cond_weak_ptr_t), write_cond_watcher(new cond_weak_ptr_t),
     read_was_shut_down(false), write_was_shut_down(false)
@@ -87,14 +88,16 @@ static fd_t connect_to(const ip_address_t &host, int port) {
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
-    sock(connect_to(host, port)), event_watcher(sock.get(), this),
+    sock(connect_to(host, port)),
+    event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
     read_cond_watcher(new cond_weak_ptr_t), write_cond_watcher(new cond_weak_ptr_t),
     read_was_shut_down(false), write_was_shut_down(false)
     { }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
-    sock(s), event_watcher(sock.get(), this),
+    sock(s),
+    event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
     read_cond_watcher(new cond_weak_ptr_t), write_cond_watcher(new cond_weak_ptr_t),
     read_was_shut_down(false), write_was_shut_down(false)
@@ -106,6 +109,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
 }
 
 size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
+    assert_thread();
     rassert(!read_was_shut_down);
     rassert(!read_in_progress);
 
@@ -125,7 +129,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
             read_cond_watcher->watch(&cond);
 
             /* Set up the cond so it gets pulsed if an event comes */
-            event_watcher.watch(poll_event_in, boost::bind(&cond_t::pulse, &cond), &cond);
+            event_watcher->watch(poll_event_in, boost::bind(&cond_t::pulse, &cond), &cond);
 
             /* Wait for something to happen. */
             cond.wait_eagerly();
@@ -162,6 +166,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 
 size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
 
+    assert_thread();
     rassert(size > 0);
     rassert(!read_in_progress);
     if (read_was_shut_down) throw read_closed_exc_t();
@@ -180,6 +185,7 @@ size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
 
 void linux_tcp_conn_t::read(void *buf, size_t size) {
 
+    assert_thread();
     rassert(!read_in_progress);   // Is there a read already in progress?
     if (read_was_shut_down) throw read_closed_exc_t();
 
@@ -201,6 +207,7 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
 
 void linux_tcp_conn_t::read_more_buffered() {
 
+    assert_thread();
     rassert(!read_in_progress);
     if (read_was_shut_down) throw read_closed_exc_t();
 
@@ -213,6 +220,7 @@ void linux_tcp_conn_t::read_more_buffered() {
 
 const_charslice linux_tcp_conn_t::peek() const {
 
+    assert_thread();
     rassert(!read_in_progress);   // Is there a read already in progress?
     if (read_was_shut_down) throw read_closed_exc_t();
 
@@ -221,6 +229,7 @@ const_charslice linux_tcp_conn_t::peek() const {
 
 void linux_tcp_conn_t::pop(size_t len) {
 
+    assert_thread();
     rassert(!read_in_progress);
     if (read_was_shut_down) throw read_closed_exc_t();
 
@@ -229,6 +238,7 @@ void linux_tcp_conn_t::pop(size_t len) {
 }
 
 void linux_tcp_conn_t::shutdown_read() {
+    assert_thread();
     int res = ::shutdown(sock.get(), SHUT_RD);
     if (res != 0 && errno != ENOTCONN) {
         logERR("Could not shutdown socket for reading: %s\n", strerror(errno));
@@ -238,6 +248,7 @@ void linux_tcp_conn_t::shutdown_read() {
 }
 
 void linux_tcp_conn_t::on_shutdown_read() {
+    assert_thread();
     rassert(!read_was_shut_down);
     read_was_shut_down = true;
 
@@ -246,10 +257,12 @@ void linux_tcp_conn_t::on_shutdown_read() {
 }
 
 bool linux_tcp_conn_t::is_read_open() {
+    assert_thread();
     return !read_was_shut_down;
 }
 
 void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
+    assert_thread();
     rassert(!write_was_shut_down);
 
     while (size > 0) {
@@ -266,7 +279,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
             write_cond_watcher->watch(&cond);
 
             /* Set up the cond so it gets pulsed if an event comes */
-            event_watcher.watch(poll_event_out, boost::bind(&cond_t::pulse, &cond), &cond);
+            event_watcher->watch(poll_event_out, boost::bind(&cond_t::pulse, &cond), &cond);
 
             /* Wait for something to happen. */
             cond.wait_eagerly();
@@ -311,6 +324,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
 
 void linux_tcp_conn_t::write(const void *buf, size_t size) {
 
+    assert_thread();
     rassert(!write_in_progress);
     if (write_was_shut_down) throw write_closed_exc_t();
 
@@ -323,6 +337,7 @@ void linux_tcp_conn_t::write(const void *buf, size_t size) {
 
 void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
 
+    assert_thread();
     rassert(!write_in_progress);
     if (write_was_shut_down) throw write_closed_exc_t();
 
@@ -342,6 +357,7 @@ void linux_tcp_conn_t::flush_buffer() {
 }
 
 void linux_tcp_conn_t::shutdown_write() {
+    assert_thread();
     int res = ::shutdown(sock.get(), SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
         logERR("Could not shutdown socket for writing: %s\n", strerror(errno));
@@ -351,7 +367,7 @@ void linux_tcp_conn_t::shutdown_write() {
 }
 
 void linux_tcp_conn_t::on_shutdown_write() {
-
+    assert_thread();
     rassert(!write_was_shut_down);
     write_was_shut_down = true;
 
@@ -360,17 +376,49 @@ void linux_tcp_conn_t::on_shutdown_write() {
 }
 
 bool linux_tcp_conn_t::is_write_open() {
+    assert_thread();
     return !write_was_shut_down;
 }
 
 linux_tcp_conn_t::~linux_tcp_conn_t() {
+    assert_thread();
+
     if (is_read_open()) shutdown_read();
     if (is_write_open()) shutdown_write();
+
+    delete event_watcher;
+    event_watcher = NULL;
 
     /* scoped_fd_t's destructor will take care of close()ing the socket. */
 }
 
+void linux_tcp_conn_t::rethread(int new_thread) {
+
+    if (home_thread == get_thread_id() && new_thread == INVALID_THREAD) {
+        rassert(!read_in_progress);
+        rassert(!write_in_progress);
+        rassert(event_watcher);
+        delete event_watcher;
+        event_watcher = NULL;
+
+    } else if (home_thread == INVALID_THREAD && new_thread == get_thread_id()) {
+        rassert(!event_watcher);
+        event_watcher = new linux_event_watcher_t(sock.get(), this);
+
+    } else {
+        crash("linux_tcp_conn_t can be rethread()ed from no thread to the current thread or "
+            "from the current thread to no thread, but no other combination is legal. The "
+            "current thread is %d; the old thread is %d; the new thread is %d.\n",
+            get_thread_id(), home_thread, new_thread);
+    }
+
+    real_home_thread = new_thread;
+}
+
 void linux_tcp_conn_t::on_event(int events) {
+
+    assert_thread();
+
     /* This is called by linux_event_watcher_t when error events occur. Ordinary
     poll_event_in/poll_event_out events are not sent through this function. */
 

@@ -5,6 +5,7 @@
 #include "perfmon.hpp"
 #include "linux_utils.hpp"
 #include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
 
 // Event queue callback
 struct linux_event_callback_t {
@@ -81,7 +82,7 @@ struct linux_event_watcher_t {
 private:
     /* The guts are a separate object so that if one of the callbacks we call destroys us,
     we don't have to destroy the guts immediately. */
-    linux_event_watcher_guts_t *guts;
+    boost::scoped_ptr<linux_event_watcher_guts_t> guts;
     DISABLE_COPYING(linux_event_watcher_t);
 };
 
