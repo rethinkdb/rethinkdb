@@ -135,6 +135,8 @@ public:
     void send(net_delete_t *msg);
     void send(net_nop_t msg);
 
+    void flush();
+
 private:
 
     template <class net_struct_type>

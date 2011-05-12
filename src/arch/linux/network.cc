@@ -412,6 +412,9 @@ void linux_tcp_conn_t::flush_buffer() {
 
 void linux_tcp_conn_t::shutdown_write() {
     assert_thread();
+
+    flush_buffer();
+
     int res = ::shutdown(sock.get(), SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {
         logERR("Could not shutdown socket for writing: %s\n", strerror(errno));

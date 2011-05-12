@@ -270,15 +270,10 @@ bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
                     // Recover...
                     logERR("Recovering from a corrupted leaf node block. Data might be lost.\n");
                     if (pair_offset < pair_offsets_back_offset) {
-                        leaf->pair_offsets[j] = pair_offsets_back_offset;
+                        leaf->pair_offsets[j] = pair_offsets_back_offset; // This is most probably not the right location. But it's still better than an illegal one
                     } else {
-                        leaf->pair_offsets[j] = cfg.block_size().value() - sizeof(btree_leaf_pair) - sizeof(btree_value);
+                        leaf->pair_offsets[j] = pair_offsets_back_offset; // This is most probably not the right location. But it's still better than an illegal one
                     }
-                } else  if ((signed int)cfg.block_size().value() - (signed int)pair_offset < 0) {
-                    logERR("A pair has an illegal offset. Truncating offset list.\n");
-                    leaf->npairs = j;
-                    num_pairs = leaf->npairs;
-                    break;
                 }
             }
             for (int j = 0; j < num_pairs; ++j) {

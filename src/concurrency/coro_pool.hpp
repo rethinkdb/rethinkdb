@@ -42,8 +42,15 @@ private:
     passive_producer_t<boost::function<void()> > *source;
 
     void on_watchable_changed() {
-        if (source->available->get() && active_worker_count < max_worker_count) {
-            spin_up_new();
+        assert_thread();
+        if (max_worker_count != 1) debugf("on_watchable_changed(), source->available->get()=%s\n", source->available->get() ? "true" : "false");
+        while (source->available->get() && active_worker_count < max_worker_count) {
+            if (max_worker_count != 1) debugf("spawning coroutine...\n");
+            coro_t::spawn_now(boost::bind(
+                &coro_pool_t::worker_run,
+                    this,
+                    drain_semaphore_t::lock_t(&coro_drain_semaphore)
+                ));
         }
     }
 
@@ -51,33 +58,19 @@ private:
 
     drain_semaphore_t coro_drain_semaphore;
 
-    void spin_up_new() {
-        rassert(active_worker_count < max_worker_count);
-        coro_t::spawn_now(boost::bind(
-            &coro_pool_t::worker_run,
-                this,
-                drain_semaphore_t::lock_t(&coro_drain_semaphore)
-            ));
-    }
-
     void worker_run(UNUSED drain_semaphore_t::lock_t coro_drain_semaphore_lock) {
         assert_thread();
+        if (max_worker_count != 1) debugf("%p worker_run() active_worker_count %d -> %d\n", coro_t::self(), active_worker_count, active_worker_count + 1);
         ++active_worker_count;
+        rassert(active_worker_count <= max_worker_count);
         while (source->available->get()) {
+            if (max_worker_count != 1) debugf("%p doing a task...\n", coro_t::self());
             /* Pop the task that we are going to do off the queue */
             boost::function<void()> task = source->pop();
-
-            if (source->available->get() && active_worker_count < max_worker_count) {
-                /* There are still tasks on the queue, and we haven't hit the
-                worker limit yet, so there is benefit in spinning up another
-                coroutine. */
-                spin_up_new();
-            }
-
-            /* Perform the task */
-            task();
-            assert_thread(); // Make sure that `task()` didn't mess with us
+            task();   // Perform the task
+            assert_thread();   // Make sure that `task()` didn't mess with us
         }
+        if (max_worker_count != 1) debugf("%p worker_run() active_worker_count %d -> %d\n", coro_t::self(), active_worker_count, active_worker_count - 1);
         --active_worker_count;
     }
 };
