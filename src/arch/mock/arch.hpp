@@ -18,7 +18,6 @@ struct mock_io_config_t {
     typedef mock_iocallback_t iocallback_t;
     
     typedef typename inner_io_config_t::tcp_listener_t tcp_listener_t;
-    typedef typename inner_io_config_t::tcp_listener_callback_t tcp_listener_callback_t;
     
     typedef typename inner_io_config_t::tcp_conn_t tcp_conn_t;
     

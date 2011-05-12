@@ -78,9 +78,8 @@ public:
     void write(const void *buf, size_t size);
 
     /* write_buffered() is like write(), but it might not send the data until flush_buffer() or
-    write() is called. The advantage of this is that sometimes you want to build a message
-    piece-by-piece, but if you don't buffer it then Nagle's algorithm will screw with your
-    latency. */
+    write() is called. Internally, it bundles together the buffered writes; this may improve
+    performance. */
     void write_buffered(const void *buf, size_t size);
     void flush_buffer();
 
@@ -125,17 +124,8 @@ private:
     /* True if there is a pending read or write */
     bool read_in_progress, write_in_progress;
 
-    /* If there is a pending read or write, these point to the cond_t that can be
-    pulsed to interrupt the pending read or write.
-
-    The reason for the boost::scoped_ptr<> is to avoid a circular dependency with
-    cond_weak_ptr_t. */
-    boost::scoped_ptr<cond_weak_ptr_t> read_cond_watcher, write_cond_watcher;
-
-    // True when the half of the connection has been shut down but the linux_tcp_conn_t has not
-    // been deleted yet
-    bool read_was_shut_down;
-    bool write_was_shut_down;
+    /* These are pulsed if and only if the read/write end of the connection has been closed. */
+    cond_t read_closed, write_closed;
 
     /* Holds data that we read from the socket but hasn't been consumed yet */
     std::vector<char> read_buffer;
@@ -148,19 +138,12 @@ private:
 connections. Create a linux_tcp_listener_t with some port and then call set_callback();
 the provided callback will be called in a new coroutine every time something connects. */
 
-struct linux_tcp_listener_callback_t {
-    // Feel free to take ownership of the connection and have it deleted yourself.
-    virtual void on_tcp_listener_accept(boost::scoped_ptr<linux_tcp_conn_t>& conn) = 0;
-    virtual ~linux_tcp_listener_callback_t() {}
-};
-
 class linux_tcp_listener_t : public linux_event_callback_t {
 public:
     linux_tcp_listener_t(
         int port,
         boost::function<void(boost::scoped_ptr<linux_tcp_conn_t>&)> callback
         );
-    void set_callback(linux_tcp_listener_callback_t *cb);
     ~linux_tcp_listener_t();
 
     // The constructor can throw this exception

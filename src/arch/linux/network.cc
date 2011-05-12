@@ -60,9 +60,7 @@ ERROR_BREAKOUT:
 linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
     sock(connect_to(host, port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
-    read_in_progress(false), write_in_progress(false),
-    read_cond_watcher(new cond_weak_ptr_t), write_cond_watcher(new cond_weak_ptr_t),
-    read_was_shut_down(false), write_was_shut_down(false)
+    read_in_progress(false), write_in_progress(false)
     { }
 
 static fd_t connect_to(const ip_address_t &host, int port) {
@@ -90,17 +88,13 @@ static fd_t connect_to(const ip_address_t &host, int port) {
 linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
     sock(connect_to(host, port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
-    read_in_progress(false), write_in_progress(false),
-    read_cond_watcher(new cond_weak_ptr_t), write_cond_watcher(new cond_weak_ptr_t),
-    read_was_shut_down(false), write_was_shut_down(false)
+    read_in_progress(false), write_in_progress(false)
     { }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
     sock(s),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
-    read_in_progress(false), write_in_progress(false),
-    read_cond_watcher(new cond_weak_ptr_t), write_cond_watcher(new cond_weak_ptr_t),
-    read_was_shut_down(false), write_was_shut_down(false)
+    read_in_progress(false), write_in_progress(false)
 {
     rassert(sock.get() != INVALID_FD);
 
@@ -110,7 +104,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
 
 size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
     assert_thread();
-    rassert(!read_was_shut_down);
+    rassert(!read_closed.is_pulsed());
     rassert(!read_in_progress);
 
     while (true) {
@@ -126,7 +120,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
             cond_t cond;
 
             /* Set up the cond so it gets pulsed when the socket is closed */
-            read_cond_watcher->watch(&cond);
+            cond_link_t pulse_if_shut_down(&read_closed, &cond);
 
             /* Set up the cond so it gets pulsed if an event comes */
             event_watcher->watch(poll_event_in, boost::bind(&cond_t::pulse, &cond), &cond);
@@ -136,7 +130,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) {
 
             read_in_progress = false;
 
-            if (read_was_shut_down) {
+            if (read_closed.is_pulsed()) {
                 /* We were closed for whatever reason. Something else has already called
                 on_shutdown_read(). In fact, we were probably signalled by on_shutdown_read(). */
                 throw read_closed_exc_t();
@@ -169,7 +163,7 @@ size_t linux_tcp_conn_t::read_some(void *buf, size_t size) {
     assert_thread();
     rassert(size > 0);
     rassert(!read_in_progress);
-    if (read_was_shut_down) throw read_closed_exc_t();
+    if (read_closed.is_pulsed()) throw read_closed_exc_t();
 
     if (read_buffer.size()) {
         /* Return the data from the peek buffer */
@@ -187,7 +181,7 @@ void linux_tcp_conn_t::read(void *buf, size_t size) {
 
     assert_thread();
     rassert(!read_in_progress);   // Is there a read already in progress?
-    if (read_was_shut_down) throw read_closed_exc_t();
+    if (read_closed.is_pulsed()) throw read_closed_exc_t();
 
     /* First, consume any data in the peek buffer */
     int read_buffer_bytes = std::min(read_buffer.size(), size);
@@ -209,7 +203,7 @@ void linux_tcp_conn_t::read_more_buffered() {
 
     assert_thread();
     rassert(!read_in_progress);
-    if (read_was_shut_down) throw read_closed_exc_t();
+    if (read_closed.is_pulsed()) throw read_closed_exc_t();
 
     size_t old_size = read_buffer.size();
     read_buffer.resize(old_size + IO_BUFFER_SIZE);
@@ -222,7 +216,7 @@ const_charslice linux_tcp_conn_t::peek() const {
 
     assert_thread();
     rassert(!read_in_progress);   // Is there a read already in progress?
-    if (read_was_shut_down) throw read_closed_exc_t();
+    if (read_closed.is_pulsed()) throw read_closed_exc_t();
 
     return const_charslice(read_buffer.data(), read_buffer.data() + read_buffer.size());
 }
@@ -231,7 +225,7 @@ void linux_tcp_conn_t::pop(size_t len) {
 
     assert_thread();
     rassert(!read_in_progress);
-    if (read_was_shut_down) throw read_closed_exc_t();
+    if (read_closed.is_pulsed()) throw read_closed_exc_t();
 
     rassert(len <= read_buffer.size());
     read_buffer.erase(read_buffer.begin(), read_buffer.begin() + len);  // INEFFICIENT
@@ -249,21 +243,18 @@ void linux_tcp_conn_t::shutdown_read() {
 
 void linux_tcp_conn_t::on_shutdown_read() {
     assert_thread();
-    rassert(!read_was_shut_down);
-    read_was_shut_down = true;
-
-    // Interrupt any pending reads
-    read_cond_watcher->pulse_if_non_null();
+    rassert(!read_closed.is_pulsed());
+    read_closed.pulse();
 }
 
 bool linux_tcp_conn_t::is_read_open() {
     assert_thread();
-    return !read_was_shut_down;
+    return !read_closed.is_pulsed();
 }
 
 void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
     assert_thread();
-    rassert(!write_was_shut_down);
+    rassert(!write_closed.is_pulsed());
 
     while (size > 0) {
         int res = ::write(sock.get(), buf, size);
@@ -276,7 +267,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
             cond_t cond;
 
             /* Set up the cond so it gets pulsed when the socket is closed */
-            write_cond_watcher->watch(&cond);
+            cond_link_t pulse_if_shut_down(&write_closed, &cond);
 
             /* Set up the cond so it gets pulsed if an event comes */
             event_watcher->watch(poll_event_out, boost::bind(&cond_t::pulse, &cond), &cond);
@@ -286,7 +277,7 @@ void linux_tcp_conn_t::write_internal(const void *buf, size_t size) {
 
             write_in_progress = false;
 
-            if (write_was_shut_down) {
+            if (write_closed.is_pulsed()) {
                 /* We were closed for whatever reason. Whatever signalled us has already called
                    on_shutdown_write(). */
                 throw write_closed_exc_t();
@@ -326,7 +317,7 @@ void linux_tcp_conn_t::write(const void *buf, size_t size) {
 
     assert_thread();
     rassert(!write_in_progress);
-    if (write_was_shut_down) throw write_closed_exc_t();
+    if (write_closed.is_pulsed()) throw write_closed_exc_t();
 
     /* To preserve ordering, all buffered data must be sent before this chunk of data is sent */
     flush_buffer();
@@ -339,7 +330,7 @@ void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
 
     assert_thread();
     rassert(!write_in_progress);
-    if (write_was_shut_down) throw write_closed_exc_t();
+    if (write_closed.is_pulsed()) throw write_closed_exc_t();
 
     /* Append data to write_buffer */
     int old_size = write_buffer.size();
@@ -350,7 +341,7 @@ void linux_tcp_conn_t::write_buffered(const void *buf, size_t size) {
 void linux_tcp_conn_t::flush_buffer() {
 
     rassert(!write_in_progress);
-    if (write_was_shut_down) throw write_closed_exc_t();
+    if (write_closed.is_pulsed()) throw write_closed_exc_t();
 
     write_internal(write_buffer.data(), write_buffer.size());
     write_buffer.clear();
@@ -368,16 +359,13 @@ void linux_tcp_conn_t::shutdown_write() {
 
 void linux_tcp_conn_t::on_shutdown_write() {
     assert_thread();
-    rassert(!write_was_shut_down);
-    write_was_shut_down = true;
-
-    // Interrupt any writes that were waiting
-    write_cond_watcher->pulse_if_non_null();
+    rassert(!write_closed.is_pulsed());
+    write_closed.pulse();
 }
 
 bool linux_tcp_conn_t::is_write_open() {
     assert_thread();
-    return !write_was_shut_down;
+    return !write_closed.is_pulsed();
 }
 
 linux_tcp_conn_t::~linux_tcp_conn_t() {
@@ -413,6 +401,9 @@ void linux_tcp_conn_t::rethread(int new_thread) {
     }
 
     real_home_thread = new_thread;
+
+    read_closed.rethread(new_thread);
+    write_closed.rethread(new_thread);
 }
 
 void linux_tcp_conn_t::on_event(int events) {
@@ -445,8 +436,8 @@ void linux_tcp_conn_t::on_event(int events) {
             format_poll_event(events).c_str(),
             read_in_progress ? "yes" : "no",
             write_in_progress ? "yes" : "no");
-        if (!read_was_shut_down) shutdown_read();
-        if (!write_was_shut_down) shutdown_write();
+        if (!read_closed.is_pulsed()) shutdown_read();
+        if (!write_closed.is_pulsed()) shutdown_write();
     }
 }
 

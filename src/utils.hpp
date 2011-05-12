@@ -89,7 +89,7 @@ public:
 
     // We force callers to pass a thread_saver_t to ensure that they
     // know exactly what they're doing.
-    void ensure_thread(UNUSED const thread_saver_t& saver) {
+    void ensure_thread(UNUSED const thread_saver_t& saver) const {
         if (home_thread == INVALID_THREAD) {
             crash("This object cannot be used because it currently does not have a home thread.\n");
         }
