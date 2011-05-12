@@ -172,8 +172,6 @@ private:
 
     hash_control_t hash_control;
 
-    order_sink_t order_sink;
-
     DISABLE_COPYING(btree_key_value_store_t);
 };
 

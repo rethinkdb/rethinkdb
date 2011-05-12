@@ -90,31 +90,37 @@ rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t
 
 struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_result_t> {
     mutation_result_t operator()(const get_cas_mutation_t &m) {
-        return btree_get_cas(m.key, parent, ct);
+        return btree_get_cas(m.key, parent, ct, order_token);
     }
     mutation_result_t operator()(const sarc_mutation_t &m) {
-        return btree_set(m.key, parent, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, ct);
+        return btree_set(m.key, parent, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, ct, order_token);
     }
     mutation_result_t operator()(const incr_decr_mutation_t &m) {
-        return btree_incr_decr(m.key, parent, (m.kind == incr_decr_INCR), m.amount, ct);
+        return btree_incr_decr(m.key, parent, (m.kind == incr_decr_INCR), m.amount, ct, order_token);
     }
     mutation_result_t operator()(const append_prepend_mutation_t &m) {
-        return btree_append_prepend(m.key, parent, m.data, (m.kind == append_prepend_APPEND), ct);
+        return btree_append_prepend(m.key, parent, m.data, (m.kind == append_prepend_APPEND), ct, order_token);
     }
     mutation_result_t operator()(const delete_mutation_t &m) {
-        return btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp);
+        return btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token);
     }
+
     btree_slice_t *parent;
     castime_t ct;
+    order_token_t order_token;
 };
 
 mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, UNUSED order_token_t token) {
+    // TODO: Use token for the whole tree.
+    order_sink_.check_out(token);
+
     // TODO: Use this order token for leaf and internal nodes, eh?
     on_thread_t th(home_thread);
 
     btree_slice_change_visitor_t functor;
     functor.parent = this;
     functor.ct = castime;
+    functor.order_token = token;
     return boost::apply_visitor(functor, m.mutation);
 }
 
