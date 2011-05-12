@@ -12,7 +12,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/btree_data_provider.hpp"
 
-get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
+get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, UNUSED order_token_t token) {
 
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
