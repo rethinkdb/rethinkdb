@@ -12,7 +12,8 @@ struct dispatching_store_t : public set_store_t, public home_thread_mixin_t {
     mutation_result_t change(const mutation_t &m, castime_t castime, order_token_t token);
 
 private:
-    order_source_t order_source;
+    order_source_t order_source_for_dispatchee;
+    order_source_t order_source_for_substore;
     order_sink_t order_sink;
     boost::function<mutation_t(const mutation_t&, castime_t, order_token_t)> dispatcher;
     set_store_t *substore;
