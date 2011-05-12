@@ -20,12 +20,14 @@ shard_store_t::shard_store_t(
     timestamper(&dispatching_store)
     { }
 
-get_result_t shard_store_t::get(const store_key_t &key) {
-    return btree.get(key);
+get_result_t shard_store_t::get(const store_key_t &key, order_token_t token) {
+    on_thread_t th(home_thread);
+    return btree.get(key, token);
 }
 
-rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
-    return btree.rget(left_mode, left_key, right_mode, right_key);
+rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
+    on_thread_t th(home_thread);
+    return btree.rget(left_mode, left_key, right_mode, right_key, token);
 }
 
 mutation_result_t shard_store_t::change(const mutation_t &m, order_token_t token) {
@@ -316,22 +318,20 @@ uint32_t btree_key_value_store_t::slice_num(const store_key_t &key) {
     return hash(key) % btree_static_config.n_slices;
 }
 
-/* get_store_t interface */
-
-get_result_t btree_key_value_store_t::get(const store_key_t &key) {
-    return shards[slice_num(key)]->get(key);
+get_result_t btree_key_value_store_t::get(const store_key_t &key, order_token_t token) {
+    return shards[slice_num(key)]->get(key, token);
 }
 
 typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
 
-rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
+rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     // HEY: There should be no discernable effect of this thread saver
     // if we don't call something that takes it as a parameter.
     thread_saver_t thread_saver;
 
     unique_ptr_t<merged_results_iterator_t> merge_iterator(new merged_results_iterator_t());
     for (int s = 0; s < btree_static_config.n_slices; s++) {
-        merge_iterator->add_mergee(shards[s]->rget(left_mode, left_key, right_mode, right_key).release());
+        merge_iterator->add_mergee(shards[s]->rget(left_mode, left_key, right_mode, right_key, token).release());
     }
     return merge_iterator;
 }

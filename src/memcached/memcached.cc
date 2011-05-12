@@ -179,7 +179,7 @@ void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i, 
     if (with_cas) {
         gets[i].res = rh->set_store->get_cas(gets[i].key, token);
     } else {
-        gets[i].res = rh->get_store->get(gets[i].key);
+        gets[i].res = rh->get_store->get(gets[i].key, token);
     }
 }
 
@@ -284,7 +284,7 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
 }
 
 perfmon_duration_sampler_t rget_iteration_next("rget_iteration_next", secs_to_ticks(1));
-void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv, UNUSED order_token_t token) {
+void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv, order_token_t token) {
     if (argc != 6) {
         rh->client_error_bad_command_line_format(saver);
         return;
@@ -315,7 +315,7 @@ void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc,
 
     block_pm_duration rget_timer(&pm_cmd_rget);
 
-    rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key);
+    rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key, token);
 
     /* Check if the query hit a gated_get_store_t */
     if (!results_iterator) {

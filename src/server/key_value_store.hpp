@@ -37,8 +37,8 @@ struct shard_store_t :
         int64_t delete_queue_limit,
         int bucket);
 
-    get_result_t get(const store_key_t &key);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
+    get_result_t get(const store_key_t &key, order_token_t token);
+    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
     mutation_result_t change(const mutation_t &m, order_token_t token);
     mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t token);
 
@@ -76,8 +76,8 @@ public:
 public:
     /* get_store_t interface */
 
-    get_result_t get(const store_key_t &key);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
+    get_result_t get(const store_key_t &key, order_token_t token);
+    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
 
     /* set_store_interface_t interface */
 
