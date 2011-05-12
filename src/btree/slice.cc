@@ -80,12 +80,14 @@ btree_slice_t::~btree_slice_t() {
 
 get_result_t btree_slice_t::get(const store_key_t &key, UNUSED order_token_t token) {
     on_thread_t th(home_thread);
-    return btree_get(key, this);
+    order_sink_.check_out(token);
+    return btree_get(key, this, token);
 }
 
 rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, UNUSED order_token_t token) {
     on_thread_t th(home_thread);
-    return btree_rget_slice(this, left_mode, left_key, right_mode, right_key);
+    order_sink_.check_out(token);
+    return btree_rget_slice(this, left_mode, left_key, right_mode, right_key, token);
 }
 
 struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_result_t> {
