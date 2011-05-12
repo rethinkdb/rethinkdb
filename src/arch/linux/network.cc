@@ -281,6 +281,8 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
     write_buffer.reserve(WRITE_CHUNK_SIZE);
 
     /* Acquire the write semaphore so the write queue doesn't get too long */
+    rassert(buffer->size() <= WRITE_CHUNK_SIZE);
+    rassert(WRITE_CHUNK_SIZE < WRITE_QUEUE_MAX_SIZE);
     write_queue_limiter.co_lock(buffer->size());
 
     /* Now `write_buffer` is empty, and `buffer` contains our data */
@@ -388,9 +390,10 @@ void linux_tcp_conn_t::write_buffered(const void *vbuf, size_t size) {
 
     while (size > 0) {
         /* Insert the largest chunk that fits in this block */
-        size_t chunk = std::min(size, write_buffer.size() - WRITE_CHUNK_SIZE);
+        size_t chunk = std::min(size, WRITE_CHUNK_SIZE - write_buffer.size());
 
         write_buffer.insert(write_buffer.end(), buf, buf + chunk);
+        rassert(write_buffer.size() <= WRITE_CHUNK_SIZE);
         if (write_buffer.size() == WRITE_CHUNK_SIZE) internal_flush_write_buffer();
 
         buf += chunk;
