@@ -32,6 +32,7 @@ private:
 
     friend class order_source_t;
     friend class order_sink_t;
+    friend class plain_sink_t;
     friend class contiguous_order_sink_t;
 };
 
@@ -118,6 +119,27 @@ private:
     std::vector<int64_t> last_seens_;
 
     DISABLE_COPYING(order_sink_t);
+};
+
+// An order sink with less overhead, for situations where there is
+// only one source (like the top of a btree slice) and many sinks.
+class plain_sink_t {
+public:
+    plain_sink_t() : last_seen_(0) { }
+
+    void check_out(order_token_t token) {
+        if (token.bucket_ != order_token_t::ignore.bucket_) {
+            rassert(token.bucket_ >= 0);
+            rassert(token.bucket_ == 0, "Only bucket 0 allowed, you made a programmer error");
+            rassert(token.value_ >= last_seen_, "token.value_ = %ld, last_seen_ = %ld", token.value_, last_seen_);
+            last_seen_ = token.value_;
+        }
+    }
+
+private:
+    int64_t last_seen_;
+
+    DISABLE_COPYING(plain_sink_t);
 };
 
 #endif  // __CONCURRENCY_FIFO_CHECKER_HPP__
