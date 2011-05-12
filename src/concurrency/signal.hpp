@@ -28,7 +28,7 @@ public:
     void remove_waiter(waiter_t *);
 
     // Means that somebody has called pulse().
-    bool is_pulsed();
+    bool is_pulsed() const;
 
     void wait() {
         on_thread_t thread_switcher(home_thread);
@@ -54,6 +54,12 @@ public:
             add_waiter(&waiter);
             coro_t::wait();
         }
+    }
+
+    void rethread(int new_thread) {
+        rassert(waiters.empty(), "It might not be safe to rethread() a signal_t with "
+            "something currently waiting on it.");
+        real_home_thread = new_thread;
     }
 
 protected:

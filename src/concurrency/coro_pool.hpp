@@ -31,6 +31,13 @@ public:
         rassert(active_worker_count == 0);
     }
 
+    void rethread(int new_thread) {
+        /* Can't rethread while there are active operations */
+        rassert(active_worker_count == 0);
+        rassert(!source->available->get());
+        real_home_thread = new_thread;
+    }
+
 private:
     passive_producer_t<boost::function<void()> > *source;
 

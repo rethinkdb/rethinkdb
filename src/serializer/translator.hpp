@@ -111,12 +111,6 @@ public:
     static int untranslate_block_id_to_mod_id(ser_block_id_t inner_id, int mod_count, config_block_id_t cfgid);
     static block_id_t untranslate_block_id_to_id(ser_block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid);
 
-    // Returns how many translator_serializers (including itself) are active on
-    // the specific underlying serializer
-    int get_n_slices_for_file() const {
-        return mod_count;
-    }
-
 public:
     /* The translator serializer will only use block IDs on the inner serializer that
     are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */ 

@@ -25,7 +25,7 @@ void signal_t::remove_waiter(waiter_t *w) {
     waiters.remove(w);
 }
 
-bool signal_t::is_pulsed() {
+bool signal_t::is_pulsed() const {
     assert_thread();
     switch (state) {
         case state_unpulsed:

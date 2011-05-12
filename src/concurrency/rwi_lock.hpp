@@ -4,7 +4,7 @@
 
 #include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"
-#include "arch/arch.hpp"
+#include "arch/core.hpp"
 
 // Forward declarations
 struct rwi_lock_t;
