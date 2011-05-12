@@ -175,15 +175,15 @@ struct get_t {
     get_result_t res;
 };
 
-void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i) {
+void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i, order_token_t token) {
     if (with_cas) {
-        gets[i].res = rh->set_store->get_cas(gets[i].key, order_token_t::ignore);
+        gets[i].res = rh->set_store->get_cas(gets[i].key, token);
     } else {
         gets[i].res = rh->get_store->get(gets[i].key);
     }
 }
 
-void do_get(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
+void do_get(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, order_token_t token) {
     rassert(argc >= 1);
     rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
@@ -212,7 +212,7 @@ void do_get(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool with_
     block_pm_duration get_timer(&pm_cmd_get);
 
     /* Now that we're sure they're all valid, send off the requests */
-    pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1));
+    pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1, token));
 
     /* Check if they hit a gated_get_store_t. */
     if (gets.size() > 0 && gets[0].res.is_not_allowed) {
@@ -284,7 +284,7 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
 }
 
 perfmon_duration_sampler_t rget_iteration_next("rget_iteration_next", secs_to_ticks(1));
-void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv) {
+void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv, UNUSED order_token_t token) {
     if (argc != 6) {
         rh->client_error_bad_command_line_format(saver);
         return;
@@ -429,7 +429,8 @@ void run_storage_command(txt_memcached_handler_t *rh,
                          store_key_t key,
                          size_t value_size, promise_t<bool> *value_read_promise,
                          storage_metadata_t metadata,
-                         bool noreply) {
+                         bool noreply,
+                         order_token_t token) {
 
     thread_saver_t saver;
 
@@ -466,7 +467,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
         }
 
         set_result_t res = rh->set_store->sarc(key, data, metadata.mcflags, metadata.exptime,
-                                               add_policy, replace_policy, metadata.unique, order_token_t::ignore);
+                                               add_policy, replace_policy, metadata.unique, token);
 
         if (!noreply) {
             switch (res) {
@@ -500,7 +501,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
         append_prepend_result_t res =
             rh->set_store->append_prepend(
                 sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
-                key, data, order_token_t::ignore);
+                key, data, token);
 
         if (!noreply) {
             switch (res) {
@@ -527,7 +528,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
     read_value_promise here */
 }
 
-void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storage_command_t sc, int argc, char **argv) {
+void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storage_command_t sc, int argc, char **argv, order_token_t token) {
     char *invalid_char;
 
     /* cmd key flags exptime size [noreply]
@@ -615,9 +616,9 @@ void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storag
     rh->begin_write_command();
 
     if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, metadata, true));
+        coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, metadata, true, token));
     } else {
-        run_storage_command(rh, sc, key, value_size, &value_read_promise, metadata, false);
+        run_storage_command(rh, sc, key, value_size, &value_read_promise, metadata, false, token);
     }
 
     /* We can't move on to the next command until the value has been read off the socket. */
@@ -629,14 +630,14 @@ void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storag
 }
 
 /* "incr" and "decr" commands */
-void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount, bool incr, bool noreply) {
+void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount, bool incr, bool noreply, order_token_t token) {
     thread_saver_t saver;
 
     block_pm_duration set_timer(&pm_cmd_set);
 
     incr_decr_result_t res = rh->set_store->incr_decr(
         incr ? incr_decr_INCR : incr_decr_DECR,
-        key, amount, order_token_t::ignore);
+        key, amount, token);
 
     if (!noreply) {
         switch (res.res) {
@@ -659,7 +660,7 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount
     rh->end_write_command();
 }
 
-void do_incr_decr(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
+void do_incr_decr(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool i, int argc, char **argv, order_token_t token) {
     /* cmd key delta [noreply] */
     if (argc != 3 && argc != 4) {
         rh->error(saver);
@@ -697,20 +698,20 @@ void do_incr_decr(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool
     rh->begin_write_command();
 
     if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_incr_decr, rh, key, delta, i, true));
+        coro_t::spawn_now(boost::bind(&run_incr_decr, rh, key, delta, i, true, token));
     } else {
-        run_incr_decr(rh, key, delta, i, false);
+        run_incr_decr(rh, key, delta, i, false, token);
     }
 }
 
 /* "delete" commands */
 
-void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
+void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply, order_token_t token) {
     thread_saver_t saver;
 
     block_pm_duration set_timer(&pm_cmd_set);
 
-    delete_result_t res = rh->set_store->delete_key(key, order_token_t::ignore);
+    delete_result_t res = rh->set_store->delete_key(key, token);
 
     if (!noreply) {
         switch (res) {
@@ -730,7 +731,7 @@ void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
     rh->end_write_command();
 }
 
-void do_delete(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv) {
+void do_delete(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv, order_token_t token) {
     /* "delete" key [a number] ["noreply"] */
     if (argc < 2 || argc > 4) {
         rh->error(saver);
@@ -768,9 +769,9 @@ void do_delete(const thread_saver_t& saver, txt_memcached_handler_t *rh, int arg
     rh->begin_write_command();
 
     if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_delete, rh, key, true));
+        coro_t::spawn_now(boost::bind(&run_delete, rh, key, true, token));
     } else {
-        run_delete(rh, key, false);
+        run_delete(rh, key, false, token);
     }
 };
 
@@ -938,31 +939,32 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
         }
 
         /* Dispatch to the appropriate subclass */
+        order_token_t token = order_source->check_in();
         thread_saver_t saver;
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
-            do_get(saver, &rh, false, args.size(), args.data());
+            do_get(saver, &rh, false, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "gets")) {
-            do_get(saver, &rh, true, args.size(), args.data());
+            do_get(saver, &rh, true, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "rget")) {
-            do_rget(saver, &rh, args.size(), args.data());
+            do_rget(saver, &rh, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
-            do_storage(saver, &rh, set_command, args.size(), args.data());
+            do_storage(saver, &rh, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {
-            do_storage(saver, &rh, add_command, args.size(), args.data());
+            do_storage(saver, &rh, add_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "replace")) {
-            do_storage(saver, &rh, replace_command, args.size(), args.data());
+            do_storage(saver, &rh, replace_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "append")) {
-            do_storage(saver, &rh, append_command, args.size(), args.data());
+            do_storage(saver, &rh, append_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "prepend")) {
-            do_storage(saver, &rh, prepend_command, args.size(), args.data());
+            do_storage(saver, &rh, prepend_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "cas")) {
-            do_storage(saver, &rh, cas_command, args.size(), args.data());
+            do_storage(saver, &rh, cas_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "delete")) {
-            do_delete(saver, &rh, args.size(), args.data());
+            do_delete(saver, &rh, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "incr")) {
-            do_incr_decr(saver, &rh, true, args.size(), args.data());
+            do_incr_decr(saver, &rh, true, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "decr")) {
-            do_incr_decr(saver, &rh, false, args.size(), args.data());
+            do_incr_decr(saver, &rh, false, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "quit")) {
             // Make sure there's no more tokens
             if (args.size() > 1) {
