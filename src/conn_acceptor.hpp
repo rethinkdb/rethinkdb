@@ -1,11 +1,28 @@
 #ifndef __CONN_ACCEPTOR_HPP__
 #define __CONN_ACCEPTOR_HPP__
 
+#include <boost/scoped_ptr.hpp>
+
 #include "arch/arch.hpp"
 #include "utils.hpp"
 #include "perfmon.hpp"
-#include <boost/scoped_ptr.hpp>
 #include "concurrency/rwi_lock.hpp"
+
+
+struct conn_handler_with_special_lifetime_t {
+    // This gets called on the conn handler's thread and does stuff with the TCP connection.
+    virtual void talk_on_connection(tcp_conn_t *conn) = 0;
+
+    virtual ~conn_handler_with_special_lifetime_t() { }
+};
+
+struct conn_acceptor_callback_t {
+    // This gets called on the conn acceptor's thread and makes a
+    // callback that gets called on the connection's thread.
+    virtual void make_handler_for_conn_thread(boost::scoped_ptr<conn_handler_with_special_lifetime_t>& output) = 0;
+
+    virtual ~conn_acceptor_callback_t() { }
+};
 
 /* The conn_acceptor_t is responsible for accepting incoming network connections, creating
 objects to deal with them, and shutting down the network connections when the server
@@ -20,13 +37,13 @@ public:
     /* The constructor can throw this exception */
     typedef tcp_listener_t::address_in_use_exc_t address_in_use_exc_t;
 
-    conn_acceptor_t(int port, const boost::function<void(tcp_conn_t *)> &handler);
+    conn_acceptor_t(int port, conn_acceptor_callback_t *acceptor_callback);
 
     /* Will make sure all connections are closed before it returns. May block. */
     ~conn_acceptor_t();
 
 private:
-    /* Whenever a connection is received, the conn_acceptor_t calls the handler in a
+    /* OUTDATED: Whenever a connection is received, the conn_acceptor_t calls the handler in a
     new coroutine. When handler returns the connection is destroyed. handler will be called on an
     arbitrary thread, and the connection should not be accessed from any thread other than the one
     that handler was called on.
@@ -34,7 +51,8 @@ private:
     If the conn_acceptor_t's destructor is called while handler is running, the conn_acceptor_t
     will close the read end of the socket and then continue waiting for handler to return. This
     behavior may not be flexible enough in the future. */
-    boost::function<void(tcp_conn_t *)> handler;
+
+    conn_acceptor_callback_t *acceptor_callback;
 
     boost::scoped_ptr<tcp_listener_t> listener;
     void on_conn(boost::scoped_ptr<tcp_conn_t>& conn);

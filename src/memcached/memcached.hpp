@@ -1,6 +1,8 @@
 #ifndef __MEMCACHED_MEMCACHED_HPP__
 #define __MEMCACHED_MEMCACHED_HPP__
 
+#include <boost/scoped_ptr.hpp>
+
 #include "arch/arch.hpp"
 
 struct get_store_t;

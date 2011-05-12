@@ -142,6 +142,34 @@ void wait_for_sigint() {
     interrupt_cond.wait();
 }
 
+struct memcache_conn_handler_t : public conn_handler_with_special_lifetime_t {
+    memcache_conn_handler_t(get_store_t *get_store, set_store_interface_t *set_store)
+        : get_store_(get_store), set_store_(set_store) { }
+
+    void talk_on_connection(tcp_conn_t *conn) {
+        serve_memcache(conn, get_store_, set_store_);
+    }
+
+private:
+    get_store_t *get_store_;
+    set_store_interface_t *set_store_;
+    DISABLE_COPYING(memcache_conn_handler_t);
+};
+
+struct memcache_conn_acceptor_callback_t : public conn_acceptor_callback_t {
+    memcache_conn_acceptor_callback_t(get_store_t *get_store, set_store_interface_t *set_store)
+        : get_store_(get_store), set_store_(set_store) { }
+
+    void make_handler_for_conn_thread(boost::scoped_ptr<conn_handler_with_special_lifetime_t>& output) {
+        output.reset(new memcache_conn_handler_t(get_store_, set_store_));
+    }
+
+private:
+    get_store_t *get_store_;
+    set_store_interface_t *set_store_;
+    DISABLE_COPYING(memcache_conn_acceptor_callback_t);
+};
+
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     try {
         /* Start logger */
@@ -198,8 +226,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             forbid gets and sets at appropriate times. */
             gated_get_store_t gated_get_store(&store);
             gated_set_store_interface_t gated_set_store(&store);
-            conn_acceptor_t conn_acceptor(cmd_config->port,
-                boost::bind(&serve_memcache, _1, &gated_get_store, &gated_set_store));
+            memcache_conn_acceptor_callback_t conn_acceptor_callback(&gated_get_store, &gated_set_store);
+            conn_acceptor_t conn_acceptor(cmd_config->port, &conn_acceptor_callback);
 
             if (cmd_config->replication_config.active) {
 
