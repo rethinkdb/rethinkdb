@@ -25,13 +25,15 @@ backfill_storer_t::~backfill_storer_t() {
     }
 }
 
-void backfill_storer_t::backfill_delete_everything() {
+void backfill_storer_t::backfill_delete_everything(order_token_t token) {
+    order_sink_.check_out(token);
     print_backfill_warning_ = true;
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::delete_all_keys_for_backfill, kvs_));
 }
 
-void backfill_storer_t::backfill_deletion(store_key_t key) {
+void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) {
+    order_sink_.check_out(token);
     print_backfill_warning_ = true;
 
     delete_mutation_t mut;
@@ -47,7 +49,8 @@ void backfill_storer_t::backfill_deletion(store_key_t key) {
         ));
 }
 
-void backfill_storer_t::backfill_set(backfill_atom_t atom) {
+void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) {
+    order_sink_.check_out(token);
     print_backfill_warning_ = true;
 
     sarc_mutation_t mut;
@@ -78,7 +81,8 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom) {
     }
 }
 
-void backfill_storer_t::backfill_done(repli_timestamp_t timestamp) {
+void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t token) {
+    order_sink_.check_out(token);
     rassert(backfilling_);
     backfilling_ = false;
     print_backfill_warning_ = false;
@@ -108,18 +112,20 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp) {
 }
 
 void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token) {
+    order_sink_.check_out(token);
     get_cas_mutation_t mut;
     mut.key = key;
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, mut, castime, token));
 }
 
 void backfill_storer_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token) {
+    order_sink_.check_out(token);
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, m, castime, token));
 }
 
 void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
                                            castime_t castime, order_token_t token) {
-    realtime_order_sink_.check_out(token);
+    order_sink_.check_out(token);
     incr_decr_mutation_t mut;
     mut.key = key;
     mut.kind = kind;
@@ -129,7 +135,7 @@ void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
 
 void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
                                                 unique_ptr_t<data_provider_t> data, castime_t castime, order_token_t token) {
-    realtime_order_sink_.check_out(token);
+    order_sink_.check_out(token);
     append_prepend_mutation_t mut;
     mut.key = key;
     mut.data = data;
@@ -138,7 +144,7 @@ void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, cons
 }
 
 void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token) {
-    realtime_order_sink_.check_out(token);
+    order_sink_.check_out(token);
     delete_mutation_t mut;
     mut.key = key;
     mut.dont_put_in_delete_queue = true;

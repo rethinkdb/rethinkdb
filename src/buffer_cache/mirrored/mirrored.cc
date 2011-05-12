@@ -810,8 +810,8 @@ mc_cache_t::mc_cache_t(
 
     dynamic_config(dynamic_config),
     serializer(serializer),
-    reads_io_account(serializer->make_io_account(CACHE_READS_IO_PRIORITY)),
-    writes_io_account(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY)),
+    reads_io_account(serializer->make_io_account(dynamic_config->io_priority_reads)),
+    writes_io_account(serializer->make_io_account(dynamic_config->io_priority_writes)),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
         dynamic_config->max_size / serializer->get_block_size().ser_value(),

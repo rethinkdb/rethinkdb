@@ -31,6 +31,7 @@ dnl
 %define full_server_exec_name_versioned %{bin_dir}/%{server_exec_name_versioned}
 %define bash_completion_dir BASH_COMPLETION_DIR
 %define internal_bash_completion_dir INTERNAL_BASH_COMPLETION_DIR
+%define scripts_dir SCRIPTS_DIR
 %define priority PRIORITY
 
 BuildRoot: %{buildroot}
@@ -133,6 +134,10 @@ fi
 %dir %attr(0755,root,root) %{bash_completion_dir}
 %dir %attr(0755,root,root) %{internal_bash_completion_dir}
 %attr(0444,root,root) %{internal_bash_completion_dir}/%{server_exec_name}.bash
+
+%dir %attr(0755,root,root) %{scripts_dir}
+%attr(0755,root,root) %{scripts_dir}/rdb_migrate
+%attr(0755,root,root) %{scripts_dir}/unused_port
 
 %doc %attr(0444,root,root) %{man1_dir}/%{server_exec_name_versioned}.1.gz
 

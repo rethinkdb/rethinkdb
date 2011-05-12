@@ -142,6 +142,36 @@ void wait_for_sigint() {
     interrupt_cond.wait();
 }
 
+struct memcache_conn_handler_t : public conn_handler_with_special_lifetime_t {
+    memcache_conn_handler_t(get_store_t *get_store, set_store_interface_t *set_store, order_source_pigeoncoop_t *pigeoncoop)
+        : get_store_(get_store), set_store_(set_store), order_source_(pigeoncoop) { }
+
+    void talk_on_connection(tcp_conn_t *conn) {
+        serve_memcache(conn, get_store_, set_store_, &order_source_);
+    }
+
+private:
+    get_store_t *get_store_;
+    set_store_interface_t *set_store_;
+    order_source_t order_source_;
+    DISABLE_COPYING(memcache_conn_handler_t);
+};
+
+struct memcache_conn_acceptor_callback_t : public conn_acceptor_callback_t {
+    memcache_conn_acceptor_callback_t(get_store_t *get_store, set_store_interface_t *set_store, order_source_pigeoncoop_t *pigeoncoop)
+        : get_store_(get_store), set_store_(set_store), pigeoncoop_(pigeoncoop) { }
+
+    void make_handler_for_conn_thread(boost::scoped_ptr<conn_handler_with_special_lifetime_t>& output) {
+        output.reset(new memcache_conn_handler_t(get_store_, set_store_, pigeoncoop_));
+    }
+
+private:
+    get_store_t *get_store_;
+    set_store_interface_t *set_store_;
+    order_source_pigeoncoop_t *pigeoncoop_;
+    DISABLE_COPYING(memcache_conn_acceptor_callback_t);
+};
+
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     try {
         /* Start logger */
@@ -185,6 +215,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
         if (!cmd_config->shutdown_after_creation) {
 
+            order_source_pigeoncoop_t pigeoncoop(MEMCACHE_START_BUCKET);
+
             /* Start key-value store */
             logINF("Loading database...\n");
             btree_key_value_store_t store(&cmd_config->store_dynamic_config);
@@ -198,8 +230,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             forbid gets and sets at appropriate times. */
             gated_get_store_t gated_get_store(&store);
             gated_set_store_interface_t gated_set_store(&store);
-            conn_acceptor_t conn_acceptor(cmd_config->port,
-                boost::bind(&serve_memcache, _1, &gated_get_store, &gated_set_store));
+            memcache_conn_acceptor_callback_t conn_acceptor_callback(&gated_get_store, &gated_set_store, &pigeoncoop);
+            conn_acceptor_t conn_acceptor(cmd_config->port, &conn_acceptor_callback);
 
             if (cmd_config->replication_config.active) {
 
@@ -248,7 +280,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 that would confuse the replication logic. */
                 store.set_replication_master_id(NOT_A_SLAVE);
 
-                replication::master_t master(cmd_config->replication_master_listen_port, &store, &gated_get_store, &gated_set_store);
+                order_source_t master_order_source(MASTER_ORDER_SOURCE_BUCKET);
+                replication::master_t master(cmd_config->replication_master_listen_port, &store, &gated_get_store, &gated_set_store, &master_order_source);
 
                 /* So that Amazon's Elastic Load Balancer (ELB) can tell when
                  * master is up. TODO: This might report us as being up when we aren't actually

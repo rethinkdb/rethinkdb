@@ -15,7 +15,9 @@ perfmon_duration_sampler_t
     master_rt_app_prep("master_rt_app_prep", secs_to_ticks(1.0)),
     master_rt_del("master_rt_del", secs_to_ticks(1.0));
 
-#define MAX_REPLICATION_COROUTINES 512
+perfmon_counter_t pm_master_queue_depth("master_queue_depth");
+
+#define MAX_REPLICATION_COROUTINES 2034
 #define REPLICATION_JOB_QUEUE_DEPTH 2048
 
 namespace replication {
@@ -112,13 +114,14 @@ struct backfill_and_streaming_manager_t :
         if (all_delete_queues_so_far_can_send_keys_ && !can_send_deletion_keys) {
             all_delete_queues_so_far_can_send_keys_ = false;
 
+
+
             // We only send this once, and it is important that we
             // send it before the delete_queues_can_send_keys_latch_
             // gets pulsed, because then a delete queue could finish
             // and start sending sets before we sent a
             // delete_everything message.
-            backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_delete_everything, handler_));
-            handler_->backfill_delete_everything();
+            backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_delete_everything, handler_, order_token_t::ignore));
         }
 
         delete_queues_can_send_keys_latch_.count_down();
@@ -137,8 +140,7 @@ struct backfill_and_streaming_manager_t :
     void deletion_key(const btree_key_t *key) {
         // This runs on the scheduler thread.
         store_key_t tmp(key->size, key->contents);
-        backfill_job_queue.push(boost::bind(
-            &backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, tmp));
+        backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_deletion, handler_, tmp, order_token_t::ignore));
     }
 
     /* The store calls this when it finishes the first phase of backfilling. It's redundant
@@ -149,8 +151,7 @@ struct backfill_and_streaming_manager_t :
     /* The store calls this when we need to backfill a key/value pair to the slave */
     void on_keyvalue(backfill_atom_t atom) {
         // This runs on the scheduler thread.
-        backfill_job_queue.push(boost::bind(
-            &backfill_and_realtime_streaming_callback_t::backfill_set, handler_, atom));
+        backfill_job_queue.push(boost::bind(&backfill_and_realtime_streaming_callback_t::backfill_set, handler_, atom, order_token_t::ignore));
     }
 
     /* When we are finally done with the backfill, the store calls done(). */
@@ -174,7 +175,8 @@ struct backfill_and_streaming_manager_t :
             backfill_job_queue.push(boost::bind(
                 &backfill_and_realtime_streaming_callback_t::backfill_done,
                 handler_,
-                initial_replication_clock_.next()));
+                initial_replication_clock_.next(),
+                order_token_t::ignore));
 
             /* This allows us to shut down */
             pulsed_when_backfill_over.pulse();
@@ -243,8 +245,8 @@ struct backfill_and_streaming_manager_t :
         internal_store_(kvs),
         handler_(handler),
         coro_pool(MAX_REPLICATION_COROUTINES, &combined_job_queue),
-        backfill_job_queue(REPLICATION_JOB_QUEUE_DEPTH),
-        realtime_job_queue(REPLICATION_JOB_QUEUE_DEPTH),
+        backfill_job_queue(REPLICATION_JOB_QUEUE_DEPTH, 0.0, &pm_master_queue_depth),
+        realtime_job_queue(REPLICATION_JOB_QUEUE_DEPTH, 0.0, &pm_master_queue_depth),
         backfill_job_account(&combined_job_queue, &backfill_job_queue, 1),
         realtime_job_account(&combined_job_queue, &realtime_job_queue, 1)
     {

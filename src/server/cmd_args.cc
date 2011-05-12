@@ -866,6 +866,8 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.cache.flush_dirty_size = 0;
     store_dynamic_config.cache.flush_waiting_threshold = DEFAULT_FLUSH_WAITING_THRESHOLD;
     store_dynamic_config.cache.max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
+    store_dynamic_config.cache.io_priority_reads = CACHE_READS_IO_PRIORITY;
+    store_dynamic_config.cache.io_priority_writes = CACHE_WRITES_IO_PRIORITY;
 
     store_dynamic_config.total_delete_queue_limit = DEFAULT_TOTAL_DELETE_QUEUE_LIMIT;
 

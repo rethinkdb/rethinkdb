@@ -96,6 +96,12 @@ struct mirrored_cache_config_t {
     // of each single flush. max_concurrent_flushes controls how many flushes can be active
     // on a specific slice at any given time.
     int max_concurrent_flushes;
+
+    // per-cache priorities used for i/o accounts
+    // each cache uses two IO accounts:
+    // one account for writes, and one account for reads.
+    int io_priority_reads;
+    int io_priority_writes;
 };
 
 /* This part of the serializer is part of the on-disk serializer_config_block and can

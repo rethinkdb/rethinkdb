@@ -6,6 +6,7 @@
 #include "db_thread_info.hpp"
 #include "replication/backfill.hpp"
 #include "replication/master.hpp"
+#include "cmd_args.hpp"
 
 /* shard_store_t */
 
@@ -143,16 +144,20 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
 
     btree_static_config.n_slices = multiplexer->proxies.size();
 
-    /* Load btrees */
+    /* Divide resources among the several slices */
     mirrored_cache_config_t per_slice_config = dynamic_config->cache;
-    /* Divvy up the memory available between the several slices. */
-    per_slice_config.max_size /= btree_static_config.n_slices;
-    per_slice_config.max_dirty_size /= btree_static_config.n_slices;
-    per_slice_config.flush_dirty_size /= btree_static_config.n_slices;
+    per_slice_config.max_size = std::max(dynamic_config->cache.max_size / btree_static_config.n_slices, 1LL);
+    per_slice_config.max_dirty_size = std::max(dynamic_config->cache.max_dirty_size / btree_static_config.n_slices, 1LL);
+    per_slice_config.flush_dirty_size = std::max(dynamic_config->cache.flush_dirty_size / btree_static_config.n_slices, 1LL);
+    per_slice_config.io_priority_reads = std::max(dynamic_config->cache.io_priority_reads / btree_static_config.n_slices, 1);
+    per_slice_config.io_priority_writes = std::max(dynamic_config->cache.io_priority_writes / btree_static_config.n_slices, 1);
+    int64_t per_slice_delete_queue_limit = dynamic_config->total_delete_queue_limit / btree_static_config.n_slices;
+
+    /* Load btrees */
     pmap(btree_static_config.n_slices,
          boost::bind(&create_existing_shard,
                      multiplexer->proxies.data(), shards,
-                     &per_slice_config, dynamic_config->total_delete_queue_limit / btree_static_config.n_slices, _1));
+                     &per_slice_config, per_slice_delete_queue_limit, _1));
 
     /* Initialize the timestampers to the correct timestamp */
     set_replication_clock(get_replication_clock());

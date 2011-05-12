@@ -17,7 +17,8 @@ void backfill_sender_t::warn_about_expiration() {
     }
 }
 
-void backfill_sender_t::backfill_delete_everything() {
+void backfill_sender_t::backfill_delete_everything(order_token_t token) {
+    order_sink_before_send.check_out(token);
     // debugf("send backfill_delete_everything(), %d\n", int(bool(*stream_)));
 
     if (*stream_) {
@@ -25,9 +26,12 @@ void backfill_sender_t::backfill_delete_everything() {
         msg.padding = 0;
         (*stream_)->send(msg);
     }
+
+    order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::backfill_deletion(store_key_t key) {
+void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) {
+    order_sink_before_send.check_out(token);
     block_pm_duration set_timer(&master_del);
 
     // debugf("send backfill_deletion(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
@@ -41,10 +45,16 @@ void backfill_sender_t::backfill_deletion(store_key_t key) {
 
         (*stream_)->send(msg.get());
     }
+
+    order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::backfill_set(backfill_atom_t atom) {
+void backfill_sender_t::backfill_set(backfill_atom_t atom, order_token_t token) {
+    assert_thread();
+
     block_pm_duration set_timer(&master_set);
+
+    order_sink_before_send.check_out(token);
 
     // debugf("send backfill_set(%.*s, t=%u, len=%ld), %d\n", atom.key.size, atom.key.contents, atom.recency.time, atom.value->get_size(), int(bool(*stream_)));
 
@@ -64,15 +74,20 @@ void backfill_sender_t::backfill_set(backfill_atom_t atom) {
     }
 
     // debugf("done send backfill_set(%.*s), %d\n", atom.key.size, atom.key.contents, int(bool(*stream_)));
+
+    order_sink_after_send.check_out(token);
 }
 
-void backfill_sender_t::backfill_done(repli_timestamp_t timestamp_when_backfill_began) {
+void backfill_sender_t::backfill_done(repli_timestamp_t timestamp_when_backfill_began, order_token_t token) {
+    order_sink_before_send.check_out(token);
 
     // debugf("send backfill_done(), %d\n", int(bool(*stream_)));
 
     net_backfill_complete_t msg;
     msg.time_barrier_timestamp = timestamp_when_backfill_began;
     if (*stream_) (*stream_)->send(&msg);
+
+    order_sink_after_send.check_out(token);
 }
 
 void backfill_sender_t::realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token) {

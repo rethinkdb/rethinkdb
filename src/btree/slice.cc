@@ -35,6 +35,8 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     startup_dynamic_config.flush_dirty_size = size;
     startup_dynamic_config.flush_waiting_threshold = INT_MAX;
     startup_dynamic_config.max_concurrent_flushes = 1;
+    startup_dynamic_config.io_priority_reads = 100;
+    startup_dynamic_config.io_priority_writes = 100;
 
     thread_saver_t saver;
 
