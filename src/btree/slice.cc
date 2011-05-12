@@ -78,12 +78,12 @@ btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff
 }
 
-get_result_t btree_slice_t::get(const store_key_t &key) {
+get_result_t btree_slice_t::get(const store_key_t &key, UNUSED order_token_t token) {
     on_thread_t th(home_thread);
     return btree_get(key, this);
 }
 
-rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
+rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, UNUSED order_token_t token) {
     on_thread_t th(home_thread);
     return btree_rget_slice(this, left_mode, left_key, right_mode, right_key);
 }
@@ -111,11 +111,11 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
 };
 
 mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, UNUSED order_token_t token) {
-    // TODO: Use token for the whole tree.
-    order_sink_.check_out(token);
-
-    // TODO: Use this order token for leaf and internal nodes, eh?
+    // HEY: Honestly this is weird, we should already be on the home
+    // thread in all situations I can think of.
     on_thread_t th(home_thread);
+
+    order_sink_.check_out(token);
 
     btree_slice_change_visitor_t functor;
     functor.parent = this;
