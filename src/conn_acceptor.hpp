@@ -9,6 +9,10 @@
 #include "concurrency/rwi_lock.hpp"
 
 
+// The lifetime of this object as used by the conn_acceptor_t is as
+// follows: It gets created and destroyed on the conn acceptor's home
+// thread.  The function talk_on_connection is called on an
+// arbitrarily selected thread.
 struct conn_handler_with_special_lifetime_t {
     // This gets called on the conn handler's thread and does stuff with the TCP connection.
     virtual void talk_on_connection(tcp_conn_t *conn) = 0;

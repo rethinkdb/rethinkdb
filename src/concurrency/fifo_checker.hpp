@@ -11,9 +11,11 @@
 // The memcached order_source_t and the backfill_receiver_t will want
 // to be in distinct buckets.
 
-// The master and slave never happen in the same process.
+// The master and slave never happen in the same process.  Then the
+// memcache buckets have to be different.
 const int SLAVE_ORDER_SOURCE_BUCKET = 0;
 const int MASTER_ORDER_SOURCE_BUCKET = 0;
+const int MEMCACHE_START_BUCKET = 1;
 
 class order_token_t {
 public:
