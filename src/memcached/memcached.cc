@@ -892,6 +892,8 @@ bool parse_debug_command(const thread_saver_t& saver, txt_memcached_handler_t *r
 void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, UNUSED order_source_t *order_source) {
     logDBG("Opened connection %p\n", coro_t::self());
 
+    // TODO: Actually use order_source.
+
     /* Object that we pass around to subroutines (is there a better way to do this?) */
     txt_memcached_handler_t rh(conn, get_store, set_store);
 

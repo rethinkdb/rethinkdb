@@ -47,14 +47,18 @@ public:
     ~conn_acceptor_t();
 
 private:
-    /* OUTDATED: Whenever a connection is received, the conn_acceptor_t calls the handler in a
-    new coroutine. When handler returns the connection is destroyed. handler will be called on an
-    arbitrary thread, and the connection should not be accessed from any thread other than the one
-    that handler was called on.
+    /* Whenever a connection is received, the conn_acceptor_t calls
+       the handler in a new coroutine. When handler returns the
+       connection is destroyed.  The handler will be created on the
+       conn acceptor's home thread, and then its talk_on_connection
+       method will be called on an arbitrary thread, and the
+       connection should not be accessed from any thread other than
+       the one that handler was called on.
 
-    If the conn_acceptor_t's destructor is called while handler is running, the conn_acceptor_t
-    will close the read end of the socket and then continue waiting for handler to return. This
-    behavior may not be flexible enough in the future. */
+       If the conn_acceptor_t's destructor is called while handler is
+       running, the conn_acceptor_t will close the read end of the
+       socket and then continue waiting for handler to return. This
+       behavior may not be flexible enough in the future. */
 
     conn_acceptor_callback_t *acceptor_callback;
 
