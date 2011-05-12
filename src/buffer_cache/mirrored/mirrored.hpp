@@ -4,6 +4,7 @@
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
@@ -247,8 +248,10 @@ public:
 
     cache_t *cache;
 
+    order_token_t order_token;
+
 private:
-    explicit mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+    explicit mc_transaction_t(cache_t *cache, order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
     ~mc_transaction_t();
 
     void register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data);
@@ -336,7 +339,7 @@ public:
     block_size_t get_block_size();
 
     // Transaction API
-    transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
+    transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
     bool contains_block(block_id_t block_id);
 public:

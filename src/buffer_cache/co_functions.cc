@@ -96,7 +96,7 @@ transaction_t *co_begin_transaction(const thread_saver_t& saver, cache_t *cache,
     cache->assert_thread();  // temporary check
     cache->ensure_thread(saver);
     transaction_begun_callback_t cb;
-    transaction_t *value = cache->begin_transaction(access, expected_change_count, recency_timestamp, &cb);
+    transaction_t *value = cache->begin_transaction(token, access, expected_change_count, recency_timestamp, &cb);
     if (!value) {
         value = cb.join();
     }
