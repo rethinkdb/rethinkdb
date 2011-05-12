@@ -207,6 +207,26 @@ struct cache_line_padded_t {
     char padding[CACHE_LINE_SIZE - sizeof(value_t)];
 };
 
+/* Functor to call `operator delete` on an object */
+template<class T>
+struct delete_ptr_t {
+    void operator()(T *x) {
+        rassert(x);
+        delete x;
+    }
+    typedef void result_type;
+};
+
+/* Functor to call `operator delete[]` on an object */
+template<class T>
+struct delete_array_t {
+    void operator()(T *x) {
+        rassert(x);
+        delete[] x;
+    }
+    typedef void result_type;
+};
+
 #include "utils2.tcc"
 
 #endif /* __UTILS2_HPP__ */

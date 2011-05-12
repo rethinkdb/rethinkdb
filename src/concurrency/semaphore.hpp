@@ -17,6 +17,7 @@ class semaphore_t {
         public thread_message_t
     {
         semaphore_available_callback_t *cb;
+        int count;
         void on_thread_switch() {
             cb->on_semaphore_available();
             delete this;
@@ -31,38 +32,42 @@ public:
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     }
 
-    void lock(semaphore_available_callback_t *cb) {
-        if (current < capacity || capacity == SEMAPHORE_NO_LIMIT) {
-            current++;
+    void lock(semaphore_available_callback_t *cb, int count = 1) {
+        rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
+        if (current + count <= capacity || capacity == SEMAPHORE_NO_LIMIT) {
+            current += count;
             cb->on_semaphore_available();
         } else {
             lock_request_t *r = new lock_request_t;
+            r->count = count;
             r->cb = cb;
             waiters.push_back(r);
         }
     }
 
-    void co_lock() {
+    void co_lock(int count = 1) {
         struct : public semaphore_available_callback_t, public cond_t {
             void on_semaphore_available() { pulse(); }
         } cb;
-        lock(&cb);
+        lock(&cb, count);
         cb.wait();
     }
 
-    void unlock() {
-        rassert(current > 0);
+    void unlock(int count = 1) {
+        rassert(current >= count);
+        current -= count;
         if (lock_request_t *h = waiters.head()) {
-            waiters.remove(h);
-            call_later_on_this_thread(h);
-        } else {
-            current--;
+            if (current + h->count <= capacity) {
+                waiters.remove(h);
+                current += h->count;
+                call_later_on_this_thread(h);
+            }
         }
     }
 
-    void lock_now() {
-        rassert(current < capacity || capacity == SEMAPHORE_NO_LIMIT);
-        current++;
+    void lock_now(int count = 1) {
+        rassert(current + count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
+        current += count;
     }
 };
 
@@ -78,6 +83,7 @@ class adjustable_semaphore_t {
         public thread_message_t
     {
         semaphore_available_callback_t *cb;
+        int count;
         void on_thread_switch() {
             cb->on_semaphore_available();
             delete this;
@@ -85,67 +91,72 @@ class adjustable_semaphore_t {
     };
 
     int capacity, current;
-    float trickle_fraction, trickle_point;
+    float trickle_fraction, trickle_points;
     intrusive_list_t<lock_request_t> waiters;
 
 public:
     adjustable_semaphore_t(int cap, float tf = 0.0) :
-        capacity(cap), current(0), trickle_fraction(tf), trickle_point(0)
+        capacity(cap), current(0), trickle_fraction(tf), trickle_points(0)
     {
         rassert(trickle_fraction <= 1.0 && trickle_fraction >= 0.0);
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     }
 
-    void lock(semaphore_available_callback_t *cb) {
+    void lock(semaphore_available_callback_t *cb, int count = 1) {
         lock_request_t *r = new lock_request_t;
         r->cb = cb;
+        r->count = count;
         waiters.push_back(r);
         pump();
     }
 
-    void co_lock() {
+    void co_lock(int count = 1) {
         struct : public semaphore_available_callback_t, public cond_t {
             void on_semaphore_available() { pulse(); }
         } cb;
-        lock(&cb);
+        lock(&cb, count);
         cb.wait();
     }
 
-    void unlock() {
+    void unlock(int count = 1) {
         rassert(current > 0);
-        current--;
-        trickle_point += trickle_fraction;
-        if ((current > capacity && capacity != SEMAPHORE_NO_LIMIT) &&
-                int(trickle_point) != int(trickle_point + trickle_fraction)) {
-            /* So as to avoid completely locking out clients when the capacity
-            is adjusted abruptly, let some fraction of the clients "cheat" and
-            bypass the capacity check. For every `N` times `unlock()` is called,
-            we will take this branch in `N * trickle_fraction` of them. */ 
-            pump(true);
-        } else {
-            pump();
+        current -= count;
+        if (current > capacity && capacity != SEMAPHORE_NO_LIMIT) {
+            trickle_points += trickle_fraction * count;
+        }
+        pump();
+    }
+
+    void lock_now(int count = 1) {
+        if (!try_lock(count)) {
+            crash("lock_now() can't lock now.\n");
         }
     }
 
-    void lock_now() {
-        rassert(current < capacity);
-        current++;
-    }
-
     void set_capacity(int new_capacity) {
-        rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
         capacity = new_capacity;
+        rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
         pump();
     }
 
 private:
-    void pump(bool cheat = false) {
+    bool try_lock(int count) {
+        if (current + count > capacity && capacity != SEMAPHORE_NO_LIMIT) {
+            if (trickle_points >= count) {
+                trickle_points -= count;
+            } else {
+                return false;
+            }
+        }
+        current += count;
+        return true;
+    }
+
+    void pump() {
         lock_request_t *h;
-        while ((h = waiters.head()) &&
-                (cheat || current < capacity || capacity == SEMAPHORE_NO_LIMIT)) {
+        while ((h = waiters.head()) && try_lock(h->count)) {
             waiters.remove(h);
             call_later_on_this_thread(h);
-            current++;
         }
     }
 };

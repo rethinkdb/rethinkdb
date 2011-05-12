@@ -8,6 +8,9 @@
 #include "arch/address.hpp"
 #include "concurrency/side_coro.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/queue/unlimited_fifo.hpp"
+#include "concurrency/semaphore.hpp"
+#include "concurrency/coro_pool.hpp"
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
@@ -104,14 +107,6 @@ private:
     void on_shutdown_read();
     void on_shutdown_write();
 
-    /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
-    ::read(). Returns the number of bytes read or throws read_closed_exc_t. Bypasses read_buffer. */
-    size_t read_internal(void *buffer, size_t size);
-
-    /* Writes exactly the given number of bytes--like write(), but bypasses write_buffer. If the
-    write end of the connection is closed, throws write_closed_exc_t. */
-    void write_internal(const void *buffer, size_t size);
-
     scoped_fd_t sock;
 
     /* Overrides `home_thread_mixin_t`'s `rethread()` method */
@@ -130,8 +125,32 @@ private:
     /* Holds data that we read from the socket but hasn't been consumed yet */
     std::vector<char> read_buffer;
 
-    /* Holds data that was given to us but we haven't sent to the kernel yet */
+    /* Reads up to the given number of bytes, but not necessarily that many. Simple wrapper around
+    ::read(). Returns the number of bytes read or throws read_closed_exc_t. Bypasses read_buffer. */
+    size_t read_internal(void *buffer, size_t size);
+
+    /* Buffer we are currently filling up with data that we want to write. When it reaches a
+    certain size, we push it onto `write_queue`. */
     std::vector<char> write_buffer;
+
+    /* Schedules old write buffer's contents to be flushed and swaps in a fresh write buffer.
+    Blocks until it can acquire the `write_queue_limiter` semaphore, but doesn't wait for
+    data to be completely written. */
+    void internal_flush_write_buffer();
+
+    /* Used to queue up buffers to write. The functions in `write_queue` will all be
+    `boost::bind()`s of the `perform_write()` function below. */
+    unlimited_fifo_queue_t<boost::function<void()> > write_queue;
+
+    /* This semaphore prevents the write queue from getting arbitrarily big. */
+    semaphore_t write_queue_limiter;
+
+    /* Used to actually perform the writes. Only has one coroutine in it. */
+    coro_pool_t write_coro_pool;
+
+    /* Used to actually perform a write. If the write end of the connection is open, then writes
+    `size` bytes from `buffer` to the socket. */
+    void perform_write(const void *buffer, size_t size);
 };
 
 /* The linux_tcp_listener_t is used to listen on a network port for incoming
