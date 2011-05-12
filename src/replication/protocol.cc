@@ -296,7 +296,7 @@ perfmon_duration_sampler_t master_write("master_write", secs_to_ticks(1.0));
 void repli_stream_t::try_write(const void *data, size_t size) {
     try {
         block_pm_duration set_timer(&master_write);
-        conn_->write(data, size);
+        conn_->write_buffered(data, size);
     } catch (tcp_conn_t::write_closed_exc_t &e) {
         /* Master died; we happened to be mid-write at the time. A tcp_conn_t::read_closed_exc_t
         will be thrown somewhere and that will cause us to shut down. So we can ignore this
