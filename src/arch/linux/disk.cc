@@ -180,8 +180,25 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
     // Open the file
 
     fd.reset(open(path, flags, 0644));
-    if (fd.get() == INVALID_FD)
-        fail_due_to_user_error("Inaccessible database file: \"%s\": %s", path, strerror(errno));
+    if (fd.get() == INVALID_FD) {
+        fail_due_to_user_error(
+            "Inaccessible database file: \"%s\": %s"
+            "\nSome possible reasons:"
+            "%s"    // for creation/open error
+            "%s"    // for O_DIRECT message
+            "%s",   // for O_NOATIME message
+            path, strerror(errno),
+            is_block ?
+                "\n- the database device couldn't be opened for reading and writing" :
+                "\n- the database file couldn't be created or opened for reading and writing",
+            is_really_direct ?
+                (is_block ?
+                    "\n- the database block device cannot be opened with O_DIRECT flag" :
+                    "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. in case when the filesystem is working in journaled mode)"
+                ) : "",
+            !is_block ? "\n- user which was used to start the database is not an owner of the file" : ""
+        );
+    }
 
     file_exists = true;
 
