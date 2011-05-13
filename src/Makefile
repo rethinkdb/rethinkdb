@@ -103,8 +103,6 @@ STRIP_ON_INSTALL?=1
 ifeq ($(DEBUG),1)
 SYMBOLS:=1
 CXXFLAGS+=-O0
-# -rdynamic is necessary so that backtrace_symbols() works properly
-LDFLAGS+=-rdynamic
 else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
@@ -139,7 +137,10 @@ endif
 ifeq ($(CALLGRIND),1)
 SYMBOLS=1
 endif
+
 ifeq ($(SYMBOLS),1)
+# -rdynamic is necessary so that backtrace_symbols() works properly
+LDFLAGS+=-rdynamic
 CXXFLAGS+=-g
 endif
 
