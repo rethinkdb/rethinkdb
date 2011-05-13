@@ -26,8 +26,10 @@ public:
     order_token_t() : bucket_(-2), value_(-2) { }
 
 private:
-    explicit order_token_t(int bucket, int64_t x) : bucket_(bucket), value_(x) { }
+    explicit order_token_t(int bucket, int64_t x, bool read_mode)
+        : bucket_(bucket), read_mode_(read_mode), value_(x) { }
     int bucket_;
+    bool read_mode_;
     int64_t value_;
 
     friend class order_source_t;
@@ -85,7 +87,9 @@ public:
 
     ~order_source_t() { unregister_(); }
 
-    order_token_t check_in() { return order_token_t(bucket_, ++counter_); }
+    order_token_t check_in() { return order_token_t(bucket_, ++counter_, false); }
+
+    order_token_t check_in_read_mode() { return order_token_t(bucket_, ++counter_, true); }
 
 private:
     int bucket_;
@@ -103,20 +107,32 @@ public:
         if (token.bucket_ != order_token_t::ignore.bucket_) {
             rassert(token.bucket_ >= 0);
             if (token.bucket_ >= int(last_seens_.size())) {
-                last_seens_.resize(token.bucket_ + 1, 0);
+                last_seens_.resize(token.bucket_ + 1, std::pair<int64_t, int64_t>(0, 0));
             }
 
-            // We tolerate equality in this comparison because it can
-            // be used to ensure that multiple actions don't get
-            // interrupted.  And resending the same action isn't
-            // normally a problem.
-            rassert(token.value_ >= last_seens_[token.bucket_], "token.value_ = %ld, last_seens_[token.bucket_] = %ld, token.bucket_ = %d", token.value_, last_seens_[token.bucket_], token.bucket_);
-            last_seens_[token.bucket_] = token.value_;
+            verify_token_value_and_update(token, &last_seens_[token.bucket_]);
         }
     }
 
 private:
-    std::vector<int64_t> last_seens_;
+
+    friend class plain_sink_t;
+    static void verify_token_value_and_update(order_token_t token, std::pair<int64_t, int64_t> *ls_pair) {
+        // We tolerate equality in this comparison because it can
+        // be used to ensure that multiple actions don't get
+        // interrupted.  And resending the same action isn't
+        // normally a problem.
+        if (token.read_mode_) {
+            rassert(token.value_ >= ls_pair->first, "token.value_ = %ld, last_seens_[token.bucket_].first = %ld, token.bucket_ = %d", token.value_, ls_pair->first, token.bucket_);
+            ls_pair->second = std::max(ls_pair->second, token.value_);
+        } else {
+            rassert(token.value_ >= ls_pair->second, "token.value_ = %ld, last_seens_[token.bucket_].second = %ld, token.bucket_ = %d", token.value_, ls_pair->second, token.bucket_);
+            ls_pair->first = ls_pair->second = token.value_;
+        }
+    }
+
+    // .first = last seen write, .second = max(last seen read, last seen write)
+    std::vector<std::pair<int64_t, int64_t> > last_seens_;
 
     DISABLE_COPYING(order_sink_t);
 };
@@ -125,19 +141,20 @@ private:
 // only one source (like the top of a btree slice) and many sinks.
 class plain_sink_t {
 public:
-    plain_sink_t() : last_seen_(0) { }
+    plain_sink_t() : ls_pair_(0, 0) { }
 
     void check_out(order_token_t token) {
         if (token.bucket_ != order_token_t::ignore.bucket_) {
+            // TODO: do read/write mode.
             rassert(token.bucket_ >= 0);
             rassert(token.bucket_ == 0, "Only bucket 0 allowed, you made a programmer error");
-            rassert(token.value_ >= last_seen_, "token.value_ = %ld, last_seen_ = %ld", token.value_, last_seen_);
-            last_seen_ = token.value_;
+
+            order_sink_t::verify_token_value_and_update(token, &ls_pair_);
         }
     }
 
 private:
-    int64_t last_seen_;
+    std::pair<int64_t, int64_t> ls_pair_;
 
     DISABLE_COPYING(plain_sink_t);
 };
