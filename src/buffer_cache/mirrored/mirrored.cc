@@ -757,10 +757,9 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     } else {
         rassert(!inner_buf->do_delete || snapshotted);
 
-        if (!inner_buf->data && should_load) {
+        if (!inner_buf->data && should_load && !inner_buf->do_delete) {
             // The inner_buf doesn't have any data currently. We need the data though,
             // so load it!
-            rassert (!inner_buf->do_delete);
             inner_buf->data = cache->serializer->malloc();
             // Please keep in mind that this is blocking...
             inner_buf->load_inner_buf(true);
