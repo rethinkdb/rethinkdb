@@ -49,7 +49,7 @@
 // disastrous effects on query throughput though, so we choose a rather low priority.
 //
 // This is a one-per-serializer/file priority.
-#define GC_IO_PRIORITY                            200
+#define GC_IO_PRIORITY                            10
 
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
