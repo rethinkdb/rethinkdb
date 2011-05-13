@@ -51,21 +51,22 @@ public:
 private:
     static void nop() { }
 
-    void unregister_bucket(int bucket) {
+    void unregister_bucket(int bucket, int64_t counter) {
         ASSERT_NO_CORO_WAITING;
         rassert(bucket < least_unregistered_bucket_);
-        free_buckets_.push_back(bucket);
+        free_buckets_.push_back(std::make_pair(bucket, counter));
     }
 
-    int register_for_bucket() {
+    std::pair<int, int64_t> register_for_bucket() {
         ASSERT_NO_CORO_WAITING;
         if (free_buckets_.empty()) {
             int ret = least_unregistered_bucket_;
             ++ least_unregistered_bucket_;
-            return ret;
+            return std::pair<int, int64_t>(ret, 0);
         } else {
-            int ret = free_buckets_.back();
-            rassert(ret < least_unregistered_bucket_);
+            std::pair<int, int64_t> ret = free_buckets_.back();
+            rassert(ret.first < least_unregistered_bucket_);
+            rassert(ret.second >= 0);
             free_buckets_.pop_back();
             return ret;
         }
@@ -75,7 +76,7 @@ private:
     int least_unregistered_bucket_;
 
     // The buckets less than least_unregistered_bucket_.
-    std::vector<int> free_buckets_;
+    std::vector<std::pair<int, int64_t> > free_buckets_;
 
     DISABLE_COPYING(order_source_pigeoncoop_t);
 };
@@ -85,9 +86,12 @@ public:
     order_source_t(int bucket = 0, boost::function<void()> unregisterator = order_source_pigeoncoop_t::nop)
         : bucket_(bucket), counter_(0), unregister_(unregisterator) { }
 
-    order_source_t(order_source_pigeoncoop_t *coop)
-        : bucket_(coop->register_for_bucket()), counter_(0),
-          unregister_(boost::bind(&order_source_pigeoncoop_t::unregister_bucket, coop, bucket_)) { }
+    order_source_t(order_source_pigeoncoop_t *coop) : bucket_(-2), counter_(-2) {
+        std::pair<int, int64_t> p = coop->register_for_bucket();
+        bucket_ = p.first;
+        counter_ = p.second;
+        unregister_ = boost::bind(&order_source_pigeoncoop_t::unregister_bucket, coop, bucket_, boost::ref(counter_));
+    }
 
     ~order_source_t() { unregister_(); }
 
@@ -114,8 +118,7 @@ public:
                 last_seens_.resize(token.bucket_ + 1, std::pair<int64_t, int64_t>(0, 0));
             }
 
-            // TODO: Reenable! See issue #328
-            //verify_token_value_and_update(token, &last_seens_[token.bucket_]);
+            verify_token_value_and_update(token, &last_seens_[token.bucket_]);
         }
     }
 
