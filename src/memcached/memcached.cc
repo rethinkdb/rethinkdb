@@ -942,11 +942,11 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
         order_token_t token = order_source->check_in();
         thread_saver_t saver;
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
-            do_get(saver, &rh, false, args.size(), args.data(), token);
+            do_get(saver, &rh, false, args.size(), args.data(), token.with_read_mode());
         } else if (!strcmp(args[0], "gets")) {
             do_get(saver, &rh, true, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "rget")) {
-            do_rget(saver, &rh, args.size(), args.data(), token);
+            do_rget(saver, &rh, args.size(), args.data(), token.with_read_mode());
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
             do_storage(saver, &rh, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {
@@ -966,7 +966,8 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
         } else if (!strcmp(args[0], "decr")) {
             do_incr_decr(saver, &rh, false, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "quit")) {
-            // Make sure there's no more tokens
+            // Make sure there's no more tokens (the kind in args, not
+            // order tokens)
             if (args.size() > 1) {
                 rh.error(saver);
             } else {

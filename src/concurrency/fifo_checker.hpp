@@ -25,6 +25,10 @@ public:
     // equal to ignore, that must be initialized.
     order_token_t() : bucket_(-2), value_(-2) { }
 
+    order_token_t with_read_mode() {
+        return order_token_t(bucket_, value_, read_mode_);
+    }
+
 private:
     explicit order_token_t(int bucket, int64_t x, bool read_mode)
         : bucket_(bucket), read_mode_(read_mode), value_(x) { }
