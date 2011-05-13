@@ -424,10 +424,23 @@ void linux_tcp_conn_t::flush_buffer() {
     if (write_closed.is_pulsed()) throw write_closed_exc_t();
 }
 
-void linux_tcp_conn_t::shutdown_write() {
-    assert_thread();
+void linux_tcp_conn_t::flush_buffer_eventually() {
 
-    flush_buffer();
+    assert_thread();
+    rassert(!write_in_progress);
+    write_in_progress = true;
+
+    /* Flush the write buffer; it might be half-full. */
+    if (!write_buffer.empty()) internal_flush_write_buffer();
+
+    write_in_progress = false;
+
+    if (write_closed.is_pulsed()) throw write_closed_exc_t();
+}
+
+void linux_tcp_conn_t::shutdown_write() {
+
+    assert_thread();
 
     int res = ::shutdown(sock.get(), SHUT_WR);
     if (res != 0 && errno != ENOTCONN) {

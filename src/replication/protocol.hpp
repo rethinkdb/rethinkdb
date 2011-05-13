@@ -117,6 +117,11 @@ public:
     // immediately but cause the connection to be closed and cause conn_closed() to
     // be called.
     void shutdown() {
+        try {
+            conn_->flush_buffer();
+        } catch (tcp_conn_t::write_closed_exc_t &e) {
+            // Ignore
+        }
         conn_->shutdown_read();
     }
 
