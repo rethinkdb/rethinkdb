@@ -1,5 +1,6 @@
 #include "clustering/master_map.hpp"
 #include "errors.hpp"
+#include "clustering/routing.hpp"
 
 int master_map_t::master_hasher_t::get_bucket(store_key_t key) {
     return hasher.hash(key) % (1 << log_buckets);

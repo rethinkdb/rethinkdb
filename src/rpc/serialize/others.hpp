@@ -4,6 +4,7 @@
 #include "rpc/serialize/serialize.hpp"
 #include "rpc/serialize/basic.hpp"
 #include "store.hpp"
+#include <map>
 
 /* Serializing and unserializing std::vector of a serializable type */
 
@@ -33,6 +34,57 @@ void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::v
     for (int i = 0; i < count; i++) {
         element_t *ei = &(*e)[i];
         unserialize(conn, es, ei);
+    }
+}
+
+/* Serializing and unserializing std::pair of 2 serializable types */
+
+template<class T, class U>
+void serialize(cluster_outpipe_t *conn, const std::pair<T, U> &pair) {
+    serialize(conn, pair.first);
+    serialize(conn, pair.second);
+}
+
+template<class T, class U>
+int ser_size(const std::pair<T, U> &pair) {
+    return ser_size(pair.first) + ser_size(pair.second);
+}
+
+template<class T, class U>
+void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::pair<T, U> *pair) {
+    unserialize(conn, es, &(pair->first));
+    unserialize(conn, es, &(pair->first));
+}
+
+/* Serializing and unserializing std::map from a serializable type to another serializable type */
+template<class K, class V>
+void serialize(cluster_outpipe_t *conn, const std::map<K, V> &m) {
+    serialize(conn, int(m.size()));
+    for (typename std::map<K, V>::const_iterator it = m.begin(); it != m.end(); it++) {
+        serialize(conn, it->first);
+        serialize(conn, it->second);
+    }
+}
+
+template<class K, class V>
+int ser_size(const std::map<K, V> &m) {
+    int size = 0;
+    size += ser_size(int(m.size()));
+    for (typename std::map<K, V>::const_iterator it = m.begin(); it != m.end(); it++) {
+        size += ser_size((*it).first);
+        size += ser_size((*it).second);
+    }
+    return size;
+}
+
+template<class K, class V>
+void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::map<K, V> *m) {
+    int count;
+    unserialize(conn, es, &count);
+    for (int i = 0; i < count; i++) {
+        K key;
+        unserialize(conn, es, &key);
+        unserialize(conn, es, &((*m)[key]));
     }
 }
 

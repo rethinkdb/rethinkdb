@@ -94,6 +94,11 @@ private:
     the council. */
     typedef sync_mailbox_t<state_t(inner_address_t)> greeting_mailbox_t;
 
+    /* TODO? having the updater be a field rather than a method means that
+     * potentially 2 things could be in the council with different updaters,
+     * which would cause their values to not match is there any reason this
+     * couldn't just be virtual method? I think it would then get auto checked
+     * with our rtti checking. */
     updater_t updater;
 
     // The startup cond prevents race conditions where we receive a lock message
