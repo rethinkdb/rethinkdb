@@ -310,7 +310,7 @@ void repli_stream_t::try_write(const void *data, size_t size) {
 
 void repli_stream_t::flush() {
     try {
-        conn_->flush_buffer();
+        conn_->flush_buffer_eventually();
     } catch (tcp_conn_t::write_closed_exc_t &e) {
         /* Ignore; see `repli_stream_t::try_write()`. */
     }

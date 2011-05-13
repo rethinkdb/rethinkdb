@@ -80,11 +80,12 @@ public:
     write_closed_exc_t if the write end of the pipe is closed before we can finish. */
     void write(const void *buf, size_t size);
 
-    /* write_buffered() is like write(), but it might not send the data until flush_buffer() or
+    /* write_buffered() is like write(), but it might not send the data until flush_buffer*() or
     write() is called. Internally, it bundles together the buffered writes; this may improve
     performance. */
     void write_buffered(const void *buf, size_t size);
-    void flush_buffer();
+    void flush_buffer();   // Blocks until flush is done
+    void flush_buffer_eventually();   // Blocks only if the queue is backed up
 
     /* Call shutdown_write() to close the half of the pipe that goes from us to the peer. If there
     is a write currently happening, it will get write_closed_exc_t. */
