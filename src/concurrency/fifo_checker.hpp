@@ -114,8 +114,7 @@ public:
                 last_seens_.resize(token.bucket_ + 1, std::pair<int64_t, int64_t>(0, 0));
             }
 
-            // TODO: Reenable! See issue #328
-            //verify_token_value_and_update(token, &last_seens_[token.bucket_]);
+            verify_token_value_and_update(token, &last_seens_[token.bucket_]);
         }
     }
 
