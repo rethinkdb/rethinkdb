@@ -109,9 +109,7 @@ public:
 
     scc_cache_t<inner_cache_t> *cache;
 
-#ifndef NDEBUG
     order_token_t order_token;
-#endif
 
 private:
     bool snapshotted; // Disables CRC checks
@@ -159,6 +157,8 @@ private:
 
     /* CRC checking stuff */
     two_level_array_t<crc_t, MAX_BLOCK_ID> crc_map;
+    /* order checking stuff */
+    two_level_array_t<plain_sink_t, MAX_BLOCK_ID> sink_map;
 };
 
 #include "buffer_cache/semantic_checking.tcc"

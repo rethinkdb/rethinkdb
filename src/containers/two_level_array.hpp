@@ -64,7 +64,17 @@ public:
             if (chunks[i]) delete chunks[i];
         }
     }
-    
+
+    value_t& operator[](key_t key) {
+        unsigned int chunk_id = chunk_for_key(key);
+        if (chunks[chunk_id]) {
+            return chunks[chunk_id]->values[index_for_key(key)];
+        } else {
+            chunk_t *chunk = chunks[chunk_id] = new chunk_t;
+            return chunk->values[index_for_key(key)];
+        }
+    }
+
     value_t get(key_t key) const {
         unsigned int chunk_id = chunk_for_key(key);
         if (chunks[chunk_id]) {
