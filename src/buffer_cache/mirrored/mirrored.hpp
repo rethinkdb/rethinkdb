@@ -95,6 +95,9 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp recency_timestamp);
     ~mc_inner_buf_t();
 
+    // Loads data from the serializer
+    void load_inner_buf(bool should_lock);
+
     struct buf_snapshot_info_t {
         void *data;
         version_id_t snapshotted_version;
@@ -159,6 +162,7 @@ public:
 
     const void *get_data_read() const {
         rassert(ready);
+        rassert(data);
         return data;
     }
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
