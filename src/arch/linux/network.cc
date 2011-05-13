@@ -61,6 +61,7 @@ ERROR_BREAKOUT:
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(const char *host, int port) :
+    write_perfmon(NULL),
     sock(connect_to(host, port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
@@ -90,6 +91,7 @@ static fd_t connect_to(const ip_address_t &host, int port) {
 }
 
 linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
+    write_perfmon(NULL),
     sock(connect_to(host, port)),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
@@ -97,6 +99,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &host, int port) :
     { }
 
 linux_tcp_conn_t::linux_tcp_conn_t(fd_t s) :
+    write_perfmon(NULL),
     sock(s),
     event_watcher(new linux_event_watcher_t(sock.get(), this)),
     read_in_progress(false), write_in_progress(false),
@@ -350,6 +353,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
             rassert(res <= (int)size);
             buf = reinterpret_cast<const void *>(reinterpret_cast<const char *>(buf) + res);
             size -= res;
+            if (write_perfmon) write_perfmon->record(res);
         }
     }
 }

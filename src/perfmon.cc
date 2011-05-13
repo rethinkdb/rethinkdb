@@ -168,6 +168,65 @@ void perfmon_sampler_t::end_stats(void *data, perfmon_stats_t *dest) {
     delete[] stats;
 };
 
+/* perfmon_rate_monitor_t */
+
+perfmon_rate_monitor_t::perfmon_rate_monitor_t(std::string name, ticks_t length)
+    : name(name), length(length)
+{
+    for (int i = 0; i < MAX_THREADS; i++) {
+        thread_info[i].current_interval = get_ticks() / length;
+    }
+}
+
+void perfmon_rate_monitor_t::update(ticks_t now) {
+    int interval = now / length;
+    thread_info_t *thread = &thread_info[get_thread_id()];
+
+    if (thread->current_interval == interval) {
+        /* We're up to date; nothing to do */
+    } else if (thread->current_interval + 1 == interval) {
+        /* We're one step behind */
+        thread->last_count = thread->current_count;
+        thread->current_count = 0;
+        thread->current_interval++;
+    } else {
+        /* We're more than one step behind */
+        thread->last_count = thread->current_count = 0;
+        thread->current_interval = interval;
+    }
+}
+
+void perfmon_rate_monitor_t::record(double count) {
+    ticks_t now = get_ticks();
+    update(now);
+    thread_info_t *thread = &thread_info[get_thread_id()];
+    thread->current_count += count;
+}
+
+void *perfmon_rate_monitor_t::begin_stats() {
+    return new double[get_num_threads()];
+}
+
+void perfmon_rate_monitor_t::visit_stats(void *data) {
+    update(get_ticks());
+    /* Return last_count instead of current_stats so that we can give a complete interval's
+    worth of stats. We might be halfway through an interval, in which case current_count will
+    only have half an interval worth. */
+    ((double *)data)[get_thread_id()] = thread_info[get_thread_id()].last_count;
+}
+
+void perfmon_rate_monitor_t::end_stats(void *data, perfmon_stats_t *dest) {
+    double *stats = (double *)data;
+    double total = 0;
+    for (int i = 0; i < get_num_threads(); i++) {
+        total += stats[i];
+    }
+
+    (*dest)[name] = format(total / ticks_to_secs(length));
+
+    delete[] stats;
+};
+
 /* perfmon_function_t */
 
 perfmon_function_t::internal_function_t::internal_function_t(perfmon_function_t *p)
