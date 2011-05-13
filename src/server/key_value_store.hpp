@@ -46,6 +46,7 @@ struct shard_store_t :
     dispatching_store_t dispatching_store;   // For replication
     timestamping_set_store_interface_t timestamper;
     order_sink_t sink;
+    order_source_t substore_order_source;
 };
 
 class btree_key_value_store_t :

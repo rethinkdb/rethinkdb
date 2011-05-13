@@ -7,10 +7,8 @@ void dispatching_store_t::set_dispatcher(boost::function<mutation_t(const mutati
     dispatcher = disp;
 }
 
-mutation_result_t dispatching_store_t::change(const mutation_t &m, castime_t castime, order_token_t key_value_store_token) {
+mutation_result_t dispatching_store_t::change(const mutation_t &m, castime_t castime, order_token_t substore_token) {
     assert_thread();
-    order_sink.check_out(key_value_store_token);
-    order_token_t substore_token = order_source_for_substore.check_in();
     if (dispatcher) {
         order_token_t dispatchee_token = order_source_for_dispatchee.check_in();
         return substore->change(dispatcher(m, castime, dispatchee_token), castime, substore_token);

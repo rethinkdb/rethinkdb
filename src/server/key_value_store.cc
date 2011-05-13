@@ -20,31 +20,35 @@ shard_store_t::shard_store_t(
     timestamper(&dispatching_store)
     { }
 
-get_result_t shard_store_t::get(const store_key_t &key, UNUSED order_token_t token) {
+get_result_t shard_store_t::get(const store_key_t &key, order_token_t token) {
     on_thread_t th(home_thread);
     sink.check_out(token);
+    order_token_t substore_token = substore_order_source.check_in().with_read_mode();
     // We need to let gets reorder themselves, and haven't implemented that yet.
-    return btree.get(key, order_token_t::ignore);
+    return btree.get(key, substore_token);
 }
 
-rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, UNUSED order_token_t token) {
+rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     on_thread_t th(home_thread);
     sink.check_out(token);
+    order_token_t substore_token = substore_order_source.check_in().with_read_mode();
     // We need to let gets reorder themselves, and haven't implemented that yet.
-    return btree.rget(left_mode, left_key, right_mode, right_key, order_token_t::ignore);
+    return btree.rget(left_mode, left_key, right_mode, right_key, substore_token);
 }
 
 mutation_result_t shard_store_t::change(const mutation_t &m, order_token_t token) {
     on_thread_t th(home_thread);
     sink.check_out(token);
-    return timestamper.change(m, token);
+    order_token_t substore_token = substore_order_source.check_in();
+    return timestamper.change(m, substore_token);
 }
 
 mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order_token_t token) {
     /* Bypass the timestamper because we already have a castime_t */
     on_thread_t th(home_thread);
     sink.check_out(token);
-    return dispatching_store.change(m, ct, token);
+    order_token_t substore_token = substore_order_source.check_in();
+    return dispatching_store.change(m, ct, substore_token);
 }
 
 /* btree_key_value_store_t */
