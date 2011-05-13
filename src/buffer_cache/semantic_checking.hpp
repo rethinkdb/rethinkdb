@@ -109,7 +109,9 @@ public:
 
     scc_cache_t<inner_cache_t> *cache;
 
+#ifndef NDEBUG
     order_token_t order_token;
+#endif
 
 private:
     bool snapshotted; // Disables CRC checks
