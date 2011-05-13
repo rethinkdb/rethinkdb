@@ -110,7 +110,7 @@ public:
             // be used to ensure that multiple actions don't get
             // interrupted.  And resending the same action isn't
             // normally a problem.
-            rassert(token.value_ >= last_seens_[token.bucket_], "token.value_ = %ld, last_seens_[token.bucket_] = %ld", token.value_, last_seens_[token.bucket_]);
+            rassert(token.value_ >= last_seens_[token.bucket_], "token.value_ = %ld, last_seens_[token.bucket_] = %ld, token.bucket_ = %d", token.value_, last_seens_[token.bucket_], token.bucket_);
             last_seens_[token.bucket_] = token.value_;
         }
     }

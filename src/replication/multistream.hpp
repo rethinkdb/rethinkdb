@@ -19,7 +19,7 @@ extern const uint32_t MAX_MESSAGE_SIZE;
 class protocol_exc_t : public std::exception {
 public:
     protocol_exc_t(const char *msg) : msg_(msg) { }
-    const char *what() throw() { return msg_; }
+    const char *what() const throw() { return msg_; }
 private:
     const char *msg_;
 };
