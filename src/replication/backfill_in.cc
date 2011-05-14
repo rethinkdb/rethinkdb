@@ -2,7 +2,9 @@
 
 namespace replication {
 
-perfmon_counter_t pm_replication_slave_realtime_queue("replication_slave_realtime_queue");
+perfmon_counter_t
+    pm_replication_slave_realtime_queue("replication_slave_realtime_queue"),
+    pm_replication_slave_backfill_queue("replication_slave_backfill_queue");
 
 #define BACKFILL_QUEUE_CAPACITY 2048
 #define REALTIME_QUEUE_CAPACITY 2048
