@@ -125,7 +125,20 @@ void replication_connection_handler_t::process_hello_message(net_hello_t buf) {
 
 }  // namespace internal
 
+perfmon_rate_monitor_t pm_replication_network_write_rate("replication_network_write_rate", secs_to_ticks(2.0));
 
+repli_stream_t::repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback) : conn_handler_(recv_callback) {
+    conn_.swap(conn);
+    conn_->write_perfmon = &pm_replication_network_write_rate;
+    parse_messages(conn_.get(), &conn_handler_);
+    mutex_acquisition_t ak(&outgoing_mutex_);
+    send_hello(ak);
+}
+
+repli_stream_t::~repli_stream_t() {
+    drain_semaphore_.drain();   // Wait for any active send()s to finish
+    rassert(!conn_->is_read_open());
+}
 
 template <class net_struct_type>
 void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
