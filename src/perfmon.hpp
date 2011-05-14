@@ -98,7 +98,6 @@ happens, call the perfmon_sampler_t's record() method. The perfmon_sampler_t wil
 record until 'length' ticks have passed. It will produce stats for the number of records in the
 time period, the average record, and the min and max records. */
 
-struct perfmon_sampler_step_t;
 class perfmon_sampler_t :
     public perfmon_t
 {
@@ -143,6 +142,32 @@ private:
 public:
     perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false);
     void record(value_t value);
+    
+    void *begin_stats();
+    void visit_stats(void *);
+    void end_stats(void *, perfmon_stats_t *);
+};
+
+/* `perfmon_rate_monitor_t` keeps track of the number of times some event happens
+per second. It is different from `perfmon_sampler_t` in that it does not associate
+a number with each event, but you can record many events at once. For example, it
+would be good for recording how fast bytes are sent over the network. */
+
+class perfmon_rate_monitor_t :
+    public perfmon_t
+{
+private:
+    struct thread_info_t {
+        double current_count, last_count;
+        int current_interval;
+    } thread_info[MAX_THREADS];
+    void update(ticks_t now);
+
+    std::string name;
+    ticks_t length;
+public:
+    perfmon_rate_monitor_t(std::string name, ticks_t length);
+    void record(double value = 1.0);
     
     void *begin_stats();
     void visit_stats(void *);
