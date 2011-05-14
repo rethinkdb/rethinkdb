@@ -252,7 +252,9 @@ public:
 
     cache_t *cache;
 
+#ifndef NDEBUG
     order_token_t order_token;
+#endif
 
 private:
     explicit mc_transaction_t(cache_t *cache, order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp);

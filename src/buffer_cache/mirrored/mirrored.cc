@@ -623,9 +623,11 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, order_token_t _order_token, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
+mc_transaction_t::mc_transaction_t(cache_t *_cache, UNUSED order_token_t _order_token, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
     : cache(_cache),
+#ifndef NDEBUG
       order_token(_order_token),
+#endif
       expected_change_count(_expected_change_count),
       access(_access),
       recency_timestamp(_recency_timestamp),
