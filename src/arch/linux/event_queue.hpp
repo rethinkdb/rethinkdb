@@ -79,6 +79,11 @@ struct linux_event_watcher_t {
     cancelled. */
     void watch(int event, const boost::function<void()> &callback, signal_t *aborter);
 
+    /* Returns `true` if `watch()` was called for events of type `event` but has
+    not completed or been aborted yet. `event` should be `poll_event_in` or
+    `poll_event_out`. */
+    bool is_watching(int event);
+
 private:
     /* The guts are a separate object so that if one of the callbacks we call destroys us,
     we don't have to destroy the guts immediately. */

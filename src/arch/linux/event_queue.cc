@@ -101,7 +101,7 @@ struct linux_event_watcher_guts_t :
         signal_t *aborter;
 
         void watch(const boost::function<void()> &cb, signal_t *ab) {
-            rassert(!callback && !aborter);
+            rassert(!is_watching());
             rassert(cb && ab);
             if (!ab->is_pulsed()) {
                 callback = cb;
@@ -111,8 +111,14 @@ struct linux_event_watcher_guts_t :
             }
         }
 
+        bool is_watching() {
+            /* We should have neither or both a callback and an aborter */
+            rassert(callback.empty() == (aborter == NULL));
+            return !callback.empty();
+        }
+
         void pulse() {
-            rassert(callback && aborter, "%p got a pulse() when event mask is %d", parent, parent->old_mask);
+            rassert(is_watching(), "%p got a pulse() when event mask is %d", parent, parent->old_mask);
             aborter->remove_waiter(this);
             boost::function<void()> temp = callback;
             callback = 0;
@@ -122,7 +128,7 @@ struct linux_event_watcher_guts_t :
         }
 
         void on_signal_pulsed() {
-            rassert(callback && aborter);
+            rassert(is_watching());
             callback = 0;
             aborter = NULL;
             parent->remask();
@@ -168,13 +174,22 @@ struct linux_event_watcher_guts_t :
         handler->watch(cb, ab);
     }
 
+    bool is_watching(int event) {
+        assert_thread();
+        switch (event) {
+            case poll_event_in: return read_handler.is_watching();
+            case poll_event_out: return write_handler.is_watching();
+            default: crash("expected poll_event_in or poll_event_out");
+        }
+    }
+
     void remask() {
         /* Change our registration with the event queue depending on what events
         we are actually waiting for. */
 
         int new_mask = 0;
-        if (read_handler.callback) new_mask |= poll_event_in;
-        if (write_handler.callback) new_mask |= poll_event_out;
+        if (read_handler.is_watching()) new_mask |= poll_event_in;
+        if (write_handler.is_watching()) new_mask |= poll_event_out;
 
         if (old_mask != new_mask) {
             linux_thread_pool_t::thread->queue.adjust_resource(fd, new_mask, this);
@@ -192,5 +207,9 @@ linux_event_watcher_t::~linux_event_watcher_t() {
 
 void linux_event_watcher_t::watch(int event, const boost::function<void()> &cb, signal_t *ab) {
     guts->watch(event, cb, ab);
+}
+
+bool linux_event_watcher_t::is_watching(int event) {
+    return guts->is_watching(event);
 }
 
