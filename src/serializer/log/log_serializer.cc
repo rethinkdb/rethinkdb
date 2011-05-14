@@ -454,7 +454,9 @@ struct ls_write_fsm_t :
     
     void on_thread_switch() {        
         // Launch up to this many block writers at a time, then yield the CPU
-        const int target_chunk_size = 100;
+        const int target_chunk_size = 1024; /* This must not be too low, otherwise writes
+                                             might hold the main_mutex for too long,
+                                             blocking out reads. */
         int chunk_size = 0;
         while (num_writes > 0 && chunk_size < target_chunk_size) {
             ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes, io_account);
