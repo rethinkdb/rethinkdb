@@ -163,11 +163,9 @@ void scc_transaction_t<inner_cache_t>::get_subtree_recencies(block_id_t *block_i
 }
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t>::scc_transaction_t(UNUSED order_token_t _order_token, access_t _access, scc_cache_t<inner_cache_t> *_cache)
+scc_transaction_t<inner_cache_t>::scc_transaction_t(order_token_t _order_token, access_t _access, scc_cache_t<inner_cache_t> *_cache)
     : cache(_cache),
-#ifndef NDEBUG
       order_token(_order_token),
-#endif
       snapshotted(false),
       access(_access),
       begin_cb(NULL),
