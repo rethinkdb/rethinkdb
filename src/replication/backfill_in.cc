@@ -2,9 +2,16 @@
 
 namespace replication {
 
+// Stats for the current depth of realtime and backfill queues
 perfmon_counter_t
     pm_replication_slave_realtime_queue("replication_slave_realtime_queue"),
     pm_replication_slave_backfill_queue("replication_slave_backfill_queue");
+
+// Stats for how long it takes to push something onto the queue (it should be
+// very fast unless the queue is backed up)
+perfmon_duration_sampler_t
+    pm_replication_slave_realtime_enqueue("replication_slave_realtime_enqueue", secs_to_ticks(1.0)),
+    pm_replication_slave_backfill_enqueue("replication_slave_backfill_enqueue", secs_to_ticks(1.0));
 
 #define BACKFILL_QUEUE_CAPACITY 2048
 #define REALTIME_QUEUE_CAPACITY 2048
@@ -30,6 +37,7 @@ backfill_storer_t::~backfill_storer_t() {
 void backfill_storer_t::backfill_delete_everything(order_token_t token) {
     order_sink_.check_out(token);
     print_backfill_warning_ = true;
+    block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::delete_all_keys_for_backfill, kvs_));
 }
@@ -41,13 +49,15 @@ void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) 
     delete_mutation_t mut;
     mut.key = key;
     mut.dont_put_in_delete_queue = true;
-    // NO_CAS_SUPPLIED is not used in any way for deletions, and the
-    // timestamp is part of the "->change" interface in a way not
-    // relevant to slaves -- it's used when putting deletions into the
-    // delete queue.
+    block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_,
-        mut, castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid), order_token_t::ignore
+        mut,
+        // NO_CAS_SUPPLIED is not used in any way for deletions, and the
+        // timestamp is part of the "->change" interface in a way not
+        // relevant to slaves -- it's used when putting deletions into the
+        // delete queue.
+        castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid), order_token_t::ignore
         ));
 }
 
@@ -63,6 +73,7 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) 
     mut.add_policy = add_policy_yes;
     mut.replace_policy = replace_policy_yes;
     mut.old_cas = NO_CAS_SUPPLIED;
+    block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_,
         mut, castime_t(atom.cas_or_zero, atom.recency), order_token_t::ignore
@@ -77,6 +88,7 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) 
         and "cas_mut" will be a noop. */
         get_cas_mutation_t cas_mut;
         cas_mut.key = mut.key;
+        block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
         backfill_queue_.push(boost::bind(
             &btree_key_value_store_t::change, kvs_,
             cas_mut, castime_t(atom.cas_or_zero, atom.recency), order_token_t::ignore));
@@ -117,11 +129,13 @@ void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t casti
     order_sink_.check_out(token);
     get_cas_mutation_t mut;
     mut.key = key;
+    block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, mut, castime, token));
 }
 
 void backfill_storer_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token) {
     order_sink_.check_out(token);
+    block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, m, castime, token));
 }
 
@@ -132,6 +146,7 @@ void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
     mut.key = key;
     mut.kind = kind;
     mut.amount = amount;
+    block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, mut, castime, token));
 }
 
@@ -142,6 +157,7 @@ void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, cons
     mut.key = key;
     mut.data = data;
     mut.kind = kind;
+    block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, mut, castime, token));
 }
 
@@ -150,9 +166,10 @@ void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timest
     delete_mutation_t mut;
     mut.key = key;
     mut.dont_put_in_delete_queue = true;
-    // TODO: where does "timestamp" go???  IS THIS RIGHT?? WHO KNOWS.
+    block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
     realtime_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_, mut,
+        // TODO: where does "timestamp" go???  IS THIS RIGHT?? WHO KNOWS.
         castime_t(NO_CAS_SUPPLIED /* This isn't even used, why is it a parameter. */, timestamp),
         token
         ));
@@ -163,6 +180,7 @@ void backfill_storer_t::realtime_time_barrier(repli_timestamp_t timestamp, UNUSE
     /* Write replication clock before timestamp so that if the flush happens
     between them, we will redo the backfill instead of proceeding with a wrong
     replication clock. */
+    block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, timestamp));
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, timestamp));
 }

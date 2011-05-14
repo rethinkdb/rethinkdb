@@ -2,19 +2,25 @@
 
 namespace replication {
 
+perfmon_duration_sampler_t
+    pm_replication_slave_handling_2("replication_slave_handling_2", secs_to_ticks(1.0));
+
 void backfill_receiver_t::send(scoped_malloc<net_backfill_complete_t>& message) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     // debugf("recv backfill_done()\n");
     cb->backfill_done(message->time_barrier_timestamp, token);
 }
 
 void backfill_receiver_t::send(UNUSED scoped_malloc<net_backfill_delete_everything_t>& msg) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     // debugf("recv backfill_delete_everything()\n");
     cb->backfill_delete_everything(token);
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_get_cas_t>& msg) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->key);
     // debugf("recv realtime_get_cas(%.*s)\n", key.size, key.contents);
@@ -23,6 +29,7 @@ void backfill_receiver_t::send(scoped_malloc<net_get_cas_t>& msg) {
 }
 
 void backfill_receiver_t::send(stream_pair<net_sarc_t>& msg) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->keyvalue);
     // debugf("recv realtime_sarc(%.*s)\n", key.size, key.contents);
@@ -33,6 +40,7 @@ void backfill_receiver_t::send(stream_pair<net_sarc_t>& msg) {
 }
 
 void backfill_receiver_t::send(stream_pair<net_backfill_set_t>& msg) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     backfill_atom_t atom;
     atom.key.assign(msg->key_size, msg->keyvalue);
@@ -46,6 +54,7 @@ void backfill_receiver_t::send(stream_pair<net_backfill_set_t>& msg) {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_incr_t>& msg) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->key);
     // debugf("recv realtime_incr_decr(%.*s)\n", key.size, key.contents);
@@ -54,6 +63,7 @@ void backfill_receiver_t::send(scoped_malloc<net_incr_t>& msg) {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_decr_t>& msg) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->key);
     // debugf("recv realtime_incr_decr(%.*s)\n", key.size, key.contents);
@@ -62,6 +72,7 @@ void backfill_receiver_t::send(scoped_malloc<net_decr_t>& msg) {
 }
 
 void backfill_receiver_t::send(stream_pair<net_append_t>& msg) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->keyvalue);
     // debugf("recv realtime_append_prepend(%.*s)\n", key.size, key.contents);
@@ -70,6 +81,7 @@ void backfill_receiver_t::send(stream_pair<net_append_t>& msg) {
 }
 
 void backfill_receiver_t::send(stream_pair<net_prepend_t>& msg) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->keyvalue);
     // debugf("recv realtime_append_prepend(%.*s)\n", key.size, key.contents);
@@ -78,6 +90,7 @@ void backfill_receiver_t::send(stream_pair<net_prepend_t>& msg) {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_delete_t>& msg) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->key);
     // debugf("recv realtime_delete(%.*s)\n", key.size, key.contents);
@@ -85,6 +98,7 @@ void backfill_receiver_t::send(scoped_malloc<net_delete_t>& msg) {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_backfill_delete_t>& msg) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     store_key_t key(msg->key_size, msg->key);
     // debugf("recv backfill_deletion(%.*s)\n", key.size, key.contents);
@@ -92,6 +106,7 @@ void backfill_receiver_t::send(scoped_malloc<net_backfill_delete_t>& msg) {
 }
 
 void backfill_receiver_t::send(scoped_malloc<net_nop_t>& message) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in();
     // debugf("recv realtime_time_barrier()\n");
     cb->realtime_time_barrier(message->timestamp, token);
