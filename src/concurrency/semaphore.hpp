@@ -103,11 +103,15 @@ public:
     }
 
     void lock(semaphore_available_callback_t *cb, int count = 1) {
-        lock_request_t *r = new lock_request_t;
-        r->cb = cb;
-        r->count = count;
-        waiters.push_back(r);
-        pump();
+        rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
+        if (try_lock(count)) {
+            cb->on_semaphore_available();
+        } else {
+            lock_request_t *r = new lock_request_t;
+            r->count = count;
+            r->cb = cb;
+            waiters.push_back(r);
+        }
     }
 
     void co_lock(int count = 1) {
