@@ -290,9 +290,9 @@ class RethinkDB(MemcachedLikeServer):
             try:
                 s = socket.socket()
                 s.connect(('localhost', self.dbench.port))
-                s.send('set test 0 0 0\r\n\r\n')
+                s.send('get test\r\n\r\n')
                 res = s.makefile().readline()
-                if res == 'STORED\r\n':
+                if res == 'END\r\n':
                     print "Waiting done: %d\n" % time.time()
                     return
             except socket.error, e:

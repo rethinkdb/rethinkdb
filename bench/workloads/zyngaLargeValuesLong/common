@@ -13,7 +13,7 @@ function run_with_clients {
     MEM_SIZE=24000  # magneto
 
     if [ $DATABASE == "rethinkdb" ]; then
-        ../../build/release/rethinkdb create $SSD_DRIVES --force --block-size 16384
+        ../../build/release/rethinkdb create $SSD_DRIVES --force
         #./dbench                                                                                      \
         #    -f -d "/tmp/zynga_insert" -H $SERVER_HOSTS    \
         #    {server}rethinkdb:"-m ${MEM_SIZE} $SSD_DRIVES"                                            \
