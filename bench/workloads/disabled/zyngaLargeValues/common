@@ -33,6 +33,7 @@ function run_with_clients {
         #    {server}membase:"-d $MEMBASE_DATA_PATH -m ${MEM_SIZE}"                                       \
         #    {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -v 10240-16384 -w 0/0/1/0 -o /tmp/keys" \
         #    iostat:1 vmstat:1
+        echo foo
     fi
     
     # Kill the page cache!
