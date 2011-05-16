@@ -346,4 +346,4 @@ void backfill_and_realtime_stream(btree_key_value_store_t *kvs, repli_timestamp_
     }
 }
 
-}
+}  // namespace replication
