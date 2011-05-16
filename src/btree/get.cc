@@ -26,7 +26,6 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
 
     // Acquire the superblock
 
-    //    debugf("Acquiring node %p-%u (superblock) with token { .bucket=%d, .value=%ld, read_mode=%d }\n", slice, SUPERBLOCK_ID, token.bucket(), token.value(), token.read_mode());
     buf_lock_t buf_lock(saver, *transactor, SUPERBLOCK_ID, rwi_read);
     block_id_t node_id = ptr_cast<btree_superblock_t>(buf_lock->get_data_read())->root_block;
     rassert(node_id != SUPERBLOCK_ID);
@@ -40,7 +39,6 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
 
     while (true) {
         {
-            //            debugf("Acquiring node %p-%u with token { .bucket=%d, .value=%ld, read_mode=%d }\n", slice, node_id, token.bucket(), token.value(), token.read_mode());
             buf_lock_t tmp(saver, *transactor, node_id, rwi_read);
             buf_lock.swap(tmp);
         }

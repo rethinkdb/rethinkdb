@@ -26,7 +26,7 @@ public:
     order_token_t() : bucket_(-2), value_(-2) { }
 
     order_token_t with_read_mode() {
-        return order_token_t(bucket_, value_, read_mode_);
+        return order_token_t(bucket_, value_, true);
     }
 
     int bucket() const { return bucket_; }

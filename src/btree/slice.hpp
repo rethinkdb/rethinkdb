@@ -59,6 +59,7 @@ public:
     cache_t *cache() { return &cache_; }
     int64_t delete_queue_limit() { return delete_queue_limit_; }
 
+    // Please use this only for debugging.
     const char *name() const { return informal_name_.c_str(); }
 
 private:
