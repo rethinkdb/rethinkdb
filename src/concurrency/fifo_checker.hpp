@@ -29,6 +29,10 @@ public:
         return order_token_t(bucket_, value_, read_mode_);
     }
 
+    int bucket() const { return bucket_; }
+    bool read_mode() const { return read_mode_; }
+    int64_t value() const { return value_; }
+
 private:
     explicit order_token_t(int bucket, int64_t x, bool read_mode)
         : bucket_(bucket), read_mode_(read_mode), value_(x) { }
