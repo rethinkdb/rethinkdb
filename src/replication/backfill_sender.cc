@@ -2,8 +2,10 @@
 
 namespace replication {
 perfmon_duration_sampler_t
-    master_del("master_bf_del", secs_to_ticks(1.0)),
-    master_set("master_bf_set", secs_to_ticks(1.0));
+    master_bf_del("master_bf_del", secs_to_ticks(1.0)),
+    master_bf_set("master_bf_set", secs_to_ticks(1.0)),
+    master_rt_op("master_rt_op", secs_to_ticks(1.0)),
+    master_rt_timebarrier("master_rt_timebarrier", secs_to_ticks(5.0));
 
 backfill_sender_t::backfill_sender_t(repli_stream_t **stream) :
     stream_(stream), have_warned_about_expiration(false) { }
@@ -31,7 +33,7 @@ void backfill_sender_t::backfill_delete_everything(order_token_t token) {
 
 void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) {
     order_sink_before_send.check_out(token);
-    block_pm_duration set_timer(&master_del);
+    block_pm_duration set_timer(&master_bf_del);
 
     size_t n = sizeof(net_backfill_delete_t) + key.size;
     if (*stream_) {
@@ -49,7 +51,7 @@ void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) 
 void backfill_sender_t::backfill_set(backfill_atom_t atom, order_token_t token) {
     assert_thread();
 
-    block_pm_duration set_timer(&master_set);
+    block_pm_duration set_timer(&master_bf_set);
 
     order_sink_before_send.check_out(token);
 
@@ -84,6 +86,8 @@ void backfill_sender_t::backfill_done(repli_timestamp_t timestamp_when_backfill_
 void backfill_sender_t::realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token) {
     assert_thread();
 
+    block_pm_duration set_timer(&master_rt_op);
+
     order_sink_before_send.check_out(token);
 
     if (*stream_) {
@@ -103,6 +107,8 @@ void backfill_sender_t::realtime_get_cas(const store_key_t& key, castime_t casti
 
 void backfill_sender_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token) {
     assert_thread();
+
+    block_pm_duration set_timer(&master_rt_op);
 
     order_sink_before_send.check_out(token);
 
@@ -134,6 +140,8 @@ void backfill_sender_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, ord
 
 void backfill_sender_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime, order_token_t token) {
     assert_thread();
+
+    block_pm_duration set_timer(&master_rt_op);
 
     order_sink_before_send.check_out(token);
 
@@ -167,6 +175,7 @@ void backfill_sender_t::incr_decr_like(const store_key_t &key, uint64_t amount, 
 
 void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data, castime_t castime, order_token_t token) {
     assert_thread();
+    block_pm_duration set_timer(&master_rt_op);
     order_sink_before_send.check_out(token);
 
     if (*stream_) {
@@ -203,6 +212,7 @@ void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, cons
 
 void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token) {
     assert_thread();
+    block_pm_duration set_timer(&master_rt_op);
     order_sink_before_send.check_out(token);
 
     size_t n = sizeof(net_delete_t) + key.size;
@@ -219,6 +229,7 @@ void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timest
 }
 
 void backfill_sender_t::realtime_time_barrier(repli_timestamp timestamp, order_token_t token) {
+    block_pm_duration timer(&master_rt_timebarrier);
     order_sink_before_send.check_out(token);
     assert_thread();
     net_nop_t msg;

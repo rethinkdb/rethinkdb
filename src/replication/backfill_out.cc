@@ -8,9 +8,10 @@
 #include "concurrency/queue/cross_thread_limited_fifo.hpp"
 #include "concurrency/queue/accounting.hpp"
 
-perfmon_duration_sampler_t pm_replication_master_dispatch_cost("replication_master_dispatch_cost", secs_to_ticks(1.0));
+perfmon_duration_sampler_t
+    pm_replication_master_dispatch_cost("replication_master_dispatch_cost", secs_to_ticks(1.0)),
+    pm_replication_master_enqueue_cost("replication_master_enqueue_cost", secs_to_ticks(1.0));
 
-#define MAX_REPLICATION_COROUTINES 2034
 #define REPLICATION_JOB_QUEUE_DEPTH 2048
 
 namespace replication {
@@ -95,6 +96,7 @@ struct backfill_and_streaming_manager_t :
             castime_t castime;
             order_token_t order_token;
             mutation_t operator()(const get_cas_mutation_t& m) {
+                block_pm_duration timer(&pm_replication_master_enqueue_cost);
                 manager->realtime_job_queue.push(boost::bind(
                     &backfill_and_realtime_streaming_callback_t::realtime_get_cas, manager->parent_->handler_,
                     m.key, castime, order_token));
@@ -107,6 +109,7 @@ struct backfill_and_streaming_manager_t :
                 {
                     sarc_mutation_t m3(m);
                     m3.data = dps[0];
+                    block_pm_duration timer(&pm_replication_master_enqueue_cost);
                     manager->realtime_job_queue.push(boost::bind(
                         &backfill_and_realtime_streaming_callback_t::realtime_sarc, manager->parent_->handler_,
                         m3, castime, order_token));
@@ -117,6 +120,7 @@ struct backfill_and_streaming_manager_t :
                 return m2;
             }
             mutation_t operator()(const incr_decr_mutation_t& m) {
+                block_pm_duration timer(&pm_replication_master_enqueue_cost);
                 manager->realtime_job_queue.push(boost::bind(
                     &backfill_and_realtime_streaming_callback_t::realtime_incr_decr, manager->parent_->handler_,
                     m.kind, m.key, m.amount, castime, order_token));
@@ -125,6 +129,7 @@ struct backfill_and_streaming_manager_t :
             mutation_t operator()(const append_prepend_mutation_t &m) {
                 unique_ptr_t<data_provider_t> dps[2];
                 duplicate_data_provider(m.data, 2, dps);
+                block_pm_duration timer(&pm_replication_master_enqueue_cost);
                 manager->realtime_job_queue.push(boost::bind(
                     &backfill_and_realtime_streaming_callback_t::realtime_append_prepend, manager->parent_->handler_,
                     m.kind, m.key, dps[0], castime, order_token));
@@ -133,6 +138,7 @@ struct backfill_and_streaming_manager_t :
                 return m2;
             }
             mutation_t operator()(const delete_mutation_t& m) {
+                block_pm_duration timer(&pm_replication_master_enqueue_cost);
                 manager->realtime_job_queue.push(boost::bind(
                     &backfill_and_realtime_streaming_callback_t::realtime_delete_key, manager->parent_->handler_,
                     m.key, castime.timestamp, order_token));
@@ -333,7 +339,11 @@ struct backfill_and_streaming_manager_t :
         all_delete_queues_so_far_can_send_keys_(true),
         internal_store_(kvs),
         handler_(handler),
-        coro_pool(MAX_REPLICATION_COROUTINES, &combined_job_queue),
+        /* Every job that goes through the job queue will try to acquire the same lock, so
+        there is no point in having more than one coroutine. Also, there is empirical
+        evidence that having extra coroutines just waiting for the lock hurts performance.
+        So the "pool" really just has one thing in it. */
+        coro_pool(1, &combined_job_queue),
         backfill_job_account(&combined_job_queue, &backfill_job_queue, 1),
         realtime_job_account(&combined_job_queue, &realtime_job_queue, 1)
     {
