@@ -18,7 +18,7 @@
 #define WRITE_CHUNK_SIZE (8 * KILOBYTE)
 
 /* Warning: It is very easy to accidentally introduce race conditions to linux_tcp_conn_t.
-Think carefully before changing read_internal(), write_internal(), or on_shutdown_*(). */
+Think carefully before changing read_internal(), perform_write(), or on_shutdown_*(). */
 
 static fd_t connect_to(const char *host, int port) {
 
@@ -304,6 +304,13 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
 void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
     assert_thread();
 
+    if (write_closed.is_pulsed()) {
+        /* The write end of the connection was closed, but there are still
+        operations in the write queue; we are one of those operations. Just
+        don't do anything. */
+        return;
+    }
+
     while (size > 0) {
         int res = ::write(sock.get(), buf, size);
 
@@ -373,7 +380,9 @@ void linux_tcp_conn_t::write(const void *buf, size_t size) {
     /* Enqueue the write so it will happen eventually */
     write_queue.push(boost::bind(&linux_tcp_conn_t::perform_write, this, buf, size));
 
-    /* Wait for the write to be done */
+    /* Wait for the write to be done. If the write half of the network connection
+    is closed before or during our write, then `perform_write()` will turn into a
+    no-op, so the cond will still get pulsed. */
     cond_t to_signal_when_done;
     write_queue.push(boost::bind(&cond_t::pulse, &to_signal_when_done));
     to_signal_when_done.wait();
@@ -418,7 +427,11 @@ void linux_tcp_conn_t::flush_buffer() {
     /* Flush the write buffer; it might be half-full. */
     if (!write_buffer.empty()) internal_flush_write_buffer();
 
-    /* Wait until we know that the write buffer has gone out over the network */
+    /* Wait until we know that the write buffer has gone out over the network.
+    If the write half of the connection is closed, then the call to
+    `perform_write()` that `internal_flush_write_buffer()` will turn into a no-op,
+    but the queue will continue to be pumped and so our cond will still get
+    pulsed. */
     cond_t to_signal_when_done;
     write_queue.push(boost::bind(&cond_t::pulse, &to_signal_when_done));
     to_signal_when_done.wait();
@@ -458,6 +471,10 @@ void linux_tcp_conn_t::on_shutdown_write() {
     assert_thread();
     rassert(!write_closed.is_pulsed());
     write_closed.pulse();
+
+    /* We don't flush out the write queue or stop the write coro pool explicitly.
+    But by pulsing `write_closed`, we turn all `perform_write()` operations into
+    no-ops, so in practice the write queue empties. */
 }
 
 bool linux_tcp_conn_t::is_write_open() {

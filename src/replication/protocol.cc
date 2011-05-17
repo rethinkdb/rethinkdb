@@ -43,7 +43,7 @@ template <class T>
 void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) {
     if (sizeof(T) <= realsize && objsize(reinterpret_cast<const T *>(buf)) == realsize) {
 #ifdef REPLICATION_DEBUG
-        debugf("receive %s\n", debug_format(reinterpret_cast<const T *>(buf)).c_str());
+        debugf("recv %s\n", debug_format(reinterpret_cast<const T *>(buf)).c_str());
 #endif
         typename stream_type<T>::type b(buf, buf + realsize);
         receiver->send(b);
