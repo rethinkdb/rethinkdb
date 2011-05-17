@@ -17,6 +17,8 @@ perfmon_duration_sampler_t
 
 perfmon_counter_t pm_master_queue_depth("master_queue_depth");
 
+perfmon_duration_sampler_t pm_replication_master_dispatch_cost("replication_master_dispatch_cost", secs_to_ticks(1.0));
+
 #define MAX_REPLICATION_COROUTINES 2034
 #define REPLICATION_JOB_QUEUE_DEPTH 2048
 
@@ -74,6 +76,7 @@ struct backfill_and_streaming_manager_t :
     };
 
     mutation_t dispatch_change(const mutation_t& m, castime_t castime, order_token_t token) {
+        block_pm_duration timer(&pm_replication_master_dispatch_cost);
         threadsafe_drain_semaphore_t::lock_t keep_alive(&realtime_mutation_drain_semaphore_);
         change_visitor_t functor;
         functor.manager = this;
@@ -343,4 +346,4 @@ void backfill_and_realtime_stream(btree_key_value_store_t *kvs, repli_timestamp_
     }
 }
 
-}
+}  // namespace replication

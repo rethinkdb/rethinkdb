@@ -15,7 +15,7 @@ shard_store_t::shard_store_t(
     mirrored_cache_config_t *dynamic_config,
     int64_t delete_queue_limit,
     int bucket) :
-    btree(translator_serializer, dynamic_config, delete_queue_limit),
+    btree(translator_serializer, dynamic_config, delete_queue_limit, strprintf("%d", bucket)),
     dispatching_store(&btree, bucket),
     timestamper(&dispatching_store)
     { }
@@ -348,13 +348,19 @@ rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const s
 
 /* set_store_interface_t interface */
 
+perfmon_duration_sampler_t pm_store_change_1("store_change_1", secs_to_ticks(1.0));
+
 mutation_result_t btree_key_value_store_t::change(const mutation_t &m, order_token_t token) {
+    block_pm_duration timer(&pm_store_change_1);
     return shards[slice_num(m.get_key())]->change(m, token);
 }
 
 /* set_store_t interface */
 
+perfmon_duration_sampler_t pm_store_change_2("store_change_2", secs_to_ticks(1.0));
+
 mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t ct, order_token_t token) {
+    block_pm_duration timer(&pm_store_change_2);
     return shards[slice_num(m.get_key())]->change(m, ct, token);
 }
 

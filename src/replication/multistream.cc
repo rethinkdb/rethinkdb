@@ -4,7 +4,11 @@
 
 
 namespace replication {
-perfmon_duration_sampler_t slave_conn_reading("slave_conn_reading", secs_to_ticks(1.0));
+
+perfmon_duration_sampler_t
+    pm_replication_slave_reading("replication_slave_reading", secs_to_ticks(1.0)),
+    pm_replication_slave_handling("replication_slave_handling", secs_to_ticks(1.0));
+
 const uint32_t MAX_MESSAGE_SIZE = 65535;
 
 typedef thick_list<stream_handler_t *, uint32_t> tracker_t;
@@ -12,7 +16,7 @@ typedef thick_list<stream_handler_t *, uint32_t> tracker_t;
 void do_parse_hello_message(tcp_conn_t *conn, connection_handler_t *h) {
     net_hello_t buf;
     {
-        block_pm_duration set_timer(&slave_conn_reading);
+        block_pm_duration set_timer(&pm_replication_slave_reading);
         conn->read(&buf, sizeof(buf));
     }
 
@@ -21,6 +25,8 @@ void do_parse_hello_message(tcp_conn_t *conn, connection_handler_t *h) {
 
 size_t handle_message(connection_handler_t *connection_handler, const char *buf, size_t num_read, tracker_t& streams) {
     // Returning 0 means not enough bytes; returning >0 means "I consumed <this many> bytes."
+
+    block_pm_duration timer(&pm_replication_slave_handling);
 
     if (num_read < sizeof(net_header_t)) {
         return 0;
@@ -114,7 +120,7 @@ void do_parse_normal_messages(tcp_conn_t *conn, connection_handler_t *conn_handl
             }
 
             {
-                block_pm_duration set_timer(&slave_conn_reading);
+                block_pm_duration set_timer(&pm_replication_slave_reading);
                 num_read += conn->read_some(buffer.get() + offset + num_read, shbuf_size - (offset + num_read));
             }
         }

@@ -623,9 +623,11 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, order_token_t _order_token, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
+mc_transaction_t::mc_transaction_t(cache_t *_cache, UNUSED order_token_t _order_token, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
     : cache(_cache),
+#ifndef NDEBUG
       order_token(_order_token),
+#endif
       expected_change_count(_expected_change_count),
       access(_access),
       recency_timestamp(_recency_timestamp),
@@ -757,10 +759,9 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     } else {
         rassert(!inner_buf->do_delete || snapshotted);
 
-        if (!inner_buf->data && should_load) {
+        if (!inner_buf->data && should_load && !inner_buf->do_delete) {
             // The inner_buf doesn't have any data currently. We need the data though,
             // so load it!
-            rassert (!inner_buf->do_delete);
             inner_buf->data = cache->serializer->malloc();
             // Please keep in mind that this is blocking...
             inner_buf->load_inner_buf(true);

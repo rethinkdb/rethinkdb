@@ -94,6 +94,10 @@ public:
     /* Returns false if the half of the pipe that goes from us to the peer has been closed. */
     bool is_write_open();
 
+    /* Put a `perfmon_rate_monitor_t` here if you want to record stats on how fast data is being
+    transmitted over the network. */
+    perfmon_rate_monitor_t *write_perfmon;
+
     /* Note that is_read_open() and is_write_open() must both be false1 before the socket is
     destroyed. */
     ~linux_tcp_conn_t();
