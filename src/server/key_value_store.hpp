@@ -93,11 +93,15 @@ public:
 
     void delete_all_keys_for_backfill();
 
-    // The current value of the "replication clock" is the timestamp that new operations
-    // will be assigned. It is persisted to disk. You can read and write it with
-    // {s,g}et_replication_clock(). "last_sync" is also persisted, but it doesn't have any
-    // direct effect.
+    /* The value passed to `set_timestampers()` is the value that will be used as the
+    timestamp for all new operations. When the key-value store starts up, it is
+    initialized to the value of `get_replication_clock()`. */
+    void set_timestampers(repli_timestamp t);
 
+    /* These values are persisted to disk, but except for initializing the value of
+    `set_timestampers()`, changing them doesn't change anything in the
+    `btree_key_value_store_t` itself. They are used by the higher-level code to persist
+    metadata to disk. */
     void set_replication_clock(repli_timestamp_t t);
     repli_timestamp get_replication_clock();
     void set_last_sync(repli_timestamp_t t);

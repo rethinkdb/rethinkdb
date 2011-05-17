@@ -19,7 +19,6 @@ void backfill_sender_t::warn_about_expiration() {
 
 void backfill_sender_t::backfill_delete_everything(order_token_t token) {
     order_sink_before_send.check_out(token);
-    // debugf("send backfill_delete_everything(), %d\n", int(bool(*stream_)));
 
     if (*stream_) {
         net_backfill_delete_everything_t msg;
@@ -33,8 +32,6 @@ void backfill_sender_t::backfill_delete_everything(order_token_t token) {
 void backfill_sender_t::backfill_deletion(store_key_t key, order_token_t token) {
     order_sink_before_send.check_out(token);
     block_pm_duration set_timer(&master_del);
-
-    // debugf("send backfill_deletion(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
 
     size_t n = sizeof(net_backfill_delete_t) + key.size;
     if (*stream_) {
@@ -56,8 +53,6 @@ void backfill_sender_t::backfill_set(backfill_atom_t atom, order_token_t token) 
 
     order_sink_before_send.check_out(token);
 
-    // debugf("send backfill_set(%.*s, t=%u, len=%ld), %d\n", atom.key.size, atom.key.contents, atom.recency.time, atom.value->get_size(), int(bool(*stream_)));
-
     if (atom.exptime != 0) {
         warn_about_expiration();
     }
@@ -73,15 +68,11 @@ void backfill_sender_t::backfill_set(backfill_atom_t atom, order_token_t token) 
         (*stream_)->send(&msg, atom.key.contents, atom.value);
     }
 
-    // debugf("done send backfill_set(%.*s), %d\n", atom.key.size, atom.key.contents, int(bool(*stream_)));
-
     order_sink_after_send.check_out(token);
 }
 
 void backfill_sender_t::backfill_done(repli_timestamp_t timestamp_when_backfill_began, order_token_t token) {
     order_sink_before_send.check_out(token);
-
-    // debugf("send backfill_done(), %d\n", int(bool(*stream_)));
 
     net_backfill_complete_t msg;
     msg.time_barrier_timestamp = timestamp_when_backfill_began;
@@ -94,7 +85,6 @@ void backfill_sender_t::realtime_get_cas(const store_key_t& key, castime_t casti
     assert_thread();
 
     order_sink_before_send.check_out(token);
-    // debugf("send realtime_get_cas(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
 
     if (*stream_) {
         size_t n = sizeof(net_get_cas_t) + key.size;
@@ -115,7 +105,6 @@ void backfill_sender_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, ord
     assert_thread();
 
     order_sink_before_send.check_out(token);
-    // debugf("send realtime_sarc(%.*s), %d\n", m.key.size, m.key.contents, int(bool(*stream_)));
 
     if (m.exptime != 0) {
         warn_about_expiration();
@@ -141,14 +130,12 @@ void backfill_sender_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, ord
     }
 
     order_sink_after_send.check_out(token);
-    // debugf("done send realtime_sarc(%.*s), %d\n", m.key.size, m.key.contents, int(bool(*stream_)));
 }
 
 void backfill_sender_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, castime_t castime, order_token_t token) {
     assert_thread();
 
     order_sink_before_send.check_out(token);
-    // debugf("send realtime_incr_decr(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
 
     if (*stream_) {
         if (kind == incr_decr_INCR) {
@@ -181,8 +168,6 @@ void backfill_sender_t::incr_decr_like(const store_key_t &key, uint64_t amount, 
 void backfill_sender_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data, castime_t castime, order_token_t token) {
     assert_thread();
     order_sink_before_send.check_out(token);
-
-    // debugf("send realtime_append_prepend(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
 
     if (*stream_) {
         if (kind == append_prepend_APPEND) {
@@ -220,8 +205,6 @@ void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timest
     assert_thread();
     order_sink_before_send.check_out(token);
 
-    // debugf("send realtime_delete_key(%.*s), %d\n", key.size, key.contents, int(bool(*stream_)));
-
     size_t n = sizeof(net_delete_t) + key.size;
     if (*stream_) {
         scoped_malloc<net_delete_t> msg(n);
@@ -237,7 +220,7 @@ void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timest
 
 void backfill_sender_t::realtime_time_barrier(repli_timestamp timestamp, order_token_t token) {
     order_sink_before_send.check_out(token);
-    // debugf("send realtime_time_barrier(), %d\n", int(bool(*stream_)));
+
     assert_thread();
     net_nop_t msg;
     msg.timestamp = timestamp;

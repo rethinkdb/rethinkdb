@@ -101,6 +101,9 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
     backfilling_ = false;
     print_backfill_warning_ = false;
 
+    backfill_queue_.push(boost::bind(
+        &btree_key_value_store_t::set_timestampers, kvs_, timestamp));
+
     /* Write replication clock before timestamp so that if the flush happens
     between them, we will redo the backfill instead of proceeding with a wrong
     replication clock. */
@@ -177,9 +180,10 @@ void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timest
 
 void backfill_storer_t::realtime_time_barrier(repli_timestamp_t timestamp, UNUSED order_token_t token) {
     // TODO order_token_t: use the token.
-    /* Write replication clock before timestamp so that if the flush happens
-    between them, we will redo the backfill instead of proceeding with a wrong
-    replication clock. */
+    /* Write the replication clock before writing `last_sync` so that if we crash between
+    them, we'll re-sync that second instead of proceeding with a wrong replication clock.
+    There is no need to change the timestamper because there are no sets being sent to this
+    node; the master is still up. */
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, timestamp));
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, timestamp));

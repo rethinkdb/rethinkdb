@@ -171,8 +171,19 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
                      multiplexer->proxies.data(), shards,
                      &per_slice_config, per_slice_delete_queue_limit, _1));
 
-    /* Initialize the timestampers to the correct timestamp */
-    set_replication_clock(get_replication_clock());
+    /* Initialize the timestampers to the timestamp value on disk */
+    repli_timestamp_t t = get_replication_clock();
+    set_timestampers(t);
+}
+
+static void set_one_timestamper(shard_store_t **shards, int i, repli_timestamp_t t) {
+    // TODO: Do we really need to wait for the operation to finish before returning?
+    on_thread_t th(shards[i]->timestamper.home_thread);
+    shards[i]->timestamper.set_timestamp(t);
+}
+
+void btree_key_value_store_t::set_timestampers(repli_timestamp_t t) {
+    pmap(btree_static_config.n_slices, boost::bind(&set_one_timestamper, shards, _1, t));
 }
 
 void destroy_shard(
@@ -226,16 +237,8 @@ void btree_key_value_store_t::check_existing(const std::vector<std::string>& fil
     new check_existing_fsm_t(filenames, cb);
 }
 
-static void set_one_timestamper(shard_store_t **shards, int i, repli_timestamp_t t) {
-    // TODO: Do we really need to wait for the operation to finish before returning?
-    on_thread_t th(shards[i]->timestamper.home_thread);
-    shards[i]->timestamper.set_timestamp(t);
-}
 
 void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t) {
-
-    /* Change what value will be assigned to new incoming operations */
-    pmap(btree_static_config.n_slices, boost::bind(&set_one_timestamper, shards, _1, t));
 
     /* Update the value on disk */
     shards[0]->btree.set_replication_clock(t);

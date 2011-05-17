@@ -305,6 +305,12 @@ void coro_t::notify_now() {
     rassert(!abi::__cxa_current_exception_type());
 #endif
 
+#ifndef NDEBUG
+    /* Save the value of `coro_no_waiting` */
+    int old_coro_no_waiting = 0;
+    std::swap(coro_no_waiting, old_coro_no_waiting);
+#endif
+
     coro_t *prev_prev_coro = prev_coro;
     prev_coro = current_coro;
     current_coro = this;
@@ -318,6 +324,11 @@ void coro_t::notify_now() {
     rassert(current_coro == this);
     current_coro = prev_coro;
     prev_coro = prev_prev_coro;
+
+#ifndef NDEBUG
+    /* Restore the value of `coro_no_waiting` */
+    std::swap(coro_no_waiting, old_coro_no_waiting);
+#endif
 }
 
 void coro_t::notify_later() {
