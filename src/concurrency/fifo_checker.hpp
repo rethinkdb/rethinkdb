@@ -41,6 +41,7 @@ private:
 
     friend class order_source_t;
     friend class order_sink_t;
+    friend class backfill_receiver_order_source_t;
     friend class plain_sink_t;
     friend class contiguous_order_sink_t;
 };
@@ -98,7 +99,7 @@ private:
     int64_t counter_;
     bool backfill_active_;
 
-    DISABLE_COPYING(backfill_order_source_t);
+    DISABLE_COPYING(backfill_receiver_order_source_t);
 };
 
 
