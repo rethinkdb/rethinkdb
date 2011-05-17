@@ -1,6 +1,12 @@
 #include "replication/protocol.hpp"
-
+#include "replication/debug.hpp"
 #include "concurrency/coro_fifo.hpp"
+
+/* If `REPLICATION_DEBUG` is defined, then every time a network message is sent
+or received, the contents of the message will be printed to `stderr`. */
+#ifndef NDEBUG
+#define REPLICATION_DEBUG
+#endif
 
 namespace replication {
 
@@ -36,6 +42,9 @@ namespace internal {
 template <class T>
 void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) {
     if (sizeof(T) <= realsize && objsize(reinterpret_cast<const T *>(buf)) == realsize) {
+#ifdef REPLICATION_DEBUG
+        debugf("receive %s\n", debug_format(reinterpret_cast<const T *>(buf)).c_str());
+#endif
         typename stream_type<T>::type b(buf, buf + realsize);
         receiver->send(b);
     } else {
@@ -142,6 +151,10 @@ repli_stream_t::~repli_stream_t() {
 
 template <class net_struct_type>
 void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
+
+#ifdef REPLICATION_DEBUG
+    debugf("send %s\n", debug_format(msg).c_str());
+#endif
 
     size_t obsize = objsize(msg);
 
