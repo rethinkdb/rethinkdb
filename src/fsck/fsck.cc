@@ -50,6 +50,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     for (;;) {
         int do_help = 0;
         int command_line = 0;
+        int extract_version = 0;
         static const struct option long_options[] =
             {
                 {"file", required_argument, 0, 'f'},
@@ -57,11 +58,12 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
                 {"log-file", required_argument, 0, 'l'},
                 {"help", no_argument, &do_help, 1},
                 {"command-line", no_argument, &command_line, 'c'},
+                {"version", no_argument, &extract_version, 'v'},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "f:l:hc", long_options, &option_index);
+        int c = getopt_long(argc, argv, "f:l:hcv", long_options, &option_index);
 
         if (do_help) {
             c = 'h';
@@ -69,6 +71,10 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
 
         if(command_line) {
             c = 'c';
+        }
+
+        if (extract_version) {
+            c = 'v';
         }
 
         // Detect the end of the options.
@@ -89,6 +95,9 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             break;
         case 'c':
             config->print_command_line = true;
+            break;
+        case 'v':
+            config->print_file_version = true;
             break;
         case 'h':
             usage(argv[0]);

@@ -1,59 +1,105 @@
 #!/bin/bash
 
+#get errors out of our
+set -eou pipefail
+trap "kill 0" SIGINT SIGTERM EXIT
+
+function check {
+    if [ "$1" -ne 0 ]
+    then
+        echo $2 >&2
+        exit "$1"
+    fi
+}
+
+function croak {
+    echo "$1" >&2
+    exit 1
+}
+
 infile=()
 outfile=()
 old_rdb='' #previous rethinkdb version
 new_rdb='rethinkdb' #new rethinkdb version
+intermediate_file=''
+force=false
 
-while getopts i:o:p:r: name
+while getopts i:o:p:r:s:f name
 do
     case "$name" in
     i)      infile+=("$OPTARG");;
     o)      outfile+=("$OPTARG");;
     r)      new_rdb=("$OPTARG");;
-    ?)      usage
-            exit 2;;
+    s)      intermediate_file="$OPTARG";;
+    f)      force=true;;
+    ?)      exit 2;;
     esac
 done
 
-#echo ${infile[@]}
-#echo ${outfile[@]}
-
-filecl=()
-for file in ${infile[@]}
+infilecl=()
+for file in "${infile[@]}"
 do
-    filecl+=("-f" $file)
+    infilecl+=("-f")
+    infilecl+=("$file")
 done
 
-version=`$new_rdb fsck ${filecl[@]} -c | grep version: | sed 's/static_header version: \([0-9\.]*\)/\1/'`
+outfilecl=()
+if [ ${#outfile[@]} -gt "0" ]
+then
+    for file in "${outfile[@]}"
+    do
+        outfilecl+=("-f")
+        outfilecl+=("$file")
+    done
+else 
+    outfilecl="${infilecl[@]}"
+fi
 
+version="$("$new_rdb" fsck "${infilecl[@]}" -v | grep VERSION: | sed 's/VERSION: \([0-9\.]*\)/\1/')"
+check "$?" "Version extraction failed"
+
+#TODO this should maybe be a seperate file... might not be so important
 if [ $version = "0.1" ]
 then
     old_rdb=/usr/bin/rethinkdb1.0
 else
-    echo "Unrecognized file version: $version" >&2
+    croak "Unrecognized file version: $version"
 fi
 
-$old_rdb extract ${filecl[@]} -o /tmp/rdb_migration_buffer -l /dev/null
-flags=`$old_rdb fsck ${filecl[@]} -c -l /dev/null | grep FLAGS: | sed s/FLAGS://`
+#Assemble the flags for creating the new database
+flags="$("$old_rdb" fsck "${infilecl[@]}" -c -l /dev/null | grep FLAGS: | sed s/FLAGS://)"
+check "$?" "Parameter extraction failed."
 
-if [ ${#outfile[@]} -gt "0" ]
+if $force
 then
-    filecl=()
-    for file in ${outfile[@]}
-    do
-        filecl+=("-f" $file)
-    done
+    flags+=" --force "
 fi
+
+#we create the new database first so that if it fails we can exit here and not
+#spend the time on extraction. do to UI concerns if we extracted first we would
+#probably have to do it again, because they will probably invoke with the same
+#intermediate file and we can't just overwrite that file,
+
+"$new_rdb" create "${outfilecl[@]}" $flags -l /dev/null
+check "$?" "New database creation failed."
+
+"$old_rdb" extract "${infilecl[@]}" -o "$intermediate_file" -l /dev/null
+check "$?" "Extraction failed."
 
 port=`unused_port`
-if [ "${#port}" -eq 0 ]
+if [ "${#port}" -eq "0" ]
 then
-    port=12345
+    croak "Unable to find an open port."
 fi
 
-$new_rdb create --force ${filecl[@]} $flags -l /dev/null
-$new_rdb ${filecl[@]} $flags -p "$port" -l /dev/null&
-sleep 5
-while ! nc -q 1 localhost "$port" </dev/null; do sleep 2; done
+"$new_rdb" serve "${outfilecl[@]}" $flags -p "$port" -l /dev/null&
+tries=0
+while ! nc -q 1 localhost "$port" </dev/null 2>/dev/null; do 
+    if [ "$tries" -gt 10 ]
+    then
+        croak "Server did not start up after 100 seconds exiting."
+    fi
+    sleep 10; 
+    tries+=1
+done
 (cat /tmp/rdb_migration_buffer && echo "rdb shutdown") | nc localhost "$port"

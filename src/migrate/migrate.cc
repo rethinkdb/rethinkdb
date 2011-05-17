@@ -1,33 +1,57 @@
 #include "migrate/migrate.hpp"
 #include <getopt.h>
 #include "help.hpp"
+#include "string.h"
 #include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 namespace migrate {
 
 void usage(UNUSED const char *name) {
     Help_Pager *help = Help_Pager::instance();
     help->pagef("Usage:\n"
-                "        rethinkdb migrate -f <file_1> [-f <file_2> ...]\n");
+                "        rethinkdb migrate --in -f <file_1> [-f <file_2> ...] --out -f <file_1> [-f <file_2>] [--intermediate file]\n");
     help->pagef("\n"
-                "Migrate converts rethinkdb files from one version to another.\n"
-                "Interrupting mid migration is very ill advised.  However if it\n"
-                "should happen it is less than apocalyptic. If the server has\n"
-                "yet to begin converting the file (indicated by the message\n"
-                "\"Converting file...\" then no harm has been done and the\n"
-                "old data files are intact. If migration was stopped during\n"
-                "this stage then the file /tmp/rdb_migration_buffer will\n"
-                "hold your data as a series of memcached commands this file\n"
-                "should be copied to a safe location. Please refer to the\n"
-                "manual or contact support for how to enter this data.\n");
+                "Migrate from one version of RethinkDB to another\n"
+                "\n"
+                "Options:\n"
+                "  -f, --file            Path to file or block device where database goes.\n"
+                "      --in              Specify input files, -f (or --file) flags following\n" 
+                "                        this command will be used to extract data from.\n"
+                "      --out             Specify output files, -f (or --file) flags following\n" 
+                "                        this command is where the new database will go.\n"
+                "      --intermediate    File to store intermediate raw memcached commands" 
+                "                        in. It defaults to: %s.\n", TEMP_MIGRATION_FILE);
+    help->pagef("      --force           Allow migrate to overwrite an existing database file.\n");
+    help->pagef("\n"
+                "Migration extracts data from the old database into a portable format of raw\n" 
+                "memcached commands and then reinserts the data into a new file version being\n"
+                "migrated to.\n"
+                "Migration can done from a set of files to themselves. Effectively migrating\n"
+                "in place. This requires a --force flag.\n"
+                "Note: if migration in place is interrupted it has the potential to leave the\n"
+                "target files with missing data. Should this happen the intermediate file will\n"
+                "be the only remaining copy of the data. Please consult support for help getting\n"
+                "this data back in to a database.\n");
     exit(0);
 }
 
+
 void parse_cmd_args(int argc, char **argv, config_t *config) {
     // TODO disallow rogue options.
+
+    //Grab the exec-name
     config->exec_name = argv[0];
     argc--;
     argv++;
+
+    enum reading_list_t {
+        in = 0,
+        out,
+        unset
+    } reading_list;
+
+    reading_list = unset;
 
     optind = 1;  // reinit getopt.
     if (argc >= 2) {
@@ -37,18 +61,33 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     }
     for (;;) {
         int do_help = 0;
+
+        /* Which list a -f argument goes into */
+        int switch_to_reading_in_files = 0;
+        int switch_to_reading_out_files = 0;
+
         static const struct option long_options[] =
             {
+                {"in", no_argument, &switch_to_reading_in_files, 1},
+                {"out", no_argument, &switch_to_reading_out_files, 1},
                 {"file", required_argument, 0, 'f'},
+                {"intermediate", required_argument, 0, 'i'},
+                {"force", no_argument, (int *) &(config->force), 1},
                 {"help", no_argument, &do_help, 1},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "f:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "f:i:", long_options, &option_index);
 
         if (do_help) {
             c = 'h';
+        }
+        if (switch_to_reading_in_files) {
+            reading_list = in;
+        }
+        if (switch_to_reading_out_files) {
+            reading_list = out;
         }
 
         // Detect the end of the options.
@@ -59,7 +98,15 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
         case 0:
             break;
         case 'f':
-            config->input_filenames.push_back(optarg);
+            if (reading_list == in)
+                config->input_filenames.push_back(optarg);
+            else if (reading_list == out)
+                config->output_filenames.push_back(optarg);
+            else 
+                fail_due_to_user_error("-f argument must follow either a --in or a --out flag\n");
+            break;
+        case 'i':
+            config->intermediate_file = optarg;
             break;
         default:
             // getopt_long already printed an error message.
@@ -74,7 +121,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     // Sanity checks
 
     if (config->input_filenames.empty()) {
-        fprintf(stderr, "Please specify some files.\n");
+        fprintf(stderr, "At least one input file must be specified.\n");
         usage(argv[0]);
     }
 
@@ -89,11 +136,24 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
 
 } // namespace migrate
 
+//convert spaces to command line safe '\ ' space escapes Truly sucks that I
+//have to write this, but the documentation for boost just wasn't explaining
+//things to me, if anyone knows how to use replace all, please rewrite this
+std::string escape_spaces(std::string str) {
+    for (std::string::iterator it = str.begin(); it != str.end(); it++) {
+        if (*it == ' ') {
+            it = str.insert(it, '\\') + 1;
+        }
+    }
+    return str;
+}
+
 int run_migrate(int argc, char **argv) {
 
     migrate::config_t cfg;
     migrate::parse_cmd_args(argc, argv, &cfg);
 
+    //BREAKPOINT;
     std::vector<std::string> command_line;
     command_line.push_back("rdb_migrate");
     command_line.push_back("-r");
@@ -101,8 +161,22 @@ int run_migrate(int argc, char **argv) {
 
     for (std::vector<std::string>::iterator it = cfg.input_filenames.begin(); it != cfg.input_filenames.end(); it++) {
         command_line.push_back("-i");
-        command_line.push_back(*it);
+        command_line.push_back(escape_spaces(*it));
+    }
+    for (std::vector<std::string>::iterator it = cfg.output_filenames.begin(); it != cfg.output_filenames.end(); it++) {
+        command_line.push_back("-o");
+        command_line.push_back(escape_spaces(*it));
     }
 
-    return system(boost::algorithm::join(command_line, " ").c_str());
+    command_line.push_back("-s");
+    command_line.push_back(cfg.intermediate_file);
+
+    if (cfg.force)
+        command_line.push_back("-f");
+
+    int res = system(boost::algorithm::join(command_line, " ").c_str());
+    if (res != 0)
+        fprintf(stderr, "Migration failed.\n");
+
+    return res;
 }
