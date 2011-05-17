@@ -38,8 +38,8 @@
 // This is a one-per-serializer/file priority.
 // The per-cache priorities are dynamically derived by dividing these priorities
 // by the number of slices on a specific file.
-#define CACHE_READS_IO_PRIORITY                   2000
-#define CACHE_WRITES_IO_PRIORITY                  200
+#define CACHE_READS_IO_PRIORITY                   1024
+#define CACHE_WRITES_IO_PRIORITY                  128
 
 // Garbage Colletion uses its own IO account.
 // Its IO priority should not be too low, as it should be able to keep up
@@ -49,7 +49,7 @@
 // disastrous effects on query throughput though, so we choose a rather low priority.
 //
 // This is a one-per-serializer/file priority.
-#define GC_IO_PRIORITY                            100
+#define GC_IO_PRIORITY                            128
 
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
