@@ -52,8 +52,9 @@ struct config_t {
     bool ignore_diff_log;
 
     bool print_command_line;
+    bool print_file_version;
 
-    config_t() : ignore_diff_log(false), print_command_line(false) {}
+    config_t() : ignore_diff_log(false), print_command_line(false), print_file_version(false) {}
 };
 
 bool check_files(const config_t& config);

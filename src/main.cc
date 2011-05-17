@@ -81,6 +81,8 @@ int dispatch_on_args(std::vector<char *> args) {
                 extract::usage(args[1]);
             } else if (!strcmp(args[2], "fsck")) {
                 fsck::usage(args[1]);
+            } else if (!strcmp(args[2], "migrate")) {
+                migrate::usage(args[1]);
             } else {
                 printf("No such command %s.\n", args[2]);
             }

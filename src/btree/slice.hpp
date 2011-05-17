@@ -24,7 +24,8 @@ public:
     // Blocks
     btree_slice_t(translator_serializer_t *serializer,
                   mirrored_cache_config_t *dynamic_config,
-                  int64_t delete_queue_limit);
+                  int64_t delete_queue_limit,
+                  const std::string& informal_name);
 
     // Blocks
     ~btree_slice_t();
@@ -58,11 +59,16 @@ public:
     cache_t *cache() { return &cache_; }
     int64_t delete_queue_limit() { return delete_queue_limit_; }
 
+    // Please use this only for debugging.
+    const char *name() const { return informal_name_.c_str(); }
+
 private:
     cache_t cache_;
     int64_t delete_queue_limit_;
 
     plain_sink_t order_sink_;
+
+    const std::string informal_name_;
 
     DISABLE_COPYING(btree_slice_t);
 };
