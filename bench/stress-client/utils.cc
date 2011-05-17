@@ -41,7 +41,7 @@ void sleep_ticks(ticks_t ticks) {
         ticks -= secs_to_ticks(secs);
     }
     if (ticks) {
-        usleep(ticks_to_ms(ticks));
+        usleep(ticks_to_us(ticks));
     }
 }
 
