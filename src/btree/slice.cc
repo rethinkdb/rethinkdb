@@ -71,8 +71,9 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
                              mirrored_cache_config_t *dynamic_config,
-                             int64_t delete_queue_limit)
-    : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit) { }
+                             int64_t delete_queue_limit,
+                             const std::string& informal_name)
+    : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit), informal_name_(informal_name) { }
 
 btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff

@@ -220,7 +220,6 @@ void backfill_sender_t::realtime_delete_key(const store_key_t &key, repli_timest
 
 void backfill_sender_t::realtime_time_barrier(repli_timestamp timestamp, order_token_t token) {
     order_sink_before_send.check_out(token);
-
     assert_thread();
     net_nop_t msg;
     msg.timestamp = timestamp;

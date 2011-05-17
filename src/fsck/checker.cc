@@ -327,6 +327,13 @@ bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_co
     return true;
 }
 
+std::string extract_static_config_version(nondirect_file_t *file, UNUSED file_knowledge *knog) {
+    block header;
+    header.init(DEVICE_BLOCK_SIZE, file, 0);
+    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
+    return std::string(buf->version, int(sizeof(VERSION_STRING)));
+}
+
 std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_knowledge *knog) {
     block header;
     header.init(DEVICE_BLOCK_SIZE, file, 0);
@@ -1554,7 +1561,6 @@ std::string extract_slices_flags(const multiplexer_config_block_t& c) {
 }
 
 bool check_files(const config_t& cfg) {
-    //BREAKPOINT;
     // 1. Open.
     knowledge knog(cfg.input_filenames);
 
@@ -1566,6 +1572,12 @@ bool check_files(const config_t& cfg) {
         if (!knog.files[i]->exists()) {
             fail_due_to_user_error("No such file \"%s\"", knog.file_knog[i]->filename.c_str());
         }
+    }
+
+    /* A few early exits if we want some specific pieces of information */
+    if (cfg.print_file_version) {
+        printf("VERSION: %s\n", extract_static_config_version(knog.files[0], knog.file_knog[0]).c_str());
+        return true;
     }
 
     bool any = false;
@@ -1641,6 +1653,17 @@ std::string extract_command_line_args(const config_t& cfg) {
 
 
     return flags;
+}
+
+std::string extract_version(const config_t& cfg) {
+    std::string version;
+    knowledge knog(cfg.input_filenames);
+
+    if (!knog.files[0]->exists()) {
+        fail_due_to_user_error("No such file \"%s\"", knog.file_knog[0]->filename.c_str());
+    }
+
+    return extract_static_config_version(knog.files[0], knog.file_knog[0]);
 }
 
 }  // namespace fsck

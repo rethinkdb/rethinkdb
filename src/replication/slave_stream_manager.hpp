@@ -24,7 +24,7 @@ struct slave_stream_manager_t :
     // Give it a connection to the master, a pointer to the store to forward changes to, and a
     // cond. If the cond is pulsed, it will kill the connection. If the connection dies,
     // it will pulse the cond.
-    slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn, btree_key_value_store_t *kvs, cond_t *cond, order_source_t *slave_order_source);
+    slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn, btree_key_value_store_t *kvs, cond_t *cond, backfill_receiver_order_source_t *slave_order_source);
 
     ~slave_stream_manager_t();
 
