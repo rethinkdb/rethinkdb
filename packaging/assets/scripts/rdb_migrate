@@ -70,7 +70,7 @@ fi
 flags="$("$old_rdb" fsck "${infilecl[@]}" -c -l /dev/null | grep FLAGS: | sed s/FLAGS://)"
 check "$?" "Parameter extraction failed."
 
-if $force
+if [ "$force" = "true" ]
 then
     flags+=" --force "
 fi
