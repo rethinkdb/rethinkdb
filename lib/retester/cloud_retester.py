@@ -207,7 +207,7 @@ class TestingNode:
            
         
     def put_file(self, local_path, destination_path, retry = 3):
-        print "Sending file '%r' -> '%r' to cloud..." % (local_path, destination_path)
+        print "Sending file %r -> %r to cloud..." % (local_path, destination_path)
         put_file_compressed(self.get_transport(), local_path, destination_path, retry)
         #self.put_file_sftp(local_path, destination_path, retry)
 
@@ -232,7 +232,7 @@ class TestingNode:
         
         
     def get_file(self, remote_path, destination_path, retry = 3):        
-        print "Getting file '%r' -> '%r' from cloud..." % (remote_path, destination_path)
+        print "Getting file %r -> %r from cloud..." % (remote_path, destination_path)
         get_file_compressed(self.get_transport(), remote_path, destination_path, retry)
         #self.get_file_sftp(remote_path, destination_path, retry)
 
