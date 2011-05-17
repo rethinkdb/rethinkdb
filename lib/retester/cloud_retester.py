@@ -47,6 +47,70 @@ remaining_nodes_to_allocate = testing_nodes_ec2_count
 next_node_to_issue_to = 0
 node_allocation_tries_count = 0
 
+def put_file_compressed(ssh_transport, local_path, destination_path, retry = 3):
+    gzip = None
+    try:
+        assert not not local_path
+        assert not not destination_path
+        session = ssh_transport.open_session()
+        try:
+            gzip = subprocess.Popen(["gzip", "-c", local_path], stdout=subprocess.PIPE)
+
+            session = ssh_transport.open_session()
+            session.exec_command('gzip -cd > "%s" && chmod %s "%s"\n' % (destination_path, oct(os.stat(local_path).st_mode)[-4:], destination_path))
+            while True:
+                buf = gzip.stdout.read(65536)
+                if not buf:
+                    break
+                else:
+                    session.sendall(buf)
+
+            gzip.stdout.close()
+        finally:
+            session.close()
+    except (IOError, EOFError, paramiko.SSHException, Exception) as e:
+        if retry > 0:
+            return put_file_compressed(ssh_transport, local_path, destination_path, retry-1)
+        else:
+            raise e
+    finally:
+        if gzip and gzip.poll() == None:
+            gzip.kill()
+
+def get_file_compressed(ssh_transport, remote_path, destination_path, retry = 3):
+    gzip = None
+    try:
+        assert not not remote_path
+        assert not not destination_path
+
+        session = ssh_transport.open_session()
+        try:
+            with open(destination_path, "wb") as out:
+                gzip = subprocess.Popen(["gzip", "-cd"], stdin=subprocess.PIPE, stdout=out)
+
+                session = ssh_transport.open_session()
+                session.exec_command('gzip -c "%s"\n' % remote_path)
+
+                while True:
+                    buf = session.recv(65536)
+                    if not buf:
+                        break
+                    else:
+                        gzip.stdin.write(buf)
+
+                gzip.stdin.close()
+                gzip.wait()
+        finally:
+            session.close()
+    except (IOError, EOFError, paramiko.SSHException, Exception) as e:
+        if retry > 0:
+            return get_file_compressed(ssh_transport, remote_path, destination_path, retry-1)
+        else:
+            raise e
+    finally:
+        if gzip and gzip.poll() == None:
+            gzip.kill()
+
 
 class TestReference:
     def __init__(self, command):
@@ -143,9 +207,11 @@ class TestingNode:
            
         
     def put_file(self, local_path, destination_path, retry = 3):
-        
-        print "Sending file %r to cloud..." % local_path
-        
+        print "Sending file %r -> %r to cloud..." % (local_path, destination_path)
+        put_file_compressed(self.get_transport(), local_path, destination_path, retry)
+        #self.put_file_sftp(local_path, destination_path, retry)
+
+    def put_file_sftp(self, local_path, destination_path, retry = 3):
         ssh_transport = self.get_transport()
         
         try:
@@ -166,6 +232,11 @@ class TestingNode:
         
         
     def get_file(self, remote_path, destination_path, retry = 3):        
+        print "Getting file %r -> %r from cloud..." % (remote_path, destination_path)
+        get_file_compressed(self.get_transport(), remote_path, destination_path, retry)
+        #self.get_file_sftp(remote_path, destination_path, retry)
+
+    def get_file_sftp(self, remote_path, destination_path, retry = 3):
         ssh_transport = self.get_transport()
         
         try:
