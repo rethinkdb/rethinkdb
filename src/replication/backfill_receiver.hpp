@@ -27,7 +27,8 @@ struct backfill_receiver_t :
     void send(stream_pair<net_prepend_t>& message);
     void send(scoped_malloc<net_delete_t>& message);
     void send(scoped_malloc<net_backfill_delete_t>& message);
-    void send(scoped_malloc<net_nop_t>& message);
+
+    void nop_helper(net_nop_t msg);
 
 private:
     backfill_and_realtime_streaming_callback_t *const cb;

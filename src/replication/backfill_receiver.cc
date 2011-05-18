@@ -128,13 +128,13 @@ void backfill_receiver_t::send(scoped_malloc<net_backfill_delete_t>& msg) {
     cb->backfill_deletion(key, token);
 }
 
-void backfill_receiver_t::send(scoped_malloc<net_nop_t>& message) {
+void backfill_receiver_t::nop_helper(net_nop_t msg) {
     block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in_realtime_operation();
 #ifndef NDEBUG
     debugf("recv realtime_time_barrier()\n");
 #endif
-    cb->realtime_time_barrier(message->timestamp, token);
+    cb->realtime_time_barrier(msg.timestamp, token);
 }
 
 }

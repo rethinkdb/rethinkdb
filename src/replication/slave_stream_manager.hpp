@@ -93,6 +93,11 @@ struct slave_stream_manager_t :
         backfill_receiver_t::send(message);
         backfill_done_cond_.pulse_if_non_null();
     }
+
+    void send(scoped_malloc<net_nop_t>& message) {
+        nop_helper(*message);
+    }
+
     cond_weak_ptr_t backfill_done_cond_;
 
     void conn_closed();
