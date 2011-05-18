@@ -85,8 +85,12 @@ public:
         kvs_->set_replication_slave_id(message->database_creation_timestamp);
     }
 
-    void send(UNUSED scoped_malloc<net_backfill_t>& message) {
+    void send(scoped_malloc<net_backfill_t>& message) {
         coro_t::spawn_now(boost::bind(&master_t::do_backfill_and_realtime_stream, this, message->timestamp));
+    }
+
+    void send(scoped_malloc<net_nop_t>& message) {
+        nop_helper(*message);
     }
 
     void conn_closed() {

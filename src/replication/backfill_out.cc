@@ -34,28 +34,30 @@ struct backfill_and_streaming_manager_t :
         {
             on_thread_t thread_switcher(shard_->home_thread);
 
-            ASSERT_NO_CORO_WAITING;
+            {
+                ASSERT_NO_CORO_WAITING;
 
-            /* Increment the replication clock right as we start the backfill. This
-            makes it so that every operation with timestamp `new_timestamp - 1` will be
-            included in the backfill, and no operation with timestamp `new_timestamp`
-            will be included. */
+                /* Increment the replication clock right as we start the backfill. This
+                   makes it so that every operation with timestamp `new_timestamp - 1` will be
+                   included in the backfill, and no operation with timestamp `new_timestamp`
+                   will be included. */
 
-            shard_->timestamper.set_timestamp(new_timestamp);
+                shard_->timestamper.set_timestamp(new_timestamp);
 
-	    /* On each thread, atomically start a backfill operation and start streaming
-	    realtime operations. If we start a backfill but don't start streaming operations
-            immediately, operations will be lost; if we start streaming operations before we
-            start a backfill, operations will be duplicated. Both are bad. */
+                /* On each thread, atomically start a backfill operation and start streaming
+                   realtime operations. If we start a backfill but don't start streaming operations
+                   immediately, operations will be lost; if we start streaming operations before we
+                   start a backfill, operations will be duplicated. Both are bad. */
 
-            shard_->dispatching_store.set_dispatcher(
-                boost::bind(
+                shard_->dispatching_store.set_dispatcher(
+                    boost::bind(
                     &slice_manager_t::dispatch_change, this,
                     drain_semaphore_t::lock_t(&realtime_mutation_drain_semaphore),
                     _1, _2, _3));
 
-            backfilling_ = true;
-            coro_t::spawn_later(boost::bind(
+                backfilling_ = true;
+            }
+            coro_t::spawn_now(boost::bind(
                 &btree_slice_t::backfill, &shard->btree, backfill_from, this));
         }
 

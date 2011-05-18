@@ -88,6 +88,10 @@ void slave_stream_manager_t::conn_closed() {
     shutdown_cond_.pulse();
 }
 
+void slave_stream_manager_t::note_heartbeat(UNUSED repli_timestamp timestamp) {
+    
+}
+
 void slave_stream_manager_t::on_signal_pulsed() {
     assert_thread();
 
