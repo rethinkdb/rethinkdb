@@ -8,7 +8,7 @@ function run_with_clients {
         ../../build/release/rethinkdb create $SSD_DRIVES --force
         ./dbench                                                                                      \
             -d "$BENCH_DIR/bench_output/Concurrent_clients_(canonical_workload)/$NUMBER_OF_CLIENTS" -H $SERVER_HOSTS    \
-            {server}rethinkdb:"-c 12 -m 32768 $SSD_DRIVES"                                            \
+            {server}rethinkdb:"-m 32768 $SSD_DRIVES"                                            \
             {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_MULTIRUN_DURATION" \
             iostat:1 vmstat:1 rdbstat:1
     elif [ $DATABASE == "mysql" ]; then

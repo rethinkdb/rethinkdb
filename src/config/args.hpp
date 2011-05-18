@@ -38,18 +38,21 @@
 // This is a one-per-serializer/file priority.
 // The per-cache priorities are dynamically derived by dividing these priorities
 // by the number of slices on a specific file.
-#define CACHE_READS_IO_PRIORITY                   1024
+#define CACHE_READS_IO_PRIORITY                   2048
 #define CACHE_WRITES_IO_PRIORITY                  128
 
-// Garbage Colletion uses its own IO account.
-// Its IO priority should not be too low, as it should be able to keep up
-// with the other write activity going on in the system.
-// An update-intensive large-value workload with an out-of-memory database
-// size on EC2 EBS volumes has uncovered that a too high GC priority can have
-// disastrous effects on query throughput though, so we choose a rather low priority.
+// Garbage Colletion uses its own two IO accounts.
+// There is one low-priority account that is meant to guarantee
+// (performance-wise) unintrusive garbage collection.
+// If the garbage ratio keeps growing,
+// GC starts using the high priority account instead, which
+// might have a negative influence on database performance
+// under i/o heavy workloads but guarantees that the database
+// doesn't grow indefinitely.
 //
 // This is a one-per-serializer/file priority.
-#define GC_IO_PRIORITY                            128
+#define GC_IO_PRIORITY_NICE                       16
+#define GC_IO_PRIORITY_HIGH                       (2 * CACHE_WRITES_IO_PRIORITY)
 
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
