@@ -1,7 +1,11 @@
 #!/bin/bash
 
 if [ $DATABASE == "rethinkdb" ]; then
-    ../../build/release/rethinkdb create $HDD_DRIVES --force --diff-log-size 48
+    # The differential log is not very useful on rotational drives under read-bound workloads. Because eventually
+    # it has to be flushed and that involves reading the patched blocks first, which causes a high number of
+    # random reads. In contrast, without a differential log, changed blocks get written immediately in sequential order.
+    # Reading them back at a later point is not required then.
+    ../../build/release/rethinkdb create $HDD_DRIVES --force --diff-log-size 0
 fi
 
 if [ $DATABASE == "mysql" ]; then
