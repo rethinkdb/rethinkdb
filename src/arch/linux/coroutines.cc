@@ -295,6 +295,7 @@ void coro_t::yield() {  /* class method */
 }
 
 void coro_t::notify_now() {
+    rassert(coro_no_waiting == 0, "This code path is not supposed to use notify_now (which is like waiting)");
     rassert(waiting_);
     rassert(!notified_);
     rassert(current_thread_ == linux_thread_pool_t::thread_id);
@@ -303,12 +304,6 @@ void coro_t::notify_now() {
     /* It's not safe to notify_now() in the catch-clause of an exception handler for the same
     reason we can't wait(). */
     rassert(!abi::__cxa_current_exception_type());
-#endif
-
-#ifndef NDEBUG
-    /* Save the value of `coro_no_waiting` */
-    int old_coro_no_waiting = 0;
-    std::swap(coro_no_waiting, old_coro_no_waiting);
 #endif
 
     coro_t *prev_prev_coro = prev_coro;
@@ -324,11 +319,6 @@ void coro_t::notify_now() {
     rassert(current_coro == this);
     current_coro = prev_coro;
     prev_coro = prev_prev_coro;
-
-#ifndef NDEBUG
-    /* Restore the value of `coro_no_waiting` */
-    std::swap(coro_no_waiting, old_coro_no_waiting);
-#endif
 }
 
 void coro_t::notify_later() {
