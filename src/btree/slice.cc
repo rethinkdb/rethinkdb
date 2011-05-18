@@ -134,7 +134,8 @@ void btree_slice_t::delete_all_keys_for_backfill() {
 }
 
 void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {
-    on_thread_t th(home_thread);
+    assert_thread();
+
     btree_backfill(this, since_when, callback);
 }
 
