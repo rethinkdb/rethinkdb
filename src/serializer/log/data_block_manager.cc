@@ -307,6 +307,10 @@ void data_block_manager_t::run_gc() {
         run_again = false;
         switch (gc_state.step()) {
             case gc_ready:
+                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) {
+                    return;
+                }
+
                 gc_state.set_step(gc_ready_lock_available);
                 serializer->main_mutex.lock(this);
                 break;
