@@ -46,10 +46,10 @@ URL:       http://rethinkdb.com/
 Group:     Productivity/Databases/Servers
 Provides:  %{vanilla_packagename}, memcached
 Requires:  ifelse(PACKAGE_FOR_SUSE_10, 1,
-  `glibc >= 2.4-31, libaio >= 0.3.104, update-alternatives',
+  `glibc >= 2.4-31, libaio >= 0.3.104, update-alternatives, netcat',
   LEGACY_LINUX, 1,
-  `glibc >= 2.5, libaio >= 0.3.106, chkconfig >= 1.3.30.2',
-  `glibc >= 2.10.1, libaio >= 0.3.106, chkconfig >= 1.3.30.2')
+  `glibc >= 2.5, libaio >= 0.3.106, chkconfig >= 1.3.30.2, nc',
+  `glibc >= 2.10.1, libaio >= 0.3.106, chkconfig >= 1.3.30.2, nc')
 Conflicts: ifelse(TRIAL, 0, `%{versioned_trial_packagename} <= %{version}')
 
 
