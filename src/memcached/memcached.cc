@@ -277,6 +277,19 @@ public:
         //we didn't every find a crlf unleash the exception 
         if (!(*head)) throw no_more_data_exc_t();
     }
+
+public:
+    /* In our current use of import we ignore gets, the easiest way to do this
+     * is with a dummyed get_store */
+    class dummy_get_store_t : public get_store_t {
+        get_result_t get(UNUSED const store_key_t &key, UNUSED order_token_t token) { return get_result_t(); }
+        rget_result_t rget(UNUSED rget_bound_mode_t left_mode, UNUSED const store_key_t &left_key,
+                           UNUSED rget_bound_mode_t right_mode, UNUSED const store_key_t &right_key, 
+                           UNUSED order_token_t token)
+        {
+            return rget_result_t();
+        }
+    };
 };
 
 perfmon_duration_sampler_t
@@ -1087,9 +1100,10 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
     handle_memcache(&rh, order_source);
 }
 
-void import_memcache(std::string filename, get_store_t *get_store, set_store_interface_t *set_store, order_source_t *order_source) {
+void import_memcache(std::string filename, set_store_interface_t *set_store, order_source_t *order_source) {
     /* Object that we pass around to subroutines (is there a better way to do this?) - copy pasta */
-    txt_memcached_file_importer_t rh(filename, get_store, set_store);
+    txt_memcached_file_importer_t::dummy_get_store_t dummy_get_store;
+    txt_memcached_file_importer_t rh(filename, &dummy_get_store, set_store);
 
     handle_memcache(&rh, order_source);
 }

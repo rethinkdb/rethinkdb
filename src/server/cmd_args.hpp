@@ -163,6 +163,15 @@ struct failover_config_t {
     }
 };
 
+/* Configuration for import */
+
+struct import_config_t {
+    std::string memcached_file;
+    bool do_import;
+
+    import_config_t() : do_import(false) { }
+};
+
 /* All the configuration together */
 
 struct cmd_config_t {
@@ -197,6 +206,9 @@ struct cmd_config_t {
 
     // Configuration for failover
     failover_config_t failover_config;
+
+    // Configuration for import
+    import_config_t import_config;
 
     bool verbose;
 };

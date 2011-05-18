@@ -11,7 +11,7 @@ class order_source_t;
 
 void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, order_source_t *order_source);
 
-void import_memcache(file_t *file, set_store_interface_t *set_store);
+void import_memcache(std::string, set_store_interface_t *set_store, order_source_t *order_source);
 
 /* Interface for txt_memcached_handler. This was created so I (jdoliner) could
  * make a dummy one for importation of memcached commands from a file */
