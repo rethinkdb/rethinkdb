@@ -96,7 +96,10 @@ struct slave_stream_manager_t :
 
     void send(scoped_malloc<net_nop_t>& message) {
         nop_helper(*message);
+        note_heartbeat(message->timestamp);
     }
+
+    void note_heartbeat(repli_timestamp timestamp);
 
     cond_weak_ptr_t backfill_done_cond_;
 
