@@ -33,7 +33,7 @@ esac
 
 
 # "Prepare" and run server.
-if [-z "$CONTINUE" ]; then
+if [ -z "$CONTINUE" ]; then
     rm -rf "$NS_DIR/"{config,data,logs,Mnesia*}
 fi
 "$NS_DIR/start.sh" &
