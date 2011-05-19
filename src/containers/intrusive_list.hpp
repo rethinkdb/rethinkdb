@@ -13,22 +13,27 @@ class intrusive_list_node_t {
 public:
     intrusive_list_node_t() :
 #ifndef NDEBUG
-        in_a_list(false),
+        parent_list(NULL),
 #endif
         prev(NULL), next(NULL)
         {}
     ~intrusive_list_node_t() {
         rassert(prev == NULL);
         rassert(next == NULL);
-        rassert(!in_a_list);
+        rassert(parent_list == NULL);
     }
 
-protected:
 #ifndef NDEBUG
-    bool in_a_list;
+    bool in_a_list() {
+        return (parent_list != NULL);
+    }
 #endif
 
 private:
+#ifndef NDEBUG
+    intrusive_list_t<derived_t> *parent_list;
+#endif
+
     derived_t *prev, *next;
 
     DISABLE_COPYING(intrusive_list_node_t);
@@ -72,14 +77,11 @@ public:
     }
 
     void push_front(node_t *_value) {
-#ifndef NDEBUG
-        validate();
-#endif
     
         intrusive_list_node_t<node_t> *value = _value;
-        rassert(value->next == NULL && value->prev == NULL && _head != _value && !value->in_a_list); // Make sure that the object is not already in a list.
+        rassert(value->next == NULL && value->prev == NULL && _head != _value && !value->parent_list); // Make sure that the object is not already in a list.
 #ifndef NDEBUG
-        value->in_a_list = true;
+        value->parent_list = this;
 #endif
         value->next = _head;
         value->prev = NULL;
@@ -91,21 +93,14 @@ public:
             _tail = _value;
         }
         _size++;
-
-#ifndef NDEBUG
-        validate();
-#endif
     }
     
     void push_back(node_t *_value) {
-#ifndef NDEBUG
-        validate();
-#endif
     
         intrusive_list_node_t<node_t> *value = _value;
-        rassert(value->next == NULL && value->prev == NULL && _head != _value && !value->in_a_list); // Make sure that the object is not already in a list.
+        rassert(value->next == NULL && value->prev == NULL && _head != _value && !value->parent_list); // Make sure that the object is not already in a list.
 #ifndef NDEBUG
-        value->in_a_list = true;
+        value->parent_list = this;
 #endif
         value->prev = _tail;
         value->next = NULL;
@@ -117,22 +112,15 @@ public:
             _head = _value;
         }
         _size++;
-
-#ifndef NDEBUG
-        validate();
-#endif
     }
     
     void remove(node_t *_value) {
-#ifndef NDEBUG
-        validate();
-#endif
 
         intrusive_list_node_t<node_t> *value = _value;
 
 #ifndef NDEBUG
-        rassert(value->in_a_list);
-        value->in_a_list = false;
+        rassert(value->parent_list == this);
+        value->parent_list = NULL;
 #endif
 
         if(value->next) {
@@ -147,10 +135,6 @@ public:
         }
         value->next = value->prev = NULL;
         _size--;
-
-#ifndef NDEBUG
-        validate();   // If this call fails, you probably removed from the wrong intrusive list
-#endif
     }
 
     void pop_front() {
@@ -163,13 +147,16 @@ public:
     }
 
     void append_and_clear(intrusive_list_t<node_t> *list) {
-#ifndef NDEBUG
-        validate();
-        list->validate();
-#endif
 
         if(list->empty())
             return;
+
+#ifndef NDEBUG
+        for (node_t *x = list->head(); x; x = list->next(x)) {
+            rassert(((intrusive_list_node_t<node_t>*)x)->parent_list == list);
+            ((intrusive_list_node_t<node_t>*)x)->parent_list = this;
+        }
+#endif
         
         if(!_head) {
             // We're empty, just set head and tail to the new list
@@ -187,11 +174,6 @@ public:
         list->_head = NULL;
         list->_tail = NULL;
         list->_size = 0;
-
-#ifndef NDEBUG
-        validate();
-        list->validate();
-#endif
     }
 
     unsigned int size() { return _size; }
@@ -202,7 +184,7 @@ public:
         unsigned int count = 0;
         for (node_t *node = _head; node; node=((intrusive_list_node_t<node_t>*)node)->next) {
             count++;
-            rassert(((intrusive_list_node_t<node_t>*)node)->in_a_list);
+            rassert(((intrusive_list_node_t<node_t>*)node)->parent_list == this);
             rassert(((intrusive_list_node_t<node_t>*)node)->prev == last_node);
             last_node = node;
         }
