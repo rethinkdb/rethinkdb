@@ -57,8 +57,11 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
 
         stream_->shutdown();   // Will cause conn_closed() to happen
         stream_exists_cond_.get_signal()->wait();   // Waits until conn_closed() happens
-        streaming_cond_.get_signal()->wait();   // Waits until a running backfill is over
     }
+    // Waits until a running backfill is over. This is outside of the "if" statement because
+    // there might still be a running backfill even when there is no stream. (That was what
+    // caused the second half of issue #326.)
+    streaming_cond_.get_signal()->wait();
     rassert(stream_ == NULL);
 }
 
