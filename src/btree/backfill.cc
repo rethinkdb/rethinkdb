@@ -121,7 +121,9 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
 void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
     {
+#ifndef NDEBUG
         boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
+#endif
 
         rassert(coro_t::self());
 
@@ -132,7 +134,9 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
 
         txor->get()->snapshot();
 
+#ifndef NDEBUG
         no_coro_waiting.reset();
+#endif
 
         btree_parallel_traversal(txor, slice, &helper);
     }
