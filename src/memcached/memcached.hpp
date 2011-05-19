@@ -17,8 +17,8 @@ void import_memcache(std::string, set_store_interface_t *set_store, order_source
  * make a dummy one for importation of memcached commands from a file */
 class txt_memcached_handler_if {
 public:
-    txt_memcached_handler_if(get_store_t *get_store, set_store_interface_t *set_store)
-        : get_store(get_store), set_store(set_store), requests_out_sem(MAX_CONCURRENT_QUERIES_PER_CONNECTION)
+    txt_memcached_handler_if(get_store_t *get_store, set_store_interface_t *set_store, int max_concurrent_queries_per_connection = MAX_CONCURRENT_QUERIES_PER_CONNECTION)
+        : get_store(get_store), set_store(set_store), requests_out_sem(max_concurrent_queries_per_connection)
     { }
 
     get_store_t *get_store;
@@ -50,12 +50,25 @@ public:
     virtual void client_error_not_allowed(const thread_saver_t& saver, bool op_is_write) = 0;
     virtual void server_error_object_too_large_for_cache(const thread_saver_t& saver) = 0;
 
-    virtual void begin_write_command() {
+    // Used to implement throttling. Write requests should call begin_write_command() and
+    // end_write_command() to make sure that not too many write requests are sent
+    // concurrently.
+    //
+    // Note: these methods are implemented in the base class because it's
+    // dangerous not to do them, and as far as I can see the memcached handlers
+    // will need the same behavior for these functions. Of course things change
+    // and if they is indeed a need for seperate behaviors a second virtual
+    // function that is called in handle_memcache should also be created, these
+    // should not be removed
+    void begin_write_command() {
         drain_semaphore.acquire();
+        requests_out_sem.co_lock();
     }
-    virtual void end_write_command() {
+    void end_write_command() {
         drain_semaphore.release();
+        requests_out_sem.unlock();
     }
+
     virtual void flush_buffer() = 0;
 
     virtual bool is_write_open() = 0;

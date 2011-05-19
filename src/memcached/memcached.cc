@@ -139,19 +139,6 @@ struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_th
         server_error(saver, "object too large for cache\r\n");
     }
 
-    // Used to implement throttling. Write requests should call begin_write_command() and
-    // end_write_command() to make sure that not too many write requests are sent
-    // concurrently.
-    void begin_write_command() {
-        drain_semaphore.acquire();
-        requests_out_sem.co_lock();
-    }
-
-    void end_write_command() {
-        drain_semaphore.release();
-        requests_out_sem.unlock();
-    }
-
     void flush_buffer() {
         try {
             conn->flush_buffer();
@@ -231,12 +218,11 @@ private:
 public:
 
     txt_memcached_file_importer_t(std::string filename, get_store_t *get_store, set_store_interface_t *set_store) :
-        txt_memcached_handler_if(get_store, set_store)
+        txt_memcached_handler_if(get_store, set_store, MAX_CONCURRENT_QUEURIES_ON_IMPORT)
     { 
         file = fopen(filename.c_str(), "r");
     }
     ~txt_memcached_file_importer_t() {
-        debugf("Destroyed file importer\n");
         fclose(file);
     }
     void write(UNUSED const thread_saver_t& saver, UNUSED const std::string& buffer) { }
@@ -256,8 +242,6 @@ public:
     void client_error_bad_data(UNUSED const thread_saver_t& saver) { }
     void client_error_not_allowed(UNUSED const thread_saver_t& saver, UNUSED bool op_is_write) { }
     void server_error_object_too_large_for_cache(UNUSED const thread_saver_t& saver) { }
-    /* void begin_write_command() { }
-    void end_write_command() { } */
     void flush_buffer() { }
 
     bool is_write_open() { return false; }
@@ -268,18 +252,17 @@ public:
     }
 
     void read_line(std::vector<char> *dest) {
+        int limit = MEGABYTE;
         dest->clear();
         char c; 
         char *head = (char *) crlf;
-        while ((*head) && ((c = getc(file)) != EOF)) {
+        while ((*head) && ((c = getc(file)) != EOF) && (limit--) > 0) {
             dest->push_back(c);
-            fprintf(stderr, "%c", c);
             if (c == *head) head++;
             else head = (char *) crlf;
         }
         //we didn't every find a crlf unleash the exception 
         if (*head) throw no_more_data_exc_t();
-        else fprintf(stderr, "\n");
     }
 
 public:
@@ -993,7 +976,7 @@ bool parse_debug_command(const thread_saver_t& saver, txt_memcached_handler_if *
 
 /* Handle memcached, takes a txt_memcached_handler_if and handles the memcached commands that come in on it */
 void handle_memcache(txt_memcached_handler_if *rh, UNUSED order_source_t *order_source) {
-    logDBG("Opened connection %p\n", coro_t::self());
+    logDBG("Opened memcached stream: %p\n", coro_t::self());
 
     // TODO: Actually use order_source.
 
@@ -1093,7 +1076,7 @@ void handle_memcache(txt_memcached_handler_if *rh, UNUSED order_source_t *order_
     done by now */
     rh->drain_semaphore.drain();
 
-    logDBG("Closed connection %p\n", coro_t::self());
+    logDBG("Closed memcached stream: %p\n", coro_t::self());
 }
 
 /* serve_memcache serves memcache over a tcp_conn_t */
