@@ -1,6 +1,8 @@
 #ifndef __SCOPED_MALLOC_HPP__
 #define __SCOPED_MALLOC_HPP__
 
+/* TODO: Does `boost::scoped_array<char>` make this redundant? */
+
 // For dumb structs that get malloc/free for allocation.
 
 template <class T>

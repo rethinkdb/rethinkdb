@@ -54,6 +54,14 @@ void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) 
 }
 
 template <class T>
+void print_and_pass_message(message_callback_t *receiver, stream_pair<T> &spair) {
+#ifdef REPLICATION_DEBUG
+    debugf("recv %s\n", debug_format(spair.data.get(), spair.stream->peek()).c_str());
+#endif
+    receiver->send(spair);
+}
+
+template <class T>
 tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *buf, size_t size) {
     if (sizeof(T) <= size
         && sizeof(T) + reinterpret_cast<const T *>(buf)->key_size <= size) {
@@ -61,11 +69,11 @@ tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *bu
         stream_pair<T> spair(buf, buf + size, reinterpret_cast<const T *>(buf)->value_size);
         size_t m = size - sizeof(T) - reinterpret_cast<const T *>(buf)->key_size;
 
-        void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
-
         char *p = spair.stream->peek() + m;
 
-        return new tracker_obj_t(boost::bind(fn, receiver, spair), p, reinterpret_cast<const T *>(buf)->value_size - m);
+        return new tracker_obj_t(
+            boost::bind(&print_and_pass_message<T>, receiver, spair),
+            p, reinterpret_cast<const T *>(buf)->value_size - m);
 
     } else {
         throw protocol_exc_t("message too short for message code and key size");
