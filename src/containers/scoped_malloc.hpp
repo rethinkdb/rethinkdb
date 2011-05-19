@@ -18,6 +18,7 @@ public:
 
     T *get() { return ptr_; }
     T *operator->() { return ptr_; }
+    T& operator*() { return *ptr_; }
 
     void swap(scoped_malloc& other) {
         T *tmp = ptr_;

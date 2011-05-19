@@ -23,7 +23,7 @@ class master_t :
     public backfill_sender_t,
     public backfill_receiver_t {
 public:
-    master_t(int port, btree_key_value_store_t *kv_store, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate, order_source_t *master_order_source) :
+    master_t(int port, btree_key_value_store_t *kv_store, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate, backfill_receiver_order_source_t *master_order_source) :
         backfill_sender_t(&stream_),
         backfill_receiver_t(&backfill_storer_, master_order_source),
         stream_(NULL),
@@ -85,8 +85,12 @@ public:
         kvs_->set_replication_slave_id(message->database_creation_timestamp);
     }
 
-    void send(UNUSED scoped_malloc<net_backfill_t>& message) {
+    void send(scoped_malloc<net_backfill_t>& message) {
         coro_t::spawn_now(boost::bind(&master_t::do_backfill_and_realtime_stream, this, message->timestamp));
+    }
+
+    void send(scoped_malloc<net_nop_t>& message) {
+        nop_helper(*message);
     }
 
     void conn_closed() {

@@ -87,7 +87,7 @@ void slave_t::run(signal_t *shutdown_signal) {
         failover_->on_failure();
     }
 
-    order_source_t slave_order_source(SLAVE_ORDER_SOURCE_BUCKET);
+    backfill_receiver_order_source_t slave_order_source(SLAVE_ORDER_SOURCE_BUCKET);
 
     while (!shutdown_signal->is_pulsed()) {
         try {
@@ -141,9 +141,10 @@ void slave_t::run(signal_t *shutdown_signal) {
 
             /* Make sure that any sets we run are assigned a timestamp later than the latest
             timestamp we got from the master. */
-            repli_timestamp_t rc = internal_store_->get_replication_clock();
-            debugf("Incrementing clock from %d to %d\n", rc.time, rc.time+1);
-            internal_store_->set_replication_clock(rc.next());
+            repli_timestamp_t rc = internal_store_->get_replication_clock().next();
+            debugf("Incrementing clock from %d to %d\n", rc.time - 1, rc.time);
+            internal_store_->set_timestampers(rc);
+            internal_store_->set_replication_clock(rc);
 
             failover_->on_failure();
 

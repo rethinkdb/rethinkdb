@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "arch/arch.hpp"
 #include "errors.hpp"
 #include "buffer_cache/co_functions.hpp"
 #include "buffer_cache/transactor.hpp"
@@ -119,15 +120,23 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
 
 void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
-    rassert(coro_t::self());
-
-    backfill_traversal_helper_t helper(callback, since_when);
-
     {
+#ifndef NDEBUG
+        boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
+#endif
+
+        rassert(coro_t::self());
+
+        backfill_traversal_helper_t helper(callback, since_when);
+
         thread_saver_t saver;
         boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(saver, slice->cache(), helper.transaction_mode(), 0, repli_timestamp::invalid);
 
         txor->get()->snapshot();
+
+#ifndef NDEBUG
+        no_coro_waiting.reset();
+#endif
 
         btree_parallel_traversal(txor, slice, &helper);
     }

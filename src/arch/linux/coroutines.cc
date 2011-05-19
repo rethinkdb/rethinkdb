@@ -295,6 +295,7 @@ void coro_t::yield() {  /* class method */
 }
 
 void coro_t::notify_now() {
+    rassert(coro_no_waiting == 0, "This code path is not supposed to use notify_now (which is like waiting)");
     rassert(waiting_);
     rassert(!notified_);
     rassert(current_thread_ == linux_thread_pool_t::thread_id);

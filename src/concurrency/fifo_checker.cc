@@ -56,7 +56,47 @@ order_source_t::order_source_t(order_source_pigeoncoop_t *coop) : bucket_(-2), c
 
 order_source_t::~order_source_t() { unregister_(); }
 
-order_token_t order_source_t::check_in() { return order_token_t(bucket_, ++counter_, false); }
+order_token_t order_source_t::check_in() {
+    ++counter_;
+    return order_token_t(bucket_, counter_, false);
+}
+
+
+
+
+
+const int64_t REALTIME_COUNTER_INCREMENT = 0x100000000LL;
+
+backfill_receiver_order_source_t::backfill_receiver_order_source_t(int bucket)
+    : bucket_(bucket), counter_(0), backfill_active_(false) { }
+
+void backfill_receiver_order_source_t::backfill_begun() {
+    // TODO: We have no way of calling this function.
+    rassert(!backfill_active_);
+    backfill_active_ = true;
+}
+
+void backfill_receiver_order_source_t::backfill_done() {
+    // TODO: We can't really assert backfill_active stuff here because
+    // we might not have received the backfilling messages.
+    backfill_active_ = true;
+
+    rassert(backfill_active_);
+    backfill_active_ = false;
+    counter_ += REALTIME_COUNTER_INCREMENT;
+}
+
+order_token_t backfill_receiver_order_source_t::check_in_backfill_operation() {
+    backfill_active_ = true;
+    rassert(backfill_active_);
+    ++counter_;
+    return order_token_t(bucket_, counter_, false);
+}
+
+order_token_t backfill_receiver_order_source_t::check_in_realtime_operation() {
+    ++counter_;
+    return order_token_t(bucket_, counter_ + (backfill_active_ ? REALTIME_COUNTER_INCREMENT : 0), false);
+}
 
 
 

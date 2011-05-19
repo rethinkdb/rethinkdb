@@ -9,7 +9,7 @@ namespace replication {
 struct backfill_receiver_t :
     public message_callback_t
 {
-    backfill_receiver_t(backfill_and_realtime_streaming_callback_t *_cb, order_source_t *_order_source)
+    backfill_receiver_t(backfill_and_realtime_streaming_callback_t *_cb, backfill_receiver_order_source_t *_order_source)
         : cb(_cb), order_source(_order_source) { }
 
     /* backfill_receiver_t handles the subset of protocol messages that are required
@@ -27,11 +27,12 @@ struct backfill_receiver_t :
     void send(stream_pair<net_prepend_t>& message);
     void send(scoped_malloc<net_delete_t>& message);
     void send(scoped_malloc<net_backfill_delete_t>& message);
-    void send(scoped_malloc<net_nop_t>& message);
+
+    void nop_helper(net_nop_t msg);
 
 private:
     backfill_and_realtime_streaming_callback_t *const cb;
-    order_source_t *order_source;
+    backfill_receiver_order_source_t *order_source;
 };
 
 }

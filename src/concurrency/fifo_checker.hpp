@@ -13,8 +13,10 @@
 
 // The master and slave never happen in the same process.  Then the
 // memcache buckets have to be different.
+// TODO: get rid of SLAVE_... and MASTER_... and just use BACKFILL_RECEIVER_...
 const int SLAVE_ORDER_SOURCE_BUCKET = 0;
 const int MASTER_ORDER_SOURCE_BUCKET = 0;
+const int BACKFILL_RECEIVER_ORDER_SOURCE_BUCKET = 0;
 const int MEMCACHE_START_BUCKET = 1;
 
 class order_token_t {
@@ -39,6 +41,7 @@ private:
 
     friend class order_source_t;
     friend class order_sink_t;
+    friend class backfill_receiver_order_source_t;
     friend class plain_sink_t;
     friend class contiguous_order_sink_t;
 };
@@ -79,6 +82,26 @@ private:
 
     DISABLE_COPYING(order_source_t);
 };
+
+
+class backfill_receiver_order_source_t {
+public:
+    backfill_receiver_order_source_t(int bucket = BACKFILL_RECEIVER_ORDER_SOURCE_BUCKET);
+
+    void backfill_begun();
+    void backfill_done();
+
+    order_token_t check_in_backfill_operation();
+    order_token_t check_in_realtime_operation();
+
+private:
+    int bucket_;
+    int64_t counter_;
+    bool backfill_active_;
+
+    DISABLE_COPYING(backfill_receiver_order_source_t);
+};
+
 
 class order_sink_t {
 public:

@@ -88,7 +88,12 @@ private:
                 exit(-1);
             }
 
-            op_to_do->run();
+            try {
+                op_to_do->run();
+            } catch (protocol_error_t &e) {
+                fprintf(stderr, "Protocol error: %s\n", e.c_str());
+                throw e;
+            }
 
             spinlock.lock();
         }
