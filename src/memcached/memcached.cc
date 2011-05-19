@@ -236,6 +236,7 @@ public:
         file = fopen(filename.c_str(), "r");
     }
     ~txt_memcached_file_importer_t() {
+        debugf("Destroyed file importer\n");
         fclose(file);
     }
     void write(UNUSED const thread_saver_t& saver, UNUSED const std::string& buffer) { }
@@ -255,8 +256,8 @@ public:
     void client_error_bad_data(UNUSED const thread_saver_t& saver) { }
     void client_error_not_allowed(UNUSED const thread_saver_t& saver, UNUSED bool op_is_write) { }
     void server_error_object_too_large_for_cache(UNUSED const thread_saver_t& saver) { }
-    void begin_write_command() { }
-    void end_write_command() { }
+    /* void begin_write_command() { }
+    void end_write_command() { } */
     void flush_buffer() { }
 
     bool is_write_open() { return false; }
@@ -267,15 +268,18 @@ public:
     }
 
     void read_line(std::vector<char> *dest) {
+        dest->clear();
         char c; 
         char *head = (char *) crlf;
-        while (!(*head) && (c = getc(file))) {
+        while ((*head) && ((c = getc(file)) != EOF)) {
             dest->push_back(c);
+            fprintf(stderr, "%c", c);
             if (c == *head) head++;
             else head = (char *) crlf;
         }
         //we didn't every find a crlf unleash the exception 
-        if (!(*head)) throw no_more_data_exc_t();
+        if (*head) throw no_more_data_exc_t();
+        else fprintf(stderr, "\n");
     }
 
 public:

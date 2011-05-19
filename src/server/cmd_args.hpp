@@ -166,10 +166,14 @@ struct failover_config_t {
 /* Configuration for import */
 
 struct import_config_t {
-    std::string memcached_file;
+    std::string file;
     bool do_import;
 
     import_config_t() : do_import(false) { }
+    void set_import_file(std::string s) {
+        file = s;
+        do_import = true;
+    }
 };
 
 /* All the configuration together */

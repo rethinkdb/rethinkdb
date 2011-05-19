@@ -180,7 +180,8 @@ enum {
     flush_threshold,
     run_behind_elb,
     full_perfmon,
-    total_delete_queue_limit
+    total_delete_queue_limit,
+    import
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -241,6 +242,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
+                {"import", required_argument, 0, import},
                 {0, 0, 0, 0}
             };
 
@@ -323,6 +325,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 global_full_perfmon = true; break;
             case total_delete_queue_limit:
                 config.set_total_delete_queue_limit(optarg); break;
+            case import:
+                config.import_config.set_import_file(optarg); break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */

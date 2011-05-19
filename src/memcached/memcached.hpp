@@ -49,8 +49,13 @@ public:
     virtual void client_error_bad_data(const thread_saver_t& saver) = 0;
     virtual void client_error_not_allowed(const thread_saver_t& saver, bool op_is_write) = 0;
     virtual void server_error_object_too_large_for_cache(const thread_saver_t& saver) = 0;
-    virtual void begin_write_command() = 0;
-    virtual void end_write_command() = 0;
+
+    virtual void begin_write_command() {
+        drain_semaphore.acquire();
+    }
+    virtual void end_write_command() {
+        drain_semaphore.release();
+    }
     virtual void flush_buffer() = 0;
 
     virtual bool is_write_open() = 0;
