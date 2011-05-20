@@ -75,44 +75,15 @@ then
     flags+=" --force "
 fi
 
-#we create the new database first so that if it fails we can exit here and not
-#spend the time on extraction. do to UI concerns if we extracted first we would
-#probably have to do it again, because they will probably invoke with the same
-#intermediate file and we can't just overwrite that file,
+echo -n "Extracting old data.."
+"$old_rdb" extract "${infilecl[@]}" -o "$intermediate_file" -l /dev/null
+check "$?" "Extraction failed."
+echo "done"
 
 echo -n "Creating new database.."
 "$new_rdb" create "${outfilecl[@]}" $flags -l /dev/null
 check "$?" "New database creation failed."
 echo "done"
 
-echo -n "Extracting old data.."
-"$old_rdb" extract "${infilecl[@]}" -o "$intermediate_file" -l /dev/null
-check "$?" "Extraction failed."
-echo "done"
-
-port=`unused_port`
-if [ "${#port}" -eq "0" ]
-then
-    croak "Unable to find an open port."
-fi
-
-echo "Inserting new data.."
-"$new_rdb" serve "${outfilecl[@]}" $flags -p "$port" -l /dev/null&
-tries=0
-while ! nc -q 1 localhost "$port" </dev/null 2>/dev/null; do 
-    if [ "$tries" -gt 10 ]
-    then
-        croak "Server did not start up after 100 seconds exiting."
-    fi
-    sleep 10; 
-    tries+=1
-done
-which pv >/dev/null
-if [ "$?" -ne 0 ]
-then
-    (cat "$intermediate_file" && echo "rdb shutdown") | nc localhost "$port"
-else
-    file_size=$(stat -c%s "$intermediate_file")
-    (cat "$intermediate_file" && echo "rdb shutdown") | pv -s "$file_size" -pe | nc localhost "$port"
-fi
+"$new_rdb" import --memcached-file "$intermediate_file" -l /dev/null
 echo "done"
