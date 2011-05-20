@@ -1,8 +1,7 @@
 #!/bin/bash
 
-#get errors out of our
+#get errors out of our pipes
 set -eou pipefail
-trap "kill 0" SIGINT SIGTERM EXIT
 
 function check {
     if [ "$1" -ne 0 ]
@@ -59,7 +58,7 @@ version="$("$new_rdb" fsck "${infilecl[@]}" -v | grep VERSION: | sed 's/VERSION:
 check "$?" "Version extraction failed"
 
 #TODO this should maybe be a seperate file... might not be so important
-if [ $version = "0.1" ]
+if [ "$version" = "0.1" ]
 then
     old_rdb=/usr/bin/rethinkdb1.0
 else
