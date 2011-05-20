@@ -87,7 +87,7 @@ void slave_t::run(signal_t *shutdown_signal) {
         failover_->on_failure();
     }
 
-    backfill_receiver_order_source_t slave_order_source(SLAVE_ORDER_SOURCE_BUCKET);
+    backfill_receiver_order_source_t slave_order_source(BACKFILL_RECEIVER_ORDER_SOURCE_BUCKET);
 
     while (!shutdown_signal->is_pulsed()) {
         try {
@@ -97,43 +97,50 @@ void slave_t::run(signal_t *shutdown_signal) {
             logINF("Attempting to connect as slave to: %s:%d\n",
                 replication_config_.hostname, replication_config_.port);
 
-            boost::scoped_ptr<tcp_conn_t> conn(
-                new tcp_conn_t(replication_config_.hostname, replication_config_.port));
-            slave_stream_manager_t stream_mgr(&conn, internal_store_, &slave_cond, &slave_order_source);
+            /* These brackets are so that the `slave_stream_manager_t` gets destroyed before we
+            go on to the phase of incrementing the replication clock. This is important, or else
+            it might have operations left in the `backfill_storer_t`'s queue that are not performed
+            until after we have incremented the replication clock, and that would cause corruption.
+            */
+            {
+                boost::scoped_ptr<tcp_conn_t> conn(
+                    new tcp_conn_t(replication_config_.hostname, replication_config_.port));
+                slave_stream_manager_t stream_mgr(&conn, internal_store_, &slave_cond, &slave_order_source);
 
-            // No exception was thrown; it must have worked.
-            timeout_ = INITIAL_TIMEOUT;
-            give_up_.on_reconnect();
-            failover_->on_resume();
-            logINF("Connected as slave to: %s:%d\n", replication_config_.hostname, replication_config_.port);
+                // No exception was thrown; it must have worked.
+                timeout_ = INITIAL_TIMEOUT;
+                give_up_.on_reconnect();
+                failover_->on_resume();
+                logINF("Connected as slave to: %s:%d\n", replication_config_.hostname, replication_config_.port);
 
-            // This makes it so that if we get a reset command, the connection
-            // will get closed.
-            pulse_to_reset_failover_.watch(&slave_cond);
+                // This makes it so that if we get a reset command, the connection
+                // will get closed.
+                pulse_to_reset_failover_.watch(&slave_cond);
 
-            // This makes it so that if we get a shutdown command, the connection gets closed.
-            cond_link_t close_connection_on_shutdown(shutdown_signal, &slave_cond);
+                // This makes it so that if we get a shutdown command, the connection gets closed.
+                cond_link_t close_connection_on_shutdown(shutdown_signal, &slave_cond);
 
-            // last_sync is the latest timestamp that we didn't get all the master's changes for
-            repli_timestamp last_sync = internal_store_->get_last_sync();
-            debugf("Last sync: %d\n", last_sync.time);
+                // last_sync is the latest timestamp that we didn't get all the master's changes for
+                repli_timestamp last_sync = internal_store_->get_last_sync();
+                debugf("Last sync: %d\n", last_sync.time);
 
-            if (!were_connected_before) {
-                failover_->on_reverse_backfill_begin();
-                // We use last_sync.next() so that we don't send any of the master's own changes back
-                // to it. This makes sense in conjunction with incrementing the replication clock when
-                // we lose contact with the master.
-                stream_mgr.reverse_side_backfill(last_sync.next());
-                failover_->on_reverse_backfill_end();
+                if (!were_connected_before) {
+                    failover_->on_reverse_backfill_begin();
+                    // We use last_sync.next() so that we don't send any of the master's own changes back
+                    // to it. This makes sense in conjunction with incrementing the replication clock when
+                    // we lose contact with the master.
+                    stream_mgr.reverse_side_backfill(last_sync.next());
+                    failover_->on_reverse_backfill_end();
+                }
+
+                failover_->on_backfill_begin();
+                stream_mgr.backfill(last_sync);
+                failover_->on_backfill_end();
+
+                debugf("slave_t: Waiting for things to fail...\n");
+                slave_cond.wait();
+                debugf("slave_t: Things failed.\n");
             }
-
-            failover_->on_backfill_begin();
-            stream_mgr.backfill(last_sync);
-            failover_->on_backfill_end();
-
-            debugf("slave_t: Waiting for things to fail...\n");
-            slave_cond.wait();
-            debugf("slave_t: Things failed.\n");
 
             if (shutdown_signal->is_pulsed()) {
                 break;

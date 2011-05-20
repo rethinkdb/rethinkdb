@@ -7,7 +7,11 @@
 
 /* coro_pool_t maintains a bunch of coroutines; when you give it tasks, it
 distributes them among the coroutines. It draws its tasks from a
-`passive_producer_t<boost::function<void()> >*`. */
+`passive_producer_t<boost::function<void()> >*`.
+
+Right now, a number of different things depent on the `coro_pool_t` finishing
+all of its tasks and draining its `passive_producer_t` before its destructor
+returns. */
 
 class coro_pool_t :
     public home_thread_mixin_t,

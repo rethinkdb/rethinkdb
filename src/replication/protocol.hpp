@@ -22,6 +22,10 @@ struct stream_pair {
     unique_ptr_t<buffered_data_provider_t> stream;
     unique_malloc_t<T> data;
 
+    /* The `stream_pair()` constructor takes a buffer that contains the beginning of a multipart
+    message. It's guaranteed to contain the entire header and the entire key and probably part of
+    the value, but it's not guaranteed to contain the entire value. The network logic will later
+    fill in the rest of the value. */
     // This uses key_size, which is completely crap.
     stream_pair(const char *beg, const char *end, size_t size = 0) : stream(), data() {
         void *p;
