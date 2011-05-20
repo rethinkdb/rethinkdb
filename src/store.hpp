@@ -297,6 +297,9 @@ public:
     /* When we pass a mutation through, we give it a timestamp determined by the last call to
     set_timestamp(). */
     void set_timestamp(repli_timestamp_t ts);
+#ifndef NDEBUG
+    repli_timestamp_t get_timestamp() const { return timestamp; }
+#endif
 
 private:
     castime_t make_castime();

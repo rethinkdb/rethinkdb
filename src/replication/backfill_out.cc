@@ -42,6 +42,8 @@ struct backfill_and_streaming_manager_t :
                    included in the backfill, and no operation with timestamp `new_timestamp`
                    will be included. */
 
+                rassert(shard_->timestamper.get_timestamp() < new_timestamp, "shard_->timestamper.get_timestamp() = %u, new_timestamp = %u", shard_->timestamper.get_timestamp(), new_timestamp);
+
                 shard_->timestamper.set_timestamp(new_timestamp);
 
                 /* On each thread, atomically start a backfill operation and start streaming
@@ -232,7 +234,7 @@ struct backfill_and_streaming_manager_t :
         void on_keyvalue(backfill_atom_t atom) {
             // This runs in the scheduler context
             rassert(get_thread_id() == shard_->home_thread);
-            rassert(atom.recency < max_backfill_timestamp_);
+            rassert(atom.recency < max_backfill_timestamp_, "atom.recency (%u) < max_backfill_timestamp_ (%u)", atom.recency, max_backfill_timestamp_);
             rassert(backfilling_);
             backfill_job_queue.push(boost::bind(
                 &backfill_and_realtime_streaming_callback_t::backfill_set, parent_->handler_,
@@ -354,13 +356,11 @@ struct backfill_and_streaming_manager_t :
 
         slice_managers.resize(internal_store_->btree_static_config.n_slices);
         replication_clock_ = initial_replication_clock_.next();
-        outstanding_backfills = 0;
-        for (int i = 0; i < internal_store_->btree_static_config.n_slices; i++) {
-            outstanding_backfills++;
-            coro_t::spawn(
-                boost::bind(&backfill_and_streaming_manager_t::register_on_slice, this,
-                i, backfill_from, replication_clock_));
-        }
+        outstanding_backfills = internal_store_->btree_static_config.n_slices;
+
+        pmap(internal_store_->btree_static_config.n_slices,
+             boost::bind(&backfill_and_streaming_manager_t::register_on_slice, this,
+                         _1, backfill_from, replication_clock_));
 
         /* Start the timer that will repeatedly increment the replication clock */
         replication_clock_timer_.reset(new repeating_timer_t(1000,
