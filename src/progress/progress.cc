@@ -29,12 +29,13 @@ void progress_bar_t::draw_bar(int percent_done,  int eta) {
     }
     printf("] ");
 
-    if (eta == -1) {
+    if (eta == -1 && percent_done > 0) {
         //Do automatic linear interpolation for eta
         eta = ((100.0f / float(percent_done)) - 1) * total_refreshes * redraw_interval_ms /* ms */ * 0.001f /* ms/s */;
     }
         
-    printf("ETA: %d:%02d", eta / 60, eta % 60);
+    if (eta == -1) printf("ETA: -");
+    else printf("ETA: %d:%02d", eta / 60, eta % 60);
     fflush(stdin);
 }
 
