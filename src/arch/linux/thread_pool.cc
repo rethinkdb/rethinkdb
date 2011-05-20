@@ -63,8 +63,7 @@ struct thread_data_t {
 };
 
 void *linux_thread_pool_t::start_thread(void *arg) {
-#ifdef LEGACY_LINUX
-    // Block all signals (will be unblocked by the event queue).
+    // Block all signals (will be unblocked by the event queue in case of poll).
     {
         sigset_t sigmask;
         int res = sigfillset(&sigmask);
@@ -73,7 +72,6 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
         guarantee_err(res == 0, "Could not block signal");
     }
-#endif
 
     thread_data_t *tdata = (thread_data_t*)arg;
     
@@ -172,7 +170,10 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
         res = pthread_setaffinity_np(pthreads[i], sizeof(cpu_set_t), &mask);
         guarantee(res == 0, "Could not set thread affinity");
     }
-    
+
+    // Mark the main thread (for use in assertions etc.)
+    linux_thread_pool_t::thread_id = -1;
+
     // Set up interrupt handlers
     
     // TODO: Should we save and restore previous interrupt handlers? This would
@@ -247,6 +248,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
 void linux_thread_pool_t::interrupt_handler(int) {
     /* The interrupt handler should run on the main thread, the same thread that
     run() was called on. */
+    rassert(linux_thread_pool_t::thread_id == -1, "The interrupt handler was called on the wrong thread.");
     
     linux_thread_pool_t *self = linux_thread_pool_t::thread_pool;
     
