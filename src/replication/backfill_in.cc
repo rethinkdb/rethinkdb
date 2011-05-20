@@ -121,6 +121,7 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
         &limited_fifo_queue_t<boost::function<void()> >::set_capacity, &realtime_queue_,
         REALTIME_QUEUE_CAPACITY));
 
+
     /* Allow the `listing_passive_producer_t` to run operations from the
     `realtime_queue_` once the `backfill_queue_` is empty. */
     queue_picker_.set_sources(

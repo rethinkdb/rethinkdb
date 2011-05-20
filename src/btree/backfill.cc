@@ -141,5 +141,5 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
         btree_parallel_traversal(txor, slice, &helper);
     }
 
-    callback->done();
+    callback->done_backfill();
 }

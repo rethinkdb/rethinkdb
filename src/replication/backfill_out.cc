@@ -242,7 +242,7 @@ struct backfill_and_streaming_manager_t :
         }
 
         /* When we are finally done with the backfill, the store calls `done()`. */
-        void done() {
+        void done_backfill() {
             // This runs in the scheduler context. Since `push()` can block, we spawn a coroutine.
             // It is essential that we push it through the backfill job queue so that it it not
             // reordered relative to the actual backfill sets. Note that `boost::bind()` assigns
