@@ -180,7 +180,8 @@ enum {
     flush_threshold,
     run_behind_elb,
     full_perfmon,
-    total_delete_queue_limit
+    total_delete_queue_limit,
+    memcache_file
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -189,7 +190,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
 
     /* main() will have automatically inserted "serve" if no argument was specified */
-    rassert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create"));
+    rassert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create") || !strcmp(argv[0], "import"));
 
     if (!strcmp(argv[0], "create")) {
         if (argc >= 2 && !strcmp(argv[1], "help")) {
@@ -241,6 +242,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
+                {"memcached-file", required_argument, 0, memcache_file},
                 {0, 0, 0, 0}
             };
 
@@ -323,6 +325,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 global_full_perfmon = true; break;
             case total_delete_queue_limit:
                 config.set_total_delete_queue_limit(optarg); break;
+            case memcache_file:
+                config.import_config.set_import_file(optarg); break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */

@@ -192,6 +192,9 @@
 // have to wait until the first one finishes
 #define MAX_CONCURRENT_QUERIES_PER_CONNECTION     500
 
+//
+#define MAX_CONCURRENT_QUEURIES_ON_IMPORT 1000
+
 // How many timestamps we store in a leaf node.  We store the
 // NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.
 #define NUM_LEAF_NODE_EARLIER_TIMES               2

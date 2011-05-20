@@ -59,7 +59,7 @@ int dispatch_on_args(std::vector<char *> args) {
     if (args.size() == 1) args.push_back(const_cast<char *>("serve"));
 
     /* Switch based on subcommand, then dispatch to the appropriate function */
-    if (!strcmp(args[1], "serve") || !strcmp(args[1], "create")) {
+    if (!strcmp(args[1], "serve") || !strcmp(args[1], "create") || !strcmp(args[1], "import")) {
         return run_server(args.size() - 1, args.data() + 1);
 
     } else if (!strcmp(args[1], "extract")) {
