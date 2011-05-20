@@ -280,7 +280,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 that would confuse the replication logic. */
                 store.set_replication_master_id(NOT_A_SLAVE);
 
-                backfill_receiver_order_source_t master_order_source(MASTER_ORDER_SOURCE_BUCKET);
+                backfill_receiver_order_source_t master_order_source(BACKFILL_RECEIVER_ORDER_SOURCE_BUCKET);
                 replication::master_t master(cmd_config->replication_master_listen_port, &store, &gated_get_store, &gated_set_store, &master_order_source);
 
                 /* So that Amazon's Elastic Load Balancer (ELB) can tell when
