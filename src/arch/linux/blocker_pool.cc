@@ -5,6 +5,17 @@ void* blocker_pool_t::event_loop(void *arg) {
 
     blocker_pool_t *parent = reinterpret_cast<blocker_pool_t*>(arg);
 
+    // Disable signals on this thread. This ensures that signals like SIGINT are
+    // handled by one of the main threads.
+    {
+        sigset_t sigmask;
+        int res = sigfillset(&sigmask);
+        guarantee_err(res == 0, "Could not get a full sigmask");
+
+        res = pthread_sigmask(SIG_SETMASK, &sigmask, NULL);
+        guarantee_err(res == 0, "Could not block signal");
+    }
+
     while (true) {
         // Wait for an IO command or shutdown command. The while-loop guards against spurious
         // wakeups.
