@@ -3,13 +3,14 @@
 
 #include "replication/protocol.hpp"
 #include "replication/backfill.hpp"
+#include "replication/backfill_in.hpp"
 
 namespace replication {
 
 struct backfill_receiver_t :
     public message_callback_t
 {
-    backfill_receiver_t(backfill_and_realtime_streaming_callback_t *_cb, backfill_receiver_order_source_t *_order_source)
+    backfill_receiver_t(backfill_storer_t *_cb, backfill_receiver_order_source_t *_order_source)
         : cb(_cb), order_source(_order_source) { }
 
     /* backfill_receiver_t handles the subset of protocol messages that are required
