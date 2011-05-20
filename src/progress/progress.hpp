@@ -1,0 +1,42 @@
+#ifndef __PROGRESS_HPP__
+#define __PROGRESS_HPP__
+#include <stdio.h>
+#include <string>
+#include "arch/timing.hpp"
+
+class progress_bar_t : repeating_timer_t {
+private:
+    std::string activity; //the activity this progress bar represents
+    int redraw_interval_ms;
+private:
+    int total_refreshes;
+public:
+    progress_bar_t(std::string, int);
+    ~progress_bar_t() { printf("\n"); }
+
+    void refresh();
+    virtual void draw() = 0;
+    virtual void reset_bar();
+    void draw_bar(int, int ete = -1); 
+};
+
+class counter_progress_bar_t : public progress_bar_t {
+private:
+    int count, expected_count;
+public:
+    counter_progress_bar_t(std::string, int, int);
+    void draw();
+};
+
+//file progress bar watches as you use a file to see how fast you're using it,
+//it does not ever write or read from the file 
+class file_progress_bar_t : public progress_bar_t {
+private:
+    FILE *file;
+    int file_size;
+public:
+    file_progress_bar_t(std::string, FILE *, int redraw_interval_ms = 100);
+    void draw();
+};
+
+#endif //__PROGRESS_HPP__

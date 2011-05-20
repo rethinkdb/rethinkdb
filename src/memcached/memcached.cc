@@ -14,6 +14,7 @@
 #include "server/control.hpp"
 #include "store.hpp"
 #include "logger.hpp"
+#include "progress/progress.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
@@ -214,14 +215,14 @@ class txt_memcached_file_importer_t : public txt_memcached_handler_if
 {
 private:
     FILE *file;
+    file_progress_bar_t progress_bar;
 
 public:
 
     txt_memcached_file_importer_t(std::string filename, get_store_t *get_store, set_store_interface_t *set_store) :
-        txt_memcached_handler_if(get_store, set_store, MAX_CONCURRENT_QUEURIES_ON_IMPORT)
-    { 
-        file = fopen(filename.c_str(), "r");
-    }
+        txt_memcached_handler_if(get_store, set_store, MAX_CONCURRENT_QUEURIES_ON_IMPORT),
+        file(fopen(filename.c_str(), "r")), progress_bar(std::string("Import"), file)
+    { }
     ~txt_memcached_file_importer_t() {
         fclose(file);
     }

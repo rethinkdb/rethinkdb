@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string>
 
 // The file to write log messages to. It defaults to stderr, but main() may set it to something
 // different.
@@ -55,5 +56,4 @@ public:
 
     int home_thread;
 };
-
 #endif // __LOGGER_HPP__
