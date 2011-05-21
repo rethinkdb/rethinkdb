@@ -362,6 +362,9 @@ struct backfill_and_streaming_manager_t :
              boost::bind(&backfill_and_streaming_manager_t::register_on_slice, this,
                          _1, backfill_from, replication_clock_));
 
+        /* Store the current state of the replication clock */
+        internal_store_->set_replication_clock(replication_clock_);
+
         /* Start the timer that will repeatedly increment the replication clock */
         replication_clock_timer_.reset(new repeating_timer_t(1000,
             boost::bind(
