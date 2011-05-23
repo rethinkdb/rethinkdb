@@ -17,7 +17,7 @@ public:
     void refresh();
     virtual void draw() = 0;
     virtual void reset_bar();
-    void draw_bar(int, int ete = -1); 
+    void draw_bar(int, int eta = -1); 
 };
 
 class counter_progress_bar_t : public progress_bar_t {

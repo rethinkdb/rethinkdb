@@ -1,4 +1,5 @@
 #include "progress.hpp"
+#include "errors.hpp"
 
 progress_bar_t::progress_bar_t(std::string activity, int redraw_interval_ms = 100) 
     : repeating_timer_t(redraw_interval_ms, 
@@ -35,7 +36,9 @@ void progress_bar_t::draw_bar(int percent_done,  int eta) {
     }
         
     if (eta == -1) printf("ETA: -");
-    else printf("ETA: %d:%02d", eta / 60, eta % 60);
+    else printf("ETA: %01d:%02d:%02d", (eta / 3600), (eta / 60) % 60, eta % 60);
+
+    printf("                 "); //make sure we don't leave an characters behind
     fflush(stdin);
 }
 
