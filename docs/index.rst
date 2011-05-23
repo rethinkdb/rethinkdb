@@ -487,6 +487,47 @@ converted into master-files, and you will have to perform the same
 reversal again if you want that particular machine to be the
 slave-machine.
 
+-----------------------
+Replication performance
+-----------------------
+
+The master will throttle operations if the slave cannot keep up. This
+can become a major problem if the slave is slow or badly tuned. In
+particular, if the master becomes very slow the second time that the
+slave connects, this is probably because the slave's cache is cold.
+Make sure that you have ``--read-ahead y`` enabled if running on a
+rotational drive to help the slave cache warm up faster, and consider
+upgrading to faster drives.
+
+When the master comes back up after a crash and the slave starts
+copying data to it, neither the slave nor the master will accept
+write operations until the master catches up with the slave.
+
+When the slave connects to the master and starts copying old data from
+the master, the master will allocate half of the bandwidth for copying
+old data and half of the bandwidth for transferring current operations.
+The current operations will be queued on the slave until all of the old
+changes have been applied. Once all the old data has been copied, the
+slave will process the queued operations, and will allow new operations
+to be pushed onto the queue at half the rate that the queue is being
+emptied; this way, the slave's queue will shrink but it will not block
+up the master completely. During both of these phases, the master will
+run slower than normal.
+
+If the aforementioned queue (in which the slave is temporarily storing
+recent changes) becomes too long, the slave can potentially use a lot
+of memory or go into swap; the only workarounds are to run the slave
+on better hardware or to stop running new operations on the master
+while waiting for the slave to catch up. You can monitor the length of
+this queue by sending ``stat replication_slave_realtime_queue`` to the
+slave over ``telnet``.
+
+Even when none of the other problems in this section apply, a RethinkDB
+server that is replicating to a slave will run slower than a RethinkDB
+server that is not replicated. At RethinkDB we have observed the server
+running as much as 30-40% slower even when none of the other problems
+in this section apply.
+
 ----------------------
 Database restructuring
 ----------------------
