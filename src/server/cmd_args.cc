@@ -160,6 +160,21 @@ void usage_create() {
     exit(0);
 }
 
+void usage_import() {
+    Help_Pager *help = Help_Pager::instance();
+    help->pagef("Usage:\n"
+                "        rethinkdb import [OPTIONS] -f <file_1> [-f <file_2> ...]\n" 
+                "                  --memcached-file <mc_file1> [--memcached-file <mc_file2> ...]\n"
+                "        Import data from raw  memcached commands.\n");
+    help->pagef("\n"
+                "Output options:\n"
+                "  -l, --log-file        File to log to. If not provided, messages will be\n"
+                "                        printed to stderr.\n");
+    help->pagef("\n"
+                "Files are imported in the order specified, thus if a key is set in successive\n" 
+                "files it will ultimately be set to the value in the last file it's metioned in.\n");
+}
+
 enum {
     wait_for_flush = 256, // Start these values above the ASCII range.
     flush_timer,
@@ -192,12 +207,24 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     /* main() will have automatically inserted "serve" if no argument was specified */
     rassert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create") || !strcmp(argv[0], "import"));
 
-    if (!strcmp(argv[0], "create")) {
-        if (argc >= 2 && !strcmp(argv[1], "help")) {
+    if (argc >= 2 && !strcmp(argv[1], "help")) {
+        if (!strcmp(argv[0], "serve"))
+            usage_serve();
+        else if (!strcmp(argv[0], "create"))
             usage_create();
-        }
+        else if (!strcmp(argv[0], "import"))
+            usage_import();
+        else
+            unreachable();
+    }
+
+    if (!strcmp(argv[0], "create")) {
         config.create_store = true;
         config.shutdown_after_creation = true;
+    }
+
+    if (!strcmp(argv[0], "import")) {
+        config.import_config.do_import = true;
     }
 
     bool slices_set_by_user = false;
@@ -326,12 +353,14 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             case total_delete_queue_limit:
                 config.set_total_delete_queue_limit(optarg); break;
             case memcache_file:
-                config.import_config.set_import_file(optarg); break;
+                config.import_config.add_import_file(optarg); break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
                 if (config.create_store) {
                     usage_create();
+                } else if (config.import_config.do_import) {
+                    usage_import();
                 } else {
                     usage_serve();
                 }

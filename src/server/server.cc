@@ -217,12 +217,15 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* This continuously checks to see if RethinkDB has expired */
             timebomb::periodic_checker_t timebomb_checker(store.get_creation_timestamp());
 #endif
-            if (cmd_config->import_config.do_import) {
+            if (!cmd_config->import_config.file.empty()) {
                 store.set_replication_master_id(NOT_A_SLAVE);
-                logINF("Importing file...\n");
-                order_source_t order_source(&pigeoncoop);
-                import_memcache(cmd_config->import_config.file, &store, &order_source);
-                logINF("Done\n");
+                std::vector<std::string>::iterator it;
+                for(it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
+                    logINF("Importing file %s...\n", it->c_str());
+                    order_source_t order_source(&pigeoncoop);
+                    import_memcache(*it, &store, &order_source);
+                    logINF("Done\n");
+                }
             } else {
                 /* Start accepting connections. We use gated-stores so that the code can
                 forbid gets and sets at appropriate times. */
