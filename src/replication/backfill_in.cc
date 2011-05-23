@@ -2,7 +2,9 @@
 
 namespace replication {
 
-// Stats for the current depth of realtime and backfill queues
+// Stats for the current depth of realtime and backfill queues.
+// The `replication_slave_realtime_queue` stat is mentioned in the manual, so if
+// you change it, be sure to update the manual as well.
 perfmon_counter_t
     pm_replication_slave_realtime_queue("replication_slave_realtime_queue"),
     pm_replication_slave_backfill_queue("replication_slave_backfill_queue");

@@ -147,6 +147,8 @@ struct replication_config_t {
     char    hostname[MAX_HOSTNAME_LEN];
     int     port;
     bool    active;
+    /* Terminate the connection if not hearbeat is received within this many milliseconds (currently just implemented on the client side) */
+    int     heartbeat_timeout;
 };
 
 /* Configuration for failover */
@@ -243,6 +245,7 @@ public:
 #endif
     void set_master_listen_port(const char *value);
     void set_master_addr(const char *value);
+    void set_heartbeat_timeout(const char *value);
     void set_total_delete_queue_limit(const char *value);
     void set_failover_file(const char* value);
     void set_elb_port(const char* value);
