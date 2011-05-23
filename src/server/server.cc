@@ -134,16 +134,6 @@ private:
 }
 #endif
 
-/* void wait_for_sigint() {
-
-    struct : public thread_message_t, public cond_t {
-        void on_thread_switch() { pulse(); }
-    } interrupt_cond;
-    UNUSED thread_message_t *previous_message = thread_pool_t::set_interrupt_message(&interrupt_cond);
-    rassert(previous_message == NULL, "Trying to overwrite an existing interrupt message.");
-    interrupt_cond.wait();
-} */
-
 struct memcache_conn_handler_t : public conn_handler_with_special_lifetime_t {
     memcache_conn_handler_t(get_store_t *get_store, set_store_interface_t *set_store, order_source_pigeoncoop_t *pigeoncoop)
         : get_store_(get_store), set_store_(set_store), order_source_(pigeoncoop) { }
