@@ -8,6 +8,7 @@
 #include "server/key_value_store.hpp"
 #include "replication/backfill.hpp"
 #include "replication/slave_stream_manager.hpp"
+#include "slave_stream_manager.hpp"
 
 namespace replication {
 
@@ -138,6 +139,9 @@ void slave_t::run(signal_t *shutdown_signal) {
                 failover_->on_backfill_end();
 
                 debugf("slave_t: Waiting for things to fail...\n");
+                // TODO: Start watching the heartbeat only now might leave a window open, where
+                // network disconnects won't get noticed by the slave.
+                stream_mgr.watch_heartbeat(replication_config_.heartbeat_timeout);
                 slave_cond.wait();
                 debugf("slave_t: Things failed.\n");
             }

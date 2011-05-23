@@ -101,6 +101,11 @@ void usage_serve() {
                 "                        slave it will be replica of the master and will respond\n"
                 "                        only to get and rget. When the master goes down it will\n"
                 "                        begin responding to writes.\n"
+                "      --heartbeat-timeout\n"
+                "                        If the slave does not receive a hearbeat message from the\n"
+                "                        master within --heartbeat-timeout seconds, it will\n"
+                "                        terminate the connection and try to reconnect. If that\n"
+                "                        fails too, it will assume masterhood.\n" //TODO add this to manual
                 "      --failover-script Used in conjunction with --slave-of to specify a script\n"
                 "                        that will be run when the master fails and comes back up\n"
                 "                        see manual for an example script.\n" //TODO @jdoliner add this to the manual slava where is the manual?
@@ -175,6 +180,7 @@ enum {
     coroutine_stack_size,
     master_port,
     slave_of,
+    heartbeat_timeout,
     failover_script,
     flush_concurrency,
     flush_threshold,
@@ -239,6 +245,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
                 {"run-behind-elb",       required_argument, 0, run_behind_elb},
+                {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout},
                 {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
@@ -317,6 +324,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_master_listen_port(optarg); break;
             case slave_of:
                 config.set_master_addr(optarg); break;
+            case heartbeat_timeout:
+                config.set_heartbeat_timeout(optarg); break;
             case failover_script:
                 config.set_failover_file(optarg); break;
             case run_behind_elb:
@@ -697,6 +706,17 @@ void parsing_cmd_config_t::set_master_addr(const char *value) {
     replication_config.active = true;
 }
 
+void parsing_cmd_config_t::set_heartbeat_timeout(const char* value) {
+    int& target = replication_config.heartbeat_timeout;
+    const int minimum_value = 2;
+    const int maximum_value = 3600;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
+        fail_due_to_user_error("Heartbeat timeout must be a number from %d to %d.", minimum_value, maximum_value);
+    target *= 1000; // Convert to milliseconds
+}
+
 void parsing_cmd_config_t::set_total_delete_queue_limit(const char *value) {
     int64_t target = parse_longlong(value);
     if (parsing_failed || target < 0)
@@ -882,6 +902,7 @@ cmd_config_t::cmd_config_t() {
     replication_config.port = DEFAULT_REPLICATION_PORT;
     memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
     replication_config.active = false;
+    replication_config.heartbeat_timeout = 10000; // 10 seconds
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;
     replication_master_active = false;
 
