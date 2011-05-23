@@ -240,13 +240,6 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     running, so we have to set them all up now. */
                     failover_t failover;   // Keeps track of all the callbacks
 
-                    /* So that Amazon's Elastic Load Balancer (ELB) can tell when master goes down */
-                    boost::scoped_ptr<elb_t> elb;
-                    if (cmd_config->failover_config.elb_port != -1) {
-                        elb.reset(new elb_t(elb_t::slave, cmd_config->failover_config.elb_port));
-                        failover.add_callback(elb.get());
-                    }
-
                     /* So that we call the appropriate user-defined callback on failure */
                     boost::scoped_ptr<failover_script_callback_t> failover_script;
                     if (strlen(cmd_config->failover_config.failover_script_path) > 0) {
@@ -283,14 +276,6 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                     backfill_receiver_order_source_t master_order_source(BACKFILL_RECEIVER_ORDER_SOURCE_BUCKET);
                     replication::master_t master(cmd_config->replication_master_listen_port, &store, &gated_get_store, &gated_set_store, &master_order_source);
-
-                    /* So that Amazon's Elastic Load Balancer (ELB) can tell when
-                     * master is up. TODO: This might report us as being up when we aren't actually
-                     accepting queries. */
-                    boost::scoped_ptr<elb_t> elb;
-                    if (cmd_config->failover_config.elb_port != -1) {
-                        elb.reset(new elb_t(elb_t::master, cmd_config->failover_config.elb_port));
-                    }
 
                     wait_for_sigint();
 

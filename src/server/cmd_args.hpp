@@ -155,11 +155,10 @@ struct replication_config_t {
 struct failover_config_t {
     char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
     bool    active;
-    int     elb_port;
     bool    no_rogue; /* whether to go rogue when the master is struggling to stay up */
 
     failover_config_t()
-        : active(false), elb_port(-1), no_rogue(false)
+        : active(false), no_rogue(false)
     {
         *failover_script_path = 0;
     }

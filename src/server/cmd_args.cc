@@ -105,13 +105,13 @@ void usage_serve() {
                 "                        If the slave does not receive a hearbeat message from the\n"
                 "                        master within --heartbeat-timeout seconds, it will\n"
                 "                        terminate the connection and try to reconnect. If that\n"
-                "                        fails too, it will assume masterhood.\n" //TODO add this to manual
+                "                        fails too, it will assume masterhood.\n"
                 "      --failover-script Used in conjunction with --slave-of to specify a script\n"
                 "                        that will be run when the master fails and comes back up\n"
-                "                        see manual for an example script.\n" //TODO @jdoliner add this to the manual slava where is the manual?
-                "      --run-behind-elb  Used in conjunction with --slave-of makes the server\n"
+                "                        see manual for an example script.\n");
+                /*"      --run-behind-elb  Used in conjunction with --slave-of makes the server\n"
                 "                        compatible with Amazon Elastic Load Balancer (using TCP as\n"
-                "                        the protocol.) See manual for a detailed description.\n"); //TODO add this to manual
+                "                        the protocol.) See manual for a detailed description.\n"); */
     help->pagef("\n"
                 "Serve can be called with no arguments to run a server with default parameters.\n"
                 "For best performance RethinkDB should be run with one --file per device and a\n"
@@ -199,7 +199,6 @@ enum {
     failover_script,
     flush_concurrency,
     flush_threshold,
-    run_behind_elb,
     full_perfmon,
     total_delete_queue_limit,
     memcache_file
@@ -271,7 +270,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"master",               required_argument, 0, master_port},
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
-                {"run-behind-elb",       required_argument, 0, run_behind_elb},
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout},
                 {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
@@ -355,8 +353,6 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_heartbeat_timeout(optarg); break;
             case failover_script:
                 config.set_failover_file(optarg); break;
-            case run_behind_elb:
-                config.set_elb_port(optarg); break;
             case full_perfmon:
                 global_full_perfmon = true; break;
             case total_delete_queue_limit:
@@ -759,16 +755,6 @@ void parsing_cmd_config_t::set_failover_file(const char* value) {
         fail_due_to_user_error("Failover script path is too long");
 
     strcpy(failover_config.failover_script_path, value);
-}
-
-void parsing_cmd_config_t::set_elb_port(const char *value) {
-    int& target = failover_config.elb_port;
-    const int minimum_value = 0;
-    const int maximum_value = 65535;
-    
-    target = parse_int(value);
-    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
-        fail_due_to_user_error("Invalid TCP port (must be a number from %d to %d).", minimum_value, maximum_value);
 }
 
 void parsing_cmd_config_t::set_io_backend(const char* value) {
