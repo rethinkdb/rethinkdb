@@ -97,7 +97,10 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) 
 
 void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t token) {
     order_sink_.check_out(token);
-    rassert(backfilling_);
+    debugf("backfilling_ is %d\n", (int)backfilling_);
+    rassert(backfilling_, "backfilling_ was false, this assert may fail if you cut the "
+            "network connection between the master and slave and then do some "
+            "writes to the slave.  (We should eventually remove this assertion!)");
     backfilling_ = false;
     print_backfill_warning_ = false;
 
