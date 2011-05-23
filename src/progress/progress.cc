@@ -1,10 +1,12 @@
 #include "progress.hpp"
 #include "errors.hpp"
+#include "utils2.hpp"
 
 progress_bar_t::progress_bar_t(std::string activity, int redraw_interval_ms = 100) 
     : repeating_timer_t(redraw_interval_ms, 
       boost::bind(&progress_bar_t::refresh, this)), activity(activity), 
-      redraw_interval_ms(redraw_interval_ms), total_refreshes(0)
+      redraw_interval_ms(redraw_interval_ms), start_time(get_ticks()),
+      total_refreshes(0)
 { }
 
 void progress_bar_t::refresh() {
@@ -19,7 +21,9 @@ void progress_bar_t::reset_bar() {
     fflush(stdin);
 }
 
-void progress_bar_t::draw_bar(int percent_done,  int eta) {
+/* progress should be in [0.0,1.0] */
+void progress_bar_t::draw_bar(float progress,  int eta) {
+    int percent_done = int(progress * 100);
     printf("%s: ", activity.c_str());
     printf("[");
     for (int i = 1; i < 49; i++) {
@@ -30,11 +34,11 @@ void progress_bar_t::draw_bar(int percent_done,  int eta) {
     }
     printf("] ");
 
-    if (eta == -1 && percent_done > 0) {
+    if (eta == -1 && progress > 0) {
         //Do automatic linear interpolation for eta
-        eta = ((100.0f / float(percent_done)) - 1) * total_refreshes * redraw_interval_ms /* ms */ * 0.001f /* ms/s */;
+        eta = ((1.0f / progress) - 1) * ticks_to_secs(get_ticks() - start_time);
     }
-        
+
     if (eta == -1) printf("ETA: -");
     else printf("ETA: %01d:%02d:%02d", (eta / 3600), (eta / 60) % 60, eta % 60);
 
@@ -48,7 +52,7 @@ counter_progress_bar_t::counter_progress_bar_t(std::string activity, int expecte
 { }
 
 void counter_progress_bar_t::draw() {
-    progress_bar_t::draw_bar(int(float(count * 100) / float(expected_count)), -1);
+    progress_bar_t::draw_bar(float(count) / float(expected_count), -1);
 }
 
 file_progress_bar_t::file_progress_bar_t(std::string activity, FILE *file, int redraw_interval_ms)
@@ -60,5 +64,5 @@ file_progress_bar_t::file_progress_bar_t(std::string activity, FILE *file, int r
 }
 
 void file_progress_bar_t::draw() {
-    progress_bar_t::draw_bar(int(float(ftell(file) * 100) / float(file_size)), -1);
+    progress_bar_t::draw_bar(float(ftell(file)) / float(file_size), -1);
 }
