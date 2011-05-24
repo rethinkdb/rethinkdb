@@ -579,19 +579,6 @@ following procedure is used to merge the data:
   have either the value it was assigned on the master or the value that
   it had before the divergence.
 
------------------------------
-Elastic Load Balancer support
------------------------------
-
-You may want to use Amazon's Elastic Load Balancer (ELB) in conjunction
-with RethinkDB, to automatically direct queries to whichever of the
-master and the slave is able to accept writes. If you add
-``--run-behind-elb <port>`` to the slave's command line, then it will
-accept connections on the given ``<port>`` if and only if it is willing
-to accept writes. It will drop the connection as soon as it accepts it.
-The only purpose of this is to signal to the ELB that it is willing to
-accept writes.
-
 ----------------
 Failover scripts
 ----------------

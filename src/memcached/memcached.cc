@@ -15,7 +15,7 @@
 #include "store.hpp"
 #include "logger.hpp"
 #include "progress/progress.hpp"
-#include "concurrency/os_signal.hpp"
+#include "arch/os_signal.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
