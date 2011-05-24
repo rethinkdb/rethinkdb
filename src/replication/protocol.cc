@@ -202,11 +202,19 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         net_multipart_header_t hdr;
         hdr.msgsize = MAX_MESSAGE_SIZE;
         hdr.message_multipart_aspect = FIRST;
-        hdr.ident = 1;        // TODO: This is an obvious bug, when we can split up our messages (but right now it is fine because we hold the mutex_acquisition_t the whole time).
+        // TODO: This is an obvious bug, when we can split up our
+        // messages (but right now it is fine because we hold the
+        // mutex_acquisition_t the whole time).  Note that the value
+        // we use here _must_ be zero, since the set of previously
+        // used identifier codes must be a contiguous set whose
+        // minimal element must be zero.
+        hdr.ident = 0;
+
 
         size_t offset = MAX_MESSAGE_SIZE - (sizeof(net_multipart_header_t) + 1);
 
         {
+            // Commented because we have a global mutex for all the messages.
             //            mutex_acquisition_t ak(&outgoing_mutex_, true);
             try_write(&hdr, sizeof(net_multipart_header_t));
             rassert(sizeof(msgcode) == 1);
@@ -216,18 +224,23 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
         char *buf = reinterpret_cast<char *>(msg);
 
-        while (offset + MAX_MESSAGE_SIZE < obsize) {
+        const size_t midlast_message_size = MAX_MESSAGE_SIZE - sizeof(net_multipart_header_t);
+
+        while (offset + midlast_message_size < obsize) {
+            // Commented because we have a global mutex for all the messages.
             //            mutex_acquisition_t ak(&outgoing_mutex_, true);
             hdr.message_multipart_aspect = MIDDLE;
             try_write(&hdr, sizeof(net_multipart_header_t));
-            try_write(buf + offset, MAX_MESSAGE_SIZE);
-            offset += MAX_MESSAGE_SIZE;
+            try_write(buf + offset, midlast_message_size);
+            offset += midlast_message_size;
         }
 
         {
-            rassert(obsize - offset <= MAX_MESSAGE_SIZE);
+            rassert(obsize - offset <= midlast_message_size);
+            // Commented because we have a global mutex for all the messages.
             //            mutex_acquisition_t ak(&outgoing_mutex_, true);
             hdr.message_multipart_aspect = LAST;
+            hdr.msgsize = sizeof(net_multipart_header_t) + (obsize - offset);
             try_write(&hdr, sizeof(net_multipart_header_t));
             try_write(buf + offset, obsize - offset);
         }
@@ -358,6 +371,8 @@ void repli_stream_t::try_write(const void *data, size_t size) {
         block_pm_duration set_timer(&master_write);
         conn_->write_buffered(data, size);
     } catch (tcp_conn_t::write_closed_exc_t &e) {
+        // TODO: This is disgusting.
+
         /* Master died; we happened to be mid-write at the time. A tcp_conn_t::read_closed_exc_t
         will be thrown somewhere and that will cause us to shut down. So we can ignore this
         exception. */

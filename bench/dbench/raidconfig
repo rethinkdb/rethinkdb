@@ -13,7 +13,7 @@ def usage(success = True):
     print >> out, 'WARNING: Do not run this script if there is anything important on the drives;'
     print >> out, '         it will be deleted.'
     print >> out
-    print >> out, 'Note: This script is fairly hard-wired; for instance, it assumes that c4 is'
+    print >> out, 'Note: This script is fairly hard-wired; for instance, it assumes that c5 is'
     print >> out, '      assigned to the SSDs and c6 is assigned to the HDDs.'
 
     exit(0 if success else 2)
@@ -75,7 +75,7 @@ def init():
         print >> sys.stderr, "This program must be run as root."
         sys.exit(3)
 
-    controllers = {'ssd': 'c4', 'hdd': 'c6'}
+    controllers = {'ssd': 'c5', 'hdd': 'c6'}
 
     try: controller = controllers[sys.argv[1]]
     except KeyError, e:
