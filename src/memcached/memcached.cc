@@ -985,7 +985,10 @@ void handle_memcache(txt_memcached_handler_if *rh, UNUSED order_source_t *order_
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;
 
-    while (!sigint_has_happened()) {
+    /* Create a linked sigint cond on my thread */
+    sigint_indicator_t sigint_has_happened;
+
+    while (!sigint_has_happened.get_value()) {
         /* Flush if necessary (no reason to do this the first time around, but it's easier
         to put it here than after every thing that could need to flush */
         block_pm_duration flush_timer(&pm_conns_writing);

@@ -1,37 +1,48 @@
 #include "arch/os_signal.hpp"
 #include "arch/arch.hpp"
 
-os_signal_monitor_t *global_os_signal_monitor = NULL;
+os_signal_cond_t *global_os_signal_cond = NULL;
 
-os_signal_monitor_t& get_os_signal_monitor() {
-    rassert(global_os_signal_monitor, "Trying to access the global_os_signal_monitor when it has not been set.\n");
-    return *global_os_signal_monitor;
+os_signal_cond_t& get_os_signal_cond() {
+    rassert(global_os_signal_cond, "Trying to access the global_os_signal_cond when it has not been set.\n" 
+                                      "Construct an os_signal_cond_t to fix this.\n");
+    return *global_os_signal_cond;
 }
 
-void set_os_signal_monitor(os_signal_monitor_t *os_signal_monitor) {
-    rassert(!global_os_signal_monitor, "Trying to set global_os_signal_monitor when it was already set.\n");
-    global_os_signal_monitor = os_signal_monitor;
+void set_os_signal_cond(os_signal_cond_t *os_signal_cond) {
+    rassert(!global_os_signal_cond, "Trying to set global_os_signal_cond when it was already set.\n");
+    global_os_signal_cond = os_signal_cond;
 }
 
-os_signal_monitor_t::os_signal_monitor_t() {
-    set_os_signal_monitor(this);
-}
-
-void os_signal_monitor_t::wait_for_sigint() {
-    on_thread_t switcher(home_thread);
-    thread_pool_t::set_interrupt_message(&sigint_pulser);
-    sigint_pulser.wait();
-}
-
-bool os_signal_monitor_t::sigint_has_happened() {
-    on_thread_t switcher(home_thread);
-    return sigint_pulser.is_pulsed();
+os_signal_cond_t::os_signal_cond_t() {
+    set_os_signal_cond(this);
+    thread_pool_t::set_interrupt_message(this);
 }
 
 void wait_for_sigint() {
-    get_os_signal_monitor().wait_for_sigint();
+    on_thread_t switcher(get_os_signal_cond().get_home_thread());
+    get_os_signal_cond().wait();
 }
 
-bool sigint_has_happened() {
-    return get_os_signal_monitor().sigint_has_happened();
+void sigint_indicator_t::on_signal_pulsed() {
+    value = true;
+}
+
+sigint_indicator_t::sigint_indicator_t() : value (false)
+{
+    on_thread_t switcher(get_os_signal_cond().get_home_thread());
+    if (get_os_signal_cond().is_pulsed())
+        value = true;
+    else
+        get_os_signal_cond().add_waiter(this);
+}
+
+sigint_indicator_t:: ~sigint_indicator_t() {
+    on_thread_t switcher(get_os_signal_cond().get_home_thread());
+    if (!get_os_signal_cond().is_pulsed())
+        get_os_signal_cond().remove_waiter(this);
+}
+
+bool sigint_indicator_t::get_value() {
+    return value;
 }
