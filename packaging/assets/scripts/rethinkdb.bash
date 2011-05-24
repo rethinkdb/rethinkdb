@@ -20,7 +20,7 @@ _complete_rethinkdb() {
     create_tokens=("-f" "--file" "-s" "--slices" "--block-size" "--extent-size" "--diff-log-size" "-l" "--log-file" "--force")
     help_tokens=("extract" "create" "fsck" "serve")
     fsck_tokens=("-f" "--file" "-l" "--log-file")
-    serve_tokens=("-f" "--file" "-c" "--cores" "-m" "--max-cache-size" "-p" "--port" "--wait-for-flush" "--flush-timer" "--flush-threshold" "--flush-concurrency" "--unsaved-data-limit" "--gc-range" "--active-data-extents" "--io-backend" "--read-ahead" "-v" "--verbose" "-l" "--log-file" "--read-ahead" "--master" "--slave-of" "--failover-script" "--run-behind-elb")
+    serve_tokens=("-f" "--file" "-c" "--cores" "-m" "--max-cache-size" "-p" "--port" "--wait-for-flush" "--flush-timer" "--flush-threshold" "--flush-concurrency" "--unsaved-data-limit" "--gc-range" "--active-data-extents" "--io-backend" "--read-ahead" "-v" "--verbose" "-l" "--log-file" "--read-ahead" "--master" "--slave-of" "--failover-script")
 
     cur=${COMP_WORDS[COMP_CWORD]}
 

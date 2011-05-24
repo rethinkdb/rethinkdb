@@ -28,6 +28,7 @@ void usage() {
                 "\n"
                 "Administrating databases:\n"
                 "    extract     Extract as much data as possible from a corrupted database.\n"
+                "    import      Import data from raw memcached commands.\n"
                 "    fsck        Check a database for corruption.\n"
                 "    migrate     Convert between file versions.\n"
                 "\n"
@@ -77,6 +78,8 @@ int dispatch_on_args(std::vector<char *> args) {
                 usage_serve();
             } else if (!strcmp(args[2], "create")) {
                 usage_create();
+            } else if (!strcmp(args[2], "import")) {
+                usage_import();
             } else if (!strcmp(args[2], "extract")) {
                 extract::usage(args[1]);
             } else if (!strcmp(args[2], "fsck")) {

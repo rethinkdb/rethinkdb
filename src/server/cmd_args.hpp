@@ -155,11 +155,10 @@ struct replication_config_t {
 struct failover_config_t {
     char    failover_script_path[MAX_PATH_LEN]; /* !< script to be called when the other server goes down */
     bool    active;
-    int     elb_port;
     bool    no_rogue; /* whether to go rogue when the master is struggling to stay up */
 
     failover_config_t()
-        : active(false), elb_port(-1), no_rogue(false)
+        : active(false), no_rogue(false)
     {
         *failover_script_path = 0;
     }
@@ -168,13 +167,12 @@ struct failover_config_t {
 /* Configuration for import */
 
 struct import_config_t {
-    std::string file;
     bool do_import;
+    std::vector<std::string> file;
 
     import_config_t() : do_import(false) { }
-    void set_import_file(std::string s) {
-        file = s;
-        do_import = true;
+    void add_import_file(std::string s) {
+        file.push_back(s);
     }
 };
 
@@ -269,6 +267,7 @@ private:
 cmd_config_t parse_cmd_args(int argc, char *argv[]);
 void usage_serve();
 void usage_create();
+void usage_import();
 
 #endif // __CMD_ARGS_HPP__
 

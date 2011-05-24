@@ -217,12 +217,15 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* This continuously checks to see if RethinkDB has expired */
             timebomb::periodic_checker_t timebomb_checker(store.get_creation_timestamp());
 #endif
-            if (cmd_config->import_config.do_import) {
+            if (!cmd_config->import_config.file.empty()) {
                 store.set_replication_master_id(NOT_A_SLAVE);
-                logINF("Importing file...\n");
-                order_source_t order_source(&pigeoncoop);
-                import_memcache(cmd_config->import_config.file, &store, &order_source);
-                logINF("Done\n");
+                std::vector<std::string>::iterator it;
+                for(it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
+                    logINF("Importing file %s...\n", it->c_str());
+                    order_source_t order_source(&pigeoncoop);
+                    import_memcache(*it, &store, &order_source);
+                    logINF("Done\n");
+                }
             } else {
                 /* Start accepting connections. We use gated-stores so that the code can
                 forbid gets and sets at appropriate times. */
@@ -236,13 +239,6 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     /* Failover callbacks. It's not safe to add or remove them when the slave is
                     running, so we have to set them all up now. */
                     failover_t failover;   // Keeps track of all the callbacks
-
-                    /* So that Amazon's Elastic Load Balancer (ELB) can tell when master goes down */
-                    boost::scoped_ptr<elb_t> elb;
-                    if (cmd_config->failover_config.elb_port != -1) {
-                        elb.reset(new elb_t(elb_t::slave, cmd_config->failover_config.elb_port));
-                        failover.add_callback(elb.get());
-                    }
 
                     /* So that we call the appropriate user-defined callback on failure */
                     boost::scoped_ptr<failover_script_callback_t> failover_script;
@@ -280,14 +276,6 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                     backfill_receiver_order_source_t master_order_source(BACKFILL_RECEIVER_ORDER_SOURCE_BUCKET);
                     replication::master_t master(cmd_config->replication_master_listen_port, &store, &gated_get_store, &gated_set_store, &master_order_source);
-
-                    /* So that Amazon's Elastic Load Balancer (ELB) can tell when
-                     * master is up. TODO: This might report us as being up when we aren't actually
-                     accepting queries. */
-                    boost::scoped_ptr<elb_t> elb;
-                    if (cmd_config->failover_config.elb_port != -1) {
-                        elb.reset(new elb_t(elb_t::master, cmd_config->failover_config.elb_port));
-                    }
 
                     wait_for_sigint();
 

@@ -680,17 +680,6 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "diff-log-size" : 0,
                     "fsck"        : False},
                   repeat=3, timeout=300 * ec2)
-    do_test_cloud("integration/elb_behavior.py",
-                  { "auto"        : True,
-                    "mode"        : mode,
-                    "no-valgrind" : not checker,
-                    "protocol"    : protocol,
-                    "cores"       : 1,
-                    "slices"      : 1,
-                    "duration"    : 180,
-                    "diff-log-size" : 0,
-                    "fsck"        : False},
-                  repeat=1, timeout=300 * ec2)
     do_test_cloud("integration/failover_script.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -710,6 +699,34 @@ def run_all_tests(mode, checker, protocol, cores, slices):
     # Canonical tests are included in all tests
     run_canonical_tests(mode, checker, protocol, cores, slices)
 
+# Tests with special requirements that will supply their own mode and such.
+def run_fixed_tests():
+    # This test takes too long in debug mode, unfortunately, so we won't run it
+    # nightly for now.
+    #for (mode,checker) in [("debug", None),
+    #                       ("debug", "valgrind"),
+    #                       ("release", None)]:
+    #    for (max_key,key_len,val_len,pattern) in [("5000",   "5","45", "fwd"),
+    #                                              ("50000",  "5","45", "fwd"),
+    #                                              ("50000",  "5","45", "rev"),
+    #                                              ("30000",  "5","45", "fwd"),
+    #                                              ("50000",  "6","45", "fwd"),
+    #                                              ("50000",  "5","230","mid"),
+    #                                              ("1000000","7","230","midrev")]:
+    #        do_test_cloud("integration/deletion.py",
+    #                      { "auto"        : True,
+    #                        "mode"        : mode,
+    #                        "no-valgrind" : not checker,
+    #                        "protocol"    : "text",
+    #                        "cores"       : 1,
+    #                        "slices"      : 1,
+    #                        "max-key"     : max_key,
+    #                        "key-len"     : key_len,
+    #                        "val-len"     : val_len,
+    #                        "pattern"     : pattern },
+    #                      repeat=1, timeout=2400) # TODO: Decrease this once we see how long these tests actually take.
+    pass
+
 # For safety: ensure that nodes are terminated in case of exceptions
 try:
     # Setup the EC2 testing nodes
@@ -723,6 +740,8 @@ try:
             for (cores, slices) in [(2, 8)]:
                 # RUN ALL TESTS
                 run_all_tests(mode, checker, protocol, cores, slices)
+
+    run_fixed_tests()
 
     # GO THROUGH ALL OUR ENVIRONMENTS
     for (mode, checker) in [
