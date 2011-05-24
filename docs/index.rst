@@ -394,6 +394,13 @@ of the exported file with the following Unix command::
 
   $ cat memcached.out | nc localhost 8080 -q 0
 
+RethinkDB can import without using ``netcat`` (``nc``) via the 
+``import`` command::
+
+  $ rethinkdb import -f new_file.db --memcached-file memcached.out
+
+``Import`` is more efficient than the ``nc`` method.
+
 The ``extract`` command works even in cases when the data has been
 corrupted and  server cannot open the database file. In this
 case, ``extract`` will try to recover as much data as possible and
