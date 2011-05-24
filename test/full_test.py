@@ -279,6 +279,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "restart-server-prob" : "0.0005"},
                           repeat=5, timeout=400)
     
+    # Replication
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -289,6 +290,62 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 340,
                     "failover"    : True},
                           repeat=10, timeout=400)
+    
+    # Replication with small delete queue
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 340,
+                    "failover"    : True,
+                    "serve-flags": "--total-delete-queue-limit %d" % (500 * slices)},
+                          repeat=10, timeout=400)
+    
+    # Replication with large values
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "valuesize"   : 2 * 1024 * 1024,
+                    "duration"    : 340,
+                    "failover"    : True,
+                    "kill-failover-server-prob": 0.1,
+                    "resurrect-failover-server-prob": 0.1},
+                          repeat=5, timeout=400)
+    
+    # Replication with CAS
+    do_test_cloud("integration/cas.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "failover"    : True,
+                    "kill-failover-server-prob": 0.1,
+                    "resurrect-failover-server-prob": 0.1,
+                    "timeout"     : 120},
+                          repeat=5, timeout=400)
+    
+    # Replication with flags
+    do_test_cloud("integration/flags.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "failover"    : True,
+                    "kill-failover-server-prob": 0.1,
+                    "resurrect-failover-server-prob": 0.1,
+                    "timeout"     : 120},
+                          repeat=5, timeout=400)
     
     do_test_cloud("integration/append_prepend.py",
                   { "auto"        : True,
