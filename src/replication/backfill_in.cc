@@ -159,9 +159,12 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
     // by draining the coro pool which processes the requests.
     // Note: This does not allow any new requests to get in on the backfill queue
     // while draining, but that should be ok.
+    // TODO: The cleaner way of implementing this semantics would be to pass
+    // a lock object with each operation we push on the backfill_queue. That lock's
+    // lifespan would be until the corresponding operation finishes. We would then
+    // wait until all the locks have been released.
     coro_pool_.drain();
     
-
     /* Allow the `listing_passive_producer_t` to run operations from the
     `realtime_queue_` once the `backfill_queue_` is empty (which it actually should
      be anyway by now). */
