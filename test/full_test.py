@@ -171,7 +171,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 1200,
                     "nrgets"      : 1,
                     "fsck"        : False},
-                  repeat=2, timeout=1800 * ec2)
+                  repeat=2, timeout=2400 * ec2)
                   
     # Run a canonical + rget workload for twenty minutes under memory pressure
     do_test_cloud("integration/stress_load.py",
@@ -186,7 +186,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 1200,
                     "nrgets"      : 1,
                     "fsck"        : False},
-                  repeat=2, timeout=1800 * ec2)
+                  repeat=2, timeout=2400 * ec2)
 
     do_test_cloud("integration/replication_stress_load.py",
                   { "auto"        : True,
@@ -277,7 +277,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340,
                     "restart-server-prob" : "0.0005"},
-                          repeat=5, timeout=400)
+                          repeat=5, timeout=600)
     
     # Replication
     do_test_cloud("integration/serial_mix.py",
@@ -289,7 +289,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340,
                     "failover"    : True},
-                          repeat=10, timeout=400)
+                          repeat=10, timeout=800)
     
     # Replication with small delete queue
     do_test_cloud("integration/serial_mix.py",
@@ -302,7 +302,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 340,
                     "failover"    : True,
                     "serve-flags": "--total-delete-queue-limit %d" % (500 * slices)},
-                          repeat=10, timeout=400)
+                          repeat=10, timeout=800)
     
     # Replication with large values
     do_test_cloud("integration/serial_mix.py",
@@ -317,7 +317,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "failover"    : True,
                     "kill-failover-server-prob": 0.1,
                     "resurrect-failover-server-prob": 0.1},
-                          repeat=5, timeout=400)
+                          repeat=5, timeout=800)
     
     # Replication with CAS
     do_test_cloud("integration/cas.py",
@@ -331,7 +331,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "kill-failover-server-prob": 0.1,
                     "resurrect-failover-server-prob": 0.1,
                     "timeout"     : 120},
-                          repeat=5, timeout=400)
+                          repeat=5, timeout=800)
     
     # Replication with flags
     do_test_cloud("integration/flags.py",
@@ -345,7 +345,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "kill-failover-server-prob": 0.1,
                     "resurrect-failover-server-prob": 0.1,
                     "timeout"     : 120},
-                          repeat=5, timeout=400)
+                          repeat=5, timeout=800)
     
     do_test_cloud("integration/append_prepend.py",
                   { "auto"        : True,
