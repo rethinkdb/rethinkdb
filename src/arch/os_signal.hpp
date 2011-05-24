@@ -20,6 +20,7 @@ class sigint_indicator_t : public signal_t::waiter_t,
 private:
     bool value;
     void on_signal_pulsed();
+    void set_value_to_true();
 
 public:
     sigint_indicator_t();
