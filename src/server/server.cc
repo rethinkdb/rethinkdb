@@ -275,7 +275,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     store.set_replication_master_id(NOT_A_SLAVE);
 
                     backfill_receiver_order_source_t master_order_source(BACKFILL_RECEIVER_ORDER_SOURCE_BUCKET);
-                    replication::master_t master(cmd_config->replication_master_listen_port, &store, &gated_get_store, &gated_set_store, &master_order_source);
+                    replication::master_t master(cmd_config->replication_master_listen_port, &store, cmd_config->replication_config, &gated_get_store, &gated_set_store, &master_order_source);
 
                     wait_for_sigint();
 

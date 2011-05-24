@@ -95,7 +95,12 @@ void backfill_receiver_t::send(scoped_malloc<net_backfill_delete_t>& msg) {
     cb->backfill_deletion(key, token);
 }
 
-void backfill_receiver_t::nop_helper(net_nop_t msg) {
+void backfill_receiver_t::send(UNUSED scoped_malloc<net_heartbeat_t>& msg) {
+    block_pm_duration timer(&pm_replication_slave_handling_2);
+    // Ignore the heartbeat, it has been handled in the protocol layer already.
+}
+
+void backfill_receiver_t::timebarrier_helper(net_timebarrier_t msg) {
     block_pm_duration timer(&pm_replication_slave_handling_2);
     order_token_t token = order_source->check_in_realtime_operation();
     cb->realtime_time_barrier(msg.timestamp, token);

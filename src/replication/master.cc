@@ -31,7 +31,7 @@ void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
         logINF("Slave connected; sending updates to slave...\n");
     }
 
-    stream_ = new repli_stream_t(conn, this);
+    stream_ = new repli_stream_t(conn, this, replication_config_.heartbeat_timeout);
     stream_exists_cond_.reset();
 
     /* Send the slave our database creation timestamp so it knows which master it's connected to. */
