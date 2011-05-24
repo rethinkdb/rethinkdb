@@ -138,11 +138,6 @@ void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
         // Do nothing; this was to be expected.
-#ifndef NDEBUG
-    } catch (protocol_exc_t& e) {
-        debugf("catch 'n throwing protocol_exc_t: %s\n", e.what());
-        throw;
-#endif
     }
 
     conn_handler->conn_closed();
