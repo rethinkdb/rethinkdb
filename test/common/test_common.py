@@ -57,6 +57,7 @@ def make_option_parser():
     o["resurrect_failover_server_prob"] = FloatFlag("--resurrect-failover-server-prob", .01)
     o["elb"] = BoolFlag("--elb")
     o["failover-script"] = StringFlag("--failover-script", "")
+    o["timeout"] = IntFlag("--timeout", None)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -487,20 +488,21 @@ class FailoverMemcachedWrapper(object):
         print "Waiting for slave to assume masterhood..."
         if self.opts["mclib"] == "pylibmc":
             import pylibmc
-            exc_class = pylibmc.ClientError
+            def test():
+                # pylibmc throws ClientError when it gets a CLIENT_ERROR
+                try: self.mc["slave"].set("are_you_accepting_sets", "yes")
+                except pylibmc.ClientError: return False
+                else: return True
         else:
-            # What kind of exception does python-memcache throw in this situation?
-            raise NotImplementedError()
+            def test():
+                ret = self.mc["slave"].set("are_you_accepting_sets", "yes")
+                assert (ret is True or ret is False)
+                return ret
         n_tries = 30
         try_interval = 1
         for i in xrange(n_tries):
             time.sleep(try_interval)
-            try:
-                self.mc["slave"].set("are_you_accepting_sets", "yes")
-            except exc_class:
-                pass
-            else:
-                break
+            if test(): break
         else:
             raise ValueError("Slave hasn't realized master is down after %d seconds." % \
                 n_tries * try_interval)
@@ -558,6 +560,8 @@ def connect_to_server(opts, server, test_dir):
 def adjust_timeout(opts, timeout):
     if not timeout or opts["interactive"] or opts["no-timeout"]:
         return None
+    elif opts["timeout"]:
+        return opts["timeout"]
     else:
         return timeout + 15
 #make a dictionary of stat limits
