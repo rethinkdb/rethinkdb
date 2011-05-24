@@ -36,7 +36,6 @@ int run_server(int argc, char *argv[]) {
     } starter;
     starter.cmd_config = &config;
 
-    os_signal_monitor_t os_signal_monitor;
 
     // Run the server.
     thread_pool_t thread_pool(config.n_workers);
@@ -167,6 +166,7 @@ private:
 };
 
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
+    os_signal_cond_t os_signal_cond;
     try {
         /* Start logger */
         log_controller_t log_controller;

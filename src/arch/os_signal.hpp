@@ -4,22 +4,25 @@
 #include "concurrency/cond_var.hpp"
 #include "arch/core.hpp"
 
-class os_signal_monitor_t : public home_thread_mixin_t {
-private:
-    struct sigint_pulser_t : public thread_message_t,
-                             public cond_t
-    {
-        void on_thread_switch() { pulse(); }
-    } sigint_pulser;
-
-
+class os_signal_cond_t : public thread_message_t,
+                            public cond_t
+{
 public:
-    os_signal_monitor_t();
-    void wait_for_sigint();
-    bool sigint_has_happened();
+    os_signal_cond_t();
+    void on_thread_switch() { pulse(); }
 };
 
 void wait_for_sigint();
-bool sigint_has_happened();
+
+class sigint_indicator_t : public signal_t::waiter_t {
+private:
+    bool value;
+    void on_signal_pulsed();
+
+public:
+    sigint_indicator_t();
+    ~sigint_indicator_t();
+    bool get_value();
+};
 
 #endif

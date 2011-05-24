@@ -78,6 +78,7 @@ you can use the `rethread_t` type or the `rethread()` method. */
 class home_thread_mixin_t {
 public:
     const int &home_thread;
+    int get_home_thread() const { return home_thread; }
 
     void assert_thread() const {
         if (home_thread == INVALID_THREAD) {
