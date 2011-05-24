@@ -80,7 +80,7 @@ public:
                 return false;
             }
 
-            free_.erase(p.base());
+            free_.erase(p.base() - 1);
             return true;
         }
     }
