@@ -583,6 +583,11 @@ following procedure is used to merge the data:
 Network partitioning
 --------------------
 
+In general, it is the responsibility of the user to make sure that
+clients do not write to the master while other clients write to the
+slave. If the slave is aware that the master is up, it will not accept
+writes, but it can be fooled.
+
 RethinkDB's replication logic is designed on the assumption that if the
 slave cannot see the master, then no clients can see the master, and if
 the master cannot see the slave, then no clients can see the slave. If
