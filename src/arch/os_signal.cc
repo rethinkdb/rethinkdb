@@ -1,4 +1,4 @@
-#include "concurrency/os_signal.hpp"
+#include "arch/os_signal.hpp"
 #include "arch/arch.hpp"
 
 os_signal_monitor_t *global_os_signal_monitor = NULL;

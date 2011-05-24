@@ -12,7 +12,7 @@
 #include "control.hpp"
 #include "gated_store.hpp"
 #include "concurrency/promise.hpp"
-#include "concurrency/os_signal.hpp"
+#include "arch/os_signal.hpp"
 
 int run_server(int argc, char *argv[]) {
 
