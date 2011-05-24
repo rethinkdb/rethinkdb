@@ -26,7 +26,7 @@ perfmon_duration_sampler_t
 #define CORO_POOL_SIZE 512
 
 backfill_storer_t::backfill_storer_t(btree_key_value_store_t *underlying) :
-    kvs_(underlying), backfilling_(true), print_backfill_warning_(false),
+    kvs_(underlying), print_backfill_warning_(false),
     backfill_queue_(BACKFILL_QUEUE_CAPACITY),
     realtime_queue_(SEMAPHORE_NO_LIMIT, 0.5, &pm_replication_slave_realtime_queue),
     queue_picker_(make_vector<passive_producer_t<boost::function<void()> > *>(&backfill_queue_)),
@@ -110,11 +110,6 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
 #endif
 
     order_sink_.check_out(token);
-    debugf("backfilling_ is %d\n", (int)backfilling_);
-    rassert(backfilling_, "backfilling_ was false, this assert may fail if you cut the "
-            "network connection between the master and slave and then do some "
-            "writes to the slave.  (We should eventually remove this assertion!)");
-    backfilling_ = false;
     print_backfill_warning_ = false;
 
     backfill_queue_.push(boost::bind(

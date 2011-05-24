@@ -102,7 +102,7 @@ void usage_serve() {
                 "                        only to get and rget. When the master goes down it will\n"
                 "                        begin responding to writes.\n"
                 "      --heartbeat-timeout\n"
-                "                        If the slave does not receive a hearbeat message from the\n"
+                "                        If the slave does not receive a heartbeat message from the\n"
                 "                        master within --heartbeat-timeout seconds, it will\n"
                 "                        terminate the connection and try to reconnect. If that\n"
                 "                        fails too, it will assume masterhood.\n"
@@ -733,7 +733,7 @@ void parsing_cmd_config_t::set_master_addr(const char *value) {
 
 void parsing_cmd_config_t::set_heartbeat_timeout(const char* value) {
     int& target = replication_config.heartbeat_timeout;
-    const int minimum_value = 2;
+    const int minimum_value = REPLICATION_HEARTBEAT_INTERVAL / 1000 + 1;
     const int maximum_value = 3600;
 
     target = parse_int(value);
@@ -917,7 +917,7 @@ cmd_config_t::cmd_config_t() {
     replication_config.port = DEFAULT_REPLICATION_PORT;
     memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
     replication_config.active = false;
-    replication_config.heartbeat_timeout = 10000; // 10 seconds
+    replication_config.heartbeat_timeout = DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT;
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;
     replication_master_active = false;
 
