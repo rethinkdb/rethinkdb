@@ -116,6 +116,13 @@
 
 #define DEFAULT_TOTAL_DELETE_QUEUE_LIMIT          GIGABYTE
 
+// Heartbeat configuration...
+// The interval at which heartbeats are sent (ms)
+#define REPLICATION_HEARTBEAT_INTERVAL            800 // (so we can allow a timeout of 1000 if users like it risky)
+// The default timeout. This is the time after which replication
+// connections get terminated, if no activity has been observed.
+#define DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT     10000
+
 // Default extension for the semantic file which is appended to the database name
 #define DEFAULT_SEMANTIC_EXTENSION                ".semantic"
 

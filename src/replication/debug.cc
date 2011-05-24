@@ -40,9 +40,13 @@ std::string debug_format(UNUSED const net_backfill_delete_everything_t *msg) {
     return strprintf("net_backfill_delete_everything_t { }");
 }
 
-std::string debug_format(const net_nop_t *msg) {
-    return strprintf("net_nop_t { timestamp = %u; }",
+std::string debug_format(const net_timebarrier_t *msg) {
+    return strprintf("net_timebarrier_t { timestamp = %u; }",
         msg->timestamp.time);
+}
+
+std::string debug_format(UNUSED const net_heartbeat_t *msg) {
+    return strprintf("net_heartbeat_t { }");
 }
 
 std::string debug_format(const net_get_cas_t *msg) {

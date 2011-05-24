@@ -31,7 +31,7 @@ void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
         logINF("Slave connected; sending updates to slave...\n");
     }
 
-    stream_ = new repli_stream_t(conn, this);
+    stream_ = new repli_stream_t(conn, this, replication_config_.heartbeat_timeout);
     stream_exists_cond_.reset();
 
     /* Send the slave our database creation timestamp so it knows which master it's connected to. */
@@ -67,11 +67,19 @@ void master_t::destroy_existing_slave_conn_if_it_exists() {
 
 void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
 
+#ifndef NDEBUG
+    rassert(!master_t::inside_backfill_done_or_backfill);
+    master_t::inside_backfill_done_or_backfill = true;
+#endif
+
     if (!get_permission_) {
         /* We just finished the reverse-backfill operation from the first slave.
         Now we can accept gets and sets. At this point we will continue accepting
         gets and sets until we are shut down, regardless of whether the slave connection
         dies again. */
+
+        // TODO: We don't want to open the gates until the backfill
+        // receiver's queues have drained.
         logINF("Now accepting operations normally.\n");
         get_permission_.reset(new gated_get_store_t::open_t(get_gate_));
         set_permission_.reset(new gated_set_store_interface_t::open_t(set_gate_));
@@ -97,7 +105,16 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
 
     /* We leave get_permission_ and set_permission_ open so that we continue accepting queries
     even now that the slave is down */
+
+#ifndef NDEBUG
+    master_t::inside_backfill_done_or_backfill = false;
+#endif
+
 }
+
+#ifndef NDEBUG
+bool master_t::inside_backfill_done_or_backfill = false;
+#endif
 
 }  // namespace replication
 

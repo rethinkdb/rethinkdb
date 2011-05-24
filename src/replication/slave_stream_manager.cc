@@ -7,7 +7,8 @@ namespace replication {
 slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn,
                                                btree_key_value_store_t *kvs,
                                                cond_t *cond,
-                                               backfill_receiver_order_source_t *slave_order_source) :
+                                               backfill_receiver_order_source_t *slave_order_source,
+                                               int heartbeat_timeout) :
     backfill_receiver_t(&backfill_storer_, slave_order_source),
     stream_(NULL),
     cond_(NULL),
@@ -15,7 +16,7 @@ slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *co
     backfill_storer_(kvs),
     interrupted_by_external_event_(false) {
 
-    stream_ = new repli_stream_t(*conn, this);
+    stream_ = new repli_stream_t(*conn, this, heartbeat_timeout);
 
     cond_ = cond;
     if (cond_->is_pulsed()) {
@@ -86,10 +87,6 @@ void slave_stream_manager_t::conn_closed() {
     }
 
     shutdown_cond_.pulse();
-}
-
-void slave_stream_manager_t::note_heartbeat(UNUSED repli_timestamp timestamp) {
-    
 }
 
 void slave_stream_manager_t::on_signal_pulsed() {

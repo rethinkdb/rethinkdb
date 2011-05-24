@@ -8,6 +8,7 @@ class progress_bar_t : repeating_timer_t {
 private:
     std::string activity; //the activity this progress bar represents
     int redraw_interval_ms;
+    ticks_t start_time;
 private:
     int total_refreshes;
 public:
@@ -17,7 +18,7 @@ public:
     void refresh();
     virtual void draw() = 0;
     virtual void reset_bar();
-    void draw_bar(int, int ete = -1); 
+    void draw_bar(float, int eta = -1); 
 };
 
 class counter_progress_bar_t : public progress_bar_t {

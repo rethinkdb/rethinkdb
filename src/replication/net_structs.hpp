@@ -15,7 +15,7 @@ enum message_code { MSGCODE_NIL = 0, INTRODUCE = 1,
                     BACKFILL_SET = 5, BACKFILL_DELETE = 6,
 
                     GET_CAS = 7, SARC = 8, INCR = 9, DECR = 10, APPEND = 11, PREPEND = 12,
-                    DELETE = 13, NOP = 14 };
+                    DELETE = 13, TIMEBARRIER = 14, HEARTBEAT = 15 };
 
 struct net_castime_t {
     cas_t proposed_cas;
@@ -66,7 +66,12 @@ struct net_backfill_delete_everything_t {
     uint32_t padding;
 } __attribute__((__packed__));
 
-struct net_nop_t {
+struct net_heartbeat_t {
+    // Unnecessary padding.
+    uint32_t padding;
+} __attribute__((__packed__));
+
+struct net_timebarrier_t {
     repli_timestamp timestamp;
 } __attribute__((__packed__));
 

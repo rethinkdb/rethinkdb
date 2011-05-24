@@ -101,12 +101,17 @@ void usage_serve() {
                 "                        slave it will be replica of the master and will respond\n"
                 "                        only to get and rget. When the master goes down it will\n"
                 "                        begin responding to writes.\n"
+                "      --heartbeat-timeout\n"
+                "                        If the slave does not receive a heartbeat message from the\n"
+                "                        master within --heartbeat-timeout seconds, it will\n"
+                "                        terminate the connection and try to reconnect. If that\n"
+                "                        fails too, it will assume masterhood.\n"
                 "      --failover-script Used in conjunction with --slave-of to specify a script\n"
                 "                        that will be run when the master fails and comes back up\n"
-                "                        see manual for an example script.\n" //TODO @jdoliner add this to the manual slava where is the manual?
-                "      --run-behind-elb  Used in conjunction with --slave-of makes the server\n"
+                "                        see manual for an example script.\n");
+                /*"      --run-behind-elb  Used in conjunction with --slave-of makes the server\n"
                 "                        compatible with Amazon Elastic Load Balancer (using TCP as\n"
-                "                        the protocol.) See manual for a detailed description.\n"); //TODO add this to manual
+                "                        the protocol.) See manual for a detailed description.\n"); */
     help->pagef("\n"
                 "Serve can be called with no arguments to run a server with default parameters.\n"
                 "For best performance RethinkDB should be run with one --file per device and a\n"
@@ -160,6 +165,21 @@ void usage_create() {
     exit(0);
 }
 
+void usage_import() {
+    Help_Pager *help = Help_Pager::instance();
+    help->pagef("Usage:\n"
+                "        rethinkdb import [OPTIONS] -f <file_1> [-f <file_2> ...]\n" 
+                "                  --memcached-file <mc_file1> [--memcached-file <mc_file2> ...]\n"
+                "        Import data from raw  memcached commands.\n");
+    help->pagef("\n"
+                "Output options:\n"
+                "  -l, --log-file        File to log to. If not provided, messages will be\n"
+                "                        printed to stderr.\n");
+    help->pagef("\n"
+                "Files are imported in the order specified, thus if a key is set in successive\n" 
+                "files it will ultimately be set to the value in the last file it's metioned in.\n");
+}
+
 enum {
     wait_for_flush = 256, // Start these values above the ASCII range.
     flush_timer,
@@ -175,10 +195,10 @@ enum {
     coroutine_stack_size,
     master_port,
     slave_of,
+    heartbeat_timeout,
     failover_script,
     flush_concurrency,
     flush_threshold,
-    run_behind_elb,
     full_perfmon,
     total_delete_queue_limit,
     memcache_file
@@ -192,12 +212,24 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     /* main() will have automatically inserted "serve" if no argument was specified */
     rassert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create") || !strcmp(argv[0], "import"));
 
-    if (!strcmp(argv[0], "create")) {
-        if (argc >= 2 && !strcmp(argv[1], "help")) {
+    if (argc >= 2 && !strcmp(argv[1], "help")) {
+        if (!strcmp(argv[0], "serve"))
+            usage_serve();
+        else if (!strcmp(argv[0], "create"))
             usage_create();
-        }
+        else if (!strcmp(argv[0], "import"))
+            usage_import();
+        else
+            unreachable();
+    }
+
+    if (!strcmp(argv[0], "create")) {
         config.create_store = true;
         config.shutdown_after_creation = true;
+    }
+
+    if (!strcmp(argv[0], "import")) {
+        config.import_config.do_import = true;
     }
 
     bool slices_set_by_user = false;
@@ -238,7 +270,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"master",               required_argument, 0, master_port},
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
-                {"run-behind-elb",       required_argument, 0, run_behind_elb},
+                {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout},
                 {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
@@ -317,21 +349,23 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_master_listen_port(optarg); break;
             case slave_of:
                 config.set_master_addr(optarg); break;
+            case heartbeat_timeout:
+                config.set_heartbeat_timeout(optarg); break;
             case failover_script:
                 config.set_failover_file(optarg); break;
-            case run_behind_elb:
-                config.set_elb_port(optarg); break;
             case full_perfmon:
                 global_full_perfmon = true; break;
             case total_delete_queue_limit:
                 config.set_total_delete_queue_limit(optarg); break;
             case memcache_file:
-                config.import_config.set_import_file(optarg); break;
+                config.import_config.add_import_file(optarg); break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
                 if (config.create_store) {
                     usage_create();
+                } else if (config.import_config.do_import) {
+                    usage_import();
                 } else {
                     usage_serve();
                 }
@@ -697,6 +731,17 @@ void parsing_cmd_config_t::set_master_addr(const char *value) {
     replication_config.active = true;
 }
 
+void parsing_cmd_config_t::set_heartbeat_timeout(const char* value) {
+    int& target = replication_config.heartbeat_timeout;
+    const int minimum_value = REPLICATION_HEARTBEAT_INTERVAL / 1000 + 1;
+    const int maximum_value = 3600;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
+        fail_due_to_user_error("Heartbeat timeout must be a number from %d to %d.", minimum_value, maximum_value);
+    target *= 1000; // Convert to milliseconds
+}
+
 void parsing_cmd_config_t::set_total_delete_queue_limit(const char *value) {
     int64_t target = parse_longlong(value);
     if (parsing_failed || target < 0)
@@ -710,16 +755,6 @@ void parsing_cmd_config_t::set_failover_file(const char* value) {
         fail_due_to_user_error("Failover script path is too long");
 
     strcpy(failover_config.failover_script_path, value);
-}
-
-void parsing_cmd_config_t::set_elb_port(const char *value) {
-    int& target = failover_config.elb_port;
-    const int minimum_value = 0;
-    const int maximum_value = 65535;
-    
-    target = parse_int(value);
-    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
-        fail_due_to_user_error("Invalid TCP port (must be a number from %d to %d).", minimum_value, maximum_value);
 }
 
 void parsing_cmd_config_t::set_io_backend(const char* value) {
@@ -858,7 +893,7 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.serializer.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
     store_dynamic_config.serializer.file_size = 0;   // Unlimited file size
     store_dynamic_config.serializer.file_zone_size = GIGABYTE;
-    store_dynamic_config.serializer.read_ahead = false;
+    store_dynamic_config.serializer.read_ahead = true;
     /* #if WE_ARE_ON_LINUX */
     store_dynamic_config.serializer.io_backend = aio_native;
     /* #endif */
@@ -882,6 +917,7 @@ cmd_config_t::cmd_config_t() {
     replication_config.port = DEFAULT_REPLICATION_PORT;
     memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
     replication_config.active = false;
+    replication_config.heartbeat_timeout = DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT;
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;
     replication_master_active = false;
 

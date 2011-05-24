@@ -105,7 +105,7 @@ void slave_t::run(signal_t *shutdown_signal) {
             {
                 boost::scoped_ptr<tcp_conn_t> conn(
                     new tcp_conn_t(replication_config_.hostname, replication_config_.port));
-                slave_stream_manager_t stream_mgr(&conn, internal_store_, &slave_cond, &slave_order_source);
+                slave_stream_manager_t stream_mgr(&conn, internal_store_, &slave_cond, &slave_order_source, replication_config_.heartbeat_timeout);
 
                 // No exception was thrown; it must have worked.
                 timeout_ = INITIAL_TIMEOUT;

@@ -15,6 +15,7 @@
 #include "store.hpp"
 #include "logger.hpp"
 #include "progress/progress.hpp"
+#include "arch/os_signal.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
@@ -984,7 +985,7 @@ void handle_memcache(txt_memcached_handler_if *rh, UNUSED order_source_t *order_
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;
 
-    while (true) {
+    while (!sigint_has_happened()) {
         /* Flush if necessary (no reason to do this the first time around, but it's easier
         to put it here than after every thing that could need to flush */
         block_pm_duration flush_timer(&pm_conns_writing);

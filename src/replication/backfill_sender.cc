@@ -232,7 +232,7 @@ void backfill_sender_t::realtime_time_barrier(repli_timestamp timestamp, order_t
     block_pm_duration timer(&master_rt_timebarrier);
     order_sink_before_send.check_out(token);
     assert_thread();
-    net_nop_t msg;
+    net_timebarrier_t msg;
     msg.timestamp = timestamp;
     if (*stream_) (*stream_)->send(msg);
     order_sink_after_send.check_out(token);

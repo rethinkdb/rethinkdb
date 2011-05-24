@@ -24,7 +24,8 @@ size_t objsize(UNUSED const net_introduce_t *buf) { return sizeof(net_introduce_
 size_t objsize(UNUSED const net_backfill_t *buf) { return sizeof(net_backfill_t); }
 size_t objsize(UNUSED const net_backfill_complete_t *buf) { return sizeof(net_backfill_complete_t); }
 size_t objsize(UNUSED const net_backfill_delete_everything_t *buf) { return sizeof(net_backfill_delete_everything_t); }
-size_t objsize(UNUSED const net_nop_t *buf) { return sizeof(net_nop_t); }
+size_t objsize(UNUSED const net_timebarrier_t *buf) { return sizeof(net_timebarrier_t); }
+size_t objsize(UNUSED const net_heartbeat_t *buf) { return sizeof(net_heartbeat_t); }
 size_t objsize(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
 size_t objsize(const net_incr_t *buf) { return sizeof(net_incr_t) + buf->key_size; }
 size_t objsize(const net_decr_t *buf) { return sizeof(net_decr_t) + buf->key_size; }
@@ -81,6 +82,11 @@ tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *bu
 }
 
 void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
+    // Notify the heartbeat receiver that we got something (which means that the connection is alive)
+    if (hb_receiver_) {
+        hb_receiver_->note_heartbeat();
+    }
+    
     if (!saw_first_part_) {
         uint8_t msgcode = *reinterpret_cast<const uint8_t *>(buf);
         ++buf;
@@ -91,7 +97,8 @@ void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
         case BACKFILL: check_pass<net_backfill_t>(receiver_, buf, size); break;
         case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver_, buf, size); break;
         case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver_, buf, size); break;
-        case NOP: check_pass<net_nop_t>(receiver_, buf, size); break;
+        case TIMEBARRIER: check_pass<net_timebarrier_t>(receiver_, buf, size); break;
+        case HEARTBEAT: check_pass<net_heartbeat_t>(receiver_, buf, size); break;
         case GET_CAS: check_pass<net_get_cas_t>(receiver_, buf, size); break;
         case SARC: tracker_obj_ = check_value_streamer<net_sarc_t>(receiver_, buf, size); break;
         case INCR: check_pass<net_incr_t>(receiver_, buf, size); break;
@@ -144,12 +151,19 @@ void replication_connection_handler_t::process_hello_message(net_hello_t buf) {
 
 perfmon_rate_monitor_t pm_replication_network_write_rate("replication_network_write_rate", secs_to_ticks(2.0));
 
-repli_stream_t::repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback) : conn_handler_(recv_callback) {
+repli_stream_t::repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback, int heartbeat_timeout) :
+            heartbeat_sender_t(REPLICATION_HEARTBEAT_INTERVAL),
+            heartbeat_receiver_t(heartbeat_timeout),
+            conn_handler_(recv_callback, this) {
     conn_.swap(conn);
     conn_->write_perfmon = &pm_replication_network_write_rate;
     parse_messages(conn_.get(), &conn_handler_);
-    mutex_acquisition_t ak(&outgoing_mutex_);
-    send_hello(ak);
+    watch_heartbeat();
+    {
+        mutex_acquisition_t ak(&outgoing_mutex_);
+        send_hello(ak);
+    }
+    start_sending_heartbeats();
 }
 
 repli_stream_t::~repli_stream_t() {
@@ -310,9 +324,15 @@ void repli_stream_t::send(net_backfill_delete_t *msg) {
     sendobj(BACKFILL_DELETE, msg);
 }
 
-void repli_stream_t::send(net_nop_t msg) {
+void repli_stream_t::send(net_timebarrier_t msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-    sendobj(NOP, &msg);
+    sendobj(TIMEBARRIER, &msg);
+    flush();
+}
+
+void repli_stream_t::send(net_heartbeat_t msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+    sendobj(HEARTBEAT, &msg);
     flush();
 }
 
