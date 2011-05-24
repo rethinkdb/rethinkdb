@@ -12,7 +12,7 @@
 #include "control.hpp"
 #include "gated_store.hpp"
 #include "concurrency/promise.hpp"
-#include "concurrency/os_signal.hpp"
+#include "arch/os_signal.hpp"
 
 int run_server(int argc, char *argv[]) {
 
@@ -35,6 +35,8 @@ int run_server(int argc, char *argv[]) {
         }
     } starter;
     starter.cmd_config = &config;
+
+    os_signal_monitor_t os_signal_monitor;
 
     // Run the server.
     thread_pool_t thread_pool(config.n_workers);
