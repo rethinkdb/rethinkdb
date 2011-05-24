@@ -147,7 +147,7 @@ struct replication_config_t {
     char    hostname[MAX_HOSTNAME_LEN];
     int     port;
     bool    active;
-    /* Terminate the connection if not heartbeat is received within this many milliseconds */
+    /* Terminate the connection if no heartbeat is received within this many milliseconds */
     int     heartbeat_timeout;
 };
 
