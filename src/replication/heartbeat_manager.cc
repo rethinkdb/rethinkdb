@@ -34,8 +34,9 @@ void heartbeat_sender_t::send_heartbeat_callback(void *data) {
     self->heartbeat_timer_ = NULL;
     coro_t::spawn_now(boost::bind(&heartbeat_sender_t::send_heartbeat_wrapper, self));
     // Once that heartbeat got dispatched, fire a new one.
-    // (this also throttles the heartbeat rate if the connection is busy and
-    // send_heartbeat takes a long time, which is a good thing)
+    // TODO: This should also throttle the heartbeat rate if the connection is busy and
+    // send_heartbeat takes a long time, which is not the case currently.
+    // Otherwise hearbeats might pile up, which is probably acceptable but not optimal.
     if (self->continue_firing) {
         self->heartbeat_timer_ = fire_timer_once(self->heartbeat_frequency_ms_, send_heartbeat_callback, self);
     }
