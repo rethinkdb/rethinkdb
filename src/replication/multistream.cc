@@ -65,6 +65,7 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
         uint32_t ident = multipart_hdr->ident;
 
         if (multipart_hdr->message_multipart_aspect == FIRST) {
+            debugf("FIRST for ident %u\n", ident);
             if (!streams.add(ident, connection_handler->new_stream_handler())) {
                 throw protocol_exc_t("reused live ident code");
             }
@@ -72,6 +73,7 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
             streams[ident]->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
 
         } else if (multipart_hdr->message_multipart_aspect == MIDDLE || multipart_hdr->message_multipart_aspect == LAST) {
+            debugf("MIDDLE or LAST for ident %u\n", ident);
             stream_handler_t *h = streams[ident];
             if (h == NULL) {
                 throw protocol_exc_t("inactive stream identifier");
@@ -79,12 +81,13 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
 
             h->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
             if (multipart_hdr->message_multipart_aspect == LAST) {
+                debugf("WAS LAST for ident %u\n", ident);
                 h->end_of_stream();
                 delete h;
                 streams.drop(ident);
             }
         } else {
-            throw protocol_exc_t("invalid message multipart aspect code");
+            throw protocol_exc_t(strprintf("invalid message multipart aspect code, it was %d", multipart_hdr->message_multipart_aspect).c_str());
         }
 
         return msgsize;
@@ -138,11 +141,6 @@ void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
         // Do nothing; this was to be expected.
-#ifndef NDEBUG
-    } catch (protocol_exc_t& e) {
-        debugf("catch 'n throwing protocol_exc_t: %s\n", e.what());
-        throw;
-#endif
     }
 
     conn_handler->conn_closed();

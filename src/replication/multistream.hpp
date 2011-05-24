@@ -1,6 +1,8 @@
 #ifndef __REPLICATION_MULTISTREAM_HPP__
 #define __REPLICATION_MULTISTREAM_HPP__
 
+#include <string>
+
 #include "arch/arch.hpp"
 
 // TODO: We include this for net_hello_t, and it is in the wrong place or this is.
@@ -18,10 +20,11 @@ extern const uint32_t MAX_MESSAGE_SIZE;
 // exceptions and replication protocol exceptions.
 class protocol_exc_t : public std::exception {
 public:
-    protocol_exc_t(const char *msg) : msg_(msg) { }
-    const char *what() const throw() { return msg_; }
+    protocol_exc_t(const std::string& msg) : msg_(msg) { }
+    ~protocol_exc_t() throw () { }
+    const char *what() const throw() { return msg_.c_str(); }
 private:
-    const char *msg_;
+    std::string msg_;
 };
 
 struct stream_handler_t {

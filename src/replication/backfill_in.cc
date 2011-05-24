@@ -1,4 +1,10 @@
 #include "replication/backfill_in.hpp"
+#ifndef NDEBUG
+// We really shouldn't include this from here (the dependencies are
+// backwards), but we need it for
+// master_t::inside_backfill_done_or_backfill.
+#include "replication/master.hpp"
+#endif
 
 namespace replication {
 
@@ -20,7 +26,7 @@ perfmon_duration_sampler_t
 #define CORO_POOL_SIZE 512
 
 backfill_storer_t::backfill_storer_t(btree_key_value_store_t *underlying) :
-    kvs_(underlying), backfilling_(true), print_backfill_warning_(false),
+    kvs_(underlying), backfilling_(false), print_backfill_warning_(false),
     backfill_queue_(BACKFILL_QUEUE_CAPACITY),
     realtime_queue_(SEMAPHORE_NO_LIMIT, 0.5, &pm_replication_slave_realtime_queue),
     queue_picker_(make_vector<passive_producer_t<boost::function<void()> > *>(&backfill_queue_)),
@@ -36,9 +42,20 @@ backfill_storer_t::~backfill_storer_t() {
     }
 }
 
+void backfill_storer_t::ensure_backfilling() {
+    if (!backfilling_) {
+        // Make sure that realtime operations are not processed until we finish
+        // backfilling
+        // TODO: We should really make sure that the realtime queue is empty at this point!
+        queue_picker_.set_sources(make_vector<passive_producer_t<boost::function<void()> > *>(&backfill_queue_));
+    }
+    backfilling_ = true;
+}
+
 void backfill_storer_t::backfill_delete_everything(order_token_t token) {
     order_sink_.check_out(token);
     print_backfill_warning_ = true;
+    ensure_backfilling();
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::delete_all_keys_for_backfill, kvs_));
@@ -47,6 +64,7 @@ void backfill_storer_t::backfill_delete_everything(order_token_t token) {
 void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) {
     order_sink_.check_out(token);
     print_backfill_warning_ = true;
+    ensure_backfilling();
 
     delete_mutation_t mut;
     mut.key = key;
@@ -66,6 +84,7 @@ void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) 
 void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) {
     order_sink_.check_out(token);
     print_backfill_warning_ = true;
+    ensure_backfilling();
 
     sarc_mutation_t mut;
     mut.key = atom.key;
@@ -98,13 +117,19 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) 
 }
 
 void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t token) {
+#ifndef NDEBUG
+    rassert(!master_t::inside_backfill_done_or_backfill);
+    master_t::inside_backfill_done_or_backfill = true;
+#endif
+
     order_sink_.check_out(token);
-    debugf("backfilling_ is %d\n", (int)backfilling_);
-    rassert(backfilling_, "backfilling_ was false, this assert may fail if you cut the "
-            "network connection between the master and slave and then do some "
-            "writes to the slave.  (We should eventually remove this assertion!)");
-    backfilling_ = false;
+
+    /* Call ensure_backfilling() a last time just to make sure that the queue_picker_ is set
+     up correctly (i.e. does not process the realtime queue yet). Otherwise draining the coro_pool
+     as we do below wouldn't work as expected. */
+    ensure_backfilling();
     print_backfill_warning_ = false;
+    backfilling_ = false;
 
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::set_timestampers, kvs_, timestamp));
@@ -126,12 +151,27 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
         &limited_fifo_queue_t<boost::function<void()> >::set_capacity, &realtime_queue_,
         REALTIME_QUEUE_CAPACITY));
 
+    // We need to make sure all the backfill queue operations are finished
+    // before we return, before the net_backfill_t handler gets
+    // called.
+    // As we are sure that queue_picker_ does only fetch requests from the backfill
+    // queue at the moment (see call to ensure_backfilling() above), we can do that
+    // by draining the coro pool which processes the requests.
+    // Note: This does not allow any new requests to get in on the backfill queue
+    // while draining, but that should be ok.
+    coro_pool_.drain();
+    
 
     /* Allow the `listing_passive_producer_t` to run operations from the
-    `realtime_queue_` once the `backfill_queue_` is empty. */
+    `realtime_queue_` once the `backfill_queue_` is empty (which it actually should
+     be anyway by now). */
     queue_picker_.set_sources(
         make_vector<passive_producer_t<boost::function<void()> > *>(
             &backfill_queue_, &realtime_queue_));
+
+#ifndef NDEBUG
+    master_t::inside_backfill_done_or_backfill = false;
+#endif
 }
 
 void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token) {
