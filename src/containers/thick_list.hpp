@@ -80,8 +80,14 @@ public:
                 return false;
             }
 
-            free_.erase(p.base() - 1);
-            return true;
+            if (values_.size() > known_token) {
+                free_.erase(p.base() - 1);
+                values_[known_token] = value;
+
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 

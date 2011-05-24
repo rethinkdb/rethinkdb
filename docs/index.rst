@@ -579,6 +579,24 @@ following procedure is used to merge the data:
   have either the value it was assigned on the master or the value that
   it had before the divergence.
 
+--------------------
+Network partitioning
+--------------------
+
+RethinkDB's replication logic is designed on the assumption that if the
+slave cannot see the master, then no clients can see the master, and if
+the master cannot see the slave, then no clients can see the slave. If
+the slave loses contact with the master, it will assume that the master
+is dead or isolated from the rest of the network, and it will start
+accepting writes. If the master loses contact with the slave, it will
+assume that the slave is dead or isolated, and it will continue
+accepting writes.
+
+If the master and slave lose contact with each other and clients write
+to both of them, then when they regain contact, the differences will be
+resolved according to the procedure described in the "Divergent data"
+section.
+
 ----------------
 Failover scripts
 ----------------
@@ -689,11 +707,18 @@ If you run RethinkDB even once in non-slave-mode on a set of slave data
 files, those data files will be irreversibly changed, and you won't be
 able to use them in slave-mode ever again!
 
-Don't use multiple slaves with the same master. If you try to connect a
-second slave while a slave is already connected, RethinkDB will kick the
-connection off. If you disconnect the slave and then connect a new
-one, RethinkDB will accept the new slave, but if you later try to reconnect the
-original slave, RethinkDB will not allow the original slave to reconnect.
+Don't use multiple slaves with the same master. If you disconnect the slave
+and then connect a new one, RethinkDB will accept the new slave, but if
+you later try to reconnect the original slave, RethinkDB will not
+allow the original slave to reconnect.
+
+If you try to connect a second slave while a slave is already connected,
+the master will reject the new connection and write a message in its
+log file. Due to a known issue in RethinkDB, the second slave will
+immediately try to reconnect; it will try five times and then give up
+unless the ``--no-rogue`` flag was specified on the slave command line,
+in which case it will keep trying repeatedly until it is manually
+interrupted.
 
 -----------
 Other notes
@@ -716,9 +741,9 @@ Alternatively, you can send ``rethinkdb dont-wait-for-slave`` to the
 master over telnet, which will put the master back in the state it was
 in before it was shut down.
 
-=================  
+=================
 Advanced features
-=================  
+=================
 
 --------------------
 Advanced disk layout
