@@ -210,7 +210,7 @@ void terminate_handler() {
         try {
             /* This will rethrow whatever unexpected exception was thrown. */
             throw;
-        } catch (std::exception e) {
+        } catch (std::exception& e) {
             crash("Uncaught exception of type \"%s\"\n  what(): %s", name2, e.what());
         } catch (...) {
             crash("Uncaught exception of type \"%s\"", name2);

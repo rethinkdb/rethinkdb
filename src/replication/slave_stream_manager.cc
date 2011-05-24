@@ -7,17 +7,16 @@ namespace replication {
 slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn,
                                                btree_key_value_store_t *kvs,
                                                cond_t *cond,
-                                               backfill_receiver_order_source_t *slave_order_source) :
+                                               backfill_receiver_order_source_t *slave_order_source,
+                                               int heartbeat_timeout) :
     backfill_receiver_t(&backfill_storer_, slave_order_source),
     stream_(NULL),
     cond_(NULL),
     kvs_(kvs),
     backfill_storer_(kvs),
-    interrupted_by_external_event_(false),
-    heartbeat_timer_(NULL),
-    heartbeat_timeout_(-1) {
+    interrupted_by_external_event_(false) {
 
-    stream_ = new repli_stream_t(*conn, this);
+    stream_ = new repli_stream_t(*conn, this, heartbeat_timeout);
 
     cond_ = cond;
     if (cond_->is_pulsed()) {
@@ -30,7 +29,6 @@ slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *co
 slave_stream_manager_t::~slave_stream_manager_t() {
     assert_thread();
     shutdown_cond_.wait();
-    unwatch_heartbeat();
 }
 
 void slave_stream_manager_t::backfill(repli_timestamp since_when) {
@@ -89,50 +87,6 @@ void slave_stream_manager_t::conn_closed() {
     }
 
     shutdown_cond_.pulse();
-}
-
-void slave_stream_manager_t::note_heartbeat(UNUSED repli_timestamp timestamp) {
-    // Cancel the current timeout timer, but immediately start a new one
-    if (heartbeat_timer_) {
-        cancel_timer(heartbeat_timer_);
-        rassert(heartbeat_timeout_ > 0);
-        heartbeat_timer_ = fire_timer_once(heartbeat_timeout_, heartbeat_timeout_callback, this);
-    }
-}
-
-void slave_stream_manager_t::watch_heartbeat(int heartbeat_timeout) {
-    assert_thread();
-    rassert(heartbeat_timeout > 0);
-    heartbeat_timeout_ = heartbeat_timeout;
-
-    if (heartbeat_timer_) {
-        // We're just changing the timeout probably...
-        cancel_timer(heartbeat_timer_);
-    }
-
-    // Start an initial heartbeat timer. The timer will be replaced with a fresh
-    // one whenever a hearbeat comes in.
-    heartbeat_timer_ = fire_timer_once(heartbeat_timeout_, heartbeat_timeout_callback, this);
-}
-
-void slave_stream_manager_t::unwatch_heartbeat() {
-    assert_thread();
-
-    if (heartbeat_timer_) {
-        cancel_timer(heartbeat_timer_);
-        heartbeat_timer_ = NULL;
-    }
-}
-
-void slave_stream_manager_t::heartbeat_timeout_callback(void *data) {
-    slave_stream_manager_t *self = ptr_cast<slave_stream_manager_t>(data);
-
-    logINF("Did not receive a heartbeat from the master within the last %d seconds. Terminating connection.\n", self->heartbeat_timeout_ / 1000);
-
-    self->assert_thread();
-
-    self->heartbeat_timer_ = NULL;    
-    self->stream_->shutdown();
 }
 
 void slave_stream_manager_t::on_signal_pulsed() {

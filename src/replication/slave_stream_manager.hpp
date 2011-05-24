@@ -24,7 +24,7 @@ struct slave_stream_manager_t :
     // Give it a connection to the master, a pointer to the store to forward changes to, and a
     // cond. If the cond is pulsed, it will kill the connection. If the connection dies,
     // it will pulse the cond.
-    slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn, btree_key_value_store_t *kvs, cond_t *cond, backfill_receiver_order_source_t *slave_order_source);
+    slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *conn, btree_key_value_store_t *kvs, cond_t *cond, backfill_receiver_order_source_t *slave_order_source, int heartbeat_timeout);
 
     ~slave_stream_manager_t();
 
@@ -94,12 +94,9 @@ struct slave_stream_manager_t :
         backfill_done_cond_.pulse_if_non_null();
     }
 
-    void send(scoped_malloc<net_nop_t>& message) {
-        nop_helper(*message);
-        note_heartbeat(message->timestamp);
+    void send(scoped_malloc<net_timebarrier_t>& message) {
+        timebarrier_helper(*message);
     }
-
-    void note_heartbeat(repli_timestamp timestamp);
 
     cond_weak_ptr_t backfill_done_cond_;
 
@@ -128,19 +125,6 @@ struct slave_stream_manager_t :
     // In our destructor, we block on shutdown_cond_ to make sure that the repli_stream_t
     // has actually completed its shutdown process.
     cond_t shutdown_cond_;
-
-    // This starts a heardbeat timer. If no heartbeat is received withing heardbeat_timeout
-    // milliseconds, the connection will get terminated.
-    void watch_heartbeat(int heartbeat_timeout);
-    void unwatch_heartbeat();
-
-private:
-    // heartbeat_timer is used to detect when no hearbeat arrives within a specific
-    // timeframe. heartbeat_timeout_callback() handles that condition by considering
-    // the master dead and terminating the connection.
-    timer_token_t *heartbeat_timer_;
-    int heartbeat_timeout_;
-    static void heartbeat_timeout_callback(void *data);
 };
 
 }
