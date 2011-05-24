@@ -36,6 +36,8 @@ int run_server(int argc, char *argv[]) {
     } starter;
     starter.cmd_config = &config;
 
+    os_signal_monitor_t os_signal_monitor;
+
     // Run the server.
     thread_pool_t thread_pool(config.n_workers);
     starter.thread_pool = &thread_pool;
