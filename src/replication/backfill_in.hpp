@@ -108,8 +108,13 @@ struct backfill_storer_t : public backfill_and_realtime_streaming_callback_t {
     void realtime_time_barrier(repli_timestamp_t timestamp, order_token_t token);
 
 private:
+    // Should be called whenever a backfilling operation is received. Makes sure
+    // that no realtime operations are getting processed and that backfilling_ is
+    // set to true
+    void ensure_backfilling();
+
     btree_key_value_store_t *kvs_;
-    bool print_backfill_warning_;
+    bool backfilling_, print_backfill_warning_;
     limited_fifo_queue_t<boost::function<void()> > backfill_queue_, realtime_queue_;
     listing_passive_producer_t<boost::function<void()> > queue_picker_;
     coro_pool_t coro_pool_;

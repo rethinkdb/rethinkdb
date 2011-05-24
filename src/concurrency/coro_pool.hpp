@@ -42,6 +42,13 @@ public:
         real_home_thread = new_thread;
     }
 
+    // Blocks until all pending tasks have been processed. The coro_pool_t is
+    // reusable immediately after drain() returns.
+    void drain() {
+        assert_thread();
+        coro_drain_semaphore.drain();
+    }
+
 private:
     passive_producer_t<boost::function<void()> > *source;
 
