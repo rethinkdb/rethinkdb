@@ -18,12 +18,15 @@ should look at something other than signal_t; have you tried resettable_cond_t? 
 struct signal_t : public home_thread_mixin_t {
 
 public:
+    /* Waiters are always notified on the `signal_t`'s home thread. */
     struct waiter_t : public intrusive_list_node_t<waiter_t> {
         virtual void on_signal_pulsed() = 0;
     protected:
         virtual ~waiter_t() { }
     };
 
+    /* It is illegal to add a waiter to a signal when it is in a call to `pulse()`,
+    but it is legal to remove a waiter if that waiter hasn't been notified yet. */
     void add_waiter(waiter_t *);
     void remove_waiter(waiter_t *);
 
@@ -87,8 +90,6 @@ private:
         state_pulsing,   // We are *in* the call to pulse()
         state_pulsed
     } state;
-
-    bool *set_true_on_death;
 };
 
 #endif /* __CONCURRENCY_SIGNAL_HPP__ */
