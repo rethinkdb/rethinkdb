@@ -25,6 +25,7 @@ void wait_for_sigint() {
 }
 
 void sigint_indicator_t::on_signal_pulsed() {
+    on_thread_t switcher(get_home_thread());
     value = true;
 }
 
