@@ -3,7 +3,7 @@
 
 transactor_t::transactor_t(const thread_saver_t& saver, cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token) : transaction_(co_begin_transaction(saver, cache, access, expected_change_count, recency_timestamp, token)) { }
 
-transactor_t::transactor_t(const thread_saver_t& saver, cache_t *cache, access_t access, repli_timestamp recency_timestamp, order_token_t token) : transaction_(co_begin_transaction(saver, cache, access, 0, recency_timestamp, token)) {
+transactor_t::transactor_t(const thread_saver_t& saver, cache_t *cache, access_t access, order_token_t token) : transaction_(co_begin_transaction(saver, cache, access, 0, repli_timestamp::invalid, token)) {
     rassert(is_read_mode(access), "Write transactions should please provide an expected change count.");
 }
 
