@@ -67,6 +67,16 @@ namespace replication {
 
 namespace delete_queue {
 
+// The offset of the primal offset.
+extern const int TIMESTAMPS_AND_OFFSETS_SIZE;
+
+off64_t *primal_offset(void *root_buffer);
+large_buf_ref *timestamps_and_offsets_largebuf(void *root_buffer);
+large_buf_ref *keys_largebuf(void *root_buffer);
+int keys_largebuf_ref_size(block_size_t block_size);
+
+
+
 struct t_and_o {
     repli_timestamp timestamp;
     off64_t offset;

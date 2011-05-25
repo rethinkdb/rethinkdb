@@ -83,7 +83,7 @@ namespace internal {
 struct replication_stream_handler_t : public stream_handler_t {
     replication_stream_handler_t(message_callback_t *receiver, heartbeat_receiver_t *hb_receiver) :
             receiver_(receiver), hb_receiver_(hb_receiver), saw_first_part_(false), tracker_obj_(NULL) { }
-    ~replication_stream_handler_t() { delete tracker_obj_; }
+    ~replication_stream_handler_t() { if(tracker_obj_) delete tracker_obj_; }
     void stream_part(const char *buf, size_t size);
     void end_of_stream();
 

@@ -13,7 +13,10 @@ private:
     int total_refreshes;
 public:
     progress_bar_t(std::string, int);
-    ~progress_bar_t() { printf("\n"); }
+    ~progress_bar_t() { 
+        if (total_refreshes > 0)
+            printf("\n"); 
+    }
 
     void refresh();
     virtual void draw() = 0;
@@ -25,8 +28,9 @@ class counter_progress_bar_t : public progress_bar_t {
 private:
     int count, expected_count;
 public:
-    counter_progress_bar_t(std::string, int, int);
+    counter_progress_bar_t(std::string, int, int redraw_interval_ms = 100);
     void draw();
+    void operator++(int);
 };
 
 //file progress bar watches as you use a file to see how fast you're using it,
