@@ -46,7 +46,11 @@ void backfill_storer_t::ensure_backfilling() {
     if (!backfilling_) {
         // Make sure that realtime operations are not processed until we finish
         // backfilling
-        // TODO: We should really make sure that the realtime queue is empty at this point!
+
+        // In order to do that, we first drain all realtime operations that are
+        // still lingering around (TODO: Is it possible at all that there are any?).
+        // Then we set the queue_picker_ to only take requests from the backfill queue.
+        coro_pool_.drain();
         queue_picker_.set_sources(make_vector<passive_producer_t<boost::function<void()> > *>(&backfill_queue_));
     }
     backfilling_ = true;
