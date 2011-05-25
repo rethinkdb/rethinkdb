@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include <vector>
+#include <set>
 
 // This is a combination of a list with holes in it and a free list.
 // Tokens are "alive" when you add values with add() and dead when you
@@ -108,6 +109,66 @@ public:
 
         values_[token] = T();
         free_.push_back(token);
+    }
+
+    class thick_list_iterator {
+    public:
+        T &operator*() {
+            // TODO: Add some sanity checking, to catch concurrent modifications
+            rassert(values_iterator_ < parent_->values_.size(), "Tried to dereference end() iterator?");
+            rassert(free_.find(static_cast<token_t>(values_iterator_)) == free_.end());
+            return parent_->values_[values_iterator_];
+        }
+
+        // This is the ++operator operator...
+        // Be warned, this has runtime up to O(max(tokens) * log(size of free_))
+        thick_list_iterator &operator++() {
+            ++values_iterator_;
+            spool_forward_till_valid();
+            return *this;
+        }
+
+        bool operator==(const thick_list_iterator &i) const {
+            return i.values_iterator_ == values_iterator_;
+        }
+
+        bool operator!=(const thick_list_iterator &i) const {
+            return i.values_iterator_ != values_iterator_;
+        }
+
+    private:
+        friend class thick_list<T, token_t>;
+
+        // Be warned, iterator construction is kind of expensive (O((size of parent->free_) * log(size of parent->free_)) running time and similar memory consumption)
+        thick_list_iterator(thick_list<T, token_t> *parent, size_t initial_values_iterator) :
+                values_iterator_(initial_values_iterator), parent_(parent) {
+
+            // Convert the free list into a set for faster lookups.
+            for(size_t i = 0; i < parent_->free_.size(); ++i) {
+                free_.insert(parent_->free_[i]);
+            }
+
+            spool_forward_till_valid();
+        }
+
+        void spool_forward_till_valid() {
+            while (values_iterator_ < parent_->values_.size() && free_.find(static_cast<token_t>(values_iterator_)) != free_.end()) {
+                ++values_iterator_;
+            }
+        }
+
+        size_t values_iterator_; // We use a size_t instead of a high level iterator so we can cast it to token_t
+        std::set<token_t> free_;
+        thick_list<T, token_t> *parent_;
+    };
+
+    // Be warned, thick list iterators are not as cheap as you might expect them to be.
+    typedef thick_list_iterator expensive_iterator;
+    expensive_iterator begin() {
+        return thick_list_iterator(this, 0);
+    }
+    expensive_iterator end() {
+        return thick_list_iterator(this, values_.size());
     }
 
 private:
