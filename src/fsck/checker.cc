@@ -889,36 +889,33 @@ void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t si
 }
 
 void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, largebuf_error *errs, const config_t& cfg) {
-    if (ref_size_bytes >= (int)sizeof(large_buf_ref)) {
+    if (ref_size_bytes >= (int)sizeof(large_buf_ref)
+        && ref->size >= 0
+        && ref->offset >= 0) {
+        // ensure no overflow for ceil_aligned(ref->offset +
+        // ref->size, max_offset(sublevels)).  Dividing
+        // INT64_MAX by four ensures that ceil_aligned won't
+        // overflow, and four is overkill.
+        if (std::numeric_limits<int64_t>::max() / 4 - ref->offset > ref->size) {
 
-        if (ref->size >= 0) {
-            if (ref->offset >= 0) {
-                // ensure no overflow for ceil_aligned(ref->offset +
-                // ref->size, max_offset(sublevels)).  Dividing
-                // INT64_MAX by four ensures that ceil_aligned won't
-                // overflow, and four is overkill.
-                if (std::numeric_limits<int64_t>::max() / 4 - ref->offset > ref->size) {
+            int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
 
-                    int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
+            // The part before '&&' ensures no overflow in the part after.
+            if (inlined < int((INT_MAX - sizeof(large_buf_ref)) / sizeof(block_id_t))
+                && int(sizeof(large_buf_ref) + inlined * sizeof(block_id_t)) == ref_size_bytes) {
 
-                    // The part before '&&' ensures no overflow in the part after.
-                    if (inlined < int((INT_MAX - sizeof(large_buf_ref)) / sizeof(block_id_t))
-                        && int(sizeof(large_buf_ref) + inlined * sizeof(block_id_t)) == ref_size_bytes) {
+                int sublevels = large_buf_t::compute_num_sublevels(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
 
-                        int sublevels = large_buf_t::compute_num_sublevels(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
+                if (ref->offset >= large_buf_t::compute_max_offset(cx.block_size(), sublevels)
+                    || (inlined == 1 && sublevels > 1 && ref->offset >= large_buf_t::compute_max_offset(cx.block_size(), sublevels - 1))
+                    || (inlined == 1 && sublevels == 1 && ref->offset > 0)) {
 
-                        if (ref->offset >= large_buf_t::compute_max_offset(cx.block_size(), sublevels)
-                            || (inlined == 1 && sublevels > 1 && ref->offset >= large_buf_t::compute_max_offset(cx.block_size(), sublevels - 1))
-                            || (inlined == 1 && sublevels == 1 && ref->offset > 0)) {
-
-                            errs->not_left_shifted = true;
-                        }
-
-                        check_large_buf_children(cx, sublevels, ref->offset, ref->size, ref->block_ids, errs, cfg);
-
-                        return;
-                    }
+                    errs->not_left_shifted = true;
                 }
+
+                check_large_buf_children(cx, sublevels, ref->offset, ref->size, ref->block_ids, errs, cfg);
+
+                return;
             }
         }
     }
