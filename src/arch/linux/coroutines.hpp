@@ -12,27 +12,6 @@ const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
 struct coro_context_t;
 
-#ifndef NDEBUG
-// coro_t::wait() asserts that this is zero.
-extern __thread int coro_no_waiting;
-
-// Put this in methods that should not be called in a coroutine
-// context.
-struct assert_no_coro_waiting_t {
-    assert_no_coro_waiting_t() {
-        ++coro_no_waiting;
-    }
-    ~assert_no_coro_waiting_t() {
-        --coro_no_waiting;
-    }
-};
-
-#define ASSERT_NO_CORO_WAITING assert_no_coro_waiting_t assert_no_coro_waiting_var
-#else  // NDEBUG
-#define ASSERT_NO_CORO_WAITING do { } while (0)
-#endif  // NDEBUG
-
-
 /* Please only construct one coro_globals_t per thread. Coroutines can only be used when
 a coro_globals_t exists. It exists to take advantage of RAII. */
 
@@ -103,5 +82,37 @@ private:
 
 /* Returns true if the given address is in the protection page of the current coroutine. */
 bool is_coroutine_stack_overflow(void *addr);
+
+#ifndef NDEBUG
+
+/* If `ASSERT_NO_CORO_WAITING;` appears at the top of a block, then it is illegal
+to call `coro_t::wait()`, `coro_t::spawn_now()`, or `coro_t::notify_now()`
+within that block and any attempt to do so will be a fatal error. */
+#define ASSERT_NO_CORO_WAITING assert_no_coro_waiting_t assert_no_coro_waiting_var
+
+/* If `ASSERT_FINITE_CORO_WAITING;` appears at the top of a block, then code
+within that block may call `coro_t::spawn_now()` or `coro_t::notify_now()` but
+not `coro_t::wait()`. This is because `coro_t::spawn_now()` and
+`coro_t::notify_now()` will return control directly to the coroutine that called
+then. */
+#define ASSERT_FINITE_CORO_WAITING assert_finite_coro_waiting_t assert_finite_coro_waiting_var
+
+/* Implementation support for `ASSERT_NO_CORO_WAITING` and `ASSERT_FINITE_CORO_WAITING` */
+struct assert_no_coro_waiting_t {
+    assert_no_coro_waiting_t();
+    ~assert_no_coro_waiting_t();
+};
+struct assert_finite_coro_waiting_t {
+    assert_finite_coro_waiting_t();
+    ~assert_finite_coro_waiting_t();
+};
+
+#else  // NDEBUG
+
+/* In release mode, these assertions are no-ops. */
+#define ASSERT_NO_CORO_WAITING do { } while (0)
+#define ASSERT_FINITE_CORO_WAITING do { } while (0)
+
+#endif  // NDEBUG
 
 #endif // __ARCH_LINUX_COROUTINES_HPP__

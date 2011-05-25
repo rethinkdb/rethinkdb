@@ -83,6 +83,14 @@ void signal_t::pulse() {
     for allowing this. */
     while (waiter_t *w = waiters.head()) {
         waiters.remove(w);
+
+        /* `on_signal_pulsed()` shouldn't block, because then the other waiters
+        wouldn't be notified until it was done, and that's unlikely to be the
+        desired behavior. However, it's OK for it to call `notify_now()` or
+        `spawn_now()`, which is why we use `ASSERT_FINITE_CORO_WAITING` instead
+        of `ASSERT_NO_CORO_WAITING`. */
+        ASSERT_FINITE_CORO_WAITING;
+
         w->on_signal_pulsed();
     }
 
