@@ -65,6 +65,8 @@ signal_t::~signal_t() {
         case state_pulsed:
             rassert(waiters.empty());   // Sanity check
             break;
+        default:
+            unreachable();
     }
 }
 
