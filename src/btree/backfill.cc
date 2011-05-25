@@ -64,7 +64,6 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         // do nothing
     }
 
-    access_t transaction_mode() { return rwi_read; }
     access_t btree_superblock_mode() { return rwi_read; }
     access_t btree_node_mode() { return rwi_read; }
 
@@ -130,7 +129,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
         backfill_traversal_helper_t helper(callback, since_when);
 
         thread_saver_t saver;
-        boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(saver, slice->cache(), helper.transaction_mode(), 0, repli_timestamp::invalid);
+        boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(saver, slice->cache(), rwi_read);
 
         txor->get()->snapshot();
 
