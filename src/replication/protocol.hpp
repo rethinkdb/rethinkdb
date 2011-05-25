@@ -5,13 +5,15 @@
 #include <boost/function.hpp>
 
 #include "arch/arch.hpp"
-#include "concurrency/mutex.hpp"
+#include "concurrency/fifo_checker.hpp"
 #include "concurrency/drain_semaphore.hpp"
+#include "concurrency/mutex.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
 #include "data_provider.hpp"
 #include "replication/multistream.hpp"
 #include "replication/net_structs.hpp"
+#include "replication/heartbeat_manager.hpp"
 
 
 namespace replication {
@@ -21,6 +23,10 @@ struct stream_pair {
     boost::shared_ptr<buffered_data_provider_t> stream;
     unique_malloc_t<T> data;
 
+    /* The `stream_pair()` constructor takes a buffer that contains the beginning of a multipart
+    message. It's guaranteed to contain the entire header and the entire key and probably part of
+    the value, but it's not guaranteed to contain the entire value. The network logic will later
+    fill in the rest of the value. */
     // This uses key_size, which is completely crap.
     stream_pair(const char *beg, const char *end, size_t size = 0) : stream(), data() {
         void *p;
@@ -57,7 +63,8 @@ public:
     virtual void send(stream_pair<net_append_t>& message) = 0;
     virtual void send(stream_pair<net_prepend_t>& message) = 0;
     virtual void send(scoped_malloc<net_delete_t>& message) = 0;
-    virtual void send(scoped_malloc<net_nop_t>& message) = 0;
+    virtual void send(scoped_malloc<net_timebarrier_t>& message) = 0;
+    virtual void send(scoped_malloc<net_heartbeat_t>& message) = 0;
     virtual void conn_closed() = 0;
     virtual ~message_callback_t() {}
 };
@@ -74,48 +81,50 @@ struct tracker_obj_t {
 namespace internal {
 
 struct replication_stream_handler_t : public stream_handler_t {
-    replication_stream_handler_t(message_callback_t *receiver) : receiver_(receiver), saw_first_part_(false), tracker_obj_(NULL) { }
+    replication_stream_handler_t(message_callback_t *receiver, heartbeat_receiver_t *hb_receiver) :
+            receiver_(receiver), hb_receiver_(hb_receiver), saw_first_part_(false), tracker_obj_(NULL) { }
     ~replication_stream_handler_t() { delete tracker_obj_; }
     void stream_part(const char *buf, size_t size);
     void end_of_stream();
 
 private:
     message_callback_t *const receiver_;
+    heartbeat_receiver_t *hb_receiver_;
     bool saw_first_part_;
     tracker_obj_t *tracker_obj_;
 };
 
 struct replication_connection_handler_t : public connection_handler_t {
     void process_hello_message(net_hello_t msg);
-    stream_handler_t *new_stream_handler() { return new replication_stream_handler_t(receiver_); }
-    replication_connection_handler_t(message_callback_t *receiver) : receiver_(receiver) { }
+    stream_handler_t *new_stream_handler() { return new replication_stream_handler_t(receiver_, hb_receiver_); }
+    replication_connection_handler_t(message_callback_t *receiver, heartbeat_receiver_t *hb_receiver) :
+            receiver_(receiver), hb_receiver_(hb_receiver) { }
     void conn_closed() { receiver_->conn_closed(); }
 private:
     message_callback_t *receiver_;
+    heartbeat_receiver_t *hb_receiver_;
 };
 
 
 
 }  // namespace internal
 
-class repli_stream_t : public home_thread_mixin_t {
+class repli_stream_t : public heartbeat_sender_t, public heartbeat_receiver_t, public home_thread_mixin_t {
 public:
-    repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback) : conn_handler_(recv_callback) {
-        conn_.swap(conn);
-        parse_messages(conn_.get(), &conn_handler_);
-        mutex_acquisition_t ak(&outgoing_mutex_);
-        send_hello(ak);
-    }
-
-    ~repli_stream_t() {
-        drain_semaphore_.drain();   // Wait for any active send()s to finish
-        rassert(!conn_->is_read_open());
-    }
+    repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback, int heartbeat_timeout);
+    ~repli_stream_t();
 
     // Call shutdown() when you want the repli_stream to stop. shutdown() will return
     // immediately but cause the connection to be closed and cause conn_closed() to
     // be called.
     void shutdown() {
+        unwatch_heartbeat();
+        stop_sending_heartbeats();
+        try {
+            conn_->flush_buffer();
+        } catch (tcp_conn_t::write_closed_exc_t &e) {
+            // Ignore
+        }
         conn_->shutdown_read();
     }
 
@@ -132,7 +141,22 @@ public:
     void send(net_append_t *msg, const char *key, boost::shared_ptr<data_provider_t> value);
     void send(net_prepend_t *msg, const char *key, boost::shared_ptr<data_provider_t> value);
     void send(net_delete_t *msg);
-    void send(net_nop_t msg);
+    void send(net_timebarrier_t msg);
+    void send(net_heartbeat_t msg);
+
+    void flush();
+
+protected:
+    void send_heartbeat() {
+        net_heartbeat_t msg;
+        msg.padding = 0;
+        send(msg);
+    }
+    void on_heartbeat_timeout() {
+        logINF("Terminating connection due to heartbeat timeout.\n");
+        mutex_acquisition_t ak(&outgoing_mutex_); // Make sure we finish any currently active writes
+        shutdown();
+    }
 
 private:
 

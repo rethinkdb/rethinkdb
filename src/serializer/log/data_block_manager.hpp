@@ -178,7 +178,9 @@ private:
     log_serializer_t *serializer;
 
     direct_file_t* dbfile;
-    boost::scoped_ptr<file_t::account_t> gc_io_account;
+    boost::scoped_ptr<file_t::account_t> gc_io_account_nice;
+    boost::scoped_ptr<file_t::account_t> gc_io_account_high;
+    file_t::account_t *choose_gc_io_account();
 
     off64_t gimme_a_new_offset();
 

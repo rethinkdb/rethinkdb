@@ -15,7 +15,7 @@ class TestFailure(Exception):
 class StdoutAsLog(object):
     def __init__(self, name, test_dir):
         self.name = name
-        self.test_dir = test_dirstress
+        self.test_dir = test_dir
     def __enter__(self):
         self.path = self.test_dir.make_file(self.name)
         print "Writing log file %r." % self.path
@@ -55,8 +55,8 @@ def make_option_parser():
     o["failover"] = BoolFlag("--failover")
     o["kill_failover_server_prob"] = FloatFlag("--kill-failover-server-prob", .01)
     o["resurrect_failover_server_prob"] = FloatFlag("--resurrect-failover-server-prob", .01)
-    o["elb"] = BoolFlag("--elb")
     o["failover-script"] = StringFlag("--failover-script", "")
+    o["timeout"] = IntFlag("--timeout", None)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -487,20 +487,21 @@ class FailoverMemcachedWrapper(object):
         print "Waiting for slave to assume masterhood..."
         if self.opts["mclib"] == "pylibmc":
             import pylibmc
-            exc_class = pylibmc.ClientError
+            def test():
+                # pylibmc throws ClientError when it gets a CLIENT_ERROR
+                try: self.mc["slave"].set("are_you_accepting_sets", "yes")
+                except pylibmc.ClientError: return False
+                else: return True
         else:
-            # What kind of exception does python-memcache throw in this situation?
-            raise NotImplementedError()
+            def test():
+                ret = self.mc["slave"].set("are_you_accepting_sets", "yes")
+                assert (ret is True or ret is False)
+                return ret
         n_tries = 30
         try_interval = 1
         for i in xrange(n_tries):
             time.sleep(try_interval)
-            try:
-                self.mc["slave"].set("are_you_accepting_sets", "yes")
-            except exc_class:
-                pass
-            else:
-                break
+            if test(): break
         else:
             raise ValueError("Slave hasn't realized master is down after %d seconds." % \
                 n_tries * try_interval)
@@ -558,6 +559,8 @@ def connect_to_server(opts, server, test_dir):
 def adjust_timeout(opts, timeout):
     if not timeout or opts["interactive"] or opts["no-timeout"]:
         return None
+    elif opts["timeout"]:
+        return opts["timeout"]
     else:
         return timeout + 15
 #make a dictionary of stat limits
@@ -689,18 +692,10 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
 
 def start_master_slave_pair(opts, extra_flags, test_dir):
     repli_port = find_unused_port()
-    if opts["elb"]:
-        elb_ports = (find_unused_port(), find_unused_port())
-
     m_flags = ["--master", "%d" % repli_port] 
-    if opts["elb"]:
-        m_flags += ["--run-behind-elb", "%d" % elb_ports[0]]
-
     server = Server(opts, extra_flags=extra_flags + m_flags, name="master", test_dir=test_dir)
     server.master_port = repli_port
 
-    if opts["elb"]:
-        server.elb_port = elb_ports[0]
     server.start(False)
 
     while 1:
@@ -715,15 +710,10 @@ def start_master_slave_pair(opts, extra_flags, test_dir):
 
     s_flags = ["--slave-of", "localhost:%d" % repli_port, "--no-rogue"]
 
-    if opts["elb"]:
-        s_flags += ["--run-behind-elb", "%d" % elb_ports[1]]
-
     if opts["failover-script"]:
         s_flags += ["--failover-script", opts["failover-script"]]
 
     repli_server = Server(opts, extra_flags=extra_flags + s_flags, name="slave", test_dir=test_dir)
-    if opts["elb"]:
-        repli_server.elb_port = elb_ports[1]
     repli_server.start()
 
     return (server, repli_server)
@@ -739,12 +729,8 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
             mc = connect_to_server(opts, server, test_dir=test_dir)
             repli_mc = connect_to_server(opts, server, test_dir=test_dir)
 
-            if opts["elb"]:
-                mc.elb_port = elb_ports[0]
-                repli_mc.elb_port = elb_ports[1]
-            else:
-                mc.elb_port = None
-                repli_mc.elb_port = None
+            mc.elb_port = None
+            repli_mc.elb_port = None
 
             try:
                 run_with_timeout(test_function, args=(opts,mc,repli_mc), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)

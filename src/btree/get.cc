@@ -12,7 +12,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/btree_data_provider.hpp"
 
-get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
+get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order_token_t token) {
 
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
@@ -22,7 +22,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice) {
     // destructor runs right before it.
     thread_saver_t saver;
     on_thread_t mover(slice->home_thread);
-    boost::shared_ptr<transactor_t> transactor(new transactor_t(saver, slice->cache(), rwi_read, repli_timestamp::invalid));
+    boost::shared_ptr<transactor_t> transactor(new transactor_t(saver, slice->cache(), rwi_read, repli_timestamp::invalid, token));
 
     // Acquire the superblock
 

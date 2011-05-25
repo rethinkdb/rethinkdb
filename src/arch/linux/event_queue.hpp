@@ -5,6 +5,7 @@
 #include "perfmon.hpp"
 #include "linux_utils.hpp"
 #include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
 
 // Event queue callback
 struct linux_event_callback_t {
@@ -78,10 +79,15 @@ struct linux_event_watcher_t {
     cancelled. */
     void watch(int event, const boost::function<void()> &callback, signal_t *aborter);
 
+    /* Returns `true` if `watch()` was called for events of type `event` but has
+    not completed or been aborted yet. `event` should be `poll_event_in` or
+    `poll_event_out`. */
+    bool is_watching(int event);
+
 private:
     /* The guts are a separate object so that if one of the callbacks we call destroys us,
     we don't have to destroy the guts immediately. */
-    linux_event_watcher_guts_t *guts;
+    boost::scoped_ptr<linux_event_watcher_guts_t> guts;
     DISABLE_COPYING(linux_event_watcher_t);
 };
 

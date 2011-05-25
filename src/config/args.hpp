@@ -19,11 +19,11 @@
  * TODO: Many of these should be runtime switches.
  */
 // Max concurrent IO requests per event queue
-#define MAX_CONCURRENT_IO_REQUESTS                128
+#define MAX_CONCURRENT_IO_REQUESTS                64
 
 // Don't send more IO requests to the system until the per-thread
 // queue of IO requests is higher than this depth
-#define TARGET_IO_QUEUE_DEPTH                     128
+#define TARGET_IO_QUEUE_DEPTH                     64
 
 // Defines the maximum size of the batch of IO events to process on
 // each loop iteration. A larger number will increase throughput but
@@ -34,18 +34,25 @@
 // one account for writes, and one account for reads.
 // By adjusting the priorities of these accounts, reads
 // can be prioritized over writes or the other way around.
-// This is a one-per-cache/slice priority.
-#define CACHE_READS_IO_PRIORITY                   70
-#define CACHE_WRITES_IO_PRIORITY                 30
-
-// Garbage Colletion uses its own IO account.
-// Its IO priority should not be too low, as it should be able to keep up
-// with the other write activity going on in the system.
-// Because GC does only submit small "bursts" of IO operations anyway (up to one extent
-// worth of reads or writes), a high IO priority for GC should not harm latency
-// in other parts of the system very much.
+//
 // This is a one-per-serializer/file priority.
-#define GC_IO_PRIORITY                            155
+// The per-cache priorities are dynamically derived by dividing these priorities
+// by the number of slices on a specific file.
+#define CACHE_READS_IO_PRIORITY                   2048
+#define CACHE_WRITES_IO_PRIORITY                  128
+
+// Garbage Colletion uses its own two IO accounts.
+// There is one low-priority account that is meant to guarantee
+// (performance-wise) unintrusive garbage collection.
+// If the garbage ratio keeps growing,
+// GC starts using the high priority account instead, which
+// might have a negative influence on database performance
+// under i/o heavy workloads but guarantees that the database
+// doesn't grow indefinitely.
+//
+// This is a one-per-serializer/file priority.
+#define GC_IO_PRIORITY_NICE                       16
+#define GC_IO_PRIORITY_HIGH                       (2 * CACHE_WRITES_IO_PRIORITY)
 
 // Size of the buffer used to perform IO operations (in bytes).
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
@@ -108,6 +115,13 @@
 #define DEFAULT_REPLICATION_PORT                  11319
 
 #define DEFAULT_TOTAL_DELETE_QUEUE_LIMIT          GIGABYTE
+
+// Heartbeat configuration...
+// The interval at which heartbeats are sent (ms)
+#define REPLICATION_HEARTBEAT_INTERVAL            800 // (so we can allow a timeout of 1000 if users like it risky)
+// The default timeout. This is the time after which replication
+// connections get terminated, if no activity has been observed.
+#define DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT     10000
 
 // Default extension for the semantic file which is appended to the database name
 #define DEFAULT_SEMANTIC_EXTENSION                ".semantic"
@@ -184,6 +198,9 @@
 // If a single connection sends this many 'noreply' commands, the next command will
 // have to wait until the first one finishes
 #define MAX_CONCURRENT_QUERIES_PER_CONNECTION     500
+
+//
+#define MAX_CONCURRENT_QUEURIES_ON_IMPORT 1000
 
 // How many timestamps we store in a leaf node.  We store the
 // NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.

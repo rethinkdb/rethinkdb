@@ -21,6 +21,7 @@ core
 vgcore.*
 test/unit/.retest
 bench/stress-client/stress
+bench/stress-client/libstress.so
 bench/serializer-bench/serializer-bench
 last_tested_versions
 .deps/

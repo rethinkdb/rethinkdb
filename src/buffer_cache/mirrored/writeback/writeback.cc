@@ -289,7 +289,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
 
     // It's a read transaction, that's why we use repli_timestamp::invalid.
-    transaction = parent->cache->begin_transaction(rwi_read, 0, repli_timestamp::invalid, NULL);
+    transaction = parent->cache->begin_transaction(order_token_t::ignore, rwi_read, 0, repli_timestamp::invalid, NULL);
     parent->cache->shutting_down = saved_shutting_down;
     rassert(transaction != NULL); // Read txns always start immediately.
 

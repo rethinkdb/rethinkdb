@@ -94,7 +94,6 @@ its destructor leaves the cluster. */
 cluster_t &get_cluster();
 
 class cluster_t :
-    public tcp_listener_callback_t,
     public home_thread_mixin_t
 {
 public:

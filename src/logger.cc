@@ -163,3 +163,4 @@ void mlog_end() {
     }
     current_message = NULL;
 }
+

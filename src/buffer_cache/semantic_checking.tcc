@@ -81,6 +81,11 @@ void scc_buf_t<inner_cache_t>::release() {
         }
     }
 
+    // TODO: We want to track order tokens here.
+    //    if (!snapshotted) {
+    //        cache->sink_map[inner_buf->get_block_id()].check_out(order token);
+    //    }
+
     inner_buf->release();
     delete this;
 }
@@ -123,6 +128,10 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t b
                    block_available_callback_t *callback, bool should_load) {
     scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache, snapshotted || mode == rwi_read_outdated_ok, should_load);
     buf->cache = this->cache;
+    if (!snapshotted) {
+        cache->sink_map[block_id].check_out(order_token);
+    }
+
     if (typename inner_cache_t::buf_t *inner_buf = inner_transaction->acquire(block_id, mode, buf, should_load)) {
         buf->inner_buf = inner_buf;
         rassert(block_id == buf->get_block_id());
@@ -154,8 +163,13 @@ void scc_transaction_t<inner_cache_t>::get_subtree_recencies(block_id_t *block_i
 }
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t>::scc_transaction_t(access_t _access, scc_cache_t<inner_cache_t> *_cache)
-    : cache(_cache), snapshotted(false), access(_access), begin_cb(NULL), inner_transaction(NULL) { }
+scc_transaction_t<inner_cache_t>::scc_transaction_t(order_token_t _order_token, access_t _access, scc_cache_t<inner_cache_t> *_cache)
+    : cache(_cache),
+      order_token(_order_token),
+      snapshotted(false),
+      access(_access),
+      begin_cb(NULL),
+      inner_transaction(NULL) { }
 
 template<class inner_cache_t>
 void scc_transaction_t<inner_cache_t>::on_txn_begin(typename inner_cache_t::transaction_t *txn) {
@@ -193,9 +207,9 @@ block_size_t scc_cache_t<inner_cache_t>::get_block_size() {
 }
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
-    scc_transaction_t<inner_cache_t> *txn = new scc_transaction_t<inner_cache_t>(access, this);
-    if (typename inner_cache_t::transaction_t *inner_txn = inner_cache.begin_transaction(access, expected_change_count, recency_timestamp, txn)) {
+scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
+    scc_transaction_t<inner_cache_t> *txn = new scc_transaction_t<inner_cache_t>(token, access, this);
+    if (typename inner_cache_t::transaction_t *inner_txn = inner_cache.begin_transaction(token, access, expected_change_count, recency_timestamp, txn)) {
         txn->inner_transaction = inner_txn;
         return txn;
     } else {

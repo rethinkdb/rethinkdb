@@ -103,8 +103,6 @@ STRIP_ON_INSTALL?=1
 ifeq ($(DEBUG),1)
 SYMBOLS:=1
 CXXFLAGS+=-O0
-# -rdynamic is necessary so that backtrace_symbols() works properly
-LDFLAGS+=-rdynamic
 else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
@@ -139,7 +137,10 @@ endif
 ifeq ($(CALLGRIND),1)
 SYMBOLS=1
 endif
+
 ifeq ($(SYMBOLS),1)
+# -rdynamic is necessary so that backtrace_symbols() works properly
+LDFLAGS+=-rdynamic
 CXXFLAGS+=-g
 endif
 
@@ -279,6 +280,8 @@ RPM_BUILD_ROOT=$(RPM_PACKAGE_DIR)/BUILD
 DEB_CONTROL_ROOT=$(DEB_PACKAGE_DIR)/DEBIAN
 RPM_SPEC_FILE=$(RPM_PACKAGE_DIR)/SPECS/rethinkdb.spec
 
+ASSETS_DIR:=../packaging/assets
+
 RETHINKDB_VERSION_RPM=$(subst -,_,$(RETHINKDB_PACKAGING_VERSION))
 DEB_PACKAGE_REVISION?=1
 RETHINKDB_VERSION_DEB=$(RETHINKDB_PACKAGING_VERSION)-$(DEB_PACKAGE_REVISION)
@@ -296,6 +299,9 @@ man1_dir:=$(man_dir)/man1
 share_dir:=$(prefix)/share/$(VERSIONED_PACKAGE_NAME)
 bash_completion_dir:=/etc/bash_completion.d
 internal_bash_completion_dir:=$(share_dir)$(bash_completion_dir)
+scripts_dir:=$(share_dir)/scripts
+
+ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate $(ASSETS_DIR)/scripts/unused_port
 
 FULL_SERVER_EXEC_NAME=$(bin_dir)/$(SERVER_EXEC_NAME)
 FULL_SERVER_EXEC_NAME_VERSIONED=$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
@@ -315,31 +321,33 @@ ifeq ($(STRIP_ON_INSTALL),1)
 	$(QUIET) strip --strip-unneeded $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 endif
 
-install-manpages: ../docs/man/rethinkdb.1
+install-manpages: $(ASSETS_DIR)/man/rethinkdb.1
 	$(QUIET) install -m755 -d $(DESTDIR)$(man1_dir)
 # TODO: support other man pages
-	$(QUIET) gzip -9 < ../docs/man/rethinkdb.1 | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz;
+	$(QUIET) gzip -9 < $(ASSETS_DIR)/man/rethinkdb.1 | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz;
 #	$(QUIET) for manpage in $(MAN_PAGES); do \
 #			gzip -9 < $$manpage | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$$(basename $$manpage).gz; \
 #		done
 
-install-tools: ../scripts/rethinkdb.bash
+install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash $(ASSET_SCRIPTS)
 	$(QUIET) install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
 	$(QUIET) install -m755 -d $(DESTDIR)$(bash_completion_dir)
 	$(QUIET) m4 																												\
 			-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 											\
 			-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 	\
-			../scripts/rethinkdb.bash | install -m644 /dev/stdin $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
+			$(ASSETS_DIR)/scripts/rethinkdb.bash | install -m644 /dev/stdin $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
+	$(QUIET) install -m755 -d $(DESTDIR)$(scripts_dir)
+	$(QUIET) for s in $(ASSET_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(scripts_dir)/$$(basename $$s); done
 
 install-docs:
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
-	$(QUIET) install -m644 -T ../docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
+	$(QUIET) install -m644 -T $(ASSETS_DIR)/docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
 
 install: install-binaries install-manpages install-docs install-tools
 install-rpm: install
 install-deb: install
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
-	$(QUIET) sed	-e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION_DEB)/' ../docs/changelog.Debian | \
+	$(QUIET) sed	-e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION_DEB)/' $(ASSETS_DIR)/docs/changelog.Debian | \
 		gzip -c9 | \
 		install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
@@ -431,6 +439,7 @@ build-rpm: all prepare_rpm_package_dirs
 				-D "MAN1_DIR=$(man1_dir)"																					\
 				-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 									\
 				-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)"	\
+				-D "SCRIPTS_DIR=$(scripts_dir)"																		\
 				-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 									\
 			$(RPM_SPEC_INPUT) >$(RPM_SPEC_FILE)
 

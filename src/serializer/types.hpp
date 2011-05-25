@@ -44,6 +44,8 @@ struct buf_data_t {
 } __attribute__((__packed__));
 
 
+// TODO: Hopefully it's not serialized using more than 16 bits.
+//
 //  block_size_t is serialized as part of some patches.  Changing this changes the disk format!
 class block_size_t {
 public:

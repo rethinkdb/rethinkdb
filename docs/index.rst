@@ -394,6 +394,13 @@ of the exported file with the following Unix command::
 
   $ cat memcached.out | nc localhost 8080 -q 0
 
+RethinkDB can import without using ``netcat`` (``nc``) via the 
+``import`` command::
+
+  $ rethinkdb import -f new_file.db --memcached-file memcached.out
+
+``Import`` is more efficient than the ``nc`` method.
+
 The ``extract`` command works even in cases when the data has been
 corrupted and  server cannot open the database file. In this
 case, ``extract`` will try to recover as much data as possible and
@@ -487,6 +494,47 @@ converted into master-files, and you will have to perform the same
 reversal again if you want that particular machine to be the
 slave-machine.
 
+-----------------------
+Replication performance
+-----------------------
+
+The master will throttle operations if the slave cannot keep up. This
+can become a major problem if the slave is slow or badly tuned. In
+particular, if the master becomes very slow the second time that the
+slave connects, this is probably because the slave's cache is cold.
+Make sure that you have ``--read-ahead y`` enabled if running on a
+rotational drive to help the slave cache warm up faster, and consider
+upgrading to faster drives.
+
+When the master comes back up after a crash and the slave starts
+copying data to it, neither the slave nor the master will accept
+write operations until the master catches up with the slave.
+
+When the slave connects to the master and starts copying old data from
+the master, the master will allocate half of the bandwidth for copying
+old data and half of the bandwidth for transferring current operations.
+The current operations will be queued on the slave until all of the old
+changes have been applied. Once all the old data has been copied, the
+slave will process the queued operations, and will allow new operations
+to be pushed onto the queue at half the rate that the queue is being
+emptied; this way, the slave's queue will shrink but it will not block
+up the master completely. During both of these phases, the master will
+run slower than normal.
+
+If the aforementioned queue (in which the slave is temporarily storing
+recent changes) becomes too long, the slave can potentially use a lot
+of memory or go into swap; the only workarounds are to run the slave
+on better hardware or to stop running new operations on the master
+while waiting for the slave to catch up. You can monitor the length of
+this queue by sending ``stat replication_slave_realtime_queue`` to the
+slave over ``telnet``.
+
+Even when none of the other problems in this section apply, a RethinkDB
+server that is replicating to a slave will run slower than a RethinkDB
+server that is not replicated. At RethinkDB we have observed the server
+running as much as 30-40% slower even when none of the other problems
+in this section apply.
+
 ----------------------
 Database restructuring
 ----------------------
@@ -538,18 +586,28 @@ following procedure is used to merge the data:
   have either the value it was assigned on the master or the value that
   it had before the divergence.
 
------------------------------
-Elastic Load Balancer support
------------------------------
+--------------------
+Network partitioning
+--------------------
 
-You may want to use Amazon's Elastic Load Balancer (ELB) in conjunction
-with RethinkDB, to automatically direct queries to whichever of the
-master and the slave is able to accept writes. If you add
-``--run-behind-elb <port>`` to the slave's command line, then it will
-accept connections on the given ``<port>`` if and only if it is willing
-to accept writes. It will drop the connection as soon as it accepts it.
-The only purpose of this is to signal to the ELB that it is willing to
-accept writes.
+In general, it is the responsibility of the user to make sure that
+clients do not write to the master while other clients write to the
+slave. If the slave is aware that the master is up, it will not accept
+writes, but it can be fooled.
+
+RethinkDB's replication logic is designed on the assumption that if the
+slave cannot see the master, then no clients can see the master, and if
+the master cannot see the slave, then no clients can see the slave. If
+the slave loses contact with the master, it will assume that the master
+is dead or isolated from the rest of the network, and it will start
+accepting writes. If the master loses contact with the slave, it will
+assume that the slave is dead or isolated, and it will continue
+accepting writes.
+
+If the master and slave lose contact with each other and clients write
+to both of them, then when they regain contact, the differences will be
+resolved according to the procedure described in the "Divergent data"
+section.
 
 ----------------
 Failover scripts
@@ -661,11 +719,18 @@ If you run RethinkDB even once in non-slave-mode on a set of slave data
 files, those data files will be irreversibly changed, and you won't be
 able to use them in slave-mode ever again!
 
-Don't use multiple slaves with the same master. If you try to connect a
-second slave while a slave is already connected, RethinkDB will kick the
-connection off. If you disconnect the slave and then connect a new
-one, RethinkDB will accept the new slave, but if you later try to reconnect the
-original slave, RethinkDB will not allow the original slave to reconnect.
+Don't use multiple slaves with the same master. If you disconnect the slave
+and then connect a new one, RethinkDB will accept the new slave, but if
+you later try to reconnect the original slave, RethinkDB will not
+allow the original slave to reconnect.
+
+If you try to connect a second slave while a slave is already connected,
+the master will reject the new connection and write a message in its
+log file. Due to a known issue in RethinkDB, the second slave will
+immediately try to reconnect; it will try five times and then give up
+unless the ``--no-rogue`` flag was specified on the slave command line,
+in which case it will keep trying repeatedly until it is manually
+interrupted.
 
 -----------
 Other notes
@@ -688,9 +753,9 @@ Alternatively, you can send ``rethinkdb dont-wait-for-slave`` to the
 master over telnet, which will put the master back in the state it was
 in before it was shut down.
 
-=================  
+=================
 Advanced features
-=================  
+=================
 
 --------------------
 Advanced disk layout

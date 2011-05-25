@@ -283,7 +283,7 @@ void check_filesize(nondirect_file_t *file, file_knowledge *knog) {
 const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes" };
 enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes };
 
-bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_config_error *err) {
+bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_config_error *err, const config_t &cfg) {
     block header;
     header.init(DEVICE_BLOCK_SIZE, file, 0);
     static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
@@ -306,7 +306,7 @@ bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_co
         *err = bad_software_name;
         return false;
     }
-    if (0 != strcmp(buf->version, VERSION_STRING)) {
+    if (0 != strcmp(buf->version, VERSION_STRING) && !cfg.print_command_line) {
         *err = bad_version;
         return false;
     }
@@ -325,6 +325,30 @@ bool check_static_config(nondirect_file_t *file, file_knowledge *knog, static_co
     knog->static_config = *static_cfg;
     *err = static_config_none;
     return true;
+}
+
+std::string extract_static_config_version(nondirect_file_t *file, UNUSED file_knowledge *knog) {
+    block header;
+    header.init(DEVICE_BLOCK_SIZE, file, 0);
+    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
+    return std::string(buf->version, int(sizeof(VERSION_STRING)));
+}
+
+std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_knowledge *knog) {
+    block header;
+    header.init(DEVICE_BLOCK_SIZE, file, 0);
+    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
+
+    log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
+
+    block_size_t block_size = static_cfg->block_size();
+    uint64_t extent_size = static_cfg->extent_size();
+
+
+    char flags[100];
+    snprintf(flags, 100, " --block-size %lu --extent-size %lu", block_size.ser_value(), extent_size);
+
+    return std::string(flags);
 }
 
 struct metablock_errors {
@@ -1197,10 +1221,10 @@ struct check_to_config_block_errors {
 };
 
 
-bool check_to_config_block(nondirect_file_t *file, file_knowledge *knog, check_to_config_block_errors *errs) {
+bool check_to_config_block(nondirect_file_t *file, file_knowledge *knog, check_to_config_block_errors *errs, const config_t &cfg) {
     check_filesize(file, knog);
 
-    return check_static_config(file, knog, &errs->static_config_err.use())
+    return check_static_config(file, knog, &errs->static_config_err.use(), cfg)
         && check_metablock(file, knog, &errs->metablock_errs.use())
         && check_lba(file, knog, &errs->lba_errs.use())
         && check_config_block(file, knog, &errs->config_block_errs.use());
@@ -1530,6 +1554,12 @@ void print_interfile_summary(const multiplexer_config_block_t& c, const mc_confi
     printf("config_block n_log_blocks: %d\n", mcc.cache.n_patch_log_blocks);
 }
 
+std::string extract_slices_flags(const multiplexer_config_block_t& c) {
+    char flags[100];
+    snprintf(flags, 100, " -s %d ", c.n_proxies);
+    return std::string(flags);
+}
+
 bool check_files(const config_t& cfg) {
     // 1. Open.
     knowledge knog(cfg.input_filenames);
@@ -1544,10 +1574,16 @@ bool check_files(const config_t& cfg) {
         }
     }
 
+    /* A few early exits if we want some specific pieces of information */
+    if (cfg.print_file_version) {
+        printf("VERSION: %s\n", extract_static_config_version(knog.files[0], knog.file_knog[0]).c_str());
+        return true;
+    }
+
     bool any = false;
     for (int i = 0; i < num_files; ++i) {
         check_to_config_block_errors errs;
-        if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs)) {
+        if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs, cfg)) {
             any = true;
             std::string s = std::string("(in file '") + knog.file_knog[i]->filename + "')";
             state = s.c_str();
@@ -1565,24 +1601,69 @@ bool check_files(const config_t& cfg) {
         return false;
     }
 
-    print_interfile_summary(*knog.file_knog[0]->config_block, *knog.file_knog[0]->mc_config_block);
+    if (!cfg.print_command_line) {
+        print_interfile_summary(*knog.file_knog[0]->config_block, *knog.file_knog[0]->mc_config_block);
 
-    // A thread for every slice.
-    int n_slices = knog.file_knog[0]->config_block->n_proxies;
-    std::vector<pthread_t> threads(n_slices);
-    all_slices_errors slices_errs(n_slices);
-    for (int i = 0; i < num_files; ++i) {
-        launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs, cfg);
+        // A thread for every slice.
+        int n_slices = knog.file_knog[0]->config_block->n_proxies;
+        std::vector<pthread_t> threads(n_slices);
+        all_slices_errors slices_errs(n_slices);
+        for (int i = 0; i < num_files; ++i) {
+            launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs, cfg);
+        }
+
+        // Wait for all threads to finish.
+        for (int i = 0; i < n_slices; ++i) {
+            guarantee_err(!pthread_join(threads[i], NULL), "pthread_join failing");
+        }
+
+        bool ok = report_post_config_block_errors(slices_errs);
+        return ok;
+    } else {
+        std::string flags("FLAGS: ");
+        flags.append(extract_static_config_flags(knog.files[0], knog.file_knog[0]));
+        flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
+        printf("%s\n", flags.c_str());
+        return true;
     }
-
-    // Wait for all threads to finish.
-    for (int i = 0; i < n_slices; ++i) {
-        guarantee_err(!pthread_join(threads[i], NULL), "pthread_join failing");
-    }
-
-    bool ok = report_post_config_block_errors(slices_errs);
-    return ok;
+    return false;
 }
 
+//extract the command line arguments from the file
+std::string extract_command_line_args(const config_t& cfg) {
+    std::string flags;
+    knowledge knog(cfg.input_filenames);
+
+    if (!knog.files[0]->exists()) {
+        fail_due_to_user_error("No such file \"%s\"", knog.file_knog[0]->filename.c_str());
+    }
+
+    flags.append(extract_static_config_flags(knog.files[0], knog.file_knog[0]));
+
+    config_block_errors errs;
+    check_config_block(knog.files[0], knog.file_knog[0], &errs);
+    /* btree_block config_block;
+    if (!config_block.init(knog.files[0], knog.file_knog[0], CONFIG_BLOCK_ID.ser_id)) {
+        logINF("Error, taking command line of corrupted file\n");
+        exit(1);
+    }
+    const serializer_config_block_t *buf = ptr_cast<serializer_config_block_t>(config_block.buf); */
+
+    flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
+
+
+    return flags;
+}
+
+std::string extract_version(const config_t& cfg) {
+    std::string version;
+    knowledge knog(cfg.input_filenames);
+
+    if (!knog.files[0]->exists()) {
+        fail_due_to_user_error("No such file \"%s\"", knog.file_knog[0]->filename.c_str());
+    }
+
+    return extract_static_config_version(knog.files[0], knog.file_knog[0]);
+}
 
 }  // namespace fsck

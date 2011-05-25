@@ -1,6 +1,12 @@
 #include "replication/protocol.hpp"
-
+#include "replication/debug.hpp"
 #include "concurrency/coro_fifo.hpp"
+
+/* If `REPLICATION_DEBUG` is defined, then every time a network message is sent
+or received, the contents of the message will be printed to `stderr`. */
+#ifndef NDEBUG
+#define REPLICATION_DEBUG
+#endif
 
 namespace replication {
 
@@ -18,7 +24,8 @@ size_t objsize(UNUSED const net_introduce_t *buf) { return sizeof(net_introduce_
 size_t objsize(UNUSED const net_backfill_t *buf) { return sizeof(net_backfill_t); }
 size_t objsize(UNUSED const net_backfill_complete_t *buf) { return sizeof(net_backfill_complete_t); }
 size_t objsize(UNUSED const net_backfill_delete_everything_t *buf) { return sizeof(net_backfill_delete_everything_t); }
-size_t objsize(UNUSED const net_nop_t *buf) { return sizeof(net_nop_t); }
+size_t objsize(UNUSED const net_timebarrier_t *buf) { return sizeof(net_timebarrier_t); }
+size_t objsize(UNUSED const net_heartbeat_t *buf) { return sizeof(net_heartbeat_t); }
 size_t objsize(const net_get_cas_t *buf) { return sizeof(net_get_cas_t) + buf->key_size; }
 size_t objsize(const net_incr_t *buf) { return sizeof(net_incr_t) + buf->key_size; }
 size_t objsize(const net_decr_t *buf) { return sizeof(net_decr_t) + buf->key_size; }
@@ -36,12 +43,23 @@ namespace internal {
 template <class T>
 void check_pass(message_callback_t *receiver, const char *buf, size_t realsize) {
     if (sizeof(T) <= realsize && objsize(reinterpret_cast<const T *>(buf)) == realsize) {
+#ifdef REPLICATION_DEBUG
+        debugf("recv %s\n", debug_format(reinterpret_cast<const T *>(buf)).c_str());
+#endif
         typename stream_type<T>::type b(buf, buf + realsize);
         receiver->send(b);
     } else {
         debugf("realsize: %zu sizeof(T): %zu objsize: %zu\n", realsize, sizeof(T), objsize(reinterpret_cast<const T *>(buf)));
         throw protocol_exc_t("message wrong length for message code");
     }
+}
+
+template <class T>
+void print_and_pass_message(message_callback_t *receiver, stream_pair<T> &spair) {
+#ifdef REPLICATION_DEBUG
+    debugf("recv %s\n", debug_format(spair.data.get(), spair.stream->peek()).c_str());
+#endif
+    receiver->send(spair);
 }
 
 template <class T>
@@ -52,11 +70,11 @@ tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *bu
         stream_pair<T> spair(buf, buf + size, reinterpret_cast<const T *>(buf)->value_size);
         size_t m = size - sizeof(T) - reinterpret_cast<const T *>(buf)->key_size;
 
-        void (message_callback_t::*fn)(typename stream_type<T>::type&) = &message_callback_t::send;
-
         char *p = spair.stream->peek() + m;
 
-        return new tracker_obj_t(boost::bind(fn, receiver, spair), p, reinterpret_cast<const T *>(buf)->value_size - m);
+        return new tracker_obj_t(
+            boost::bind(&print_and_pass_message<T>, receiver, spair),
+            p, reinterpret_cast<const T *>(buf)->value_size - m);
 
     } else {
         throw protocol_exc_t("message too short for message code and key size");
@@ -64,6 +82,11 @@ tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *bu
 }
 
 void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
+    // Notify the heartbeat receiver that we got something (which means that the connection is alive)
+    if (hb_receiver_) {
+        hb_receiver_->note_heartbeat();
+    }
+    
     if (!saw_first_part_) {
         uint8_t msgcode = *reinterpret_cast<const uint8_t *>(buf);
         ++buf;
@@ -74,7 +97,8 @@ void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
         case BACKFILL: check_pass<net_backfill_t>(receiver_, buf, size); break;
         case BACKFILL_COMPLETE: check_pass<net_backfill_complete_t>(receiver_, buf, size); break;
         case BACKFILL_DELETE_EVERYTHING: check_pass<net_backfill_delete_everything_t>(receiver_, buf, size); break;
-        case NOP: check_pass<net_nop_t>(receiver_, buf, size); break;
+        case TIMEBARRIER: check_pass<net_timebarrier_t>(receiver_, buf, size); break;
+        case HEARTBEAT: check_pass<net_heartbeat_t>(receiver_, buf, size); break;
         case GET_CAS: check_pass<net_get_cas_t>(receiver_, buf, size); break;
         case SARC: tracker_obj_ = check_value_streamer<net_sarc_t>(receiver_, buf, size); break;
         case INCR: check_pass<net_incr_t>(receiver_, buf, size); break;
@@ -125,10 +149,36 @@ void replication_connection_handler_t::process_hello_message(net_hello_t buf) {
 
 }  // namespace internal
 
+perfmon_rate_monitor_t pm_replication_network_write_rate("replication_network_write_rate", secs_to_ticks(2.0));
 
+repli_stream_t::repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback, int heartbeat_timeout) :
+            heartbeat_sender_t(REPLICATION_HEARTBEAT_INTERVAL),
+            heartbeat_receiver_t(heartbeat_timeout),
+            conn_handler_(recv_callback, this) {
+    conn_.swap(conn);
+    conn_->write_perfmon = &pm_replication_network_write_rate;
+    parse_messages(conn_.get(), &conn_handler_);
+    watch_heartbeat();
+    {
+        mutex_acquisition_t ak(&outgoing_mutex_);
+        send_hello(ak);
+    }
+    start_sending_heartbeats();
+}
+
+repli_stream_t::~repli_stream_t() {
+    drain_semaphore_.drain();   // Wait for any active send()s to finish
+    stop_sending_heartbeats();
+    unwatch_heartbeat();
+    rassert(!conn_->is_read_open());
+}
 
 template <class net_struct_type>
 void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
+
+#ifdef REPLICATION_DEBUG
+    debugf("send %s\n", debug_format(msg).c_str());
+#endif
 
     size_t obsize = objsize(msg);
 
@@ -137,7 +187,7 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         hdr.msgsize = sizeof(net_header_t) + 1 + obsize;
         hdr.message_multipart_aspect = SMALL;
 
-        mutex_acquisition_t ak(&outgoing_mutex_);
+        mutex_acquisition_t ak(&outgoing_mutex_, true);
 
         try_write(&hdr, sizeof(net_header_t));
         rassert(1 == sizeof(msgcode));
@@ -147,17 +197,25 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
         // Right now we don't really split up messages into
         // submessages, even though the other end of the protocol
         // supports that.
-        mutex_acquisition_t ak(&outgoing_mutex_);
+        mutex_acquisition_t ak(&outgoing_mutex_, true);
 
         net_multipart_header_t hdr;
         hdr.msgsize = MAX_MESSAGE_SIZE;
         hdr.message_multipart_aspect = FIRST;
-        hdr.ident = 1;        // TODO: This is an obvious bug, when we can split up our messages (but right now it is fine because we hold the mutex_acquisition_t the whole time).
+        // TODO: This is an obvious bug, when we can split up our
+        // messages (but right now it is fine because we hold the
+        // mutex_acquisition_t the whole time).  Note that the value
+        // we use here _must_ be zero, since the set of previously
+        // used identifier codes must be a contiguous set whose
+        // minimal element must be zero.
+        hdr.ident = 0;
+
 
         size_t offset = MAX_MESSAGE_SIZE - (sizeof(net_multipart_header_t) + 1);
 
         {
-            //            mutex_acquisition_t ak(&outgoing_mutex_);
+            // Commented because we have a global mutex for all the messages.
+            //            mutex_acquisition_t ak(&outgoing_mutex_, true);
             try_write(&hdr, sizeof(net_multipart_header_t));
             rassert(sizeof(msgcode) == 1);
             try_write(&msgcode, sizeof(msgcode));
@@ -166,18 +224,23 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg) {
 
         char *buf = reinterpret_cast<char *>(msg);
 
-        while (offset + MAX_MESSAGE_SIZE < obsize) {
-            //            mutex_acquisition_t ak(&outgoing_mutex_);
+        const size_t midlast_message_size = MAX_MESSAGE_SIZE - sizeof(net_multipart_header_t);
+
+        while (offset + midlast_message_size < obsize) {
+            // Commented because we have a global mutex for all the messages.
+            //            mutex_acquisition_t ak(&outgoing_mutex_, true);
             hdr.message_multipart_aspect = MIDDLE;
             try_write(&hdr, sizeof(net_multipart_header_t));
-            try_write(buf + offset, MAX_MESSAGE_SIZE);
-            offset += MAX_MESSAGE_SIZE;
+            try_write(buf + offset, midlast_message_size);
+            offset += midlast_message_size;
         }
 
         {
-            rassert(obsize - offset <= MAX_MESSAGE_SIZE);
-            //            mutex_acquisition_t ak(&outgoing_mutex_);
+            rassert(obsize - offset <= midlast_message_size);
+            // Commented because we have a global mutex for all the messages.
+            //            mutex_acquisition_t ak(&outgoing_mutex_, true);
             hdr.message_multipart_aspect = LAST;
+            hdr.msgsize = sizeof(net_multipart_header_t) + (obsize - offset);
             try_write(&hdr, sizeof(net_multipart_header_t));
             try_write(buf + offset, obsize - offset);
         }
@@ -198,9 +261,11 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
     buffer_group_t group;
     group.add_buffer(data->get_size(), buf.get() + sizeof(net_struct_type) + msg->key_size);
 
-    // TODO: This could theoretically block and that could cause
-    // reordering of sets.  The fact that it doesn't block is just a
-    // function of whatever data provider which we happen to use.
+    // This could theoretically block and that could cause reordering
+    // of sets, for real time operations.  The fact that it doesn't
+    // block is just a function of whatever data provider which we
+    // happen to use.  (It definitely blocks for backfilling
+    // operations but we don't care.)
     data->get_data_into_buffers(&group);
 
     sendobj(msgcode, reinterpret_cast<net_struct_type *>(buf.get()));
@@ -209,16 +274,19 @@ void repli_stream_t::sendobj(uint8_t msgcode, net_struct_type *msg, const char *
 void repli_stream_t::send(net_introduce_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(INTRODUCE, msg);
+    flush();
 }
 
 void repli_stream_t::send(net_backfill_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL, msg);
+    flush();
 }
 
 void repli_stream_t::send(net_backfill_complete_t *msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
     sendobj(BACKFILL_COMPLETE, msg);
+    flush();
 }
 
 void repli_stream_t::send(net_backfill_delete_everything_t msg) {
@@ -271,9 +339,16 @@ void repli_stream_t::send(net_backfill_delete_t *msg) {
     sendobj(BACKFILL_DELETE, msg);
 }
 
-void repli_stream_t::send(net_nop_t msg) {
+void repli_stream_t::send(net_timebarrier_t msg) {
     drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
-    sendobj(NOP, &msg);
+    sendobj(TIMEBARRIER, &msg);
+    flush();
+}
+
+void repli_stream_t::send(net_heartbeat_t msg) {
+    drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
+    sendobj(HEARTBEAT, &msg);
+    flush();
 }
 
 void repli_stream_t::send_hello(UNUSED const mutex_acquisition_t& evidence_of_acquisition) {
@@ -294,11 +369,21 @@ perfmon_duration_sampler_t master_write("master_write", secs_to_ticks(1.0));
 void repli_stream_t::try_write(const void *data, size_t size) {
     try {
         block_pm_duration set_timer(&master_write);
-        conn_->write(data, size);
+        conn_->write_buffered(data, size);
     } catch (tcp_conn_t::write_closed_exc_t &e) {
+        // TODO: This is disgusting.
+
         /* Master died; we happened to be mid-write at the time. A tcp_conn_t::read_closed_exc_t
         will be thrown somewhere and that will cause us to shut down. So we can ignore this
         exception. */
+    }
+}
+
+void repli_stream_t::flush() {
+    try {
+        conn_->flush_buffer_eventually();
+    } catch (tcp_conn_t::write_closed_exc_t &e) {
+        /* Ignore; see `repli_stream_t::try_write()`. */
     }
 }
 

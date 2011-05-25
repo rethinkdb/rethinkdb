@@ -5,7 +5,8 @@
 pool_diskmgr_t::pool_diskmgr_t(
         linux_event_queue_t *queue, passive_producer_t<action_t *> *source) :
     source(source),
-    blocker_pool(MAX_CONCURRENT_IO_REQUESTS, queue)
+    blocker_pool(MAX_CONCURRENT_IO_REQUESTS, queue),
+    n_pending(0)
 {
     if (source->available->get()) pump();
     source->available->add_watcher(this);

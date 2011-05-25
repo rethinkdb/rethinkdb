@@ -7,6 +7,7 @@
 #include "clustering/demo.hpp"
 #include "utils.hpp"
 #include "help.hpp"
+#include "migrate/migrate.hpp"
 
 void print_version_message() {
     printf("rethinkdb " RETHINKDB_VERSION
@@ -28,7 +29,9 @@ void usage() {
                 "\n"
                 "Administrating databases:\n"
                 "    extract     Extract as much data as possible from a corrupted database.\n"
+                "    import      Import data from raw memcached commands.\n"
                 "    fsck        Check a database for corruption.\n"
+                "    migrate     Convert between file versions.\n"
                 "\n"
                 "Use 'rethinkdb help COMMAND' for help on a single command.\n"
                 "Use 'rethinkdb --version' for the current version of rethinkdb.\n");
@@ -58,7 +61,7 @@ int dispatch_on_args(std::vector<char *> args) {
     if (args.size() == 1) args.push_back(const_cast<char *>("serve"));
 
     /* Switch based on subcommand, then dispatch to the appropriate function */
-    if (!strcmp(args[1], "serve") || !strcmp(args[1], "create")) {
+    if (!strcmp(args[1], "serve") || !strcmp(args[1], "create") || !strcmp(args[1], "import")) {
         return run_server(args.size() - 1, args.data() + 1);
 
     } else if (!strcmp(args[1], "extract")) {
@@ -66,6 +69,9 @@ int dispatch_on_args(std::vector<char *> args) {
 
     } else if (!strcmp(args[1], "fsck")) {
         return run_fsck(args.size() - 1, args.data() + 1);
+
+    } else if (!strcmp(args[1], "migrate")) {
+        return run_migrate(args.size(), args.data()); //migrate requires the exec path
 
     } else if (!strcmp(args[1], "cluster")) {
         return run_cluster(args.size() - 1, args.data() + 1);
@@ -76,10 +82,14 @@ int dispatch_on_args(std::vector<char *> args) {
                 usage_serve();
             } else if (!strcmp(args[2], "create")) {
                 usage_create();
+            } else if (!strcmp(args[2], "import")) {
+                usage_import();
             } else if (!strcmp(args[2], "extract")) {
                 extract::usage(args[1]);
             } else if (!strcmp(args[2], "fsck")) {
                 fsck::usage(args[1]);
+            } else if (!strcmp(args[2], "migrate")) {
+                migrate::usage(args[1]);
             } else {
                 printf("No such command %s.\n", args[2]);
             }

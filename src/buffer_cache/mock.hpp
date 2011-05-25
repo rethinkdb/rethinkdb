@@ -4,6 +4,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/drain_semaphore.hpp"
+#include "concurrency/fifo_checker.hpp"
 #include "containers/segmented_vector.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
@@ -94,13 +95,15 @@ public:
 
     mock_cache_t *cache;
 
+    order_token_t order_token;
+
 private:
     friend class mock_cache_t;
     access_t access;
     int n_bufs;
     repli_timestamp recency_timestamp;
     void finish_committing(mock_transaction_commit_callback_t *cb);
-    mock_transaction_t(mock_cache_t *cache, access_t access, repli_timestamp recency_timestamp);
+    mock_transaction_t(mock_cache_t *cache, order_token_t token, access_t access, repli_timestamp recency_timestamp);
     ~mock_transaction_t();
 };
 
@@ -123,7 +126,7 @@ public:
     ~mock_cache_t();
 
     block_size_t get_block_size();
-    transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
+    transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
     void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
 

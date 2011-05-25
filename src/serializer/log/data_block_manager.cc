@@ -70,7 +70,8 @@ void data_block_manager_t::end_reconstruct() {
 void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
     rassert(state == state_unstarted);
     dbfile = file;
-    gc_io_account.reset(new file_t::account_t(file, GC_IO_PRIORITY));
+    gc_io_account_nice.reset(new file_t::account_t(file, GC_IO_PRIORITY_NICE));
+    gc_io_account_high.reset(new file_t::account_t(file, GC_IO_PRIORITY_HIGH));
     
     /* Reconstruct the active data block extents from the metablock. */
     
@@ -287,6 +288,23 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
     }
 }
 
+file_t::account_t *data_block_manager_t::choose_gc_io_account() {
+    // Start going into high priority as soon as the garbage ratio is more than
+    // 2% above the configured goal.
+    // The idea is that we use the nice i/o account whenever possible, except
+    // if it proofs insufficient to maintain an acceptable garbage ratio, in
+    // which case we switch over to the high priority account until the situation
+    // has improved.
+
+    // This means that we can end up oscillating between both accounts, which
+    // is probably fine. TODO: Make sure it actually is in practice!
+    if (garbage_ratio() > dynamic_config->gc_high_ratio * 1.02f) {
+        return gc_io_account_high.get();
+    } else {
+        return gc_io_account_nice.get();
+    }
+}
+
 void data_block_manager_t::start_gc() {
     if (gc_state.step() == gc_ready) run_gc();
 }
@@ -307,6 +325,10 @@ void data_block_manager_t::run_gc() {
         run_again = false;
         switch (gc_state.step()) {
             case gc_ready:
+                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) {
+                    return;
+                }
+
                 gc_state.set_step(gc_ready_lock_available);
                 serializer->main_mutex.lock(this);
                 break;
@@ -315,7 +337,7 @@ void data_block_manager_t::run_gc() {
                 serializer->main_mutex.unlock();
 
                 if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) {
-                    gc_state.set_step(gc_ready);
+                    gc_state.set_step(gc_ready);                    
                     return;
                 }
 
@@ -341,7 +363,7 @@ void data_block_manager_t::run_gc() {
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
                                            gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
-                                           gc_io_account.get(),
+                                           choose_gc_io_account(),
                                            &(gc_state.gc_read_callback));
                         gc_state.refcount++;
                     }
@@ -397,7 +419,7 @@ void data_block_manager_t::run_gc() {
                 gc_state.set_step(gc_write);
 
                 /* schedule the write */
-                bool done = gc_writer->write_gcs(gc_writes.data(), gc_writes.size(), gc_io_account.get(), this);
+                bool done = gc_writer->write_gcs(gc_writes.data(), gc_writes.size(), choose_gc_io_account(), this);
                 if (!done) break;
             }
                 

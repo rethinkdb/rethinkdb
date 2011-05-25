@@ -4,6 +4,7 @@
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
 #include "buffer_cache/mirrored/callbacks.hpp"
@@ -94,6 +95,9 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp recency_timestamp);
     ~mc_inner_buf_t();
 
+    // Loads data from the serializer
+    void load_inner_buf(bool should_lock);
+
     struct buf_snapshot_info_t {
         void *data;
         version_id_t snapshotted_version;
@@ -158,6 +162,7 @@ public:
 
     const void *get_data_read() const {
         rassert(ready);
+        rassert(data);
         return data;
     }
     // Use this only for writes which affect a large part of the block, as it bypasses the diff system
@@ -247,8 +252,12 @@ public:
 
     cache_t *cache;
 
+#ifndef NDEBUG
+    order_token_t order_token;
+#endif
+
 private:
-    explicit mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+    explicit mc_transaction_t(cache_t *cache, order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
     ~mc_transaction_t();
 
     void register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data);
@@ -336,7 +345,7 @@ public:
     block_size_t get_block_size();
 
     // Transaction API
-    transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
+    transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
     bool contains_block(block_id_t block_id);
 public:

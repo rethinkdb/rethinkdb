@@ -49,7 +49,7 @@ function run_with_clients {
             -d "$BENCH_DIR/bench_output/Netflix_workload" -H $SERVER_HOSTS    \
             {server}rethinkdb:"-m ${MEM_SIZE} $SSD_DRIVES --flush-timer 1000"                                            \
             {client}stress[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $CANONICAL_DURATION -k 10-100 -v 3-10240 -w 2/26/2/200 -i /tmp/keys" \
-            {insert}stressinsert[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -k 10-100 -v 3-10240 -w 0/0/1/0 -o /tmp/keys" \
+            -i {insert}stressinsert[$STRESS_CLIENT]:"-c $NUMBER_OF_CLIENTS -d $DATABASE_SIZE -k 10-100 -v 3-10240 -w 0/0/1/0 -o /tmp/keys" \
             iostat:1 vmstat:1 rdbstat:1
     elif [ $DATABASE == "mysql" ]; then
         if [ "$NUMBER_OF_CLIENTS" -lt "1025" ]; then

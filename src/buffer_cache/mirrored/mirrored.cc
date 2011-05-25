@@ -7,12 +7,47 @@
  * Buffer implementation.
  */
 
-/* This mini-FSM loads a buf from disk. */
-
 perfmon_counter_t pm_registered_snapshots("registered_snapshots"),
                   pm_registered_snapshot_blocks("registered_snapshot_blocks");
 perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1));
 
+// This loads a block from the serializer and stores it into buf.
+void mc_inner_buf_t::load_inner_buf(bool should_lock) {
+    if (should_lock) {
+        bool locked UNUSED = lock.lock(rwi_write, NULL);
+        rassert(locked);
+    } else {
+        // We should have at least *some* kind of lock on the buffer, shouldn't we?
+        rassert(lock.locked());
+    }
+
+    // Read the block...
+    {
+        on_thread_t thread(cache->serializer->home_thread);
+        subtree_recency = cache->serializer->get_recency(block_id);
+        struct : public serializer_t::read_callback_t, public cond_t {
+            void on_serializer_read() { pulse(); }
+        } cb;
+        rassert(data); // Should have been malloced before!
+        if (!cache->serializer->do_read(block_id, data, cache->reads_io_account.get(), &cb)) {
+            cb.wait();
+        }
+    }
+
+    // Read the transaction id
+    transaction_id = cache->serializer->get_current_transaction_id(block_id, data);
+
+    replay_patches();
+
+    if (should_lock) {
+        lock.unlock();
+    }
+}
+
+// TODO: This is basically equivalent in functionality to doing a spawn_now() on
+// load_inner_buf(). However, it takes less memory and for now, I don't want to risk
+// a regression. We should remove this after 1.1!
+// <DEPRECATED>
 struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
@@ -42,13 +77,16 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
         if (continue_on_thread(inner_buf->cache->home_thread, this)) on_thread_switch();
     }
 };
+// </DEPRECATED>
+
+
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
 mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load)
     : cache(cache),
       block_id(block_id),
-      subtree_recency(repli_timestamp::invalid),  // Gets initialized by load_buf_fsm_t.
-      data(cache->serializer->malloc()),
+      subtree_recency(repli_timestamp::invalid),  // Gets initialized by load_inner_buf
+      data(should_load ? cache->serializer->malloc() : NULL),
       version_id(cache->get_min_snapshot_version(cache->get_current_version_id())),
       next_patch_counter(1),
       refcount(0),
@@ -63,6 +101,13 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
     rassert(version_id != faux_version_id);
 
     if (should_load) {
+        // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a separate coro.
+        // We have to make sure that load_inner_buf() acquires the lock first however,
+        // so we use spawn_now().
+        //coro_t::spawn_now(boost::bind(&load_inner_buf, this, true));
+        // TODO: Spawning a coroutine for each load might introduce a performance regression.
+        // Also it doesn't harmonize with the current patch_disk_storage preloading.
+        // Therefore, we are still using the old load_buf_fsm_t at this one place for now.
         new load_buf_fsm_t(this);
     }
 
@@ -224,6 +269,15 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     size_t num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
     size_t refcount = num_snapshots_affected + cow_refcount;
     if (refcount > 0) {
+        if (!data) {
+            // Ok, we are in trouble. We don't have data (probably because we were constructed
+            // with should_load == false), but now a snapshot of that non-existing data is needed.
+            // That in turn means that we have to acquire the data now, before we can proceed...
+            data = cache->serializer->malloc();
+            // Our callee (hopefully!!!) already has a lock at this point, so there's no need
+            // to acquire another one inside of load_inner_buf (and of course it would dead-lock).
+            load_inner_buf(false);
+        }
         snapshots.push_front(buf_snapshot_info_t(data, version_id, refcount));
         cow_refcount = 0;
         return true;
@@ -324,7 +378,9 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
 
                 inner_buf->version_id = version_to_access;
                 data = inner_buf->data;
-                rassert(data != NULL);
+                // The inner_buf could just have been acquired with should_load == false,
+                // so we cannot assert data here unfortunately!
+                //rassert(data != NULL);
 
                 if (!inner_buf->writeback_buf.needs_flush &&
                         patches_affected_data_size_at_start == -1 &&
@@ -363,6 +419,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
+    rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
     rassert(patch->get_block_id() == inner_buf->block_id);
 
     patch->apply_to_buf((char*)data);
@@ -400,6 +457,7 @@ void *mc_buf_t::get_data_major_write() {
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
+    rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
 
     inner_buf->assert_thread();
 
@@ -426,7 +484,7 @@ void mc_buf_t::mark_deleted(bool write_null) {
     rassert(data == inner_buf->data);
 
     bool snapshotted = inner_buf->snapshot_if_needed(inner_buf->version_id);
-    if (!snapshotted)
+    if (!snapshotted && data)
         inner_buf->cache->serializer->free(data);
 
     data = inner_buf->data = NULL;
@@ -523,7 +581,7 @@ void mc_buf_t::release() {
                 unreachable("Unexpected mode.");
         }
     }
-
+    
     // If the buf is marked deleted, then we can delete it from memory already
     // and just keep track of the deleted block_id (and whether to write an
     // empty block).
@@ -565,10 +623,13 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp _recency_timestamp)
-    : cache(cache),
-      expected_change_count(expected_change_count),
-      access(access),
+mc_transaction_t::mc_transaction_t(cache_t *_cache, UNUSED order_token_t _order_token, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
+    : cache(_cache),
+#ifndef NDEBUG
+      order_token(_order_token),
+#endif
+      expected_change_count(_expected_change_count),
+      access(_access),
       recency_timestamp(_recency_timestamp),
       begin_callback(NULL),
       commit_callback(NULL),
@@ -697,7 +758,14 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
         inner_buf = new inner_buf_t(cache, block_id, should_load);
     } else {
         rassert(!inner_buf->do_delete || snapshotted);
-        rassert(inner_buf->data != NULL || snapshotted);
+
+        if (!inner_buf->data && should_load && !inner_buf->do_delete) {
+            // The inner_buf doesn't have any data currently. We need the data though,
+            // so load it!
+            inner_buf->data = cache->serializer->malloc();
+            // Please keep in mind that this is blocking...
+            inner_buf->load_inner_buf(true);
+        }
     }
 
     // If we are not in a snapshot transaction, then snapshot_version is faux_version_id,
@@ -810,8 +878,8 @@ mc_cache_t::mc_cache_t(
 
     dynamic_config(dynamic_config),
     serializer(serializer),
-    reads_io_account(serializer->make_io_account(CACHE_READS_IO_PRIORITY)),
-    writes_io_account(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY)),
+    reads_io_account(serializer->make_io_account(dynamic_config->io_priority_reads)),
+    writes_io_account(serializer->make_io_account(dynamic_config->io_priority_writes)),
     page_repl(
         // Launch page replacement if the user-specified maximum number of blocks is reached
         dynamic_config->max_size / serializer->get_block_size().ser_value(),
@@ -923,12 +991,12 @@ bool mc_cache_t::contains_block(block_id_t block_id) {
     return find_buf(block_id) != NULL;
 }
 
-mc_transaction_t *mc_cache_t::begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
+mc_transaction_t *mc_cache_t::begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
     assert_thread();
     rassert(!shutting_down);
     rassert(access == rwi_write || expected_change_count == 0);
 
-    transaction_t *txn = new transaction_t(this, access, expected_change_count, recency_timestamp);
+    transaction_t *txn = new transaction_t(this, token, access, expected_change_count, recency_timestamp);
     num_live_transactions++;
     if (writeback.begin_transaction(txn, callback)) {
         pm_transactions_starting.end(&txn->start_time);

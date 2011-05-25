@@ -44,7 +44,6 @@ typedef io_config_t::nondirect_file_t nondirect_file_t;
 typedef io_config_t::iocallback_t iocallback_t;
 
 typedef io_config_t::tcp_listener_t tcp_listener_t;
-typedef io_config_t::tcp_listener_callback_t tcp_listener_callback_t;
 
 typedef io_config_t::tcp_conn_t tcp_conn_t;
 

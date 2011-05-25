@@ -11,14 +11,16 @@ _rethinkdb_value_in_array () {
 }
 
 _complete_rethinkdb() {
+    io_backend=("--io-backend")
+    io_backends=("native" "pool")
     commands=("extract" "create" "help" "fsck" "serve")
-    file_args=("-f" "--file" "-l" "--log-file" "-o" "--output-file" "extract")
+    file_args=("-f" "--file" "-l" "--log-file" "-o" "--output-file" "extract" "--failover-script")
     numb_args=("--force-block-size" "--force-extent-size" "--force-slice-count" "-s" "--slices" "--block-size" "--extent-size" "-c" "--cores" "-m" "--max-cache-size" "-p" "--port" "--flush-timer" "--unsaved-data-limit" "--gc-range" "--active-data-extents")
     extract_tokens=("-f" "--file" "--force-block-size" "--force-extent-size" "--force-slice-count" "--ignore-diff-log" "-l" "--log-file" "-o" "--output-file")
     create_tokens=("-f" "--file" "-s" "--slices" "--block-size" "--extent-size" "--diff-log-size" "-l" "--log-file" "--force")
     help_tokens=("extract" "create" "fsck" "serve")
     fsck_tokens=("-f" "--file" "-l" "--log-file")
-    serve_tokens=("-f" "--file" "-c" "--cores" "-m" "--max-cache-size" "-p" "--port" "--wait-for-flush" "--flush-timer" "--flush-threshold" "--unsaved-data-limit" "--gc-range" "--active-data-extents" "-v" "--verbose" "-l" "--log-file")
+    serve_tokens=("-f" "--file" "-c" "--cores" "-m" "--max-cache-size" "-p" "--port" "--wait-for-flush" "--flush-timer" "--flush-threshold" "--flush-concurrency" "--unsaved-data-limit" "--gc-range" "--active-data-extents" "--io-backend" "--read-ahead" "-v" "--verbose" "-l" "--log-file" "--read-ahead" "--master" "--slave-of" "--failover-script")
 
     cur=${COMP_WORDS[COMP_CWORD]}
 
@@ -38,6 +40,12 @@ _complete_rethinkdb() {
 
         if _rethinkdb_value_in_array "$prev" "${numb_args[@]}"; then
             COMPREPLY= #( $( compgen -W "${arr}" -- "$cur" ) )
+            return
+        fi
+
+        if _rethinkdb_value_in_array "$prev" "${io_backend[@]}"; then
+            use="${io_backends[@]}"
+            COMPREPLY=( $( compgen -W "$use" -- "$cur" ) )
             return
         fi
 

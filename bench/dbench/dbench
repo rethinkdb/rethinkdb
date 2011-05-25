@@ -279,6 +279,29 @@ class RethinkDB(MemcachedLikeServer):
         self.run_process(self.find_binary('rethinkdb'), args)
         self.wait_for_server_ready()
 
+    MAX_WAIT_TIME = 3600
+    WAIT_INTERVAL = 0.5
+
+    # Replication setups require us to wait until the nodes are in sync before sending queries
+    def wait_for_server_ready(self):
+        bound = time.time() + self.MAX_WAIT_TIME
+        print "Waiting: %d\n" % time.time()
+        while time.time() < bound:
+            try:
+                s = socket.socket()
+                s.connect(('localhost', self.dbench.port))
+                s.send('get test\r\n\r\n')
+                res = s.makefile().readline()
+                if res == 'END\r\n':
+                    print "Waiting done: %d\n" % time.time()
+                    return
+            except socket.error, e:
+                pass
+            finally:
+                s.close()
+            time.sleep(self.WAIT_INTERVAL)
+        self.dbench.die('Unable to connect to server (localhost:%d)' % (self.dbench.port))
+
 class Memcached(MemcachedLikeServer):
     binary_paths = []
 
@@ -572,7 +595,7 @@ class DBench(object):
         parser.add_argument('client', help='Client XXX', type=self.parse_worker)
         parser.add_argument('monitors', help='Monitors XXX', metavar='monitor',
                             nargs='*', type=self.parse_worker)
-        parser.add_argument('insert', help='Insert XXX', type=self.parse_worker, nargs='?')
+        parser.add_argument('-i', '--insert', help='XXX', type=self.parse_worker)
         parser.add_argument('-f', '--force', help='Delete output directory before starting',
                             action='store_true')
         parser.add_argument('-P', '--prime-caches', help='Run client twice to prime caches',
@@ -667,6 +690,15 @@ class DBench(object):
                 print >> f, msg
 
     def start_workers(self):
+        # Make sure the insert client finishes first
+        if self.insert:
+            self.info('%s started for insert' % self.insert)
+            self.info('Waiting for client...')
+            self.insert.start()
+            self.insert.wait()
+            self.info('Client completed')
+            time.sleep(180) # Wait a bit for the database to be able to flush stuff...
+    
         if self.args.prime_caches:
             # Run client twice to prime caches of the server
             self.client.start()

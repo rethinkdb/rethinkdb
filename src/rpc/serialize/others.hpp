@@ -224,4 +224,20 @@ inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es,
     }
 }
 
+/* Serializing and unserializing `order_token_t`. For now we don't actually serialize
+anything because we don't have a way of making sure that buckets are unique across
+different machines in the cluster. */
+
+inline void serialize(UNUSED cluster_outpipe_t *conn, UNUSED const order_token_t &tok) {
+    // Do nothing
+}
+
+inline int ser_size(UNUSED const order_token_t &tok) {
+    return 0;
+}
+
+inline void unserialize(UNUSED cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, order_token_t *tok) {
+    *tok = order_token_t::ignore;
+}
+
 #endif /* __RPC_SERIALIZE_OTHERS_HPP__ */

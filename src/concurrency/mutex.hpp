@@ -33,11 +33,12 @@ public:
         }
     }
 
-    void unlock() {
+    void unlock(bool eager = false) {
         rassert(locked);
         if (lock_request_t *h = waiters.head()) {
             waiters.remove(h);
-            call_later_on_this_thread(h);
+            if (eager) h->on_thread_switch();
+            else call_later_on_this_thread(h);
         } else {
             locked = false;
         }
@@ -57,14 +58,15 @@ void co_lock_mutex(mutex_t *mutex);
 
 class mutex_acquisition_t {
 public:
-    mutex_acquisition_t(mutex_t *lock) : lock_(lock) {
+    mutex_acquisition_t(mutex_t *lock, bool eager = false) : lock_(lock), eager_(eager) {
         co_lock_mutex(lock_);
     }
     ~mutex_acquisition_t() {
-        lock_->unlock();
+        lock_->unlock(eager_);
     }
 private:
     mutex_t *lock_;
+    bool eager_;
     DISABLE_COPYING(mutex_acquisition_t);
 };
 

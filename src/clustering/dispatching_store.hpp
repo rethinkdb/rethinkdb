@@ -9,12 +9,12 @@ struct clustered_store_t : public set_store_t, public get_store_t {
     clustered_store_t();
     ~clustered_store_t();
 
-    mutation_result_t change(const mutation_t &mut, castime_t castime);
+    mutation_result_t change(const mutation_t &mut, castime_t castime, order_token_t tok);
 
-    get_result_t get(const store_key_t &key);
+    get_result_t get(const store_key_t &key, order_token_t tok);
 
     rget_result_t rget(UNUSED rget_bound_mode_t left_mode, const UNUSED store_key_t &left_key,
-        UNUSED rget_bound_mode_t right_mode, const UNUSED store_key_t &right_key) { 
+        UNUSED rget_bound_mode_t right_mode, const UNUSED store_key_t &right_key, UNUSED order_token_t tok) { 
         not_implemented(); 
         rget_result_t res;
         return res;

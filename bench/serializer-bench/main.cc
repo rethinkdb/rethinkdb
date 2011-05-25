@@ -278,6 +278,8 @@ void parse_config(int argc, char *argv[], config_t *config) {
     config->ser_dynamic_config.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
     config->ser_dynamic_config.file_size = 0;
     config->ser_dynamic_config.file_zone_size = GIGABYTE;
+    config->ser_dynamic_config.read_ahead = false;
+    config->ser_dynamic_config.io_backend = aio_native;
     
     config->duration = 10;   /* Seconds */
     config->concurrent_txns = 8;

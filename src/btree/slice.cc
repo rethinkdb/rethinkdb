@@ -35,6 +35,8 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     startup_dynamic_config.flush_dirty_size = size;
     startup_dynamic_config.flush_waiting_threshold = INT_MAX;
     startup_dynamic_config.max_concurrent_flushes = 1;
+    startup_dynamic_config.io_priority_reads = 100;
+    startup_dynamic_config.io_priority_writes = 100;
 
     thread_saver_t saver;
 
@@ -69,60 +71,74 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
                              mirrored_cache_config_t *dynamic_config,
-                             int64_t delete_queue_limit)
-    : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit) { }
+                             int64_t delete_queue_limit,
+                             const std::string& informal_name)
+    : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit), informal_name_(informal_name) { }
 
 btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff
 }
 
-get_result_t btree_slice_t::get(const store_key_t &key) {
-    on_thread_t th(home_thread);
-    return btree_get(key, this);
+get_result_t btree_slice_t::get(const store_key_t &key, order_token_t token) {
+    assert_thread();
+    order_sink_.check_out(token);
+    token = order_source_.check_in();
+    return btree_get(key, this, token);
 }
 
-rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) {
-    on_thread_t th(home_thread);
-    return btree_rget_slice(this, left_mode, left_key, right_mode, right_key);
+rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
+    assert_thread();
+    order_sink_.check_out(token);
+    token = order_source_.check_in();
+    return btree_rget_slice(this, left_mode, left_key, right_mode, right_key, token);
 }
 
 struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_result_t> {
     mutation_result_t operator()(const get_cas_mutation_t &m) {
-        return btree_get_cas(m.key, parent, ct);
+        return btree_get_cas(m.key, parent, ct, order_token);
     }
     mutation_result_t operator()(const sarc_mutation_t &m) {
-        return btree_set(m.key, parent, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, ct);
+        return btree_set(m.key, parent, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, ct, order_token);
     }
     mutation_result_t operator()(const incr_decr_mutation_t &m) {
-        return btree_incr_decr(m.key, parent, (m.kind == incr_decr_INCR), m.amount, ct);
+        return btree_incr_decr(m.key, parent, (m.kind == incr_decr_INCR), m.amount, ct, order_token);
     }
     mutation_result_t operator()(const append_prepend_mutation_t &m) {
-        return btree_append_prepend(m.key, parent, m.data, (m.kind == append_prepend_APPEND), ct);
+        return btree_append_prepend(m.key, parent, m.data, (m.kind == append_prepend_APPEND), ct, order_token);
     }
     mutation_result_t operator()(const delete_mutation_t &m) {
-        return btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp);
+        return btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token);
     }
+
     btree_slice_t *parent;
     castime_t ct;
+    order_token_t order_token;
 };
 
-mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime) {
-    on_thread_t th(home_thread);
+mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, order_token_t token) {
+    // If you're calling this from the wrong thread, you're not
+    // thinking about the problem enough.
+    assert_thread();
+
+    order_sink_.check_out(token);
+    token = order_source_.check_in();
 
     btree_slice_change_visitor_t functor;
     functor.parent = this;
     functor.ct = castime;
+    functor.order_token = token;
     return boost::apply_visitor(functor, m.mutation);
 }
 
 void btree_slice_t::delete_all_keys_for_backfill() {
-    on_thread_t th(home_thread);
+    assert_thread();
 
     btree_delete_all_keys_for_backfill(this);
 }
 
 void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {
-    on_thread_t th(home_thread);
+    assert_thread();
+
     btree_backfill(this, since_when, callback);
 }
 

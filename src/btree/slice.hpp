@@ -24,19 +24,20 @@ public:
     // Blocks
     btree_slice_t(translator_serializer_t *serializer,
                   mirrored_cache_config_t *dynamic_config,
-                  int64_t delete_queue_limit);
+                  int64_t delete_queue_limit,
+                  const std::string& informal_name);
 
     // Blocks
     ~btree_slice_t();
 
-    /* get_store_t interface. */
+    /* get_store_t interface */
 
-    get_result_t get(const store_key_t &key);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
+    get_result_t get(const store_key_t &key, order_token_t token);
+    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
 
     /* set_store_t interface */
 
-    mutation_result_t change(const mutation_t &m, castime_t castime);
+    mutation_result_t change(const mutation_t &m, castime_t castime, order_token_t token);
 
     /* btree_slice_t interface */
 
@@ -58,9 +59,19 @@ public:
     cache_t *cache() { return &cache_; }
     int64_t delete_queue_limit() { return delete_queue_limit_; }
 
+    // Please use this only for debugging.
+    const char *name() const { return informal_name_.c_str(); }
+
 private:
     cache_t cache_;
     int64_t delete_queue_limit_;
+
+    /* We serialize all `order_token_t`s through here. This way we can use `plain_sink_t` for
+    the order sinks on the individual blocks in the buffer cache. */
+    order_sink_t order_sink_;
+    order_source_t order_source_;
+
+    const std::string informal_name_;
 
     DISABLE_COPYING(btree_slice_t);
 };

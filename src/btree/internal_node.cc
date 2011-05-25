@@ -227,7 +227,8 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
         node_buf.set_data(const_cast<uint16_t *>(&node->pair_offsets[new_npairs++]), &special_pair_offset, sizeof(uint16_t));
         node_buf.set_data(const_cast<uint16_t *>(&node->npairs), &new_npairs, sizeof(new_npairs));
 
-        node_buf.set_data(const_cast<block_id_t *>(&pair_for_parent->lnode), &pair_for_parent->lnode, sizeof(pair_for_parent->lnode));
+        const btree_internal_pair *special_pair = get_pair(node, special_pair_offset);
+        node_buf.set_data(const_cast<block_id_t *>(&special_pair->lnode), &pair_for_parent->lnode, sizeof(pair_for_parent->lnode));
 
         keycpy(key_to_replace, &get_pair_by_index(node, 0)->key);
         keycpy(replacement_key, &pair_for_parent->key);

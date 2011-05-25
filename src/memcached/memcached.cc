@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <stdarg.h>
+#include <unistd.h>
 
 #include "arch/arch.hpp"
 #include "concurrency/task.hpp"
@@ -13,22 +14,20 @@
 #include "server/control.hpp"
 #include "store.hpp"
 #include "logger.hpp"
+#include "progress/progress.hpp"
+#include "arch/os_signal.hpp"
 
 /* txt_memcached_handler_t is basically defunct; it only exists as a convenient thing to pass
 around to do_get(), do_storage(), and the like. */
 
 static const char *crlf = "\r\n";
 
-struct txt_memcached_handler_t : public home_thread_mixin_t {
+struct txt_memcached_handler_t : public txt_memcached_handler_if, public home_thread_mixin_t {
     tcp_conn_t *conn;
-    get_store_t *get_store;
-    set_store_interface_t *set_store;
 
     txt_memcached_handler_t(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) :
-        conn(conn),
-        get_store(get_store),
-        set_store(set_store),
-        requests_out_sem(MAX_CONCURRENT_QUERIES_PER_CONNECTION)
+        txt_memcached_handler_if(get_store, set_store),
+        conn(conn)
     { }
 
     /* Wrappers around conn->write*() that ignore write errors, because we want to continue
@@ -142,25 +141,144 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         server_error(saver, "object too large for cache\r\n");
     }
 
-    // Used to limit number of concurrent noreply requests
-    semaphore_t requests_out_sem;
-
-    /* If a client sends a bunch of noreply requests and then a 'quit', we cannot delete ourself
-    immediately because the noreply requests still hold the 'requests_out' semaphore. We use this
-    semaphore to figure out when we can delete ourself. */
-    drain_semaphore_t drain_semaphore;
-
-    // Used to implement throttling. Write requests should call begin_write_command() and
-    // end_write_command() to make sure that not too many write requests are sent
-    // concurrently.
-    void begin_write_command() {
-        drain_semaphore.acquire();
-        requests_out_sem.co_lock();
+    void flush_buffer() {
+        try {
+            conn->flush_buffer();
+        } catch (tcp_conn_t::write_closed_exc_t) {
+            /* Ignore errors; it's OK for the write end of the connection to be closed. */
+        }
     }
-    void end_write_command() {
-        drain_semaphore.release();
-        requests_out_sem.unlock();
+
+    bool is_write_open() {
+        return conn->is_write_open();
     }
+
+    void read(void *buf, size_t nbytes) {
+        try {
+            conn->read(buf, nbytes);
+        } catch(tcp_conn_t::read_closed_exc_t) {
+            throw no_more_data_exc_t();
+        }
+    }
+
+    void read_line(std::vector<char> *dest) {
+        try {
+            for (;;) {
+                const_charslice sl = conn->peek();
+                void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, crlf, 2);
+                ssize_t threshold = MEGABYTE;
+
+                if (crlf_loc) {
+                    // We have a valid line.
+                    size_t line_size = (char *)crlf_loc - (char *)sl.beg;
+
+                    dest->resize(line_size + 2);  // +2 for CRLF
+                    memcpy(dest->data(), sl.beg, line_size + 2);
+                    conn->pop(line_size + 2);
+                    return;
+                } else if (sl.end - sl.beg > threshold) {
+                    // If a malfunctioning client sends a lot of data without a
+                    // CRLF, we cut them off.  (This doesn't apply to large values
+                    // because they are read from the socket via a different
+                    // mechanism.)  There are better ways to handle this
+                    // situation.
+                    logERR("Aborting connection %p because we got more than %ld bytes without a CRLF\n",
+                            coro_t::self(), threshold);
+                    conn->shutdown_read();
+                    throw tcp_conn_t::read_closed_exc_t();
+                }
+
+                // Keep trying until we get a complete line.
+                conn->read_more_buffered();
+            }
+
+        } catch(tcp_conn_t::read_closed_exc_t) {
+            throw no_more_data_exc_t();
+        }
+    }
+};
+
+/* Warning this is a bit of a hack, it's like the memcached handler but instead
+ * of a conn, it has a file which it reads from, it implements alot of the
+ * interface with dummy functions (like all of the values that would be sent
+ * back to user), this feels kind of dumb since we have an abstract interface
+ * with 2 subclasses, one of which basically has dummies for 90% of the
+ * functions. This is really mostly out of convience, the right way to do this
+ * would be to have more abstraction in txt_memcached_handler_t... but for now
+ * it doesn't seem worth it. It's also worth noting that it's not entirely
+ * outside the realm of possibility that we could want this output at some
+ * later date (in which case we would replace these dummies with real
+ * functions). One use case that jumps to mind is that we could potentially use
+ * a big rget as a more efficient (I think) form of abstraction, in which case
+ * we would need the output */
+
+class txt_memcached_file_importer_t : public txt_memcached_handler_if
+{
+private:
+    FILE *file;
+    file_progress_bar_t progress_bar;
+
+public:
+
+    txt_memcached_file_importer_t(std::string filename, get_store_t *get_store, set_store_interface_t *set_store) :
+        txt_memcached_handler_if(get_store, set_store, MAX_CONCURRENT_QUEURIES_ON_IMPORT),
+        file(fopen(filename.c_str(), "r")), progress_bar(std::string("Import"), file)
+    { }
+    ~txt_memcached_file_importer_t() {
+        fclose(file);
+    }
+    void write(UNUSED const thread_saver_t& saver, UNUSED const std::string& buffer) { }
+    void write(UNUSED const thread_saver_t& saver, UNUSED const char *buffer, UNUSED size_t bytes) { }
+    void vwritef(UNUSED const thread_saver_t& saver, UNUSED const char *format, UNUSED va_list args) { }
+    void writef(UNUSED const thread_saver_t& saver, UNUSED const char *format, ...) { }
+    void write_unbuffered(UNUSED const char *buffer, UNUSED size_t bytes) { }
+    void write_from_data_provider(UNUSED const thread_saver_t& saver, UNUSED data_provider_t *dp) { }
+    void write_value_header(UNUSED const thread_saver_t& saver, UNUSED const char *key, UNUSED size_t key_size, UNUSED mcflags_t mcflags, UNUSED size_t value_size) { }
+    void write_value_header(UNUSED const thread_saver_t& saver, UNUSED const char *key, UNUSED size_t key_size, UNUSED mcflags_t mcflags, UNUSED size_t value_size, UNUSED cas_t cas) { }
+    void error(UNUSED const thread_saver_t& saver) { }
+    void write_crlf(UNUSED const thread_saver_t& saver) { }
+    void write_end(UNUSED const thread_saver_t& saver) { }
+    void client_error(UNUSED const thread_saver_t& saver, UNUSED const char *format, ...) { }
+    void server_error(UNUSED const thread_saver_t& saver, UNUSED const char *format, ...) { }
+    void client_error_bad_command_line_format(UNUSED const thread_saver_t& saver) { }
+    void client_error_bad_data(UNUSED const thread_saver_t& saver) { }
+    void client_error_not_allowed(UNUSED const thread_saver_t& saver, UNUSED bool op_is_write) { }
+    void server_error_object_too_large_for_cache(UNUSED const thread_saver_t& saver) { }
+    void flush_buffer() { }
+
+    bool is_write_open() { return false; }
+
+    void read(void *buf, size_t nbytes) {
+        if (fread(buf, nbytes, 1, file) == 0)
+            throw no_more_data_exc_t();
+    }
+
+    void read_line(std::vector<char> *dest) {
+        int limit = MEGABYTE;
+        dest->clear();
+        char c; 
+        char *head = (char *) crlf;
+        while ((*head) && ((c = getc(file)) != EOF) && (limit--) > 0) {
+            dest->push_back(c);
+            if (c == *head) head++;
+            else head = (char *) crlf;
+        }
+        //we didn't every find a crlf unleash the exception 
+        if (*head) throw no_more_data_exc_t();
+    }
+
+public:
+    /* In our current use of import we ignore gets, the easiest way to do this
+     * is with a dummyed get_store */
+    class dummy_get_store_t : public get_store_t {
+        get_result_t get(UNUSED const store_key_t &key, UNUSED order_token_t token) { return get_result_t(); }
+        rget_result_t rget(UNUSED rget_bound_mode_t left_mode, UNUSED const store_key_t &left_key,
+                           UNUSED rget_bound_mode_t right_mode, UNUSED const store_key_t &right_key, 
+                           UNUSED order_token_t token)
+        {
+            return rget_result_t();
+        }
+    };
 };
 
 perfmon_duration_sampler_t
@@ -175,15 +293,15 @@ struct get_t {
     get_result_t res;
 };
 
-void do_one_get(txt_memcached_handler_t *rh, bool with_cas, get_t *gets, int i) {
+void do_one_get(txt_memcached_handler_if *rh, bool with_cas, get_t *gets, int i, order_token_t token) {
     if (with_cas) {
-        gets[i].res = rh->set_store->get_cas(gets[i].key);
+        gets[i].res = rh->set_store->get_cas(gets[i].key, token);
     } else {
-        gets[i].res = rh->get_store->get(gets[i].key);
+        gets[i].res = rh->get_store->get(gets[i].key, token);
     }
 }
 
-void do_get(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv) {
+void do_get(const thread_saver_t& saver, txt_memcached_handler_if *rh, bool with_cas, int argc, char **argv, order_token_t token) {
     rassert(argc >= 1);
     rassert(strcmp(argv[0], "get") == 0 || strcmp(argv[0], "gets") == 0);
 
@@ -212,7 +330,7 @@ void do_get(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool with_
     block_pm_duration get_timer(&pm_cmd_get);
 
     /* Now that we're sure they're all valid, send off the requests */
-    pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1));
+    pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1, token));
 
     /* Check if they hit a gated_get_store_t. */
     if (gets.size() > 0 && gets[0].res.is_not_allowed) {
@@ -235,7 +353,7 @@ void do_get(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool with_
         if (res.value) {
             /* If the write half of the connection has been closed, there's no point in trying
             to send anything */
-            if (rh->conn->is_write_open()) {
+            if (rh->is_write_open()) {
                 const store_key_t &key = gets[i].key;
 
                 /* Write the "VALUE ..." header */
@@ -284,7 +402,7 @@ static bool rget_parse_bound(char *flag, char *key, rget_bound_mode_t *mode_out,
 }
 
 perfmon_duration_sampler_t rget_iteration_next("rget_iteration_next", secs_to_ticks(1));
-void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv) {
+void do_rget(const thread_saver_t& saver, txt_memcached_handler_if *rh, int argc, char **argv, order_token_t token) {
     if (argc != 6) {
         rh->client_error_bad_command_line_format(saver);
         return;
@@ -315,7 +433,7 @@ void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc,
 
     block_pm_duration rget_timer(&pm_cmd_rget);
 
-    rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key);
+    rget_result_t results_iterator = rh->get_store->rget(left_mode, left_key, right_mode, right_key, token);
 
     /* Check if the query hit a gated_get_store_t */
     if (!results_iterator) {
@@ -355,13 +473,13 @@ class memcached_data_provider_t :
     public home_thread_mixin_t
 {
 private:
-    txt_memcached_handler_t *rh;   // Request handler for us to read from
+    txt_memcached_handler_if *rh;   // Request handler for us to read from
     size_t length;   // Our length
     bool was_read;
     promise_t<bool> *to_signal;
 
 public:
-    memcached_data_provider_t(txt_memcached_handler_t *rh, uint32_t length, promise_t<bool> *to_signal)
+    memcached_data_provider_t(txt_memcached_handler_if *rh, uint32_t length, promise_t<bool> *to_signal)
         : rh(rh), length(length), was_read(false), to_signal(to_signal)
     { }
 
@@ -391,16 +509,16 @@ public:
         on_thread_t thread_switcher(home_thread);
         try {
             for (int i = 0; i < (int)b->num_buffers(); i++) {
-                rh->conn->read(b->get_buffer(i).data, b->get_buffer(i).size);
+                rh->read(b->get_buffer(i).data, b->get_buffer(i).size);
             }
             char expected_crlf[2];
-            rh->conn->read(expected_crlf, 2);
+            rh->read(expected_crlf, 2);
             if (memcmp(expected_crlf, crlf, 2) != 0) {
                 if (to_signal) to_signal->pulse(false);
                 throw data_provider_failed_exc_t();   // Cancel the set/append/prepend operation
             }
             if (to_signal) to_signal->pulse(true);
-        } catch (tcp_conn_t::read_closed_exc_t) {
+        } catch (txt_memcached_handler_if::no_more_data_exc_t) {
             if (to_signal) to_signal->pulse(false);
             throw data_provider_failed_exc_t();
         }
@@ -424,12 +542,13 @@ struct storage_metadata_t {
         : mcflags(_mcflags), exptime(_exptime), unique(_unique) { }
 };
 
-void run_storage_command(txt_memcached_handler_t *rh,
+void run_storage_command(txt_memcached_handler_if *rh,
                          storage_command_t sc,
                          store_key_t key,
                          size_t value_size, promise_t<bool> *value_read_promise,
                          storage_metadata_t metadata,
-                         bool noreply) {
+                         bool noreply,
+                         order_token_t token) {
 
     thread_saver_t saver;
 
@@ -466,8 +585,8 @@ void run_storage_command(txt_memcached_handler_t *rh,
         }
 
         set_result_t res = rh->set_store->sarc(key, data, metadata.mcflags, metadata.exptime,
-                                               add_policy, replace_policy, metadata.unique);
-        
+                                               add_policy, replace_policy, metadata.unique, token);
+
         if (!noreply) {
             switch (res) {
             case sr_stored:
@@ -500,7 +619,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
         append_prepend_result_t res =
             rh->set_store->append_prepend(
                 sc == append_command ? append_prepend_APPEND : append_prepend_PREPEND,
-                key, data);
+                key, data, token);
 
         if (!noreply) {
             switch (res) {
@@ -527,7 +646,7 @@ void run_storage_command(txt_memcached_handler_t *rh,
     read_value_promise here */
 }
 
-void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storage_command_t sc, int argc, char **argv) {
+void do_storage(const thread_saver_t& saver, txt_memcached_handler_if *rh, storage_command_t sc, int argc, char **argv, order_token_t token) {
     char *invalid_char;
 
     /* cmd key flags exptime size [noreply]
@@ -615,9 +734,9 @@ void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storag
     rh->begin_write_command();
 
     if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, metadata, true));
+        coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, metadata, true, token));
     } else {
-        run_storage_command(rh, sc, key, value_size, &value_read_promise, metadata, false);
+        run_storage_command(rh, sc, key, value_size, &value_read_promise, metadata, false, token);
     }
 
     /* We can't move on to the next command until the value has been read off the socket. */
@@ -629,14 +748,14 @@ void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storag
 }
 
 /* "incr" and "decr" commands */
-void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount, bool incr, bool noreply) {
+void run_incr_decr(txt_memcached_handler_if *rh, store_key_t key, uint64_t amount, bool incr, bool noreply, order_token_t token) {
     thread_saver_t saver;
 
     block_pm_duration set_timer(&pm_cmd_set);
 
     incr_decr_result_t res = rh->set_store->incr_decr(
         incr ? incr_decr_INCR : incr_decr_DECR,
-        key, amount);
+        key, amount, token);
 
     if (!noreply) {
         switch (res.res) {
@@ -659,7 +778,7 @@ void run_incr_decr(txt_memcached_handler_t *rh, store_key_t key, uint64_t amount
     rh->end_write_command();
 }
 
-void do_incr_decr(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool i, int argc, char **argv) {
+void do_incr_decr(const thread_saver_t& saver, txt_memcached_handler_if *rh, bool i, int argc, char **argv, order_token_t token) {
     /* cmd key delta [noreply] */
     if (argc != 3 && argc != 4) {
         rh->error(saver);
@@ -697,20 +816,20 @@ void do_incr_decr(const thread_saver_t& saver, txt_memcached_handler_t *rh, bool
     rh->begin_write_command();
 
     if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_incr_decr, rh, key, delta, i, true));
+        coro_t::spawn_now(boost::bind(&run_incr_decr, rh, key, delta, i, true, token));
     } else {
-        run_incr_decr(rh, key, delta, i, false);
+        run_incr_decr(rh, key, delta, i, false, token);
     }
 }
 
 /* "delete" commands */
 
-void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
+void run_delete(txt_memcached_handler_if *rh, store_key_t key, bool noreply, order_token_t token) {
     thread_saver_t saver;
 
     block_pm_duration set_timer(&pm_cmd_set);
 
-    delete_result_t res = rh->set_store->delete_key(key);
+    delete_result_t res = rh->set_store->delete_key(key, token);
 
     if (!noreply) {
         switch (res) {
@@ -730,7 +849,7 @@ void run_delete(txt_memcached_handler_t *rh, store_key_t key, bool noreply) {
     rh->end_write_command();
 }
 
-void do_delete(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv) {
+void do_delete(const thread_saver_t& saver, txt_memcached_handler_if *rh, int argc, char **argv, order_token_t token) {
     /* "delete" key [a number] ["noreply"] */
     if (argc < 2 || argc > 4) {
         rh->error(saver);
@@ -768,15 +887,15 @@ void do_delete(const thread_saver_t& saver, txt_memcached_handler_t *rh, int arg
     rh->begin_write_command();
 
     if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_delete, rh, key, true));
+        coro_t::spawn_now(boost::bind(&run_delete, rh, key, true, token));
     } else {
-        run_delete(rh, key, false);
+        run_delete(rh, key, false, token);
     }
 };
 
 /* "stats"/"stat" commands */
 
-void do_stats(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv) {
+void do_stats(const thread_saver_t& saver, txt_memcached_handler_if *rh, int argc, char **argv) {
     perfmon_stats_t stats;
     perfmon_get_stats(&stats);
 
@@ -802,38 +921,6 @@ perfmon_duration_sampler_t
     pm_conns_writing("conns_writing", secs_to_ticks(1)),
     pm_conns_acting("conns_acting", secs_to_ticks(1));
 
-void read_line(tcp_conn_t *conn, std::vector<char> *dest) {
-    for (;;) {
-        const_charslice sl = conn->peek();
-        void *crlf_loc = memmem(sl.beg, sl.end - sl.beg, crlf, 2);
-        ssize_t threshold = MEGABYTE;
-
-        if (crlf_loc) {
-            // We have a valid line.
-            size_t line_size = (char *)crlf_loc - (char *)sl.beg;
-
-            dest->resize(line_size + 2);  // +2 for CRLF
-            memcpy(dest->data(), sl.beg, line_size + 2);
-            conn->pop(line_size + 2);
-            return;
-        } else if (sl.end - sl.beg > threshold) {
-            // If a malfunctioning client sends a lot of data without a
-            // CRLF, we cut them off.  (This doesn't apply to large values
-            // because they are read from the socket via a different
-            // mechanism.)  There are better ways to handle this
-            // situation.
-            logERR("Aborting connection %p because we got more than %ld bytes without a CRLF\n",
-                   coro_t::self(), threshold);
-            conn->shutdown_read();
-            throw tcp_conn_t::read_closed_exc_t();
-        }
-
-        // Keep trying until we get a complete line.
-        conn->read_more_buffered();
-    }
-
-};
-
 std::string join_strings(std::string separator, std::vector<char*>::iterator begin, std::vector<char*>::iterator end) {
     std::string res(*begin);
     for (std::vector<char *>::iterator it = begin + 1; it != end; it++)
@@ -842,7 +929,7 @@ std::string join_strings(std::string separator, std::vector<char*>::iterator beg
 }
 
 #ifndef NDEBUG
-void do_quickset(const thread_saver_t& saver, txt_memcached_handler_t *rh, std::vector<char*> args) {
+void do_quickset(const thread_saver_t& saver, txt_memcached_handler_if *rh, std::vector<char*> args) {
     if (args.size() < 2 || args.size() % 2 == 0) {
         // The connection will be closed if more than a megabyte or so is sent
         // over without a newline, so we don't really need to worry about large
@@ -859,7 +946,7 @@ void do_quickset(const thread_saver_t& saver, txt_memcached_handler_t *rh, std::
         }
         boost::shared_ptr<buffered_data_provider_t> value(new buffered_data_provider_t(args[i + 1], strlen(args[i + 1])));
 
-        set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0);
+        set_result_t res = rh->set_store->sarc(key, value, 0, 0, add_policy_yes, replace_policy_yes, 0, order_token_t::ignore);
 
         if (res == sr_stored) {
             rh->writef(saver, "STORED key %s\r\n", args[i]);
@@ -869,7 +956,7 @@ void do_quickset(const thread_saver_t& saver, txt_memcached_handler_t *rh, std::
     }
 }
 
-bool parse_debug_command(const thread_saver_t& saver, txt_memcached_handler_t *rh, std::vector<char*> args) {
+bool parse_debug_command(const thread_saver_t& saver, txt_memcached_handler_if *rh, std::vector<char*> args) {
     if (args.size() < 1) {
         return false;
     }
@@ -889,31 +976,30 @@ bool parse_debug_command(const thread_saver_t& saver, txt_memcached_handler_t *r
 }
 #endif  // NDEBUG
 
-void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
-    logDBG("Opened connection %p\n", coro_t::self());
+/* Handle memcached, takes a txt_memcached_handler_if and handles the memcached commands that come in on it */
+void handle_memcache(txt_memcached_handler_if *rh, UNUSED order_source_t *order_source) {
+    logDBG("Opened memcached stream: %p\n", coro_t::self());
 
-    /* Object that we pass around to subroutines (is there a better way to do this?) */
-    txt_memcached_handler_t rh(conn, get_store, set_store);
+    // TODO: Actually use order_source.
 
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;
 
-    while (true) {
+    /* Create a linked sigint cond on my thread */
+    sigint_indicator_t sigint_has_happened;
+
+    while (!sigint_has_happened.get_value()) {
         /* Flush if necessary (no reason to do this the first time around, but it's easier
         to put it here than after every thing that could need to flush */
         block_pm_duration flush_timer(&pm_conns_writing);
-        try {
-            conn->flush_buffer();
-        } catch (tcp_conn_t::write_closed_exc_t) {
-            /* Ignore errors; it's OK for the write end of the connection to be closed. */
-        }
+        rh->flush_buffer();
         flush_timer.end();
 
         /* Read a line off the socket */
         block_pm_duration read_timer(&pm_conns_reading);
         try {
-            read_line(conn, &line);
-        } catch (tcp_conn_t::read_closed_exc_t) {
+            rh->read_line(&line);
+        } catch (txt_memcached_handler_if::no_more_data_exc_t) {
             break;
         }
         read_timer.end();
@@ -931,59 +1017,61 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
 
         if (args.size() == 0) {
             thread_saver_t saver;
-            rh.error(saver);
+            rh->error(saver);
             continue;
         }
 
         /* Dispatch to the appropriate subclass */
+        order_token_t token = order_source->check_in();
         thread_saver_t saver;
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
-            do_get(saver, &rh, false, args.size(), args.data());
+            do_get(saver, rh, false, args.size(), args.data(), token.with_read_mode());
         } else if (!strcmp(args[0], "gets")) {
-            do_get(saver, &rh, true, args.size(), args.data());
+            do_get(saver, rh, true, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "rget")) {
-            do_rget(saver, &rh, args.size(), args.data());
+            do_rget(saver, rh, args.size(), args.data(), token.with_read_mode());
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
-            do_storage(saver, &rh, set_command, args.size(), args.data());
+            do_storage(saver, rh, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {
-            do_storage(saver, &rh, add_command, args.size(), args.data());
+            do_storage(saver, rh, add_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "replace")) {
-            do_storage(saver, &rh, replace_command, args.size(), args.data());
+            do_storage(saver, rh, replace_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "append")) {
-            do_storage(saver, &rh, append_command, args.size(), args.data());
+            do_storage(saver, rh, append_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "prepend")) {
-            do_storage(saver, &rh, prepend_command, args.size(), args.data());
+            do_storage(saver, rh, prepend_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "cas")) {
-            do_storage(saver, &rh, cas_command, args.size(), args.data());
+            do_storage(saver, rh, cas_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "delete")) {
-            do_delete(saver, &rh, args.size(), args.data());
+            do_delete(saver, rh, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "incr")) {
-            do_incr_decr(saver, &rh, true, args.size(), args.data());
+            do_incr_decr(saver, rh, true, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "decr")) {
-            do_incr_decr(saver, &rh, false, args.size(), args.data());
+            do_incr_decr(saver, rh, false, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "quit")) {
-            // Make sure there's no more tokens
+            // Make sure there's no more tokens (the kind in args, not
+            // order tokens)
             if (args.size() > 1) {
-                rh.error(saver);
+                rh->error(saver);
             } else {
                 break;
             }
         } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
-            do_stats(saver, &rh, args.size(), args.data());
+            do_stats(saver, rh, args.size(), args.data());
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
-            rh.write(saver, control_t::exec(args.size() - 1, args.data() + 1));
+            rh->write(saver, control_t::exec(args.size() - 1, args.data() + 1));
         } else if (!strcmp(args[0], "version")) {
             if (args.size() == 2) {
-                rh.writef(saver, "VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
+                rh->writef(saver, "VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
             } else {
-                rh.error(saver);
+                rh->error(saver);
             }
 #ifndef NDEBUG
-        } else if (!parse_debug_command(saver, &rh, args)) {
+        } else if (!parse_debug_command(saver, rh, args)) {
 #else
         } else {
 #endif
-            rh.error(saver);
+            rh->error(saver);
         }
 
         action_timer.end();
@@ -991,8 +1079,24 @@ void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interfac
 
     /* Acquire the drain semaphore to make sure that anything that might refer to us is
     done by now */
-    rh.drain_semaphore.drain();
+    rh->drain_semaphore.drain();
 
-    logDBG("Closed connection %p\n", coro_t::self());
+    logDBG("Closed memcached stream: %p\n", coro_t::self());
+}
+
+/* serve_memcache serves memcache over a tcp_conn_t */
+void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, order_source_t *order_source) {
+    /* Object that we pass around to subroutines (is there a better way to do this?) */
+    txt_memcached_handler_t rh(conn, get_store, set_store);
+
+    handle_memcache(&rh, order_source);
+}
+
+void import_memcache(std::string filename, set_store_interface_t *set_store, order_source_t *order_source) {
+    /* Object that we pass around to subroutines (is there a better way to do this?) - copy pasta */
+    txt_memcached_file_importer_t::dummy_get_store_t dummy_get_store;
+    txt_memcached_file_importer_t rh(filename, &dummy_get_store, set_store);
+
+    handle_memcache(&rh, order_source);
 }
 

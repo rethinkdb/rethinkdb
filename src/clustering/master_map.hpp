@@ -87,11 +87,15 @@ public:
         public set_store_t
     {
     public:
-        mutation_result_t change(const mutation_t& mut, castime_t cas) { return store->change(mut, cas); }
+        mutation_result_t change(const mutation_t& mut, castime_t cas, order_token_t tok) {
+            return store->change(mut, cas, tok);
+        }
+        
         set_store_txn_t() : store(NULL), parent(NULL), bucket(-1) {}
         set_store_txn_t(const set_store_txn_t &other) 
             : store(other.store), parent(other.parent), bucket(other.bucket) 
         { if (bucket != -1) parent->open_txn(bucket); }
+
     private:
         friend class master_map_t;
 

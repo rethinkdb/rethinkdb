@@ -1,11 +1,6 @@
 #include "load_balancer.hpp"
 #include "logger.hpp"
 
-void ignore(UNUSED tcp_conn_t *) {
-    /* This function gets called when the ELB port is connected to. It returns
-    immediately, which means the connection is disconnected immediately. */
-}
-
 elb_t::elb_t(role_t role_, int port_)
     : role(role_), port(port_), conn_acceptor()
 {

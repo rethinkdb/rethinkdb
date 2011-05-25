@@ -17,12 +17,12 @@ RDB_MAKE_SERIALIZABLE_1(mutation_result_t, result)
 
 struct set_store_interface_mailbox_t {
 private:
-    typedef sync_mailbox_t<mutation_result_t(mutation_t)> change_mailbox_t;
+    typedef sync_mailbox_t<mutation_result_t(mutation_t, order_token_t)> change_mailbox_t;
     change_mailbox_t change_mailbox;
 
 public:
     set_store_interface_mailbox_t(set_store_interface_t *inner) :
-        change_mailbox(boost::bind(&set_store_interface_t::change, inner, _1))
+        change_mailbox(boost::bind(&set_store_interface_t::change, inner, _1, _2))
     { }
 
     struct address_t : public set_store_interface_t {
@@ -30,9 +30,9 @@ public:
             change_address(&mb->change_mailbox)
             { }
         address_t() { }
-        mutation_result_t change(const mutation_t &mut) {
+        mutation_result_t change(const mutation_t &mut, order_token_t tok) {
             try {
-                return change_address.call(mut);
+                return change_address.call(mut, tok);
             } catch (rpc_peer_killed_exc_t) {}
             mutation_result_t res;
             return res;
@@ -46,12 +46,12 @@ public:
 
 struct get_store_mailbox_t {
 private: 
-    typedef sync_mailbox_t<get_result_t(store_key_t)> get_mailbox_t;
+    typedef sync_mailbox_t<get_result_t(store_key_t, order_token_t)> get_mailbox_t;
     get_mailbox_t get_mailbox;
 
 public:
     get_store_mailbox_t(get_store_t *inner) :
-        get_mailbox(boost::bind(&get_store_t::get, inner, _1))
+        get_mailbox(boost::bind(&get_store_t::get, inner, _1, _2))
     { }
 
     struct address_t : public get_store_t {
@@ -59,15 +59,15 @@ public:
             get_address(&mb->get_mailbox)
         { }
         address_t() { }
-        get_result_t get(const store_key_t &key) {
+        get_result_t get(const store_key_t &key, order_token_t tok) {
             try {
-                return get_address.call(key);
+                return get_address.call(key, tok);
             } catch (rpc_peer_killed_exc_t) {}
             get_result_t res;
             return res;
         }
         rget_result_t rget(UNUSED rget_bound_mode_t left_mode, UNUSED const store_key_t &left_key,
-                UNUSED rget_bound_mode_t right_mode, UNUSED const store_key_t &right_key) {
+                UNUSED rget_bound_mode_t right_mode, UNUSED const store_key_t &right_key, UNUSED order_token_t tok) {
             not_implemented();
             rget_result_t res;
             return res;
@@ -82,12 +82,12 @@ public:
 struct set_store_mailbox_t {
 
 private:
-    typedef sync_mailbox_t<mutation_result_t(mutation_t, castime_t)> change_mailbox_t;
+    typedef sync_mailbox_t<mutation_result_t(mutation_t, castime_t, order_token_t)> change_mailbox_t;
     change_mailbox_t change_mailbox;
 
 public:
     set_store_mailbox_t(set_store_t *inner) :
-        change_mailbox(boost::bind(&set_store_t::change, inner, _1, _2))
+        change_mailbox(boost::bind(&set_store_t::change, inner, _1, _2, _3))
         { }
 
     struct address_t : public set_store_t {
@@ -95,9 +95,9 @@ public:
             change_address(&mb->change_mailbox)
             { }
         address_t() { }
-        mutation_result_t change(const mutation_t &mut, castime_t cs) {
+        mutation_result_t change(const mutation_t &mut, castime_t cs, order_token_t tok) {
             try {
-                return change_address.call(mut, cs);
+                return change_address.call(mut, cs, tok);
             } catch (rpc_peer_killed_exc_t) {}
             mutation_result_t res;
             return res;

@@ -2,6 +2,7 @@
 #include <string.h>
 #include "arch/linux/thread_pool.hpp"
 #include "concurrency/cond_var.hpp"
+#include "utils.hpp"
 
 perfmon_duration_sampler_t pm_eventloop("eventloop", secs_to_ticks(1.0));
 
@@ -60,16 +61,26 @@ void event_queue_base_t::forget_signal(UNUSED const sigevent *evp, UNUSED linux_
 
 /* linux_event_watcher_t */
 
-struct linux_event_watcher_guts_t : public linux_event_callback_t {
-
+struct linux_event_watcher_guts_t :
+    public linux_event_callback_t,
+    public home_thread_mixin_t
+{
     linux_event_watcher_guts_t(fd_t fd, linux_event_callback_t *eh) :
         fd(fd), error_handler(eh),
         read_handler(this), write_handler(this),
-        old_mask(0), registration_thread(-1), dont_destroy_yet(false), should_destroy(false)
-        { }
+        old_mask(0)
+    {
+        /* Register for error events only at first */
+        linux_thread_pool_t::thread->queue.watch_resource(fd, 0, this);
+    }
 
     ~linux_event_watcher_guts_t() {
-        rassert(registration_thread == -1);
+        assert_thread();        
+
+        /* Unregister for error events */
+        rassert(old_mask == 0);
+        linux_thread_pool_t::thread->queue.forget_resource(fd, this);
+
         rassert(!read_handler.callback && !read_handler.aborter);
         rassert(!write_handler.callback && !write_handler.aborter);
     }
@@ -90,7 +101,7 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
         signal_t *aborter;
 
         void watch(const boost::function<void()> &cb, signal_t *ab) {
-            rassert(!callback && !aborter);
+            rassert(!is_watching());
             rassert(cb && ab);
             if (!ab->is_pulsed()) {
                 callback = cb;
@@ -100,8 +111,14 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
             }
         }
 
+        bool is_watching() {
+            /* We should have neither or both a callback and an aborter */
+            rassert(callback.empty() == (aborter == NULL));
+            return !callback.empty();
+        }
+
         void pulse() {
-            rassert(callback && aborter, "%p got a pulse() when event mask is %d", parent, parent->old_mask);
+            rassert(is_watching(), "%p got a pulse() when event mask is %d", parent, parent->old_mask);
             aborter->remove_waiter(this);
             boost::function<void()> temp = callback;
             callback = 0;
@@ -111,7 +128,7 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
         }
 
         void on_signal_pulsed() {
-            rassert(callback && aborter);
+            rassert(is_watching());
             callback = 0;
             aborter = NULL;
             parent->remask();
@@ -123,14 +140,7 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
 
     int registration_thread;   // The event queue we are registered with, or -1 if we are not registered
 
-    /* If the callback for some event causes the linux_event_watcher_t to be destroyed,
-    these variables will ensure that the linux_event_watcher_guts_t doesn't get destroyed
-    immediately. */
-    bool dont_destroy_yet, should_destroy;
-
     void on_event(int event) {
-
-        dont_destroy_yet = true;
 
         int error_mask = poll_event_err | poll_event_hup | poll_event_rdhup;
         guarantee((event & (error_mask | old_mask)) == event, "Unexpected event received (from operating system?).");
@@ -153,17 +163,24 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
         if (event & poll_event_out) {
             write_handler.pulse();
         }
-
-        dont_destroy_yet = false;
-        if (should_destroy) delete this;
     }
 
     void watch(int event, const boost::function<void()> &cb, signal_t *ab) {
         rassert(event == poll_event_in || event == poll_event_out);
         rassert(cb);
         rassert(ab);
+        assert_thread();
         waiter_t *handler = event == poll_event_in ? &read_handler : &write_handler;
         handler->watch(cb, ab);
+    }
+
+    bool is_watching(int event) {
+        assert_thread();
+        switch (event) {
+            case poll_event_in: return read_handler.is_watching();
+            case poll_event_out: return write_handler.is_watching();
+            default: crash("expected poll_event_in or poll_event_out");
+        }
     }
 
     void remask() {
@@ -171,25 +188,11 @@ struct linux_event_watcher_guts_t : public linux_event_callback_t {
         we are actually waiting for. */
 
         int new_mask = 0;
-        if (read_handler.callback) new_mask |= poll_event_in;
-        if (write_handler.callback) new_mask |= poll_event_out;
+        if (read_handler.is_watching()) new_mask |= poll_event_in;
+        if (write_handler.is_watching()) new_mask |= poll_event_out;
 
-        if (old_mask) {
-            rassert(registration_thread == linux_thread_pool_t::thread_id);
-            if (new_mask == 0) {
-                linux_thread_pool_t::thread->queue.forget_resource(fd, this);
-                registration_thread = -1;
-            } else if (new_mask != old_mask) {
-                linux_thread_pool_t::thread->queue.adjust_resource(fd, new_mask, this);
-            }
-        } else {
-            rassert(registration_thread == -1);
-            if (new_mask == 0) {
-                /* We went from not watching any events to not watching any events. */
-            } else {
-                linux_thread_pool_t::thread->queue.watch_resource(fd, new_mask, this);
-                registration_thread = linux_thread_pool_t::thread_id;
-            }
+        if (old_mask != new_mask) {
+            linux_thread_pool_t::thread->queue.adjust_resource(fd, new_mask, this);
         }
 
         old_mask = new_mask;
@@ -200,14 +203,13 @@ linux_event_watcher_t::linux_event_watcher_t(fd_t f, linux_event_callback_t *eh)
     : guts(new linux_event_watcher_guts_t(f, eh)) { }
 
 linux_event_watcher_t::~linux_event_watcher_t() {
-    if (guts->dont_destroy_yet) {
-        guts->should_destroy = true;
-    } else {
-        delete guts;
-    }
 }
 
 void linux_event_watcher_t::watch(int event, const boost::function<void()> &cb, signal_t *ab) {
     guts->watch(event, cb, ab);
+}
+
+bool linux_event_watcher_t::is_watching(int event) {
+    return guts->is_watching(event);
 }
 
