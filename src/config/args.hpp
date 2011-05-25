@@ -82,7 +82,7 @@
 #define LOG_WORKER 0
 
 // Ratio of free ram to use for the cache by default
-#define DEFAULT_MAX_CACHE_RATIO                   0.8f
+#define DEFAULT_MAX_CACHE_RATIO                   0.7f
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
