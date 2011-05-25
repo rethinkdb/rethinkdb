@@ -1696,12 +1696,6 @@ std::string extract_command_line_args(const config_t& cfg) {
 
     config_block_errors errs;
     check_config_block(knog.files[0], knog.file_knog[0], &errs);
-    /* btree_block config_block;
-    if (!config_block.init(knog.files[0], knog.file_knog[0], CONFIG_BLOCK_ID.ser_id)) {
-        logINF("Error, taking command line of corrupted file\n");
-        exit(1);
-    }
-    const serializer_config_block_t *buf = ptr_cast<serializer_config_block_t>(config_block.buf); */
 
     flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
 
