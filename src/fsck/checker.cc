@@ -758,15 +758,9 @@ void check_and_load_diff_log(slicecx& cx, diff_log_errors *errs) {
     }
 }
 
-struct value_error {
-    block_id_t block_id;
-    std::string key;
-    bool bad_metadata_flags;
-    bool too_big;
-    bool lv_too_small;
-    bool lv_not_left_shifted;
-    bool lv_bogus_ref;
-    block_id_t index_block_id;
+struct largebuf_error {
+    bool not_left_shifted;
+    bool bogus_ref;
 
     struct segment_error {
         block_id_t block_id;
@@ -774,14 +768,28 @@ struct value_error {
         bool bad_magic;
     };
 
-    std::vector<segment_error> lv_segment_errors;
+    std::vector<segment_error> segment_errors;
 
-    explicit value_error(block_id_t block_id) : block_id(block_id), bad_metadata_flags(false),
-                                                too_big(false), lv_too_small(false), lv_not_left_shifted(false),
-                                                lv_bogus_ref(false), index_block_id(NULL_BLOCK_ID) { }
+    largebuf_error() : not_left_shifted(false), bogus_ref(false) { }
 
     bool is_bad() const {
-        return bad_metadata_flags || too_big || lv_too_small || lv_not_left_shifted || lv_bogus_ref;
+        return not_left_shifted || bogus_ref || !segment_errors.empty();
+    }
+};
+
+struct value_error {
+    block_id_t block_id;
+    std::string key;
+    bool bad_metadata_flags;
+    bool too_big;
+    bool lv_too_small;
+    largebuf_error largebuf_errs;
+
+    explicit value_error(block_id_t block_id) : block_id(block_id), bad_metadata_flags(false),
+                                                too_big(false), lv_too_small(false) { }
+
+    bool is_bad() const {
+        return bad_metadata_flags || too_big || lv_too_small || largebuf_errs.is_bad();
     }
 };
 
@@ -842,9 +850,9 @@ bool is_valid_hash(const slicecx& cx, const btree_key_t *key) {
     return btree_key_value_store_t::hash(store_key) % cx.knog->config_block->n_proxies == (unsigned)cx.global_slice_id;
 }
 
-void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, value_error *errs, const config_t& cfg);
+void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, largebuf_error *errs, const config_t& cfg);
 
-void check_large_buf_children(slicecx& cx, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, value_error *errs, const config_t& cfg) {
+void check_large_buf_children(slicecx& cx, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, largebuf_error *errs, const config_t& cfg) {
     int64_t step = large_buf_t::compute_max_offset(cx.block_size(), sublevels);
 
     for (int64_t i = floor_aligned(offset, step), e = ceil_aligned(offset + size, step); i < e; i += step) {
@@ -855,22 +863,22 @@ void check_large_buf_children(slicecx& cx, int sublevels, int64_t offset, int64_
     }
 }
 
-void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, value_error *errs, const config_t& cfg) {
+void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, largebuf_error *errs, const config_t& cfg) {
     btree_block b;
     if (!b.init(cx, block_id, !cfg.ignore_diff_log)) {
-        value_error::segment_error err;
+        largebuf_error::segment_error err;
         err.block_id = block_id;
         err.block_code = b.err;
         err.bad_magic = false;
-        errs->lv_segment_errors.push_back(err);
+        errs->segment_errors.push_back(err);
     } else {
         if ((levels == 1 && !check_magic<large_buf_leaf>(ptr_cast<large_buf_leaf>(b.buf)->magic))
             || (levels > 1 && !check_magic<large_buf_internal>(ptr_cast<large_buf_internal>(b.buf)->magic))) {
-            value_error::segment_error err;
+            largebuf_error::segment_error err;
             err.block_id = block_id;
             err.block_code = btree_block::none;
             err.bad_magic = true;
-            errs->lv_segment_errors.push_back(err);
+            errs->segment_errors.push_back(err);
             return;
         }
 
@@ -880,10 +888,9 @@ void check_large_buf_subtree(slicecx& cx, int levels, int64_t offset, int64_t si
     }
 }
 
-void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, value_error *errs, const config_t& cfg) {
+void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, largebuf_error *errs, const config_t& cfg) {
     if (ref_size_bytes >= (int)sizeof(large_buf_ref)) {
 
-        // We check that ref->size > MAX_IN_NODE_VALUE_SIZE in check_value.
         if (ref->size >= 0) {
             if (ref->offset >= 0) {
                 // ensure no overflow for ceil_aligned(ref->offset +
@@ -904,7 +911,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, 
                             || (inlined == 1 && sublevels > 1 && ref->offset >= large_buf_t::compute_max_offset(cx.block_size(), sublevels - 1))
                             || (inlined == 1 && sublevels == 1 && ref->offset > 0)) {
 
-                            errs->lv_not_left_shifted = true;
+                            errs->not_left_shifted = true;
                         }
 
                         check_large_buf_children(cx, sublevels, ref->offset, ref->size, ref->block_ids, errs, cfg);
@@ -916,7 +923,7 @@ void check_large_buf(slicecx& cx, const large_buf_ref *ref, int ref_size_bytes, 
         }
     }
 
-    errs->lv_bogus_ref = true;
+    errs->bogus_ref = true;
 }
 
 void check_value(slicecx& cx, const btree_value *value, value_error *errs, const config_t& cfg) {
@@ -928,7 +935,7 @@ void check_value(slicecx& cx, const btree_value *value, value_error *errs, const
     } else {
         errs->lv_too_small = (size <= MAX_IN_NODE_VALUE_SIZE);
 
-        check_large_buf(cx, value->lb_ref(), value->size, errs, cfg);
+        check_large_buf(cx, value->lb_ref(), value->size, &errs->largebuf_errs, cfg);
     }
 }
 
@@ -1448,19 +1455,13 @@ bool report_subtree_errors(const subtree_errors *errs) {
                    e.bad_metadata_flags ? " bad_metadata_flags" : "",
                    e.too_big ? " too_big" : "",
                    e.lv_too_small ? " lv_too_small" : "",
-                   e.lv_not_left_shifted ? " lv_not_left_shifted" : "",
-                   e.lv_bogus_ref ? " lv_bogus_ref" : "");
-            if (e.index_block_id != NULL_BLOCK_ID) {
-                printf(" (index_block_id = %u)", e.index_block_id);
+                   e.largebuf_errs.not_left_shifted ? " lv_not_left_shifted" : "",
+                   e.largebuf_errs.bogus_ref ? " lv_bogus_ref" : "");
+            for (int j = 0, m = e.largebuf_errs.segment_errors.size(); j < m; ++j) {
+                const largebuf_error::segment_error se = e.largebuf_errs.segment_errors[j];
 
-                if (!e.lv_segment_errors.empty()) {
-                    for (int j = 0, m = e.lv_segment_errors.size(); j < m; ++j) {
-                        const value_error::segment_error se = e.lv_segment_errors[j];
-
-                        printf(" segment_error(%u, %s)", se.block_id,
-                               se.block_code == btree_block::none ? "bad magic" : btree_block::error_name(se.block_code));
-                    }
-                }
+                printf(" segment_error(%u, %s)", se.block_id,
+                       se.block_code == btree_block::none ? "bad magic" : btree_block::error_name(se.block_code));
             }
 
             printf("\n");
