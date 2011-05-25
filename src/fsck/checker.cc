@@ -11,6 +11,7 @@
 #include "buffer_cache/large_buf.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "fsck/raw_block.hpp"
+#include "replication/delete_queue.hpp"
 #include "server/key_value_store.hpp"
 
 namespace fsck {
@@ -1169,12 +1170,63 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs, const confi
     }
 }
 
+// TODO: report these errors.
+struct delete_queue_errors {
+    btree_block::error dq_block_code;
+    bool dq_block_bad_magic;
+    largebuf_error timestamp_buf;
+    largebuf_error keys_buf;
+    std::vector<repli_timestamp> timestamp_key_alignment;
+    int64_t bad_keysize_offset;
+    int64_t primal_offset;    // Just for the fyi.
+
+    delete_queue_errors() : dq_block_code(btree_block::none), dq_block_bad_magic(false), bad_keysize_offset(-1), primal_offset(-1) { }
+
+    bool is_bad() const {
+        return dq_block_code != btree_block::none || dq_block_bad_magic
+            || timestamp_buf.is_bad() || keys_buf.is_bad()
+            || !timestamp_key_alignment.empty() || bad_keysize_offset != -1;
+    }
+};
+
+void check_delete_queue(slicecx& cx, block_id_t block_id, delete_queue_errors *errs, const config_t& cfg) {
+    btree_block dq_block;
+    if (!dq_block.init(cx, block_id, !cfg.ignore_diff_log)) {
+        errs->dq_block_code = dq_block.err;
+        return;
+    }
+
+    replication::delete_queue_block_t *buf = const_cast<replication::delete_queue_block_t *>(reinterpret_cast<const replication::delete_queue_block_t *>(dq_block.buf));
+
+    if (!check_magic<replication::delete_queue_block_t>(buf->magic)) {
+        errs->dq_block_bad_magic = true;
+        return;
+    }
+
+    errs->primal_offset = *replication::delete_queue::primal_offset(buf);
+    large_buf_ref *t_and_o = replication::delete_queue::timestamps_and_offsets_largebuf(buf);
+    large_buf_ref *keys_ref = replication::delete_queue::keys_largebuf(buf);
+    int keys_ref_size = replication::delete_queue::keys_largebuf_ref_size(cx.block_size());
+
+    if (t_and_o->size != 0) {
+        check_large_buf(cx, t_and_o, replication::delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE, &errs->timestamp_buf, cfg);
+    }
+
+    if (keys_ref->size != 0) {
+        check_large_buf(cx, keys_ref, keys_ref_size, &errs->keys_buf, cfg);
+    }
+
+    // TODO: Analyze key alignment and make sure keys have valid sizes (> 0 and <= MAX_KEY_SIZE).
+}
+
+
 struct slice_errors {
     int global_slice_number;
     std::string home_filename;
     btree_block::error superblock_code;
     bool superblock_bad_magic;
 
+    delete_queue_errors delete_queue_errs;
     diff_log_errors diff_log_errs;
     subtree_errors tree_errs;
     other_block_errors other_block_errs;
@@ -1194,6 +1246,7 @@ void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_
     check_and_load_diff_log(cx, &errs->diff_log_errs);
 
     block_id_t root_block_id;
+    block_id_t delete_queue_block_id;
     {
         btree_block btree_superblock;
         if (!btree_superblock.init(cx, SUPERBLOCK_ID, !cfg.ignore_diff_log)) {
@@ -1206,7 +1259,10 @@ void check_slice(nondirect_file_t *file, file_knowledge *knog, int global_slice_
             return;
         }
         root_block_id = buf->root_block;
+        delete_queue_block_id = buf->delete_queue_block;
     }
+
+    check_delete_queue(cx, delete_queue_block_id, &errs->delete_queue_errs, cfg);
 
     if (root_block_id != NULL_BLOCK_ID) {
         check_subtree(cx, root_block_id, NULL, NULL, &errs->tree_errs, cfg);
