@@ -10,7 +10,7 @@
 #include "store.hpp"
 #include "concurrency/cond_var.hpp"
 #include "conn_acceptor.hpp"
-#include "memcached/memcached.hpp"
+#include "memcached/tcp_conn.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
 #include "serializer/log/log_serializer.hpp"
