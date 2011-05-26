@@ -13,9 +13,8 @@
 shard_store_t::shard_store_t(
     translator_serializer_t *translator_serializer,
     mirrored_cache_config_t *dynamic_config,
-    int64_t delete_queue_limit,
-    int id_number) :
-    btree(translator_serializer, dynamic_config, delete_queue_limit, strprintf("%d", id_number)),
+    int64_t delete_queue_limit) :
+    btree(translator_serializer, dynamic_config, delete_queue_limit),
     dispatching_store(&btree),
     timestamper(&dispatching_store)
     { }
@@ -134,7 +133,7 @@ void create_existing_shard(
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    shards[i] = new shard_store_t(pseudoserializers[i], dynamic_config, delete_queue_limit, i);
+    shards[i] = new shard_store_t(pseudoserializers[i], dynamic_config, delete_queue_limit);
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config)
