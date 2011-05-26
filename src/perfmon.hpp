@@ -40,7 +40,7 @@ typedef std::map<std::string, std::string> perfmon_stats_t;
 into the given perfmon_stats_t object. It must be run in a coroutine and it blocks
 until it is done. */
 
-void perfmon_get_stats(perfmon_stats_t *dest, bool include_secret = false);
+void perfmon_get_stats(perfmon_stats_t *dest, bool include_secret);
 
 /* A perfmon_t represents a stat about the server.
 

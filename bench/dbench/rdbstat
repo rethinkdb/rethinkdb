@@ -17,7 +17,7 @@ def parse_args():
     return parser.parse_args()
 
 def read_print_stats(sock):
-    sock.send('stat-secret\r\n')
+    sock.send('rdb stats\r\n')
     stats = ''
     while stats[-7:] != '\r\nEND\r\n':
         buf = sock.recv(RECV_BUFSIZE)
