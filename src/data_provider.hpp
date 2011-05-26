@@ -24,13 +24,7 @@ class data_provider_failed_exc_t : public std::exception {
 };
 
 /* A data_provider_t conceptually represents a read-only array of bytes. It is an abstract
-superclass; its concrete subclasses represent different sources of bytes.
-
-In general, the data on a data_provider_t can only be requested once: once get_data_*() or discard()
-has been called, they cannot be called again. This is to make it easier to implement data providers
-that read off a socket or other one-time-use source of data. Note that it's not mandatory to read
-the data at all--if a data provider really needs its data to be read, it must do it itself in the
-destructor. */
+superclass; its concrete subclasses represent different sources of bytes. */
 
 class data_provider_t {
 public:
@@ -95,80 +89,5 @@ private:
     const_buffer_group_t bg;
     boost::scoped_array<char> buffer;
 };
-
-/* maybe_buffered_data_provider_t wraps another data_provider_t. It acts exactly like the
-data_provider_t it wraps, even down to throwing the same exceptions in the same places. Internally,
-it buffers the other data_provider_t if it is sufficiently small, improving performance. */
-
-class maybe_buffered_data_provider_t : public data_provider_t {
-public:
-    maybe_buffered_data_provider_t(boost::shared_ptr<data_provider_t> dp, int threshold);
-
-    size_t get_size() const;
-    void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
-    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
-
-private:
-    int size;
-    boost::shared_ptr<data_provider_t> original;
-    // true if we decide to buffer but there is an exception. We catch the exception in the
-    // constructor and then set this variable to true, then throw data_provider_failed_exc_t()
-    // when our data is requested. This way we behave exactly the same whether or not we buffer.
-    bool exception_was_thrown;
-    boost::scoped_ptr<buffered_data_provider_t> buffer;   // NULL if we decide not to buffer
-};
-
-/* buffer_borrowing_data_provider_t is useful for a situation where you want to send some data
-to two destinations, and you know that one of them will call get_data_into_buffers() on the
-data provider you give it. The buffer_borrowing_data_provider_t waits for the first destination
-to call get_data_into_buffers(), and then it uses that collection of buffers as the return value
-of get_data_as_buffers() for the second destination. This can be used to save a copy.
-
-data_provider_splitter_t is less specialized, but also a bit less efficient. */
-
-class bad_data_provider_t : public data_provider_t {
-public:
-    bad_data_provider_t(size_t size);
-
-    size_t get_size() const;
-    void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
-    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
-
-private:
-    size_t size;
-};
-
-/* Make a data_provider_splitter_t to send a single data provider to multiple locations. Call
-branch() every time you want a separate data provider. All the data providers returned by branch()
-will become invalid once the data_provider_splitter_t is destroyed. */
-
-//class data_provider_splitter_t {
-
-    /* TODO: Special-case the situation where we only intend to call branch() once, by just
-    returning the original data-provider again. This will require cooperation from the code
-    that uses data_provider_splitter_t. */
-
-/* public:
-    data_provider_splitter_t(data_provider_t *dp);
-    data_provider_t *branch();
-
-private:
-    struct reusable_provider_t : public auto_copying_data_provider_t {
-        size_t size;
-        const const_buffer_group_t *bg;   // NULL if exception should be thrown
-        size_t get_size() const {
-            return size;
-        }
-        const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t) {
-            if (bg) return bg;
-            else throw data_provider_failed_exc_t();
-        }
-    } reusable_provider;
-}; */
-/* duplicate_data_provider() makes a bunch of data providers that are all equivalent to the original
-data provider. Internally it makes many copies of the data, so the created data providers are
-completely independent. */
-
-void duplicate_data_provider(boost::shared_ptr<data_provider_t> original, int n, boost::shared_ptr<data_provider_t> *dps_out);
 
 #endif /* __DATA_PROVIDER_HPP__ */

@@ -110,21 +110,11 @@ struct backfill_and_streaming_manager_t :
                 return m;
             }
             mutation_t operator()(const sarc_mutation_t& m) {
-                boost::shared_ptr<data_provider_t> dps[2];
-                duplicate_data_provider(m.data, 2, dps);
-
-                {
-                    sarc_mutation_t m3(m);
-                    m3.data = dps[0];
-                    block_pm_duration timer(&pm_replication_master_enqueue_cost);
-                    manager->realtime_job_queue.push(boost::bind(
-                        &backfill_and_realtime_streaming_callback_t::realtime_sarc, manager->parent_->handler_,
-                        m3, castime, order_token));
-                }
-
-                sarc_mutation_t m2(m);
-                m2.data = dps[1];
-                return m2;
+                block_pm_duration timer(&pm_replication_master_enqueue_cost);
+                manager->realtime_job_queue.push(boost::bind(
+                    &backfill_and_realtime_streaming_callback_t::realtime_sarc, manager->parent_->handler_,
+                    m, castime, order_token));
+                return m;
             }
             mutation_t operator()(const incr_decr_mutation_t& m) {
                 block_pm_duration timer(&pm_replication_master_enqueue_cost);
@@ -134,15 +124,11 @@ struct backfill_and_streaming_manager_t :
                 return m;
             }
             mutation_t operator()(const append_prepend_mutation_t &m) {
-                boost::shared_ptr<data_provider_t> dps[2];
-                duplicate_data_provider(m.data, 2, dps);
                 block_pm_duration timer(&pm_replication_master_enqueue_cost);
                 manager->realtime_job_queue.push(boost::bind(
                     &backfill_and_realtime_streaming_callback_t::realtime_append_prepend, manager->parent_->handler_,
-                    m.kind, m.key, dps[0], castime, order_token));
-                append_prepend_mutation_t m2(m);
-                m2.data = dps[1];
-                return m2;
+                    m.kind, m.key, m.data, castime, order_token));
+                return m;
             }
             mutation_t operator()(const delete_mutation_t& m) {
                 block_pm_duration timer(&pm_replication_master_enqueue_cost);

@@ -3,12 +3,13 @@
 
 /* Specialization for small values */
 
-small_value_data_provider_t::small_value_data_provider_t(const btree_value *_value) : value(), buffers() {
+small_value_data_provider_t::small_value_data_provider_t(const btree_value *_value) {
     // This can be called in the scheduler thread.
 
     rassert(!_value->is_large());
     const char *data = ptr_cast<char>(_value->value());
     value.assign(data, data + _value->value_size());
+    buffer_group.add_buffer(value.size(), value.data());
 }
 
 size_t small_value_data_provider_t::get_size() const {
@@ -16,11 +17,8 @@ size_t small_value_data_provider_t::get_size() const {
 }
 
 const const_buffer_group_t *small_value_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
-    rassert(!buffers.get());   // This should be the first time this function was called
 
-    buffers.reset(new const_buffer_group_t());
-    buffers->add_buffer(get_size(), value.data());
-    return buffers.get();
+    return &buffer_group;
 }
 
 /* Specialization for large values */
@@ -28,8 +26,7 @@ const const_buffer_group_t *small_value_data_provider_t::get_data_as_buffers() t
 large_value_data_provider_t::large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& _transactor) :
     transactor(_transactor),
     lb_ref((*transactor)->cache->get_block_size(), value),
-    large_value(transactor, lb_ref.ptr(), btree_value::lbref_limit, rwi_read_outdated_ok),
-    have_value(false)
+    large_value(transactor, lb_ref.ptr(), btree_value::lbref_limit, rwi_read_outdated_ok)
 {
     // This can be called in the scheduler thread.
 
@@ -40,6 +37,11 @@ large_value_data_provider_t::large_value_data_provider_t(const btree_value *valu
 
 void large_value_data_provider_t::on_large_buf_available(UNUSED large_buf_t *large_buf) {
     rassert(large_value.state == large_buf_t::loaded);
+
+    /* Fill `buffers` with a pointer to the beginning of each buffer and the size
+    of that buffer. */
+    large_value.bufs_at(0, get_size(), true, &buffers);
+
     large_value_cond.pulse();
 }
 
@@ -48,22 +50,14 @@ size_t large_value_data_provider_t::get_size() const {
 }
 
 const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
-    rassert(buffers.num_buffers() == 0);   // This should be the first time this function was called
-
-    if (!have_value) {
-        large_value_cond.wait();
-        have_value = true;
-    }
-    rassert(large_value.state == large_buf_t::loaded);
-
-    large_value.bufs_at(0, get_size(), true, &buffers);
+    large_value_cond.wait();
     return const_view(&buffers);
 }
 
 large_value_data_provider_t::~large_value_data_provider_t() {
     /* The buf must be loaded before we are destroyed, or else it will
     try to access us after we are destroyed. */
-    if (!have_value) large_value_cond.wait();
+    large_value_cond.wait();
 }
 
 /* Choose the appropriate specialization */

@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <stdarg.h>
 #include <unistd.h>
+#include <boost/make_shared.hpp>
 
 #include "arch/arch.hpp"
 #include "concurrency/semaphore.hpp"
@@ -359,71 +360,6 @@ void do_rget(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc,
 
 /* "set", "add", "replace", "cas", "append", and "prepend" command logic */
 
-/* The memcached_data_provider_t is a data_provider_t that gets its data by
-reading from a tcp_conn_t. It also reads the CRLF at the end of the value and fails if
-it does not find the CRLF.
-
-Its constructor takes a promise_t<bool> that it pulse()s when it's done reading, with the boolean
-value indicating if it found the CRLF or not. This way the request handler knows if it should print
-an error and when it can move on to the next command. */
-
-class memcached_data_provider_t :
-    public auto_buffering_data_provider_t,   // So we don't have to implement get_data_as_buffers()
-    public home_thread_mixin_t
-{
-private:
-    txt_memcached_handler_t *rh;   // Request handler for us to read from
-    size_t length;   // Our length
-    bool was_read;
-    promise_t<bool> *to_signal;
-
-public:
-    memcached_data_provider_t(txt_memcached_handler_t *rh, uint32_t length, promise_t<bool> *to_signal)
-        : rh(rh), length(length), was_read(false), to_signal(to_signal)
-    { }
-
-    ~memcached_data_provider_t() {
-        if (!was_read) {
-            /* We have to clear the data out of the socket, even if we have nowhere to put it. */
-            try {
-                get_data_as_buffers();
-            } catch (data_provider_failed_exc_t) {
-                // If the connection was closed then we don't need to clear the
-                // data out of the socket.
-            }
-        }
-        // This is a harmless hack to get ~home_thread_mixin_t to not fail its assertion.
-#ifndef NDEBUG
-        const_cast<int&>(home_thread) = get_thread_id();
-#endif
-    }
-
-    size_t get_size() const {
-        return length;
-    }
-
-    void get_data_into_buffers(const buffer_group_t *b) throw (data_provider_failed_exc_t) {
-        rassert(!was_read);
-        was_read = true;
-        on_thread_t thread_switcher(home_thread);
-        try {
-            for (int i = 0; i < (int)b->num_buffers(); i++) {
-                rh->read(b->get_buffer(i).data, b->get_buffer(i).size);
-            }
-            char expected_crlf[2];
-            rh->read(expected_crlf, 2);
-            if (memcmp(expected_crlf, crlf, 2) != 0) {
-                if (to_signal) to_signal->pulse(false);
-                throw data_provider_failed_exc_t();   // Cancel the set/append/prepend operation
-            }
-            if (to_signal) to_signal->pulse(true);
-        } catch (memcached_interface_t::no_more_data_exc_t) {
-            if (to_signal) to_signal->pulse(false);
-            throw data_provider_failed_exc_t();
-        }
-    }
-};
-
 enum storage_command_t {
     set_command,
     add_command,
@@ -444,15 +380,12 @@ struct storage_metadata_t {
 void run_storage_command(txt_memcached_handler_t *rh,
                          storage_command_t sc,
                          store_key_t key,
-                         size_t value_size, promise_t<bool> *value_read_promise,
+                         boost::shared_ptr<data_provider_t> data,
                          storage_metadata_t metadata,
                          bool noreply,
                          order_token_t token) {
 
     thread_saver_t saver;
-
-    boost::shared_ptr<memcached_data_provider_t> unbuffered_data(new memcached_data_provider_t(rh, value_size, value_read_promise));
-    boost::shared_ptr<maybe_buffered_data_provider_t> data(new maybe_buffered_data_provider_t(unbuffered_data, MAX_BUFFERED_SET_SIZE));
 
     block_pm_duration set_timer(&pm_cmd_set);
 
@@ -624,8 +557,27 @@ void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storag
         noreply = false;
     }
 
-    /* run_storage_command() will signal this when it's done reading the value off the socket. */
-    promise_t<bool> value_read_promise;
+    /* Read the data off the socket. For now we always read the data into a buffer. In the
+    future we may want to be able to stream the data to its destination, but that would require
+    major changes to `data_provider_t`, and it's not necessary for performance yet. */
+    void *buffer;
+    boost::shared_ptr<data_provider_t> dp = boost::make_shared<buffered_data_provider_t>(value_size, &buffer);
+    char crlf_buf[2];
+    try {
+        rh->read(buffer, value_size);
+        rh->read(crlf_buf, 2);
+    } catch (memcached_interface_t::no_more_data_exc_t) {
+        rh->client_error(saver, "bad data chunk\r\n");
+        return;
+    }
+
+    if (memcmp(crlf_buf, crlf, 2) != 0) {
+        rh->client_error(saver, "bad data chunk\r\n");
+        return;
+    }
+
+    /* Bundle metadata into one object so we don't try to pass too many arguments
+    to `boost::bind()` */
     storage_metadata_t metadata(mcflags, exptime, unique);
 
     /* We must do this out here instead of in run_storage_command() so that we stop reading off
@@ -633,16 +585,9 @@ void do_storage(const thread_saver_t& saver, txt_memcached_handler_t *rh, storag
     rh->begin_write_command();
 
     if (noreply) {
-        coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, value_size, &value_read_promise, metadata, true, token));
+        coro_t::spawn_now(boost::bind(&run_storage_command, rh, sc, key, dp, metadata, true, token));
     } else {
-        run_storage_command(rh, sc, key, value_size, &value_read_promise, metadata, false, token);
-    }
-
-    /* We can't move on to the next command until the value has been read off the socket. */
-    bool ok = value_read_promise.wait();
-    if (!ok) {
-        /* We get here if there was no CRLF */
-        rh->client_error(saver, "bad data chunk\r\n");
+        run_storage_command(rh, sc, key, dp, metadata, false, token);
     }
 }
 
