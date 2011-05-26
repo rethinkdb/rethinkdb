@@ -2,55 +2,38 @@
 #define __CLUSTERING_ROUTING__
 
 #include "rpc/council.hpp"
+#include "concurrency/rwi_lock.hpp"
+#include "boost/ptr_container/ptr_map.hpp"
 
 namespace routing {
 
 template <class T>
-class refcount_map_t :
+class access_map_t :
     public home_thread_mixin_t
 {
 private:
-    class refcount_t {
-    public:
-        int val;
-        multi_cond_t *wait_for_0;
-        refcount_t() : val(0), wait_for_0(new multi_cond_t()) {} // wait for 0 needs to be heap allocated because it can't be copied
-        ~refcount_t() {
-            guarantee(val == 0, "refcount_t destroyed with a refcount not equal to 0, this probably means that there's an outstanding sarc going one\n");
-            wait_for_0->pulse();
-            delete wait_for_0;
-        }
-    };
-    std::map<T, refcount_t> refcounts;
+    boost::ptr_map<T, rwi_lock_t> lock_map;
 public:
-    void incr_refcount(T val) { 
-        on_thread_t syncer(home_thread);
-        //TODO make this wait if the value is being wait_for_0d
-        refcounts[val].val++; 
+    void lock(T key, access_t access) {
+        lock_map[key].co_lock(access);
     }
-    void decr_refcount(T val) { 
-        on_thread_t syncer(home_thread);
-        refcounts[val].val--; 
-        if (refcounts[val].val == 0) refcounts.erase(val);
-    }
-    void wait(T val) { 
-        if (refcounts.find(val) == refcounts.end()) return;
-        else refcounts[val].wait_for_0->wait();
+    void unlock(T key) {
+        lock_map[key].unlock();
     }
 
     class txn_t {
     public:
-        txn_t(refcount_map_t<T> *parent, T key) 
+        txn_t(access_map_t<T> *parent, T key, access_t access) 
             : parent(parent), key(key)
-        { parent->incr_refcount(key); }
+        { 
+            parent->lock(key, access); 
+        }
 
-        /* txn_t(const txn_t &other_txn)
-            : parent(other.parent)
-        { parent->incr_refcount(); } */
-
-        ~txn_t() { parent->decr_refcount(key); }
+        ~txn_t() { 
+            parent->unlock(key); 
+        }
     private:
-        refcount_map_t<T> *parent;
+        access_map_t<T> *parent;
         T key;
     };
 
@@ -58,8 +41,8 @@ public:
     template <class U>
     class txned_t : public U {
     public:
-        txned_t(U u, refcount_map_t<T> *parent, T key) 
-            : U(u), txn(parent, key)
+        txned_t(U u, access_map_t<T> *parent, T key, access_t access) 
+            : U(u), txn(parent, key, access)
         { }
     private:
         txn_t txn;
@@ -88,14 +71,14 @@ public:
     { }
 private:
     master_map_council_t master_map_council;
-    typedef refcount_map_t<int> master_refcount_map_t;
-    master_refcount_map_t master_refcount_map;
+    typedef access_map_t<int> master_access_map_t;
+    master_access_map_t master_refcount_map;
 
-    typedef master_refcount_map_t::txned_t<set_store_mailbox_t::address_t> master_map_txn_t;
+    typedef master_access_map_t::txned_t<set_store_mailbox_t::address_t> master_map_txn_t;
 
 public:
     master_map_txn_t get_master(int key) {
-        return master_map_txn_t(master_map_council.get_value().find(key)->second, &master_refcount_map, key);
+        return master_map_txn_t(master_map_council.get_value().find(key)->second, &master_refcount_map, key, rwi_read);
     }
 
     void add_master(int key, set_store_mailbox_t::address_t addr) {
@@ -103,21 +86,21 @@ public:
     }
 
     void apply_master_diff(const master_map_diff_t &diff, master_map_t *map) {
-        master_refcount_map.wait(diff.first);
+        master_map_txn_t write_lock(master_map_council.get_value().find(diff.first)->second, &master_refcount_map, diff.first, rwi_write);
         (*map)[diff.first] = diff.second;
     }
 
 
 private:
     storage_map_council_t storage_map_council;
-    typedef refcount_map_t<int> storage_refcount_map_t;
-    storage_refcount_map_t storage_refcount_map;
+    typedef access_map_t<int> storage_access_map_t;
+    storage_access_map_t storage_refcount_map;
 
-    typedef storage_refcount_map_t::txned_t<std::pair<set_store_mailbox_t::address_t, get_store_mailbox_t::address_t> > storage_map_txn_t;
+    typedef storage_access_map_t::txned_t<std::pair<set_store_mailbox_t::address_t, get_store_mailbox_t::address_t> > storage_map_txn_t;
 
 public:
     storage_map_txn_t get_storage(int key) {
-        return storage_map_txn_t(storage_map_council.get_value().find(key)->second, &storage_refcount_map, key);
+        return storage_map_txn_t(storage_map_council.get_value().find(key)->second, &storage_refcount_map, key, rwi_read);
     }
 
     void add_storage(const storage_map_diff_t &diff) {
@@ -125,7 +108,7 @@ public:
     }
 
     void apply_storage_diff(const storage_map_diff_t &diff, storage_map_t *map) {
-        storage_refcount_map.wait(diff.first);
+        storage_map_txn_t write_lock(storage_map_council.get_value().find(diff.first)->second, &storage_refcount_map, diff.first, rwi_write);
         (*map)[diff.first] = diff.second;
     }
 };
