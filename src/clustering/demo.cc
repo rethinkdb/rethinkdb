@@ -9,7 +9,6 @@
 #include "server/cmd_args.hpp"
 #include "store.hpp"
 #include "concurrency/cond_var.hpp"
-#include "conn_acceptor.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
@@ -107,45 +106,9 @@ struct cluster_config_t {
     int contact_id;   // -1 for a new cluster
 };
 
-void wait_for_interrupt() {
-    struct : public thread_message_t, public cond_t {
-        void on_thread_switch() { pulse(); }
-    } interrupt_cond;
-    thread_pool_t::set_interrupt_message(&interrupt_cond);
-    interrupt_cond.wait();
-}
-
-/* This `memcache_conn_handler_t` stuff is a hack */
-
-struct memcache_conn_handler_t : public conn_handler_with_special_lifetime_t {
-    memcache_conn_handler_t(get_store_t *get_store, set_store_interface_t *set_store)
-        : get_store_(get_store), set_store_(set_store) { }
-
-    void talk_on_connection(tcp_conn_t *conn) {
-        serve_memcache(conn, get_store_, set_store_);
-    }
-
-private:
-    get_store_t *get_store_;
-    set_store_interface_t *set_store_;
-    DISABLE_COPYING(memcache_conn_handler_t);
-};
-
-struct memcache_conn_acceptor_callback_t : public conn_acceptor_callback_t {
-    memcache_conn_acceptor_callback_t(get_store_t *get_store, set_store_interface_t *set_store)
-        : get_store_(get_store), set_store_(set_store) { }
-
-    void make_handler_for_conn_thread(boost::scoped_ptr<conn_handler_with_special_lifetime_t>& output) {
-        output.reset(new memcache_conn_handler_t(get_store_, set_store_));
-    }
-
-private:
-    get_store_t *get_store_;
-    set_store_interface_t *set_store_;
-    DISABLE_COPYING(memcache_conn_acceptor_callback_t);
-};
-
 void serve(int id, demo_delegate_t *delegate) {
+
+    os_signal_cond_t os_signal_cond;
 
     cmd_config_t config;
     config.store_dynamic_config.cache.max_dirty_size = config.store_dynamic_config.cache.max_size / 10;
@@ -169,24 +132,11 @@ void serve(int id, demo_delegate_t *delegate) {
     get_store_mailbox_t get_mailbox(&slice);
     delegate->registration_address.call(get_cluster().us, &change_mailbox, &get_mailbox);
 
-    /* struct : public conn_acceptor_t::handler_t {
-        get_store_t *get_store;
-        set_store_interface_t *set_store;
-        void handle(tcp_conn_t *conn) {
-            serve_memcache(conn, get_store, set_store);
-        }
-    } handler;
-    handler.get_store = &delegate->master_get_store;
-    handler.set_store = &delegate->master_store; */
-
-    os_signal_cond_t os_signal_cond;   // Bullshit. Needed by `serve_memcache()`.
-    memcache_conn_acceptor_callback_t conn_acceptor_callback(&delegate->master_get_store, &delegate->master_store);
-
     int serve_port = 31400 + id;
-    conn_acceptor_t conn_acceptor(serve_port, &conn_acceptor_callback);
+    memcache_listener_t conn_acceptor(serve_port, &delegate->master_get_store, &delegate->master_store);
     logINF("Accepting connections on port %d\n", serve_port);
 
-    wait_for_interrupt();
+    wait_for_sigint();
 }
 
 void add_listener(int peer, clustered_store_t *dispatcher, set_store_mailbox_t::address_t set_addr, get_store_mailbox_t::address_t get_addr) {

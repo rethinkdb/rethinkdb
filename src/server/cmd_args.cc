@@ -109,9 +109,6 @@ void usage_serve() {
                 "      --failover-script Used in conjunction with --slave-of to specify a script\n"
                 "                        that will be run when the master fails and comes back up\n"
                 "                        see manual for an example script.\n");
-                /*"      --run-behind-elb  Used in conjunction with --slave-of makes the server\n"
-                "                        compatible with Amazon Elastic Load Balancer (using TCP as\n"
-                "                        the protocol.) See manual for a detailed description.\n"); */
     help->pagef("\n"
                 "Serve can be called with no arguments to run a server with default parameters.\n"
                 "For best performance RethinkDB should be run with one --file per device and a\n"

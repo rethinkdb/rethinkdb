@@ -23,30 +23,3 @@ void wait_for_sigint() {
     on_thread_t switcher(get_os_signal_cond().get_home_thread());
     get_os_signal_cond().wait();
 }
-
-void sigint_indicator_t::on_signal_pulsed() {
-    coro_t::spawn_on_thread(get_home_thread(), boost::bind(&sigint_indicator_t::set_value_to_true, this));
-}
-
-void sigint_indicator_t::set_value_to_true() {
-    value = true;
-}
-
-sigint_indicator_t::sigint_indicator_t() : value (false)
-{
-    on_thread_t switcher(get_os_signal_cond().get_home_thread());
-    if (get_os_signal_cond().is_pulsed())
-        value = true;
-    else
-        get_os_signal_cond().add_waiter(this);
-}
-
-sigint_indicator_t:: ~sigint_indicator_t() {
-    on_thread_t switcher(get_os_signal_cond().get_home_thread());
-    if (!get_os_signal_cond().is_pulsed())
-        get_os_signal_cond().remove_waiter(this);
-}
-
-bool sigint_indicator_t::get_value() {
-    return value;
-}

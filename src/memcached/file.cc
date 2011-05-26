@@ -10,10 +10,13 @@ class file_memcached_interface_t : public memcached_interface_t {
 private:
     FILE *file;
     file_progress_bar_t progress_bar;
+    signal_t *interrupt;
 
 public:
-    file_memcached_interface_t(std::string filename) :
-        file(fopen(filename.c_str(), "r")), progress_bar(std::string("Import"), file)
+    file_memcached_interface_t(std::string filename, signal_t *interrupt) :
+        file(fopen(filename.c_str(), "r")),
+        progress_bar(std::string("Import"), file),
+        interrupt(interrupt)
     { }
     ~file_memcached_interface_t() {
         fclose(file);
@@ -26,11 +29,13 @@ public:
     bool is_write_open() { return false; }
 
     void read(void *buf, size_t nbytes) {
+        if (interrupt->is_pulsed()) throw no_more_data_exc_t();
         if (fread(buf, nbytes, 1, file) == 0)
             throw no_more_data_exc_t();
     }
 
     void read_line(std::vector<char> *dest) {
+        if (interrupt->is_pulsed()) throw no_more_data_exc_t();
         int limit = MEGABYTE;
         dest->clear();
         char c; 
@@ -57,9 +62,12 @@ class dummy_get_store_t : public get_store_t {
     }
 };
 
-void import_memcache(std::string filename, set_store_interface_t *set_store) {
+void import_memcache(std::string filename, set_store_interface_t *set_store, signal_t *interrupt) {
+    rassert(interrupt);
+    interrupt->assert_thread();
+
     dummy_get_store_t dummy_get_store;
-    file_memcached_interface_t interface(filename);
+    file_memcached_interface_t interface(filename, interrupt);
 
     handle_memcache(&interface, &dummy_get_store, set_store, MAX_CONCURRENT_QUEURIES_ON_IMPORT);
 }

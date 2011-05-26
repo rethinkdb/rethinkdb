@@ -247,7 +247,6 @@ public:
     void set_heartbeat_timeout(const char *value);
     void set_total_delete_queue_limit(const char *value);
     void set_failover_file(const char* value);
-    void set_elb_port(const char* value);
     void set_io_backend(const char* value);
     void push_private_config(const char* value);
 

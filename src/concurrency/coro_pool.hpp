@@ -40,6 +40,7 @@ public:
         rassert(active_worker_count == 0);
         rassert(!source->available->get());
         real_home_thread = new_thread;
+        coro_drain_semaphore.rethread(new_thread);
     }
 
     // Blocks until all pending tasks have been processed. The coro_pool_t is

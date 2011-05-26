@@ -37,6 +37,9 @@ struct backfill_and_streaming_manager_t :
             {
                 ASSERT_NO_CORO_WAITING;
 
+                /* We always use the `realtime_mutation_drain_semaphore` on the slice's thread */
+                realtime_mutation_drain_semaphore.rethread(get_thread_id());
+
                 /* Increment the replication clock right as we start the backfill. This
                    makes it so that every operation with timestamp `new_timestamp - 1` will be
                    included in the backfill, and no operation with timestamp `new_timestamp`
