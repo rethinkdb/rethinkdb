@@ -19,12 +19,12 @@ namespace extract {
 
 typedef config_t::override_t cfg_t;
 
-class block : public fsck::raw_block {
+class block_t : public fsck::raw_block_t {
 public:
-    block() { }
+    block_t() { }
 
-    using raw_block::init;
-    using raw_block::realbuf;
+    using raw_block_t::init;
+    using raw_block_t::realbuf;
 
     const buf_data_t& buf_data() const {
         return *realbuf;
@@ -32,7 +32,7 @@ public:
 };
 
 
-struct charslice {
+struct charslice_t {
     const char *buf;
     size_t len;
 };
@@ -53,7 +53,7 @@ public:
         }
     }
     void dump(const btree_key_t *key, mcflags_t flags, exptime_t exptime,
-              charslice *slices, size_t num_slices) {
+              charslice_t *slices, size_t num_slices) {
         int len = 0;
         for (size_t i = 0; i < num_slices; ++i) {
             len += slices[i].len;
@@ -147,7 +147,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
         }
         off64_t off = config_offset_it->second;
 
-        block serblock;
+        block_t serblock;
         serblock.init(cfg.block_size(), &file, off, CONFIG_BLOCK_ID.ser_id);
         multiplexer_config_block_t *serbuf = (multiplexer_config_block_t *)serblock.buf;
 
@@ -188,7 +188,7 @@ void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
-        block b;
+        block_t b;
         b.init(cfg.block_size().ser_value(), &file, offset);
 
         if (check_all_known_magic(*(block_magic_t *)b.buf) || memcmp((char*)b.buf, "LOGB00", 6) == 0) { // TODO: Refactor
@@ -202,7 +202,7 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
-        block b;
+        block_t b;
         b.init(cfg.block_size().ser_value(), &file, offset);
 
         ser_block_id_t block_id = b.buf_data().block_id;
@@ -311,7 +311,7 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
-        block b;
+        block_t b;
         b.init(cfg.block_size().ser_value(), &file, offset);
         
         ser_block_id_t block_id = b.buf_data().block_id;
@@ -367,22 +367,22 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
     }
 }
 
-struct blocks {
-    std::vector<block *> bs;
-    blocks() { }
-    ~blocks() {
+struct blocks_t {
+    std::vector<block_t *> bs;
+    blocks_t() { }
+    ~blocks_t() {
         for (int64_t i = 0, n = bs.size(); i < n; ++i) {
             delete bs[i];
         }
     }
 private:
-    DISABLE_COPYING(blocks);
+    DISABLE_COPYING(blocks_t);
 };
 
 
-bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks);
+bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks);
 
-bool get_large_buf_segments_from_children(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks) {
+bool get_large_buf_segments_from_children(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks) {
 
     int64_t step = large_buf_t::compute_max_offset(cfg.block_size(), sublevels);
 
@@ -398,7 +398,7 @@ bool get_large_buf_segments_from_children(const cfg_t& cfg, const btree_key_t *k
     return true;
 }
 
-bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks) {
+bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks) {
 
     ser_block_id_t trans = translator_serializer_t::translate_block_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
     ser_block_id_t::number_t trans_id = trans.value;
@@ -412,7 +412,7 @@ bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *ke
     }
 
     if (levels == 1) {
-        block *b = new block();
+        block_t *b = new block_t();
         segblocks->bs.push_back(b);
         
         b->init(cfg.block_size(), &file, offset_it->second, trans);
@@ -427,7 +427,7 @@ bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *ke
 
         return true;
     } else {
-        block internal;
+        block_t internal;
         internal.init(cfg.block_size(), &file, offset_it->second, trans);
 
         const large_buf_internal *buf = reinterpret_cast<const large_buf_internal *>(internal.buf);
@@ -442,7 +442,7 @@ bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *ke
     }
 }
 
-bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, const large_buf_ref *ref, int ref_size_bytes, const cfg_t& cfg, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks) {
+bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, const large_buf_ref *ref, int ref_size_bytes, const cfg_t& cfg, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks) {
 
     // This is copied and pasted from fsck's check_large_buf in checker.cc.
 
@@ -497,8 +497,8 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
     const char *valuebuf = value->value();
 
     // We're going to write the value, split into pieces, into this set of pieces.
-    std::vector<charslice> pieces;
-    blocks segblocks;
+    std::vector<charslice_t> pieces;
+    blocks_t segblocks;
 
 
     logDBG("Dumping value for key '%.*s'...\n",
@@ -552,7 +552,7 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
         fail_due_to_user_error("Could not open `%s' for reading: %s", db_file.c_str(), strerror(errno));
     }
 
-    block headerblock;
+    block_t headerblock;
     headerblock.init(DEVICE_BLOCK_SIZE, &file, 0);
 
     static_header_t *header = (static_header_t *)headerblock.realbuf;
