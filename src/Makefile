@@ -66,6 +66,8 @@ else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
+PROTO_DIR:=$(BUILD_DIR)/proto
+
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
@@ -77,7 +79,7 @@ STATIC_LIBRARIES:=
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror
+CXXFLAGS+=-I$(SOURCE_DIR) -I$(PROTO_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -231,13 +233,20 @@ else
 SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
 endif
 
+PROTO_SOURCES:=$(shell find $(SOURCE_DIR) -name '*.proto')
+PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(PROTO_SOURCES))
+PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(PROTO_SOURCES))
+PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(PROTO_CODE))
+PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(PROTO_NAMES))
+
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
-OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
+OBJS:=$(PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`"))
 
-SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
+SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`"))
+
+SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
 
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -481,6 +490,14 @@ endif
 
 # Build rules
 
+# Special recipe for the proto buffer generated code
+$(PROTO_DIR)/%.pb.h: $(SOURCE_DIR)/%.proto
+	$(QUIET) mkdir -p $(PROTO_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    protoc --cpp_out $(PROTO_DIR) $<"
+endif
+	$(QUIET) protoc --cpp_out $(PROTO_DIR) $<
+
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
 	@echo "    LD $@"
@@ -581,7 +598,16 @@ $(BUILD_DIR):
 
 # Object files
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
+# Proto buffers object files
+# This is hacky, as the following rule is just a duplicate of the rule for our own sources
+$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc Makefile $(PROTO_HEADERS)
+	$(QUIET) mkdir -p $(dir $@)
+ifeq ($(VERBOSE),0)
+	@echo "    CC $< -o $@"
+endif
+	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
+
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile $(PROTO_HEADERS)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
@@ -589,7 +615,8 @@ endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Dependencies
-$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc
+# TODO: Adding PROTO_HEADERS here is kind of hacky
+$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS)
 	$(QUIET) mkdir -p $(dir $@)
 	$(QUIET) $(CXX) $(CXXFLAGS) -M $< > $@.$$$$;				   \
 	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \
