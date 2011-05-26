@@ -68,8 +68,7 @@ private:
 
     /* We serialize all `order_token_t`s through here. This way we can use `plain_sink_t` for
     the order sinks on the individual blocks in the buffer cache. */
-    order_sink_t order_sink_;
-    order_source_t order_source_;
+    order_checkpoint_t order_checkpoint_;
 
     const std::string informal_name_;
 

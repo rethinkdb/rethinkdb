@@ -125,7 +125,9 @@ private:
 
 // An order sink with less overhead, for situations where there is
 // only one source (like the top of a btree slice) and many sinks.  If
-// there's one bucket there's no point in instantiating a std::map.
+// there's one bucket there's no point in instantiating a `std::map`.
+// TODO: Is a `std::map` of one item really expensive enough to justify
+// having a separate type?
 class plain_sink_t : public home_thread_mixin_t {
 public:
     plain_sink_t();
@@ -143,5 +145,17 @@ private:
 
     DISABLE_COPYING(plain_sink_t);
 };
+
+
+// `order_checkpoint_t` is an `order_sink_t` plus an `order_source_t`.
+class order_checkpoint_t : public home_thread_mixin_t {
+public:
+    order_token_t check_through(order_token_t token);
+
+private:
+    order_sink_t sink_;
+    order_source_t source_;
+};
+
 
 #endif  // __CONCURRENCY_FIFO_CHECKER_HPP__

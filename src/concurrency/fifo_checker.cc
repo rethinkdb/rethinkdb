@@ -214,3 +214,13 @@ void plain_sink_t::check_out(order_token_t token) {
         order_sink_t::verify_token_value_and_update(token, &ls_pair_);
     }
 }
+
+
+
+order_token_t order_checkpoint_t::check_through(order_token_t tok) {
+    assert_thread();
+    sink_.check_out(tok);
+    order_token_t tok2 = source_.check_in();
+    if (tok.read_mode()) tok2 = tok2.with_read_mode();
+    return tok2;
+}

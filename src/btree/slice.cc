@@ -81,15 +81,13 @@ btree_slice_t::~btree_slice_t() {
 
 get_result_t btree_slice_t::get(const store_key_t &key, order_token_t token) {
     assert_thread();
-    order_sink_.check_out(token);
-    token = order_source_.check_in();
+    token = order_checkpoint_.check_through(token);
     return btree_get(key, this, token);
 }
 
 rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     assert_thread();
-    order_sink_.check_out(token);
-    token = order_source_.check_in();
+    token = order_checkpoint_.check_through(token);
     return btree_rget_slice(this, left_mode, left_key, right_mode, right_key, token);
 }
 
@@ -120,8 +118,7 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, 
     // thinking about the problem enough.
     assert_thread();
 
-    order_sink_.check_out(token);
-    token = order_source_.check_in();
+    token = order_checkpoint_.check_through(token);
 
     btree_slice_change_visitor_t functor;
     functor.parent = this;
