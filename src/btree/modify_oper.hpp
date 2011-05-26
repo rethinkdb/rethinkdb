@@ -14,8 +14,6 @@
 #define BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS 0
 
 /* Stats */
-extern perfmon_counter_t pm_btree_depth;
-
 class btree_modify_oper_t {
 public:
     btree_modify_oper_t() : slice(NULL) { }

@@ -107,7 +107,7 @@ struct perfmon_system_t :
     public perfmon_t
 {
     bool have_reported_error;
-    perfmon_system_t() : have_reported_error(false) { }
+    perfmon_system_t() : perfmon_t(false), have_reported_error(false) { }
 
     void *begin_stats() {
         return NULL;

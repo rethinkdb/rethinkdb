@@ -181,9 +181,9 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
 
 
 perfmon_duration_sampler_t
-    pm_cmd_set("cmd_set", secs_to_ticks(1.0)),
-    pm_cmd_get("cmd_get", secs_to_ticks(1.0)),
-    pm_cmd_rget("cmd_rget", secs_to_ticks(1.0));
+    pm_cmd_set("cmd_set", secs_to_ticks(1.0), false),
+    pm_cmd_get("cmd_get", secs_to_ticks(1.0), false),
+    pm_cmd_rget("cmd_rget", secs_to_ticks(1.0), false);
 
 /* do_get() is used for "get" and "gets" commands. */
 
@@ -796,7 +796,14 @@ void do_delete(const thread_saver_t& saver, txt_memcached_handler_t *rh, int arg
 
 void do_stats(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv) {
     perfmon_stats_t stats;
-    perfmon_get_stats(&stats);
+#ifndef NDEBUG
+    perfmon_get_stats(&stats, true);
+#else
+    if (!strcmp(argv[0], "stat-secret"))
+        perfmon_get_stats(&stats, true);
+    else
+        perfmon_get_stats(&stats); //no secrets in debug mode
+#endif
 
     if (argc == 1) {
         for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
@@ -816,9 +823,9 @@ void do_stats(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc
 };
 
 perfmon_duration_sampler_t
-    pm_conns_reading("conns_reading", secs_to_ticks(1)),
-    pm_conns_writing("conns_writing", secs_to_ticks(1)),
-    pm_conns_acting("conns_acting", secs_to_ticks(1));
+    pm_conns_reading("conns_reading", secs_to_ticks(1), false),
+    pm_conns_writing("conns_writing", secs_to_ticks(1), false),
+    pm_conns_acting("conns_acting", secs_to_ticks(1), false);
 
 std::string join_strings(std::string separator, std::vector<char*>::iterator begin, std::vector<char*>::iterator end) {
     std::string res(*begin);
@@ -956,7 +963,7 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
             } else {
                 break;
             }
-        } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
+        } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat") || !strcmp(args[0], "stat-secret")) {
             do_stats(saver, &rh, args.size(), args.data());
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
             rh.write(saver, control_t::exec(args.size() - 1, args.data() + 1));
