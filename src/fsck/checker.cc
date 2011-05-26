@@ -1175,6 +1175,11 @@ struct delete_queue_errors {
     bool dq_block_bad_magic;
     largebuf_error timestamp_buf;
     largebuf_error keys_buf;
+
+    // TODO: We don't do the timestamp key alignment checks below.
+    // The timestamps' offsets (after subtracting the primal_offset)
+    // must be aligned to key boundaries.  These next two variables
+    // are unused.
     std::vector<repli_timestamp> timestamp_key_alignment;
     int64_t bad_keysize_offset;
     int64_t primal_offset;    // Just for the fyi.
