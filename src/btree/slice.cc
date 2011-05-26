@@ -44,7 +44,7 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     boost::scoped_ptr<cache_t> cache(new cache_t(serializer, &startup_dynamic_config));
 
     /* Initialize the btree superblock and the delete queue */
-    boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache.get(), rwi_write, 1, repli_timestamp_t::distant_past()));
+    boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache.get(), rwi_write, 1, repli_timestamp_t::distant_past(), order_token_t::ignore));
 
     buf_lock_t superblock(saver, *txor, SUPERBLOCK_ID, rwi_write);
 
@@ -79,13 +79,13 @@ btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff
 }
 
-get_result_t btree_slice_t::get(const store_key_t &key, UNUSED order_token_t token) {
+get_result_t btree_slice_t::get(const store_key_t &key, order_token_t token) {
     assert_thread();
     order_sink_.check_out(token);
     return btree_get(key, this, token);
 }
 
-rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, UNUSED order_token_t token) {
+rget_result_t btree_slice_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     assert_thread();
     order_sink_.check_out(token);
     return btree_rget_slice(this, left_mode, left_key, right_mode, right_key, token);
@@ -113,7 +113,7 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
     order_token_t order_token;
 };
 
-mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, UNUSED order_token_t token) {
+mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, order_token_t token) {
     // If you're calling this from the wrong thread, you're not
     // thinking about the problem enough.
     assert_thread();
@@ -151,7 +151,7 @@ void btree_slice_t::set_replication_clock(repli_timestamp_t t) {
     // before it.
     thread_saver_t saver;
     on_thread_t th(cache()->home_thread);
-    transactor_t transactor(saver, cache(), rwi_write, 0, repli_timestamp_t::distant_past());
+    transactor_t transactor(saver, cache(), rwi_write, 0, repli_timestamp_t::distant_past(), order_token_t::ignore);
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->replication_clock = t;
@@ -160,7 +160,7 @@ void btree_slice_t::set_replication_clock(repli_timestamp_t t) {
 repli_timestamp btree_slice_t::get_replication_clock() {
     thread_saver_t saver;
     on_thread_t th(cache()->home_thread);
-    transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::distant_past());
+    transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::distant_past(), order_token_t::ignore);
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
     return sb->replication_clock;
@@ -169,7 +169,7 @@ repli_timestamp btree_slice_t::get_replication_clock() {
 void btree_slice_t::set_last_sync(repli_timestamp_t t) {
     thread_saver_t saver;
     on_thread_t th(cache()->home_thread);
-    transactor_t transactor(saver, cache(), rwi_write, 0, repli_timestamp_t::distant_past());
+    transactor_t transactor(saver, cache(), rwi_write, 0, repli_timestamp_t::distant_past(), order_token_t::ignore);
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->last_sync = t;
@@ -178,7 +178,7 @@ void btree_slice_t::set_last_sync(repli_timestamp_t t) {
 repli_timestamp btree_slice_t::get_last_sync() {
     thread_saver_t saver;
     on_thread_t th(cache()->home_thread);
-    transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::distant_past());
+    transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::distant_past(), order_token_t::ignore);
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
     return sb->last_sync;
@@ -187,7 +187,7 @@ repli_timestamp btree_slice_t::get_last_sync() {
 void btree_slice_t::set_replication_master_id(uint32_t t) {
     thread_saver_t saver;
     on_thread_t th(cache()->home_thread);
-    transactor_t transactor(saver, cache(), rwi_write, 0, repli_timestamp_t::distant_past());
+    transactor_t transactor(saver, cache(), rwi_write, 0, repli_timestamp_t::distant_past(), order_token_t::ignore);
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->replication_master_id = t;
@@ -196,7 +196,7 @@ void btree_slice_t::set_replication_master_id(uint32_t t) {
 uint32_t btree_slice_t::get_replication_master_id() {
     thread_saver_t saver;
     on_thread_t th(cache()->home_thread);
-    transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::distant_past());
+    transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::distant_past(), order_token_t::ignore);
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
     return sb->replication_master_id;
@@ -205,7 +205,7 @@ uint32_t btree_slice_t::get_replication_master_id() {
 void btree_slice_t::set_replication_slave_id(uint32_t t) {
     thread_saver_t saver;
     on_thread_t th(cache()->home_thread);
-    transactor_t transactor(saver, cache(), rwi_write, 0, repli_timestamp_t::distant_past());
+    transactor_t transactor(saver, cache(), rwi_write, 0, repli_timestamp_t::distant_past(), order_token_t::ignore);
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->replication_slave_id = t;
@@ -214,7 +214,7 @@ void btree_slice_t::set_replication_slave_id(uint32_t t) {
 uint32_t btree_slice_t::get_replication_slave_id() {
     thread_saver_t saver;
     on_thread_t th(cache()->home_thread);
-    transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::distant_past());
+    transactor_t transactor(saver, cache(), rwi_read, 0, repli_timestamp_t::distant_past(), order_token_t::ignore);
     buf_lock_t superblock(saver, transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
     return sb->replication_slave_id;

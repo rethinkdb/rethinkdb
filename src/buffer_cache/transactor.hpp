@@ -15,9 +15,9 @@ public:
     // people pass them explicitly.
 
     // This must be used in read mode or (read_mode_outdated_ok)
-    transactor_t(const thread_saver_t& saver, cache_t *cache, access_t access, order_token_t token = order_token_t::ignore);
+    transactor_t(const thread_saver_t& saver, cache_t *cache, access_t access, order_token_t token);
 
-    transactor_t(const thread_saver_t& saver, cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token = order_token_t::ignore);
+    transactor_t(const thread_saver_t& saver, cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token);
 
     ~transactor_t();
 

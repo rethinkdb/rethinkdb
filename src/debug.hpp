@@ -12,8 +12,10 @@
 
 #ifndef NDEBUG
 #define DEBUG_ONLY(expr) do { expr; } while (0)
+#define DPARM(x) , x
 #else
 #define DEBUG_ONLY(expr) ((void)(0))
+#define DPARM(x)
 #endif
 
 #endif // __DEBUG_HPP__
