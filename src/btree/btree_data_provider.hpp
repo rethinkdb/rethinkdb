@@ -26,7 +26,7 @@ private:
 
 public:
     size_t get_size() const;
-    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+    const const_buffer_group_t *get_data_as_buffers();
 
 private:
     // TODO: just use char[MAX_IN_NODE_VALUE_SIZE], thanks.
@@ -43,7 +43,7 @@ private:
 
 public:
     size_t get_size() const;
-    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+    const const_buffer_group_t *get_data_as_buffers();
     ~large_value_data_provider_t();
 
 private:

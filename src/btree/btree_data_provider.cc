@@ -16,7 +16,7 @@ size_t small_value_data_provider_t::get_size() const {
     return value.size();
 }
 
-const const_buffer_group_t *small_value_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
+const const_buffer_group_t *small_value_data_provider_t::get_data_as_buffers() {
 
     return &buffer_group;
 }
@@ -49,7 +49,7 @@ size_t large_value_data_provider_t::get_size() const {
     return lb_ref.ptr()->size;
 }
 
-const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
+const const_buffer_group_t *large_value_data_provider_t::get_data_as_buffers() {
     large_value_cond.wait();
     return const_view(&buffers);
 }

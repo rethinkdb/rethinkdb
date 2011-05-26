@@ -12,17 +12,6 @@
 
 #include "concurrency/cond_var.hpp"
 
-/* Data providers can throw data_provider_failed_exc_t to cancel the operation they are being used
-for. In general no information can be carried along with the data_provider_failed_exc_t; it's meant
-to signal to the data provider consumer, not the data provider creator. The cause of the error
-should be communicated some other way. */
-
-class data_provider_failed_exc_t : public std::exception {
-    const char *what() {
-        return "Data provider failed.";
-    }
-};
-
 /* A data_provider_t conceptually represents a read-only array of bytes. It is an abstract
 superclass; its concrete subclasses represent different sources of bytes. */
 
@@ -38,7 +27,7 @@ public:
     buffers that are provided. Producers should override get_data_into_buffers(). Alternatively,
     subclass from auto_copying_data_provider_t to get this behavior automatically in terms of
     get_data_as_buffers(). */
-    virtual void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t) = 0;
+    virtual void get_data_into_buffers(const buffer_group_t *dest) = 0;
 
     /* Consumers can call get_data_as_buffers() to ask the data_provider_t to provide a set of
     buffers that already contain the data. The reason for this alternative interface is that some
@@ -46,7 +35,7 @@ public:
     copy. The buffers are guaranteed to remain valid until the data provider is destroyed. Producers
     should also override get_data_as_buffers(), or subclass from auto_buffering_data_provider_t to
     automatically implement it in terms of get_data_into_buffers(). */
-    virtual const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t) = 0;
+    virtual const const_buffer_group_t *get_data_as_buffers() = 0;
 };
 
 /* A auto_buffering_data_provider_t is a subclass of data_provider_t that provides an implementation
@@ -55,7 +44,7 @@ subclasses should override get_size() and get_data_into_buffers(). */
 
 class auto_buffering_data_provider_t : public data_provider_t {
 public:
-    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+    const const_buffer_group_t *get_data_as_buffers();
 private:
     boost::scoped_array<char> buffer;   /* This is NULL until buffers are requested */
     const_buffer_group_t buffer_group;
@@ -67,7 +56,7 @@ subclasses should override get_size(), get_data_as_buffers(), and done_with_buff
 
 class auto_copying_data_provider_t : public data_provider_t {
 public:
-    void get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t);
+    void get_data_into_buffers(const buffer_group_t *dest);
 };
 
 /* A buffered_data_provider_t is a data_provider_t that simply owns an internal buffer that it
@@ -79,7 +68,7 @@ public:
     buffered_data_provider_t(const void *, size_t);   // Create by copying out of a buffer
     buffered_data_provider_t(size_t, void **);    // Allocate buffer, let creator fill it
     size_t get_size() const;
-    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+    const const_buffer_group_t *get_data_as_buffers();
 
     /* TODO: This is bad. */
     char *peek() { return buffer.get(); }

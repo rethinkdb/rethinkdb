@@ -7,7 +7,7 @@
 
 /* auto_buffering_data_provider_t */
 
-const const_buffer_group_t *auto_buffering_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
+const const_buffer_group_t *auto_buffering_data_provider_t::get_data_as_buffers() {
 
     if (!buffer) {
         /* Allocate a buffer */
@@ -27,7 +27,7 @@ const const_buffer_group_t *auto_buffering_data_provider_t::get_data_as_buffers(
 
 /* auto_copying_data_provider_t */
 
-void auto_copying_data_provider_t::get_data_into_buffers(const buffer_group_t *dest) throw (data_provider_failed_exc_t) {
+void auto_copying_data_provider_t::get_data_into_buffers(const buffer_group_t *dest) {
 
     const const_buffer_group_t *source = get_data_as_buffers();
     rassert(source->get_size() == get_size());
@@ -67,6 +67,6 @@ size_t buffered_data_provider_t::get_size() const {
     return size;
 }
 
-const const_buffer_group_t *buffered_data_provider_t::get_data_as_buffers() throw (data_provider_failed_exc_t) {
+const const_buffer_group_t *buffered_data_provider_t::get_data_as_buffers() {
     return &bg;
 }

@@ -17,10 +17,10 @@ struct death_signalling_data_provider_t : public data_provider_t {
     size_t get_size() const {
         return dp->get_size();
     }
-    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t) {
+    const const_buffer_group_t *get_data_as_buffers() {
         return dp->get_data_as_buffers();
     }
-    void get_data_into_buffers(const buffer_group_t *bg) throw (data_provider_failed_exc_t) {
+    void get_data_into_buffers(const buffer_group_t *bg) {
         dp->get_data_into_buffers(bg);
     }
 
@@ -61,11 +61,11 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
             cas_to_report = proposed_cas;
         }
 
-        // Need to block on the caller so we don't free the large value before it's done
         // Deliver the value to the client via the promise_t we got
         boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
         if (value.is_large()) {
-            // When dp2 is destroyed, it will signal to_signal_when_done.
+            // Need to block on the caller so we don't free the large value before it's done
+            // When `dp2` is destroyed, it will signal `to_signal_when_done`.
             cond_t to_signal_when_done;
             boost::shared_ptr<death_signalling_data_provider_t> dp2(
                 new death_signalling_data_provider_t(dp, &to_signal_when_done));

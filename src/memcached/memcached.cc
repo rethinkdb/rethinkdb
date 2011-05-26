@@ -437,9 +437,6 @@ void run_storage_command(txt_memcached_handler_t *rh,
             case sr_too_large:
                 rh->server_error_object_too_large_for_cache(saver);
                 break;
-            case sr_data_provider_failed:
-                /* The error message will be written by do_storage() */
-                break;
             case sr_not_allowed:
                 rh->client_error_not_allowed(saver, true);
                 break;
@@ -459,9 +456,6 @@ void run_storage_command(txt_memcached_handler_t *rh,
             case apr_not_found: rh->writef(saver, "NOT_FOUND\r\n"); break;
             case apr_too_large:
                 rh->server_error_object_too_large_for_cache(saver);
-                break;
-            case apr_data_provider_failed:
-                /* The error message will be written by do_storage() */
                 break;
             case apr_not_allowed:
                 rh->client_error_not_allowed(saver, true);
