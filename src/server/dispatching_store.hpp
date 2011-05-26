@@ -6,7 +6,7 @@
 
 struct dispatching_store_t : public set_store_t, public home_thread_mixin_t {
 
-    dispatching_store_t(set_store_t *substore, int bucket);
+    dispatching_store_t(set_store_t *substore);
     void set_dispatcher(boost::function<mutation_t(const mutation_t &, castime_t, order_token_t)> disp);
 
     mutation_result_t change(const mutation_t &m, castime_t castime, order_token_t token);

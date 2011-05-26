@@ -884,10 +884,16 @@ bool parse_debug_command(const thread_saver_t& saver, txt_memcached_handler_t *r
 
 /* Handle memcached, takes a txt_memcached_handler_t and handles the memcached commands that come in on it */
 void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
-        set_store_interface_t *set_store, int max_concurrent_queries_per_connection, order_source_t *order_source) {
+        set_store_interface_t *set_store, int max_concurrent_queries_per_connection) {
     logDBG("Opened memcached stream: %p\n", coro_t::self());
 
+    /* This object just exists to group everything together so we don't have to pass a lot of
+    context around. */
     txt_memcached_handler_t rh(interface, get_store, set_store, max_concurrent_queries_per_connection);
+
+    /* The commands from each individual memcached handler must be performed in the order
+    that the handler parses them. This `order_source_t` is used to guarantee that. */
+    order_source_t order_source;
 
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;
@@ -929,7 +935,7 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
         }
 
         /* Dispatch to the appropriate subclass */
-        order_token_t token = order_source->check_in();
+        order_token_t token = order_source.check_in();
         thread_saver_t saver;
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
             do_get(saver, &rh, false, args.size(), args.data(), token.with_read_mode());

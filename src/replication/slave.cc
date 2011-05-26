@@ -87,7 +87,7 @@ void slave_t::run(signal_t *shutdown_signal) {
         failover_->on_failure();
     }
 
-    backfill_receiver_order_source_t slave_order_source(BACKFILL_RECEIVER_ORDER_SOURCE_BUCKET);
+    backfill_receiver_order_source_t slave_order_source;
 
     while (!shutdown_signal->is_pulsed()) {
         try {

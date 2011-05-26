@@ -118,32 +118,30 @@ void wait_for_interrupt() {
 /* This `memcache_conn_handler_t` stuff is a hack */
 
 struct memcache_conn_handler_t : public conn_handler_with_special_lifetime_t {
-    memcache_conn_handler_t(get_store_t *get_store, set_store_interface_t *set_store, order_source_pigeoncoop_t *pigeoncoop)
-        : get_store_(get_store), set_store_(set_store), order_source_(pigeoncoop) { }
+    memcache_conn_handler_t(get_store_t *get_store, set_store_interface_t *set_store)
+        : get_store_(get_store), set_store_(set_store) { }
 
     void talk_on_connection(tcp_conn_t *conn) {
-        serve_memcache(conn, get_store_, set_store_, &order_source_);
+        serve_memcache(conn, get_store_, set_store_);
     }
 
 private:
     get_store_t *get_store_;
     set_store_interface_t *set_store_;
-    order_source_t order_source_;
     DISABLE_COPYING(memcache_conn_handler_t);
 };
 
 struct memcache_conn_acceptor_callback_t : public conn_acceptor_callback_t {
-    memcache_conn_acceptor_callback_t(get_store_t *get_store, set_store_interface_t *set_store, order_source_pigeoncoop_t *pigeoncoop)
-        : get_store_(get_store), set_store_(set_store), pigeoncoop_(pigeoncoop) { }
+    memcache_conn_acceptor_callback_t(get_store_t *get_store, set_store_interface_t *set_store)
+        : get_store_(get_store), set_store_(set_store) { }
 
     void make_handler_for_conn_thread(boost::scoped_ptr<conn_handler_with_special_lifetime_t>& output) {
-        output.reset(new memcache_conn_handler_t(get_store_, set_store_, pigeoncoop_));
+        output.reset(new memcache_conn_handler_t(get_store_, set_store_));
     }
 
 private:
     get_store_t *get_store_;
     set_store_interface_t *set_store_;
-    order_source_pigeoncoop_t *pigeoncoop_;
     DISABLE_COPYING(memcache_conn_acceptor_callback_t);
 };
 
@@ -182,8 +180,7 @@ void serve(int id, demo_delegate_t *delegate) {
     handler.set_store = &delegate->master_store; */
 
     os_signal_cond_t os_signal_cond;   // Bullshit. Needed by `serve_memcache()`.
-    order_source_pigeoncoop_t pigeoncoop(MEMCACHE_START_BUCKET);
-    memcache_conn_acceptor_callback_t conn_acceptor_callback(&delegate->master_get_store, &delegate->master_store, &pigeoncoop);
+    memcache_conn_acceptor_callback_t conn_acceptor_callback(&delegate->master_get_store, &delegate->master_store);
 
     int serve_port = 31400 + id;
     conn_acceptor_t conn_acceptor(serve_port, &conn_acceptor_callback);

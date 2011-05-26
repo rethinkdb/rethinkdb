@@ -1,6 +1,6 @@
 #include "server/dispatching_store.hpp"
 
-dispatching_store_t::dispatching_store_t(set_store_t *ss, int bucket) : order_source_for_dispatchee(bucket), substore(ss) { }
+dispatching_store_t::dispatching_store_t(set_store_t *ss) : substore(ss) { }
 
 void dispatching_store_t::set_dispatcher(boost::function<mutation_t(const mutation_t &, castime_t, order_token_t)> disp) {
     assert_thread();

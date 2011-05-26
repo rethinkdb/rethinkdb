@@ -83,7 +83,7 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
     }
 };
 
-void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, order_source_t *order_source) {
+void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
     tcp_conn_memcached_interface_t interface(conn);
-    handle_memcache(&interface, get_store, set_store, MAX_CONCURRENT_QUERIES_PER_CONNECTION, order_source);
+    handle_memcache(&interface, get_store, set_store, MAX_CONCURRENT_QUERIES_PER_CONNECTION);
 }

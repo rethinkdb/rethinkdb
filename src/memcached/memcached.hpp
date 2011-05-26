@@ -35,7 +35,6 @@ void handle_memcache(
     memcached_interface_t *interface,
     get_store_t *get_store,
     set_store_interface_t *set_store,
-    int max_concurrent_queries_per_connection,
-    order_source_t *order_source);
+    int max_concurrent_queries_per_connection);
 
 #endif /* __MEMCACHED_MEMCACHED_HPP__ */

@@ -13,6 +13,6 @@ server.
 The main use of `import_memcache()` is to implement the `rethinkdb import`
 subcommand.*/
 
-void import_memcache(std::string, set_store_interface_t *set_store, order_source_t *order_source);
+void import_memcache(std::string, set_store_interface_t *set_store);
 
 #endif /* __MEMCACHED_FILE_HPP__ */

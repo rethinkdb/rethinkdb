@@ -14,9 +14,9 @@ shard_store_t::shard_store_t(
     translator_serializer_t *translator_serializer,
     mirrored_cache_config_t *dynamic_config,
     int64_t delete_queue_limit,
-    int bucket) :
-    btree(translator_serializer, dynamic_config, delete_queue_limit, strprintf("%d", bucket)),
-    dispatching_store(&btree, bucket),
+    int id_number) :
+    btree(translator_serializer, dynamic_config, delete_queue_limit, strprintf("%d", id_number)),
+    dispatching_store(&btree),
     timestamper(&dispatching_store)
     { }
 

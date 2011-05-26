@@ -57,9 +57,9 @@ class dummy_get_store_t : public get_store_t {
     }
 };
 
-void import_memcache(std::string filename, set_store_interface_t *set_store, order_source_t *order_source) {
+void import_memcache(std::string filename, set_store_interface_t *set_store) {
     dummy_get_store_t dummy_get_store;
     file_memcached_interface_t interface(filename);
 
-    handle_memcache(&interface, &dummy_get_store, set_store, MAX_CONCURRENT_QUEURIES_ON_IMPORT, order_source);
+    handle_memcache(&interface, &dummy_get_store, set_store, MAX_CONCURRENT_QUEURIES_ON_IMPORT);
 }
