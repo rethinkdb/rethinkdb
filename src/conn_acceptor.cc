@@ -20,7 +20,7 @@ conn_acceptor_t::conn_agent_t::conn_agent_t(conn_acceptor_t *parent, tcp_conn_t 
 {
 }
 
-perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600));
+perfmon_duration_sampler_t pm_conns("conns", secs_to_ticks(600), false);
 
 void conn_acceptor_t::conn_agent_t::run() {
 

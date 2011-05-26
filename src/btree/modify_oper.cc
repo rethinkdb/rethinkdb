@@ -25,8 +25,6 @@
 // TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
 // relevant.
 
-perfmon_counter_t pm_btree_depth("btree_depth");
-
 void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
     rassert(sb_buf.is_acquired());
     sb_buf->set_data(const_cast<block_id_t *>(&ptr_cast<btree_superblock_t>(sb_buf->get_data_read())->root_block), &root_id, sizeof(root_id));
@@ -68,7 +66,6 @@ void check_and_handle_split(const thread_saver_t& saver, transactor_t& txor, buf
         internal_node::init(block_size, *last_buf.buf());
 
         insert_root(last_buf->get_block_id(), sb_buf);
-        pm_btree_depth++;
     }
 
     bool success __attribute__((unused)) = internal_node::insert(block_size, *last_buf.buf(), median, buf->get_block_id(), rbuf->get_block_id());
@@ -131,7 +128,6 @@ void check_and_handle_underfull(const thread_saver_t& saver, transactor_t& txor,
                 // node as the new root.
                 last_buf->mark_deleted();
                 insert_root(buf->get_block_id(), sb_buf);
-                pm_btree_depth--;
             }
         } else { // Level
             btree_key_buffer_t key_to_replace_buffer, replacement_key_buffer;
@@ -160,7 +156,6 @@ void get_root(const thread_saver_t& saver, transactor_t& txor, buf_lock_t& sb_bu
         buf_out->allocate(saver, txor);
         leaf::init(block_size, *buf_out->buf(), timestamp);
         insert_root(buf_out->buf()->get_block_id(), sb_buf);
-        pm_btree_depth++;
     }
 }
 

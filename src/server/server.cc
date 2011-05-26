@@ -1,7 +1,8 @@
 #include <math.h>
 #include "server.hpp"
 #include "db_thread_info.hpp"
-#include "memcached/memcached.hpp"
+#include "memcached/tcp_conn.hpp"
+#include "memcached/file.hpp"
 #include "diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"

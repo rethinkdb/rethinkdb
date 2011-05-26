@@ -30,35 +30,39 @@ spinlock_t &get_var_lock() {
 /* This is the function that actually gathers the stats. It is illegal to create or destroy
 perfmon_t objects while perfmon_get_stats is active. */
 
-void co_perfmon_visit(int thread, const std::vector<void*> &data) {
+void co_perfmon_visit(int thread, const std::vector<void*> &data, bool include_secret) {
     on_thread_t moving(thread);
     int i = 0;
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        p->visit_stats(data[i++]);
+        if (!p->secret || include_secret)
+            p->visit_stats(data[i++]);
     }
 }
 
 
-void perfmon_get_stats(perfmon_stats_t *dest) {
+void perfmon_get_stats(perfmon_stats_t *dest, bool include_secret) {
 
     std::vector<void*> data;
 
     data.reserve(get_var_list().size());
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        data.push_back(p->begin_stats());
+        if (!p->secret || include_secret) 
+            data.push_back(p->begin_stats());
     }
 
-    pmap(get_num_threads(), boost::bind(&co_perfmon_visit, _1, data));
+    pmap(get_num_threads(), boost::bind(&co_perfmon_visit, _1, data, include_secret));
 
     int i = 0;
     for (perfmon_t *p = get_var_list().head(); p; p = get_var_list().next(p)) {
-        p->end_stats(data[i++], dest);
+        if (!p->secret || include_secret)
+            p->end_stats(data[i++], dest);
     }
 }
 
 /* Constructor and destructor register and deregister the perfmon. */
 
-perfmon_t::perfmon_t()
+perfmon_t::perfmon_t(bool secret)
+    : secret(secret)
 {
     spinlock_acq_t acq(&get_var_lock());
     get_var_list().push_back(this);
@@ -73,8 +77,8 @@ bool global_full_perfmon = false;
 
 /* perfmon_counter_t */
 
-perfmon_counter_t::perfmon_counter_t(std::string name)
-    : name(name)
+perfmon_counter_t::perfmon_counter_t(std::string name, bool secret)
+    : perfmon_t(secret), name(name)
 {
     for (int i = 0; i < MAX_THREADS; i++) values[i].value = 0;
 }
@@ -100,8 +104,8 @@ void perfmon_counter_t::end_stats(void *data, perfmon_stats_t *dest) {
 
 /* perfmon_sampler_t */
 
-perfmon_sampler_t::perfmon_sampler_t(std::string name, ticks_t length, bool include_rate)
-    : name(name), length(length), include_rate(include_rate)
+perfmon_sampler_t::perfmon_sampler_t(std::string name, ticks_t length, bool include_rate, bool secret)
+    : perfmon_t(secret), name(name), length(length), include_rate(include_rate)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_info[i].current_interval = get_ticks() / length;
@@ -170,8 +174,8 @@ void perfmon_sampler_t::end_stats(void *data, perfmon_stats_t *dest) {
 
 /* perfmon_rate_monitor_t */
 
-perfmon_rate_monitor_t::perfmon_rate_monitor_t(std::string name, ticks_t length)
-    : name(name), length(length)
+perfmon_rate_monitor_t::perfmon_rate_monitor_t(std::string name, ticks_t length, bool secret)
+    : perfmon_t(secret), name(name), length(length)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_info[i].current_interval = get_ticks() / length;

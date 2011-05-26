@@ -12,7 +12,7 @@ namespace replication {
 // The `replication_slave_realtime_queue` stat is mentioned in the manual, so if
 // you change it, be sure to update the manual as well.
 perfmon_counter_t
-    pm_replication_slave_realtime_queue("replication_slave_realtime_queue"),
+    pm_replication_slave_realtime_queue("replication_slave_realtime_queue", false),
     pm_replication_slave_backfill_queue("replication_slave_backfill_queue");
 
 // Stats for how long it takes to push something onto the queue (it should be

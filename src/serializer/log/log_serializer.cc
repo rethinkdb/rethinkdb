@@ -377,7 +377,7 @@ struct ls_block_writer_t :
     }
 };
 
-perfmon_duration_sampler_t pm_serializer_writes("serializer_writes", secs_to_ticks(1));
+perfmon_duration_sampler_t pm_serializer_writes("serializer_writes", secs_to_ticks(1), false);
 
 struct ls_write_fsm_t :
     private iocallback_t,
@@ -583,7 +583,7 @@ private:
     log_serializer_t::metablock_t mb_buffer;
 };
 
-perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_ticks(2));
+perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_ticks(2), false);
 
 bool log_serializer_t::do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback, bool main_mutex_has_been_acquired) {
     // Even if state != state_ready we might get a do_write from the
@@ -645,7 +645,7 @@ bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, in
     }
 }
 
-perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1));
+perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1), false);
 
 struct ls_read_fsm_t :
     private iocallback_t,
