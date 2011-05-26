@@ -1170,7 +1170,6 @@ void check_slice_other_blocks(slicecx& cx, other_block_errors *errs, const confi
     }
 }
 
-// TODO: report these errors.
 struct delete_queue_errors {
     btree_block::error dq_block_code;
     bool dq_block_bad_magic;
@@ -1475,6 +1474,42 @@ void report_interfile_errors(const interfile_errors &errs) {
     }
 }
 
+void report_any_largebuf_errors(const char *name, const largebuf_error *errs) {
+    if (errs->is_bad()) {
+        // TODO: This duplicates some code with
+        // report_subtree_errors' large buf error reporting.
+        printf("ERROR %s %s errors: %s%s", state, name,
+               errs->not_left_shifted ? " not_left_shifted" : "",
+               errs->bogus_ref ? " bogus_ref" : "");
+
+        for (int j = 0, m = errs->segment_errors.size(); j < m; ++j) {
+            const largebuf_error::segment_error se = errs->segment_errors[j];
+
+            printf(" segment_error(%u, %s)", se.block_id,
+                   se.block_code == btree_block::none ? "bad magic" : btree_block::error_name(se.block_code));
+        }
+
+        printf("\n");
+    }
+}
+
+bool report_delete_queue_errors(const delete_queue_errors *errs) {
+    if (errs->is_bad()) {
+        if (errs->dq_block_code != btree_block::none) {
+            printf("ERROR %s could not find delete queue block: %s\n", state, btree_block::error_name(errs->dq_block_code));
+        }
+
+        if (errs->dq_block_bad_magic) {
+            printf("ERROR %s delete queue block had bad magic\n", state);
+        }
+
+        report_any_largebuf_errors("delete queue timestamp buffer", &errs->timestamp_buf);
+        report_any_largebuf_errors("delete queue keys buffer", &errs->keys_buf);
+
+    }
+    return !errs->is_bad();
+}
+
 bool report_subtree_errors(const subtree_errors *errs) {
     if (!errs->node_errors.empty()) {
         printf("ERROR %s subtree node errors found...\n", state);
@@ -1500,6 +1535,9 @@ bool report_subtree_errors(const subtree_errors *errs) {
     }
 
     if (!errs->value_errors.empty()) {
+        // TODO: This duplicates some code with
+        // report_any_largebuf_errors' large buf error reporting.
+
         printf("ERROR %s subtree value errors found...\n", state);
         for (int i = 0, n = errs->value_errors.size(); i < n; ++i) {
             const value_error& e = errs->value_errors[i];
@@ -1508,8 +1546,8 @@ bool report_subtree_errors(const subtree_errors *errs) {
                    e.bad_metadata_flags ? " bad_metadata_flags" : "",
                    e.too_big ? " too_big" : "",
                    e.lv_too_small ? " lv_too_small" : "",
-                   e.largebuf_errs.not_left_shifted ? " lv_not_left_shifted" : "",
-                   e.largebuf_errs.bogus_ref ? " lv_bogus_ref" : "");
+                   e.largebuf_errs.not_left_shifted ? " largebuf_errs.not_left_shifted" : "",
+                   e.largebuf_errs.bogus_ref ? " largebuf_errs.bogus_ref" : "");
             for (int j = 0, m = e.largebuf_errs.segment_errors.size(); j < m; ++j) {
                 const largebuf_error::segment_error se = e.largebuf_errs.segment_errors[j];
 
@@ -1580,10 +1618,11 @@ bool report_slice_errors(const slice_errors *errs) {
         printf("ERROR %s btree superblock had bad magic\n", state);
         return false;
     }
+    bool no_delete_queue_errors = report_delete_queue_errors(&errs->delete_queue_errs);
     bool no_diff_log_errors = report_diff_log_errors(&errs->diff_log_errs);
     bool no_subtree_errors = report_subtree_errors(&errs->tree_errs);
     bool no_other_block_errors = report_other_block_errors(&errs->other_block_errs);
-    return no_diff_log_errors && no_subtree_errors && no_other_block_errors;
+    return no_delete_queue_errors && no_diff_log_errors && no_subtree_errors && no_other_block_errors;
 }
 
 bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
@@ -1696,12 +1735,6 @@ std::string extract_command_line_args(const config_t& cfg) {
 
     config_block_errors errs;
     check_config_block(knog.files[0], knog.file_knog[0], &errs);
-    /* btree_block config_block;
-    if (!config_block.init(knog.files[0], knog.file_knog[0], CONFIG_BLOCK_ID.ser_id)) {
-        logINF("Error, taking command line of corrupted file\n");
-        exit(1);
-    }
-    const serializer_config_block_t *buf = ptr_cast<serializer_config_block_t>(config_block.buf); */
 
     flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
 
