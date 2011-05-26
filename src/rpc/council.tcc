@@ -124,7 +124,7 @@ bool council_t<value_t, diff_t>::handle_lock(int locker) {
 }
 
 template<class value_t, class diff_t>
-void council_t<value_t, diff_t>::handle_change(const change_message_t &msg, int change_count) {
+void council_t<value_t, diff_t>::handle_change(const change_message_t &msg, UNUSED int change_count) {
 
     on_thread_t thread_switcher(home_thread);
 
