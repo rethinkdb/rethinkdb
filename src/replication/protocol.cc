@@ -149,7 +149,7 @@ void replication_connection_handler_t::process_hello_message(net_hello_t buf) {
 
 }  // namespace internal
 
-perfmon_rate_monitor_t pm_replication_network_write_rate("replication_network_write_rate", secs_to_ticks(2.0));
+perfmon_rate_monitor_t pm_replication_network_write_rate("replication_network_write_rate", secs_to_ticks(2.0), false);
 
 repli_stream_t::repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback, int heartbeat_timeout) :
             heartbeat_sender_t(REPLICATION_HEARTBEAT_INTERVAL),

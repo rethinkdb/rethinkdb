@@ -40,7 +40,7 @@ typedef std::map<std::string, std::string> perfmon_stats_t;
 into the given perfmon_stats_t object. It must be run in a coroutine and it blocks
 until it is done. */
 
-void perfmon_get_stats(perfmon_stats_t *dest);
+void perfmon_get_stats(perfmon_stats_t *dest, bool include_secret = false);
 
 /* A perfmon_t represents a stat about the server.
 
@@ -52,7 +52,9 @@ class perfmon_t :
     public intrusive_list_node_t<perfmon_t>
 {
 public:
-    perfmon_t();
+    bool secret;
+public:
+    perfmon_t(bool secret = true);
     virtual ~perfmon_t();
     
     /* To get a value from a given perfmon: Call begin_stats(). On each core, call the visit_stats()
@@ -82,7 +84,7 @@ class perfmon_counter_t :
     int64_t &get();
     std::string name;
 public:
-    explicit perfmon_counter_t(std::string name);
+    explicit perfmon_counter_t(std::string name, bool secret = true);
     void operator++(int) { get()++; }
     void operator+=(int64_t num) { get() += num; }
     void operator--(int) { get()--; }
@@ -140,7 +142,7 @@ private:
     ticks_t length;
     bool include_rate;
 public:
-    perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false);
+    perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false, bool secret = true);
     void record(value_t value);
     
     void *begin_stats();
@@ -166,7 +168,7 @@ private:
     std::string name;
     ticks_t length;
 public:
-    perfmon_rate_monitor_t(std::string name, ticks_t length);
+    perfmon_rate_monitor_t(std::string name, ticks_t length, bool secret = true);
     void record(double value = 1.0);
     
     void *begin_stats();
@@ -197,10 +199,10 @@ private:
     perfmon_sampler_t recent;
     bool ignore_global_full_perfmon;
 public:
-    perfmon_duration_sampler_t(std::string name, ticks_t length, bool ignore_global_full_perfmon = false) 
+    perfmon_duration_sampler_t(std::string name, ticks_t length, bool secret = true, bool ignore_global_full_perfmon = false) 
         : control_t(std::string("pm_") + name + "_toggle", name + " toggle on and off", true),
-          active(name + "_active_count"), total(name + "_total") , recent(name, length, true), 
-          ignore_global_full_perfmon(ignore_global_full_perfmon)
+          active(name + "_active_count", secret), total(name + "_total", secret), 
+          recent(name, length, true, secret), ignore_global_full_perfmon(ignore_global_full_perfmon)
         { }
     void begin(ticks_t *v) {
         active++;
@@ -247,8 +249,8 @@ private:
     intrusive_list_t<internal_function_t> funs[MAX_THREADS];
 
 public:
-    perfmon_function_t(std::string name)
-        : perfmon_t(), name(name) {}
+    perfmon_function_t(std::string name, bool secret = true)
+        : perfmon_t(secret), name(name) {}
     ~perfmon_function_t() {}
 
     void *begin_stats();

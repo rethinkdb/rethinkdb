@@ -48,7 +48,7 @@ class RDBStat():
         # assert self.limits
 
         #send the stat request
-        self.socket.send("stat\r\n")
+        self.socket.send("stat-secret\r\n")
 
         #recv the response
         data = ''
