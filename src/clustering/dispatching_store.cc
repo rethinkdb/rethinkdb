@@ -12,20 +12,19 @@ clustered_store_t::~clustered_store_t() {
     rassert(dispatchees.empty());
 }
 
-static void do_mutation(int i, mutation_result_t *out, std::pair<set_store_t *, get_store_t *> s, mutation_splitter_t *splitter, castime_t castime, order_token_t tok) {
+static void do_mutation(int i, mutation_result_t *out, std::pair<set_store_t *, get_store_t *> s, const mutation_t &mut, castime_t castime, order_token_t tok) {
     /* The reply that we send back to the client is the reply produced by the first dispatchee. */
     if (i == 0) {
-        *out = s.first->change(splitter->branch(), castime, tok);
+        *out = s.first->change(mut, castime, tok);
     } else {
-        mutation_result_t r = s.first->change(splitter->branch(), castime, tok);
+        mutation_result_t r = s.first->change(mut, castime, tok);
     }
 }
 
 mutation_result_t clustered_store_t::change(const mutation_t &mut, castime_t castime, order_token_t tok) {
     rassert(!dispatchees.empty());
-    mutation_splitter_t splitter(mut);
     mutation_result_t res;
-    pimap(dispatchees.get_storage(mut.get_key()), dispatchees.end(), boost::bind(&do_mutation, _2, &res, _1, &splitter, castime, tok));
+    pimap(dispatchees.get_storage(mut.get_key()), dispatchees.end(), boost::bind(&do_mutation, _2, &res, _1, mut, castime, tok));
     return res;
 }
 

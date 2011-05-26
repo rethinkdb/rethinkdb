@@ -16,7 +16,7 @@ public:
 
     /* When create() returns, it is safe for the caller to invalidate "value" and it is
     safe for the caller to release the leaf node that "value" came from. */
-    // TODO: Make this return a unique_ptr_t.
+    // TODO: Make this return a `boost::shared_ptr`.
     static value_data_provider_t *create(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
 };
 
@@ -26,13 +26,13 @@ private:
 
 public:
     size_t get_size() const;
-    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+    const const_buffer_group_t *get_data_as_buffers();
 
 private:
     // TODO: just use char[MAX_IN_NODE_VALUE_SIZE], thanks.
     typedef std::vector<char> buffer_t;
     buffer_t value;
-    boost::scoped_ptr<const_buffer_group_t> buffers;
+    const_buffer_group_t buffer_group;
 
     friend class value_data_provider_t;
 };
@@ -43,7 +43,7 @@ private:
 
 public:
     size_t get_size() const;
-    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t);
+    const const_buffer_group_t *get_data_as_buffers();
     ~large_value_data_provider_t();
 
 private:
@@ -69,7 +69,6 @@ private:
     large_buf_ref_buffer_t lb_ref;
     large_buf_t large_value;
     cond_t large_value_cond;
-    bool have_value;
     void on_large_buf_available(large_buf_t *large_buf);
 
     friend class value_data_provider_t;

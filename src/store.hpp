@@ -170,8 +170,6 @@ enum set_result_t {
     sr_didnt_replace,
     /* Returned if the value to be stored is too big */
     sr_too_large,
-    /* Returned if the data_provider_t that you gave returned have_failed(). */
-    sr_data_provider_failed,
     /* Returned if the store doesn't want you to do what you're doing. */
     sr_not_allowed,
 };
@@ -225,7 +223,6 @@ enum append_prepend_result_t {
     apr_success,
     apr_too_large,
     apr_not_found,
-    apr_data_provider_failed,
     apr_not_allowed,
 };
 
@@ -254,17 +251,6 @@ struct mutation_result_t {
     // implicit
     template<class T>
     mutation_result_t(const T &r) : result(r) { }
-};
-
-/* It's not safe to copy a mutation_t and then use both copies, because the mutation_t may contain
-data_provider_t*s that can only be safely used once. In this situation, you must create a
-mutation_duplicator_t and call branch() on it repeatedly. */
-struct mutation_splitter_t {
-    mutation_splitter_t(const mutation_t &mut);
-    mutation_t branch();
-private:
-    mutation_t original;
-    boost::scoped_ptr<data_provider_t> dp;
 };
 
 class set_store_interface_t {
