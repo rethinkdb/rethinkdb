@@ -29,7 +29,7 @@ protected:
     static void create_two_blocks(transactor_t &txor, block_id_t &block_A, block_id_t &block_B);
 
 protected:
-    virtual void run_tests(thread_saver_t& saver, cache_t *cache) = 0;
+    virtual void run_tests(cache_t *cache) = 0;
 
     translator_serializer_t *serializer;
 

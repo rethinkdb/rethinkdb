@@ -180,7 +180,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         on_thread_t mover(slice->home_thread); // Move to the slice's thread.
 
         // TODO: why is this a shared_ptr?
-        boost::shared_ptr<transactor_t> txor(new transactor_t(saver, slice->cache(), rwi_write, oper->compute_expected_change_count(slice->cache()->get_block_size().value()),  castime.timestamp, token));
+        boost::shared_ptr<transactor_t> txor(new transactor_t(slice->cache(), rwi_write, oper->compute_expected_change_count(slice->cache()->get_block_size().value()),  castime.timestamp, token));
 
         buf_lock_t sb_buf(saver, *txor, SUPERBLOCK_ID, rwi_write);
         // TODO: do_superblock_sidequest is blocking.  It doesn't have

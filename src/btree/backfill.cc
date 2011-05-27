@@ -128,8 +128,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
 
         backfill_traversal_helper_t helper(callback, since_when);
 
-        thread_saver_t saver;
-        boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(saver, slice->cache(), rwi_read, order_token_t::ignore);
+        boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), rwi_read, order_token_t::ignore);
 
         txor->get()->snapshot();
 

@@ -50,11 +50,9 @@ void server_test_helper_t::setup_server_and_run_tests() {
 
         cache_t *cache = slice.cache();
 
-        thread_saver_t saver;
-
         nap(200);   // to let patch_disk_storage do writeback.sync();
 
-        run_tests(saver, cache);
+        run_tests(cache);
     }
     trace_call(thread_pool.shutdown);
 }

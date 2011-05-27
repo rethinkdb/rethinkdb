@@ -10,7 +10,8 @@ protected:
         return cache->get_block_size().value() - sizeof(large_buf_leaf);
     }
 
-    void run_tests(thread_saver_t& saver, cache_t *cache) {
+    void run_tests(cache_t *cache) {
+        thread_saver_t saver;
         {
 #ifndef NDEBUG
             TRACEPOINT;
@@ -48,7 +49,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past();
 
-        boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache, rwi_write, 0, time, order_token_t::ignore));
+        boost::shared_ptr<transactor_t> txor(new transactor_t(cache, rwi_write, 0, time, order_token_t::ignore));
 
         union {
             large_buf_ref ref;
@@ -104,7 +105,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past();
 
-        boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache, rwi_write, 0, time, order_token_t::ignore));
+        boost::shared_ptr<transactor_t> txor(new transactor_t(cache, rwi_write, 0, time, order_token_t::ignore));
 
         union {
             large_buf_ref ref;

@@ -23,7 +23,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     thread_saver_t saver;
     on_thread_t mover(slice->home_thread);
     // We can use repli_timestamp::invalid here because it's the timestamp for a read-only transaction.
-    boost::shared_ptr<transactor_t> transactor(new transactor_t(saver, slice->cache(), rwi_read, token));
+    boost::shared_ptr<transactor_t> transactor(new transactor_t(slice->cache(), rwi_read, token));
 
     // Acquire the superblock
 
