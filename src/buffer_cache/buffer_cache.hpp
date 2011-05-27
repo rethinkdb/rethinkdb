@@ -33,6 +33,7 @@ typedef cache_t::buf_t buf_t;
 typedef cache_t::transaction_t transaction_t;
 typedef cache_t::transaction_begin_callback_t transaction_begin_callback_t;
 typedef cache_t::transaction_commit_callback_t transaction_commit_callback_t;
+typedef cache_t::cache_account_t cache_account_t;
 
 
 

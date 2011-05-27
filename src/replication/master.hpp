@@ -9,7 +9,6 @@
 #include "replication/backfill_receiver.hpp"
 #include "replication/backfill_in.hpp"
 #include "concurrency/mutex.hpp"
-#include "containers/thick_list.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
 

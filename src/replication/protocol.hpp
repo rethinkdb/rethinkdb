@@ -9,7 +9,6 @@
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/scoped_malloc.hpp"
-#include "containers/thick_list.hpp"
 #include "data_provider.hpp"
 #include "replication/multistream.hpp"
 #include "replication/net_structs.hpp"

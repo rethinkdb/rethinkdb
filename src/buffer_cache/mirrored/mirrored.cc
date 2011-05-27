@@ -12,7 +12,7 @@ perfmon_counter_t pm_registered_snapshots("registered_snapshots"),
 perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1));
 
 // This loads a block from the serializer and stores it into buf.
-void mc_inner_buf_t::load_inner_buf(bool should_lock) {
+void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_account) {
     if (should_lock) {
         bool locked UNUSED = lock.lock(rwi_write, NULL);
         rassert(locked);
@@ -29,7 +29,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock) {
             void on_serializer_read() { pulse(); }
         } cb;
         rassert(data); // Should have been malloced before!
-        if (!cache->serializer->do_read(block_id, data, cache->reads_io_account.get(), &cb)) {
+        if (!cache->serializer->do_read(block_id, data, io_account, &cb)) {
             cb.wait();
         }
     }
@@ -51,7 +51,10 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock) {
 struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
-    explicit load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
+    file_t::account_t *io_account_;
+    explicit load_buf_fsm_t(mc_inner_buf_t *buf, file_t::account_t *io_account) :
+            inner_buf(buf),
+            io_account_(io_account) {
         bool locked UNUSED = inner_buf->lock.lock(rwi_write, NULL);
         rassert(locked);
         have_loaded = false;
@@ -60,7 +63,7 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     void on_thread_switch() {
         if (!have_loaded) {
             inner_buf->subtree_recency = inner_buf->cache->serializer->get_recency(inner_buf->block_id);
-            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, inner_buf->cache->reads_io_account.get(), this))
+            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, io_account_, this))
                 on_serializer_read();
         } else {
             // Read the transaction id
@@ -82,7 +85,7 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
 
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_t::account_t *io_account)
     : cache(cache),
       block_id(block_id),
       subtree_recency(repli_timestamp::invalid),  // Gets initialized by load_inner_buf
@@ -108,7 +111,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
         // TODO: Spawning a coroutine for each load might introduce a performance regression.
         // Also it doesn't harmonize with the current patch_disk_storage preloading.
         // Therefore, we are still using the old load_buf_fsm_t at this one place for now.
-        new load_buf_fsm_t(this);
+        new load_buf_fsm_t(this, io_account);
     }
 
     // pm_n_blocks_in_memory gets incremented in cases where
@@ -276,7 +279,7 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
             data = cache->serializer->malloc();
             // Our callee (hopefully!!!) already has a lock at this point, so there's no need
             // to acquire another one inside of load_inner_buf (and of course it would dead-lock).
-            load_inner_buf(false);
+            load_inner_buf(false, cache->reads_io_account.get());
         }
         snapshots.push_front(buf_snapshot_info_t(data, version_id, refcount));
         cow_refcount = 0;
@@ -743,7 +746,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     inner_buf_t *inner_buf = cache->find_buf(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
-        inner_buf = new inner_buf_t(cache, block_id, should_load);
+        inner_buf = new inner_buf_t(cache, block_id, should_load, get_io_account());
     } else {
         rassert(!inner_buf->do_delete || snapshotted);
 
@@ -751,8 +754,9 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
             // The inner_buf doesn't have any data currently. We need the data though,
             // so load it!
             inner_buf->data = cache->serializer->malloc();
+
             // Please keep in mind that this is blocking...
-            inner_buf->load_inner_buf(true);
+            inner_buf->load_inner_buf(true, get_io_account());
         }
     }
 
@@ -788,6 +792,14 @@ void mc_transaction_t::snapshot() {
     rassert(snapshot_version == mc_inner_buf_t::faux_version_id, "Tried to take a snapshot after having acquired a first block");
 
     snapshotted = true;
+}
+
+void mc_transaction_t::set_account(boost::shared_ptr<mc_cache_account_t> cache_account) {
+    cache_account_ = cache_account;
+}
+
+file_t::account_t *mc_transaction_t::get_io_account() const {
+    return (cache_account_.get() == NULL ? cache->reads_io_account.get() : cache_account_->io_account_.get());
 }
 
 void get_subtree_recencies_helper(int slice_home_thread, translator_serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
@@ -981,6 +993,18 @@ mc_transaction_t *mc_cache_t::begin_transaction(order_token_t token, access_t ac
     } else {
         return NULL;
     }
+}
+
+boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
+    // We assume that a priority of 100 means that the transaction should have the same priority as
+    // all the non-accounted transactions together. Not sure if this makes sense.
+
+    // Be aware of rounding errors... (what can be do against those? probably just setting the default io_priority_reads high enough)
+    int io_priority = dynamic_config->io_priority_reads * priority / 100;
+
+    boost::shared_ptr<file_t::account_t> io_account(serializer->make_io_account(io_priority));
+
+    return boost::shared_ptr<cache_account_t>(new cache_account_t(io_account));
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {
