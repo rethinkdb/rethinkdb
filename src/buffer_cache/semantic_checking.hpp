@@ -148,6 +148,7 @@ public:
 
     block_size_t get_block_size();
     transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
+    boost::shared_ptr<cache_account_t> create_account(int priority);
 
     void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool contains_block(block_id_t block_id);
