@@ -77,8 +77,8 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
     incr_decr_result_t result;
 };
 
-incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, UNUSED order_token_t token) {
+incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, order_token_t token) {
     btree_incr_decr_oper_t oper(increment, delta);
-    run_btree_modify_oper(&oper, slice, key, castime);
+    run_btree_modify_oper(&oper, slice, key, castime, token);
     return oper.result;
 }

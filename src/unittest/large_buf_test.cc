@@ -48,7 +48,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past();
 
-        boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache, rwi_write, 0, time));
+        boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache, rwi_write, 0, time, order_token_t::ignore));
 
         union {
             large_buf_ref ref;
@@ -104,7 +104,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past();
 
-        boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache, rwi_write, 0, time));
+        boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache, rwi_write, 0, time, order_token_t::ignore));
 
         union {
             large_buf_ref ref;
@@ -116,7 +116,7 @@ private:
             // 23 is relatively prime to leaf_size, which should be 4080.
             chars[i] = 'A' + (i % 23);
         }
-        
+
         {
             large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
             lb.allocate(5000);
