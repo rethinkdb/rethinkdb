@@ -96,9 +96,6 @@ ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
 endif
 
-# Configure libcoroutine
-CXXFLAGS+=-DUSE_UCONTEXT
-
 STRIP_ON_INSTALL?=1
 
 # Configure debug vs. release
