@@ -21,7 +21,7 @@ buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction,
 
 void co_acquire_large_buf_for_unprepend(const thread_saver_t& saver, large_buf_t *lb, int64_t length);
 void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, int64_t offset, int64_t size, threadsafe_cond_t *acquisition_cond = NULL);
-void co_acquire_large_buf(const thread_saver_t& saver, large_buf_t *large_value, threadsafe_cond_t *acquisition_cond = NULL);
+void co_acquire_large_buf(large_buf_t *large_value, threadsafe_cond_t *acquisition_cond = NULL);
 void co_acquire_large_buf_lhs(const thread_saver_t& saver, large_buf_t *large_value);
 void co_acquire_large_buf_rhs(const thread_saver_t& saver, large_buf_t *large_value);
 void co_acquire_large_buf_for_delete(large_buf_t *large_value);

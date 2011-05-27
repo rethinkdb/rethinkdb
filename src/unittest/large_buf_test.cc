@@ -88,7 +88,7 @@ private:
 
         {
             large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_read);
-            co_acquire_large_buf(saver, &lb);
+            co_acquire_large_buf(&lb);
 
             std::vector<char> chars_out(initial_size - unprepend_amount);
             lb.read_at(0, chars_out.data(), initial_size - unprepend_amount);
@@ -136,7 +136,7 @@ private:
             {
                 large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
                 threadsafe_cond_t cond;
-                co_acquire_large_buf(saver, &lb, &cond);
+                co_acquire_large_buf(&lb, &cond);
                 cond.wait();
                 int refsize_adjustment_out;
                 lb.append(100, &refsize_adjustment_out);

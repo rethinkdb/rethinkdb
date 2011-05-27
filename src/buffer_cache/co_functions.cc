@@ -59,7 +59,9 @@ void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, in
     coro_t::wait();
 }
 
-void co_acquire_large_buf(const thread_saver_t& saver, large_buf_t *lb, threadsafe_cond_t *acquisition_cond) {
+void co_acquire_large_buf(large_buf_t *lb, threadsafe_cond_t *acquisition_cond) {
+    lb->assert_thread();
+    thread_saver_t saver;
     co_acquire_large_buf_slice(saver, lb, 0, lb->root_ref->size, acquisition_cond);
 }
 

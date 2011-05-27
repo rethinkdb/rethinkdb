@@ -173,7 +173,7 @@ bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
 
         {
             boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_read));
-            co_acquire_large_buf(saver, t_o_largebuf.get());
+            co_acquire_large_buf(t_o_largebuf.get());
 
             delete_queue::t_and_o tao;
             int64_t i = 0, ie = t_o_ref->size;
