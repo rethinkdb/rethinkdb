@@ -54,7 +54,7 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
     }
 
     void write(const thread_saver_t& saver, const std::string& buffer) {
-        write(saver, buffer.c_str(), buffer.length());
+        write(saver, buffer.data(), buffer.length());
     }
 
     void write(const thread_saver_t& saver, const char *buffer, size_t bytes) {
@@ -733,33 +733,33 @@ void do_delete(const thread_saver_t& saver, txt_memcached_handler_t *rh, int arg
 
 /* "stats" command */
 
-std::string memcached_stats(int argc, char **argv, bool include_secret) {
+std::string memcached_stats(int argc, char **argv, bool include_internal) {
     std::string res;
     perfmon_stats_t stats;
 
-    perfmon_get_stats(&stats, include_secret);
+    perfmon_get_stats(&stats, include_internal);
 
     if (argc == 1) {
         for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
-            res.append(strprintf("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str()));
+            res += strprintf("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str());
         }
     } else {
         for (int i = 1; i < argc; i++) {
             perfmon_stats_t::iterator iter = stats.find(argv[i]);
-            res.append(strprintf("STAT %s %s\r\n", argv[i], iter == stats.end()
-                                                            ? "NOT_FOUND"
-                                                            : iter->second.c_str()));
+            res += strprintf("STAT %s %s\r\n", argv[i], iter == stats.end()
+                                                        ? "NOT_FOUND"
+                                                        : iter->second.c_str());
 
         }
     }
-    res.append("END\r\n");
+    res += "END\r\n";
     return res;
 }
 
-// Control for showing secret stats.
+// Control for showing internal stats.
 struct memcached_stats_control_t : public control_t {
     memcached_stats_control_t() :
-        control_t("stats", "Show all stats (including secret stats).", true) {}
+        control_t("stats", "Show all stats (including internal stats).", true) {}
     std::string call(int argc, char **argv) {
         return memcached_stats(argc, argv, true);
     }
@@ -769,13 +769,6 @@ perfmon_duration_sampler_t
     pm_conns_reading("conns_reading", secs_to_ticks(1), false),
     pm_conns_writing("conns_writing", secs_to_ticks(1), false),
     pm_conns_acting("conns_acting", secs_to_ticks(1), false);
-
-std::string join_strings(std::string separator, std::vector<char*>::iterator begin, std::vector<char*>::iterator end) {
-    std::string res(*begin);
-    for (std::vector<char *>::iterator it = begin + 1; it != end; it++)
-        res += separator + std::string(*it); // sigh
-    return res;
-}
 
 #ifndef NDEBUG
 void do_quickset(const thread_saver_t& saver, txt_memcached_handler_t *rh, std::vector<char*> args) {
@@ -912,6 +905,9 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
             }
         } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
             rh.write(saver, memcached_stats(args.size(), args.data(), false)); // Only shows "public" stats; to see all stats, use "rdb stats".
+        } else if (!strcmp(args[0], "help")) {
+            // Slightly hacky -- just treat this as a control. This assumes that a control named "help" exists (which it does).
+            rh.write(saver, control_t::exec(args.size(), args.data()));
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
             rh.write(saver, control_t::exec(args.size() - 1, args.data() + 1));
         } else if (!strcmp(args[0], "version")) {
