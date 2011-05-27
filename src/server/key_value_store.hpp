@@ -34,8 +34,7 @@ struct shard_store_t :
     shard_store_t(
         translator_serializer_t *translator_serializer,
         mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit,
-        int id_number);
+        int64_t delete_queue_limit);
 
     get_result_t get(const store_key_t &key, order_token_t token);
     rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);

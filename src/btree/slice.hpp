@@ -24,8 +24,7 @@ public:
     // Blocks
     btree_slice_t(translator_serializer_t *serializer,
                   mirrored_cache_config_t *dynamic_config,
-                  int64_t delete_queue_limit,
-                  const std::string& informal_name);
+                  int64_t delete_queue_limit);
 
     // Blocks
     ~btree_slice_t();
@@ -59,9 +58,6 @@ public:
     cache_t *cache() { return &cache_; }
     int64_t delete_queue_limit() { return delete_queue_limit_; }
 
-    // Please use this only for debugging.
-    const char *name() const { return informal_name_.c_str(); }
-
 private:
     cache_t cache_;
     int64_t delete_queue_limit_;
@@ -69,8 +65,6 @@ private:
     /* We serialize all `order_token_t`s through here. This way we can use `plain_sink_t` for
     the order sinks on the individual blocks in the buffer cache. */
     order_checkpoint_t order_checkpoint_;
-
-    const std::string informal_name_;
 
     DISABLE_COPYING(btree_slice_t);
 };
