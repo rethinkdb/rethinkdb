@@ -37,11 +37,9 @@ int keys_largebuf_ref_size(block_size_t block_size) {
 }  // namespace delete_queue
 
 void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp timestamp, const store_key_t *key) {
-    thread_saver_t saver;
-
     // Beware: Right now, some aspects of correctness depend on the
     // fact that we hold the queue_root lock for the entire operation.
-    buf_lock_t queue_root(saver, *txor, queue_root_id, rwi_write);
+    buf_lock_t queue_root(*txor, queue_root_id, rwi_write);
 
     // TODO this could be a non-major write?
     void *queue_root_buf = queue_root->get_data_major_write();
@@ -150,11 +148,9 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
 }
 
 bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient) {
-    thread_saver_t saver;
-
     // Beware: Right now, some aspects of correctness depend on the
     // fact that we hold the queue_root lock for the entire operation.
-    buf_lock_t queue_root(saver, *txor, queue_root_id, rwi_read);
+    buf_lock_t queue_root(*txor, queue_root_id, rwi_read);
 
     void *queue_root_buf = const_cast<void *>(queue_root->get_data_read());
 

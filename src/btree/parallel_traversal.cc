@@ -254,9 +254,8 @@ struct internal_node_releaser_t : public parent_releaser_t {
 };
 
 void btree_parallel_traversal(boost::shared_ptr<transactor_t>& txor, btree_slice_t *slice, btree_traversal_helper_t *helper) {
-    thread_saver_t saver;
     traversal_state_t state(txor, slice, helper);
-    buf_lock_t superblock_buf(saver, *state.transactor_ptr, SUPERBLOCK_ID, helper->btree_superblock_mode());
+    buf_lock_t superblock_buf(*state.transactor_ptr, SUPERBLOCK_ID, helper->btree_superblock_mode());
 
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
 
