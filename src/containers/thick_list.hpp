@@ -44,12 +44,19 @@ public:
         if (free_.empty()) {
             token_t ret = values_.size();
             values_.push_back(value);
+#ifndef NDEBUG
+            is_free_.push_back(false);
+#endif
             return ret;
         } else {
             token_t ret = free_.back();
-            rassert(values_[ret] != T());
+            rassert(values_[ret] == T());
+            rassert(is_free_[ret]);
             free_.pop_back();
             values_[ret] = value;
+#ifndef NDEBUG
+            is_free_[ret] = false;
+#endif
             return ret;
         }
     }
@@ -67,6 +74,9 @@ public:
         if (free_.empty()) {
             if (known_token == values_.size()) {
                 values_.push_back(value);
+#ifndef NDEBUG
+                is_free_.push_back(false);
+#endif
                 return true;
             } else {
                 return false;
@@ -84,6 +94,10 @@ public:
             if (values_.size() > known_token) {
                 free_.erase(p.base() - 1);
                 values_[known_token] = value;
+                rassert(is_free_[known_token]);
+#ifndef NDEBUG
+                is_free_[known_token] = false;
+#endif
 
                 return true;
             } else {
@@ -110,20 +124,22 @@ public:
     // Drops a value for the given token.
     void drop(token_type token) {
         rassert(token < values_.size());
-
-        // TODO: reenable this assertion or something equivalent.
-        // It's disabled because dropping everything will get O(n^2)
-        // performance.
-
-        // rassert(free_.end() == std::find(free_.begin(), free_.end(), token));
+        rassert(!is_free_[token]);
 
         values_[token] = T();
         free_.push_back(token);
+#ifndef NDEBUG
+        is_free_[token] = true;
+#endif
     }
 
 private:
     std::vector<T> values_;
     std::vector<token_t> free_;
+
+#ifndef NDEBUG
+    std::vector<bool> is_free_;
+#endif
 
     DISABLE_COPYING(thick_list);  // Copying is stupid.
 };

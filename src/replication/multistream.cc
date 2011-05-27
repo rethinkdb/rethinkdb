@@ -135,8 +135,11 @@ public:
     tracker_cleaner_t(tracker_t *tracker) : tracker_(tracker) { }
     ~tracker_cleaner_t() {
         for (uint32_t i = 0, e = tracker_->end_index(); i < e; ++i) {
-            delete (*tracker_)[i];
-            tracker_->drop(i);
+            stream_handler_t *h = (*tracker_)[i];
+            if (h) {
+                delete h;
+                tracker_->drop(i);
+            }
         }
     }
 private:
