@@ -1,6 +1,7 @@
 #include "progress.hpp"
 #include "errors.hpp"
 #include "utils2.hpp"
+#include <sys/stat.h>
 
 progress_bar_t::progress_bar_t(std::string activity, int redraw_interval_ms = 100) 
     : repeating_timer_t(redraw_interval_ms, boost::bind(&progress_bar_t::refresh, this)), 
