@@ -124,6 +124,11 @@ bool scc_transaction_t<inner_cache_t>::commit(transaction_commit_callback_t *cal
 }
 
 template<class inner_cache_t>
+void scc_transaction_t<inner_cache_t>::set_account(boost::shared_ptr<typename inner_cache_t::cache_account_t> cache_account) {
+    inner_transaction->set_account(cache_account);
+}
+
+template<class inner_cache_t>
 scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t block_id, access_t mode,
                    block_available_callback_t *callback, bool should_load) {
     scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache, snapshotted || mode == rwi_read_outdated_ok, should_load);

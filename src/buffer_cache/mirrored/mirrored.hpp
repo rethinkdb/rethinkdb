@@ -17,6 +17,7 @@
 #include "buffer_cache/mirrored/patch_memory_storage.hpp"
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
 #include <boost/crc.hpp>
+#include <boost/shared_ptr.hpp>
 #include <list>
 #include <map>
 
@@ -31,6 +32,8 @@ typedef array_free_list_t free_list_t;
 #include "page_map.hpp"
 typedef array_map_t page_map_t;
 
+
+class mc_cache_account_t;
 
 // This cache doesn't actually do any operations itself. Instead, it
 // provides a framework that collects all components of the cache
@@ -85,7 +88,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     bool safe_to_unload();
 
     // Load an existing buf from disk
-    mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load);
+    mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_t::account_t *io_account);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
     mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
@@ -96,7 +99,7 @@ class mc_inner_buf_t : public home_thread_mixin_t {
     ~mc_inner_buf_t();
 
     // Loads data from the serializer
-    void load_inner_buf(bool should_lock);
+    void load_inner_buf(bool should_lock, file_t::account_t *io_account);
 
     struct buf_snapshot_info_t {
         void *data;
@@ -231,6 +234,7 @@ class mc_transaction_t :
     typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
     typedef mc_block_available_callback_t block_available_callback_t;
+    typedef mc_cache_account_t cache_account_t;
 
     friend class mc_cache_t;
     friend class writeback_t;
@@ -249,6 +253,8 @@ public:
 
     // This just sets the snapshotted flag, we finalize the snapshot as soon as the first block has been acquired (see finalize_version() )
     void snapshot();
+
+    void set_account(boost::shared_ptr<cache_account_t> cache_account);
 
     cache_t *cache;
 
@@ -273,6 +279,7 @@ private:
     enum { state_open, state_in_commit_call, state_committing, state_committed } state;
     mc_inner_buf_t::version_id_t snapshot_version;
     bool snapshotted;
+    boost::shared_ptr<cache_account_t> cache_account_;
 
     // If not done before, sets snapshot_version, if in snapshotted mode also registers the snapshot
     void maybe_finalize_version();
@@ -287,7 +294,22 @@ private:
     typedef std::vector<std::pair<mc_inner_buf_t*, void*> > owned_snapshots_list_t;
     owned_snapshots_list_t owned_buf_snapshots;
 
+    file_t::account_t *get_io_account() const;
+
     DISABLE_COPYING(mc_transaction_t);
+};
+
+class mc_cache_account_t {
+    friend class mc_cache_t;
+    friend class mc_transaction_t;
+
+    mc_cache_account_t(boost::shared_ptr<file_t::account_t> io_account) :
+            io_account_(io_account) {
+    }
+
+    boost::shared_ptr<file_t::account_t> io_account_;
+
+    DISABLE_COPYING(mc_cache_account_t);
 };
 
 struct mc_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
@@ -311,6 +333,7 @@ public:
     typedef mc_block_available_callback_t block_available_callback_t;
     typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
+    typedef mc_cache_account_t cache_account_t;
 
 private:
     mirrored_cache_config_t *dynamic_config;
@@ -346,6 +369,10 @@ public:
 
     // Transaction API
     transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
+
+    // TODO: Come up with a consistent priority scheme, i.e. define a "default" priority etc.
+    // TODO: As soon as we can support it, we might consider supporting a mem_cap paremeter.
+    boost::shared_ptr<cache_account_t> create_account(int priority);
 
     bool contains_block(block_id_t block_id);
 public:

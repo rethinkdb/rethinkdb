@@ -100,6 +100,9 @@ public:
         snapshotted = true;
         inner_transaction->snapshot();
     }
+
+    void set_account(boost::shared_ptr<typename inner_cache_t::cache_account_t> cache_account);
+
     bool commit(transaction_commit_callback_t *callback);
 
     buf_t *acquire(block_id_t block_id, access_t mode,
@@ -134,6 +137,7 @@ public:
     typedef scc_transaction_begin_callback_t<inner_cache_t> transaction_begin_callback_t;
     typedef scc_transaction_commit_callback_t<inner_cache_t> transaction_commit_callback_t;
     typedef scc_block_available_callback_t<inner_cache_t> block_available_callback_t;
+    typedef typename inner_cache_t::cache_account_t cache_account_t;
 
     static void create(
         translator_serializer_t *serializer,
