@@ -143,8 +143,6 @@ public:
     void mark_deleted();
 
     void assert_thread() const { (*txor)->assert_thread(); }
-    // TODO:  Stop being a bad programmer and start knowing what thread you're on.
-    void ensure_thread(const thread_saver_t& saver) const { (*txor)->ensure_thread(saver); }
 
     void on_block_available(buf_t *buf);
 

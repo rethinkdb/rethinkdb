@@ -65,7 +65,6 @@ void btree_delete_all_keys_for_backfill(btree_slice_t *slice) {
 
     delete_all_keys_traversal_helper_t helper;
 
-    thread_saver_t saver;
     boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), helper.transaction_mode(), 0, repli_timestamp::invalid, order_token_t::ignore);
 
     // The timestamp never gets used, because we're just deleting

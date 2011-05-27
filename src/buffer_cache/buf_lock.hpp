@@ -15,13 +15,9 @@ class buf_lock_t {
 public:
     buf_lock_t() : buf_(NULL) { }
 
-    //    buf_lock_t(const thread_saver_t& saver, transactor_t& txor, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond = NULL);
-
-    // A version that asserts we're on the right thread.
     buf_lock_t(transactor_t& txor, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond = NULL);
     ~buf_lock_t();
 
-    // A version that asserts we're on the right thread.
     void allocate(transactor_t& txor);
 
     // Releases the buf.  You can only release once (unless you swap

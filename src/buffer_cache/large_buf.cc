@@ -860,8 +860,7 @@ void large_buf_t::mark_deleted() {
 }
 
 void large_buf_t::lv_release() {
-    thread_saver_t saver;
-    (*txor)->ensure_thread(saver);
+    on_thread_t th((*txor)->home_thread);
 
     rassert(state == loaded || state == deleted);
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);
