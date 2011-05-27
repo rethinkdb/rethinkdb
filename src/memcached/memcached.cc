@@ -731,35 +731,39 @@ void do_delete(const thread_saver_t& saver, txt_memcached_handler_t *rh, int arg
     }
 };
 
-/* "stats"/"stat" commands */
+/* "stats" command */
 
-void do_stats(const thread_saver_t& saver, txt_memcached_handler_t *rh, int argc, char **argv) {
+std::string memcached_stats(int argc, char **argv, bool include_secret) {
+    std::string res;
     perfmon_stats_t stats;
-#ifndef NDEBUG
-    perfmon_get_stats(&stats, true);
-#else
-    if (!strcmp(argv[0], "stat-secret"))
-        perfmon_get_stats(&stats, true);
-    else
-        perfmon_get_stats(&stats); //no secrets in debug mode
-#endif
+
+    perfmon_get_stats(&stats, include_secret);
 
     if (argc == 1) {
         for (perfmon_stats_t::iterator iter = stats.begin(); iter != stats.end(); iter++) {
-            rh->writef(saver, "STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str());
+            res.append(strprintf("STAT %s %s\r\n", iter->first.c_str(), iter->second.c_str()));
         }
     } else {
         for (int i = 1; i < argc; i++) {
-            perfmon_stats_t::iterator stat_entry = stats.find(argv[i]);
-            if (stat_entry == stats.end()) {
-                rh->writef(saver, "NOT FOUND\r\n");
-            } else {
-                rh->writef(saver, "%s\r\n", stat_entry->second.c_str());
-            }
+            perfmon_stats_t::iterator iter = stats.find(argv[i]);
+            res.append(strprintf("STAT %s %s\r\n", argv[i], iter == stats.end()
+                                                            ? "NOT_FOUND"
+                                                            : iter->second.c_str()));
+
         }
     }
-    rh->write_end(saver);
-};
+    res.append("END\r\n");
+    return res;
+}
+
+// Control for showing secret stats.
+struct memcached_stats_control_t : public control_t {
+    memcached_stats_control_t() :
+        control_t("stats", "Show all stats (including secret stats).", true) {}
+    std::string call(int argc, char **argv) {
+        return memcached_stats(argc, argv, true);
+    }
+} memcached_stats_control;
 
 perfmon_duration_sampler_t
     pm_conns_reading("conns_reading", secs_to_ticks(1), false),
@@ -906,8 +910,8 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
             } else {
                 break;
             }
-        } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat") || !strcmp(args[0], "stat-secret")) {
-            do_stats(saver, &rh, args.size(), args.data());
+        } else if (!strcmp(args[0], "stats") || !strcmp(args[0], "stat")) {
+            rh.write(saver, memcached_stats(args.size(), args.data(), false)); // Only shows "public" stats; to see all stats, use "rdb stats".
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
             rh.write(saver, control_t::exec(args.size() - 1, args.data() + 1));
         } else if (!strcmp(args[0], "version")) {
