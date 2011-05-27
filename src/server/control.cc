@@ -1,6 +1,7 @@
 #include "server/control.hpp"
 #include "arch/spinlock.hpp"
 
+#include "utils2.hpp"
 #include "logger.hpp"
 #include "errors.hpp"
 
@@ -58,14 +59,13 @@ struct help_control_t : public control_t
 {
     help_control_t() : control_t("help", "Display this help message (use \"rethinkdb help internal\" to show internal commands).") { }
     std::string call(int argc, char **argv) {
-
         bool show_internal = argc == 2 && argv[1] == std::string("internal");
 
         spinlock_acq_t control_acq(&get_control_lock());
-        std::string res = "The following \"rethinkdb\" commands are available:\r\n";
+        std::string res = strprintf("The following %scommands are available:\r\n", show_internal ? "internal " : "");
         for (control_map_t::iterator it = get_control_map().begin(); it != get_control_map().end(); it++) {
             if (it->second->internal != show_internal) continue;
-            res += it->first + ": " + it->second->help_string + "\r\n";
+            res += "rethinkdb " + it->first + ": " + it->second->help_string + "\r\n";
         }
         return res;
     }
