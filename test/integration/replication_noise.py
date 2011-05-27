@@ -220,7 +220,7 @@ def start_evil_monkey(master_repli_port, master_to_slave_corruption_p, slave_to_
                 except Exception, e:
                     print "connect: %s" % e
                     connect_failures = connect_failures + 1
-                    if connect_failures > 16:
+                    if connect_failures > 60:
                         self.shutting_down = True
                         raise RuntimeError("Failed to connect to master replication port: probably it doesn't want us to connect")
             return (None, None)
@@ -245,7 +245,8 @@ def start_evil_monkey(master_repli_port, master_to_slave_corruption_p, slave_to_
             except Exception, e:
                 self.exception = e
             finally:
-                self.master_socket.close()
+                if self.master_socket is not None:
+                    self.master_socket.close()
                 if connected_proxied_socket:
                     connected_proxied_socket.close()
 
