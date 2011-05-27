@@ -134,11 +134,9 @@ class tracker_cleaner_t {
 public:
     tracker_cleaner_t(tracker_t *tracker) : tracker_(tracker) { }
     ~tracker_cleaner_t() {
-        tracker_t::expensive_iterator stream_iter = tracker_->begin();
-        const tracker_t::expensive_iterator stream_end_iter = tracker_->end();
-        while (stream_iter != stream_end_iter) {
-            delete *stream_iter;
-            ++stream_iter;
+        for (uint32_t i = 0, e = tracker_->end_index(); i < e; ++i) {
+            delete (*tracker_)[i];
+            tracker_->drop(i);
         }
     }
 private:
