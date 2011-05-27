@@ -158,6 +158,16 @@ void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
         do_parse_normal_messages(conn, conn_handler, streams);
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
+    } catch (protocol_exc_t& e) {
+        if (conn->is_write_open()) {
+            conn->shutdown_write();
+        }
+        if (conn->is_read_open()) {
+            conn->shutdown_read();
+        }
+        logERR("Bad data was sent on the replication connection:  %s", e.what());
+
+        // TODO: What else should happen when handling this?
     }
 
     conn_handler->conn_closed();
