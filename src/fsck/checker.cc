@@ -903,9 +903,10 @@ void check_large_buf(slicecx_t& cx, const large_buf_ref *ref, int ref_size_bytes
 
             int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
 
+            printf("inlined was %d\n", inlined);
+
             // The part before '&&' ensures no overflow in the part after.
-            if (inlined < int((INT_MAX - sizeof(large_buf_ref)) / sizeof(block_id_t))
-                && int(sizeof(large_buf_ref) + inlined * sizeof(block_id_t)) == ref_size_bytes) {
+            if (1 <= inlined && inlined <= int((ref_size_bytes - sizeof(large_buf_ref)) / sizeof(block_id_t))) {
 
                 int sublevels = large_buf_t::compute_num_sublevels(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
 
@@ -922,6 +923,9 @@ void check_large_buf(slicecx_t& cx, const large_buf_ref *ref, int ref_size_bytes
             }
         }
     }
+
+    printf("Saw large buf ref->offset=%ld, ref->size=%ld, ref_size_bytes=%d, sizeof(large_buf_ref)=%d\n",
+           ref->offset, ref->size, ref_size_bytes, (int)sizeof(large_buf_ref));
 
     errs->bogus_ref = true;
 }
@@ -1214,10 +1218,12 @@ void check_delete_queue(slicecx_t& cx, block_id_t block_id, delete_queue_errors 
     large_buf_ref *keys_ref = replication::delete_queue::keys_largebuf(buf);
     int keys_ref_size = replication::delete_queue::keys_largebuf_ref_size(cx.block_size());
 
+    printf("Checking t_and_o size=%ld\n", t_and_o->size);
     if (t_and_o->size != 0) {
         check_large_buf(cx, t_and_o, replication::delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE, &errs->timestamp_buf);
     }
 
+    printf("Checking keys_ref size=%ld\n", keys_ref->size);
     if (keys_ref->size != 0) {
         check_large_buf(cx, keys_ref, keys_ref_size, &errs->keys_buf);
     }
