@@ -3,9 +3,6 @@
 
 #include "errors.hpp"
 
-buf_lock_t::buf_lock_t(const thread_saver_t& saver, transaction_t *tx, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) :
-    buf_(co_acquire_block(saver, tx, block_id, mode, acquisition_cond)), home_thread_(tx->home_thread) { }
-
 buf_lock_t::buf_lock_t(const thread_saver_t& saver, transactor_t& txor, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) :
     buf_(co_acquire_block(saver, txor.get(), block_id, mode, acquisition_cond)), home_thread_(get_thread_id()) { }
 

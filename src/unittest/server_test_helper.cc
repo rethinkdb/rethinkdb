@@ -67,6 +67,7 @@ void server_test_helper_t::snap(transactor_t& txor) {
 }
 
 buf_t * server_test_helper_t::acq(transactor_t& txor, block_id_t block_id, access_t mode) {
+    txor->assert_thread();
     thread_saver_t saver;
     return co_acquire_block(saver, txor.get(), block_id, mode);
 }
