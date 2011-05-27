@@ -169,7 +169,7 @@ def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "in
 def rdb_stats(port=8080, host="localhost"):
     sock = socket.socket()
     sock.connect((host, port))
-    sock.send("stat-secret\r\n")
+    sock.send("rdb stats\r\n")
     
     buffer = ""
     while "END\r\n" not in buffer:
