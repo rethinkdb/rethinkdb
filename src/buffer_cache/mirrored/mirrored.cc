@@ -864,7 +864,7 @@ mc_cache_t::mc_cache_t(
             translator_serializer_t *serializer,
             mirrored_cache_config_t *dynamic_config) :
 
-    dynamic_config(dynamic_config),
+    dynamic_config(*dynamic_config),
     serializer(serializer),
     reads_io_account(serializer->make_io_account(dynamic_config->io_priority_reads)),
     writes_io_account(serializer->make_io_account(dynamic_config->io_priority_writes)),
@@ -1000,7 +1000,7 @@ boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
     // all the non-accounted transactions together. Not sure if this makes sense.
 
     // Be aware of rounding errors... (what can be do against those? probably just setting the default io_priority_reads high enough)
-    int io_priority = dynamic_config->io_priority_reads * priority / 100;
+    int io_priority = std::max(1, dynamic_config.io_priority_reads * priority / 100);
 
     boost::shared_ptr<file_t::account_t> io_account(serializer->make_io_account(io_priority));
 

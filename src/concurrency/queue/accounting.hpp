@@ -96,7 +96,13 @@ private:
     watchable_var_t<bool> available_var;
     value_t produce_next_value() {
         assert_thread();
+
         selector %= total_shares;
+        // TODO: Maybe that line should be like this instead?
+        // It would be very fair, but there might be some issues with that (like
+        // less sequential access patterns, maybe other problems)
+        //selector = randint(total_shares);
+
         typename intrusive_list_t<account_t>::iterator it = active_accounts.begin();
         int count = 0;
         while (true) {

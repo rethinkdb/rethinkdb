@@ -329,7 +329,7 @@ public:
     typedef mc_cache_account_t cache_account_t;
 
 private:
-    mirrored_cache_config_t *dynamic_config;
+    mirrored_cache_config_t dynamic_config; // Local copy of our initial configuration
     
     // TODO: how do we design communication between cache policies?
     // Should they all have access to the cache, or should they only

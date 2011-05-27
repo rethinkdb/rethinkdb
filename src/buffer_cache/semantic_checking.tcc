@@ -205,6 +205,11 @@ scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(
 }
 
 template<class inner_cache_t>
+boost::shared_ptr<typename inner_cache_t::cache_account_t> scc_cache_t<inner_cache_t>::create_account(int priority) {
+    return inner_cache.create_account(priority);
+}
+
+template<class inner_cache_t>
 void scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     inner_cache.offer_read_ahead_buf(block_id, buf, recency_timestamp);
 }
