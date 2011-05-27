@@ -292,11 +292,7 @@ void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_
             lb->allocate(n);
             rassert(lb->state == loaded);
         } else {
-            {
-                lb->assert_thread();
-                thread_saver_t saver;
-                co_acquire_large_buf_slice(saver, lb.get(), original_size - 1, 1);
-            }
+            co_acquire_large_buf_slice(lb.get(), original_size - 1, 1);
             rassert(lb->state == loaded);
 
             int refsize_adjustment;

@@ -47,9 +47,9 @@ void co_acquire_large_buf_for_unprepend(large_buf_t *lb, int64_t length) {
     coro_t::wait();
 }
 
-void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, int64_t offset, int64_t size, threadsafe_cond_t *acquisition_cond) {
+void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size, threadsafe_cond_t *acquisition_cond) {
     large_value_acquired_t acquired;
-    lb->ensure_thread(saver);
+    lb->assert_thread();
     lb->acquire_slice(offset, size, &acquired);
     if (acquisition_cond) {
         // TODO: This is worthless crap, because the
@@ -61,21 +61,18 @@ void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, in
 
 void co_acquire_large_buf(large_buf_t *lb, threadsafe_cond_t *acquisition_cond) {
     lb->assert_thread();
-    thread_saver_t saver;
-    co_acquire_large_buf_slice(saver, lb, 0, lb->root_ref->size, acquisition_cond);
+    co_acquire_large_buf_slice(lb, 0, lb->root_ref->size, acquisition_cond);
 }
 
 void co_acquire_large_buf_lhs(large_buf_t *lb) {
     lb->assert_thread();
-    thread_saver_t saver;
-    co_acquire_large_buf_slice(saver, lb, 0, std::min(1L, lb->root_ref->size));
+    co_acquire_large_buf_slice(lb, 0, std::min(1L, lb->root_ref->size));
 }
 
 void co_acquire_large_buf_rhs(large_buf_t *lb) {
     lb->assert_thread();
-    thread_saver_t saver;
     int64_t beg = std::max(int64_t(0), lb->root_ref->size - 1);
-    co_acquire_large_buf_slice(saver, lb, beg, lb->root_ref->size - beg);
+    co_acquire_large_buf_slice(lb, beg, lb->root_ref->size - beg);
 }
 
 void co_acquire_large_buf_for_delete(large_buf_t *large_value) {

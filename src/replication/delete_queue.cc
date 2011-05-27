@@ -81,7 +81,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
             {
                 boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
 
-                co_acquire_large_buf_slice(saver, t_o_largebuf.get(), t_o_ref->size - sizeof(last_tao), sizeof(last_tao));
+                co_acquire_large_buf_slice(t_o_largebuf.get(), t_o_ref->size - sizeof(last_tao), sizeof(last_tao));
 
                 t_o_largebuf->read_at(t_o_ref->size - sizeof(last_tao), &last_tao, sizeof(last_tao));
 
@@ -108,7 +108,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
             if (will_want_to_dequeue && t_o_ref->size >= int64_t(2 * sizeof(second_tao))) {
                 boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
 
-                co_acquire_large_buf_slice(saver, t_o_largebuf.get(), 0, 2 * sizeof(second_tao));
+                co_acquire_large_buf_slice(t_o_largebuf.get(), 0, 2 * sizeof(second_tao));
 
                 t_o_largebuf->read_at(sizeof(second_tao), &second_tao, sizeof(second_tao));
 
@@ -207,7 +207,7 @@ bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
         if (begin_offset < end_offset) {
             boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txor, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size())), rwi_read_outdated_ok));
 
-            co_acquire_large_buf_slice(saver, keys_largebuf.get(), begin_offset, end_offset - begin_offset);
+            co_acquire_large_buf_slice(keys_largebuf.get(), begin_offset, end_offset - begin_offset);
 
             int64_t n = end_offset - begin_offset;
 
