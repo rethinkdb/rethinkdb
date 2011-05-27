@@ -1,6 +1,7 @@
 #ifndef __BUFFER_CACHE_MOCK_HPP__
 #define __BUFFER_CACHE_MOCK_HPP__
 
+#include <boost/shared_ptr.hpp>
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/drain_semaphore.hpp"
@@ -21,6 +22,7 @@ class mock_buf_t;
 class mock_transaction_t;
 class mock_cache_t;
 class internal_buf_t;
+class mock_cache_account_t;
 
 /* Callbacks */
 
@@ -78,6 +80,8 @@ public:
 
     void snapshot() { }
 
+    void set_account(UNUSED boost::shared_ptr<mock_cache_account_t> cache_account) { }
+
     buf_t *acquire(block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0, bool should_load = true);
     buf_t *allocate();
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb);
@@ -98,12 +102,18 @@ private:
 
 /* Cache */
 
+class mock_cache_account_t {
+    mock_cache_account_t() { }
+    DISABLE_COPYING(mock_cache_account_t);
+};
+
 class mock_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
 public:
     typedef mock_buf_t buf_t;
     typedef mock_transaction_t transaction_t;
     typedef mock_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mock_transaction_commit_callback_t transaction_commit_callback_t;
+    typedef mock_cache_account_t cache_account_t;
 
     static void create(
         translator_serializer_t *serializer,
@@ -115,6 +125,8 @@ public:
 
     block_size_t get_block_size();
     transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
+
+    boost::shared_ptr<cache_account_t> create_account(UNUSED int priority) { return boost::shared_ptr<cache_account_t>(); }
 
     void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
 

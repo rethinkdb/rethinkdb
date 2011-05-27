@@ -1,6 +1,7 @@
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "mirrored.hpp"
 
 const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };
 
@@ -82,7 +83,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
         if (!block_is_empty[current_block - first_block]) {
             /* This automatically starts reading the block from disk and registers it with the
             cache. */
-            new mc_inner_buf_t(&cache, current_block, true);
+            new mc_inner_buf_t(&cache, current_block, true, cache.reads_io_account.get());
         }
     }
 
@@ -427,7 +428,7 @@ mc_buf_t *patch_disk_storage_t::acquire_block_no_locking(const block_id_t block_
     mc_inner_buf_t *inner_buf = cache.page_map.find(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
-        inner_buf = new mc_inner_buf_t(&cache, block_id, true);
+        inner_buf = new mc_inner_buf_t(&cache, block_id, true, cache.reads_io_account.get());
     }
 
     // We still have to acquire the lock once to wait for the buf to get ready

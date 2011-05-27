@@ -140,6 +140,7 @@ public:
                     // expects transaction_t::acquire to run in a
                     // coroutine!  So we use coro_t::spawn instead of
                     // do_later.
+                    level_count(i) += 1;
                     coro_t::spawn(boost::bind(&acquisition_waiter_callback_t::you_may_acquire, waiter_cb));
                     diff -= 1;
                 }
@@ -199,7 +200,6 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
     node_ready_callback_t *node_ready_cb;
 
     void you_may_acquire() {
-        state->level_count(level) += 1;
 
         buf_t *block = state->transactor_ptr->get()->acquire(
             block_id, state->helper->btree_node_mode(),
