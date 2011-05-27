@@ -116,8 +116,8 @@ struct transaction_committed_t : public transaction_commit_callback_t {
 };
 
 
-void co_commit_transaction(const thread_saver_t& saver, transaction_t *transaction) {
-    transaction->ensure_thread(saver);
+void co_commit_transaction(transaction_t *transaction) {
+    transaction->assert_thread();
     transaction_committed_t cb;
     if (!transaction->commit(&cb)) {
         coro_t::wait();

@@ -48,25 +48,6 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
 std::string strip_spaces(std::string); 
 
-/* `thread_saver_t` makes sure that its destructor returns on the same thread that its
-constructor was called on. */
-
-class thread_saver_t {
-public:
-    thread_saver_t() : thread_id_(get_thread_id()) {
-        assert_good_thread_id(thread_id_);
-    }
-    explicit thread_saver_t(int thread_id) : thread_id_(thread_id) {
-        assert_good_thread_id(thread_id_);
-    }
-    ~thread_saver_t() {
-        coro_t::move_to_thread(thread_id_);
-    }
-
-private:
-    int thread_id_;
-    DISABLE_COPYING(thread_saver_t);
-};
 
 /* The home thread mixin is a mixin for objects that can only be used on
 a single thread. Its thread ID is exposed as the `home_thread` variable. Some
@@ -86,17 +67,6 @@ public:
         } else {
             rassert(home_thread == get_thread_id());
         }
-    }
-
-    // We force callers to pass a thread_saver_t to ensure that they
-    // know exactly what they're doing.
-    void ensure_thread(UNUSED const thread_saver_t& saver) const {
-        if (home_thread == INVALID_THREAD) {
-            crash("This object cannot be used because it currently does not have a home thread.\n");
-        }
-        // TODO: make sure nobody is calling move_to_thread except us
-        // and thread_saver_t.
-        coro_t::move_to_thread(home_thread);
     }
 
     virtual void rethread(UNUSED int thread) {

@@ -30,7 +30,7 @@ void co_acquire_large_buf_for_delete(large_buf_t *large_value);
 transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token);
 
 // Avoid using this, use transactor_t instead.
-void co_commit_transaction(const thread_saver_t& saver, transaction_t *transaction);
+void co_commit_transaction(transaction_t *transaction);
 
 void co_get_subtree_recencies(transaction_t *transaction, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 
