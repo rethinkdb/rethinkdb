@@ -337,9 +337,6 @@ get_result_t btree_key_value_store_t::get(const store_key_t &key, order_token_t 
 typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
 
 rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
-    // HEY: There should be no discernable effect of this thread saver
-    // if we don't call something that takes it as a parameter.
-    thread_saver_t thread_saver;
 
     boost::shared_ptr<merged_results_iterator_t> merge_iterator(new merged_results_iterator_t());
     for (int s = 0; s < btree_static_config.n_slices; s++) {

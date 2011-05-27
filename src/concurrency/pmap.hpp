@@ -9,10 +9,7 @@
 
 template<typename callable_t, typename value_t>
 void pmap_runner_one_arg(value_t i, const callable_t *c, int *outstanding, cond_t *to_signal) {
-    {
-        thread_saver_t thread_saver;
-        (*c)(i);
-    }
+    (*c)(i);
     (*outstanding)--;
     if (*outstanding == 0) to_signal->pulse();
 }
@@ -56,10 +53,7 @@ void pmap(iterator_t start, const iterator_t &end, const callable_t &c) {
 
 template<typename callable_t, typename value1_t, typename value2_t>
 void pmap_runner_two_arg(value1_t i, value2_t i2, const callable_t *c, int *outstanding, cond_t *to_signal) {
-    {
-        thread_saver_t thread_saver;
-        (*c)(i, i2);
-    }
+    (*c)(i, i2);
     (*outstanding)--;
     if (*outstanding == 0) to_signal->pulse();
 }

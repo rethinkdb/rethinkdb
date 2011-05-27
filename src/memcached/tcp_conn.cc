@@ -9,11 +9,9 @@ struct tcp_conn_memcached_interface_t : public memcached_interface_t, public hom
 
     tcp_conn_t *conn;
 
-    void write(const thread_saver_t &saver, const char *buffer, size_t bytes) {
+    void write(const char *buffer, size_t bytes) {
         try {
-            // TODO: Stop needing this ensure_thread thing, so we
-            // don't have to pass a thread_saver_t to everything.
-            ensure_thread(saver);
+            assert_thread();
             conn->write_buffered(buffer, bytes);
         } catch (tcp_conn_t::write_closed_exc_t) {
             /* Ignore */

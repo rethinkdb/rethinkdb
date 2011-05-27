@@ -1,8 +1,8 @@
 #include "buffer_cache/co_functions.hpp"
 #include "concurrency/promise.hpp"
 
-buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) {
-    transaction->ensure_thread(saver);
+buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) {
+    transaction->assert_thread();
     buf_t *value = transaction->acquire(block_id, mode, acquisition_cond ? boost::bind(&threadsafe_cond_t::pulse, acquisition_cond) : boost::function<void()>());
     rassert(value);
     return value;
@@ -15,16 +15,16 @@ struct large_value_acquired_t : public large_buf_available_callback_t {
     void on_large_buf_available(UNUSED large_buf_t *large_value) { self->notify(); }
 };
 
-void co_acquire_large_buf_for_unprepend(const thread_saver_t& saver, large_buf_t *lb, int64_t length) {
+void co_acquire_large_buf_for_unprepend(large_buf_t *lb, int64_t length) {
     large_value_acquired_t acquired;
-    lb->ensure_thread(saver);
+    lb->assert_thread();
     lb->acquire_for_unprepend(length, &acquired);
     coro_t::wait();
 }
 
-void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, int64_t offset, int64_t size, threadsafe_cond_t *acquisition_cond) {
+void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size, threadsafe_cond_t *acquisition_cond) {
     large_value_acquired_t acquired;
-    lb->ensure_thread(saver);
+    lb->assert_thread();
     lb->acquire_slice(offset, size, &acquired);
     if (acquisition_cond) {
         // TODO: This is worthless crap, because the
@@ -34,17 +34,20 @@ void co_acquire_large_buf_slice(const thread_saver_t& saver, large_buf_t *lb, in
     coro_t::wait();
 }
 
-void co_acquire_large_buf(const thread_saver_t& saver, large_buf_t *lb, threadsafe_cond_t *acquisition_cond) {
-    co_acquire_large_buf_slice(saver, lb, 0, lb->root_ref->size, acquisition_cond);
+void co_acquire_large_buf(large_buf_t *lb, threadsafe_cond_t *acquisition_cond) {
+    lb->assert_thread();
+    co_acquire_large_buf_slice(lb, 0, lb->root_ref->size, acquisition_cond);
 }
 
-void co_acquire_large_buf_lhs(const thread_saver_t& saver, large_buf_t *lb) {
-    co_acquire_large_buf_slice(saver, lb, 0, std::min(1L, lb->root_ref->size));
+void co_acquire_large_buf_lhs(large_buf_t *lb) {
+    lb->assert_thread();
+    co_acquire_large_buf_slice(lb, 0, std::min(1L, lb->root_ref->size));
 }
 
-void co_acquire_large_buf_rhs(const thread_saver_t& saver, large_buf_t *lb) {
+void co_acquire_large_buf_rhs(large_buf_t *lb) {
+    lb->assert_thread();
     int64_t beg = std::max(int64_t(0), lb->root_ref->size - 1);
-    co_acquire_large_buf_slice(saver, lb, beg, lb->root_ref->size - beg);
+    co_acquire_large_buf_slice(lb, beg, lb->root_ref->size - beg);
 }
 
 void co_acquire_large_buf_for_delete(large_buf_t *large_value) {
@@ -66,11 +69,8 @@ struct transaction_begun_callback_t : public transaction_begin_callback_t {
     }
 };
 
-transaction_t *co_begin_transaction(const thread_saver_t& saver, cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token) {
-
-    // TODO: ensure_thread is retarded.
-    cache->assert_thread();  // temporary check
-    cache->ensure_thread(saver);
+transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token) {
+    cache->assert_thread();
     transaction_begun_callback_t cb;
     transaction_t *value = cache->begin_transaction(token, access, expected_change_count, recency_timestamp, &cb);
     if (!value) {
@@ -91,8 +91,8 @@ struct transaction_committed_t : public transaction_commit_callback_t {
 };
 
 
-void co_commit_transaction(const thread_saver_t& saver, transaction_t *transaction) {
-    transaction->ensure_thread(saver);
+void co_commit_transaction(transaction_t *transaction) {
+    transaction->assert_thread();
     transaction_committed_t cb;
     if (!transaction->commit(&cb)) {
         coro_t::wait();

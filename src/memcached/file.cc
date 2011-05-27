@@ -23,7 +23,7 @@ public:
     }
 
     /* We throw away the responses */
-    void write(UNUSED const thread_saver_t& saver, UNUSED const char *buffer, UNUSED size_t bytes) { }
+    void write(UNUSED const char *buffer, UNUSED size_t bytes) { }
     void write_unbuffered(UNUSED const char *buffer, UNUSED size_t bytes) { }
     void flush_buffer() { }
     bool is_write_open() { return false; }

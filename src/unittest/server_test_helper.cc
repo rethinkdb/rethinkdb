@@ -50,11 +50,9 @@ void server_test_helper_t::setup_server_and_run_tests() {
 
         cache_t *cache = slice.cache();
 
-        thread_saver_t saver;
-
         nap(200);   // to let patch_disk_storage do writeback.sync();
 
-        run_tests(saver, cache);
+        run_tests(cache);
     }
     trace_call(thread_pool.shutdown);
 }
@@ -69,8 +67,8 @@ void server_test_helper_t::snap(transactor_t& txor) {
 }
 
 buf_t * server_test_helper_t::acq(transactor_t& txor, block_id_t block_id, access_t mode) {
-    thread_saver_t saver;
-    return co_acquire_block(saver, txor.get(), block_id, mode);
+    txor->assert_thread();
+    return co_acquire_block(txor.get(), block_id, mode);
 }
 
 void server_test_helper_t::change_value(buf_t *buf, uint32_t value) {

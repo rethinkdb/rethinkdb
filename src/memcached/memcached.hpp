@@ -17,7 +17,7 @@ memcache traffic from either a file or a TCP connection. */
 
 struct memcached_interface_t {
 
-    virtual void write(const thread_saver_t&, const char *, size_t) = 0;
+    virtual void write(const char *, size_t) = 0;
     virtual void write_unbuffered(const char *buffer, size_t bytes) = 0;
     virtual void flush_buffer() = 0;
     virtual bool is_write_open() = 0;
