@@ -5,12 +5,6 @@ class mc_buf_t;
 class mc_transaction_t;
 class mc_cache_t;
 
-struct mc_block_available_callback_t
-{
-    virtual ~mc_block_available_callback_t() {}
-    virtual void on_block_available(mc_buf_t *buf) = 0;
-};
-
 struct mc_transaction_begin_callback_t {
     virtual ~mc_transaction_begin_callback_t() {}
     virtual void on_txn_begin(mc_transaction_t *txn) = 0;

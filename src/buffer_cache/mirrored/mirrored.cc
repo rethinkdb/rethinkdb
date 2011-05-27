@@ -308,8 +308,8 @@ perfmon_duration_sampler_t
     pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
-mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted)
-    : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner_buf), data(NULL)
+mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted, boost::function<void()> call_when_in_line)
+    : mode(mode), non_locking_access(false), inner_buf(inner_buf), data(NULL)
 {
     inner_buf->cache->assert_thread();
     patches_affected_data_size_at_start = -1;
@@ -320,12 +320,14 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
         rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
         inner_buf->refcount++;
         acquire_block(false, version_to_access, snapshotted);
+        if (call_when_in_line) call_when_in_line();
+
     } else {
         // the top version is the right one for us
         inner_buf->refcount++;
 
         pm_bufs_acquiring.begin(&start_time);
-        inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode);
+        inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
         pm_bufs_acquiring.end(&start_time);
 
         acquire_block(true, version_to_access, snapshotted);
@@ -403,9 +405,6 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
 
     pm_bufs_held.begin(&start_time);
 
-    ready = true;
-    if (callback) callback->on_block_available(this);
-
     if (snapshotted) {
         if (locked)
             inner_buf->lock.unlock();
@@ -414,7 +413,6 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
 }
 
 void mc_buf_t::apply_patch(buf_patch_t *patch) {
-    rassert(ready);
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
@@ -452,7 +450,6 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
 }
 
 void *mc_buf_t::get_data_major_write() {
-    rassert(ready);
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
@@ -495,7 +492,6 @@ void mc_buf_t::mark_deleted(bool write_null) {
 }
 
 patch_counter_t mc_buf_t::get_next_patch_counter() {
-    rassert(ready);
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
@@ -709,7 +705,6 @@ void mc_transaction_t::on_sync() {
         state = state_committed;
     } else if (state == state_committing) {
         state = state_committed;
-        // TODO(NNW): We should push notifications through event queue.
         commit_callback->on_txn_commit(this);
         delete this;
     } else {
@@ -731,22 +726,15 @@ mc_buf_t *mc_transaction_t::allocate() {
     assert_thread();
 
     // This must pass since no one else holds references to this block.
-    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write, snapshot_version, snapshotted);
+    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write, snapshot_version, snapshotted, 0);
 
     assert_thread();
-    rassert(buf->ready);
 
     return buf;
 }
 
-// TODO: This interface is a lie, we block until the block is
-// available.  The parameter callback is unused.  We have code that
-// wants to release its hold on some buffers as soon as we have
-// stepped in line to acquire the buffer's child.  We can't do that
-// right now, and as long as this function is blocking, it will have
-// to support the new behavior or we can be slow.
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
-                                    block_available_callback_t *callback, bool should_load) {
+                                    boost::function<void()> call_when_in_line, bool should_load) {
     rassert(block_id != NULL_BLOCK_ID);
     rassert(is_read_mode(mode) || access != rwi_read);
     rassert(should_load || access == rwi_write);
@@ -771,26 +759,14 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     // If we are not in a snapshot transaction, then snapshot_version is faux_version_id,
     // so the latest block version will be acquired (possibly, after acquiring the lock).
     // If the snapshot version is specified, then no locking is used.
-    buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted);
+    buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted, call_when_in_line);
 
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
         buf->touch_recency(recency_timestamp);
     }
 
-    if (buf->ready) {
-        maybe_finalize_version();
-        return buf;
-    } else {
-        rassert(false, "This can never happen, buf_t::buf_t will set buf->ready to true.");
-        buf->callback = snapshotted ? new snapshot_wrapper_t(this, callback) : callback;
-        return NULL;
-    }
-}
-
-void mc_transaction_t::snapshot_wrapper_t::on_block_available(mc_buf_t *block) {
-    trx->maybe_finalize_version();
-    cb->on_block_available(block);
-    delete this;
+    maybe_finalize_version();
+    return buf;
 }
 
 void mc_transaction_t::maybe_finalize_version() {

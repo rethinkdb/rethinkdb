@@ -1,4 +1,5 @@
 #include <sys/resource.h>
+#include <google/protobuf/stubs/common.h>   // for `ShutdownProtobufLibrary()`
 
 #include "server/control.hpp"
 #include "server/server.hpp"
@@ -42,6 +43,8 @@ int dispatch_on_args(std::vector<char *> args);
 int main(int argc, char *argv[]) {
     initialize_precise_time();
     install_generic_crash_handler();
+
+    atexit(&google::protobuf::ShutdownProtobufLibrary);
 
 #ifndef NDEBUG
     rlimit core_limit;

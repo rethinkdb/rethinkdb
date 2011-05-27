@@ -200,7 +200,7 @@ void large_buf_t::allocate(int64_t _size) {
     rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
 }
 
-struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_available_callback_t {
+struct acquire_buftree_fsm_t : public tree_available_callback_t {
     block_id_t block_id;
     int64_t offset, size;
     int levels;
@@ -222,13 +222,8 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
 
     void go() {
         bool should_load = should_load_code > no_load_leaves || levels != 1;
-        buf_t *buf = (*lb->txor)->acquire(block_id, lb->access, this, should_load);
-        if (buf) {
-            on_block_available(buf);
-        }
-    }
+        buf_t *buf = (*lb->txor)->acquire(block_id, lb->access, boost::function<void()>(), should_load);
 
-    void on_block_available(buf_t *buf) {
 #ifndef NDEBUG
         lb->num_bufs++;
 #endif
@@ -244,6 +239,11 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
 
             lb_indexer ixer(offset, size, lb->max_offset(levels - 1));
             tr->children.resize(ixer.end_index(), NULL);
+
+            /* TODO: Parallelize this. `go()` blocks until the entire subtree has been acquired,
+            and we wait for `go()` to return before calling `go()` on the next branch. Instead,
+            we should run `go()` in a sub-coroutine and pass in a `call_when_in_line` function
+            so we know when we can release the parent. */
 
             life_counter = ixer.end_index() - ixer.index();
             for (; !ixer.done(); ixer.step()) {

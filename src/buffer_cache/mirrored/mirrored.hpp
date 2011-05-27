@@ -32,11 +32,6 @@ typedef array_free_list_t free_list_t;
 typedef array_map_t page_map_t;
 
 
-// This cache doesn't actually do any operations itself. Instead, it
-// provides a framework that collects all components of the cache
-// (memory allocation, page lookup, page replacement, writeback, etc.)
-// into a coherent whole. This allows easily experimenting with
-// various components of the cache to improve performance.
 
 class mc_inner_buf_t : public home_thread_mixin_t {
     friend class load_buf_fsm_t;
@@ -124,22 +119,20 @@ private:
     DISABLE_COPYING(mc_inner_buf_t);
 };
 
+
+
 /* This class represents a hold on a mc_inner_buf_t. */
 class mc_buf_t {
     typedef mc_cache_t cache_t;
-    typedef mc_block_available_callback_t block_available_callback_t;
 
     friend class mc_cache_t;
     friend class mc_transaction_t;
     friend class patch_disk_storage_t;
 
 private:
-    mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted);
+    mc_buf_t(mc_inner_buf_t *inner, access_t mode, mc_inner_buf_t::version_id_t version_id, bool snapshotted, boost::function<void()> call_when_in_line);
     void on_lock_available();
     void acquire_block(bool locked, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted);
-
-    bool ready;
-    block_available_callback_t *callback;
 
     ticks_t start_time;
 
@@ -161,7 +154,6 @@ public:
     patch_counter_t get_next_patch_counter();
 
     const void *get_data_read() const {
-        rassert(ready);
         rassert(data);
         return data;
     }
@@ -230,7 +222,6 @@ class mc_transaction_t :
     typedef mc_inner_buf_t inner_buf_t;
     typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
-    typedef mc_block_available_callback_t block_available_callback_t;
 
     friend class mc_cache_t;
     friend class writeback_t;
@@ -242,9 +233,17 @@ public:
 
     bool commit(transaction_commit_callback_t *callback);
 
-    buf_t *acquire(block_id_t block_id, access_t mode,
-                   block_available_callback_t *callback, bool should_load = true);
+    /* `acquire()` acquires the block indicated by `block_id`. `mode` specifies whether
+    we want read or write access. `acquire()` blocks until the block has been acquired.
+    If `call_when_in_line` is non-zero, it will be a function to call once we have
+    gotten in line for the block but before `acquire()` actually returns. If `should_load`
+    is false, we will not bother loading the block from disk if it isn't in memory; this
+    is useful if we intend to delete or rewrite the block without accessing its previous
+    contents. */
+    buf_t *acquire(block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0, bool should_load = true);
+
     buf_t *allocate();
+
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb);
 
     // This just sets the snapshotted flag, we finalize the snapshot as soon as the first block has been acquired (see finalize_version() )
@@ -276,19 +275,14 @@ private:
 
     // If not done before, sets snapshot_version, if in snapshotted mode also registers the snapshot
     void maybe_finalize_version();
-    struct snapshot_wrapper_t : public block_available_callback_t {
-        mc_transaction_t *trx;
-        block_available_callback_t *cb;
-        snapshot_wrapper_t(mc_transaction_t *trx, block_available_callback_t *cb) : trx(trx), cb(cb) { }
-
-        virtual void on_block_available(mc_buf_t *block);
-    };
 
     typedef std::vector<std::pair<mc_inner_buf_t*, void*> > owned_snapshots_list_t;
     owned_snapshots_list_t owned_buf_snapshots;
 
     DISABLE_COPYING(mc_transaction_t);
 };
+
+
 
 struct mc_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
     friend class load_buf_fsm_t;
@@ -308,7 +302,6 @@ public:
     typedef mc_inner_buf_t inner_buf_t;
     typedef mc_buf_t buf_t;
     typedef mc_transaction_t transaction_t;
-    typedef mc_block_available_callback_t block_available_callback_t;
     typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
     typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
 

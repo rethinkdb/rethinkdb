@@ -190,7 +190,7 @@ protected:
     ~node_ready_callback_t() { }
 };
 
-struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block_available_callback_t {
+struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
     // Not much of an fsm.
     traversal_state_t *state;
     int level;
@@ -201,20 +201,10 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block
     void you_may_acquire() {
         state->level_count(level) += 1;
 
-        buf_t *buf = state->transactor_ptr->get()->acquire(block_id, state->helper->btree_node_mode(), this);
-        // TODO: This is worthless crap.  We haven't started the
-        // acquisition, we've FINISHED acquiring the buf because the
-        // interface of acquire is a complete lie.  Thus we have worse
-        // performance.
-        acq_start_cb->on_started_acquisition();
+        buf_t *block = state->transactor_ptr->get()->acquire(
+            block_id, state->helper->btree_node_mode(),
+            boost::bind(&acquisition_start_callback_t::on_started_acquisition, acq_start_cb));
 
-        rassert(buf, "apparently the transaction_t::acquire interface now takes a callback parameter but never uses it");
-        if (buf) {
-            on_block_available(buf);
-        }
-    }
-
-    void on_block_available(buf_t *block) {
         rassert(coro_t::self());
         node_ready_callback_t *local_cb = node_ready_cb;
         delete this;

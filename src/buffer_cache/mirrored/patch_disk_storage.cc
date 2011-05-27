@@ -421,23 +421,6 @@ void patch_disk_storage_t::init_log_block(const block_id_t log_block_id) {
     bzero(reinterpret_cast<char *>(buf_data) + sizeof(LOG_BLOCK_MAGIC), cache.serializer->get_block_size().value() - sizeof(LOG_BLOCK_MAGIC));
 }
 
-// Just the same as in buffer_cache/co_functions.cc (TODO: Refactor?)
-struct co_block_available_callback_2_t : public mc_block_available_callback_t {
-    coro_t *self;
-    mc_buf_t *value;
-
-    virtual void on_block_available(mc_buf_t *block) {
-        value = block;
-        self->notify();
-    }
-
-    mc_buf_t *join() {
-        self = coro_t::self();
-        coro_t::wait();
-        return value;
-    }
-};
-
 mc_buf_t *patch_disk_storage_t::acquire_block_no_locking(const block_id_t block_id) {
     cache.assert_thread();
 
@@ -446,24 +429,13 @@ mc_buf_t *patch_disk_storage_t::acquire_block_no_locking(const block_id_t block_
         /* The buf isn't in the cache and must be loaded from disk */
         inner_buf = new mc_inner_buf_t(&cache, block_id, true);
     }
-    
-    // We still have to acquire the lock once to wait for the buf to get ready
-    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_read, mc_inner_buf_t::faux_version_id, false);
 
-    if (buf->ready) {
-        // Release the lock we've got
-        buf->inner_buf->lock.unlock();
-        buf->non_locking_access = true;
-        buf->mode = rwi_write;
-        return buf;
-    } else {
-        co_block_available_callback_2_t cb;
-        buf->callback = &cb;
-        buf = cb.join();
-        // Release the lock we've got
-        buf->inner_buf->lock.unlock();
-        buf->non_locking_access = true;
-        buf->mode = rwi_write;
-        return buf;
-    }
+    // We still have to acquire the lock once to wait for the buf to get ready
+    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_read, mc_inner_buf_t::faux_version_id, false, 0);
+
+    // Release the lock we've got
+    buf->inner_buf->lock.unlock();
+    buf->non_locking_access = true;
+    buf->mode = rwi_write;
+    return buf;
 }
