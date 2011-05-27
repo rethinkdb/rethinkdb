@@ -40,9 +40,9 @@ struct large_value_acquired_t : public large_buf_available_callback_t {
     void on_large_buf_available(UNUSED large_buf_t *large_value) { self->notify(); }
 };
 
-void co_acquire_large_buf_for_unprepend(const thread_saver_t& saver, large_buf_t *lb, int64_t length) {
+void co_acquire_large_buf_for_unprepend(large_buf_t *lb, int64_t length) {
     large_value_acquired_t acquired;
-    lb->ensure_thread(saver);
+    lb->assert_thread();
     lb->acquire_for_unprepend(length, &acquired);
     coro_t::wait();
 }
