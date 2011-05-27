@@ -32,23 +32,23 @@ public:
     semaphore to figure out when we can delete ourself. */
     drain_semaphore_t drain_semaphore;
 
-    virtual void write(const thread_saver_t& saver, const std::string& buffer) = 0;
-    virtual void write(const thread_saver_t& saver, const char *buffer, size_t bytes) = 0;
-    virtual void vwritef(const thread_saver_t& saver, const char *format, va_list args) = 0;
-    virtual void writef(const thread_saver_t& saver, const char *format, ...) = 0;
+    virtual void write(const std::string& buffer) = 0;
+    virtual void write(const char *buffer, size_t bytes) = 0;
+    virtual void vwritef(const char *format, va_list args) = 0;
+    virtual void writef(const char *format, ...) = 0;
     virtual void write_unbuffered(const char *buffer, size_t bytes) = 0;
-    virtual void write_from_data_provider(const thread_saver_t& saver, data_provider_t *dp) = 0;
-    virtual void write_value_header(const thread_saver_t& saver, const char *key, size_t key_size, mcflags_t mcflags, size_t value_size) = 0;
-    virtual void write_value_header(const thread_saver_t& saver, const char *key, size_t key_size, mcflags_t mcflags, size_t value_size, cas_t cas) = 0;
-    virtual void error(const thread_saver_t& saver) = 0;
-    virtual void write_crlf(const thread_saver_t& saver) = 0;
-    virtual void write_end(const thread_saver_t& saver) = 0;
-    virtual void client_error(const thread_saver_t& saver, const char *format, ...) = 0;
-    virtual void server_error(const thread_saver_t& saver, const char *format, ...) = 0;
-    virtual void client_error_bad_command_line_format(const thread_saver_t& saver) = 0;
-    virtual void client_error_bad_data(const thread_saver_t& saver) = 0;
-    virtual void client_error_not_allowed(const thread_saver_t& saver, bool op_is_write) = 0;
-    virtual void server_error_object_too_large_for_cache(const thread_saver_t& saver) = 0;
+    virtual void write_from_data_provider(data_provider_t *dp) = 0;
+    virtual void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size) = 0;
+    virtual void write_value_header(const char *key, size_t key_size, mcflags_t mcflags, size_t value_size, cas_t cas) = 0;
+    virtual void error() = 0;
+    virtual void write_crlf() = 0;
+    virtual void write_end() = 0;
+    virtual void client_error(const char *format, ...) = 0;
+    virtual void server_error(const char *format, ...) = 0;
+    virtual void client_error_bad_command_line_format() = 0;
+    virtual void client_error_bad_data() = 0;
+    virtual void client_error_not_allowed(bool op_is_write) = 0;
+    virtual void server_error_object_too_large_for_cache() = 0;
 
     // Used to implement throttling. Write requests should call begin_write_command() and
     // end_write_command() to make sure that not too many write requests are sent
