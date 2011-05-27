@@ -130,25 +130,33 @@ void do_parse_normal_messages(tcp_conn_t *conn, connection_handler_t *conn_handl
     }
 }
 
-
-void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
-
-    tracker_t streams;
-
-    try {
-        do_parse_hello_message(conn, conn_handler);
-
-        
-        do_parse_normal_messages(conn, conn_handler, streams);
-
-    } catch (tcp_conn_t::read_closed_exc_t& e) {
-        // Clean up trackers that are still dangling around
-        tracker_t::expensive_iterator stream_iter = streams.begin();
-        const tracker_t::expensive_iterator stream_end_iter = streams.end();
+class tracker_cleaner_t {
+public:
+    tracker_cleaner_t(tracker_t *tracker) : tracker_(tracker) { }
+    ~tracker_cleaner_t() {
+        tracker_t::expensive_iterator stream_iter = tracker_->begin();
+        const tracker_t::expensive_iterator stream_end_iter = tracker_->end();
         while (stream_iter != stream_end_iter) {
             delete *stream_iter;
             ++stream_iter;
         }
+    }
+private:
+    tracker_t *tracker_;
+};
+
+
+void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
+
+    try {
+        do_parse_hello_message(conn, conn_handler);
+
+        tracker_t streams;
+        tracker_cleaner_t streams_cleaner(&streams);
+
+        do_parse_normal_messages(conn, conn_handler, streams);
+
+    } catch (tcp_conn_t::read_closed_exc_t& e) {
     }
 
     conn_handler->conn_closed();
