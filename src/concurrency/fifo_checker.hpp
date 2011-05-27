@@ -35,17 +35,29 @@ class order_token_t {
 public:
     static const order_token_t ignore;
 
+#ifndef NDEBUG
     // By default we construct a totally invalid order token, not
     // equal to ignore, that must be initialized.
     order_token_t();
     order_token_t with_read_mode() const;
     bool read_mode() const;
 
+#else
+    order_token_t() { }
+    order_token_t with_read_mode() const { return order_token_t(); }
+
+    int bucket() const { return 0; }
+    bool read_mode() const { return true; }
+    int64_t value() const { return 0; }
+#endif  // ifndef NDEBUG
+
 private:
+#ifndef NDEBUG
     order_token_t(order_bucket_t bucket, int64_t x, bool read_mode);
     order_bucket_t bucket_;
     bool read_mode_;
     int64_t value_;
+#endif  // ifndef NDEBUG
 
     friend class order_source_t;
     friend class order_sink_t;
@@ -60,14 +72,23 @@ private:
    available for reuse. */
 class order_source_t : public home_thread_mixin_t {
 public:
+#ifndef NDEBUG
     order_source_t();
     ~order_source_t();
 
     order_token_t check_in();
+#else
+    order_source_t() { }
+    ~order_source_t() { }
+
+    order_token_t check_in() { return order_token_t(); }
+#endif  // ndef NDEBUG
 
 private:
+#ifndef NDEBUG
     order_bucket_t bucket_;
     int64_t counter_;
+#endif  // ifndef NDEBUG
 
     DISABLE_COPYING(order_source_t);
 };
@@ -83,6 +104,7 @@ private:
  */
 class backfill_receiver_order_source_t : public home_thread_mixin_t {
 public:
+#ifndef NDEBUG
     backfill_receiver_order_source_t();
     ~backfill_receiver_order_source_t();
 
@@ -91,11 +113,23 @@ public:
 
     order_token_t check_in_backfill_operation();
     order_token_t check_in_realtime_operation();
+#else
+    backfill_receiver_order_source_t() { }
+
+    void backfill_begun() { }
+    void backfill_done() { }
+
+    order_token_t check_in_backfill_operation() { return order_token_t(); }
+    order_token_t check_in_realtime_operation() { return order_token_t(); }
+
+#endif  // ifndef NDEBUG
 
 private:
+#ifndef NDEBUG
     order_bucket_t bucket_;
     int64_t counter_;
     bool backfill_active_;
+#endif  // ifndef NDEBUG
 
     DISABLE_COPYING(backfill_receiver_order_source_t);
 };
@@ -105,12 +139,20 @@ private:
    bucket had better arrive in the right order. */
 class order_sink_t : public home_thread_mixin_t {
 public:
+#ifndef NDEBUG
     order_sink_t();
 
     void check_out(order_token_t token);
+#else
+    order_sink_t() { }
+
+    void check_out(UNUSED order_token_t token) { }
+
+#endif  // ifndef NDEBUG
 
 private:
 
+#ifndef NDEBUG
     friend class plain_sink_t;
     static void verify_token_value_and_update(order_token_t token, std::pair<int64_t, int64_t> *ls_pair);
 
@@ -118,6 +160,7 @@ private:
     // .first = last seen write, .second = max(last seen read, last seen write)
     typedef std::map<order_bucket_t, std::pair<int64_t, int64_t> > last_seens_map_t;
     last_seens_map_t last_seens_;
+#endif  // ifndef NDEBUG
 
     DISABLE_COPYING(order_sink_t);
 };
@@ -130,11 +173,18 @@ private:
 // having a separate type?
 class plain_sink_t : public home_thread_mixin_t {
 public:
+#ifndef NDEBUG
     plain_sink_t();
 
     void check_out(order_token_t token);
+#else
+    plain_sink_t() { }
+
+    void check_out(UNUSED order_token_t token) { }
+#endif  // ifndef NDEBUG
 
 private:
+#ifndef NDEBUG
     // The pair of last seen values.
     std::pair<int64_t, int64_t> ls_pair_;
 
@@ -142,6 +192,7 @@ private:
     If we get an order token from a different bucket we crap out. */
     bool have_bucket_;
     order_bucket_t bucket_;
+#endif
 
     DISABLE_COPYING(plain_sink_t);
 };
@@ -150,11 +201,17 @@ private:
 // `order_checkpoint_t` is an `order_sink_t` plus an `order_source_t`.
 class order_checkpoint_t : public home_thread_mixin_t {
 public:
+#ifndef NDEBUG
     order_token_t check_through(order_token_t token);
+#else
+    order_token_t check_through(UNUSED order_token_t token) { return order_token_t(); }
+#endif  // ndef NDEBUG
 
 private:
+#ifndef NDEBUG
     order_sink_t sink_;
     order_source_t source_;
+#endif
 };
 
 

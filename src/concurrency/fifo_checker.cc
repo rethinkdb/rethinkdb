@@ -1,6 +1,6 @@
 #include "concurrency/fifo_checker.hpp"
 
-
+#ifndef NDEBUG
 
 #define ORDER_INVALID (-2)
 #define ORDER_INVALID (-2)
@@ -8,7 +8,14 @@
 #define ORDER_IGNORE (-1)
 #define ORDER_IGNORE (-1)
 
+const order_token_t order_token_t::ignore(order_bucket_t(ORDER_IGNORE, ORDER_IGNORE), ORDER_IGNORE, false);
+#else
+const order_token_t order_token_t::ignore;
+#endif  // ifndef NDEBUG
 
+
+
+#ifndef NDEBUG
 
 bool operator==(const order_bucket_t &a, const order_bucket_t &b) {
     return a.thread_ == b.thread_ && a.number_ == b.number_;
@@ -37,8 +44,6 @@ bool order_bucket_t::valid() {
 }
 
 
-
-const order_token_t order_token_t::ignore(order_bucket_t(ORDER_IGNORE, ORDER_IGNORE), ORDER_IGNORE, false);
 
 order_token_t::order_token_t() : bucket_(ORDER_INVALID, ORDER_INVALID), value_(ORDER_INVALID) { }
 
@@ -224,3 +229,5 @@ order_token_t order_checkpoint_t::check_through(order_token_t tok) {
     if (tok.read_mode()) tok2 = tok2.with_read_mode();
     return tok2;
 }
+
+#endif  // ifndef NDEBUG
