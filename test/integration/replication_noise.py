@@ -219,6 +219,7 @@ def start_evil_monkey(master_repli_port, master_to_slave_corruption_p, slave_to_
                     return (master_socket, connected_proxied_socket)
                 except Exception, e:
                     print "connect: %s" % e
+                    time.sleep(1)
                     connect_failures = connect_failures + 1
                     if connect_failures > 60:
                         self.shutting_down = True
