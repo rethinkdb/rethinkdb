@@ -1,7 +1,12 @@
 #include "concurrency/fifo_checker.hpp"
 
+#ifndef NDEBUG
 const order_token_t order_token_t::ignore(-1, -1, false);
+#else
+const order_token_t order_token_t::ignore;
+#endif  // ifndef NDEBUG
 
+#ifndef NDEBUG
 order_token_t::order_token_t() : bucket_(-2), value_(-2) { }
 
 order_token_t::order_token_t(int bucket, int64_t x, bool read_mode)
@@ -19,8 +24,6 @@ int64_t order_token_t::value() const { return value_; }
 
 order_source_pigeoncoop_t::order_source_pigeoncoop_t(int starting_bucket)
     : least_unregistered_bucket_(starting_bucket) { }
-
-void order_source_pigeoncoop_t::nop() { }
 
 void order_source_pigeoncoop_t::unregister_bucket(int bucket, int64_t counter) {
     ASSERT_NO_CORO_WAITING;
@@ -138,3 +141,4 @@ void plain_sink_t::check_out(order_token_t token) {
         order_sink_t::verify_token_value_and_update(token, &ls_pair_);
     }
 }
+#endif  // ifndef NDEBUG

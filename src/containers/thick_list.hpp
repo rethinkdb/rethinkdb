@@ -44,12 +44,19 @@ public:
         if (free_.empty()) {
             token_t ret = values_.size();
             values_.push_back(value);
+#ifndef NDEBUG
+            is_free_.push_back(false);
+#endif
             return ret;
         } else {
             token_t ret = free_.back();
-            rassert(values_[ret] != T());
+            rassert(values_[ret] == T());
+            rassert(is_free_[ret]);
             free_.pop_back();
             values_[ret] = value;
+#ifndef NDEBUG
+            is_free_[ret] = false;
+#endif
             return ret;
         }
     }
@@ -67,6 +74,9 @@ public:
         if (free_.empty()) {
             if (known_token == values_.size()) {
                 values_.push_back(value);
+#ifndef NDEBUG
+                is_free_.push_back(false);
+#endif
                 return true;
             } else {
                 return false;
@@ -84,6 +94,10 @@ public:
             if (values_.size() > known_token) {
                 free_.erase(p.base() - 1);
                 values_[known_token] = value;
+                rassert(is_free_[known_token]);
+#ifndef NDEBUG
+                is_free_[known_token] = false;
+#endif
 
                 return true;
             } else {
@@ -94,7 +108,7 @@ public:
 
     // Returns a value for the given token, or T() if the token is not
     // alive.
-    T operator[](token_type token) {
+    T operator[](token_type token) const {
         if (token < values_.size()) {
             return values_[token];
         } else {
@@ -102,80 +116,32 @@ public:
         }
     }
 
+    // We can use operator[] with any value x where 0 <= x < end_index().
+    token_type end_index() const {
+        return values_.size();
+    }
+
     // Drops a value for the given token.
     void drop(token_type token) {
         rassert(token < values_.size());
-        rassert(free_.end() == std::find(free_.begin(), free_.end(), token));
+        rassert(!is_free_[token]);
 
         values_[token] = T();
         free_.push_back(token);
-    }
-
-    class thick_list_iterator {
-    public:
-        T &operator*() {
-            // TODO: Add some sanity checking, to catch concurrent modifications
-            rassert(values_iterator_ < parent_->values_.size(), "Tried to dereference end() iterator?");
-            rassert(free_.find(static_cast<token_t>(values_iterator_)) == free_.end());
-            return parent_->values_[values_iterator_];
-        }
-
-        // This is the ++operator operator...
-        // Be warned, this has runtime up to O(max(tokens) * log(size of free_))
-        thick_list_iterator &operator++() {
-            ++values_iterator_;
-            spool_forward_till_valid();
-            return *this;
-        }
-
-        bool operator==(const thick_list_iterator &i) const {
-            return i.values_iterator_ == values_iterator_;
-        }
-
-        bool operator!=(const thick_list_iterator &i) const {
-            return i.values_iterator_ != values_iterator_;
-        }
-
-    private:
-        friend class thick_list<T, token_t>;
-
-        // Be warned, iterator construction is kind of expensive (O((size of parent->free_) * log(size of parent->free_)) running time and similar memory consumption)
-        thick_list_iterator(thick_list<T, token_t> *parent, size_t initial_values_iterator) :
-                values_iterator_(initial_values_iterator), parent_(parent) {
-
-            // Convert the free list into a set for faster lookups.
-            for(size_t i = 0; i < parent_->free_.size(); ++i) {
-                free_.insert(parent_->free_[i]);
-            }
-
-            spool_forward_till_valid();
-        }
-
-        void spool_forward_till_valid() {
-            while (values_iterator_ < parent_->values_.size() && free_.find(static_cast<token_t>(values_iterator_)) != free_.end()) {
-                ++values_iterator_;
-            }
-        }
-
-        size_t values_iterator_; // We use a size_t instead of a high level iterator so we can cast it to token_t
-        std::set<token_t> free_;
-        thick_list<T, token_t> *parent_;
-    };
-
-    // Be warned, thick list iterators are not as cheap as you might expect them to be.
-    typedef thick_list_iterator expensive_iterator;
-    expensive_iterator begin() {
-        return thick_list_iterator(this, 0);
-    }
-    expensive_iterator end() {
-        return thick_list_iterator(this, values_.size());
+#ifndef NDEBUG
+        is_free_[token] = true;
+#endif
     }
 
 private:
-    DISABLE_COPYING(thick_list);  // Copying is stupid.
-
     std::vector<T> values_;
     std::vector<token_t> free_;
+
+#ifndef NDEBUG
+    std::vector<bool> is_free_;
+#endif
+
+    DISABLE_COPYING(thick_list);  // Copying is stupid.
 };
 
 
