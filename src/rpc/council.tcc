@@ -1,7 +1,6 @@
 
 template<class value_t, class diff_t>
-council_t<value_t, diff_t>::council_t(updater_t u, value_t v) :
-    updater(u),
+council_t<value_t, diff_t>::council_t(value_t v) :
     lock_mailbox(boost::bind(&council_t::handle_lock, this, _1)),
     change_mailbox(boost::bind(&council_t::handle_change, this, _1, _2)),
     greeting_mailbox(boost::bind(&council_t::handle_greeting, this, _1)),
@@ -13,8 +12,7 @@ council_t<value_t, diff_t>::council_t(updater_t u, value_t v) :
 }
 
 template<class value_t, class diff_t>
-council_t<value_t, diff_t>::council_t(updater_t u, address_t a) :
-    updater(u),
+council_t<value_t, diff_t>::council_t(address_t a) :
     lock_mailbox(boost::bind(&council_t::handle_lock, this, _1)),
     change_mailbox(boost::bind(&council_t::handle_change, this, _1, _2)),
     greeting_mailbox(boost::bind(&council_t::handle_greeting, this, _1)),
@@ -148,7 +146,7 @@ void council_t<value_t, diff_t>::handle_change(const change_message_t &msg, int 
         }
 
     } else if (const diff_t *dmsg = boost::get<diff_t>(&msg)) {
-        updater(*dmsg, &state.value);
+        update(*dmsg, &state.value);
 
     } else {
         unreachable("Invalid variant member");

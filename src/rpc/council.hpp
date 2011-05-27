@@ -26,7 +26,7 @@ private:
     crashes. */
 
     /* The updater is the function we use to apply diffs. */
-    typedef boost::function<void(const diff_t&, value_t*)> updater_t;
+    virtual void update(const diff_t&, value_t *value) = 0;
 
     struct inner_address_t;
 
@@ -94,13 +94,6 @@ private:
     the council. */
     typedef sync_mailbox_t<state_t(inner_address_t)> greeting_mailbox_t;
 
-    /* TODO? having the updater be a field rather than a method means that
-     * potentially 2 things could be in the council with different updaters,
-     * which would cause their values to not match is there any reason this
-     * couldn't just be virtual method? I think it would then get auto checked
-     * with our rtti checking. */
-    updater_t updater;
-
     // The startup cond prevents race conditions where we receive a lock message
     // before we've received a response to our greeting.
     multi_cond_t startup_cond;
@@ -134,7 +127,7 @@ private:
 
 public:
     /* Start a new council with an initial value */
-    council_t(updater_t, value_t);
+    council_t(value_t);
 
     /* The address is an object that can be passed around to things that might
     want to join the council. */
@@ -149,7 +142,7 @@ public:
     };
 
     /* Join a council */
-    council_t(updater_t, address_t);
+    council_t(address_t);
 
     /* Leave the council */
     ~council_t();
