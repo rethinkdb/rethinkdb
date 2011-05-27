@@ -1,34 +1,9 @@
 #include "buffer_cache/co_functions.hpp"
 #include "concurrency/promise.hpp"
 
-struct co_block_available_callback_t : public block_available_callback_t {
-    coro_t *self;
-    buf_t *value;
-
-    virtual void on_block_available(buf_t *block) {
-        value = block;
-        self->notify();
-    }
-
-    buf_t *join() {
-        self = coro_t::self();
-        coro_t::wait();
-        return value;
-    }
-};
-
 buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) {
     transaction->ensure_thread(saver);
-    co_block_available_callback_t cb;
-    buf_t *value = transaction->acquire(block_id, mode, &cb);
-    if (acquisition_cond) {
-        // TODO: This is worthless crap, because the
-        // transaction_t::acquire interface is a lie.
-        acquisition_cond->pulse();
-    }
-    if (!value) {
-        value = cb.join();
-    }
+    buf_t *value = transaction->acquire(block_id, mode, acquisition_cond ? boost::bind(&threadsafe_cond_t::pulse, acquisition_cond) : boost::function<void()>());
     rassert(value);
     return value;
 }

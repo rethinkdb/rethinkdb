@@ -48,8 +48,10 @@ public:
     // Call to lock for read, write, intent, or upgrade intent to write
     bool lock(access_t access, lock_available_callback_t *callback);
 
-    // Like lock() but blocks; only legal in a coroutine.
-    void co_lock(access_t access);
+    // Like `lock()` but blocks; only legal in a coroutine. If `call_when_in_line` is not zero,
+    // it will be called as soon as `co_lock()` has gotten in line for the lock but before
+    // `co_lock()` actually returns.
+    void co_lock(access_t access, boost::function<void()> call_when_in_line = 0);
 
     // Call if you've locked for read or write, or upgraded to write,
     // and are now unlocking.

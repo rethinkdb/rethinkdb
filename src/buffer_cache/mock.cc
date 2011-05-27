@@ -33,10 +33,6 @@ struct internal_buf_t {
 
 /* Buf */
 
-void mock_buf_t::on_lock_available() {
-    random_delay(cb, &mock_block_available_callback_t::on_block_available, this);
-}
-
 block_id_t mock_buf_t::get_block_id() {
     return internal_buf->block_id;
 }
@@ -132,7 +128,7 @@ void mock_transaction_t::finish_committing(mock_transaction_commit_callback_t *c
     delete this;
 }
 
-mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock_block_available_callback_t *callback, UNUSED bool should_load) {
+mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line, UNUSED bool should_load) {
     // should_load is ignored for the mock cache.
     if (mode == rwi_write) rassert(this->access == rwi_write);
     
@@ -140,21 +136,17 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock
     internal_buf_t *internal_buf = cache->bufs[block_id];
     rassert(internal_buf);
 
+    internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
+
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
         internal_buf->subtree_recency = recency_timestamp;
     }
 
     mock_buf_t *buf = new mock_buf_t(internal_buf, mode);
-    if (internal_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, buf)) {
-        if (maybe_random_delay(callback, &mock_block_available_callback_t::on_block_available, buf)) {
-            return buf;
-        } else {
-            return NULL;
-        }
-    } else {
-        buf->cb = callback;
-        return NULL;
-    }
+
+    nap(5);   // TODO: We should nap for a random time like `maybe_random_delay()` does
+
+    return buf;
 }
 
 mock_buf_t *mock_transaction_t::allocate() {
