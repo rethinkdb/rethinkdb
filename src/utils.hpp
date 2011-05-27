@@ -59,40 +59,22 @@ you can use the `rethread_t` type or the `rethread()` method. */
 class home_thread_mixin_t {
 public:
     const int &home_thread;
-    int get_home_thread() const { return home_thread; }
+    int get_home_thread() const;
+    void assert_thread() const;
 
-    void assert_thread() const {
-        if (home_thread == INVALID_THREAD) {
-            crash("This object cannot be used because it currently does not have a home thread.\n");
-        } else {
-            rassert(home_thread == get_thread_id());
-        }
-    }
-
-    virtual void rethread(UNUSED int thread) {
-        crash("This class is not rethreadable.\n");
-    }
+    virtual void rethread(int thread);
 
     struct rethread_t {
-        rethread_t(home_thread_mixin_t *m, int thread) :
-                mixin(m), old_thread(mixin->home_thread), new_thread(thread) {
-            mixin->rethread(new_thread);
-            rassert(mixin->home_thread == new_thread);
-        }
-        ~rethread_t() {
-            rassert(mixin->home_thread == new_thread);
-            mixin->rethread(old_thread);
-            rassert(mixin->home_thread == old_thread);
-        }
+        rethread_t(home_thread_mixin_t *m, int thread);
+        ~rethread_t();
     private:
         home_thread_mixin_t *mixin;
         int old_thread, new_thread;
     };
 
 protected:
-    home_thread_mixin_t() :
-        home_thread(real_home_thread), real_home_thread(get_thread_id()) { }
-    ~home_thread_mixin_t() { }
+    home_thread_mixin_t();
+    ~home_thread_mixin_t();
 
     // `home_thread` is a read-only version of `real_home_thread`.
     int real_home_thread;
