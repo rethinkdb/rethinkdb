@@ -8,7 +8,7 @@
 // them or fix them.
 
 // Avoid using this!  Use buf_lock_t instead.
-buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond = NULL);
+buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond = NULL);
 
 // TODO: Make acquisition_cond not take a default value, because I bet
 // we should use it everywhere.  And put it on all of these functions.

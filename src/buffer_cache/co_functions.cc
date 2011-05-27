@@ -17,8 +17,8 @@ struct co_block_available_callback_t : public block_available_callback_t {
     }
 };
 
-buf_t *co_acquire_block(const thread_saver_t& saver, transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) {
-    transaction->ensure_thread(saver);
+buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) {
+    transaction->assert_thread();
     co_block_available_callback_t cb;
     buf_t *value = transaction->acquire(block_id, mode, &cb);
     if (acquisition_cond) {
