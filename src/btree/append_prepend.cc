@@ -138,11 +138,10 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     }
 
     void actually_acquire_large_value(large_buf_t *lb) {
-        thread_saver_t saver;
         if (append) {
-            co_acquire_large_buf_rhs(saver, lb);
+            co_acquire_large_buf_rhs(lb);
         } else {
-            co_acquire_large_buf_lhs(saver, lb);
+            co_acquire_large_buf_lhs(lb);
         }
     }
 

@@ -65,11 +65,15 @@ void co_acquire_large_buf(large_buf_t *lb, threadsafe_cond_t *acquisition_cond) 
     co_acquire_large_buf_slice(saver, lb, 0, lb->root_ref->size, acquisition_cond);
 }
 
-void co_acquire_large_buf_lhs(const thread_saver_t& saver, large_buf_t *lb) {
+void co_acquire_large_buf_lhs(large_buf_t *lb) {
+    lb->assert_thread();
+    thread_saver_t saver;
     co_acquire_large_buf_slice(saver, lb, 0, std::min(1L, lb->root_ref->size));
 }
 
-void co_acquire_large_buf_rhs(const thread_saver_t& saver, large_buf_t *lb) {
+void co_acquire_large_buf_rhs(large_buf_t *lb) {
+    lb->assert_thread();
+    thread_saver_t saver;
     int64_t beg = std::max(int64_t(0), lb->root_ref->size - 1);
     co_acquire_large_buf_slice(saver, lb, beg, lb->root_ref->size - beg);
 }
