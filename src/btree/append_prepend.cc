@@ -138,11 +138,10 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     }
 
     void actually_acquire_large_value(large_buf_t *lb) {
-        thread_saver_t saver;
         if (append) {
-            co_acquire_large_buf_rhs(saver, lb);
+            co_acquire_large_buf_rhs(lb);
         } else {
-            co_acquire_large_buf_lhs(saver, lb);
+            co_acquire_large_buf_lhs(lb);
         }
     }
 
@@ -158,8 +157,8 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     boost::scoped_ptr<large_buf_t> large_buflock;
 };
 
-append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, unique_ptr_t<data_provider_t> data, bool append, castime_t castime, UNUSED order_token_t token) {
+append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, unique_ptr_t<data_provider_t> data, bool append, castime_t castime, order_token_t token) {
     btree_append_prepend_oper_t oper(data, append);
-    run_btree_modify_oper(&oper, slice, key, castime);
+    run_btree_modify_oper(&oper, slice, key, castime, token);
     return oper.result;
 }

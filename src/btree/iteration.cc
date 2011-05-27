@@ -38,16 +38,14 @@ leaf_iterator_t::~leaf_iterator_t() {
 
 void leaf_iterator_t::done() {
     if (lock) {
-        thread_saver_t saver;
-        transactor->get()->ensure_thread(saver);
+        on_thread_t th(transactor->get()->home_thread);
         delete lock;
         lock = NULL;
     }
 }
 
 key_with_data_provider_t leaf_iterator_t::pair_to_key_with_data_provider(const btree_leaf_pair* pair) {
-    thread_saver_t saver;
-    transactor->get()->ensure_thread(saver);
+    on_thread_t th(transactor->get()->home_thread);
     value_data_provider_t *data_provider = value_data_provider_t::create(pair->value(), transactor);
     return key_with_data_provider_t(key_to_str(&pair->key), pair->value()->mcflags(),
         boost::shared_ptr<data_provider_t>(data_provider));
@@ -89,12 +87,11 @@ void slice_leaves_iterator_t::done() {
 }
 
 boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
-    thread_saver_t saver;
     on_thread_t mover(slice->home_thread); // Move to the slice's thread.
 
     started = true;
     // TODO: Why is this a buf_lock_t pointer?  That's not how buf_lock_t should be used.
-    buf_lock_t *buf_lock = new buf_lock_t(saver, *transactor, block_id_t(SUPERBLOCK_ID), rwi_read);
+    buf_lock_t *buf_lock = new buf_lock_t(*transactor, block_id_t(SUPERBLOCK_ID), rwi_read);
     block_id_t root_id = ptr_cast<btree_superblock_t>(buf_lock->buf()->get_data_read())->root_block;
     rassert(root_id != SUPERBLOCK_ID);
 
@@ -110,7 +107,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
     }
 
     {
-        buf_lock_t tmp(saver, *transactor, root_id, rwi_read);
+        buf_lock_t tmp(*transactor, root_id, rwi_read);
         buf_lock->swap(tmp);
     }
 
@@ -133,7 +130,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
 
         block_id_t child_id = get_child_id(i_node, index);
 
-        buf_lock = new buf_lock_t(saver, *transactor, child_id, rwi_read);
+        buf_lock = new buf_lock_t(*transactor, child_id, rwi_read);
         node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
     }
 
@@ -174,12 +171,11 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_next_leaf() {
 }
 
 boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(block_id_t node_id) {
-    thread_saver_t saver;
     on_thread_t mover(slice->home_thread); // Move to the slice's thread.
 
     // TODO: Why is there a buf_lock_t pointer?  This is not how
     // buf_lock_t works.  Just use a buf_t pointer then.
-    buf_lock_t *buf_lock = new buf_lock_t(saver, *transactor, node_id, rwi_read);
+    buf_lock_t *buf_lock = new buf_lock_t(*transactor, node_id, rwi_read);
     const node_t *node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
 
     while (node::is_internal(node)) {
@@ -192,7 +188,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(blo
 
         block_id_t child_id = get_child_id(i_node, leftmost_child_index);
 
-        buf_lock = new buf_lock_t(saver, *transactor, child_id, rwi_read);
+        buf_lock = new buf_lock_t(*transactor, child_id, rwi_read);
         node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
     }
     rassert(node != NULL);

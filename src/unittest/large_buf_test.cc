@@ -10,13 +10,13 @@ protected:
         return cache->get_block_size().value() - sizeof(large_buf_leaf);
     }
 
-    void run_tests(thread_saver_t& saver, cache_t *cache) {
+    void run_tests(cache_t *cache) {
         {
 #ifndef NDEBUG
             TRACEPOINT;
 #endif
             // This is expected to pass.
-            run_unprepend_shift_babytest(saver, cache, 4 * leaf_bytes(cache), leaf_bytes(cache) - 1);
+            run_unprepend_shift_babytest(cache, 4 * leaf_bytes(cache), leaf_bytes(cache) - 1);
         }
         {
 #ifndef NDEBUG
@@ -24,18 +24,18 @@ protected:
 #endif
             // This is expected to fail (because our code is expected
             // to be broken), at the time of writing the test.
-            run_unprepend_shift_babytest(saver, cache, 4 * leaf_bytes(cache), leaf_bytes(cache));
+            run_unprepend_shift_babytest(cache, 4 * leaf_bytes(cache), leaf_bytes(cache));
         }
         {
 #ifndef NDEBUG
             TRACEPOINT;
 #endif
-            run_pend_grind_test(saver, cache);
+            run_pend_grind_test(cache);
         }
     }
 
 private:
-    void run_unprepend_shift_babytest(thread_saver_t& saver, cache_t *cache, int64_t initial_size, int64_t unprepend_amount) {
+    void run_unprepend_shift_babytest(cache_t *cache, int64_t initial_size, int64_t unprepend_amount) {
         int64_t leaf_size = leaf_bytes(cache);
 
         const int num_root_ref_inlined = 2;
@@ -48,7 +48,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past();
 
-        boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache, rwi_write, 0, time));
+        boost::shared_ptr<transactor_t> txor(new transactor_t(cache, rwi_write, 0, time, order_token_t::ignore));
 
         union {
             large_buf_ref ref;
@@ -72,7 +72,7 @@ private:
 
         {
             large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
-            co_acquire_large_buf_for_unprepend(saver, &lb, unprepend_amount);
+            co_acquire_large_buf_for_unprepend(&lb, unprepend_amount);
             int refsize_adjustment_out;
             lb.unprepend(unprepend_amount, &refsize_adjustment_out);
             ASSERT_EQ(0, refsize_adjustment_out);
@@ -87,7 +87,7 @@ private:
 
         {
             large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_read);
-            co_acquire_large_buf(saver, &lb);
+            co_acquire_large_buf(&lb);
 
             std::vector<char> chars_out(initial_size - unprepend_amount);
             lb.read_at(0, chars_out.data(), initial_size - unprepend_amount);
@@ -96,7 +96,7 @@ private:
         }
     }
 
-    void run_pend_grind_test(thread_saver_t& saver, cache_t *cache) {
+    void run_pend_grind_test(cache_t *cache) {
         const int num_root_ref_inlined = 2;
 
         // Sanity check test parameters.
@@ -104,7 +104,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past();
 
-        boost::shared_ptr<transactor_t> txor(new transactor_t(saver, cache, rwi_write, 0, time));
+        boost::shared_ptr<transactor_t> txor(new transactor_t(cache, rwi_write, 0, time, order_token_t::ignore));
 
         union {
             large_buf_ref ref;
@@ -116,7 +116,7 @@ private:
             // 23 is relatively prime to leaf_size, which should be 4080.
             chars[i] = 'A' + (i % 23);
         }
-        
+
         {
             large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
             lb.allocate(5000);
@@ -127,7 +127,7 @@ private:
             debugf("%d\n", i);
             {
                 large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
-                co_acquire_large_buf_for_unprepend(saver, &lb, 100);
+                co_acquire_large_buf_for_unprepend(&lb, 100);
                 int refsize_adjustment_out;
                 lb.unprepend(100, &refsize_adjustment_out);
                 debugf("unprepend: %d\n", refsize_adjustment_out);
@@ -135,7 +135,7 @@ private:
             {
                 large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
                 threadsafe_cond_t cond;
-                co_acquire_large_buf(saver, &lb, &cond);
+                co_acquire_large_buf(&lb, &cond);
                 cond.wait();
                 int refsize_adjustment_out;
                 lb.append(100, &refsize_adjustment_out);
