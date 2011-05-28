@@ -1,6 +1,7 @@
-#include "unittest/gtest.hpp"
 #include "errors.hpp"
+#include "unittest/gtest.hpp"
 #include "unittest/server_test_helper.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "buffer_cache/transactor.hpp"
 #include "buffer_cache/co_functions.hpp"
 
