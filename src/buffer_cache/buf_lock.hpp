@@ -4,7 +4,6 @@
 // TODO: get rid of a separate buf_t entirely (that is, have buf_t use RAII).
 
 #include "buffer_cache/buffer_cache.hpp"
-#include "buffer_cache/transactor.hpp"
 #include "utils.hpp"
 
 // A buf_lock_t acquires and holds a buf_t.  Make sure you call
@@ -15,10 +14,10 @@ class buf_lock_t {
 public:
     buf_lock_t() : buf_(NULL) { }
 
-    buf_lock_t(transactor_t& txor, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond = NULL);
+    buf_lock_t(transaction_t *txn, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond = NULL);
     ~buf_lock_t();
 
-    void allocate(transactor_t& txor);
+    void allocate(transaction_t *txn);
 
     // Releases the buf.  You can only release once (unless you swap
     // in an unreleased buf_lock_t).

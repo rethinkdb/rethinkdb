@@ -1,7 +1,6 @@
 #include "btree/parallel_traversal.hpp"
 
 #include "btree/slice.hpp"
-#include "buffer_cache/transactor.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"
@@ -71,19 +70,19 @@ protected:
 
 class traversal_state_t {
 public:
-    traversal_state_t(boost::shared_ptr<transactor_t>& txor, btree_slice_t *_slice, btree_traversal_helper_t *_helper)
+    traversal_state_t(boost::shared_ptr<transaction_t>& txn, btree_slice_t *_slice, btree_traversal_helper_t *_helper)
         : slice(_slice),
           /* We can't compute the expected change count (we're either
              doing nothing or deleting the entire tree or something),
              so we just pass 0.  You could let this be a
              helper-supplied value, if you cared. */
-          transactor_ptr(txor),
+          transaction_ptr(txn),
           helper(_helper) { }
 
     // The slice whose btree we're traversing
     btree_slice_t *const slice;
 
-    boost::shared_ptr<transactor_t> transactor_ptr;
+    boost::shared_ptr<transaction_t> transaction_ptr;
 
     // The helper.
     btree_traversal_helper_t *helper;
@@ -201,7 +200,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
 
     void you_may_acquire() {
 
-        buf_t *block = state->transactor_ptr->get()->acquire(
+        buf_t *block = state->transaction_ptr->acquire(
             block_id, state->helper->btree_node_mode(),
             boost::bind(&acquisition_start_callback_t::on_started_acquisition, acq_start_cb));
 
@@ -243,13 +242,13 @@ struct internal_node_releaser_t : public parent_releaser_t {
     internal_node_releaser_t(buf_t *buf, traversal_state_t *state) : buf_(buf), state_(state) { }
 };
 
-void btree_parallel_traversal(boost::shared_ptr<transactor_t>& txor, btree_slice_t *slice, btree_traversal_helper_t *helper) {
-    traversal_state_t state(txor, slice, helper);
-    buf_lock_t superblock_buf(*state.transactor_ptr, SUPERBLOCK_ID, helper->btree_superblock_mode());
+void btree_parallel_traversal(boost::shared_ptr<transaction_t>& txn, btree_slice_t *slice, btree_traversal_helper_t *helper) {
+    traversal_state_t state(txn, slice, helper);
+    buf_lock_t superblock_buf(state.transaction_ptr.get(), SUPERBLOCK_ID, helper->btree_superblock_mode());
 
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
 
-    helper->preprocess_btree_superblock(state.transactor_ptr, superblock);
+    helper->preprocess_btree_superblock(state.transaction_ptr, superblock);
 
     block_id_t root_id = superblock->root_block;
     rassert(root_id != SUPERBLOCK_ID);
@@ -283,7 +282,7 @@ void btree_parallel_traversal(boost::shared_ptr<transactor_t>& txor, btree_slice
 void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids) {
     rassert(coro_t::self());
     interesting_children_callback_t *fsm = new interesting_children_callback_t(state, releaser, level);
-    state->helper->filter_interesting_children(state->transactor_ptr, param_block_ids.get(), num_block_ids, fsm);
+    state->helper->filter_interesting_children(state->transaction_ptr, param_block_ids.get(), num_block_ids, fsm);
 }
 struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
     traversal_state_t *state;
@@ -330,7 +329,7 @@ void process_a_internal_node(traversal_state_t *state, buf_t *buf, int level) {
 // This releases its buf_t parameter.
 void process_a_leaf_node(traversal_state_t *state, buf_t *buf, int level) {
     // This can be run in the scheduler thread.
-    state->helper->process_a_leaf(state->transactor_ptr, buf);
+    state->helper->process_a_leaf(state->transaction_ptr, buf);
     buf->release();
     state->level_count(level) -= 1;
     state->consider_pulsing();

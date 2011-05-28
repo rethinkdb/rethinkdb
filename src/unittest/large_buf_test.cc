@@ -48,7 +48,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past();
 
-        boost::shared_ptr<transactor_t> txor(new transactor_t(cache, rwi_write, 0, time, order_token_t::ignore));
+        boost::shared_ptr<transaction_t> txn(new transaction_t(cache, rwi_write, 0, time, order_token_t::ignore));
 
         union {
             large_buf_ref ref;
@@ -62,7 +62,7 @@ private:
         }
         
         {
-            large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
+            large_buf_t lb(txn, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
             lb.allocate(initial_size);
             lb.fill_at(0, chars.data(), initial_size);
         }
@@ -71,7 +71,7 @@ private:
         ASSERT_EQ(initial_size, ref.size);
 
         {
-            large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
+            large_buf_t lb(txn, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
             co_acquire_large_buf_for_unprepend(&lb, unprepend_amount);
             int refsize_adjustment_out;
             lb.unprepend(unprepend_amount, &refsize_adjustment_out);
@@ -86,7 +86,7 @@ private:
         ASSERT_EQ(initial_size - unprepend_amount, ref.size);
 
         {
-            large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_read);
+            large_buf_t lb(txn, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_read);
             co_acquire_large_buf(&lb);
 
             std::vector<char> chars_out(initial_size - unprepend_amount);
@@ -104,7 +104,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past();
 
-        boost::shared_ptr<transactor_t> txor(new transactor_t(cache, rwi_write, 0, time, order_token_t::ignore));
+        boost::shared_ptr<transaction_t> txn(new transaction_t(cache, rwi_write, 0, time, order_token_t::ignore));
 
         union {
             large_buf_ref ref;
@@ -118,7 +118,7 @@ private:
         }
 
         {
-            large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
+            large_buf_t lb(txn, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
             lb.allocate(5000);
             lb.fill_at(0, chars.data(), 5000);
         }
@@ -126,14 +126,14 @@ private:
         for (int i = 0; i < 10000; i++) {
             debugf("%d\n", i);
             {
-                large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
+                large_buf_t lb(txn, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
                 co_acquire_large_buf_for_unprepend(&lb, 100);
                 int refsize_adjustment_out;
                 lb.unprepend(100, &refsize_adjustment_out);
                 debugf("unprepend: %d\n", refsize_adjustment_out);
             }
             {
-                large_buf_t lb(txor, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
+                large_buf_t lb(txn, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
                 threadsafe_cond_t cond;
                 co_acquire_large_buf(&lb, &cond);
                 cond.wait();

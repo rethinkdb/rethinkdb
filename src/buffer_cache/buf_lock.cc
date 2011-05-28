@@ -3,12 +3,13 @@
 
 #include "errors.hpp"
 
-buf_lock_t::buf_lock_t(transactor_t& txor, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) : buf_(co_acquire_block(txor.get(), block_id, mode, acquisition_cond)), home_thread_(get_thread_id()) { }
+buf_lock_t::buf_lock_t(transaction_t *txn, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond) :
+    buf_(co_acquire_block(txn, block_id, mode, acquisition_cond)), home_thread_(get_thread_id()) { }
 
-void buf_lock_t::allocate(transactor_t& txor) {
-    txor->assert_thread();
+void buf_lock_t::allocate(transaction_t *txn) {
+    txn->assert_thread();
     guarantee(buf_ == NULL);
-    buf_ = txor->allocate();
+    buf_ = txn->allocate();
     home_thread_ = get_thread_id();
 }
 

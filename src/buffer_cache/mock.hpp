@@ -24,21 +24,10 @@ class mock_cache_t;
 class internal_buf_t;
 class mock_cache_account_t;
 
-/* Callbacks */
-
-struct mock_transaction_begin_callback_t {
-    virtual void on_txn_begin(mock_transaction_t *txn) = 0;
-    virtual ~mock_transaction_begin_callback_t() {}
-};
-
-struct mock_transaction_commit_callback_t {
-    virtual void on_txn_commit(mock_transaction_t *txn) = 0;
-    virtual ~mock_transaction_commit_callback_t() {}
-};
-
 /* Buf */
 
-class mock_buf_t
+class mock_buf_t :
+    public home_thread_mixin_t
 {
 public:
     block_id_t get_block_id();
@@ -69,14 +58,15 @@ private:
 
 /* Transaction */
 
-class mock_transaction_t
+class mock_transaction_t :
+    public home_thread_mixin_t
 {
     typedef mock_buf_t buf_t;
-    typedef mock_transaction_begin_callback_t transaction_begin_callback_t;
-    typedef mock_transaction_commit_callback_t transaction_commit_callback_t;
 
 public:
-    bool commit(transaction_commit_callback_t *callback);
+    mock_transaction_t(mock_cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token);
+    mock_transaction_t(mock_cache_t *cache, access_t access, order_token_t token);
+    ~mock_transaction_t();
 
     void snapshot() { }
 
@@ -95,9 +85,6 @@ private:
     access_t access;
     int n_bufs;
     repli_timestamp recency_timestamp;
-    void finish_committing(mock_transaction_commit_callback_t *cb);
-    mock_transaction_t(mock_cache_t *cache, order_token_t token, access_t access, repli_timestamp recency_timestamp);
-    ~mock_transaction_t();
 };
 
 /* Cache */
@@ -111,8 +98,6 @@ class mock_cache_t : public home_thread_mixin_t, public translator_serializer_t:
 public:
     typedef mock_buf_t buf_t;
     typedef mock_transaction_t transaction_t;
-    typedef mock_transaction_begin_callback_t transaction_begin_callback_t;
-    typedef mock_transaction_commit_callback_t transaction_commit_callback_t;
     typedef mock_cache_account_t cache_account_t;
 
     static void create(
@@ -124,7 +109,6 @@ public:
     ~mock_cache_t();
 
     block_size_t get_block_size();
-    transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
     boost::shared_ptr<cache_account_t> create_account(UNUSED int priority) { return boost::shared_ptr<cache_account_t>(); }
 

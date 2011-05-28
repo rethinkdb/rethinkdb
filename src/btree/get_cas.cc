@@ -4,7 +4,7 @@
 #include "concurrency/promise.hpp"
 #include "btree/btree_data_provider.hpp"
 
-// TODO: Use a shared_ptr to the transactor instead of a death_signalling_data_provider_t.
+// TODO: Use a shared_ptr to the transaction instead of a death_signalling_data_provider_t.
 
 struct death_signalling_data_provider_t : public data_provider_t {
 
@@ -39,7 +39,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
-    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
+    bool operate(const boost::shared_ptr<transaction_t>& txn, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         if (!old_value) {
             /* If not found, there's nothing to do */
             res->pulse(get_result_t());
@@ -62,7 +62,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
         }
 
         // Deliver the value to the client via the promise_t we got
-        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
+        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(&value, txn));
         if (value.is_large()) {
             // Need to block on the caller so we don't free the large value before it's done
             // When `dp2` is destroyed, it will signal `to_signal_when_done`.

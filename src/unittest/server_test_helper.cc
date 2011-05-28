@@ -58,17 +58,17 @@ void server_test_helper_t::setup_server_and_run_tests() {
 }
 
 // Static helper functions
-buf_t *server_test_helper_t::create(transactor_t& txor) {
-    return txor.get()->allocate();
+buf_t *server_test_helper_t::create(transaction_t *txn) {
+    return txn->allocate();
 }
 
-void server_test_helper_t::snap(transactor_t& txor) {
-    txor.get()->snapshot();
+void server_test_helper_t::snap(transaction_t *txn) {
+    txn->snapshot();
 }
 
-buf_t * server_test_helper_t::acq(transactor_t& txor, block_id_t block_id, access_t mode) {
-    txor->assert_thread();
-    return co_acquire_block(txor.get(), block_id, mode);
+buf_t * server_test_helper_t::acq(transaction_t *txn, block_id_t block_id, access_t mode) {
+    txn->assert_thread();
+    return txn->acquire(block_id, mode);
 }
 
 void server_test_helper_t::change_value(buf_t *buf, uint32_t value) {
@@ -79,8 +79,8 @@ uint32_t server_test_helper_t::get_value(buf_t *buf) {
     return *((uint32_t*) buf->get_data_read());
 }
 
-buf_t *server_test_helper_t::acq_check_if_blocks_until_buf_released(transactor_t& acquiring_txor, buf_t *already_acquired_block, access_t acquire_mode, bool do_release, bool &blocked) {
-    acquiring_coro_t acq_coro(acquiring_txor, already_acquired_block->get_block_id(), acquire_mode);
+buf_t *server_test_helper_t::acq_check_if_blocks_until_buf_released(transaction_t *txn, buf_t *already_acquired_block, access_t acquire_mode, bool do_release, bool &blocked) {
+    acquiring_coro_t acq_coro(txn, already_acquired_block->get_block_id(), acquire_mode);
 
     coro_t::spawn(boost::bind(&acquiring_coro_t::run, &acq_coro));
     nap(500);
@@ -97,9 +97,9 @@ buf_t *server_test_helper_t::acq_check_if_blocks_until_buf_released(transactor_t
     return acq_coro.result;
 }
 
-void server_test_helper_t::create_two_blocks(transactor_t &txor, block_id_t &block_A, block_id_t &block_B) {
-    buf_t *buf_A = create(txor);
-    buf_t *buf_B = create(txor);
+void server_test_helper_t::create_two_blocks(transaction_t *txn, block_id_t &block_A, block_id_t &block_B) {
+    buf_t *buf_A = create(txn);
+    buf_t *buf_B = create(txn);
     block_A = buf_A->get_block_id();
     block_B = buf_B->get_block_id();
     change_value(buf_A, init_value);

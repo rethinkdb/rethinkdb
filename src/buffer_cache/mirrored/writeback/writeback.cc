@@ -3,47 +3,6 @@
 #include <cmath>
 #include <set>
 
-writeback_t::begin_transaction_fsm_t::begin_transaction_fsm_t(writeback_t *wb, mc_transaction_t *txn, mc_transaction_begin_callback_t *cb)
-    : writeback(wb), transaction(txn)
-{
-    txn->begin_callback = cb;
-
-    if (writeback->too_many_dirty_blocks()) {
-        /* When a flush happens, we will get popped off the throttled transactions list
-and given a green light. */
-        writeback->throttled_transactions_list.push_back(this);
-    } else {
-        green_light();
-    }
-}
-
-void writeback_t::begin_transaction_fsm_t::green_light() {
-
-    writeback->expected_active_change_count += transaction->expected_change_count;
-
-    // Lock the flush lock "for reading", but what we really mean is to lock it non-
-    // exclusively because more than one write transaction can proceed at once.
-    if (writeback->flush_lock.lock(rwi_read, this)) {
-        /* push callback on the global event queue - if the lock
-         * returns true, then the request won't have been put on the
-         * flush lock's queue, which can lead to the
-         * transaction_begin_callback not being called when it should be
-         * in certain cases, as shown by append_stress append
-         * reorderings.
-         */
-        call_later_on_this_thread(this);
-    }
-}
-
-void writeback_t::begin_transaction_fsm_t::on_thread_switch() {
-    on_lock_available();
-}
-
-void writeback_t::begin_transaction_fsm_t::on_lock_available() {
-    transaction->green_light();
-    delete this;
-}
-
 perfmon_duration_sampler_t
     pm_flushes_diff_flush("flushes_diff_flushing", secs_to_ticks(1)),
     pm_flushes_diff_store("flushes_diff_store", secs_to_ticks(1)),
@@ -58,21 +17,20 @@ writeback_t::writeback_t(
         unsigned int max_dirty_blocks,
         unsigned int flush_waiting_threshold,
         unsigned int max_concurrent_flushes
-        )
-    : wait_for_flush(wait_for_flush),
-      flush_waiting_threshold(flush_waiting_threshold),
-      max_concurrent_flushes(max_concurrent_flushes),
-      max_dirty_blocks(max_dirty_blocks),
-      flush_time_randomizer(flush_timer_ms),
-      flush_threshold(flush_threshold),
-      flush_timer(NULL),
-      outstanding_disk_writes(0),
-      expected_active_change_count(0),
-      writeback_in_progress(false),
-      active_flushes(0),
-      force_patch_storage_flush(false),
-      cache(cache),
-      start_next_sync_immediately(false) {
+        ) :
+    wait_for_flush(wait_for_flush),
+    flush_waiting_threshold(flush_waiting_threshold),
+    max_concurrent_flushes(max_concurrent_flushes),
+    max_dirty_blocks(max_dirty_blocks),
+    flush_time_randomizer(flush_timer_ms),
+    flush_threshold(flush_threshold),
+    flush_timer(NULL),
+    writeback_in_progress(false),
+    active_flushes(0),
+    dirty_block_semaphore(max_dirty_blocks),
+    force_patch_storage_flush(false),
+    cache(cache),
+    start_next_sync_immediately(false) {
 
     rassert(max_dirty_blocks >= 10); // sanity check: you really don't want to have less than this.
                                      // 10 is rather arbitrary.
@@ -82,8 +40,6 @@ writeback_t::~writeback_t() {
     rassert(!writeback_in_progress);
     rassert(active_flushes == 0);
     rassert(sync_callbacks.size() == 0);
-    rassert(outstanding_disk_writes == 0);
-    rassert(expected_active_change_count == 0);
     if (flush_timer) {
         cancel_timer(flush_timer);
         flush_timer = NULL;
@@ -127,27 +83,23 @@ bool writeback_t::sync_patiently(sync_callback_t *callback) {
     return false;
 }
 
-bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callback_t *callback) {
-    switch (txn->get_access()) {
-        case rwi_read:
-            return true;
-        case rwi_write:
-            new begin_transaction_fsm_t(this, txn, callback);
-            return false;
-        case rwi_read_outdated_ok:
-        case rwi_intent:
-        case rwi_upgrade:
-        default:
-            unreachable("Transaction access invalid.");
+void writeback_t::begin_transaction(transaction_t *txn) {
+
+    if (txn->get_access() == rwi_write) {
+
+        /* Throttling */
+        dirty_block_semaphore.co_lock(txn->expected_change_count);
+
+        /* Acquire flush lock in non-exclusive mode */
+        flush_lock.co_lock(rwi_read);
     }
 }
 
 void writeback_t::on_transaction_commit(transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
-        
-        expected_active_change_count -= txn->expected_change_count;
-        possibly_unthrottle_transactions();
-        
+
+        dirty_block_semaphore.unlock(txn->expected_change_count);
+
         flush_lock.unlock();
 
         /* At the end of every write transaction, check if the number of dirty blocks exceeds the
@@ -168,31 +120,14 @@ void writeback_t::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-unsigned int writeback_t::num_dirty_blocks() {
-    return dirty_bufs.size();
-}
-
-bool writeback_t::too_many_dirty_blocks() {
-    return
-        num_dirty_blocks() + outstanding_disk_writes + expected_active_change_count
-        >= max_dirty_blocks;
-}
-
-void writeback_t::possibly_unthrottle_transactions() {
-    while (!too_many_dirty_blocks()) {
-        begin_transaction_fsm_t *fsm = throttled_transactions_list.head();
-        if (!fsm) return;
-        throttled_transactions_list.remove(fsm);
-        fsm->green_light();
-    }
-}
-
 void writeback_t::local_buf_t::set_dirty(bool _dirty) {
     if (!dirty && _dirty) {
         // Mark block as dirty if it hasn't been already
         dirty = true;
         if (!recency_dirty) {
             gbuf->cache->writeback.dirty_bufs.push_back(this);
+            /* Use `force_lock()` to prevent deadlocks; `co_lock()` could block. */
+            gbuf->cache->writeback.dirty_block_semaphore.force_lock();
         }
         pm_n_blocks_dirty++;
     }
@@ -201,7 +136,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
         dirty = false;
         if (!recency_dirty) {
             gbuf->cache->writeback.dirty_bufs.remove(this);
-            gbuf->cache->writeback.possibly_unthrottle_transactions();
+            gbuf->cache->writeback.dirty_block_semaphore.unlock();
         }
         pm_n_blocks_dirty--;
     }
@@ -213,6 +148,7 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
         recency_dirty = true;
         if (!dirty) {
             gbuf->cache->writeback.dirty_bufs.push_back(this);
+            gbuf->cache->writeback.dirty_block_semaphore.force_lock();
         }
         // TODO perfmon
     }
@@ -220,7 +156,7 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
         recency_dirty = false;
         if (!dirty) {
             gbuf->cache->writeback.dirty_bufs.remove(this);
-            gbuf->cache->writeback.possibly_unthrottle_transactions();
+            gbuf->cache->writeback.dirty_block_semaphore.unlock();
         }
         // TODO perfmon
     }
@@ -289,7 +225,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
 
     // It's a read transaction, that's why we use repli_timestamp::invalid.
-    transaction = parent->cache->begin_transaction(order_token_t::ignore, rwi_read, 0, repli_timestamp::invalid, NULL);
+    transaction = new mc_transaction_t(parent->cache, rwi_read, order_token_t::ignore);
     parent->cache->shutting_down = saved_shutting_down;
     rassert(transaction != NULL); // Read txns always start immediately.
 
@@ -315,14 +251,17 @@ struct writeback_t::concurrent_flush_t::buf_writer_t :
     explicit buf_writer_t(writeback_t *wb, mc_buf_t *buf, bool *tids_updated)
         : parent(wb), buf(buf), transaction_ids_have_been_updated(tids_updated), released_buffer(false)
     {
-        parent->outstanding_disk_writes++;
+        /* When we spawn a flush, the block ceases to be dirty, so we release the
+        semaphore. To avoid releasing a tidal wave of write transactions every time
+        the flush starts, we have the writer acquire the semaphore and release it only
+        once the block is safely on disk. */
+        parent->dirty_block_semaphore.force_lock(1);
     }
     void on_serializer_write_block() {
         if (continue_on_thread(home_thread, this)) on_thread_switch();
     }
     void on_thread_switch() {
-        parent->outstanding_disk_writes--;
-        parent->possibly_unthrottle_transactions();
+        parent->dirty_block_semaphore.unlock();
         if (!*transaction_ids_have_been_updated) {
             // Writeback might still need the buffer. We wait until we get destructed before releasing it...
             return;
@@ -600,8 +539,7 @@ bool writeback_t::concurrent_flush_t::do_cleanup() {
         delete buf_writers[i];
     }
 
-    bool committed __attribute__((unused)) = transaction->commit(NULL);
-    rassert(committed); // Read-only transactions commit immediately.
+    delete transaction;
 
     while (!current_sync_callbacks.empty()) {
         sync_callback_t *cb = current_sync_callbacks.head();

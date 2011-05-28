@@ -5,7 +5,6 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include "btree/value.hpp"
-#include "buffer_cache/transactor.hpp"
 #include "data_provider.hpp"
 
 class value_data_provider_t : public auto_copying_data_provider_t {
@@ -17,7 +16,7 @@ public:
     /* When create() returns, it is safe for the caller to invalidate "value" and it is
     safe for the caller to release the leaf node that "value" came from. */
     // TODO: Make this return a `boost::shared_ptr`.
-    static value_data_provider_t *create(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
+    static value_data_provider_t *create(const btree_value *value, const boost::shared_ptr<transaction_t>& transaction);
 };
 
 class small_value_data_provider_t : public value_data_provider_t {
@@ -39,7 +38,7 @@ private:
 
 class large_value_data_provider_t : public value_data_provider_t, public large_buf_available_callback_t {
 private:
-    large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transactor_t>& transactor);
+    large_value_data_provider_t(const btree_value *value, const boost::shared_ptr<transaction_t>& transaction);
 
 public:
     size_t get_size() const;
@@ -47,9 +46,9 @@ public:
     ~large_value_data_provider_t();
 
 private:
-    /* We hold a shared pointer to the transactor so the transaction does not end while
+    /* We hold a shared pointer to the transaction so the transaction does not end while
     we still hold the large value. */
-    boost::shared_ptr<transactor_t> transactor;
+    boost::shared_ptr<transaction_t> transaction;
 
     buffer_group_t buffers;
 

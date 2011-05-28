@@ -123,7 +123,7 @@ public:
     }
 
     void unlock(int count = 1) {
-        rassert(current > 0);
+        rassert(current >= count);
         current -= count;
         if (current > capacity && capacity != SEMAPHORE_NO_LIMIT) {
             trickle_points += trickle_fraction * count;
@@ -135,6 +135,10 @@ public:
         if (!try_lock(count)) {
             crash("lock_now() can't lock now.\n");
         }
+    }
+
+    void force_lock(int count = 1) {
+        current += count;
     }
 
     void set_capacity(int new_capacity) {

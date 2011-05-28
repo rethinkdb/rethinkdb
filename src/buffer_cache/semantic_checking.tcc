@@ -97,19 +97,32 @@ scc_buf_t<inner_cache_t>::scc_buf_t(scc_cache_t<inner_cache_t> *_cache, bool sna
 /* Transaction */
 
 template<class inner_cache_t>
-bool scc_transaction_t<inner_cache_t>::commit(transaction_commit_callback_t *callback) {
-    if (inner_transaction->commit(this)) {
-        delete this;
-        return true;
-    } else {
-        commit_cb = callback;
-        return false;
-    }
+scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token) :
+    cache(cache),
+    order_token(token),
+    snapshotted(false),
+    access(access),
+    inner_transaction(&cache->inner_cache, access, expected_change_count, recency_timestamp, token)
+    { }
+
+template<class inner_cache_t>
+scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, order_token_t token) :
+    cache(cache),
+    order_token(token),
+    snapshotted(false),
+    access(access),
+    inner_transaction(&cache->inner_cache, access, token)
+{
+    rassert(access == rwi_read);
+}
+
+template<class inner_cache_t>
+scc_transaction_t<inner_cache_t>::~scc_transaction_t() {
 }
 
 template<class inner_cache_t>
 void scc_transaction_t<inner_cache_t>::set_account(boost::shared_ptr<typename inner_cache_t::cache_account_t> cache_account) {
-    inner_transaction->set_account(cache_account);
+    inner_transaction.set_account(cache_account);
 }
 
 template<class inner_cache_t>
@@ -121,7 +134,7 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t b
         cache->sink_map[block_id].check_out(order_token);
     }
 
-    typename inner_cache_t::buf_t *inner_buf = inner_transaction->acquire(block_id, mode, call_when_in_line, should_load);
+    typename inner_cache_t::buf_t *inner_buf = inner_transaction.acquire(block_id, mode, call_when_in_line, should_load);
     buf->inner_buf = inner_buf;
     rassert(block_id == buf->get_block_id());
     if (!snapshotted && should_load) {
@@ -138,36 +151,14 @@ scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::acquire(block_id_t b
 template<class inner_cache_t>
 scc_buf_t<inner_cache_t> *scc_transaction_t<inner_cache_t>::allocate() {
     scc_buf_t<inner_cache_t> *buf = new scc_buf_t<inner_cache_t>(this->cache, snapshotted, true);
-    buf->inner_buf = inner_transaction->allocate();
+    buf->inner_buf = inner_transaction.allocate();
     cache->crc_map.set(buf->inner_buf->get_block_id(), buf->compute_crc());
     return buf;
 }
 
 template<class inner_cache_t>
 void scc_transaction_t<inner_cache_t>::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
-    return inner_transaction->get_subtree_recencies(block_ids, num_block_ids, recencies_out, cb);
-}
-
-template<class inner_cache_t>
-scc_transaction_t<inner_cache_t>::scc_transaction_t(order_token_t _order_token, access_t _access, scc_cache_t<inner_cache_t> *_cache)
-    : cache(_cache),
-      order_token(_order_token),
-      snapshotted(false),
-      access(_access),
-      begin_cb(NULL),
-      inner_transaction(NULL) { }
-
-template<class inner_cache_t>
-void scc_transaction_t<inner_cache_t>::on_txn_begin(typename inner_cache_t::transaction_t *txn) {
-    rassert(!inner_transaction);
-    inner_transaction = txn;
-    if (begin_cb) begin_cb->on_txn_begin(this);
-}
-
-template<class inner_cache_t>
-void scc_transaction_t<inner_cache_t>::on_txn_commit(UNUSED typename inner_cache_t::transaction_t *txn) {
-    if (commit_cb) commit_cb->on_txn_commit(this);
-    delete this;
+    return inner_transaction.get_subtree_recencies(block_ids, num_block_ids, recencies_out, cb);
 }
 
 /* Cache */
@@ -190,18 +181,6 @@ scc_cache_t<inner_cache_t>::scc_cache_t(
 template<class inner_cache_t>
 block_size_t scc_cache_t<inner_cache_t>::get_block_size() {
     return inner_cache.get_block_size();
-}
-
-template<class inner_cache_t>
-scc_transaction_t<inner_cache_t> *scc_cache_t<inner_cache_t>::begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
-    scc_transaction_t<inner_cache_t> *txn = new scc_transaction_t<inner_cache_t>(token, access, this);
-    if (typename inner_cache_t::transaction_t *inner_txn = inner_cache.begin_transaction(token, access, expected_change_count, recency_timestamp, txn)) {
-        txn->inner_transaction = inner_txn;
-        return txn;
-    } else {
-        txn->begin_cb = callback;
-        return NULL;
-    }
 }
 
 template<class inner_cache_t>

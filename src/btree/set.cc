@@ -15,7 +15,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
     ~btree_set_oper_t() {
     }
 
-    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
+    bool operate(const boost::shared_ptr<transaction_t>& txn, btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         /* We may be instructed to abort depending on the old value */
         if (old_value) {
             switch (replace_policy) {
@@ -72,7 +72,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
             buffer_group.add_buffer(data->get_size(), value.value());
             data->get_data_into_buffers(&buffer_group);
         } else {
-            large_buflock.reset(new large_buf_t(txor, value.lb_ref(), btree_value::lbref_limit, rwi_write));
+            large_buflock.reset(new large_buf_t(txn, value.lb_ref(), btree_value::lbref_limit, rwi_write));
             large_buflock->allocate(data->get_size());
 
             large_buflock->bufs_at(0, data->get_size(), false, &buffer_group);

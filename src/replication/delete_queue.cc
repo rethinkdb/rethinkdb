@@ -36,10 +36,10 @@ int keys_largebuf_ref_size(block_size_t block_size) {
 
 }  // namespace delete_queue
 
-void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp timestamp, const store_key_t *key) {
+void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<transaction_t>& txn, block_id_t queue_root_id, repli_timestamp timestamp, const store_key_t *key) {
     // Beware: Right now, some aspects of correctness depend on the
     // fact that we hold the queue_root lock for the entire operation.
-    buf_lock_t queue_root(*txor, queue_root_id, rwi_write);
+    buf_lock_t queue_root(txn.get(), queue_root_id, rwi_write);
 
     // TODO this could be a non-major write?
     void *queue_root_buf = queue_root->get_data_major_write();
@@ -61,7 +61,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
     {
         if (t_o_ref->size == 0) {
             // HEY: Why must we allocate large_buf_t's with new?
-            boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
+            boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txn, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
 
             // The size is only zero in the unallocated state.  (Large
             // bufs can't actually handle size zero, so we can't let
@@ -77,7 +77,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
             delete_queue::t_and_o last_tao;
 
             {
-                boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
+                boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txn, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
 
                 co_acquire_large_buf_slice(t_o_largebuf.get(), t_o_ref->size - sizeof(last_tao), sizeof(last_tao));
 
@@ -104,7 +104,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
             }
 
             if (will_want_to_dequeue && t_o_ref->size >= int64_t(2 * sizeof(second_tao))) {
-                boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
+                boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txn, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write));
 
                 co_acquire_large_buf_slice(t_o_largebuf.get(), 0, 2 * sizeof(second_tao));
 
@@ -126,15 +126,15 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
     // Update the keys list.
 
     {
-        lbref_limit_t reflimit = lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size()));
+        lbref_limit_t reflimit = lbref_limit_t(delete_queue::keys_largebuf_ref_size(txn->cache->get_block_size()));
 
         int64_t amount_to_unprepend = will_actually_dequeue ? second_tao.offset - *primal_offset : 0;
         rassert (amount_to_unprepend <= keys_ref->size + 1 + key->size);
         if (amount_to_unprepend < keys_ref->size + 1 + key->size) {
-            large_buf_t::co_enqueue(txor, keys_ref, reflimit, amount_to_unprepend, key, 1 + key->size);
+            large_buf_t::co_enqueue(txn, keys_ref, reflimit, amount_to_unprepend, key, 1 + key->size);
         } else {
             if (keys_ref->size > 0) {
-                boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, keys_ref, reflimit, rwi_write));
+                boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txn, keys_ref, reflimit, rwi_write));
                 co_acquire_large_buf_for_delete(lb.get());
                 lb->mark_deleted();
                 keys_ref->size = 0;
@@ -147,10 +147,10 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
 
 }
 
-bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root_id, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient) {
+bool dump_keys_from_delete_queue(boost::shared_ptr<transaction_t>& txn, block_id_t queue_root_id, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient) {
     // Beware: Right now, some aspects of correctness depend on the
     // fact that we hold the queue_root lock for the entire operation.
-    buf_lock_t queue_root(*txor, queue_root_id, rwi_read);
+    buf_lock_t queue_root(txn.get(), queue_root_id, rwi_read);
 
     void *queue_root_buf = const_cast<void *>(queue_root->get_data_read());
 
@@ -168,7 +168,7 @@ bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
         int64_t end_offset = keys_ref->size;
 
         {
-            boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txor, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_read));
+            boost::scoped_ptr<large_buf_t> t_o_largebuf(new large_buf_t(txn, t_o_ref, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_read));
             co_acquire_large_buf(t_o_largebuf.get());
 
             delete_queue::t_and_o tao;
@@ -201,7 +201,7 @@ bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
         rassert(begin_offset <= end_offset);
 
         if (begin_offset < end_offset) {
-            boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txor, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size((*txor)->cache->get_block_size())), rwi_read_outdated_ok));
+            boost::scoped_ptr<large_buf_t> keys_largebuf(new large_buf_t(txn, keys_ref, lbref_limit_t(delete_queue::keys_largebuf_ref_size(txn->cache->get_block_size())), rwi_read_outdated_ok));
 
             co_acquire_large_buf_slice(keys_largebuf.get(), begin_offset, end_offset - begin_offset);
 
@@ -254,13 +254,13 @@ void initialize_large_buf_ref(large_buf_ref *ref, int size_in_bytes) {
 #endif
 }
 
-void initialize_empty_delete_queue(boost::shared_ptr<transactor_t>& txor, delete_queue_block_t *dqb, block_size_t block_size) {
+void initialize_empty_delete_queue(boost::shared_ptr<transaction_t>& txn, delete_queue_block_t *dqb, block_size_t block_size) {
     dqb->magic = delete_queue_block_t::expected_magic;
     *delete_queue::primal_offset(dqb) = 0;
     {
         large_buf_ref *t_and_o = delete_queue::timestamps_and_offsets_largebuf(dqb);
         initialize_large_buf_ref(t_and_o, delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE);
-        large_buf_t lb(txor, t_and_o, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write);
+        large_buf_t lb(txn, t_and_o, lbref_limit_t(delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE), rwi_write);
         lb.allocate(sizeof(delete_queue::t_and_o));
         delete_queue::t_and_o zerotime = { { 0 }, 0 };
         lb.fill_at(0, &zerotime, sizeof(zerotime));

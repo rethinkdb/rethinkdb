@@ -19,20 +19,6 @@ template<class inner_cache_t> class scc_cache_t;
 
 typedef uint32_t crc_t;
 
-/* Callbacks */
-
-template<class inner_cache_t>
-struct scc_transaction_begin_callback_t {
-    virtual void on_txn_begin(scc_transaction_t<inner_cache_t> *txn) = 0;
-    virtual ~scc_transaction_begin_callback_t() {}
-};
-
-template<class inner_cache_t>
-struct scc_transaction_commit_callback_t {
-    virtual void on_txn_commit(scc_transaction_t<inner_cache_t> *txn) = 0;
-    virtual ~scc_transaction_commit_callback_t() {}
-};
-
 /* Buf */
 
 template<class inner_cache_t>
@@ -73,24 +59,22 @@ private:
 
 template<class inner_cache_t>
 class scc_transaction_t :
-    private inner_cache_t::transaction_begin_callback_t,
-    private inner_cache_t::transaction_commit_callback_t,
     public home_thread_mixin_t
 {
     typedef scc_buf_t<inner_cache_t> buf_t;
-    typedef scc_transaction_begin_callback_t<inner_cache_t> transaction_begin_callback_t;
-    typedef scc_transaction_commit_callback_t<inner_cache_t> transaction_commit_callback_t;
 
 public:
+    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token);
+    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, order_token_t token);
+    ~scc_transaction_t();
+
     // TODO: Implement semantic checking for snapshots!
     void snapshot() {
         snapshotted = true;
-        inner_transaction->snapshot();
+        inner_transaction.snapshot();
     }
 
     void set_account(boost::shared_ptr<typename inner_cache_t::cache_account_t> cache_account);
-
-    bool commit(transaction_commit_callback_t *callback);
 
     buf_t *acquire(block_id_t block_id, access_t mode,
                    boost::function<void()> call_when_in_line = 0, bool should_load = true);
@@ -105,13 +89,8 @@ private:
     bool snapshotted; // Disables CRC checks
 
     friend class scc_cache_t<inner_cache_t>;
-    scc_transaction_t(order_token_t, access_t, scc_cache_t<inner_cache_t> *);
     access_t access;
-    void on_txn_begin(typename inner_cache_t::transaction_t *txn);
-    transaction_begin_callback_t *begin_cb;
-    void on_txn_commit(typename inner_cache_t::transaction_t *txn);
-    transaction_commit_callback_t *commit_cb;
-    typename inner_cache_t::transaction_t *inner_transaction;
+    typename inner_cache_t::transaction_t inner_transaction;
 };
 
 /* Cache */
@@ -121,8 +100,6 @@ class scc_cache_t : public home_thread_mixin_t, public translator_serializer_t::
 public:
     typedef scc_buf_t<inner_cache_t> buf_t;
     typedef scc_transaction_t<inner_cache_t> transaction_t;
-    typedef scc_transaction_begin_callback_t<inner_cache_t> transaction_begin_callback_t;
-    typedef scc_transaction_commit_callback_t<inner_cache_t> transaction_commit_callback_t;
     typedef typename inner_cache_t::cache_account_t cache_account_t;
 
     static void create(
@@ -133,7 +110,6 @@ public:
         mirrored_cache_config_t *dynamic_config);
 
     block_size_t get_block_size();
-    transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
     void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool contains_block(block_id_t block_id);

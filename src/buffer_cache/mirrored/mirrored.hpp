@@ -7,7 +7,6 @@
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
-#include "buffer_cache/mirrored/callbacks.hpp"
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/translator.hpp"
@@ -215,15 +214,11 @@ private:
 
 /* Transaction class. */
 class mc_transaction_t :
-    public intrusive_list_node_t<mc_transaction_t>,
-    public writeback_t::sync_callback_t,
     public home_thread_mixin_t
 {
     typedef mc_cache_t cache_t;
     typedef mc_buf_t buf_t;
     typedef mc_inner_buf_t inner_buf_t;
-    typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
-    typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
     typedef mc_cache_account_t cache_account_t;
 
     friend class mc_cache_t;
@@ -231,10 +226,12 @@ class mc_transaction_t :
     friend struct acquire_lock_callback_t;
     
 public:
+    mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token);
+    mc_transaction_t(cache_t *cache, access_t access, order_token_t token);   // Not for use with write transactions
+    ~mc_transaction_t();
+
     cache_t *get_cache() const { return cache; }
     access_t get_access() const { return access; }
-
-    bool commit(transaction_commit_callback_t *callback);
 
     /* `acquire()` acquires the block indicated by `block_id`. `mode` specifies whether
     we want read or write access. `acquire()` blocks until the block has been acquired.
@@ -261,20 +258,12 @@ public:
 #endif
 
 private:
-    explicit mc_transaction_t(cache_t *cache, order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
-    ~mc_transaction_t();
-
     void register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data);
-    void green_light();   // Called by the writeback when it's OK for us to start
-    virtual void on_sync();
 
     ticks_t start_time;
-    int expected_change_count;
+    const int expected_change_count;
     access_t access;
     repli_timestamp recency_timestamp;
-    transaction_begin_callback_t *begin_callback;
-    transaction_commit_callback_t *commit_callback;
-    enum { state_open, state_in_commit_call, state_committing, state_committed } state;
     mc_inner_buf_t::version_id_t snapshot_version;
     bool snapshotted;
     boost::shared_ptr<cache_account_t> cache_account_;
@@ -292,7 +281,6 @@ private:
 
 
 
-
 class mc_cache_account_t {
     friend class mc_cache_t;
     friend class mc_transaction_t;
@@ -305,6 +293,8 @@ class mc_cache_account_t {
 
     DISABLE_COPYING(mc_cache_account_t);
 };
+
+
 
 struct mc_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
     friend class load_buf_fsm_t;
@@ -324,8 +314,6 @@ public:
     typedef mc_inner_buf_t inner_buf_t;
     typedef mc_buf_t buf_t;
     typedef mc_transaction_t transaction_t;
-    typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
-    typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
     typedef mc_cache_account_t cache_account_t;
 
 private:
@@ -359,9 +347,6 @@ public:
 
 public:
     block_size_t get_block_size();
-
-    // Transaction API
-    transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
     // TODO: Come up with a consistent priority scheme, i.e. define a "default" priority etc.
     // TODO: As soon as we can support it, we might consider supporting a mem_cap paremeter.

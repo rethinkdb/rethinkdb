@@ -8,7 +8,6 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/large_buf.hpp"
-#include "buffer_cache/transactor.hpp"
 #include "buffer_cache/co_functions.hpp"
 
 #define BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS 0
@@ -29,7 +28,7 @@ public:
      * must match up). If *new_value is NULL, the value will be deleted (and
      * similarly for *new_large_buf).
      */
-    virtual bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value,
+    virtual bool operate(const boost::shared_ptr<transaction_t>& txn, btree_value *old_value,
         boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) = 0;
 
     virtual int compute_expected_change_count(const size_t block_size) = 0;
@@ -50,7 +49,7 @@ public:
     // immediately after the superblock has been acquired.  The delete
     // queue is a child of the superblock, when it comes to
     // transactional ordering.
-    virtual void do_superblock_sidequest(UNUSED boost::shared_ptr<transactor_t>& txor,
+    virtual void do_superblock_sidequest(UNUSED boost::shared_ptr<transaction_t>& txn,
                                          UNUSED buf_lock_t& superblock,
                                          UNUSED repli_timestamp recency,
                                          UNUSED const store_key_t *key) { }

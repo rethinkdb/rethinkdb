@@ -5,7 +5,7 @@
 class btree_delete_expired_oper_t : public btree_modify_oper_t
 {
 public:
-    bool operate(UNUSED const boost::shared_ptr<transactor_t>& txor, UNUSED btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, UNUSED btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
+    bool operate(UNUSED const boost::shared_ptr<transaction_t>& txn, UNUSED btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, UNUSED btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         /* Don't do anything. run_btree_modify_oper() will take advantage of
          * the fact that we got to the leaf in write mode to automatically
          * delete the expired key if necessary. */

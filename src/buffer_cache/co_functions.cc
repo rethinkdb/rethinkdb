@@ -56,50 +56,6 @@ void co_acquire_large_buf_for_delete(large_buf_t *large_value) {
     coro_t::wait();
 }
 
-// Well this is repetitive.
-struct transaction_begun_callback_t : public transaction_begin_callback_t {
-    flat_promise_t<transaction_t*> txn;
-
-    void on_txn_begin(transaction_t *txn_) {
-        txn.pulse(txn_);
-    }
-
-    transaction_t *join() {
-        return txn.wait();
-    }
-};
-
-transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token) {
-    cache->assert_thread();
-    transaction_begun_callback_t cb;
-    transaction_t *value = cache->begin_transaction(token, access, expected_change_count, recency_timestamp, &cb);
-    if (!value) {
-        value = cb.join();
-    }
-    rassert(value);
-    return value;
-}
-
-
-
-struct transaction_committed_t : public transaction_commit_callback_t {
-    coro_t *self;
-    transaction_committed_t() : self(coro_t::self()) { }
-    void on_txn_commit(UNUSED transaction_t *transaction) {
-        self->notify();
-    }
-};
-
-
-void co_commit_transaction(transaction_t *transaction) {
-    transaction->assert_thread();
-    transaction_committed_t cb;
-    if (!transaction->commit(&cb)) {
-        coro_t::wait();
-    }
-}
-
-
 void co_get_subtree_recencies(transaction_t *txn, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out) {
     struct : public get_subtree_recencies_callback_t {
         void got_subtree_recencies() { cond.pulse(); }

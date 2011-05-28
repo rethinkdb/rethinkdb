@@ -8,7 +8,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         : data(_data), append(_append)
     { }
 
-    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
+    bool operate(const boost::shared_ptr<transaction_t>& txn, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         if (!old_value) {
             result = apr_not_found;
             return false;
@@ -51,7 +51,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         } else {
             // Prepare the large value if necessary.
             if (!old_value->is_large()) { // small -> large; allocate a new large value and copy existing value into it.
-                large_buflock.reset(new large_buf_t(txor, value.lb_ref(), btree_value::lbref_limit, rwi_write));
+                large_buflock.reset(new large_buf_t(txn, value.lb_ref(), btree_value::lbref_limit, rwi_write));
                 large_buflock->allocate(new_size);
                 if (append) large_buflock->fill_at(0, old_value->value(), old_value->value_size());
                 else        large_buflock->fill_at(data->get_size(), old_value->value(), old_value->value_size());

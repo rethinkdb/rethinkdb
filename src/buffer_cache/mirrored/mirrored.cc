@@ -1,6 +1,5 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/stats.hpp"
-#include "callbacks.hpp"
 #include "mirrored.hpp"
 
 /**
@@ -622,7 +621,7 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, UNUSED order_token_t _order_token, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp, UNUSED order_token_t _order_token)
     : cache(_cache),
 #ifndef NDEBUG
       order_token(_order_token),
@@ -630,21 +629,39 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, UNUSED order_token_t _order_
       expected_change_count(_expected_change_count),
       access(_access),
       recency_timestamp(_recency_timestamp),
-      begin_callback(NULL),
-      commit_callback(NULL),
-      state(state_open),
       snapshot_version(mc_inner_buf_t::faux_version_id),
       snapshotted(false)
 {
-    pm_transactions_starting.begin(&start_time);
+    block_pm_duration start_timer(&pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_write);
+    cache->assert_thread();
+    rassert(!cache->shutting_down);
+    rassert(access == rwi_write || expected_change_count == 0);
+    cache->num_live_transactions++;
+    cache->writeback.begin_transaction(this);
+
+    pm_transactions_active.begin(&start_time);
 }
 
-mc_transaction_t::~mc_transaction_t() {
-    rassert(state == state_committed);
-    pm_transactions_committing.end(&start_time);
-    pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
-    pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
+/* This version is only for read transactions. */
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED order_token_t _order_token) :
+    cache(_cache),
+#ifndef NDEBUG
+    order_token(_order_token),
+#endif
+    expected_change_count(0),
+    access(_access),
+    recency_timestamp(repli_timestamp_t::distant_past()),
+    snapshot_version(mc_inner_buf_t::faux_version_id),
+    snapshotted(false)
+{
+    block_pm_duration start_timer(&pm_transactions_starting);
+    rassert(access == rwi_read);
+    cache->assert_thread();
+    rassert(!cache->shutting_down);
+    cache->num_live_transactions++;
+    cache->writeback.begin_transaction(this);
+    pm_transactions_active.begin(&start_time);
 }
 
 void mc_transaction_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data) {
@@ -652,18 +669,14 @@ void mc_transaction_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, voi
     owned_buf_snapshots.push_back(std::make_pair(inner_buf, data));
 }
 
-void mc_transaction_t::green_light() {
-    pm_transactions_starting.end(&start_time);
-    pm_transactions_active.begin(&start_time);
-    begin_callback->on_txn_begin(this);
-}
+mc_transaction_t::~mc_transaction_t() {
 
-bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
-    rassert(state == state_open);
+    /* For the benefit of some things that carry around `boost::shared_ptr<transaction_t>`. */
+    on_thread_t thread_switcher(home_thread);
+
     pm_transactions_active.end(&start_time);
-    pm_transactions_committing.begin(&start_time);
 
-    assert_thread();
+    block_pm_duration commit_timer(&pm_transactions_committing);
 
     if (snapshotted && snapshot_version != mc_inner_buf_t::faux_version_id) {
         cache->unregister_snapshot(this);
@@ -672,47 +685,23 @@ bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
         }
     }
 
-    /* We have to call sync_patiently() before on_transaction_commit() so that if
-    on_transaction_commit() starts a sync, we will get included in it */
     if (access == rwi_write && cache->writeback.wait_for_flush) {
-        if (cache->writeback.sync_patiently(this)) {
-            state = state_committed;
-        } else {
-            state = state_in_commit_call;
-        }
+        /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
+        `on_transaction_commit()` starts a sync, we will get included in it */
+        struct : public writeback_t::sync_callback_t, public cond_t {
+            void on_sync() { pulse(); }
+        } sync_callback;
+        if (cache->writeback.sync_patiently(&sync_callback)) sync_callback.pulse();
+        cache->on_transaction_commit(this);
+        sync_callback.wait();
+
     } else {
-        state = state_committed;
+        cache->on_transaction_commit(this);
+
     }
 
-    cache->on_transaction_commit(this);
-
-    if (state == state_in_commit_call) {
-        state = state_committing;
-        commit_callback = callback;
-        return false;
-    } else {
-        delete this;
-        return true;
-    }
-}
-
-void mc_transaction_t::on_sync() {
-    /* cache->on_transaction_commit() could cause on_sync() to be called even after sync_patiently()
-    failed. To detect when this happens, we use the state state_in_commit_call. If we get an
-    on_sync() while in state_in_commit_call, we know that we are still inside of commit(), so we
-    don't delete ourselves yet and just set state to state_committed instead, thereby signalling
-    commit() to delete us. I think there must be a better way to do this, but I can't think of it
-    right now. */
-
-    if (state == state_in_commit_call) {
-        state = state_committed;
-    } else if (state == state_committing) {
-        state = state_committed;
-        commit_callback->on_txn_commit(this);
-        delete this;
-    } else {
-        unreachable("Unexpected state.");
-    }
+    pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
+    pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
 }
 
 mc_buf_t *mc_transaction_t::allocate() {
@@ -977,22 +966,6 @@ mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
 
 bool mc_cache_t::contains_block(block_id_t block_id) {
     return find_buf(block_id) != NULL;
-}
-
-mc_transaction_t *mc_cache_t::begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
-    assert_thread();
-    rassert(!shutting_down);
-    rassert(access == rwi_write || expected_change_count == 0);
-
-    transaction_t *txn = new transaction_t(this, token, access, expected_change_count, recency_timestamp);
-    num_live_transactions++;
-    if (writeback.begin_transaction(txn, callback)) {
-        pm_transactions_starting.end(&txn->start_time);
-        pm_transactions_active.begin(&txn->start_time);
-        return txn;
-    } else {
-        return NULL;
-    }
 }
 
 boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
