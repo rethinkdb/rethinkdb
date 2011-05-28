@@ -5,7 +5,8 @@
 The reason it is separate from utils.hpp is that the IO layer needs some of the things in
 utils2.hpp, but utils.hpp needs some things in the IO layer. */
 
-#include <cstdlib>
+#include <stdlib.h>
+#include <string>
 #include <stdint.h>
 #include <time.h>
 #include "config/args.hpp"
