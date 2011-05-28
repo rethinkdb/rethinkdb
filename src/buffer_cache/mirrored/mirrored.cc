@@ -500,6 +500,18 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
     return inner_buf->next_patch_counter++;
 }
 
+bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
+    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
+    const uint8_t *range8 = ptr_cast<const uint8_t>(range_start);
+    return range8 <= p8 && p8 < range8 + size_in_bytes;
+}
+
+bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes) {
+    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
+    return ptr_in_byte_range(p, range_start, size_in_bytes) &&
+        (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
+}
+
 // Personally I'd be happier if these functions took offsets.  That's
 // a sort of long-term TODO, though.
 void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
@@ -651,7 +663,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED ord
 #endif
     expected_change_count(0),
     access(_access),
-    recency_timestamp(repli_timestamp_t::distant_past()),
+    recency_timestamp(repli_timestamp_t::distant_past),
     snapshot_version(mc_inner_buf_t::faux_version_id),
     snapshotted(false)
 {

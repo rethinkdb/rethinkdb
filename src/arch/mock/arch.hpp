@@ -30,6 +30,19 @@ struct mock_io_config_t {
     static void cancel_timer(timer_token_t *timer) {
         return inner_io_config_t::cancel_timer(timer);
     }
+
+    static int get_cpu_count() {
+        return inner_io_config_t::get_cpu_count();
+    }
+
+    static long get_available_ram() {
+        return inner_io_config_t::get_available_ram();
+    }
+
+    static long get_total_ram() {
+        return inner_io_config_t::get_total_ram();
+    }
+
 };
 
 #endif /* __ARCH_MOCK_ARCH_HPP__ */

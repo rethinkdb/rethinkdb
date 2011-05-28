@@ -276,6 +276,13 @@ bool linux_tcp_conn_t::is_read_open() {
     return !read_closed.is_pulsed();
 }
 
+
+void delete_char_vector(std::vector<char> *x) {
+    rassert(x);
+    delete x;
+}
+
+
 void linux_tcp_conn_t::internal_flush_write_buffer() {
 
     assert_thread();
@@ -302,7 +309,7 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
 
     /* Careful--this operation might succeed immediately, so you can't access `buffer`
     after `push()` returns. */
-    write_queue.push(boost::bind(delete_ptr_t<std::vector<char> >(), buffer));
+    write_queue.push(boost::bind(delete_char_vector, buffer));
 }
 
 void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {

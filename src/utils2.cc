@@ -8,21 +8,10 @@
 
 #include "arch/arch.hpp"
 
-/* System configuration*/
-int get_cpu_count() {
-    return sysconf(_SC_NPROCESSORS_ONLN);
-}
-
-long get_available_ram() {
-    return (long)sysconf(_SC_AVPHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
-}
-
-long get_total_ram() {
-    return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
-}
 
 
-const repli_timestamp repli_timestamp::invalid = { -1 };
+const repli_timestamp_t repli_timestamp_t::invalid = { -1 };
+const repli_timestamp_t repli_timestamp_t::distant_past = { 0 };
 
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
@@ -32,7 +21,7 @@ microtime_t current_microtime() {
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
 
-repli_timestamp repli_max(repli_timestamp x, repli_timestamp y) {
+repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y) {
     return int32_t(x.time - y.time) < 0 ? y : x;
 }
 
@@ -74,18 +63,13 @@ int randint(int n) {
     return rand() % n;
 }
 
+
+
+
+
 bool begins_with_minus(const char *string) {
     while (isspace(*string)) string++;
     return *string == '-';
-}
-
-bool strtobool_strict(const char *string, char **end) {
-    unsigned long res = strtoul_strict(string, end, 2);
-    if (*end == string || res > 1) {
-        *end = const_cast<char *>(string);
-        return false;
-    }
-    return res == 1;
 }
 
 long strtol_strict(const char *string, char **end, int base) {
