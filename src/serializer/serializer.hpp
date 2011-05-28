@@ -29,7 +29,7 @@ struct serializer_t :
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
-    virtual file_t::account_t *make_io_account(int priority) = 0;
+    virtual file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS) = 0;
 
     /* Some serializer implementations support read-ahead to speed up cache warmup.
     This is supported through a read_ahead_callback_t which gets called whenever the serializer has read-ahead some buf.

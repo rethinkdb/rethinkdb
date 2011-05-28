@@ -288,7 +288,7 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
         num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
     }
 
-    size_t refcount = num_snapshots_actually_affected + cow_refcount;
+    size_t refcount = num_snapshots_affected + cow_refcount;
     if (refcount > 0) {
         snapshots.push_front(buf_snapshot_info_t(data, version_id, refcount));
         cow_refcount = 0;
@@ -1006,7 +1006,10 @@ boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
     // Be aware of rounding errors... (what can be do against those? probably just setting the default io_priority_reads high enough)
     int io_priority = std::max(1, dynamic_config.io_priority_reads * priority / 100);
 
-    boost::shared_ptr<file_t::account_t> io_account(serializer->make_io_account(io_priority));
+    // TODO: This is a heuristic. While it might not be evil, it's not really optimal either.
+    int outstanding_requests_limit = std::max(1, 16 * priority / 100);
+
+    boost::shared_ptr<file_t::account_t> io_account(serializer->make_io_account(io_priority, outstanding_requests_limit));
 
     return boost::shared_ptr<cache_account_t>(new cache_account_t(io_account));
 }

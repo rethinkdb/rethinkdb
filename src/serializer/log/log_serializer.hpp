@@ -98,7 +98,7 @@ public:
     void *clone(void*); // clones a buf
     void free(void*);
 
-    file_t::account_t *make_io_account(int priority);
+    file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
 
     void register_read_ahead_cb(read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
