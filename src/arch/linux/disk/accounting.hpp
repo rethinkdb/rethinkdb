@@ -52,7 +52,7 @@ struct accounting_diskmgr_t {
                 parent(par),
                 outstanding_requests_limiter(outstanding_requests_limit == UNLIMITED_OUTSTANDING_REQUESTS ? SEMAPHORE_NO_LIMIT : outstanding_requests_limit),
                 account(&par->queue, &queue, pri) {
-            rassert(outstanding_requests_limit == UNLIMITED_OUTSTANDING_REQUESTS || UNLIMITED_OUTSTANDING_REQUESTS > 0);
+            rassert(outstanding_requests_limit == UNLIMITED_OUTSTANDING_REQUESTS || outstanding_requests_limit > 0);
         }
     private:
         friend class accounting_diskmgr_t;
