@@ -153,17 +153,4 @@ bool strtobool_strict(const char *string, char **end);
 // arglist and output buffer excessively.
 std::string strprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
-// Pad a value to the size of a cache line to avoid false sharing.
-// TODO: This is implemented as a struct with subtraction rather than a union
-// so that it gives an error when trying to pad a value bigger than
-// CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
-// TODO: Use this in the rest of the perfmons, if it turns out to make any
-// difference.
-
-template<typename value_t>
-struct cache_line_padded_t {
-    value_t value;
-    char padding[CACHE_LINE_SIZE - sizeof(value_t)];
-};
-
 #endif /* __UTILS2_HPP__ */
