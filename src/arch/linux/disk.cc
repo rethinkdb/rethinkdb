@@ -10,6 +10,7 @@
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
 #include "utils2.hpp"
+#include "print_backtrace.hpp"
 #include "arch/linux/coroutines.hpp"
 #include "logger.hpp"
 #include "arch/linux/disk/aio.hpp"

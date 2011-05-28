@@ -2,9 +2,9 @@
 #ifndef __SEGMENTED_VECTOR_HPP__
 #define __SEGMENTED_VECTOR_HPP__
 
-#include "utils2.hpp"
+#include <stdio.h>
 
-#include <stdlib.h>
+#include "utils2.hpp"
 
 
 #define ELEMENTS_PER_SEGMENT (1 << 14)
