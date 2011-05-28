@@ -41,12 +41,6 @@ struct repli_timestamp_t {
 };
 typedef repli_timestamp_t repli_timestamp;   // TODO switch name over completely to "_t" version
 
-struct charslice {
-    char *beg, *end;
-    charslice(char *beg_, char *end_) : beg(beg_), end(end_) { }
-    charslice() : beg(NULL), end(NULL) { }
-};
-
 struct const_charslice {
     const char *beg, *end;
     const_charslice(const char *beg_, const char *end_) : beg(beg_), end(end_) { }
