@@ -2,10 +2,8 @@
 #define __ERRORS_HPP__
 
 #include <errno.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
-//#include <stdexcept>
 #include <string.h>
 
 #include "debug.hpp"
@@ -103,7 +101,6 @@ void report_user_error(const char*, ...);
     } while (0)
 #endif
 
-void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
 char *demangle_cpp_name(const char *mangled_name);
 
 void install_generic_crash_handler();

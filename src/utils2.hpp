@@ -8,7 +8,6 @@ utils2.hpp, but utils.hpp needs some things in the IO layer. */
 #include <stdlib.h>
 #include <string>
 #include <stdint.h>
-#include <time.h>
 #include "config/args.hpp"
 #include "errors.hpp"
 
