@@ -51,9 +51,9 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
         number_of_blocks = config_block->cache.n_patch_log_blocks;
         cache.serializer->free(config_block);
 
-        if ((long long)number_of_blocks > (long long)cache.dynamic_config->max_size / cache.get_block_size().ser_value()) {
+        if ((long long)number_of_blocks > (long long)cache.dynamic_config.max_size / cache.get_block_size().ser_value()) {
             fail_due_to_user_error("The cache of size %d blocks is too small to hold this database's diff log of %d blocks.",
-                (int)(cache.dynamic_config->max_size / cache.get_block_size().ser_value()),
+                (int)(cache.dynamic_config.max_size / cache.get_block_size().ser_value()),
                 (int)(number_of_blocks));
         }
 

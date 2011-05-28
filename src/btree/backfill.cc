@@ -12,6 +12,10 @@
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 
+
+#define BACKFILL_CACHE_PRIORITY 50
+
+
 class btree_slice_t;
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
@@ -119,6 +123,9 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 // TODO: Add an order token parameter.  (UNUSED order_token_t)
 void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
     {
+        // Run backfilling at a reduced priority
+        boost::shared_ptr<cache_account_t> backfill_account = slice->cache()->create_account(BACKFILL_CACHE_PRIORITY);
+
 #ifndef NDEBUG
         boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
 #endif
@@ -129,6 +136,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
 
         boost::shared_ptr<transaction_t> txn = boost::make_shared<transaction_t>(slice->cache(), rwi_read, order_token_t::ignore);
 
+        txn->set_account(backfill_account);
         txn->snapshot();
 
 #ifndef NDEBUG

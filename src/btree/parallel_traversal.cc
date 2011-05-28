@@ -106,7 +106,7 @@ public:
         // ridiculously small because we have to spawn a coroutine
         // because the buffer cache is broken.
         if (level <= 3) {
-            return 1000;
+            return 500;
         } else {
             return 50;
         }
