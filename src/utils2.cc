@@ -74,6 +74,22 @@ int randint(int n) {
     return rand() % n;
 }
 
+bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
+    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
+    const uint8_t *range8 = ptr_cast<const uint8_t>(range_start);
+    return range8 <= p8 && p8 < range8 + size_in_bytes;
+}
+
+bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes) {
+    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
+    return ptr_in_byte_range(p, range_start, size_in_bytes) &&
+        (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
+}
+
+
+
+
+
 bool begins_with_minus(const char *string) {
     while (isspace(*string)) string++;
     return *string == '-';
