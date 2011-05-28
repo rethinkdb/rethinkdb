@@ -505,7 +505,9 @@ repli_timestamp get_timestamp_value(const leaf_node_t *node, uint16_t offset) {
     if (toff == -1) {
         return node->times.last_modified;
     } else {
-        return repli_time(node->times.last_modified.time - node->times.earlier[std::min(toff, NUM_LEAF_NODE_EARLIER_TIMES - 1)]);
+        repli_timestamp tmp;
+        tmp.time = node->times.last_modified.time - node->times.earlier[std::min(toff, NUM_LEAF_NODE_EARLIER_TIMES - 1)];
+        return tmp;
     }
 }
 

@@ -24,13 +24,6 @@ long get_total_ram() {
 
 const repli_timestamp repli_timestamp::invalid = { -1 };
 
-repli_timestamp repli_time(time_t t) {
-    repli_timestamp ret;
-    uint32_t x = t;
-    ret.time = (x == (uint32_t)-1 ? 0 : x);
-    return ret;
-}
-
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;
@@ -39,12 +32,8 @@ microtime_t current_microtime() {
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
 
-int repli_compare(repli_timestamp x, repli_timestamp y) {
-    return int(int32_t(x.time - y.time));
-}
-
 repli_timestamp repli_max(repli_timestamp x, repli_timestamp y) {
-    return repli_compare(x, y) < 0 ? y : x;
+    return int32_t(x.time - y.time) < 0 ? y : x;
 }
 
 
@@ -61,19 +50,6 @@ void *malloc_aligned(size_t size, size_t alignment) {
         }
     }
     return ptr;
-}
-
-/* Function to create a random delay. Defined in .cc instead of in .tcc because it
-uses the IO layer, and it must be safe to include utils2 from within the IO layer. */
-
-void random_delay(void (*fun)(void*), void *arg) {
-    /* In one in ten thousand requests, we delay up to 10 seconds. In half of the remaining
-    requests, we delay up to 50 milliseconds; in the other half we delay a very short time. */
-    int kind = randint(10000), ms;
-    if (kind == 0) ms = randint(10000);
-    else if (kind % 2 == 0) ms = 0;
-    else ms = randint(50);
-    fire_timer_once(ms, fun, arg);
 }
 
 void debugf(const char *msg, ...) {
@@ -148,6 +124,8 @@ unsigned long long strtoull_strict(const char *string, char **end, int base) {
 }
 
 ticks_t secs_to_ticks(float secs) {
+    // The timespec struct used in clock_gettime has a tv_nsec field.
+    // That's why we use a billion.
     return (unsigned long long)secs * 1000000000L;
 }
 
@@ -163,16 +141,8 @@ long get_ticks_res() {
     return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
 }
 
-float ticks_to_secs(ticks_t ticks) {
-    return ticks / 1000000000.0f;
-}
-
-float ticks_to_ms(ticks_t ticks) {
-    return ticks / 1000000.0f;
-}
-
-float ticks_to_us(ticks_t ticks) {
-    return ticks / 1000.0f;
+double ticks_to_secs(ticks_t ticks) {
+    return ticks / 1000000000.0;
 }
 
 std::string strprintf(const char *format, ...) {

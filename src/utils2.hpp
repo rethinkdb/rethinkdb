@@ -23,22 +23,22 @@ counter. */
 // for safety  TODO: move this to a different file
 struct repli_timestamp {
     uint32_t time;
-    bool operator==(repli_timestamp t) {
+    bool operator==(repli_timestamp t) const {
         return time == t.time;
     }
-    bool operator!=(repli_timestamp t) {
+    bool operator!=(repli_timestamp t) const {
         return time != t.time;
     }
-    bool operator<(repli_timestamp t) {
+    bool operator<(repli_timestamp t) const {
         return time < t.time;
     }
-    bool operator>(repli_timestamp t) {
+    bool operator>(repli_timestamp t) const {
         return time > t.time;
     }
-    bool operator<=(repli_timestamp t) {
+    bool operator<=(repli_timestamp t) const {
         return time <= t.time;
     }
-    bool operator>=(repli_timestamp t) {
+    bool operator>=(repli_timestamp t) const {
         return time >= t.time;
     }
     static repli_timestamp distant_past() {
@@ -46,7 +46,7 @@ struct repli_timestamp {
         t.time = 0;
         return t;
     }
-    repli_timestamp next() {
+    repli_timestamp next() const {
         repli_timestamp t;
         t.time = time + 1;
         return t;
@@ -54,11 +54,6 @@ struct repli_timestamp {
     static const repli_timestamp invalid;
 };
 typedef repli_timestamp repli_timestamp_t;   // TODO switch name over completely to "_t" version
-
-// Converts a time_t (in seconds) to a repli_timestamp, but avoids
-// returning the invalid repli_timestamp value, which might matter
-// once every 116 years.
-repli_timestamp repli_time(time_t t);
 
 struct charslice {
     char *beg, *end;
@@ -76,12 +71,6 @@ typedef uint64_t microtime_t;
 
 microtime_t current_microtime();
 
-// This is not a transitive operation.  It compares times "locally."
-// Imagine a comparison function that compares angles, in the range
-// [0, 2*pi), that is invariant with respect to rotation.  How would
-// you implement that?  This is a function that compares timestamps in
-// [0, 2**32), that is invariant with respect to translation.
-int repli_compare(repli_timestamp x, repli_timestamp y);
 
 // Like std::max, except it's technically not associative because it
 // uses repli_compare.
@@ -109,28 +98,7 @@ typedef unsigned long long ticks_t;
 ticks_t secs_to_ticks(float secs);
 ticks_t get_ticks();
 long get_ticks_res();
-float ticks_to_secs(ticks_t ticks);
-float ticks_to_ms(ticks_t ticks);
-float ticks_to_us(ticks_t ticks);
-
-/* Functions to create random delays. These must be in utils2.hpp instead of in
-utils.hpp because the mock IO layer uses random delays. Internally, they
-secretly use the IO layer, but it is safe to include utils2.hpp from within the
-IO layer. */
-
-void random_delay(void (*)(void*), void*);
-
-template<class cb_t>
-void random_delay(cb_t *cb, void (cb_t::*method)());
-
-template<class cb_t, class arg1_t>
-void random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
-
-template<class cb_t>
-bool maybe_random_delay(cb_t *cb, void (cb_t::*method)());
-
-template<class cb_t, class arg1_t>
-bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
+double ticks_to_secs(ticks_t ticks);
 
 // HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
 // debug.hpp (and debug.cc).
@@ -226,7 +194,5 @@ struct delete_array_t {
     }
     typedef void result_type;
 };
-
-#include "utils2.tcc"
 
 #endif /* __UTILS2_HPP__ */

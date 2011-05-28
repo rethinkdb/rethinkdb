@@ -4,6 +4,7 @@
 
 #include "containers/segmented_vector.hpp"
 #include "utils2.hpp"
+#include "arch/random_delay.hpp"
 #include <stdlib.h>
 
 struct mock_iocallback_t {

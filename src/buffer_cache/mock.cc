@@ -1,5 +1,6 @@
 #include "buffer_cache/mock.hpp"
 #include "arch/arch.hpp"
+#include "arch/random_delay.hpp"
 
 /* Internal buf object */
 
