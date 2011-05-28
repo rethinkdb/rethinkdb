@@ -23,22 +23,22 @@ counter. */
 // for safety  TODO: move this to a different file
 struct repli_timestamp {
     uint32_t time;
-    bool operator==(repli_timestamp t) {
+    bool operator==(repli_timestamp t) const {
         return time == t.time;
     }
-    bool operator!=(repli_timestamp t) {
+    bool operator!=(repli_timestamp t) const {
         return time != t.time;
     }
-    bool operator<(repli_timestamp t) {
+    bool operator<(repli_timestamp t) const {
         return time < t.time;
     }
-    bool operator>(repli_timestamp t) {
+    bool operator>(repli_timestamp t) const {
         return time > t.time;
     }
-    bool operator<=(repli_timestamp t) {
+    bool operator<=(repli_timestamp t) const {
         return time <= t.time;
     }
-    bool operator>=(repli_timestamp t) {
+    bool operator>=(repli_timestamp t) const {
         return time >= t.time;
     }
     static repli_timestamp distant_past() {
@@ -46,7 +46,7 @@ struct repli_timestamp {
         t.time = 0;
         return t;
     }
-    repli_timestamp next() {
+    repli_timestamp next() const {
         repli_timestamp t;
         t.time = time + 1;
         return t;
