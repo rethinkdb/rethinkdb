@@ -173,9 +173,9 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
     {
         // temporary sanity-check
-        rassert(get_thread_id() == slice->home_thread);
+        rassert(get_thread_id() == slice->home_thread());
         // TODO: Why have this on_thread_t if we have the assertion.
-        on_thread_t mover(slice->home_thread); // Move to the slice's thread.
+        on_thread_t mover(slice->home_thread()); // Move to the slice's thread.
 
         // TODO: why is this a shared_ptr?
         boost::shared_ptr<transaction_t> txn(new transaction_t(slice->cache(), rwi_write, oper->compute_expected_change_count(slice->cache()->get_block_size().value()),  castime.timestamp, token));

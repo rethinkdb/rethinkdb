@@ -35,7 +35,7 @@ council_t<value_t, diff_t>::address_t::address_t(council_t *c)
 
 template<class value_t, class diff_t>
 council_t<value_t, diff_t>::~council_t() {
-    on_thread_t thread_switcher(home_thread);
+    on_thread_t thread_switcher(home_thread());
     change(leave_message_t(my_id));
 }
 
@@ -46,13 +46,13 @@ const value_t &council_t<value_t, diff_t>::get_value() {
 
 template<class value_t, class diff_t>
 void council_t<value_t, diff_t>::apply(const diff_t &d) {
-    on_thread_t thread_switcher(home_thread);
+    on_thread_t thread_switcher(home_thread());
     change(d);
 }
 
 template<class value_t, class diff_t>
 void council_t<value_t, diff_t>::change(const change_message_t &cm) {
-    on_thread_t thread_switcher(home_thread);
+    on_thread_t thread_switcher(home_thread());
 
     /* Acquire the local lock. The local lock is necessary because the global-lock
     resolution mechanisms can't handle the case where there are multiple competitors
@@ -100,7 +100,7 @@ void council_t<value_t, diff_t>::change(const change_message_t &cm) {
 
 template<class value_t, class diff_t>
 bool council_t<value_t, diff_t>::handle_lock(int locker) {
-    on_thread_t thread_switcher(home_thread);
+    on_thread_t thread_switcher(home_thread());
 
     /* As soon as our membership has been broadcast to the council, we might start
     receiving lock messages. But we might not have finished our startup process
@@ -126,7 +126,7 @@ bool council_t<value_t, diff_t>::handle_lock(int locker) {
 template<class value_t, class diff_t>
 void council_t<value_t, diff_t>::handle_change(const change_message_t &msg, UNUSED int change_count) {
 
-    on_thread_t thread_switcher(home_thread);
+    on_thread_t thread_switcher(home_thread());
 
     /* Reset global_lock_holder so things can start trying to acquire the lock again,
     but don't actually release the mutex yet. */
@@ -165,7 +165,7 @@ void council_t<value_t, diff_t>::handle_change(const change_message_t &msg, UNUS
 
 template<class value_t, class diff_t>
 typename council_t<value_t, diff_t>::state_t council_t<value_t, diff_t>::handle_greeting(inner_address_t new_address) {
-    on_thread_t thread_switcher(home_thread);
+    on_thread_t thread_switcher(home_thread());
     change(join_message_t(new_address));
     return state;
 }

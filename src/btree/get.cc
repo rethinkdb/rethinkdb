@@ -18,7 +18,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     btree_key_t *key = kbuffer.key();
 
     // TODO: We should really already be on the right thread.
-    on_thread_t mover(slice->home_thread);
+    on_thread_t mover(slice->home_thread());
     boost::shared_ptr<transaction_t> transaction(new transaction_t(slice->cache(), rwi_read, token));
 
     // Acquire the superblock

@@ -26,7 +26,7 @@ slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t r
     { }
 
 void slave_t::failover_reset() {
-    on_thread_t thread_switch(home_thread);
+    on_thread_t thread_switch(home_thread());
     give_up_.reset();
     timeout_ = INITIAL_TIMEOUT;
 
@@ -37,7 +37,7 @@ void slave_t::failover_reset() {
 }
 
 void slave_t::new_master(std::string host, int port) {
-    on_thread_t thread_switcher(home_thread);
+    on_thread_t thread_switcher(home_thread());
 
     /* redo the replication_config info */
     strcpy(replication_config_.hostname, host.c_str());

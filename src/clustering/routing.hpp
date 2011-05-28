@@ -24,12 +24,12 @@ private:
     std::map<T, refcount_t> refcounts;
 public:
     void incr_refcount(T val) { 
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         //TODO make this wait if the value is being wait_for_0d
         refcounts[val].val++; 
     }
     void decr_refcount(T val) { 
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         refcounts[val].val--; 
         if (refcounts[val].val == 0) refcounts.erase(val);
     }

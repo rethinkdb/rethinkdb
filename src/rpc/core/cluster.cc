@@ -96,7 +96,7 @@ void cluster_t::start(int port, const char *contact_host, int contact_port,
 }
 
 void cluster_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &conn) {
-    on_thread_t syncer(home_thread);
+    on_thread_t syncer(home_thread());
     /* the protocol buffers we're going to need for this process */
     population::Join_initial    initial;
     if (!read_protob(conn.get(), &initial))
@@ -107,7 +107,7 @@ void cluster_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &conn) {
 }
 
 void cluster_t::handle_unknown_peer(boost::scoped_ptr<tcp_conn_t> &conn, population::Join_initial *initial) {
-    on_thread_t syncer(home_thread);
+    on_thread_t syncer(home_thread());
     logINF("Handle unknown peer\n");
     population::addrinfo            addr;
     population::Join_propose        propose;
@@ -202,7 +202,7 @@ void cluster_t::handle_unknown_peer(boost::scoped_ptr<tcp_conn_t> &conn, populat
 }
 
 void cluster_t::handle_known_peer(boost::scoped_ptr<tcp_conn_t> &conn, population::Join_initial *initial) {
-    on_thread_t syncer(home_thread);
+    on_thread_t syncer(home_thread());
     if (peers.find(initial->addr().id()) != peers.end() && peers[initial->addr().id()]->state != cluster_peer_t::join_official) {
         logINF("Peer that hasn't been made official attempted to connect\n");
         return;
@@ -217,12 +217,12 @@ void cluster_t::handle_known_peer(boost::scoped_ptr<tcp_conn_t> &conn, populatio
     start_main_srvcs(peers[initial->addr().id()]);
 }
 void cluster_t::start_main_srvcs(boost::shared_ptr<cluster_peer_t> peer) {
-    on_thread_t syncer(home_thread);
+    on_thread_t syncer(home_thread());
     coro_t::spawn(boost::bind(&cluster_t::_start_main_srvcs, this, peer));
 }
 
 void cluster_t::_start_main_srvcs(boost::shared_ptr<cluster_peer_t> peer) {
-    on_thread_t syncer(home_thread);
+    on_thread_t syncer(home_thread());
     cluster_peer_t::msg_srvc_ptr join_propose_srvc = boost::make_shared<join_propose_srvc_t>();
     peer->add_srvc(join_propose_srvc);
 
@@ -250,7 +250,7 @@ void cluster_t::_start_main_srvcs(boost::shared_ptr<cluster_peer_t> peer) {
 }
 
 void cluster_t::kill_peer(int id) {
-    on_thread_t syncer(home_thread);
+    on_thread_t syncer(home_thread());
     logINF("Start kill peer\n");
     population::addrinfo addr;
     population::Kill_propose propose;
@@ -290,13 +290,13 @@ void cluster_t::kill_peer(int id) {
 }
 
 cluster_t::~cluster_t() {
-    //on_thread_t syncer(home_thread);
+    //on_thread_t syncer(home_thread());
     delete listener; //TODO this is causing a segfault figure out why :(
     not_implemented();
 }
 
 void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
-    on_thread_t syncer(home_thread);
+    on_thread_t syncer(home_thread());
     rassert(peers.find(peer) != peers.end());
 
     if (peers[peer]->state == cluster_peer_t::us) {
@@ -307,7 +307,7 @@ void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
         coro_t::spawn_now(boost::bind(&cluster_mailbox_t::run, mailbox_map.map[mailbox], msg));
 
     } else {
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         mailbox::mailbox_msg mbox_msg;
 
         cluster_peer_t *p = peers[peer].get();
@@ -348,21 +348,21 @@ void cluster_t::pulse_peer_join(int peer_id) {
 }
 
 void cluster_t::add_mailbox(cluster_mailbox_t *mbox) {
-    on_thread_t syncer(home_thread);
+    on_thread_t syncer(home_thread());
     mailbox_map.map[mailbox_map.head] = mbox;
     mbox->id = mailbox_map.head;
     mailbox_map.head++; //TODO make this recycle ids
 }
 
 cluster_mailbox_t *cluster_t::get_mailbox(int i) {
-    on_thread_t syncer(home_thread);
+    on_thread_t syncer(home_thread());
     if (mailbox_map.map.find(i) == mailbox_map.map.end())
         return NULL;
     return mailbox_map.map[i];
 }
 
 void cluster_t::remove_mailbox(cluster_mailbox_t *mbox) {
-    on_thread_t syncer(home_thread);
+    on_thread_t syncer(home_thread());
     mailbox_map.map.erase(mbox->id);
     mbox->id = -1;
 }

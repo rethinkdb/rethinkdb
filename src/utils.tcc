@@ -33,7 +33,7 @@ struct thread_doer_t :
     
     void do_return_home() {
         state = state_go_home;
-        if (continue_on_thread(home_thread, this)) delete this;
+        if (continue_on_thread(home_thread(), this)) delete this;
     }
     
     void on_thread_switch() {

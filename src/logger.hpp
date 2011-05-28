@@ -54,6 +54,6 @@ public:
     log_controller_t();
     ~log_controller_t();
 
-    int home_thread;
+    int home_thread_;
 };
 #endif // __LOGGER_HPP__

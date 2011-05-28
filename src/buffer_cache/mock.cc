@@ -164,7 +164,7 @@ mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, o
 }
 
 mock_transaction_t::~mock_transaction_t() {
-    on_thread_t thread_switcher(home_thread);
+    on_thread_t thread_switcher(home_thread());
     if (access == rwi_write) nap(5);   // TODO: Nap for a random amount of time.
     cache->transaction_counter.release();
 }
@@ -175,7 +175,7 @@ mock_transaction_t::~mock_transaction_t() {
 // (I.i.r.c. we have a similar situation in the mirrored cache.)
 
 void mock_cache_t::create( translator_serializer_t *serializer, UNUSED mirrored_cache_static_config_t *static_config) {
-    on_thread_t switcher(serializer->home_thread);
+    on_thread_t switcher(serializer->home_thread());
 
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
@@ -195,7 +195,7 @@ void mock_cache_t::create( translator_serializer_t *serializer, UNUSED mirrored_
 mock_cache_t::mock_cache_t( translator_serializer_t *serializer, UNUSED mirrored_cache_config_t *dynamic_config)
     : serializer(serializer), block_size(serializer->get_block_size())
 {
-    on_thread_t switcher(serializer->home_thread);
+    on_thread_t switcher(serializer->home_thread());
 
     struct : public serializer_t::read_callback_t, public drain_semaphore_t {
         void on_serializer_read() { release(); }
@@ -220,7 +220,7 @@ mock_cache_t::~mock_cache_t() {
     transaction_counter.drain();
 
     {
-        on_thread_t thread_switcher(serializer->home_thread);
+        on_thread_t thread_switcher(serializer->home_thread());
 
         std::vector<translator_serializer_t::write_t> writes;
         for (block_id_t i = 0; i < bufs.get_size(); i++) {

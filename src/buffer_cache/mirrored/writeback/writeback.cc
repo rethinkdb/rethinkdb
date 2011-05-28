@@ -258,7 +258,7 @@ struct writeback_t::concurrent_flush_t::buf_writer_t :
         parent->dirty_block_semaphore.force_lock(1);
     }
     void on_serializer_write_block() {
-        if (continue_on_thread(home_thread, this)) on_thread_switch();
+        if (continue_on_thread(home_thread(), this)) on_thread_switch();
     }
     void on_thread_switch() {
         parent->dirty_block_semaphore.unlock();
@@ -315,7 +315,7 @@ void writeback_t::concurrent_flush_t::do_writeback() {
     // Write transactions can now proceed again.
     parent->flush_lock.unlock();
 
-    do_on_thread(parent->cache->serializer->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_write, this));
+    do_on_thread(parent->cache->serializer->home_thread(), boost::bind(&writeback_t::concurrent_flush_t::do_write, this));
     // ... continue in on_serializer_write_txn
 }
 
@@ -480,9 +480,9 @@ bool writeback_t::concurrent_flush_t::do_write() {
     if (continue_instantly) {
         // the tid_callback gets called even if do_write returns true...
         if (serializer_writes.empty()) {
-            do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
+            do_on_thread(parent->cache->home_thread(), boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
         }
-        do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_cleanup, this));
+        do_on_thread(parent->cache->home_thread(), boost::bind(&writeback_t::concurrent_flush_t::do_cleanup, this));
     }
 
     return true;
@@ -521,11 +521,11 @@ void writeback_t::concurrent_flush_t::update_transaction_ids() {
 }
 
 void writeback_t::concurrent_flush_t::on_serializer_write_tid() {
-    do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
+    do_on_thread(parent->cache->home_thread(), boost::bind(&writeback_t::concurrent_flush_t::update_transaction_ids, this));
 }
 
 void writeback_t::concurrent_flush_t::on_serializer_write_txn() {
-    do_on_thread(parent->cache->home_thread, boost::bind(&writeback_t::concurrent_flush_t::do_cleanup, this));
+    do_on_thread(parent->cache->home_thread(), boost::bind(&writeback_t::concurrent_flush_t::do_cleanup, this));
 }
 
 bool writeback_t::concurrent_flush_t::do_cleanup() {

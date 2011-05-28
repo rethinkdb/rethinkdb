@@ -20,6 +20,6 @@ os_signal_cond_t::os_signal_cond_t() {
 }
 
 void wait_for_sigint() {
-    on_thread_t switcher(get_os_signal_cond().get_home_thread());
+    on_thread_t switcher(get_os_signal_cond().home_thread());
     get_os_signal_cond().wait();
 }

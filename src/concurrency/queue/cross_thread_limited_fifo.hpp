@@ -42,14 +42,14 @@ struct cross_thread_limited_fifo_t :
             for (int i = 0; i < number_times_to_release_drain_semaphore; i++) drain_semaphore.release();
             drain_semaphore.drain();
         }
-        drain_semaphore.rethread(home_thread);
+        drain_semaphore.rethread(home_thread());
     }
 
     void push(const value_t &value) {
         rassert(get_thread_id() == source_thread);
         drain_semaphore.acquire();
         semaphore.co_lock();
-        do_on_thread(home_thread,
+        do_on_thread(home_thread(),
             boost::bind(&cross_thread_limited_fifo_t<value_t, queue_t>::do_push, this, value_t(value))
             );
     }

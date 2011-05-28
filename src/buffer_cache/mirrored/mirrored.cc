@@ -22,7 +22,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_acco
 
     // Read the block...
     {
-        on_thread_t thread(cache->serializer->home_thread);
+        on_thread_t thread(cache->serializer->home_thread());
         subtree_recency = cache->serializer->get_recency(block_id);
         struct : public serializer_t::read_callback_t, public cond_t {
             void on_serializer_read() { pulse(); }
@@ -57,7 +57,7 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
         bool locked UNUSED = inner_buf->lock.lock(rwi_write, NULL);
         rassert(locked);
         have_loaded = false;
-        if (continue_on_thread(inner_buf->cache->serializer->home_thread, this)) on_thread_switch();
+        if (continue_on_thread(inner_buf->cache->serializer->home_thread(), this)) on_thread_switch();
     }
     void on_thread_switch() {
         if (!have_loaded) {
@@ -76,7 +76,7 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     }
     void on_serializer_read() {
         have_loaded = true;
-        if (continue_on_thread(inner_buf->cache->home_thread, this)) on_thread_switch();
+        if (continue_on_thread(inner_buf->cache->home_thread(), this)) on_thread_switch();
     }
 };
 // </DEPRECATED>
@@ -694,7 +694,8 @@ void mc_transaction_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, voi
 mc_transaction_t::~mc_transaction_t() {
 
     /* For the benefit of some things that carry around `boost::shared_ptr<transaction_t>`. */
-    on_thread_t thread_switcher(home_thread);
+    // TODO: this is horrible.
+    on_thread_t thread_switcher(home_thread());
 
     pm_transactions_active.end(&start_time);
 
@@ -838,7 +839,7 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
     }
 
     if (need_second_loop) {
-        do_on_thread(cache->serializer->home_thread, boost::bind(&get_subtree_recencies_helper, get_thread_id(), cache->serializer, block_ids, num_block_ids, recencies_out, cb));
+        do_on_thread(cache->serializer->home_thread(), boost::bind(&get_subtree_recencies_helper, get_thread_id(), cache->serializer, block_ids, num_block_ids, recencies_out, cb));
     } else {
         cb->got_subtree_recencies();
     }
@@ -856,7 +857,7 @@ void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_stat
 
     /* Write an empty superblock */
 
-    on_thread_t switcher(serializer->home_thread);
+    on_thread_t switcher(serializer->home_thread());
 
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
@@ -1027,7 +1028,7 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
 
 void mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
-    do_on_thread(home_thread, boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, recency_timestamp));
+    do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, recency_timestamp));
 }
 
 bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {

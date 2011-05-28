@@ -27,12 +27,12 @@ struct backfill_and_streaming_manager_t :
         slice_manager_t(backfill_and_streaming_manager_t *parent, shard_store_t *shard, repli_timestamp_t backfill_from, repli_timestamp_t new_timestamp) :
             parent_(parent), shard_(shard),
             max_backfill_timestamp_(new_timestamp), min_realtime_timestamp_(new_timestamp),
-            backfill_job_queue(shard_->home_thread, REPLICATION_JOB_QUEUE_DEPTH),
-            realtime_job_queue(shard_->home_thread, REPLICATION_JOB_QUEUE_DEPTH),
+            backfill_job_queue(shard_->home_thread(), REPLICATION_JOB_QUEUE_DEPTH),
+            realtime_job_queue(shard_->home_thread(), REPLICATION_JOB_QUEUE_DEPTH),
             backfill_job_account(&parent->backfill_job_queue, &backfill_job_queue, 1),
             realtime_job_account(&parent->realtime_job_queue, &realtime_job_queue, 1)
         {
-            on_thread_t thread_switcher(shard_->home_thread);
+            on_thread_t thread_switcher(shard_->home_thread());
 
             {
                 ASSERT_NO_CORO_WAITING;
@@ -67,7 +67,7 @@ struct backfill_and_streaming_manager_t :
         }
 
         ~slice_manager_t() {
-            on_thread_t thread_switcher(shard_->home_thread);
+            on_thread_t thread_switcher(shard_->home_thread());
 
             shard_->dispatching_store.set_dispatcher(0);
 
@@ -143,7 +143,7 @@ struct backfill_and_streaming_manager_t :
                 UNUSED drain_semaphore_t::lock_t keep_alive,
                 const mutation_t& m, castime_t castime, order_token_t token) {
 
-            rassert(get_thread_id() == shard_->home_thread);
+            rassert(get_thread_id() == shard_->home_thread());
             rassert(castime.timestamp >= min_realtime_timestamp_);
 
             block_pm_duration timer(&pm_replication_master_dispatch_cost);
@@ -157,7 +157,7 @@ struct backfill_and_streaming_manager_t :
         /* Logic for incrementing replication clock */
 
         void set_replication_clock(repli_timestamp_t new_timestamp, boost::function<void()> job) {
-            on_thread_t thread_switcher(shard_->home_thread);
+            on_thread_t thread_switcher(shard_->home_thread());
 
             rassert(new_timestamp >= min_realtime_timestamp_);
             min_realtime_timestamp_ = new_timestamp;
@@ -176,7 +176,7 @@ struct backfill_and_streaming_manager_t :
         /* backfill_callback_t implementation */
 
         bool should_send_deletion_keys(bool can_send_deletion_keys) {
-            on_thread_t th(parent_->home_thread);
+            on_thread_t th(parent_->home_thread());
 
             rassert(backfilling_);
 
@@ -206,7 +206,7 @@ struct backfill_and_streaming_manager_t :
         /* The store calls this when we need to backfill a deletion. */
         void deletion_key(const btree_key_t *key) {
             // This runs in the scheduler context.
-            rassert(get_thread_id() == shard_->home_thread);
+            rassert(get_thread_id() == shard_->home_thread());
             rassert(backfilling_);
             store_key_t tmp(key->size, key->contents);
             backfill_job_queue.push(boost::bind(
@@ -222,7 +222,7 @@ struct backfill_and_streaming_manager_t :
         /* The store calls this when we need to backfill a key/value pair to the slave */
         void on_keyvalue(backfill_atom_t atom) {
             // This runs in the scheduler context
-            rassert(get_thread_id() == shard_->home_thread);
+            rassert(get_thread_id() == shard_->home_thread());
             rassert(atom.recency < max_backfill_timestamp_, "atom.recency (%u) < max_backfill_timestamp_ (%u)", atom.recency, max_backfill_timestamp_);
             rassert(backfilling_);
             backfill_job_queue.push(boost::bind(
@@ -238,7 +238,7 @@ struct backfill_and_streaming_manager_t :
             // a special meaning to `boost::bind()` called with a `boost::bind()` as one of its
             // parameters, so we need to wrap it in a `boost::function` to get the behavior we
             // want.
-            rassert(get_thread_id() == shard_->home_thread);
+            rassert(get_thread_id() == shard_->home_thread());
             rassert(backfilling_);
             backfilling_ = false;
             boost::function<void()> fun = boost::bind(&backfill_and_streaming_manager_t::backfill_done, parent_);
@@ -248,7 +248,7 @@ struct backfill_and_streaming_manager_t :
     };
 
     void backfill_done() {
-        rassert(get_thread_id() == home_thread);
+        rassert(get_thread_id() == home_thread());
 
         outstanding_backfills--;
         if (outstanding_backfills == 0) {

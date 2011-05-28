@@ -16,7 +16,7 @@ struct cross_thread_signal_t :
     cross_thread_signal_t(signal_t *source, int dest_thread) :
         source(source), source_thread(get_thread_id()), dest_thread(dest_thread)
     {
-        rassert(source->home_thread == source_thread);
+        rassert(source->home_thread() == source_thread);
         signal_t::rethread(dest_thread);
         if (source->is_pulsed()) on_signal_pulsed();
         else source->add_waiter(this);

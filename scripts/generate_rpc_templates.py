@@ -139,13 +139,13 @@ def generate_sync_message_template(nargs, void):
         print "                    // No extra storage because this is a return, not a call"
         print "                    global_unserialize(p, NULL, &ret);"
         print "                    p->done();"
-        print "                    on_thread_t syncer(home_thread);"
+        print "                    on_thread_t syncer(home_thread());"
         print "                    if (pulsed) return;"
         print "                    else pulsed = true;"
         print "                    pulse(std::make_pair(true, ret));"
     else:
         print "                    p->done();"
-        print "                    on_thread_t syncer(home_thread);"
+        print "                    on_thread_t syncer(home_thread());"
         print "                    if (pulsed) return;"
         print "                    else pulsed = true;"
         print "                    pulse(true);"
@@ -157,7 +157,7 @@ def generate_sync_message_template(nargs, void):
     if not void:
         print "                    ret_message_t *m = static_cast<ret_message_t *>(msg);"
         print "                    ret_t ret = m->ret;"
-    print "                    on_thread_t syncer(home_thread);"
+    print "                    on_thread_t syncer(home_thread());"
     print "                    if (pulsed) return;"
     print "                    else pulsed = true;"
     if not void:
@@ -171,7 +171,7 @@ def generate_sync_message_template(nargs, void):
     print "                }"
     print "#endif"
     print "                void on_kill() {"
-    print "                    on_thread_t syncer(home_thread);"
+    print "                    on_thread_t syncer(home_thread());"
     print "                    if (pulsed) return;"
     print "                    else pulsed = true;"
     if not void:

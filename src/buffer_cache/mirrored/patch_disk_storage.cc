@@ -21,7 +21,7 @@ void patch_disk_storage_t::create(translator_serializer_t *serializer, block_id_
         NULL);
 
     /* Write it to the serializer */
-    on_thread_t switcher(serializer->home_thread);
+    on_thread_t switcher(serializer->home_thread());
 
     struct : public serializer_t::write_txn_callback_t, public cond_t {
         void on_serializer_write_txn() { pulse(); }
@@ -39,7 +39,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
 
     // Read the existing config block & determine which blocks are alive
     {
-        on_thread_t switcher(cache.serializer->home_thread);
+        on_thread_t switcher(cache.serializer->home_thread());
 
         // Load and parse config block
         mc_config_block_t *config_block = reinterpret_cast<mc_config_block_t *>(cache.serializer->malloc());
@@ -141,10 +141,10 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
                 current_offset += patch->get_serialized_size();
                 // Only store the patch if the corresponding block still exists
                 // (otherwise we'd get problems when flushing the log, as deleted blocks would cause an error)
-                rassert(get_thread_id() == cache.home_thread);
-                coro_t::move_to_thread(cache.serializer->home_thread);
+                rassert(get_thread_id() == cache.home_thread());
+                coro_t::move_to_thread(cache.serializer->home_thread());
                 bool block_in_use = cache.serializer->block_in_use(patch->get_block_id());
-                coro_t::move_to_thread(cache.home_thread);
+                coro_t::move_to_thread(cache.home_thread());
                 if (block_in_use)
                     patch_map[patch->get_block_id()].push_back(patch);
                 else

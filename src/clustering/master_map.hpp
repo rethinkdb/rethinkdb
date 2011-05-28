@@ -44,11 +44,11 @@ private:
     std::map<T, refcount_t> refcounts;
 public:
     void incr_refcount(T val) { 
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         refcounts[val].val++; 
     }
     void decr_refcount(T val) { 
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         refcounts[val].val--; 
         if (refcounts[val].val == 0) refcounts.erase(val);
     }
@@ -146,11 +146,11 @@ private:
     friend class set_store_txn_t;
     refcount_map_t<int> refcounts;
     void open_txn(int bucket) { 
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         refcounts.incr_refcount(bucket); 
     }
     void close_txn(int bucket) { 
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         refcounts.decr_refcount(bucket); 
     }
 
@@ -168,13 +168,13 @@ private:
     /* drain a bucket of all current transactions, returns when the bucket is
      * drained */
     void drain(int bucket) {
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         bucket_blocks[bucket] = bucket_block_t();
         refcounts.wait(bucket);
     }
     /* opens a bucket back up */
     void un_block(int bucket) {
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         bucket_blocks.erase(bucket);
     }
 
