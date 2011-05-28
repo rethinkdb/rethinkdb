@@ -71,12 +71,6 @@ typedef uint64_t microtime_t;
 
 microtime_t current_microtime();
 
-// This is not a transitive operation.  It compares times "locally."
-// Imagine a comparison function that compares angles, in the range
-// [0, 2*pi), that is invariant with respect to rotation.  How would
-// you implement that?  This is a function that compares timestamps in
-// [0, 2**32), that is invariant with respect to translation.
-int repli_compare(repli_timestamp x, repli_timestamp y);
 
 // Like std::max, except it's technically not associative because it
 // uses repli_compare.
@@ -104,9 +98,7 @@ typedef unsigned long long ticks_t;
 ticks_t secs_to_ticks(float secs);
 ticks_t get_ticks();
 long get_ticks_res();
-float ticks_to_secs(ticks_t ticks);
-float ticks_to_ms(ticks_t ticks);
-float ticks_to_us(ticks_t ticks);
+double ticks_to_secs(ticks_t ticks);
 
 /* Functions to create random delays. These must be in utils2.hpp instead of in
 utils.hpp because the mock IO layer uses random delays. Internally, they

@@ -32,12 +32,8 @@ microtime_t current_microtime() {
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
 
-int repli_compare(repli_timestamp x, repli_timestamp y) {
-    return int(int32_t(x.time - y.time));
-}
-
 repli_timestamp repli_max(repli_timestamp x, repli_timestamp y) {
-    return repli_compare(x, y) < 0 ? y : x;
+    return int32_t(x.time - y.time) < 0 ? y : x;
 }
 
 
@@ -141,6 +137,8 @@ unsigned long long strtoull_strict(const char *string, char **end, int base) {
 }
 
 ticks_t secs_to_ticks(float secs) {
+    // The timespec struct used in clock_gettime has a tv_nsec field.
+    // That's why we use a billion.
     return (unsigned long long)secs * 1000000000L;
 }
 
@@ -156,16 +154,8 @@ long get_ticks_res() {
     return secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
 }
 
-float ticks_to_secs(ticks_t ticks) {
-    return ticks / 1000000000.0f;
-}
-
-float ticks_to_ms(ticks_t ticks) {
-    return ticks / 1000000.0f;
-}
-
-float ticks_to_us(ticks_t ticks) {
-    return ticks / 1000.0f;
+double ticks_to_secs(ticks_t ticks) {
+    return ticks / 1000000000.0;
 }
 
 std::string strprintf(const char *format, ...) {
