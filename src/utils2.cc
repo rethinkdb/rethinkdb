@@ -10,7 +10,8 @@
 
 
 
-const repli_timestamp repli_timestamp::invalid = { -1 };
+const repli_timestamp_t repli_timestamp_t::invalid = { -1 };
+const repli_timestamp_t repli_timestamp_t::distant_past = { 0 };
 
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
@@ -20,7 +21,7 @@ microtime_t current_microtime() {
     return uint64_t(t.tv_sec) * (1000 * 1000) + t.tv_usec;
 }
 
-repli_timestamp repli_max(repli_timestamp x, repli_timestamp y) {
+repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y) {
     return int32_t(x.time - y.time) < 0 ? y : x;
 }
 

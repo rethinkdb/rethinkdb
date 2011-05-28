@@ -17,39 +17,29 @@ typedef uint64_t cas_t;
 counter. */
 
 // for safety  TODO: move this to a different file
-struct repli_timestamp {
+struct repli_timestamp_t {
     uint32_t time;
-    bool operator==(repli_timestamp t) const {
+
+    bool operator==(repli_timestamp_t t) const {
         return time == t.time;
     }
-    bool operator!=(repli_timestamp t) const {
-        return time != t.time;
-    }
-    bool operator<(repli_timestamp t) const {
+    bool operator<(repli_timestamp_t t) const {
         return time < t.time;
     }
-    bool operator>(repli_timestamp t) const {
-        return time > t.time;
-    }
-    bool operator<=(repli_timestamp t) const {
-        return time <= t.time;
-    }
-    bool operator>=(repli_timestamp t) const {
+    bool operator>=(repli_timestamp_t t) const {
         return time >= t.time;
     }
-    static repli_timestamp distant_past() {
-        repli_timestamp t;
-        t.time = 0;
-        return t;
-    }
-    repli_timestamp next() const {
-        repli_timestamp t;
+
+    repli_timestamp_t next() const {
+        repli_timestamp_t t;
         t.time = time + 1;
         return t;
     }
-    static const repli_timestamp invalid;
+
+    static const repli_timestamp_t distant_past;
+    static const repli_timestamp_t invalid;
 };
-typedef repli_timestamp repli_timestamp_t;   // TODO switch name over completely to "_t" version
+typedef repli_timestamp_t repli_timestamp;   // TODO switch name over completely to "_t" version
 
 struct charslice {
     char *beg, *end;
@@ -68,9 +58,8 @@ typedef uint64_t microtime_t;
 microtime_t current_microtime();
 
 
-// Like std::max, except it's technically not associative because it
-// uses repli_compare.
-repli_timestamp repli_max(repli_timestamp x, repli_timestamp y);
+// Like std::max, except it's technically not associative.
+repli_timestamp_t repli_max(repli_timestamp_t x, repli_timestamp_t y);
 
 
 void *malloc_aligned(size_t size, size_t alignment = 64);
