@@ -4,7 +4,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <string.h>
 
 #include "debug.hpp"
 
