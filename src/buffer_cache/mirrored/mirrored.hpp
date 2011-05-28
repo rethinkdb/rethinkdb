@@ -395,6 +395,7 @@ public:
     void unregister_snapshot(mc_transaction_t *txn);
 
     size_t register_snapshotted_block(mc_inner_buf_t *inner_buf, void * data, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
+    size_t calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version);
 
 private:
     inner_buf_t *find_buf(block_id_t block_id);
