@@ -100,25 +100,6 @@ ticks_t get_ticks();
 long get_ticks_res();
 double ticks_to_secs(ticks_t ticks);
 
-/* Functions to create random delays. These must be in utils2.hpp instead of in
-utils.hpp because the mock IO layer uses random delays. Internally, they
-secretly use the IO layer, but it is safe to include utils2.hpp from within the
-IO layer. */
-
-void random_delay(void (*)(void*), void*);
-
-template<class cb_t>
-void random_delay(cb_t *cb, void (cb_t::*method)());
-
-template<class cb_t, class arg1_t>
-void random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
-
-template<class cb_t>
-bool maybe_random_delay(cb_t *cb, void (cb_t::*method)());
-
-template<class cb_t, class arg1_t>
-bool maybe_random_delay(cb_t *cb, void (cb_t::*method)(arg1_t), arg1_t arg);
-
 // HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
 // debug.hpp (and debug.cc).
 /* Debugging printing API (prints current thread in addition to message) */
@@ -213,7 +194,5 @@ struct delete_array_t {
     }
     typedef void result_type;
 };
-
-#include "utils2.tcc"
 
 #endif /* __UTILS2_HPP__ */

@@ -52,19 +52,6 @@ void *malloc_aligned(size_t size, size_t alignment) {
     return ptr;
 }
 
-/* Function to create a random delay. Defined in .cc instead of in .tcc because it
-uses the IO layer, and it must be safe to include utils2 from within the IO layer. */
-
-void random_delay(void (*fun)(void*), void *arg) {
-    /* In one in ten thousand requests, we delay up to 10 seconds. In half of the remaining
-    requests, we delay up to 50 milliseconds; in the other half we delay a very short time. */
-    int kind = randint(10000), ms;
-    if (kind == 0) ms = randint(10000);
-    else if (kind % 2 == 0) ms = 0;
-    else ms = randint(50);
-    fire_timer_once(ms, fun, arg);
-}
-
 void debugf(const char *msg, ...) {
     flockfile(stderr);
     va_list args;
