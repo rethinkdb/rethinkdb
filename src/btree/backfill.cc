@@ -14,7 +14,7 @@
 #include "btree/slice.hpp"
 
 
-#define BACKFILL_CACHE_PRIORITY 50
+#define BACKFILL_CACHE_PRIORITY 10
 
 
 class btree_slice_t;

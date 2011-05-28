@@ -106,11 +106,15 @@ public:
         // level = 1 is the root level.  These numbers are
         // ridiculously small because we have to spawn a coroutine
         // because the buffer cache is broken.
-        if (level <= 3) {
-            return 500;
-        } else {
-            return 50;
-        }
+        // Also we tend to interfere with other i/o for a weird reason.
+        // (potential explanation: on the higher levels of the btree, we
+        // trigger the load of a significant fraction of all blocks. Sooner or
+        // later, queries end up waiting for the same blocks. But at that point
+        // they effectively get queued into our i/o queue (assuming we have an
+        // i/o account of ourselves). If this number is high and disks are slow,
+        // the latency of that i/o queue can be in the area of seconds though,
+        // and the query blocks for that time).
+        return 16;
     }
 
     void consider_pulsing() {

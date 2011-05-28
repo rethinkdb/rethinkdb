@@ -264,9 +264,9 @@ void log_serializer_t::free(void *ptr) {
     ::free(reinterpret_cast<void *>(data));
 }
 
-file_t::account_t *log_serializer_t::make_io_account(int priority) {
+file_t::account_t *log_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
     rassert(dbfile);
-    return new file_t::account_t(dbfile, priority);
+    return new file_t::account_t(dbfile, priority, outstanding_requests_limit);
 }
 
 /* Each transaction written is handled by a new ls_write_fsm_t instance. This is so that

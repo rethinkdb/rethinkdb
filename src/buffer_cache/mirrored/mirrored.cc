@@ -269,9 +269,8 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     // all snapshot txns such that
     //   inner_version <= snapshot_txn->version_id < new_version
     // can see the current version of inner_buf->data, so we need to make some snapshots for them
-    size_t num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
-    size_t refcount = num_snapshots_affected + cow_refcount;
-    if (refcount > 0) {
+    size_t num_snapshots_affected = cache->calculate_snapshots_affected(version_id, new_version);
+    if (num_snapshots_affected + cow_refcount > 0) {
         if (!data) {
             // Ok, we are in trouble. We don't have data (probably because we were constructed
             // with should_load == false), but now a snapshot of that non-existing data is needed.
@@ -280,7 +279,18 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
             // Our callee (hopefully!!!) already has a lock at this point, so there's no need
             // to acquire another one inside of load_inner_buf (and of course it would dead-lock).
             load_inner_buf(false, cache->reads_io_account.get());
+
+            // Now that we have loaded the data, it could have happended that the snapshot
+            // is actually not needed anymore (in which case we have loaded the block
+            // unnecessarily, but what could we  possibly do about that?).
+            // So we register the snapshotted block and also update the affected count,
+            // and then recheck if the refcount is still positive.
         }
+        num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
+    }
+
+    size_t refcount = num_snapshots_affected + cow_refcount;
+    if (refcount > 0) {
         snapshots.push_front(buf_snapshot_info_t(data, version_id, refcount));
         cow_refcount = 0;
         return true;
@@ -997,6 +1007,15 @@ void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
     pm_registered_snapshots--;
 }
 
+size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
+    rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
+    size_t num_snapshots_affected = 0;
+    for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version); it != active_snapshots.lower_bound(new_version); it++) {
+        num_snapshots_affected++;
+    }
+    return num_snapshots_affected;
+}
+
 size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
     rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
     size_t num_snapshots_affected = 0;
@@ -1038,7 +1057,10 @@ boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
     // Be aware of rounding errors... (what can be do against those? probably just setting the default io_priority_reads high enough)
     int io_priority = std::max(1, dynamic_config.io_priority_reads * priority / 100);
 
-    boost::shared_ptr<file_t::account_t> io_account(serializer->make_io_account(io_priority));
+    // TODO: This is a heuristic. While it might not be evil, it's not really optimal either.
+    int outstanding_requests_limit = std::max(1, 16 * priority / 100);
+
+    boost::shared_ptr<file_t::account_t> io_account(serializer->make_io_account(io_priority, outstanding_requests_limit));
 
     return boost::shared_ptr<cache_account_t>(new cache_account_t(io_account));
 }
