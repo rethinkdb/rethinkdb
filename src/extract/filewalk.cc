@@ -239,7 +239,7 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
 
     for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = buf_patches.begin(); patch_list != buf_patches.end(); ++patch_list) {
         // Sort the list to get patches in the right order
-        patch_list->second.sort(dereferencing_compare_t<buf_patch_t>());
+        patch_list->second.sort(dereferencing_buf_patch_compare_t());
     }
 }
 

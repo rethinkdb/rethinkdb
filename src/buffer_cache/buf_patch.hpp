@@ -119,6 +119,11 @@ private:
     patch_operation_code_t operation_code;
 };
 
+struct dereferencing_buf_patch_compare_t {
+    bool operator()(buf_patch_t *const& x, buf_patch_t *const& y) const {
+        return *x < *y;
+    }
+};
 
 /* Binary patches */
 
