@@ -482,15 +482,19 @@ public:
         if (!was_read) {
             /* We have to clear the data out of the socket, even if we have nowhere to put it. */
             try {
+                // TODO: Really we should do this on the home_thread()
+                // (if we actually did any kind of streaming), neh?  Yeh.
                 get_data_as_buffers();
             } catch (data_provider_failed_exc_t) {
                 // If the connection was closed then we don't need to clear the
                 // data out of the socket.
             }
         }
+
+        // TODO: This is crufty, really we should just not be a home_thread_mixin_t.
         // This is a harmless hack to get ~home_thread_mixin_t to not fail its assertion.
 #ifndef NDEBUG
-        const_cast<int&>(home_thread) = get_thread_id();
+        const_cast<int&>(real_home_thread) = get_thread_id();
 #endif
     }
 
@@ -501,7 +505,7 @@ public:
     void get_data_into_buffers(const buffer_group_t *b) throw (data_provider_failed_exc_t) {
         rassert(!was_read);
         was_read = true;
-        on_thread_t thread_switcher(home_thread);
+        on_thread_t thread_switcher(home_thread());
         try {
             for (int i = 0; i < (int)b->num_buffers(); i++) {
                 rh->read(b->get_buffer(i).data, b->get_buffer(i).size);

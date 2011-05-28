@@ -13,13 +13,12 @@ use resettable_cond_t. */
 struct cond_t : public signal_t {
     cond_t() { }
     void pulse() {
-        do_on_thread(home_thread, boost::bind(&cond_t::do_pulse, this));
+        do_on_thread(home_thread(), boost::bind(&cond_t::do_pulse, this));
     }
 private:
     void do_pulse() {
         signal_t::pulse();
     }
-    using home_thread_mixin_t::home_thread;
     DISABLE_COPYING(cond_t);
 };
 

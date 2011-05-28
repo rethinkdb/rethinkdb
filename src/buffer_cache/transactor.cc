@@ -9,7 +9,7 @@ transactor_t::transactor_t(cache_t *cache, access_t access, order_token_t token)
 
 transactor_t::~transactor_t() {
     if (transaction_) {
-        on_thread_t th(transaction_->home_thread);
+        on_thread_t th(transaction_->home_thread());
         guarantee(transaction_ != NULL);
         co_commit_transaction(transaction_);
         transaction_ = NULL;

@@ -168,7 +168,7 @@ private:
                 str_to_key(argv[i], &key);
                 uint32_t hash = btkvs->hash(key);
                 uint32_t slice = btkvs->slice_num(key);
-                int thread = btkvs->shards[slice]->home_thread;
+                int thread = btkvs->shards[slice]->home_thread();
 
                 result += strprintf("%*s: %08x [slice: %03u, thread: %03d]\r\n", int(strlen(argv[i])), argv[i], hash, slice, thread);
             }

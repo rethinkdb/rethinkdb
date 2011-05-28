@@ -864,8 +864,8 @@ void log_serializer_t::enable_gc() {
 }
 
 void log_serializer_t::register_read_ahead_cb(read_ahead_callback_t *cb) {
-    if (get_thread_id() != home_thread) {
-        do_on_thread(home_thread, boost::bind(&log_serializer_t::register_read_ahead_cb, this, cb));
+    if (get_thread_id() != home_thread()) {
+        do_on_thread(home_thread(), boost::bind(&log_serializer_t::register_read_ahead_cb, this, cb));
         return;
     }
 
@@ -873,8 +873,8 @@ void log_serializer_t::register_read_ahead_cb(read_ahead_callback_t *cb) {
 }
 
 void log_serializer_t::unregister_read_ahead_cb(read_ahead_callback_t *cb) {
-    if (get_thread_id() != home_thread) {
-        do_on_thread(home_thread, boost::bind(&log_serializer_t::unregister_read_ahead_cb, this, cb));
+    if (get_thread_id() != home_thread()) {
+        do_on_thread(home_thread(), boost::bind(&log_serializer_t::unregister_read_ahead_cb, this, cb));
         return;
     }
 

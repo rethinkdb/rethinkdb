@@ -18,7 +18,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     btree_key_t *key = kbuffer.key();
 
     // TODO: We should really already be on the right thread.
-    on_thread_t mover(slice->home_thread);
+    on_thread_t mover(slice->home_thread());
     // We can use repli_timestamp::invalid here because it's the timestamp for a read-only transaction.
     boost::shared_ptr<transactor_t> transactor(new transactor_t(slice->cache(), rwi_read, token));
 

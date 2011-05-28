@@ -41,7 +41,7 @@ void failover_script_callback_t::on_resume() {
 failover_t::failover_t() {}
 
 failover_t::~failover_t() {
-    on_thread_t thread_switch(home_thread);
+    on_thread_t thread_switch(home_thread());
     while (callbacks.head()) {
         callbacks.head()->parent = NULL;
         callbacks.remove(callbacks.head());
@@ -49,13 +49,13 @@ failover_t::~failover_t() {
 }
 
 void failover_t::add_callback(failover_callback_t *cb) {
-    on_thread_t thread_switch(home_thread);
+    on_thread_t thread_switch(home_thread());
     callbacks.push_back(cb);
     cb->parent = this;
 }
 
 void failover_t::remove_callback(failover_callback_t *cb) {
-    on_thread_t thread_switch(home_thread);
+    on_thread_t thread_switch(home_thread());
     callbacks.remove(cb);
     cb->parent = NULL;
 }

@@ -38,14 +38,14 @@ leaf_iterator_t::~leaf_iterator_t() {
 
 void leaf_iterator_t::done() {
     if (lock) {
-        on_thread_t th(transactor->get()->home_thread);
+        on_thread_t th(transactor->get()->home_thread());
         delete lock;
         lock = NULL;
     }
 }
 
 key_with_data_provider_t leaf_iterator_t::pair_to_key_with_data_provider(const btree_leaf_pair* pair) {
-    on_thread_t th(transactor->get()->home_thread);
+    on_thread_t th(transactor->get()->home_thread());
     value_data_provider_t *data_provider = value_data_provider_t::create(pair->value(), transactor);
     return key_with_data_provider_t(key_to_str(&pair->key), pair->value()->mcflags(),
         boost::shared_ptr<data_provider_t>(data_provider));
@@ -87,7 +87,7 @@ void slice_leaves_iterator_t::done() {
 }
 
 boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
-    on_thread_t mover(slice->home_thread); // Move to the slice's thread.
+    on_thread_t mover(slice->home_thread()); // Move to the slice's thread.
 
     started = true;
     // TODO: Why is this a buf_lock_t pointer?  That's not how buf_lock_t should be used.
@@ -171,7 +171,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_next_leaf() {
 }
 
 boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(block_id_t node_id) {
-    on_thread_t mover(slice->home_thread); // Move to the slice's thread.
+    on_thread_t mover(slice->home_thread()); // Move to the slice's thread.
 
     // TODO: Why is there a buf_lock_t pointer?  This is not how
     // buf_lock_t works.  Just use a buf_t pointer then.

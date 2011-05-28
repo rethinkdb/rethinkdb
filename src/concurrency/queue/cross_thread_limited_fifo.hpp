@@ -45,7 +45,7 @@ struct cross_thread_limited_fifo_t :
         rassert(get_thread_id() == source_thread);
         drain_semaphore.acquire();
         semaphore.co_lock();
-        do_on_thread(home_thread,
+        do_on_thread(home_thread(),
             boost::bind(&cross_thread_limited_fifo_t<value_t, queue_t>::do_push, this, value_t(value))
             );
     }

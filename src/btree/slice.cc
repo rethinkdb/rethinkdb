@@ -144,7 +144,7 @@ These functions are intentionally verbose because they shouldn't exist at all. T
 duplication is a protest against how horrible it is to have this data stored here. */
 
 void btree_slice_t::set_replication_clock(repli_timestamp_t t) {
-    on_thread_t th(cache()->home_thread);
+    on_thread_t th(cache()->home_thread());
     transactor_t transactor(cache(), rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
@@ -155,7 +155,7 @@ void btree_slice_t::set_replication_clock(repli_timestamp_t t) {
 // repli_timestamp_t::invalid?
 
 repli_timestamp btree_slice_t::get_replication_clock() {
-    on_thread_t th(cache()->home_thread);
+    on_thread_t th(cache()->home_thread());
     transactor_t transactor(cache(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
@@ -163,7 +163,7 @@ repli_timestamp btree_slice_t::get_replication_clock() {
 }
 
 void btree_slice_t::set_last_sync(repli_timestamp_t t) {
-    on_thread_t th(cache()->home_thread);
+    on_thread_t th(cache()->home_thread());
     transactor_t transactor(cache(), rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
@@ -171,7 +171,7 @@ void btree_slice_t::set_last_sync(repli_timestamp_t t) {
 }
 
 repli_timestamp btree_slice_t::get_last_sync() {
-    on_thread_t th(cache()->home_thread);
+    on_thread_t th(cache()->home_thread());
     transactor_t transactor(cache(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
@@ -179,7 +179,7 @@ repli_timestamp btree_slice_t::get_last_sync() {
 }
 
 void btree_slice_t::set_replication_master_id(uint32_t t) {
-    on_thread_t th(cache()->home_thread);
+    on_thread_t th(cache()->home_thread());
     transactor_t transactor(cache(), rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
@@ -187,7 +187,7 @@ void btree_slice_t::set_replication_master_id(uint32_t t) {
 }
 
 uint32_t btree_slice_t::get_replication_master_id() {
-    on_thread_t th(cache()->home_thread);
+    on_thread_t th(cache()->home_thread());
     transactor_t transactor(cache(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
@@ -195,7 +195,7 @@ uint32_t btree_slice_t::get_replication_master_id() {
 }
 
 void btree_slice_t::set_replication_slave_id(uint32_t t) {
-    on_thread_t th(cache()->home_thread);
+    on_thread_t th(cache()->home_thread());
     transactor_t transactor(cache(), rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
@@ -203,7 +203,7 @@ void btree_slice_t::set_replication_slave_id(uint32_t t) {
 }
 
 uint32_t btree_slice_t::get_replication_slave_id() {
-    on_thread_t th(cache()->home_thread);
+    on_thread_t th(cache()->home_thread());
     transactor_t transactor(cache(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());

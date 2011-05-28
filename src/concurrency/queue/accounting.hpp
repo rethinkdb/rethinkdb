@@ -38,7 +38,7 @@ struct accounting_queue_t :
         account_t(accounting_queue_t *p, passive_producer_t<value_t> *s, int shares) :
             parent(p), source(s), shares(shares), active(false)
         {
-            on_thread_t thread_switcher(parent->home_thread);
+            on_thread_t thread_switcher(parent->home_thread());
             rassert(shares > 0);
             if (source->available->get()) activate();
             else parent->inactive_accounts.push_back(this);
@@ -46,7 +46,7 @@ struct accounting_queue_t :
             parent->available_var.set(!parent->active_accounts.empty());
         }
         ~account_t() {
-            on_thread_t thread_switcher(parent->home_thread);
+            on_thread_t thread_switcher(parent->home_thread());
             parent->assert_thread();
             source->available->remove_watcher(this);
             if (active) deactivate();

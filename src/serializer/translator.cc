@@ -24,7 +24,7 @@ void prep_serializer(
 
     /* Go to the thread the serializer is running on because it can only be accessed safely from
     that thread */
-    on_thread_t thread_switcher(ser->home_thread);
+    on_thread_t thread_switcher(ser->home_thread());
 
     /* Write the initial configuration block */
     multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(
@@ -64,7 +64,7 @@ void create_proxies(const std::vector<serializer_t *> &underlying,
 
     /* Go to the thread the serializer is running on because it is only safe to access on that
     thread and because the pseudoserializers must be created on that thread */
-    on_thread_t thread_switcher(ser->home_thread);
+    on_thread_t thread_switcher(ser->home_thread());
 
     /* Load config block */
     multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(ser->malloc());
@@ -125,7 +125,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
 
     /* Figure out how many slices there are gonna be and figure out what the creation magic is */
     {
-        on_thread_t thread_switcher(underlying[0]->home_thread);
+        on_thread_t thread_switcher(underlying[0]->home_thread());
 
         /* Load config block */
         multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(
@@ -152,7 +152,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
 }
 
 void destroy_proxy(std::vector<translator_serializer_t *> *proxies, int i) {
-    on_thread_t thread_switcher((*proxies)[i]->home_thread);
+    on_thread_t thread_switcher((*proxies)[i]->home_thread());
     delete (*proxies)[i];
 }
 
@@ -307,14 +307,14 @@ bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void
 }
 
 void translator_serializer_t::register_read_ahead_cb(translator_serializer_t::read_ahead_callback_t *cb) {
-    on_thread_t t(inner->home_thread);
+    on_thread_t t(inner->home_thread());
 
     rassert(!read_ahead_callback);
     inner->register_read_ahead_cb(this);
     read_ahead_callback = cb;
 }
 void translator_serializer_t::unregister_read_ahead_cb(UNUSED translator_serializer_t::read_ahead_callback_t *cb) {
-    on_thread_t t(inner->home_thread);
+    on_thread_t t(inner->home_thread());
 
     rassert(read_ahead_callback == NULL || cb == read_ahead_callback);
     inner->unregister_read_ahead_cb(this);

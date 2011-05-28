@@ -49,24 +49,20 @@ int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 std::string strip_spaces(std::string); 
 
 
-/* The home thread mixin is a mixin for objects that can only be used on
-a single thread. Its thread ID is exposed as the `home_thread` variable. Some
-subclasses of `home_thread_mixin_t` can be moved to another thread; to do this,
-you can use the `rethread_t` type or the `rethread()` method. */
+/* The home thread mixin is a mixin for objects that can only be used
+on a single thread. Its thread ID is exposed as the `home_thread()`
+method. Some subclasses of `home_thread_mixin_t` can be moved to
+another thread; to do this, you can use the `rethread_t` type or the
+`rethread()` method. */
 
 #define INVALID_THREAD (-1)
 
 class home_thread_mixin_t {
 public:
-    const int &home_thread;
-    int get_home_thread() const { return home_thread; }
+    int home_thread() const { return real_home_thread; }
 
     void assert_thread() const {
-        if (home_thread == INVALID_THREAD) {
-            crash("This object cannot be used because it currently does not have a home thread.\n");
-        } else {
-            rassert(home_thread == get_thread_id());
-        }
+        rassert(home_thread() == get_thread_id());
     }
 
     virtual void rethread(UNUSED int thread) {
@@ -75,14 +71,14 @@ public:
 
     struct rethread_t {
         rethread_t(home_thread_mixin_t *m, int thread) :
-                mixin(m), old_thread(mixin->home_thread), new_thread(thread) {
+            mixin(m), old_thread(mixin->home_thread()), new_thread(thread) {
             mixin->rethread(new_thread);
-            rassert(mixin->home_thread == new_thread);
+            rassert(mixin->home_thread() == new_thread);
         }
         ~rethread_t() {
-            rassert(mixin->home_thread == new_thread);
+            rassert(mixin->home_thread() == new_thread);
             mixin->rethread(old_thread);
-            rassert(mixin->home_thread == old_thread);
+            rassert(mixin->home_thread() == old_thread);
         }
     private:
         home_thread_mixin_t *mixin;
@@ -90,16 +86,14 @@ public:
     };
 
 protected:
-    home_thread_mixin_t() :
-        home_thread(real_home_thread), real_home_thread(get_thread_id()) { }
+    home_thread_mixin_t() : real_home_thread(get_thread_id()) { }
     ~home_thread_mixin_t() { }
 
-    // `home_thread` is a read-only version of `real_home_thread`.
     int real_home_thread;
 
 private:
     // Things with home threads should not be copyable, since we don't
-    // want to nonchalantly copy their home_thread variable.
+    // want to nonchalantly copy their real_home_thread variable.
     DISABLE_COPYING(home_thread_mixin_t);
 };
 
@@ -120,7 +114,7 @@ struct on_thread_t : public home_thread_mixin_t {
         coro_t::move_to_thread(thread);
     }
     ~on_thread_t() {
-        coro_t::move_to_thread(home_thread);
+        coro_t::move_to_thread(home_thread());
     }
 };
 
