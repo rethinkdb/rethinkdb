@@ -124,17 +124,6 @@ struct on_thread_t : public home_thread_mixin_t {
     }
 };
 
-/* `is_sorted()` returns true if the given range is sorted. */
-
-template <class ForwardIterator, class StrictWeakOrdering>
-bool is_sorted(ForwardIterator first, ForwardIterator last,
-                       StrictWeakOrdering comp) {
-    for(ForwardIterator it = first; it + 1 < last; it++) {
-        if (!comp(*it, *(it+1)))
-            return false;
-    }
-    return true;
-}
 
 /* API to allow a nicer way of performing jobs on other cores than subclassing
 from thread_message_t. Call do_on_thread() with an object and a method for that object.
@@ -146,43 +135,6 @@ void do_on_thread(int thread, const callable_t& callable);
 
 template<class callable_t>
 void do_later(const callable_t &callable);
-
-// Provides a compare operator which compares the dereferenced values of pointers T* (for use in std:sort etc)
-
-template <typename obj_t>
-class dereferencing_compare_t {
-public:
-    bool operator()(obj_t * const &o1, obj_t * const &o2) const {
-        return *o1 < *o2;
-    }
-};
-
-/* `make_vector()` provides a more concise way of constructing vectors with
-only a few members. */
-
-template<class value_t>
-std::vector<value_t> make_vector(value_t v1) {
-    std::vector<value_t> vec;
-    vec.push_back(v1);
-    return vec;
-}
-
-template<class value_t>
-std::vector<value_t> make_vector(value_t v1, value_t v2) {
-    std::vector<value_t> vec;
-    vec.push_back(v1);
-    vec.push_back(v2);
-    return vec;
-}
-
-template<class value_t>
-std::vector<value_t> make_vector(value_t v1, value_t v2, value_t v3) {
-    std::vector<value_t> vec;
-    vec.push_back(v1);
-    vec.push_back(v2);
-    vec.push_back(v3);
-    return vec;
-}
 
 #include "utils.tcc"
 

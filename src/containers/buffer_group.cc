@@ -1,4 +1,5 @@
 #include "containers/buffer_group.hpp"
+#include <string.h>
 
 void buffer_group_copy_data(const buffer_group_t *dest, const const_buffer_group_t *source) {
 

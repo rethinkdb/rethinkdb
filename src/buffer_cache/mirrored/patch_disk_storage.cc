@@ -155,7 +155,7 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
 
     for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = patch_map.begin(); patch_list != patch_map.end(); ++patch_list) {
         // Sort the list to get patches in the right order
-        patch_list->second.sort(dereferencing_compare_t<buf_patch_t>());
+        patch_list->second.sort(dereferencing_buf_patch_compare_t());
 
         // Store list into in_core_storage
         in_memory_storage.load_block_patch_list(patch_list->first, patch_list->second);

@@ -294,6 +294,19 @@ int sibling(const internal_node_t *node, const btree_key_t *key, block_id_t *sib
     return cmp; //equivalent to nodecmp(node, sibling)
 }
 
+
+/* `is_sorted()` returns true if the given range is sorted. */
+
+template <class ForwardIterator, class StrictWeakOrdering>
+bool is_sorted(ForwardIterator first, ForwardIterator last,
+                       StrictWeakOrdering comp) {
+    for (ForwardIterator it = first; it + 1 < last; it++) {
+        if (!comp(*it, *(it+1)))
+            return false;
+    }
+    return true;
+}
+
 void update_key(buf_t &node_buf, const btree_key_t *key_to_replace, const btree_key_t *replacement_key) {
     const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
 #ifdef BTREE_DEBUG

@@ -744,7 +744,7 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
 
     for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = cx.patch_map.begin(); patch_list != cx.patch_map.end(); ++patch_list) {
         // Sort the list to get patches in the right order
-        patch_list->second.sort(dereferencing_compare_t<buf_patch_t>());
+        patch_list->second.sort(dereferencing_buf_patch_compare_t());
 
         // Verify patches list
         ser_transaction_id_t previous_transaction = 0;

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
+#include <unistd.h>
 #include "errors.hpp"
 
 ip_address_t::ip_address_t(const char *host) {

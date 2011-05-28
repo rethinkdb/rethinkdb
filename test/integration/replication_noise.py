@@ -12,7 +12,7 @@ def start_master(opts, extra_flags, test_dir):
     return master
 
 def start_slave(repli_port, opts, extra_flags, test_dir):
-    slave = Server(opts, extra_flags=extra_flags + ["--slave", "%s:%d" % ('localhost', repli_port)], name="slave", test_dir=test_dir)
+    slave = Server(opts, extra_flags=extra_flags + ["--slave", "%s:%d" % ('localhost', repli_port), "--no-rogue"], name="slave", test_dir=test_dir)
     slave.start()
     return slave
 

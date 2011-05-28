@@ -31,6 +31,20 @@ struct linux_io_config_t {
     static void cancel_timer(timer_token_t *timer) {
         linux_thread_pool_t::thread->timer_handler.cancel_timer(timer);
     }
+
+
+    /* System configuration*/
+    static int get_cpu_count() {
+        return sysconf(_SC_NPROCESSORS_ONLN);
+    }
+
+    static long get_available_ram() {
+        return (long)sysconf(_SC_AVPHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
+    }
+
+    static long get_total_ram() {
+        return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
+    }
 };
 
 #endif /* __ARCH_LINUX_ARCH_HPP__ */

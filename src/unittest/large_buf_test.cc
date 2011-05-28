@@ -1,5 +1,6 @@
 #include "unittest/gtest.hpp"
 #include "unittest/server_test_helper.hpp"
+#include "unittest/unittest_utils.hpp"
 #include "buffer_cache/large_buf.hpp"
 
 namespace unittest {
@@ -46,7 +47,7 @@ private:
         ASSERT_LE(initial_size, leaf_size * (leaf_size / sizeof(block_id_t)));
 
 
-        repli_timestamp time = repli_timestamp_t::distant_past();
+        repli_timestamp time = repli_timestamp_t::distant_past;
 
         boost::shared_ptr<transactor_t> txor(new transactor_t(cache, rwi_write, 0, time, order_token_t::ignore));
 
@@ -102,7 +103,7 @@ private:
         // Sanity check test parameters.
 
 
-        repli_timestamp time = repli_timestamp_t::distant_past();
+        repli_timestamp time = repli_timestamp_t::distant_past;
 
         boost::shared_ptr<transactor_t> txor(new transactor_t(cache, rwi_write, 0, time, order_token_t::ignore));
 
