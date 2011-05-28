@@ -1,6 +1,6 @@
 #include "arch/linux/disk/pool.hpp"
 
-#define BLOCKER_POOL_QUEUE_DEPTH (MAX_CONCURRENT_IO_REQUESTS * 3)
+#define BLOCKER_POOL_QUEUE_DEPTH (MAX_CONCURRENT_IO_REQUESTS * 2)
 
 pool_diskmgr_t::pool_diskmgr_t(
         linux_event_queue_t *queue, passive_producer_t<action_t *> *source) :

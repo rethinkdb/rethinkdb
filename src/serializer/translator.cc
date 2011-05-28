@@ -209,8 +209,8 @@ void translator_serializer_t::free(void *ptr) {
     inner->free(ptr);
 }
 
-file_t::account_t *translator_serializer_t::make_io_account(int priority) {
-    return inner->make_io_account(priority);
+file_t::account_t *translator_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
+    return inner->make_io_account(priority, outstanding_requests_limit);
 }
 
 bool translator_serializer_t::do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, serializer_t::read_callback_t *callback) {

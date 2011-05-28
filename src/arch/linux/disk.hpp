@@ -21,6 +21,7 @@ struct linux_iocallback_t {
 struct linux_disk_manager_t;
 
 #define DEFAULT_DISK_ACCOUNT NULL
+#define UNLIMITED_OUTSTANDING_REQUESTS (-1)
 
 class linux_file_t {
 public:
@@ -31,7 +32,7 @@ public:
     };
 
     struct account_t {
-        account_t(linux_file_t *f, int p);
+        account_t(linux_file_t *f, int p, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
         ~account_t();
     private:
         friend class linux_file_t;
