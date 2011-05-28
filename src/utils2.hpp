@@ -55,11 +55,6 @@ struct repli_timestamp {
 };
 typedef repli_timestamp repli_timestamp_t;   // TODO switch name over completely to "_t" version
 
-// Converts a time_t (in seconds) to a repli_timestamp, but avoids
-// returning the invalid repli_timestamp value, which might matter
-// once every 116 years.
-repli_timestamp repli_time(time_t t);
-
 struct charslice {
     char *beg, *end;
     charslice(char *beg_, char *end_) : beg(beg_), end(end_) { }

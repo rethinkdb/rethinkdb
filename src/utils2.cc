@@ -24,13 +24,6 @@ long get_total_ram() {
 
 const repli_timestamp repli_timestamp::invalid = { -1 };
 
-repli_timestamp repli_time(time_t t) {
-    repli_timestamp ret;
-    uint32_t x = t;
-    ret.time = (x == (uint32_t)-1 ? 0 : x);
-    return ret;
-}
-
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;
