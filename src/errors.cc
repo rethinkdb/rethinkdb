@@ -1,5 +1,7 @@
 #include "errors.hpp"
 #include "print_backtrace.hpp"
+
+#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
