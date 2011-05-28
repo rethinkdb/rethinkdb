@@ -6,6 +6,21 @@
 #include "replication/master.hpp"
 #endif
 
+template<class value_t>
+std::vector<value_t> make_vector(value_t v1) {
+    std::vector<value_t> vec;
+    vec.push_back(v1);
+    return vec;
+}
+
+template<class value_t>
+std::vector<value_t> make_vector(value_t v1, value_t v2) {
+    std::vector<value_t> vec;
+    vec.push_back(v1);
+    vec.push_back(v2);
+    return vec;
+}
+
 namespace replication {
 
 // Stats for the current depth of realtime and backfill queues.
@@ -31,7 +46,8 @@ backfill_storer_t::backfill_storer_t(btree_key_value_store_t *underlying) :
     realtime_queue_(SEMAPHORE_NO_LIMIT, 0.5, &pm_replication_slave_realtime_queue),
     queue_picker_(make_vector<passive_producer_t<boost::function<void()> > *>(&backfill_queue_)),
     coro_pool_(CORO_POOL_SIZE, &queue_picker_)
-    { }
+{
+}
 
 backfill_storer_t::~backfill_storer_t() {
     if (print_backfill_warning_) {
