@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include "thread_pool.hpp"
 #include "errors.hpp"
+#include "arch/linux/arch.hpp"
 #include "arch/linux/event_queue.hpp"
 #include "arch/linux/coroutines.hpp"
 #include <signal.h>
@@ -163,7 +164,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
         
         // Distribute threads evenly among CPUs
         
-        int ncpus = get_cpu_count();
+        int ncpus = linux_io_config_t::get_cpu_count();
         cpu_set_t mask;
         CPU_ZERO(&mask);
         CPU_SET(i % ncpus, &mask);

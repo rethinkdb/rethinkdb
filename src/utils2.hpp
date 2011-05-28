@@ -13,10 +13,6 @@ utils2.hpp, but utils.hpp needs some things in the IO layer. */
 
 typedef uint64_t cas_t;
 
-int get_cpu_count();
-long get_available_ram();
-long get_total_ram();
-
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
 
