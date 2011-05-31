@@ -10,6 +10,7 @@
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
 #include "utils2.hpp"
+#include "print_backtrace.hpp"
 #include "arch/linux/coroutines.hpp"
 #include "logger.hpp"
 #include "arch/linux/disk/aio.hpp"
@@ -37,7 +38,7 @@ actual implementations can be swapped in at runtime. */
 struct linux_disk_manager_t {
     virtual ~linux_disk_manager_t() { }
 
-    virtual void *create_account(int priority) = 0;
+    virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
     virtual void destroy_account(void *account) = 0;
 
     virtual void submit_write(fd_t fd, const void *buf, size_t count, size_t offset,
@@ -99,8 +100,8 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
         stack_stats.done_fun = boost::bind(&linux_templated_disk_manager_t<backend_t>::done, this, _1);
     }
 
-    void *create_account(int pri) {
-        return reinterpret_cast<void*>(new typename accounter_t::account_t(&accounter, pri));
+    void *create_account(int pri, int outstanding_requests_limit) {
+        return reinterpret_cast<void*>(new typename accounter_t::account_t(&accounter, pri, outstanding_requests_limit));
     }
 
     void destroy_account(void *account) {
@@ -132,8 +133,8 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
 
 /* Disk account object */
 
-linux_file_t::account_t::account_t(linux_file_t *par, int pri) :
-    parent(par), account(parent->diskmgr->create_account(pri))
+linux_file_t::account_t::account_t(linux_file_t *par, int pri, int outstanding_requests_limit) :
+    parent(par), account(parent->diskmgr->create_account(pri, outstanding_requests_limit))
     { }
 
 linux_file_t::account_t::~account_t() {
@@ -225,7 +226,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
             diskmgr.reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue));
         }
 
-        default_account.reset(new account_t(this, 1));
+        default_account.reset(new account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
 

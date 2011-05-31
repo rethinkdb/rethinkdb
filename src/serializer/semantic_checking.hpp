@@ -114,8 +114,8 @@ public:
         inner_serializer.free(ptr);
     }
 
-    file_t::account_t *make_io_account(int priority) {
-        return inner_serializer.make_io_account(priority);
+    file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS) {
+        return inner_serializer.make_io_account(priority, outstanding_requests_limit);
     }
 
 public:

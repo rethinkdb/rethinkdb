@@ -16,7 +16,7 @@
  * TODO: should the buf_lock be released by the caller instead?
  */
 struct leaf_iterator_t : public one_way_iterator_t<key_with_data_provider_t> {
-    leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<transactor_t>& transactor);
+    leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<transaction_t>& transaction);
 
     boost::optional<key_with_data_provider_t> next();
     void prefetch();
@@ -28,7 +28,7 @@ private:
     const leaf_node_t *leaf;
     int index;
     buf_lock_t *lock;
-    boost::shared_ptr<transactor_t> transactor;
+    boost::shared_ptr<transaction_t> transaction;
 };
 
 /* slice_leaves_iterator_t finds the first leaf that contains the given key (or
@@ -50,7 +50,7 @@ class slice_leaves_iterator_t : public one_way_iterator_t<leaf_iterator_t*> {
         buf_lock_t *lock;
     };
 public:
-    slice_leaves_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice, rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key);
+    slice_leaves_iterator_t(const boost::shared_ptr<transaction_t>& transaction, btree_slice_t *slice, rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key);
 
     boost::optional<leaf_iterator_t*> next();
     void prefetch();
@@ -63,7 +63,7 @@ private:
     boost::optional<leaf_iterator_t*> get_leftmost_leaf(block_id_t node_id);
     block_id_t get_child_id(const internal_node_t *i_node, int index) const;
 
-    boost::shared_ptr<transactor_t> transactor;
+    boost::shared_ptr<transaction_t> transaction;
     btree_slice_t *slice;
     rget_bound_mode_t left_mode;
     const btree_key_t *left_key;
@@ -84,7 +84,7 @@ private:
 class slice_keys_iterator_t : public one_way_iterator_t<key_with_data_provider_t> {
 public:
     /* Cannot assume that 'start' and 'end' will remain valid after the constructor returns! */
-    slice_keys_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
+    slice_keys_iterator_t(const boost::shared_ptr<transaction_t>& transaction, btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
     virtual ~slice_keys_iterator_t();
 
     boost::optional<key_with_data_provider_t> next();
@@ -97,7 +97,7 @@ private:
 
     void done();
 
-    boost::shared_ptr<transactor_t> transactor;
+    boost::shared_ptr<transaction_t> transaction;
     btree_slice_t *slice;
     rget_bound_mode_t left_mode;
     btree_key_buffer_t left_key;

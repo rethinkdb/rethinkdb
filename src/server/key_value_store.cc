@@ -13,15 +13,14 @@
 shard_store_t::shard_store_t(
     translator_serializer_t *translator_serializer,
     mirrored_cache_config_t *dynamic_config,
-    int64_t delete_queue_limit,
-    int bucket) :
-    btree(translator_serializer, dynamic_config, delete_queue_limit, strprintf("%d", bucket)),
-    dispatching_store(&btree, bucket),
+    int64_t delete_queue_limit) :
+    btree(translator_serializer, dynamic_config, delete_queue_limit),
+    dispatching_store(&btree),
     timestamper(&dispatching_store)
     { }
 
 get_result_t shard_store_t::get(const store_key_t &key, order_token_t token) {
-    on_thread_t th(home_thread);
+    on_thread_t th(home_thread());
     sink.check_out(token);
     order_token_t substore_token = substore_order_source.check_in().with_read_mode();
     // We need to let gets reorder themselves, and haven't implemented that yet.
@@ -29,7 +28,7 @@ get_result_t shard_store_t::get(const store_key_t &key, order_token_t token) {
 }
 
 rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
-    on_thread_t th(home_thread);
+    on_thread_t th(home_thread());
     sink.check_out(token);
     order_token_t substore_token = substore_order_source.check_in().with_read_mode();
     // We need to let gets reorder themselves, and haven't implemented that yet.
@@ -37,7 +36,7 @@ rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t
 }
 
 mutation_result_t shard_store_t::change(const mutation_t &m, order_token_t token) {
-    on_thread_t th(home_thread);
+    on_thread_t th(home_thread());
     sink.check_out(token);
     order_token_t substore_token = substore_order_source.check_in();
     return timestamper.change(m, substore_token);
@@ -45,7 +44,7 @@ mutation_result_t shard_store_t::change(const mutation_t &m, order_token_t token
 
 mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order_token_t token) {
     /* Bypass the timestamper because we already have a castime_t */
-    on_thread_t th(home_thread);
+    on_thread_t th(home_thread());
     sink.check_out(token);
     order_token_t substore_token = substore_order_source.check_in();
     return dispatching_store.change(m, ct, substore_token);
@@ -86,7 +85,7 @@ void prep_for_shard(
 }
 
 void destroy_serializer(standard_serializer_t **serializers, int i) {
-    on_thread_t thread_switcher(serializers[i]->home_thread);
+    on_thread_t thread_switcher(serializers[i]->home_thread());
     delete serializers[i];
 }
 
@@ -134,7 +133,7 @@ void create_existing_shard(
     // same thread as its serializer
     on_thread_t thread_switcher(i % get_num_db_threads());
 
-    shards[i] = new shard_store_t(pseudoserializers[i], dynamic_config, delete_queue_limit, i);
+    shards[i] = new shard_store_t(pseudoserializers[i], dynamic_config, delete_queue_limit);
 }
 
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config)
@@ -178,7 +177,7 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
 
 static void set_one_timestamper(shard_store_t **shards, int i, repli_timestamp_t t) {
     // TODO: Do we really need to wait for the operation to finish before returning?
-    on_thread_t th(shards[i]->timestamper.home_thread);
+    on_thread_t th(shards[i]->timestamper.home_thread());
     shards[i]->timestamper.set_timestamp(t);
 }
 
@@ -190,7 +189,7 @@ void destroy_shard(
         shard_store_t **shards,
         int i) {
 
-    on_thread_t thread_switcher(shards[i]->home_thread);
+    on_thread_t thread_switcher(shards[i]->home_thread());
 
     delete shards[i];
 }
@@ -338,9 +337,6 @@ get_result_t btree_key_value_store_t::get(const store_key_t &key, order_token_t 
 typedef merge_ordered_data_iterator_t<key_with_data_provider_t,key_with_data_provider_t::less> merged_results_iterator_t;
 
 rget_result_t btree_key_value_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
-    // HEY: There should be no discernable effect of this thread saver
-    // if we don't call something that takes it as a parameter.
-    thread_saver_t thread_saver;
 
     boost::shared_ptr<merged_results_iterator_t> merge_iterator(new merged_results_iterator_t());
     for (int s = 0; s < btree_static_config.n_slices; s++) {

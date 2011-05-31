@@ -36,7 +36,7 @@ public:
     /* The coro that calls `wait_lazily()` will be pushed onto the event queue
     when the signal is pulsed, but will not wake up immediately. */
     void wait_lazily() {
-        on_thread_t thread_switcher(home_thread);
+        on_thread_t thread_switcher(home_thread());
         if (!is_pulsed()) {
             struct : public waiter_t {
                 coro_t *to_wake;
@@ -51,7 +51,7 @@ public:
     /* The coro that calls `wait_eagerly()` will be woken up immediately when
     the signal is pulsed, before `pulse()` even returns. */
     void wait_eagerly() {
-        on_thread_t thread_switcher(home_thread);
+        on_thread_t thread_switcher(home_thread());
         if (!is_pulsed()) {
             struct : public waiter_t {
                 coro_t *to_wake;

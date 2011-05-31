@@ -34,8 +34,7 @@ struct shard_store_t :
     shard_store_t(
         translator_serializer_t *translator_serializer,
         mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit,
-        int bucket);
+        int64_t delete_queue_limit);
 
     get_result_t get(const store_key_t &key, order_token_t token);
     rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
@@ -168,7 +167,7 @@ private:
                 str_to_key(argv[i], &key);
                 uint32_t hash = btkvs->hash(key);
                 uint32_t slice = btkvs->slice_num(key);
-                int thread = btkvs->shards[slice]->home_thread;
+                int thread = btkvs->shards[slice]->home_thread();
 
                 result += strprintf("%*s: %08x [slice: %03u, thread: %03d]\r\n", int(strlen(argv[i])), argv[i], hash, slice, thread);
             }

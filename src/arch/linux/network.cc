@@ -276,6 +276,13 @@ bool linux_tcp_conn_t::is_read_open() {
     return !read_closed.is_pulsed();
 }
 
+
+void delete_char_vector(std::vector<char> *x) {
+    rassert(x);
+    delete x;
+}
+
+
 void linux_tcp_conn_t::internal_flush_write_buffer() {
 
     assert_thread();
@@ -302,7 +309,7 @@ void linux_tcp_conn_t::internal_flush_write_buffer() {
 
     /* Careful--this operation might succeed immediately, so you can't access `buffer`
     after `push()` returns. */
-    write_queue.push(boost::bind(delete_ptr_t<std::vector<char> >(), buffer));
+    write_queue.push(boost::bind(delete_char_vector, buffer));
 }
 
 void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
@@ -500,14 +507,14 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
 
 void linux_tcp_conn_t::rethread(int new_thread) {
 
-    if (home_thread == get_thread_id() && new_thread == INVALID_THREAD) {
+    if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
         rassert(!read_in_progress);
         rassert(!write_in_progress);
         rassert(event_watcher);
         delete event_watcher;
         event_watcher = NULL;
 
-    } else if (home_thread == INVALID_THREAD && new_thread == get_thread_id()) {
+    } else if (home_thread() == INVALID_THREAD && new_thread == get_thread_id()) {
         rassert(!event_watcher);
         event_watcher = new linux_event_watcher_t(sock.get(), this);
 
@@ -515,7 +522,7 @@ void linux_tcp_conn_t::rethread(int new_thread) {
         crash("linux_tcp_conn_t can be rethread()ed from no thread to the current thread or "
             "from the current thread to no thread, but no other combination is legal. The "
             "current thread is %d; the old thread is %d; the new thread is %d.\n",
-            get_thread_id(), home_thread, new_thread);
+            get_thread_id(), home_thread(), new_thread);
     }
 
     real_home_thread = new_thread;

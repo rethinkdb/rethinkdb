@@ -1,6 +1,5 @@
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/stats.hpp"
-#include "callbacks.hpp"
 #include "mirrored.hpp"
 
 /**
@@ -12,7 +11,7 @@ perfmon_counter_t pm_registered_snapshots("registered_snapshots"),
 perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1));
 
 // This loads a block from the serializer and stores it into buf.
-void mc_inner_buf_t::load_inner_buf(bool should_lock) {
+void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_account) {
     if (should_lock) {
         bool locked UNUSED = lock.lock(rwi_write, NULL);
         rassert(locked);
@@ -23,13 +22,13 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock) {
 
     // Read the block...
     {
-        on_thread_t thread(cache->serializer->home_thread);
+        on_thread_t thread(cache->serializer->home_thread());
         subtree_recency = cache->serializer->get_recency(block_id);
         struct : public serializer_t::read_callback_t, public cond_t {
             void on_serializer_read() { pulse(); }
         } cb;
         rassert(data); // Should have been malloced before!
-        if (!cache->serializer->do_read(block_id, data, cache->reads_io_account.get(), &cb)) {
+        if (!cache->serializer->do_read(block_id, data, io_account, &cb)) {
             cb.wait();
         }
     }
@@ -51,16 +50,19 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock) {
 struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     bool have_loaded;
     mc_inner_buf_t *inner_buf;
-    explicit load_buf_fsm_t(mc_inner_buf_t *buf) : inner_buf(buf) {
+    file_t::account_t *io_account_;
+    explicit load_buf_fsm_t(mc_inner_buf_t *buf, file_t::account_t *io_account) :
+            inner_buf(buf),
+            io_account_(io_account) {
         bool locked UNUSED = inner_buf->lock.lock(rwi_write, NULL);
         rassert(locked);
         have_loaded = false;
-        if (continue_on_thread(inner_buf->cache->serializer->home_thread, this)) on_thread_switch();
+        if (continue_on_thread(inner_buf->cache->serializer->home_thread(), this)) on_thread_switch();
     }
     void on_thread_switch() {
         if (!have_loaded) {
             inner_buf->subtree_recency = inner_buf->cache->serializer->get_recency(inner_buf->block_id);
-            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, inner_buf->cache->reads_io_account.get(), this))
+            if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, io_account_, this))
                 on_serializer_read();
         } else {
             // Read the transaction id
@@ -74,7 +76,7 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     }
     void on_serializer_read() {
         have_loaded = true;
-        if (continue_on_thread(inner_buf->cache->home_thread, this)) on_thread_switch();
+        if (continue_on_thread(inner_buf->cache->home_thread(), this)) on_thread_switch();
     }
 };
 // </DEPRECATED>
@@ -82,7 +84,7 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
 
 
 // This form of the buf constructor is used when the block exists on disk and needs to be loaded
-mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load)
+mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_load, file_t::account_t *io_account)
     : cache(cache),
       block_id(block_id),
       subtree_recency(repli_timestamp::invalid),  // Gets initialized by load_inner_buf
@@ -108,7 +110,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
         // TODO: Spawning a coroutine for each load might introduce a performance regression.
         // Also it doesn't harmonize with the current patch_disk_storage preloading.
         // Therefore, we are still using the old load_buf_fsm_t at this one place for now.
-        new load_buf_fsm_t(this);
+        new load_buf_fsm_t(this, io_account);
     }
 
     // pm_n_blocks_in_memory gets incremented in cases where
@@ -266,9 +268,8 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     // all snapshot txns such that
     //   inner_version <= snapshot_txn->version_id < new_version
     // can see the current version of inner_buf->data, so we need to make some snapshots for them
-    size_t num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
-    size_t refcount = num_snapshots_affected + cow_refcount;
-    if (refcount > 0) {
+    size_t num_snapshots_affected = cache->calculate_snapshots_affected(version_id, new_version);
+    if (num_snapshots_affected + cow_refcount > 0) {
         if (!data) {
             // Ok, we are in trouble. We don't have data (probably because we were constructed
             // with should_load == false), but now a snapshot of that non-existing data is needed.
@@ -276,8 +277,19 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
             data = cache->serializer->malloc();
             // Our callee (hopefully!!!) already has a lock at this point, so there's no need
             // to acquire another one inside of load_inner_buf (and of course it would dead-lock).
-            load_inner_buf(false);
+            load_inner_buf(false, cache->reads_io_account.get());
+
+            // Now that we have loaded the data, it could have happended that the snapshot
+            // is actually not needed anymore (in which case we have loaded the block
+            // unnecessarily, but what could we  possibly do about that?).
+            // So we register the snapshotted block and also update the affected count,
+            // and then recheck if the refcount is still positive.
         }
+        num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
+    }
+
+    size_t refcount = num_snapshots_affected + cow_refcount;
+    if (refcount > 0) {
         snapshots.push_front(buf_snapshot_info_t(data, version_id, refcount));
         cow_refcount = 0;
         return true;
@@ -308,8 +320,8 @@ perfmon_duration_sampler_t
     pm_bufs_acquiring("bufs_acquiring", secs_to_ticks(1)),
     pm_bufs_held("bufs_held", secs_to_ticks(1));
 
-mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted)
-    : ready(false), callback(NULL), mode(mode), non_locking_access(false), inner_buf(inner_buf), data(NULL)
+mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::version_id_t version_to_access, bool snapshotted, boost::function<void()> call_when_in_line)
+    : mode(mode), non_locking_access(false), inner_buf(inner_buf), data(NULL)
 {
     inner_buf->cache->assert_thread();
     patches_affected_data_size_at_start = -1;
@@ -320,12 +332,14 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
         rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
         inner_buf->refcount++;
         acquire_block(false, version_to_access, snapshotted);
+        if (call_when_in_line) call_when_in_line();
+
     } else {
         // the top version is the right one for us
         inner_buf->refcount++;
 
         pm_bufs_acquiring.begin(&start_time);
-        inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode);
+        inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
         pm_bufs_acquiring.end(&start_time);
 
         acquire_block(true, version_to_access, snapshotted);
@@ -403,9 +417,6 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
 
     pm_bufs_held.begin(&start_time);
 
-    ready = true;
-    if (callback) callback->on_block_available(this);
-
     if (snapshotted) {
         if (locked)
             inner_buf->lock.unlock();
@@ -414,7 +425,6 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
 }
 
 void mc_buf_t::apply_patch(buf_patch_t *patch) {
-    rassert(ready);
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
@@ -452,7 +462,6 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
 }
 
 void *mc_buf_t::get_data_major_write() {
-    rassert(ready);
     rassert(!inner_buf->safe_to_unload()); // If this assertion fails, it probably means that you're trying to access a buf you don't own.
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
@@ -495,11 +504,22 @@ void mc_buf_t::mark_deleted(bool write_null) {
 }
 
 patch_counter_t mc_buf_t::get_next_patch_counter() {
-    rassert(ready);
     rassert(!inner_buf->do_delete);
     rassert(mode == rwi_write);
     rassert(data == inner_buf->data);
     return inner_buf->next_patch_counter++;
+}
+
+bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
+    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
+    const uint8_t *range8 = ptr_cast<const uint8_t>(range_start);
+    return range8 <= p8 && p8 < range8 + size_in_bytes;
+}
+
+bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes) {
+    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
+    return ptr_in_byte_range(p, range_start, size_in_bytes) &&
+        (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
 }
 
 // Personally I'd be happier if these functions took offsets.  That's
@@ -623,7 +643,7 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, UNUSED order_token_t _order_token, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp, UNUSED order_token_t _order_token)
     : cache(_cache),
 #ifndef NDEBUG
       order_token(_order_token),
@@ -631,21 +651,39 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, UNUSED order_token_t _order_
       expected_change_count(_expected_change_count),
       access(_access),
       recency_timestamp(_recency_timestamp),
-      begin_callback(NULL),
-      commit_callback(NULL),
-      state(state_open),
       snapshot_version(mc_inner_buf_t::faux_version_id),
       snapshotted(false)
 {
-    pm_transactions_starting.begin(&start_time);
+    block_pm_duration start_timer(&pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_write);
+    cache->assert_thread();
+    rassert(!cache->shutting_down);
+    rassert(access == rwi_write || expected_change_count == 0);
+    cache->num_live_transactions++;
+    cache->writeback.begin_transaction(this);
+
+    pm_transactions_active.begin(&start_time);
 }
 
-mc_transaction_t::~mc_transaction_t() {
-    rassert(state == state_committed);
-    pm_transactions_committing.end(&start_time);
-    pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
-    pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
+/* This version is only for read transactions. */
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED order_token_t _order_token) :
+    cache(_cache),
+#ifndef NDEBUG
+    order_token(_order_token),
+#endif
+    expected_change_count(0),
+    access(_access),
+    recency_timestamp(repli_timestamp_t::distant_past),
+    snapshot_version(mc_inner_buf_t::faux_version_id),
+    snapshotted(false)
+{
+    block_pm_duration start_timer(&pm_transactions_starting);
+    rassert(access == rwi_read);
+    cache->assert_thread();
+    rassert(!cache->shutting_down);
+    cache->num_live_transactions++;
+    cache->writeback.begin_transaction(this);
+    pm_transactions_active.begin(&start_time);
 }
 
 void mc_transaction_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data) {
@@ -653,18 +691,15 @@ void mc_transaction_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, voi
     owned_buf_snapshots.push_back(std::make_pair(inner_buf, data));
 }
 
-void mc_transaction_t::green_light() {
-    pm_transactions_starting.end(&start_time);
-    pm_transactions_active.begin(&start_time);
-    begin_callback->on_txn_begin(this);
-}
+mc_transaction_t::~mc_transaction_t() {
 
-bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
-    rassert(state == state_open);
+    /* For the benefit of some things that carry around `boost::shared_ptr<transaction_t>`. */
+    // TODO: this is horrible.
+    on_thread_t thread_switcher(home_thread());
+
     pm_transactions_active.end(&start_time);
-    pm_transactions_committing.begin(&start_time);
 
-    assert_thread();
+    block_pm_duration commit_timer(&pm_transactions_committing);
 
     if (snapshotted && snapshot_version != mc_inner_buf_t::faux_version_id) {
         cache->unregister_snapshot(this);
@@ -673,48 +708,23 @@ bool mc_transaction_t::commit(transaction_commit_callback_t *callback) {
         }
     }
 
-    /* We have to call sync_patiently() before on_transaction_commit() so that if
-    on_transaction_commit() starts a sync, we will get included in it */
     if (access == rwi_write && cache->writeback.wait_for_flush) {
-        if (cache->writeback.sync_patiently(this)) {
-            state = state_committed;
-        } else {
-            state = state_in_commit_call;
-        }
+        /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
+        `on_transaction_commit()` starts a sync, we will get included in it */
+        struct : public writeback_t::sync_callback_t, public cond_t {
+            void on_sync() { pulse(); }
+        } sync_callback;
+        if (cache->writeback.sync_patiently(&sync_callback)) sync_callback.pulse();
+        cache->on_transaction_commit(this);
+        sync_callback.wait();
+
     } else {
-        state = state_committed;
+        cache->on_transaction_commit(this);
+
     }
 
-    cache->on_transaction_commit(this);
-
-    if (state == state_in_commit_call) {
-        state = state_committing;
-        commit_callback = callback;
-        return false;
-    } else {
-        delete this;
-        return true;
-    }
-}
-
-void mc_transaction_t::on_sync() {
-    /* cache->on_transaction_commit() could cause on_sync() to be called even after sync_patiently()
-    failed. To detect when this happens, we use the state state_in_commit_call. If we get an
-    on_sync() while in state_in_commit_call, we know that we are still inside of commit(), so we
-    don't delete ourselves yet and just set state to state_committed instead, thereby signalling
-    commit() to delete us. I think there must be a better way to do this, but I can't think of it
-    right now. */
-
-    if (state == state_in_commit_call) {
-        state = state_committed;
-    } else if (state == state_committing) {
-        state = state_committed;
-        // TODO(NNW): We should push notifications through event queue.
-        commit_callback->on_txn_commit(this);
-        delete this;
-    } else {
-        unreachable("Unexpected state.");
-    }
+    pm_snapshots_per_transaction.record(owned_buf_snapshots.size());
+    pm_registered_snapshot_blocks -= owned_buf_snapshots.size();
 }
 
 mc_buf_t *mc_transaction_t::allocate() {
@@ -731,22 +741,15 @@ mc_buf_t *mc_transaction_t::allocate() {
     assert_thread();
 
     // This must pass since no one else holds references to this block.
-    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write, snapshot_version, snapshotted);
+    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_write, snapshot_version, snapshotted, 0);
 
     assert_thread();
-    rassert(buf->ready);
 
     return buf;
 }
 
-// TODO: This interface is a lie, we block until the block is
-// available.  The parameter callback is unused.  We have code that
-// wants to release its hold on some buffers as soon as we have
-// stepped in line to acquire the buffer's child.  We can't do that
-// right now, and as long as this function is blocking, it will have
-// to support the new behavior or we can be slow.
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
-                                    block_available_callback_t *callback, bool should_load) {
+                                    boost::function<void()> call_when_in_line, bool should_load) {
     rassert(block_id != NULL_BLOCK_ID);
     rassert(is_read_mode(mode) || access != rwi_read);
     rassert(should_load || access == rwi_write);
@@ -755,7 +758,7 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     inner_buf_t *inner_buf = cache->find_buf(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
-        inner_buf = new inner_buf_t(cache, block_id, should_load);
+        inner_buf = new inner_buf_t(cache, block_id, should_load, get_io_account());
     } else {
         rassert(!inner_buf->do_delete || snapshotted);
 
@@ -763,34 +766,23 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
             // The inner_buf doesn't have any data currently. We need the data though,
             // so load it!
             inner_buf->data = cache->serializer->malloc();
+
             // Please keep in mind that this is blocking...
-            inner_buf->load_inner_buf(true);
+            inner_buf->load_inner_buf(true, get_io_account());
         }
     }
 
     // If we are not in a snapshot transaction, then snapshot_version is faux_version_id,
     // so the latest block version will be acquired (possibly, after acquiring the lock).
     // If the snapshot version is specified, then no locking is used.
-    buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted);
+    buf_t *buf = new buf_t(inner_buf, mode, snapshot_version, snapshotted, call_when_in_line);
 
     if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
         buf->touch_recency(recency_timestamp);
     }
 
-    if (buf->ready) {
-        maybe_finalize_version();
-        return buf;
-    } else {
-        rassert(false, "This can never happen, buf_t::buf_t will set buf->ready to true.");
-        buf->callback = snapshotted ? new snapshot_wrapper_t(this, callback) : callback;
-        return NULL;
-    }
-}
-
-void mc_transaction_t::snapshot_wrapper_t::on_block_available(mc_buf_t *block) {
-    trx->maybe_finalize_version();
-    cb->on_block_available(block);
-    delete this;
+    maybe_finalize_version();
+    return buf;
 }
 
 void mc_transaction_t::maybe_finalize_version() {
@@ -812,6 +804,14 @@ void mc_transaction_t::snapshot() {
     rassert(snapshot_version == mc_inner_buf_t::faux_version_id, "Tried to take a snapshot after having acquired a first block");
 
     snapshotted = true;
+}
+
+void mc_transaction_t::set_account(boost::shared_ptr<mc_cache_account_t> cache_account) {
+    cache_account_ = cache_account;
+}
+
+file_t::account_t *mc_transaction_t::get_io_account() const {
+    return (cache_account_.get() == NULL ? cache->reads_io_account.get() : cache_account_->io_account_.get());
 }
 
 void get_subtree_recencies_helper(int slice_home_thread, translator_serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
@@ -839,7 +839,7 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
     }
 
     if (need_second_loop) {
-        do_on_thread(cache->serializer->home_thread, boost::bind(&get_subtree_recencies_helper, get_thread_id(), cache->serializer, block_ids, num_block_ids, recencies_out, cb));
+        do_on_thread(cache->serializer->home_thread(), boost::bind(&get_subtree_recencies_helper, get_thread_id(), cache->serializer, block_ids, num_block_ids, recencies_out, cb));
     } else {
         cb->got_subtree_recencies();
     }
@@ -857,7 +857,7 @@ void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_stat
 
     /* Write an empty superblock */
 
-    on_thread_t switcher(serializer->home_thread);
+    on_thread_t switcher(serializer->home_thread());
 
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
@@ -876,7 +876,7 @@ mc_cache_t::mc_cache_t(
             translator_serializer_t *serializer,
             mirrored_cache_config_t *dynamic_config) :
 
-    dynamic_config(dynamic_config),
+    dynamic_config(*dynamic_config),
     serializer(serializer),
     reads_io_account(serializer->make_io_account(dynamic_config->io_priority_reads)),
     writes_io_account(serializer->make_io_account(dynamic_config->io_priority_writes)),
@@ -973,6 +973,15 @@ void mc_cache_t::unregister_snapshot(mc_transaction_t *txn) {
     pm_registered_snapshots--;
 }
 
+size_t mc_cache_t::calculate_snapshots_affected(mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
+    rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
+    size_t num_snapshots_affected = 0;
+    for (snapshots_map_t::iterator it = active_snapshots.lower_bound(snapshotted_version); it != active_snapshots.lower_bound(new_version); it++) {
+        num_snapshots_affected++;
+    }
+    return num_snapshots_affected;
+}
+
 size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data, mc_inner_buf_t::version_id_t snapshotted_version, mc_inner_buf_t::version_id_t new_version) {
     rassert(snapshotted_version <= new_version);    // on equals we'll get 0 snapshots affected
     size_t num_snapshots_affected = 0;
@@ -991,20 +1000,19 @@ bool mc_cache_t::contains_block(block_id_t block_id) {
     return find_buf(block_id) != NULL;
 }
 
-mc_transaction_t *mc_cache_t::begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
-    assert_thread();
-    rassert(!shutting_down);
-    rassert(access == rwi_write || expected_change_count == 0);
+boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
+    // We assume that a priority of 100 means that the transaction should have the same priority as
+    // all the non-accounted transactions together. Not sure if this makes sense.
 
-    transaction_t *txn = new transaction_t(this, token, access, expected_change_count, recency_timestamp);
-    num_live_transactions++;
-    if (writeback.begin_transaction(txn, callback)) {
-        pm_transactions_starting.end(&txn->start_time);
-        pm_transactions_active.begin(&txn->start_time);
-        return txn;
-    } else {
-        return NULL;
-    }
+    // Be aware of rounding errors... (what can be do against those? probably just setting the default io_priority_reads high enough)
+    int io_priority = std::max(1, dynamic_config.io_priority_reads * priority / 100);
+
+    // TODO: This is a heuristic. While it might not be evil, it's not really optimal either.
+    int outstanding_requests_limit = std::max(1, 16 * priority / 100);
+
+    boost::shared_ptr<file_t::account_t> io_account(serializer->make_io_account(io_priority, outstanding_requests_limit));
+
+    return boost::shared_ptr<cache_account_t>(new cache_account_t(io_account));
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {
@@ -1020,7 +1028,7 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
 
 void mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
-    do_on_thread(home_thread, boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, recency_timestamp));
+    do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, recency_timestamp));
 }
 
 bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {

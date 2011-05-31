@@ -1,14 +1,14 @@
 #include <math.h>
 #include "server.hpp"
 #include "db_thread_info.hpp"
-#include "memcached/memcached.hpp"
+#include "memcached/tcp_conn.hpp"
+#include "memcached/file.hpp"
 #include "diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
 #include "server/cmd_args.hpp"
 #include "replication/master.hpp"
 #include "replication/slave.hpp"
-#include "replication/load_balancer.hpp"
 #include "control.hpp"
 #include "gated_store.hpp"
 #include "concurrency/promise.hpp"
@@ -135,36 +135,6 @@ private:
 }
 #endif
 
-struct memcache_conn_handler_t : public conn_handler_with_special_lifetime_t {
-    memcache_conn_handler_t(get_store_t *get_store, set_store_interface_t *set_store, order_source_pigeoncoop_t *pigeoncoop)
-        : get_store_(get_store), set_store_(set_store), order_source_(pigeoncoop) { }
-
-    void talk_on_connection(tcp_conn_t *conn) {
-        serve_memcache(conn, get_store_, set_store_, &order_source_);
-    }
-
-private:
-    get_store_t *get_store_;
-    set_store_interface_t *set_store_;
-    order_source_t order_source_;
-    DISABLE_COPYING(memcache_conn_handler_t);
-};
-
-struct memcache_conn_acceptor_callback_t : public conn_acceptor_callback_t {
-    memcache_conn_acceptor_callback_t(get_store_t *get_store, set_store_interface_t *set_store, order_source_pigeoncoop_t *pigeoncoop)
-        : get_store_(get_store), set_store_(set_store), pigeoncoop_(pigeoncoop) { }
-
-    void make_handler_for_conn_thread(boost::scoped_ptr<conn_handler_with_special_lifetime_t>& output) {
-        output.reset(new memcache_conn_handler_t(get_store_, set_store_, pigeoncoop_));
-    }
-
-private:
-    get_store_t *get_store_;
-    set_store_interface_t *set_store_;
-    order_source_pigeoncoop_t *pigeoncoop_;
-    DISABLE_COPYING(memcache_conn_acceptor_callback_t);
-};
-
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
     os_signal_cond_t os_signal_cond;
     try {
@@ -209,8 +179,6 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
         if (!cmd_config->shutdown_after_creation) {
 
-            order_source_pigeoncoop_t pigeoncoop(MEMCACHE_START_BUCKET);
-
             /* Start key-value store */
             logINF("Loading database...\n");
             btree_key_value_store_t store(&cmd_config->store_dynamic_config);
@@ -224,8 +192,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 std::vector<std::string>::iterator it;
                 for(it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
                     logINF("Importing file %s...\n", it->c_str());
-                    order_source_t order_source(&pigeoncoop);
-                    import_memcache(*it, &store, &order_source);
+                    import_memcache(*it, &store, &os_signal_cond);
                     logINF("Done\n");
                 }
             } else {
@@ -233,8 +200,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 forbid gets and sets at appropriate times. */
                 gated_get_store_t gated_get_store(&store);
                 gated_set_store_interface_t gated_set_store(&store);
-                memcache_conn_acceptor_callback_t conn_acceptor_callback(&gated_get_store, &gated_set_store, &pigeoncoop);
-                conn_acceptor_t conn_acceptor(cmd_config->port, &conn_acceptor_callback);
+                memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
 
                 if (cmd_config->replication_config.active) {
 
@@ -276,7 +242,7 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     that would confuse the replication logic. */
                     store.set_replication_master_id(NOT_A_SLAVE);
 
-                    backfill_receiver_order_source_t master_order_source(BACKFILL_RECEIVER_ORDER_SOURCE_BUCKET);
+                    backfill_receiver_order_source_t master_order_source;
                     replication::master_t master(cmd_config->replication_master_listen_port, &store, cmd_config->replication_config, &gated_get_store, &gated_set_store, &master_order_source);
 
                     wait_for_sigint();
@@ -312,8 +278,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             logINF("Shutting down...\n");
         }
 
-    } catch (conn_acceptor_t::address_in_use_exc_t) {
-        logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
+    } catch (tcp_listener_t::address_in_use_exc_t) {
+        logERR("Port %d is already in use -- aborting.\n", cmd_config->port);
     }
 
     /* The penultimate step of shutting down is to make sure that all messages
@@ -326,8 +292,9 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         on_thread_t thread_switcher(i);
     }
 
-    /* Finally tell the thread pool to stop. TODO: Eventually, the thread pool should stop
-    automatically when server_main() returns. */
+    /* Finally tell the thread pool to stop.
+    TODO: We should make it so the thread pool stops automatically when server_main()
+    returns. */
     thread_pool->shutdown();
 }
 

@@ -61,6 +61,19 @@ inline void cancel_timer(timer_token_t *timer) {
     io_config_t::cancel_timer(timer);
 }
 
+inline int get_cpu_count() {
+    return io_config_t::get_cpu_count();
+}
+
+inline long get_available_ram() {
+    return io_config_t::get_available_ram();
+}
+
+inline long get_total_ram() {
+    return io_config_t::get_total_ram();
+}
+
+
 void co_read(direct_file_t *file, size_t offset, size_t length, void *buf, direct_file_t::account_t *account);
 void co_write(direct_file_t *file, size_t offset, size_t length, void *buf, direct_file_t::account_t *account);
 

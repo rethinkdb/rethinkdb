@@ -17,17 +17,13 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
 
-    /* In theory moving back might not be necessary, but not doing it causes problems right now. */
-    // This saver's destructor is a no-op because the mover's
-    // destructor runs right before it.
-    thread_saver_t saver;
-    on_thread_t mover(slice->home_thread);
-    // We can use repli_timestamp::invalid here because it's the timestamp for a read-only transaction.
-    boost::shared_ptr<transactor_t> transactor(new transactor_t(saver, slice->cache(), rwi_read, token));
+    // TODO: We should really already be on the right thread.
+    on_thread_t mover(slice->home_thread());
+    boost::shared_ptr<transaction_t> transaction(new transaction_t(slice->cache(), rwi_read, token));
 
     // Acquire the superblock
 
-    buf_lock_t buf_lock(saver, *transactor, SUPERBLOCK_ID, rwi_read);
+    buf_lock_t buf_lock(transaction.get(), SUPERBLOCK_ID, rwi_read);
     block_id_t node_id = ptr_cast<btree_superblock_t>(buf_lock->get_data_read())->root_block;
     rassert(node_id != SUPERBLOCK_ID);
 
@@ -40,7 +36,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
 
     while (true) {
         {
-            buf_lock_t tmp(saver, *transactor, node_id, rwi_read);
+            buf_lock_t tmp(transaction.get(), node_id, rwi_read);
             buf_lock.swap(tmp);
         }
 
@@ -75,7 +71,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
             return get_result_t();
         } else {
             /* Construct a data-provider to hold the result */
-            boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value, transactor));
+            boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value, transaction));
 
             // Data provider created above copies the small value (and doesn't
             // need the buf for the large value), so we can release the buf

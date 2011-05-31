@@ -189,9 +189,6 @@
 // memcached specifies the maximum value size to be 1MB, but customers asked this to be much higher
 #define MAX_VALUE_SIZE                            10 * MEGABYTE
 
-// Values larger than this will be streamed in a set operation.
-#define MAX_BUFFERED_SET_SIZE                     MAX_VALUE_SIZE // streaming is too slow for now, so we disable it completely
-
 // Values larger than this will be streamed in a get operation
 #define MAX_BUFFERED_GET_SIZE                     MAX_VALUE_SIZE // streaming is too slow for now, so we disable it completely
 

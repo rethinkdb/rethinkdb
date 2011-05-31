@@ -8,7 +8,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         : increment(increment), delta(delta)
     { }
 
-    bool operate(UNUSED const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
+    bool operate(UNUSED const boost::shared_ptr<transaction_t>& txn, btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         // If the key didn't exist before, we fail
         if (!old_value) {
             result.res = incr_decr_result_t::idr_not_found;
@@ -77,8 +77,8 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
     incr_decr_result_t result;
 };
 
-incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, UNUSED order_token_t token) {
+incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, order_token_t token) {
     btree_incr_decr_oper_t oper(increment, delta);
-    run_btree_modify_oper(&oper, slice, key, castime);
+    run_btree_modify_oper(&oper, slice, key, castime, token);
     return oper.result;
 }

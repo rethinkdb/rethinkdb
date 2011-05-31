@@ -4,6 +4,7 @@
 
 #include "containers/segmented_vector.hpp"
 #include "utils2.hpp"
+#include "arch/random_delay.hpp"
 #include <stdlib.h>
 
 struct mock_iocallback_t {
@@ -26,7 +27,7 @@ public:
     };
 
     struct account_t {
-        account_t(UNUSED mock_file_t *f, UNUSED int p) { }
+        account_t(UNUSED mock_file_t *f, UNUSED int p, UNUSED int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS) { }
     };
 
 protected:

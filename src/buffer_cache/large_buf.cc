@@ -95,13 +95,13 @@ int large_buf_t::num_ref_inlined() const {
     return compute_large_buf_ref_num_inlined(block_size(), root_ref->size + root_ref->offset, root_ref_limit);
 }
 
-large_buf_t::large_buf_t(const boost::shared_ptr<transactor_t>& _txor, large_buf_ref *_root_ref, lbref_limit_t _ref_limit, access_t _access)
-    : root_ref(_root_ref), root_ref_limit(_ref_limit), access(_access), txor(_txor)
+large_buf_t::large_buf_t(const boost::shared_ptr<transaction_t>& _txn, large_buf_ref *_root_ref, lbref_limit_t _ref_limit, access_t _access)
+    : root_ref(_root_ref), root_ref_limit(_ref_limit), access(_access), txn(_txn)
 #ifndef NDEBUG
     , state(not_loaded), num_bufs(0)
 #endif
 {
-    rassert(txor && txor->get());
+    rassert(txn);
     rassert(root_ref);
 }
 
@@ -124,7 +124,7 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
     ret->level = levels;
 #endif
 
-    ret->buf = (*txor)->allocate();
+    ret->buf = txn->allocate();
     *block_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
@@ -200,7 +200,7 @@ void large_buf_t::allocate(int64_t _size) {
     rassert(roots[0]->level == num_sublevels(root_ref->offset + root_ref->size));
 }
 
-struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_available_callback_t {
+struct acquire_buftree_fsm_t : public tree_available_callback_t {
     block_id_t block_id;
     int64_t offset, size;
     int levels;
@@ -222,13 +222,8 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
 
     void go() {
         bool should_load = should_load_code > no_load_leaves || levels != 1;
-        buf_t *buf = (*lb->txor)->acquire(block_id, lb->access, this, should_load);
-        if (buf) {
-            on_block_available(buf);
-        }
-    }
+        buf_t *buf = lb->txn->acquire(block_id, lb->access, boost::function<void()>(), should_load);
 
-    void on_block_available(buf_t *buf) {
 #ifndef NDEBUG
         lb->num_bufs++;
 #endif
@@ -244,6 +239,11 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
 
             lb_indexer ixer(offset, size, lb->max_offset(levels - 1));
             tr->children.resize(ixer.end_index(), NULL);
+
+            /* TODO: Parallelize this. `go()` blocks until the entire subtree has been acquired,
+            and we wait for `go()` to return before calling `go()` on the next branch. Instead,
+            we should run `go()` in a sub-coroutine and pass in a `call_when_in_line` function
+            so we know when we can release the parent. */
 
             life_counter = ixer.end_index() - ixer.index();
             for (; !ixer.done(); ixer.step()) {
@@ -278,12 +278,12 @@ struct acquire_buftree_fsm_t : public block_available_callback_t, public tree_av
     }
 };
 
-void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, const void *buf, int64_t n) {
-    thread_saver_t saver;
+void large_buf_t::co_enqueue(const boost::shared_ptr<transaction_t>& txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, const void *buf, int64_t n) {
+    txn->assert_thread();
     rassert(root_ref->size - amount_to_dequeue + n > 0);
 
     {
-        boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
+        boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txn, root_ref, ref_limit, rwi_write));
 
         int64_t original_size = root_ref->size;
 
@@ -292,7 +292,7 @@ void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_
             lb->allocate(n);
             rassert(lb->state == loaded);
         } else {
-            co_acquire_large_buf_slice(saver, lb.get(), original_size - 1, 1);
+            co_acquire_large_buf_slice(lb.get(), original_size - 1, 1);
             rassert(lb->state == loaded);
 
             int refsize_adjustment;
@@ -304,10 +304,10 @@ void large_buf_t::co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_
 
     // 2. Dequeue.
     if (amount_to_dequeue > 0) {
-        boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txor, root_ref, ref_limit, rwi_write));
+        boost::scoped_ptr<large_buf_t> lb(new large_buf_t(txn, root_ref, ref_limit, rwi_write));
 
         // TODO: We could do this operation concurrently with co_acquire_large_buf_slice.
-        co_acquire_large_buf_for_unprepend(saver, lb.get(), amount_to_dequeue);
+        co_acquire_large_buf_for_unprepend(lb.get(), amount_to_dequeue);
 
         int refsize_adjustment;
         lb->unprepend(amount_to_dequeue, &refsize_adjustment);
@@ -401,7 +401,7 @@ void large_buf_t::adds_level(block_id_t *ids, int num_roots
     ret->level = nextlevels;
 #endif
 
-    ret->buf = (*txor)->allocate();
+    ret->buf = txn->allocate();
     block_id_t new_id = ret->buf->get_block_id();
 
 #ifndef NDEBUG
@@ -860,8 +860,7 @@ void large_buf_t::mark_deleted() {
 }
 
 void large_buf_t::lv_release() {
-    thread_saver_t saver;
-    (*txor)->ensure_thread(saver);
+    on_thread_t th(txn->home_thread());
 
     rassert(state == loaded || state == deleted);
     int sublevels = num_sublevels(root_ref->offset + root_ref->size);

@@ -6,7 +6,7 @@
 
 class control_t {
 public:
-    control_t(const std::string& key, const std::string& help_string, bool secret = false);
+    control_t(const std::string& key, const std::string& help_string, bool internal = false);
     virtual ~control_t();
 
     virtual std::string call(int argc, char **argv) = 0;
@@ -17,7 +17,7 @@ private:
     friend class help_control_t;
     std::string key;
     std::string help_string;
-    bool secret;
+    bool internal;
 };
 
 typedef std::map<std::string, control_t *> control_map_t;

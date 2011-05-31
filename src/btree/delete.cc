@@ -10,7 +10,7 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
     delete_result_t result;
     bool dont_put_in_delete_queue;
 
-    bool operate(UNUSED const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
+    bool operate(UNUSED const boost::shared_ptr<transaction_t>& txn, btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         if (old_value) {
             result = dr_deleted;
             *new_value = NULL;
@@ -25,7 +25,7 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
         return 1;
     }
 
-    void do_superblock_sidequest(boost::shared_ptr<transactor_t>& txor,
+    void do_superblock_sidequest(boost::shared_ptr<transaction_t>& txn,
                                  buf_lock_t& superblock,
                                  repli_timestamp recency,
                                  const store_key_t *key) {
@@ -34,13 +34,13 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
             slice->assert_thread();
             const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
 
-            replication::add_key_to_delete_queue(slice->delete_queue_limit(), txor, sb->delete_queue_block, recency, key);
+            replication::add_key_to_delete_queue(slice->delete_queue_limit(), txn, sb->delete_queue_block, recency, key);
         }
     }
 };
 
-delete_result_t btree_delete(const store_key_t &key, bool dont_put_in_delete_queue, btree_slice_t *slice, repli_timestamp timestamp, UNUSED order_token_t token) {
+delete_result_t btree_delete(const store_key_t &key, bool dont_put_in_delete_queue, btree_slice_t *slice, repli_timestamp timestamp, order_token_t token) {
     btree_delete_oper_t oper(dont_put_in_delete_queue);
-    run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, timestamp));
+    run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, timestamp), token);
     return oper.result;
 }

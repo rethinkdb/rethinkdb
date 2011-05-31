@@ -5,7 +5,6 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/large_buf.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/transactor.hpp"
 #include "buffer_cache/co_functions.hpp"
 #include <boost/shared_ptr.hpp>
 

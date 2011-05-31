@@ -5,7 +5,7 @@
 class btree_delete_expired_oper_t : public btree_modify_oper_t
 {
 public:
-    bool operate(UNUSED const boost::shared_ptr<transactor_t>& txor, UNUSED btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, UNUSED btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
+    bool operate(UNUSED const boost::shared_ptr<transaction_t>& txn, UNUSED btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, UNUSED btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         /* Don't do anything. run_btree_modify_oper() will take advantage of
          * the fact that we got to the leaf in write mode to automatically
          * delete the expired key if necessary. */
@@ -32,7 +32,7 @@ void co_btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {
     // passing a completely meaningless proposed cas and because we
     // should not really be passing a recency timestamp.
     // It's okay to use repli_timestamp::invalid here.
-    run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp::invalid));
+    run_btree_modify_oper(&oper, slice, key, castime_t(BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS, repli_timestamp::invalid), order_token_t::ignore);
 }
 
 void btree_delete_expired(const store_key_t &key, btree_slice_t *slice) {

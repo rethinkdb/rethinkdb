@@ -57,8 +57,9 @@ struct config_t {
     config_t() : ignore_diff_log(false), print_command_line(false), print_file_version(false) {}
 };
 
-bool check_files(const config_t& config);
-std::string extract_command_line_args(const config_t& cfg);
+bool check_files(const config_t *config);
+
+std::string extract_command_line_args(const config_t *cfg);
 
 
 

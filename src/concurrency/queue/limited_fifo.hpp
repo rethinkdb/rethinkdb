@@ -24,7 +24,7 @@ struct limited_fifo_queue_t :
         { }
 
     void push(const value_t &value) {
-        on_thread_t thread_switcher(home_thread);
+        on_thread_t thread_switcher(home_thread());
         if (counter) (*counter)++;
         semaphore.co_lock();
         queue.push_back(value);

@@ -8,46 +8,6 @@ struct mutation_get_key_functor_t : public boost::static_visitor<store_key_t> {
     store_key_t operator()(const append_prepend_mutation_t &m) { return m.key; }
 };
 
-struct mutation_get_data_provider_functor_t : public boost::static_visitor<data_provider_t *> {
-    data_provider_t *operator()(UNUSED const get_cas_mutation_t &m) { return NULL; }
-    data_provider_t *operator()(const sarc_mutation_t &m) { return m.data.get(); }
-    data_provider_t *operator()(UNUSED const delete_mutation_t &m) { return NULL; }
-    data_provider_t *operator()(UNUSED const incr_decr_mutation_t &m) { return NULL; }
-    data_provider_t *operator()(const append_prepend_mutation_t &m) { return m.data.get(); }
-};
-
-struct mutation_replace_data_provider_functor_t : public boost::static_visitor<mutation_t> {
-    //data_provider_splitter_t *data_splitter;
-    mutation_t operator()(const get_cas_mutation_t &m) {
-        return m;
-    }
-    mutation_t operator()(const sarc_mutation_t &m) {
-        sarc_mutation_t m2 = m;
-        duplicate_data_provider(m.data, 1, &m2.data);
-        return m2;
-    }
-    mutation_t operator()(const delete_mutation_t &m) {
-        return m;
-    }
-    mutation_t operator()(const incr_decr_mutation_t &m) {
-        return m;
-    }
-    mutation_t operator()(const append_prepend_mutation_t &m) {
-        append_prepend_mutation_t m2 = m;
-        duplicate_data_provider(m.data, 1, &m2.data);
-        return m2;
-    }
-};
-
-mutation_splitter_t::mutation_splitter_t(const mutation_t &mut)
-    : original(mut)
-{ }
-
-mutation_t mutation_splitter_t::branch() {
-    mutation_replace_data_provider_functor_t functor;
-    return boost::apply_visitor(functor, original.mutation);
-}
-
 store_key_t mutation_t::get_key() const {
     mutation_get_key_functor_t functor;
     return boost::apply_visitor(functor, mutation);
@@ -94,8 +54,8 @@ delete_result_t set_store_interface_t::delete_key(const store_key_t &key, order_
     return boost::get<delete_result_t>(change(mut, token).result);
 }
 
-timestamping_set_store_interface_t::timestamping_set_store_interface_t(set_store_t *target)
-    : target(target), cas_counter(0), timestamp(repli_timestamp_t::distant_past()) { }
+timestamping_set_store_interface_t::timestamping_set_store_interface_t(set_store_t *_target)
+    : target(_target), cas_counter(0), timestamp(repli_timestamp_t::distant_past) { }
 
 mutation_result_t timestamping_set_store_interface_t::change(const mutation_t &mutation, order_token_t token) {
     assert_thread();

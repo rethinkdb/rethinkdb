@@ -8,7 +8,6 @@
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/translator.hpp"
-#include "buffer_cache/mirrored/callbacks.hpp"
 #include "buffer_cache/buf_patch.hpp"
 
 struct mc_cache_t;
@@ -22,8 +21,6 @@ struct writeback_t
     typedef mc_buf_t buf_t;
     typedef mc_inner_buf_t inner_buf_t;
     typedef mc_transaction_t transaction_t;
-    typedef mc_transaction_begin_callback_t transaction_begin_callback_t;
-    typedef mc_transaction_commit_callback_t transaction_commit_callback_t;
     
 public:
     writeback_t(
@@ -49,27 +46,15 @@ public:
     /* Same as sync(), but doesn't hurry up the writeback in any way. */
     bool sync_patiently(sync_callback_t *callback);
 
-    bool begin_transaction(transaction_t *txn, transaction_begin_callback_t *cb);
+    /* `begin_transaction()` will block if the transaction is a write transaction and
+    it ought to be throttled */
+    void begin_transaction(transaction_t *txn);
+
     void on_transaction_commit(transaction_t *txn);
 
-    struct begin_transaction_fsm_t :
-        public thread_message_t,
-        public lock_available_callback_t,
-        public intrusive_list_node_t<begin_transaction_fsm_t>
-    {
-        writeback_t *writeback;
-        mc_transaction_t *transaction;
-        begin_transaction_fsm_t(writeback_t *wb, mc_transaction_t *txn, mc_transaction_begin_callback_t *cb);
-        void green_light();
-        void on_thread_switch();
-        void on_lock_available();
-    };
-    intrusive_list_t<begin_transaction_fsm_t> throttled_transactions_list;
-
-    unsigned int num_dirty_blocks();
-
-    bool too_many_dirty_blocks();
-    void possibly_unthrottle_transactions();
+    unsigned int num_dirty_blocks() {
+        return dirty_bufs.size();
+    }
 
     class local_buf_t : public intrusive_list_node_t<local_buf_t> {
         friend class writeback_t;
@@ -104,8 +89,7 @@ public:
     bool wait_for_flush;
     unsigned int flush_waiting_threshold;
     unsigned int max_concurrent_flushes;
-    
-    unsigned int max_dirty_blocks;   // Number of blocks, not percentage
+    unsigned int max_dirty_blocks;
     
 private:
     flush_time_randomizer_t flush_time_randomizer;
@@ -121,15 +105,12 @@ private:
     // much longer the data can sit in memory.
     timer_token_t *flush_timer;
     static void flush_timer_callback(void *ctx);
-    
-    /* The number of writes that we dispatched to the disk that have not come back yet. */
-    unsigned long long outstanding_disk_writes;
-    
-    /* The sum of the expected_change_counts of the currently active write transactions. */
-    int expected_active_change_count;
 
     bool writeback_in_progress;
     unsigned int active_flushes;
+
+    /* Use `adjustable_semaphore_t` instead of `semaphore_t` so we can get `force_lock()`. */
+    adjustable_semaphore_t dirty_block_semaphore;
 
     bool force_patch_storage_flush;
 

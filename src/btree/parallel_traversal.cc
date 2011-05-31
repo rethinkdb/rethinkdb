@@ -1,7 +1,6 @@
 #include "btree/parallel_traversal.hpp"
 
 #include "btree/slice.hpp"
-#include "buffer_cache/transactor.hpp"
 #include "buffer_cache/buf_lock.hpp"
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"
@@ -71,19 +70,19 @@ protected:
 
 class traversal_state_t {
 public:
-    traversal_state_t(boost::shared_ptr<transactor_t>& txor, btree_slice_t *_slice, btree_traversal_helper_t *_helper)
+    traversal_state_t(boost::shared_ptr<transaction_t>& txn, btree_slice_t *_slice, btree_traversal_helper_t *_helper)
         : slice(_slice),
           /* We can't compute the expected change count (we're either
              doing nothing or deleting the entire tree or something),
              so we just pass 0.  You could let this be a
              helper-supplied value, if you cared. */
-          transactor_ptr(txor),
+          transaction_ptr(txn),
           helper(_helper) { }
 
     // The slice whose btree we're traversing
     btree_slice_t *const slice;
 
-    boost::shared_ptr<transactor_t> transactor_ptr;
+    boost::shared_ptr<transaction_t> transaction_ptr;
 
     // The helper.
     btree_traversal_helper_t *helper;
@@ -106,11 +105,15 @@ public:
         // level = 1 is the root level.  These numbers are
         // ridiculously small because we have to spawn a coroutine
         // because the buffer cache is broken.
-        if (level <= 3) {
-            return 1000;
-        } else {
-            return 50;
-        }
+        // Also we tend to interfere with other i/o for a weird reason.
+        // (potential explanation: on the higher levels of the btree, we
+        // trigger the load of a significant fraction of all blocks. Sooner or
+        // later, queries end up waiting for the same blocks. But at that point
+        // they effectively get queued into our i/o queue (assuming we have an
+        // i/o account of ourselves). If this number is high and disks are slow,
+        // the latency of that i/o queue can be in the area of seconds though,
+        // and the query blocks for that time).
+        return 16;
     }
 
     void consider_pulsing() {
@@ -140,6 +143,7 @@ public:
                     // expects transaction_t::acquire to run in a
                     // coroutine!  So we use coro_t::spawn instead of
                     // do_later.
+                    level_count(i) += 1;
                     coro_t::spawn(boost::bind(&acquisition_waiter_callback_t::you_may_acquire, waiter_cb));
                     diff -= 1;
                 }
@@ -190,7 +194,7 @@ protected:
     ~node_ready_callback_t() { }
 };
 
-struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block_available_callback_t {
+struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
     // Not much of an fsm.
     traversal_state_t *state;
     int level;
@@ -199,22 +203,11 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block
     node_ready_callback_t *node_ready_cb;
 
     void you_may_acquire() {
-        state->level_count(level) += 1;
 
-        buf_t *buf = state->transactor_ptr->get()->acquire(block_id, state->helper->btree_node_mode(), this);
-        // TODO: This is worthless crap.  We haven't started the
-        // acquisition, we've FINISHED acquiring the buf because the
-        // interface of acquire is a complete lie.  Thus we have worse
-        // performance.
-        acq_start_cb->on_started_acquisition();
+        buf_t *block = state->transaction_ptr->acquire(
+            block_id, state->helper->btree_node_mode(),
+            boost::bind(&acquisition_start_callback_t::on_started_acquisition, acq_start_cb));
 
-        rassert(buf, "apparently the transaction_t::acquire interface now takes a callback parameter but never uses it");
-        if (buf) {
-            on_block_available(buf);
-        }
-    }
-
-    void on_block_available(buf_t *block) {
         rassert(coro_t::self());
         node_ready_callback_t *local_cb = node_ready_cb;
         delete this;
@@ -253,14 +246,13 @@ struct internal_node_releaser_t : public parent_releaser_t {
     internal_node_releaser_t(buf_t *buf, traversal_state_t *state) : buf_(buf), state_(state) { }
 };
 
-void btree_parallel_traversal(boost::shared_ptr<transactor_t>& txor, btree_slice_t *slice, btree_traversal_helper_t *helper) {
-    thread_saver_t saver;
-    traversal_state_t state(txor, slice, helper);
-    buf_lock_t superblock_buf(saver, *state.transactor_ptr, SUPERBLOCK_ID, helper->btree_superblock_mode());
+void btree_parallel_traversal(boost::shared_ptr<transaction_t>& txn, btree_slice_t *slice, btree_traversal_helper_t *helper) {
+    traversal_state_t state(txn, slice, helper);
+    buf_lock_t superblock_buf(state.transaction_ptr.get(), SUPERBLOCK_ID, helper->btree_superblock_mode());
 
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
 
-    helper->preprocess_btree_superblock(state.transactor_ptr, superblock);
+    helper->preprocess_btree_superblock(state.transaction_ptr, superblock);
 
     block_id_t root_id = superblock->root_block;
     rassert(root_id != SUPERBLOCK_ID);
@@ -294,7 +286,7 @@ void btree_parallel_traversal(boost::shared_ptr<transactor_t>& txor, btree_slice
 void subtrees_traverse(traversal_state_t *state, parent_releaser_t *releaser, int level, boost::scoped_array<block_id_t>& param_block_ids, int num_block_ids) {
     rassert(coro_t::self());
     interesting_children_callback_t *fsm = new interesting_children_callback_t(state, releaser, level);
-    state->helper->filter_interesting_children(state->transactor_ptr, param_block_ids.get(), num_block_ids, fsm);
+    state->helper->filter_interesting_children(state->transaction_ptr, param_block_ids.get(), num_block_ids, fsm);
 }
 struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
     traversal_state_t *state;
@@ -341,7 +333,7 @@ void process_a_internal_node(traversal_state_t *state, buf_t *buf, int level) {
 // This releases its buf_t parameter.
 void process_a_leaf_node(traversal_state_t *state, buf_t *buf, int level) {
     // This can be run in the scheduler thread.
-    state->helper->process_a_leaf(state->transactor_ptr, buf);
+    state->helper->process_a_leaf(state->transaction_ptr, buf);
     buf->release();
     state->level_count(level) -= 1;
     state->consider_pulsing();

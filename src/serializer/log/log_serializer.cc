@@ -264,9 +264,9 @@ void log_serializer_t::free(void *ptr) {
     ::free(reinterpret_cast<void *>(data));
 }
 
-file_t::account_t *log_serializer_t::make_io_account(int priority) {
+file_t::account_t *log_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
     rassert(dbfile);
-    return new file_t::account_t(dbfile, priority);
+    return new file_t::account_t(dbfile, priority, outstanding_requests_limit);
 }
 
 /* Each transaction written is handled by a new ls_write_fsm_t instance. This is so that
@@ -864,8 +864,8 @@ void log_serializer_t::enable_gc() {
 }
 
 void log_serializer_t::register_read_ahead_cb(read_ahead_callback_t *cb) {
-    if (get_thread_id() != home_thread) {
-        do_on_thread(home_thread, boost::bind(&log_serializer_t::register_read_ahead_cb, this, cb));
+    if (get_thread_id() != home_thread()) {
+        do_on_thread(home_thread(), boost::bind(&log_serializer_t::register_read_ahead_cb, this, cb));
         return;
     }
 
@@ -873,8 +873,8 @@ void log_serializer_t::register_read_ahead_cb(read_ahead_callback_t *cb) {
 }
 
 void log_serializer_t::unregister_read_ahead_cb(read_ahead_callback_t *cb) {
-    if (get_thread_id() != home_thread) {
-        do_on_thread(home_thread, boost::bind(&log_serializer_t::unregister_read_ahead_cb, this, cb));
+    if (get_thread_id() != home_thread()) {
+        do_on_thread(home_thread(), boost::bind(&log_serializer_t::unregister_read_ahead_cb, this, cb));
         return;
     }
 

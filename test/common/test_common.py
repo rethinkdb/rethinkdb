@@ -131,7 +131,7 @@ class NetRecord(object):
 
 num_stress_clients = 0
 
-def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64, extra_flags=[], keys_prefix=None):
+def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64, extra_flags=[], keys_prefix=None, run_in_background=False):
     global num_stress_clients
     num_stress_clients += 1
     
@@ -155,12 +155,21 @@ def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "in
     command_line.extend(["-o", key_file])
     if os.path.exists(key_file): command_line.extend(["-i", key_file])
     
-    run_executable(command_line, "stress_client/output", timeout=None, test_dir=test_dir)
+    if run_in_background:
+        stress_client_process = SubProcess(
+            command_line,
+            "stress_client/output",
+            test_dir,
+            valgrind_tool = None,
+            interactive = False)
+        return stress_client_process
+    else:
+        run_executable(command_line, "stress_client/output", timeout=None, test_dir=test_dir)
 
 def rdb_stats(port=8080, host="localhost"):
     sock = socket.socket()
     sock.connect((host, port))
-    sock.send("stat-secret\r\n")
+    sock.send("rdb stats\r\n")
     
     buffer = ""
     while "END\r\n" not in buffer:
@@ -296,7 +305,7 @@ class Server(object):
                 s.connect(("localhost", self.internal_server_port))
             except Exception, e:
                 if "Connection refused" in str(e):
-                    time.sleep(0.1)
+                    time.sleep(0.5)
                 else:
                     raise
             else:
@@ -313,7 +322,7 @@ class Server(object):
                 if line.startswith("VALUE") or line == "END\r\n":
                     break
                 elif line.startswith("CLIENT_ERROR"):
-                    time.sleep(0.1)
+                    time.sleep(0.5)
                 else:
                     raise RuntimeError("Unexpected response from server: %r" % line)
             else:
@@ -693,6 +702,17 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
     
     sys.exit(0)
 
+def wait_till_socket_connectible(server, port):
+    while 1:
+        try:
+            print "Trying to connect to: %s:%d" % (server, port)
+            s = socket.create_connection((server, port))
+        except:
+            time.sleep(2)
+            continue
+        s.close()
+        break
+
 def start_master_slave_pair(opts, extra_flags, test_dir):
     repli_port = find_unused_port()
     m_flags = ["--master", "%d" % repli_port] 
@@ -701,15 +721,7 @@ def start_master_slave_pair(opts, extra_flags, test_dir):
 
     server.start(False)
 
-    while 1:
-        try:
-            print "Trying to connect to: %d" % repli_port
-            s = socket.create_connection(('localhost', repli_port))
-        except:
-            time.sleep(2)
-            continue
-        s.close()
-        break
+    wait_till_socket_connectible('localhost', repli_port)
 
     s_flags = ["--slave-of", "localhost:%d" % repli_port, "--no-rogue"]
 

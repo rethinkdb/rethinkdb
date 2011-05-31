@@ -2,10 +2,15 @@
 #ifndef __EVENT_QUEUE_HPP__
 #define __EVENT_QUEUE_HPP__
 
-#include "perfmon.hpp"
-#include "linux_utils.hpp"
+#include <signal.h>
+
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
+
+#include "perfmon.hpp"
+#include "linux_utils.hpp"
+
+
 
 // Event queue callback
 struct linux_event_callback_t {

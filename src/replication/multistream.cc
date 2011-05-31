@@ -130,25 +130,44 @@ void do_parse_normal_messages(tcp_conn_t *conn, connection_handler_t *conn_handl
     }
 }
 
+class tracker_cleaner_t {
+public:
+    tracker_cleaner_t(tracker_t *tracker) : tracker_(tracker) { }
+    ~tracker_cleaner_t() {
+        for (uint32_t i = 0, e = tracker_->end_index(); i < e; ++i) {
+            stream_handler_t *h = (*tracker_)[i];
+            if (h) {
+                delete h;
+                tracker_->drop(i);
+            }
+        }
+    }
+private:
+    tracker_t *tracker_;
+};
+
 
 void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
-
-    tracker_t streams;
 
     try {
         do_parse_hello_message(conn, conn_handler);
 
-        
+        tracker_t streams;
+        tracker_cleaner_t streams_cleaner(&streams);
+
         do_parse_normal_messages(conn, conn_handler, streams);
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
-        // Clean up trackers that are still dangling around
-        tracker_t::expensive_iterator stream_iter = streams.begin();
-        const tracker_t::expensive_iterator stream_end_iter = streams.end();
-        while (stream_iter != stream_end_iter) {
-            delete *stream_iter;
-            ++stream_iter;
+    } catch (protocol_exc_t& e) {
+        if (conn->is_write_open()) {
+            conn->shutdown_write();
         }
+        if (conn->is_read_open()) {
+            conn->shutdown_read();
+        }
+        logERR("Bad data was sent on the replication connection:  %s", e.what());
+
+        // TODO: What else should happen when handling this?
     }
 
     conn_handler->conn_closed();

@@ -53,7 +53,7 @@ private:
 public:
     state_t get_state() { return state; }
     void set_state(state_t state){
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         this->state = state;
         switch (state) {
         case us:
@@ -98,7 +98,7 @@ public:
     }
     /* write a message directly to the socket */
     void write(Message *msg) {
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         if (state == cluster_peer_t::kill_proposed ||
             state == cluster_peer_t::kill_confirmed ||
             state == cluster_peer_t::killed) {
@@ -111,7 +111,7 @@ public:
      * Note: read is lower level than the msg_srvcs, it is used in the early
      * steps of connection (before the service loop is set up) */
     bool read(Message *msg) {
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         if (state == cluster_peer_t::kill_proposed ||
             state == cluster_peer_t::kill_confirmed ||
             state == cluster_peer_t::killed) {
@@ -121,7 +121,7 @@ public:
     }
 
     bool peek(Message *msg) {
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         if (state == cluster_peer_t::kill_proposed ||
             state == cluster_peer_t::kill_confirmed ||
             state == cluster_peer_t::killed) {
@@ -131,7 +131,7 @@ public:
     }
 
     void pop() {
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         if (state == cluster_peer_t::kill_proposed ||
             state == cluster_peer_t::kill_confirmed ||
             state == cluster_peer_t::killed) {
@@ -170,18 +170,18 @@ private:
 
 private:
     void monitor_kill(kill_cb_t *cb) {
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         if (state == killed) cb->on_kill();
 
         kill_cb_list.push_back(cb); // have to do this anyway so that it can be removed
     }
     void unmonitor_kill(kill_cb_t *cb) {
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         kill_cb_list.remove(cb);
     }
 
     void call_kill_cbs() {
-        on_thread_t syncer(home_thread);
+        on_thread_t syncer(home_thread());
         for (kill_cb_list_t::iterator it = kill_cb_list.begin(); it != kill_cb_list.end(); it++) {
             (*it)->on_kill();
         }

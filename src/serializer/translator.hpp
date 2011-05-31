@@ -121,7 +121,7 @@ public:
     void free(void *ptr);
 
     /* Allocates a new io account for the underlying file */
-    file_t::account_t *make_io_account(int priority);
+    file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
 
     bool do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, serializer_t::read_callback_t *callback);
     ser_transaction_id_t get_current_transaction_id(block_id_t block_id, const void* buf);
