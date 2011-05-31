@@ -51,7 +51,7 @@ struct transaction_t :
         ser_block_id_t begin = ser_block_id_t::make(stress::random(0, ser->max_block_id().value - updates));
 
         // We just need some value for this.
-        repli_timestamp tstamp = repli_time(time(NULL));
+        repli_timestamp_t tstamp = repli_timestamp_t::distant_past;
         for (unsigned i = 0; i < updates; i++) {
             writes.push_back(serializer_t::write_t::make(ser_block_id_t::make(begin.value + i), tstamp, dummy_buf, true, NULL));
         }
