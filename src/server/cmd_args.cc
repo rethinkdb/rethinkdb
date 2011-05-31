@@ -175,6 +175,7 @@ void usage_import() {
     help->pagef("\n"
                 "Files are imported in the order specified, thus if a key is set in successive\n" 
                 "files it will ultimately be set to the value in the last file it's metioned in.\n");
+    exit(0);
 }
 
 enum {
