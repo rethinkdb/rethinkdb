@@ -19,10 +19,14 @@
 #include "clustering/master_map.hpp"
 #include "server/control.hpp"
 #include "arch/os_signal.hpp"
+#include "clustering/council_delegate.hpp"
+#include "clustering/map_council.hpp"
 
 /* demo_delegate_t */
 
 typedef async_mailbox_t<void(int, set_store_mailbox_t::address_t, get_store_mailbox_t::address_t)> registration_mailbox_t;
+
+typedef map_council_t<int, int> int_map_council_t;
 
 struct demo_delegate_t : public cluster_delegate_t {
 
@@ -30,11 +34,22 @@ struct demo_delegate_t : public cluster_delegate_t {
     get_store_mailbox_t::address_t master_get_store;
     registration_mailbox_t::address_t registration_address;
 
+    int_map_council_t demo_map_council;
 
     demo_delegate_t(const set_store_interface_mailbox_t::address_t &ms, 
                     const get_store_mailbox_t::address_t &mgs, 
                     const registration_mailbox_t::address_t &ra) 
-        : master_store(ms), master_get_store(mgs), registration_address(ra)
+        : master_store(ms), master_get_store(mgs), registration_address(ra),
+          map_council_control("map-council", "access the map council", &demo_map_council)
+    { }
+
+    demo_delegate_t(const set_store_interface_mailbox_t::address_t &ms, 
+                    const get_store_mailbox_t::address_t &mgs, 
+                    const registration_mailbox_t::address_t &ra,
+                    const int_map_council_t::address_t &mc_addr) 
+        : master_store(ms), master_get_store(mgs), registration_address(ra),
+          demo_map_council(mc_addr),
+          map_council_control("map-council", "access the map council", &demo_map_council)
     { }
 
     static demo_delegate_t *construct(cluster_inpipe_t *p) {
@@ -44,21 +59,49 @@ struct demo_delegate_t : public cluster_delegate_t {
         ::unserialize(p, NULL, &master_get_store);
         registration_mailbox_t::address_t registration_address;
         ::unserialize(p, NULL, &registration_address);
+        map_council_t<int, int>::address_t demo_map_council_addr;
+        ::unserialize(p, NULL, &demo_map_council_addr);
         p->done();
-        return new demo_delegate_t(master_store, master_get_store, registration_address);
+        return new demo_delegate_t(master_store, master_get_store, registration_address, demo_map_council_addr);
     }
 
     int introduction_ser_size() {
         return ::ser_size(master_store) +
             ::ser_size(master_get_store) +
-            ::ser_size(registration_address);
+            ::ser_size(registration_address) +
+            ::ser_size(map_council_t<int, int>::address_t());
     }
 
     void introduce_new_node(cluster_outpipe_t *p) {
         ::serialize(p, master_store);
         ::serialize(p, master_get_store);
         ::serialize(p, registration_address);
+        ::serialize(p, map_council_t<int, int>::address_t(&demo_map_council));
     }
+
+    class map_council_control_t : public control_t {
+    private:
+        map_council_t<int, int> *parent;
+    public:
+        map_council_control_t(std::string key, std::string help, map_council_t<int, int> *parent)
+            : control_t(key, help), parent(parent)
+        { }
+        std::string call(int argc, char **argv) {
+            if (argc == 3) {
+                parent->apply(std::make_pair(atoi(argv[1]), atoi(argv[2])));
+                return std::string("Applied\n");
+            } else {
+                std::string res;
+                char buffer[100];
+                for (std::map<int, int>::const_iterator it = parent->get_value().begin(); it != parent->get_value().end(); it++) {
+                    sprintf(buffer, "%d -> %d\n", it->first, it->second);
+                    res.append(buffer);
+                }
+                return res;
+            }
+        }
+    };
+    map_council_control_t map_council_control;
 };
 
 struct cluster_config_t {

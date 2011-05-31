@@ -1,3 +1,14 @@
+template<class value_t, class diff_t>
+council_t<value_t, diff_t>::council_t() :
+    lock_mailbox(boost::bind(&council_t::handle_lock, this, _1)),
+    change_mailbox(boost::bind(&council_t::handle_change, this, _1, _2)),
+    greeting_mailbox(boost::bind(&council_t::handle_greeting, this, _1)),
+    global_lock_holder(GLOBAL_LOCK_AVAILABLE),
+    state(value_t(), inner_address_t(this)),
+    my_id(0)
+{
+    startup_cond.pulse();
+}
 
 template<class value_t, class diff_t>
 council_t<value_t, diff_t>::council_t(value_t v) :

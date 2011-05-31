@@ -126,6 +126,9 @@ private:
     state_t handle_greeting(inner_address_t);
 
 public:
+    /* Start a new council with a default constructed value */
+    council_t();
+
     /* Start a new council with an initial value */
     council_t(value_t);
 

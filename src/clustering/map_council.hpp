@@ -3,13 +3,49 @@
 
 #include "rpc/council.hpp"
 
+/* template <class T>
+class access_map_t :
+    public home_thread_mixin_t
+{
+private:
+    boost::ptr_map<T, rwi_lock_t> lock_map;
+public:
+    void lock(T key, access_t access) {
+        lock_map[key].co_lock(access);
+    }
+    void unlock(T key) {
+        lock_map[key].unlock();
+    }
+
+    class txn_t {
+    public:
+        txn_t(access_map_t<T> *parent, T key, access_t access) 
+            : parent(parent), key(key)
+        { 
+            parent->lock(key, access); 
+        }
+
+        ~txn_t() { 
+            parent->unlock(key); 
+        }
+    private:
+        access_map_t<T> *parent;
+        T key;
+    };
+}; */
+
 template<class K, class V>
-class map_council_t : council_t<std::map<K,V>, std::pair<K,V> >
+class map_council_t : public council_t<std::map<K,V>, std::pair<K,V> >
 {
     typedef std::map<K,V> value_t;
     typedef std::pair<K,V> diff_t;
-    map_council_t();
+public:
+    map_council_t() {}
+    map_council_t(const typename council_t<value_t, diff_t>::address_t &addr)
+        : council_t<value_t, diff_t>(addr)
+    { }
     void update(const diff_t& diff, value_t *value) {
+        logINF("got diff: %d -> %d\n", diff.first, diff.second);
         // for now we don't support changing values it will require attaching rwi_locks to everything
         rassert(value->find(diff.first) == value->end());
         (*value)[diff.first] = diff.second;

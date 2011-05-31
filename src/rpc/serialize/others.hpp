@@ -53,7 +53,7 @@ int ser_size(const std::pair<T, U> &pair) {
 template<class T, class U>
 void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::pair<T, U> *pair) {
     unserialize(conn, es, &(pair->first));
-    unserialize(conn, es, &(pair->first));
+    unserialize(conn, es, &(pair->second));
 }
 
 /* Serializing and unserializing std::map from a serializable type to another serializable type */
