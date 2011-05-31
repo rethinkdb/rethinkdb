@@ -35,6 +35,10 @@ struct internal_buf_t {
 /* Buf */
 
 void mock_buf_t::on_lock_available() {
+    coro_fifo_acq_t acq;
+    if (is_write_mode(access)) {
+        acq.enter(&internal_buf->cache->write_operation_random_delay_fifo);
+    }
     random_delay(cb, &mock_block_available_callback_t::on_block_available, this);
 }
 
@@ -113,13 +117,17 @@ bool mock_transaction_t::commit(mock_transaction_commit_callback_t *callback) {
         case rwi_read:
             delete this;
             return true;
-        case rwi_write:
+        case rwi_write: {
+            coro_fifo_acq_t acq;
+            acq.enter(&cache->write_operation_random_delay_fifo);
             if (maybe_random_delay(this, &mock_transaction_t::finish_committing, callback)) {
+                acq.leave();
                 finish_committing(NULL);
                 return true;
             } else {
                 return false;
             }
+        } break;
         case rwi_read_outdated_ok:
         case rwi_intent:
         case rwi_upgrade:
@@ -147,6 +155,10 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock
 
     mock_buf_t *buf = new mock_buf_t(internal_buf, mode);
     if (internal_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, buf)) {
+        coro_fifo_acq_t acq;
+        if (is_write_mode(mode)) {
+            acq.enter(&cache->write_operation_random_delay_fifo);
+        }
         if (maybe_random_delay(callback, &mock_block_available_callback_t::on_block_available, buf)) {
             return buf;
         } else {
@@ -273,12 +285,15 @@ mock_transaction_t *mock_cache_t::begin_transaction(order_token_t token, access_
     switch (access) {
         case rwi_read:
             return txn;
-        case rwi_write:
+        case rwi_write: {
+            coro_fifo_acq_t acq;
+            acq.enter(&write_operation_random_delay_fifo);
             if (maybe_random_delay(callback, &mock_transaction_begin_callback_t::on_txn_begin, txn)) {
                 return txn;
             } else {
                 return NULL;
             }
+        } break;
         case rwi_read_outdated_ok:
         case rwi_intent:
         case rwi_upgrade:

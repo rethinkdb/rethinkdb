@@ -4,6 +4,7 @@
 #include <boost/shared_ptr.hpp>
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/coro_fifo.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "containers/segmented_vector.hpp"
@@ -152,6 +153,11 @@ private:
     translator_serializer_t *serializer;
     drain_semaphore_t transaction_counter;
     block_size_t block_size;
+
+    // Makes sure that write operations do not get reordered, which
+    // throttling is supposed to do in the real buffer cache.
+    coro_fifo_t write_operation_random_delay_fifo;
+
     segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> bufs;
 };
 
