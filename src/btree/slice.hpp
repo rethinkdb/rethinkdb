@@ -58,6 +58,17 @@ public:
     cache_t *cache() { return &cache_; }
     int64_t delete_queue_limit() { return delete_queue_limit_; }
 
+    plain_sink_t pre_begin_transaction_sink_;
+
+    // read and write operations are in different buckets for when
+    // they go through throttling.
+    order_source_t pre_begin_transaction_read_mode_source_; // bucket 0
+    order_source_t pre_begin_transaction_write_mode_source_; // bucket 1
+
+    enum { PRE_BEGIN_TRANSACTION_READ_MODE_BUCKET = 0, PRE_BEGIN_TRANSACTION_WRITE_MODE_BUCKET = 1 };
+
+    order_sink_t post_begin_transaction_sink_;
+    order_source_t post_begin_transaction_source_;
 private:
     cache_t cache_;
     int64_t delete_queue_limit_;
@@ -65,6 +76,9 @@ private:
     /* We serialize all `order_token_t`s through here. This way we can use `plain_sink_t` for
     the order sinks on the individual blocks in the buffer cache. */
     order_checkpoint_t order_checkpoint_;
+
+    // TODO: Check that we use this variable.
+    order_sink_t order_sink_;
 
     DISABLE_COPYING(btree_slice_t);
 };
