@@ -74,15 +74,18 @@ then
     flags+=" --force "
 fi
 
-echo -n "Extracting old data.."
+echo -n "Extracting old data.. "
 "$old_rdb" extract "${infilecl[@]}" -o "$intermediate_file" -l /dev/null
 check "$?" "Extraction failed."
 echo "done"
 
-echo -n "Creating new database.."
+echo -n "Creating new database.. "
 "$new_rdb" create "${outfilecl[@]}" $flags -l /dev/null
 check "$?" "New database creation failed."
 echo "done"
 
-"$new_rdb" import --memcached-file "$intermediate_file" -l /dev/null
+echo -n "Importing data.. "
+"$new_rdb" import "${outfilecl[@]}" --memcached-file "$intermediate_file" -l /dev/null
+check "$?" "Importing data into new database failed."
 echo "done"
+
