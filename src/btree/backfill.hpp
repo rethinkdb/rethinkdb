@@ -30,7 +30,7 @@ protected:
 or equal than `since_when` but which reached the tree before `btree_backfill()` was called.
 It may also find changes that happened before `since_when`. */
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback);
+void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback, order_token_t token);
 
 
 #endif  // __BTREE_BACKFILL_HPP__
