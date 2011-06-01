@@ -130,7 +130,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
 
         backfill_traversal_helper_t helper(callback, since_when);
 
-        boost::shared_ptr<transaction_t> txn = boost::make_shared<transaction_t>(slice->cache(), rwi_read_sync, order_token_t::ignore);
+        boost::shared_ptr<transaction_t> txn = boost::make_shared<transaction_t>(slice->cache(), rwi_read_sync);
 
 #ifndef NDEBUG
         boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());

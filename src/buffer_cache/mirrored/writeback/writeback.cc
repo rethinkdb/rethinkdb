@@ -3,6 +3,11 @@
 #include <cmath>
 #include <set>
 
+// TODO: We added a writeback->possibly_unthrottle_transactions() call
+// in the begin_transaction_fsm_t(..) constructor, where did that get
+// merged to now?
+
+
 perfmon_duration_sampler_t
     pm_flushes_diff_flush("flushes_diff_flushing", secs_to_ticks(1)),
     pm_flushes_diff_store("flushes_diff_store", secs_to_ticks(1)),
@@ -241,7 +246,7 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
     parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
 
     // It's a read transaction, that's why we use repli_timestamp::invalid.
-    transaction = new mc_transaction_t(parent->cache, rwi_read, order_token_t::ignore);
+    transaction = new mc_transaction_t(parent->cache, rwi_read);
     parent->cache->shutting_down = saved_shutting_down;
     rassert(transaction != NULL); // Read txns always start immediately.
 
