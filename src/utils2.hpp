@@ -16,7 +16,7 @@ typedef uint64_t cas_t;
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
 
-// for safety  TODO: move this to a different file
+// for safety
 struct repli_timestamp_t {
     uint32_t time;
 
@@ -39,7 +39,9 @@ struct repli_timestamp_t {
     static const repli_timestamp_t distant_past;
     static const repli_timestamp_t invalid;
 };
-typedef repli_timestamp_t repli_timestamp;   // TODO switch name over completely to "_t" version
+
+// TODO: switch name over completely to "_t" version
+typedef repli_timestamp_t repli_timestamp;
 
 struct const_charslice {
     const char *beg, *end;
