@@ -107,8 +107,6 @@ struct castime_t {
 
     castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
         : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
-    // TODO: ugh.
-    castime_t() { }
 };
 
 /* get_cas is a mutation instead of another method on get_store_t because it may need to
