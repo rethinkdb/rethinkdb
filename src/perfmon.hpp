@@ -181,22 +181,25 @@ struct perfmon_stddev_t :
 
     void record(T value);
 
-  private:
     // One-pass variance calculation algorithm/datastructure taken from
     // http://www.cs.berkeley.edu/~mhoemmen/cs194/Tutorials/variance.pdf
     struct stats_t {
-        size_t datapoints;
-        // M is the current mean, and sqrt(Q/n) is the standard deviation; read
-        // the paper for why it works.
-        T M, Q;
-
         stats_t();
         void add(T value);
-        void aggregate(const stats_t &other);
+        size_t datapoints() const;
         T mean() const;
         T standard_deviation() const;
+        T standard_variance() const;
+
+      private:
+        // N is the number of datapoints, M is the current mean, Q/N is the
+        // standard variance, and sqrt(Q/N) is the standard deviation. Read the
+        // paper for why it works.
+        size_t N;
+        T M, Q;
     };
 
+  private:
     std::string name;
     // TODO: Should the elements be cache-line padded?
     stats_t thread_info[MAX_THREADS];

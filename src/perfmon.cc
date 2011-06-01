@@ -3,6 +3,7 @@
 #include "arch/arch.hpp"
 #include "utils.hpp"
 #include <stdarg.h>
+#include <math.h>
 
 /* The var list keeps track of all of the perfmon_t objects. */
 
@@ -191,15 +192,36 @@ void perfmon_stddev_t::visit_stats(void *data) {
 
 void perfmon_stddev_t::end_stats(void *data, perfmon_stats_t *dest) {
     stats_t *stats = (stats_t*) data;
-    stats_t aggregated;
-    for (int i = 0; i < get_num_threads(); ++i)
-        aggregated.aggregate(stats[i]);
 
-    if (aggregated.datapoints) {
-        (*dest)[name + "_mean"] = format(aggregated.mean());
-        (*dest)[name + "_dev"] = format(aggregated.standard_deviation());
+    // See http://en.wikipedia.org/wiki/Standard_deviation#Combining_standard_deviations
+    // N{,_i}: datapoints in {total,ith thread}
+    // M{,_i}: mean of {total,ith thread}
+    // V{,_i}: variance of {total,ith thread}
+    // M = (\sum_i N_i M_i) / N
+    // V = (\sum_i N_i (V_i + M_i^2)) / N - M^2
+
+    float total_datapoints = 0.0; // becomes N
+    float total_means = 0.0;      // becomes \sum_i M_i
+    float total_var = 0.0;        // becomes \sum_i N_i (V_i + M_i^2)
+    for (int i = 0; i < get_num_threads(); ++i) {
+        const stats_t &stat = stats[i];
+        float N = stat.datapoints(), M = stat.mean(), V = stat.standard_variance();
+        total_datapoints += N;
+        total_means += N * M;
+        total_var += N * (V + M * M);
+    }
+
+    if (total_datapoints) {
+        float mean = total_means / total_datapoints;
+        float variance = total_var / total_datapoints - mean * mean;
+        float deviation = sqrt(variance);
+        (*dest)[name + "_mean"] = format(mean);
+        (*dest)[name + "_var"] = format(variance);
+        (*dest)[name + "_dev"] = format(deviation);
     } else {
+        // No stats
         (*dest)[name + "_mean"] = "-";
+        (*dest)[name + "_var"] = "-";
         (*dest)[name + "_dev"] = "-";
     }
 
@@ -208,17 +230,15 @@ void perfmon_stddev_t::end_stats(void *data, perfmon_stats_t *dest) {
 
 void perfmon_stddev_t::record(float value) { get()->add(value); }
 
-#include <math.h>
-
 perfmon_stddev_t::stats_t::stats_t() :
 #ifndef NAN
 #error "Implementation doesn't support NANs"
 #endif
-    datapoints(0), M(NAN), Q(NAN) { }
+    N(0), M(NAN), Q(NAN) { }
 
 void perfmon_stddev_t::stats_t::add(float value) {
     // See http://www.cs.berkeley.edu/~mhoemmen/cs194/Tutorials/variance.pdf
-    size_t k = datapoints += 1; // NB. the paper indexes from 1
+    size_t k = N += 1;          // NB. the paper indexes from 1
     if (k != 1) {
         // Q_k = Q_{k-1} + ((k-1) (x_k - M_{k-1})^2) / k
         // M_k = M_{k-1} + (x_k - M_{k-1}) / k
@@ -231,16 +251,10 @@ void perfmon_stddev_t::stats_t::add(float value) {
     }
 }
 
-void perfmon_stddev_t::stats_t::aggregate(const stats_t &other) {
-    // unimplemented
-    guarantee(false, "unimplemented");
-    (void) other;
-}
-
+size_t perfmon_stddev_t::stats_t::datapoints() const { return N; }
 float perfmon_stddev_t::stats_t::mean() const { return M; }
-float perfmon_stddev_t::stats_t::standard_deviation() const {
-    return sqrt(Q / datapoints);
-}
+float perfmon_stddev_t::stats_t::standard_variance() const { return Q / N; }
+float perfmon_stddev_t::stats_t::standard_deviation() const { return sqrt(standard_variance()); }
 
 /* perfmon_rate_monitor_t */
 
