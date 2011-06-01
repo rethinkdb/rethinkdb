@@ -35,10 +35,6 @@ struct internal_buf_t {
 /* Buf */
 
 void mock_buf_t::on_lock_available() {
-    coro_fifo_acq_t acq;
-    if (is_write_mode(access)) {
-        acq.enter(&internal_buf->cache->write_operation_random_delay_fifo);
-    }
     random_delay(cb, &mock_block_available_callback_t::on_block_available, this);
 }
 
@@ -280,6 +276,20 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
+struct delay_on_txn_begin_wrapper_t {
+    mock_transaction_begin_callback_t *callback;
+    coro_fifo_acq_t acq;
+    void on_txn_begin_wrapper(mock_transaction_t *txn) {
+        if (!coro_t::self()) {
+            coro_t::spawn(boost::bind(&delay_on_txn_begin_wrapper_t::on_txn_begin_wrapper, this, txn));
+            return;
+        }
+        acq.leave();
+        callback->on_txn_begin(txn);
+        delete this;
+    }
+};
+
 mock_transaction_t *mock_cache_t::begin_transaction(access_t access, UNUSED int expected_change_count, repli_timestamp recency_timestamp, mock_transaction_begin_callback_t *callback) {
     mock_transaction_t *txn = new mock_transaction_t(this, access, recency_timestamp);
     
@@ -288,11 +298,14 @@ mock_transaction_t *mock_cache_t::begin_transaction(access_t access, UNUSED int 
         case rwi_read:
             return txn;
         case rwi_write: {
-            coro_fifo_acq_t acq;
-            acq.enter(&write_operation_random_delay_fifo);
-            if (maybe_random_delay(callback, &mock_transaction_begin_callback_t::on_txn_begin, txn)) {
+            delay_on_txn_begin_wrapper_t *delay_on_txn_begin_wrapper = new delay_on_txn_begin_wrapper_t();
+            delay_on_txn_begin_wrapper->acq.enter(&write_operation_random_delay_fifo);
+            
+            if (maybe_random_delay(delay_on_txn_begin_wrapper, &delay_on_txn_begin_wrapper_t::on_txn_begin_wrapper, txn)) {
+                delete delay_on_txn_begin_wrapper;
                 return txn;
             } else {
+                delay_on_txn_begin_wrapper->callback = callback;
                 return NULL;
             }
         } break;
