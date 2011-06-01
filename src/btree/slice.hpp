@@ -46,9 +46,9 @@ public:
 
     /* These store metadata for replication. There must be a better way to store this information,
     since it really doesn't belong on the btree_slice_t! TODO: Move them elsewhere. */
-    void set_replication_clock(repli_timestamp_t t);
+    void set_replication_clock(repli_timestamp_t t, order_token_t token);
     repli_timestamp get_replication_clock();
-    void set_last_sync(repli_timestamp_t t);
+    void set_last_sync(repli_timestamp_t t, order_token_t token);
     repli_timestamp get_last_sync();
     void set_replication_master_id(uint32_t t);
     uint32_t get_replication_master_id();

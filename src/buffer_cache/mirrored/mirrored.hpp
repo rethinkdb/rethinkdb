@@ -252,7 +252,7 @@ public:
 
     void set_account(boost::shared_ptr<cache_account_t> cache_account);
 
-    void set_token(UNUSED order_token_t token) {
+    void set_token(UNUSED  order_token_t token) {
 #ifndef NDEBUG
         order_token = token;
 #endif

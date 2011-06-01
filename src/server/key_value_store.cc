@@ -244,18 +244,18 @@ void btree_key_value_store_t::check_existing(const std::vector<std::string>& fil
 }
 
 
-void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t) {
+void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
 
     /* Update the value on disk */
-    shards[0]->btree.set_replication_clock(t);
+    shards[0]->btree.set_replication_clock(t, token);
 }
 
 repli_timestamp btree_key_value_store_t::get_replication_clock() {
     return shards[0]->btree.get_replication_clock();   /* Read the value from disk */
 }
 
-void btree_key_value_store_t::set_last_sync(repli_timestamp_t t) {
-    shards[0]->btree.set_last_sync(t);   /* Write the value to disk */
+void btree_key_value_store_t::set_last_sync(repli_timestamp_t t, order_token_t token) {
+    shards[0]->btree.set_last_sync(t, token);   /* Write the value to disk */
 }
 
 repli_timestamp btree_key_value_store_t::get_last_sync() {
