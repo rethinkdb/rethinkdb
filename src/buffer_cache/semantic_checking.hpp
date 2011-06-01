@@ -114,11 +114,13 @@ public:
 
     order_token_t order_token;
 
+    void set_token(order_token_t token) { order_token = token; }
+
 private:
     bool snapshotted; // Disables CRC checks
 
     friend class scc_cache_t<inner_cache_t>;
-    scc_transaction_t(order_token_t, access_t, scc_cache_t<inner_cache_t> *);
+    scc_transaction_t(access_t, scc_cache_t<inner_cache_t> *);
     access_t access;
     void on_txn_begin(typename inner_cache_t::transaction_t *txn);
     transaction_begin_callback_t *begin_cb;
@@ -147,7 +149,7 @@ public:
         mirrored_cache_config_t *dynamic_config);
 
     block_size_t get_block_size();
-    transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
+    transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
     boost::shared_ptr<cache_account_t> create_account(int priority);
 
     void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);

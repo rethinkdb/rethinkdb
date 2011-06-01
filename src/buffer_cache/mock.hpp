@@ -102,13 +102,15 @@ public:
 
     order_token_t order_token;
 
+    void set_token(order_token_t token) { order_token = token; }
+
 private:
     friend class mock_cache_t;
     access_t access;
     int n_bufs;
     repli_timestamp recency_timestamp;
     void finish_committing(mock_transaction_commit_callback_t *cb);
-    mock_transaction_t(mock_cache_t *cache, order_token_t token, access_t access, repli_timestamp recency_timestamp);
+    mock_transaction_t(mock_cache_t *cache, access_t access, repli_timestamp recency_timestamp);
     ~mock_transaction_t();
 };
 
@@ -137,7 +139,7 @@ public:
     ~mock_cache_t();
 
     block_size_t get_block_size();
-    transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
+    transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
     boost::shared_ptr<cache_account_t> create_account(UNUSED int priority) { return boost::shared_ptr<cache_account_t>(); }
 

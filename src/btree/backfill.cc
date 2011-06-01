@@ -135,7 +135,7 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
 
         backfill_traversal_helper_t helper(callback, since_when);
 
-        boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), rwi_read, order_token_t::ignore);
+        boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), rwi_read);
 
         txor->get()->set_account(backfill_account);
 

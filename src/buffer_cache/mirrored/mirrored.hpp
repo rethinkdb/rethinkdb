@@ -256,6 +256,12 @@ public:
 
     void set_account(boost::shared_ptr<cache_account_t> cache_account);
 
+    void set_token(UNUSED order_token_t token) {
+#ifndef NDEBUG
+        order_token = token;
+#endif
+    }
+
     cache_t *cache;
 
 #ifndef NDEBUG
@@ -263,7 +269,7 @@ public:
 #endif
 
 private:
-    explicit mc_transaction_t(cache_t *cache, order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+    mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
     ~mc_transaction_t();
 
     void register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data);
@@ -368,7 +374,7 @@ public:
     block_size_t get_block_size();
 
     // Transaction API
-    transaction_t *begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
+    transaction_t *begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback);
 
     // TODO: Come up with a consistent priority scheme, i.e. define a "default" priority etc.
     // TODO: As soon as we can support it, we might consider supporting a mem_cap paremeter.

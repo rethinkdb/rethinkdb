@@ -194,8 +194,8 @@ void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num
     cb->got_subtree_recencies();
 }
 
-mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, order_token_t _order_token, access_t _access, repli_timestamp _recency_timestamp)
-    : cache(_cache), order_token(_order_token), access(_access), recency_timestamp(_recency_timestamp) {
+mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, repli_timestamp _recency_timestamp)
+    : cache(_cache), order_token(order_token_t::ignore), access(_access), recency_timestamp(_recency_timestamp) {
     cache->transaction_counter.acquire();
 }
 
@@ -279,8 +279,8 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-mock_transaction_t *mock_cache_t::begin_transaction(order_token_t token, access_t access, UNUSED int expected_change_count, repli_timestamp recency_timestamp, mock_transaction_begin_callback_t *callback) {
-    mock_transaction_t *txn = new mock_transaction_t(this, token, access, recency_timestamp);
+mock_transaction_t *mock_cache_t::begin_transaction(access_t access, UNUSED int expected_change_count, repli_timestamp recency_timestamp, mock_transaction_begin_callback_t *callback) {
+    mock_transaction_t *txn = new mock_transaction_t(this, access, recency_timestamp);
     
     switch (access) {
         case rwi_read:

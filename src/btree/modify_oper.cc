@@ -174,13 +174,17 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
     block_size_t block_size = slice->cache()->get_block_size();
 
     {
-        // temporary sanity-check
-        rassert(get_thread_id() == slice->home_thread());
-        // TODO: Why have this on_thread_t if we have the assertion.
-        on_thread_t mover(slice->home_thread()); // Move to the slice's thread.
+        slice->assert_thread();
+
+        slice->pre_begin_transaction_sink_.check_out(token);
+        order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in();
 
         // TODO: why is this a shared_ptr?
-        boost::shared_ptr<transactor_t> txor(new transactor_t(slice->cache(), rwi_write, oper->compute_expected_change_count(slice->cache()->get_block_size().value()),  castime.timestamp, token));
+        boost::shared_ptr<transactor_t> txor(new transactor_t(slice->cache(), rwi_write, oper->compute_expected_change_count(slice->cache()->get_block_size().value()), castime.timestamp));
+
+        slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
+
+        txor->get()->set_token(slice->post_begin_transaction_source_.check_in());
 
         buf_lock_t sb_buf(*txor, SUPERBLOCK_ID, rwi_write);
         // TODO: do_superblock_sidequest is blocking.  It doesn't have

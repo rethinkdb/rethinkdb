@@ -648,10 +648,10 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, UNUSED order_token_t _order_token, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
     : cache(_cache),
 #ifndef NDEBUG
-      order_token(_order_token),
+      order_token(order_token_t::ignore),
 #endif
       expected_change_count(_expected_change_count),
       access(_access),
@@ -1034,12 +1034,12 @@ bool mc_cache_t::contains_block(block_id_t block_id) {
     return find_buf(block_id) != NULL;
 }
 
-mc_transaction_t *mc_cache_t::begin_transaction(order_token_t token, access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
+mc_transaction_t *mc_cache_t::begin_transaction(access_t access, int expected_change_count, repli_timestamp recency_timestamp, transaction_begin_callback_t *callback) {
     assert_thread();
     rassert(!shutting_down);
     rassert(access == rwi_write || expected_change_count == 0);
 
-    transaction_t *txn = new transaction_t(this, token, access, expected_change_count, recency_timestamp);
+    transaction_t *txn = new transaction_t(this, access, expected_change_count, recency_timestamp);
     num_live_transactions++;
     if (writeback.begin_transaction(txn, callback)) {
         pm_transactions_starting.end(&txn->start_time);
