@@ -300,12 +300,12 @@ mock_transaction_t *mock_cache_t::begin_transaction(access_t access, UNUSED int 
         case rwi_write: {
             delay_on_txn_begin_wrapper_t *delay_on_txn_begin_wrapper = new delay_on_txn_begin_wrapper_t();
             delay_on_txn_begin_wrapper->acq.enter(&write_operation_random_delay_fifo);
-            
+            delay_on_txn_begin_wrapper->callback = callback;
+
             if (maybe_random_delay(delay_on_txn_begin_wrapper, &delay_on_txn_begin_wrapper_t::on_txn_begin_wrapper, txn)) {
                 delete delay_on_txn_begin_wrapper;
                 return txn;
             } else {
-                delay_on_txn_begin_wrapper->callback = callback;
                 return NULL;
             }
         } break;
