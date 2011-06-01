@@ -109,6 +109,10 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
         return btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token);
     }
 
+    btree_slice_change_visitor_t(btree_slice_t *_parent, castime_t _ct, order_token_t _order_token)
+        : parent(_parent), ct(_ct), order_token(_order_token) { }
+
+private:
     btree_slice_t *parent;
     castime_t ct;
     order_token_t order_token;
@@ -121,10 +125,7 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, 
 
     order_sink_.check_out(token);
 
-    btree_slice_change_visitor_t functor;
-    functor.parent = this;
-    functor.ct = castime;
-    functor.order_token = token;
+    btree_slice_change_visitor_t functor(this, castime, token);
     return boost::apply_visitor(functor, m.mutation);
 }
 

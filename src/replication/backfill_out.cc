@@ -95,10 +95,14 @@ struct backfill_and_streaming_manager_t :
         /* Functor for replicating changes */
 
         struct change_visitor_t : public boost::static_visitor<mutation_t> {
-
+        private:
             slice_manager_t *manager;
             castime_t castime;
             order_token_t order_token;
+        public:
+            change_visitor_t(slice_manager_t *_manager, castime_t _castime, order_token_t _order_token)
+                : manager(_manager), castime(_castime), order_token(_order_token) { }
+
             mutation_t operator()(const get_cas_mutation_t& m) {
                 block_pm_duration timer(&pm_replication_master_enqueue_cost);
                 manager->realtime_job_queue.push(boost::bind(
@@ -158,10 +162,7 @@ struct backfill_and_streaming_manager_t :
             rassert(castime.timestamp >= min_realtime_timestamp_);
 
             block_pm_duration timer(&pm_replication_master_dispatch_cost);
-            change_visitor_t functor;
-            functor.manager = this;
-            functor.castime = castime;
-            functor.order_token = token;
+            change_visitor_t functor(this, castime, token);
             return boost::apply_visitor(functor, m.mutation);
         }
 
