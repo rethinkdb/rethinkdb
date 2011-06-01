@@ -1662,7 +1662,25 @@ void print_interfile_summary(const multiplexer_config_block_t& c, const mc_confi
 
 std::string extract_slices_flags(const multiplexer_config_block_t& c) {
     char flags[100];
-    snprintf(flags, 100, " -s %d ", c.n_proxies);
+    snprintf(flags, 100, " -s %d", c.n_proxies);
+    return std::string(flags);
+}
+
+std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config_block_t& c, const mc_config_block_t& mcc) {
+    // TODO: This is evil code replication, just because we need the block size...
+    block_t header;
+    header.init(DEVICE_BLOCK_SIZE, file, 0);
+    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
+    log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
+    block_size_t block_size = static_cfg->block_size();
+
+
+    char flags[100];
+    // Convert total number of log blocks to MB
+    long long int diff_log_size = mcc.cache.n_patch_log_blocks * c.n_proxies * block_size.ser_value();
+    int diff_log_size_mb = ceil_divide(diff_log_size, MEGABYTE);
+
+    snprintf(flags, 100, " -diff-log-size %d", diff_log_size_mb);
     return std::string(flags);
 }
 
@@ -1729,6 +1747,7 @@ bool check_files(const config_t *cfg) {
         std::string flags("FLAGS: ");
         flags.append(extract_static_config_flags(knog.files[0], knog.file_knog[0]));
         flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
+        flags.append(extract_cache_flags(knog.files[0], *knog.file_knog[0]->config_block, *knog.file_knog[0]->mc_config_block));
         printf("%s\n", flags.c_str());
         return true;
     }
