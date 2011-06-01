@@ -92,6 +92,22 @@ void writeback_t::begin_transaction(transaction_t *txn) {
 
         /* Acquire flush lock in non-exclusive mode */
         flush_lock.co_lock(rwi_read);
+    } else if (txn->get_access() == rwi_read_sync) {
+
+        /* Throttling */
+        dirty_block_semaphore.co_lock(1); // This 1 is just a dummy thing, so we go through the throttling queue
+
+        /* Acquire flush lock in non-exclusive mode */
+        flush_lock.co_lock(rwi_read);
+
+        // We do three things now:
+        // 1. degrade the transaction to a "normal" rwi_read transaction
+        // 2, Increase the dirty_block_semaphore again (undo our "dummy" 1)
+        // 3. unlock the flush_lock immediately, we don't really need it
+        txn->access = rwi_read;
+
+        dirty_block_semaphore.unlock(1);
+        flush_lock.unlock();
     }
 }
 

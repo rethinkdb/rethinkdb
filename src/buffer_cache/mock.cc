@@ -116,7 +116,7 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, boos
 
     internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
 
-    if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
+    if (!(mode == rwi_read || mode == rwi_read_outdated_ok || mode == rwi_read_sync)) {
         internal_buf->subtree_recency = recency_timestamp;
     }
 
