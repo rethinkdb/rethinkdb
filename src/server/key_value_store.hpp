@@ -92,7 +92,7 @@ public:
 
     /* btree_key_value_store_t interface */
 
-    void delete_all_keys_for_backfill();
+    void delete_all_keys_for_backfill(order_token_t token);
 
     /* The value passed to `set_timestampers()` is the value that will be used as the
     timestamp for all new operations. When the key-value store starts up, it is
