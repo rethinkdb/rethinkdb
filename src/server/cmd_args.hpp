@@ -172,6 +172,13 @@ struct import_config_t {
 
     import_config_t() : do_import(false) { }
     void add_import_file(std::string s) {
+        // See if we can open the file at this path with read permissions
+        FILE* import_file = fopen(s.c_str(), "r");
+        if (import_file == NULL)
+            fail_due_to_user_error("Inaccessible or invalid import file: \"%s\": %s", s.c_str(), strerror(errno));
+        else
+            fclose(import_file);
+        
         file.push_back(s);
     }
 };
