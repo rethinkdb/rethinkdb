@@ -20,12 +20,14 @@ class coro_fifo_acq_t;
 
 class coro_fifo_t : public home_thread_mixin_t {
 public:
-    coro_fifo_t() { }
+    coro_fifo_t() : queue_counter_(0) { }
 
     friend class coro_fifo_acq_t;
 
 private:
     void inform_ready_to_leave(coro_fifo_acq_t *acq);
+    void inform_left_and_notified();
+    void consider_pulse();
 
     // The acquisitor_queue_ is either empty, or it begins with a
     // coro_fifo_acq_t for which asked_to_leave_ is false.  When a
@@ -36,6 +38,9 @@ private:
     // of the acquisitor_queue_ without waiting for another turn of
     // the event queue for every item we could remove.
     intrusive_list_t<coro_fifo_acq_t> acquisitor_queue_;
+
+    // Counts how many coroutines have been pulse but have not yet woken.
+    int64_t queue_counter_;
 
     DISABLE_COPYING(coro_fifo_t);
 };
