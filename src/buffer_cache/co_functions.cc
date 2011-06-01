@@ -97,10 +97,31 @@ struct transaction_begun_callback_t : public transaction_begin_callback_t {
 transaction_t *co_begin_transaction(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp) {
     cache->assert_thread();
     transaction_begun_callback_t cb;
+
+    // Writes and reads must separately have their order preserved,
+    // but we're expecting, in the case of throttling, for writes to
+    // be throttled while reads are not.
+
+    // We think there is a bug in throttling that could reorder writes
+    // when throttling _ends_.  Reordering can also happen if
+    // begin_transaction sometimes returns NULL and other times does
+    // not, because then in one case cb.join() needs to spin around
+    // the event loop.  So there's an obvious problem with the code
+    // below, if we did not have coro_fifo_acq_t protecting it.
+
+    coro_fifo_acq_t acq;
+    if (is_write_mode(access)) {
+        // We only care about write ordering and not anything about
+        // write operations' interaction with read ordering because
+        // that's how throttling works right now.
+        acq.enter(&cache->co_begin_coro_fifo());
+    }
+
     transaction_t *value = cache->begin_transaction(access, expected_change_count, recency_timestamp, &cb);
     if (!value) {
         value = cb.join();
     }
+
     rassert(value);
     return value;
 }

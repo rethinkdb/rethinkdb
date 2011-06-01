@@ -155,6 +155,8 @@ public:
     void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool contains_block(block_id_t block_id);
 
+    coro_fifo_t& co_begin_coro_fifo() { return inner_cache.co_begin_coro_fifo(); }
+
 private:
     inner_cache_t inner_cache;
 

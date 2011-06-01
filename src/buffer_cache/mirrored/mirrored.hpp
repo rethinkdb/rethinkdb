@@ -4,6 +4,7 @@
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/coro_fifo.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
@@ -431,10 +432,14 @@ private:
     bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
 
-
     typedef std::map<mc_inner_buf_t::version_id_t, mc_transaction_t*> snapshots_map_t;
     snapshots_map_t active_snapshots;
     mc_inner_buf_t::version_id_t next_snapshot_version;
+
+public:
+    coro_fifo_t& co_begin_coro_fifo() { return co_begin_coro_fifo_; }
+private:
+    coro_fifo_t co_begin_coro_fifo_;
 
     DISABLE_COPYING(mc_cache_t);
 };
