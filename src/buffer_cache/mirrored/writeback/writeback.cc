@@ -19,7 +19,9 @@ and given a green light. */
 
 void writeback_t::begin_transaction_fsm_t::green_light() {
 
-    writeback->expected_active_change_count += transaction->expected_change_count;
+    if (transaction->get_access() == rwi_write) {
+        writeback->expected_active_change_count += transaction->expected_change_count;
+    }
 
     // Lock the flush lock "for reading", but what we really mean is to lock it non-
     // exclusively because more than one write transaction can proceed at once.
@@ -40,6 +42,15 @@ void writeback_t::begin_transaction_fsm_t::on_thread_switch() {
 }
 
 void writeback_t::begin_transaction_fsm_t::on_lock_available() {
+    if (transaction->get_access() == rwi_read_sync) {
+        // We do two things now:
+        // 1. degrade the transaction to a "normal" rwi_read transaction
+        // 2. unlock the flush_lock immediately, we don't really need it
+        transaction->access = rwi_read;
+
+        writeback->flush_lock.unlock();
+    }
+
     transaction->green_light();
     delete this;
 }
@@ -131,6 +142,9 @@ bool writeback_t::begin_transaction(transaction_t *txn, transaction_begin_callba
     switch (txn->get_access()) {
         case rwi_read:
             return true;
+        case rwi_read_sync:
+            new begin_transaction_fsm_t(this, txn, callback);
+            return false;
         case rwi_write:
             new begin_transaction_fsm_t(this, txn, callback);
             return false;

@@ -127,15 +127,15 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
         // Run backfilling at a reduced priority
         boost::shared_ptr<cache_account_t> backfill_account = slice->cache()->create_account(BACKFILL_CACHE_PRIORITY);
 
-#ifndef NDEBUG
-        boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
-#endif
-
         rassert(coro_t::self());
 
         backfill_traversal_helper_t helper(callback, since_when);
 
-        boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), rwi_read, order_token_t::ignore);
+        boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), rwi_read_sync, order_token_t::ignore);
+
+#ifndef NDEBUG
+        boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
+#endif
 
         txor->get()->set_account(backfill_account);
 

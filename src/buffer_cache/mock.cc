@@ -110,6 +110,7 @@ mock_buf_t::mock_buf_t(internal_buf_t *internal_buf, access_t access)
 
 bool mock_transaction_t::commit(mock_transaction_commit_callback_t *callback) {
     switch (access) {
+        case rwi_read_sync:
         case rwi_read:
             delete this;
             return true;
@@ -141,7 +142,7 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock
     internal_buf_t *internal_buf = cache->bufs[block_id];
     rassert(internal_buf);
 
-    if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
+    if (!(mode == rwi_read || mode == rwi_read_sync || mode == rwi_read_outdated_ok)) {
         internal_buf->subtree_recency = recency_timestamp;
     }
 
@@ -271,6 +272,7 @@ mock_transaction_t *mock_cache_t::begin_transaction(order_token_t token, access_
     mock_transaction_t *txn = new mock_transaction_t(this, token, access, recency_timestamp);
     
     switch (access) {
+        case rwi_read_sync:
         case rwi_read:
             return txn;
         case rwi_write:
