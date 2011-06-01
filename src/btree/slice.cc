@@ -129,10 +129,12 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, 
     return boost::apply_visitor(functor, m.mutation);
 }
 
-void btree_slice_t::delete_all_keys_for_backfill() {
+void btree_slice_t::delete_all_keys_for_backfill(order_token_t token) {
     assert_thread();
 
-    btree_delete_all_keys_for_backfill(this);
+    order_sink_.check_out(token);
+
+    btree_delete_all_keys_for_backfill(this, token);
 }
 
 void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {

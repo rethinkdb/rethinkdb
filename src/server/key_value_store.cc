@@ -51,6 +51,13 @@ mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order
     return dispatching_store.change(m, ct, substore_token);
 }
 
+void shard_store_t::delete_all_keys_for_backfill(order_token_t token) {
+    on_thread_t th(home_thread());
+    sink.check_out(token);
+    order_token_t substore_token = substore_order_source.check_in();
+    btree.delete_all_keys_for_backfill(substore_token);
+}
+
 /* btree_key_value_store_t */
 
 void prep_for_serializer(
@@ -365,8 +372,9 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t
 
 /* btree_key_value_store_t interface */
 
+// TODO take an order token? (UNUSED order_token_t)
 void btree_key_value_store_t::delete_all_keys_for_backfill() {
     for (int i = 0; i < btree_static_config.n_slices; ++i) {
-        shards[i]->btree.delete_all_keys_for_backfill();
+        coro_t::spawn_now(boost::bind(&shard_store_t::delete_all_keys_for_backfill, shards[i], order_token_t::ignore));
     }
 }
