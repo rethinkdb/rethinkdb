@@ -172,6 +172,76 @@ void perfmon_sampler_t::end_stats(void *data, perfmon_stats_t *dest) {
     delete[] stats;
 };
 
+/* perfmon_stddev_t */
+
+perfmon_stddev_t::perfmon_stddev_t(std::string name, bool internal)
+    : perfmon_t(internal), name(name) { }
+
+perfmon_stddev_t::stats_t *perfmon_stddev_t::get() {
+    return &thread_info[get_thread_id()];
+}
+
+void *perfmon_stddev_t::begin_stats() {
+    return new stats_t[get_num_threads()];
+}
+
+void perfmon_stddev_t::visit_stats(void *data) {
+    ((stats_t*)data)[get_thread_id()] = *get();
+}
+
+void perfmon_stddev_t::end_stats(void *data, perfmon_stats_t *dest) {
+    stats_t *stats = (stats_t*) data;
+    stats_t aggregated;
+    for (int i = 0; i < get_num_threads(); ++i)
+        aggregated.aggregate(stats[i]);
+
+    if (aggregated.datapoints) {
+        (*dest)[name + "_mean"] = format(aggregated.mean());
+        (*dest)[name + "_dev"] = format(aggregated.standard_deviation());
+    } else {
+        (*dest)[name + "_mean"] = "-";
+        (*dest)[name + "_dev"] = "-";
+    }
+
+    delete[] stats;
+}
+
+void perfmon_stddev_t::record(float value) { get()->add(value); }
+
+#include <math.h>
+
+perfmon_stddev_t::stats_t::stats_t() :
+#ifndef NAN
+#error "Implementation doesn't support NANs"
+#endif
+    datapoints(0), M(NAN), Q(NAN) { }
+
+void perfmon_stddev_t::stats_t::add(float value) {
+    // See http://www.cs.berkeley.edu/~mhoemmen/cs194/Tutorials/variance.pdf
+    size_t k = datapoints += 1; // NB. the paper indexes from 1
+    if (k != 1) {
+        // Q_k = Q_{k-1} + ((k-1) (x_k - M_{k-1})^2) / k
+        // M_k = M_{k-1} + (x_k - M_{k-1}) / k
+        float temp = value - M;
+        M += temp / k;
+        Q += ((k - 1) * temp * temp) / k;
+    } else {
+        M = value;
+        Q = 0.0;
+    }
+}
+
+void perfmon_stddev_t::stats_t::aggregate(const stats_t &other) {
+    // unimplemented
+    guarantee(false, "unimplemented");
+    (void) other;
+}
+
+float perfmon_stddev_t::stats_t::mean() const { return M; }
+float perfmon_stddev_t::stats_t::standard_deviation() const {
+    return sqrt(Q / datapoints);
+}
+
 /* perfmon_rate_monitor_t */
 
 perfmon_rate_monitor_t::perfmon_rate_monitor_t(std::string name, ticks_t length, bool internal)

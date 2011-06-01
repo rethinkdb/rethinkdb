@@ -165,6 +165,44 @@ public:
     void end_stats(void *, perfmon_stats_t *);
 };
 
+/* Tracks the mean and standard deviation of a sequence value in constant space
+ * & time.
+ */
+struct perfmon_stddev_t :
+    public perfmon_t
+{
+    // should be possible to make this a templated class if necessary
+    typedef float T;
+
+    explicit perfmon_stddev_t(std::string name, bool internal = true);
+    void *begin_stats();
+    void visit_stats(void *);
+    void end_stats(void *, perfmon_stats_t *);
+
+    void record(T value);
+
+  private:
+    // One-pass variance calculation algorithm/datastructure taken from
+    // http://www.cs.berkeley.edu/~mhoemmen/cs194/Tutorials/variance.pdf
+    struct stats_t {
+        size_t datapoints;
+        // M is the current mean, and sqrt(Q/n) is the standard deviation; read
+        // the paper for why it works.
+        T M, Q;
+
+        stats_t();
+        void add(T value);
+        void aggregate(const stats_t &other);
+        T mean() const;
+        T standard_deviation() const;
+    };
+
+    std::string name;
+    // TODO: Should the elements be cache-line padded?
+    stats_t thread_info[MAX_THREADS];
+    stats_t *get();
+};
+
 /* `perfmon_rate_monitor_t` keeps track of the number of times some event happens
 per second. It is different from `perfmon_sampler_t` in that it does not associate
 a number with each event, but you can record many events at once. For example, it
