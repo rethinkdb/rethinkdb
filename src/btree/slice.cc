@@ -132,10 +132,12 @@ void btree_slice_t::delete_all_keys_for_backfill(order_token_t token) {
     btree_delete_all_keys_for_backfill(this, token);
 }
 
-void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback, order_token_t token) {
     assert_thread();
 
-    btree_backfill(this, since_when, callback);
+    order_sink_.check_out(token);
+
+    btree_backfill(this, since_when, callback, token);
 }
 
 /* TODO: Storing replication clocks and last-sync information like this is kind of ugly because

@@ -372,9 +372,8 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t
 
 /* btree_key_value_store_t interface */
 
-// TODO take an order token? (UNUSED order_token_t)
-void btree_key_value_store_t::delete_all_keys_for_backfill() {
+void btree_key_value_store_t::delete_all_keys_for_backfill(order_token_t token) {
     for (int i = 0; i < btree_static_config.n_slices; ++i) {
-        coro_t::spawn_now(boost::bind(&shard_store_t::delete_all_keys_for_backfill, shards[i], order_token_t::ignore));
+        coro_t::spawn_now(boost::bind(&shard_store_t::delete_all_keys_for_backfill, shards[i], token));
     }
 }

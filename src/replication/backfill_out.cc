@@ -62,8 +62,7 @@ struct backfill_and_streaming_manager_t :
 
                 backfilling_ = true;
             }
-            coro_t::spawn_now(boost::bind(
-                &btree_slice_t::backfill, &shard->btree, backfill_from, this));
+            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, order_token_t::ignore));
         }
 
         ~slice_manager_t() {
