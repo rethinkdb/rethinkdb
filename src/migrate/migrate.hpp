@@ -4,7 +4,7 @@
 
 #include "utils.hpp"
 
-#define TEMP_MIGRATION_FILE "temp-file"
+#define TEMP_MIGRATION_FILE "migration-db-dump"
 
 namespace migrate {
 
