@@ -974,10 +974,8 @@ bool parse_debug_command(txt_memcached_handler_if *rh, std::vector<char*> args) 
 #endif  // NDEBUG
 
 /* Handle memcached, takes a txt_memcached_handler_if and handles the memcached commands that come in on it */
-void handle_memcache(txt_memcached_handler_if *rh, UNUSED order_source_t *order_source) {
+void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source) {
     logDBG("Opened memcached stream: %p\n", coro_t::self());
-
-    // TODO: Actually use order_source.
 
     /* Declared outside the while-loop so it doesn't repeatedly reallocate its buffer */
     std::vector<char> line;

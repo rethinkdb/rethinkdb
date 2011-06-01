@@ -31,15 +31,11 @@ std::string format_poll_event(int event) {
     return s;
 }
 
-// TODO: I guess signum is unused because we aren't interested, and
-// uctx is unused because we don't have any context data.  Is this the
-// true?
 void event_queue_base_t::signal_handler(UNUSED int signum, siginfo_t *siginfo, UNUSED void *uctx) {
     linux_event_callback_t *callback = (linux_event_callback_t*)siginfo->si_value.sival_ptr;
     callback->on_event(siginfo->si_overrun);
 }
 
-// TODO: Why is cb unused?
 void event_queue_base_t::watch_signal(const sigevent *evp, UNUSED linux_event_callback_t *cb) {
     // All events are automagically blocked by thread pool, this is a
     // typical use case for epoll_pwait/ppoll.
@@ -54,7 +50,6 @@ void event_queue_base_t::watch_signal(const sigevent *evp, UNUSED linux_event_ca
     guarantee_err(res == 0, "Could not install signal handler in event queue");
 }
 
-// TODO: Why is cb unused?
 void event_queue_base_t::forget_signal(UNUSED const sigevent *evp, UNUSED linux_event_callback_t *cb) {
     // We don't support forgetting signals for now
 }
