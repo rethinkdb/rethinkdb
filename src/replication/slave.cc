@@ -151,7 +151,7 @@ void slave_t::run(signal_t *shutdown_signal) {
             repli_timestamp_t rc = internal_store_->get_replication_clock().next();
             debugf("Incrementing clock from %d to %d\n", rc.time - 1, rc.time);
             internal_store_->set_timestampers(rc);
-            internal_store_->set_replication_clock(rc);
+            internal_store_->set_replication_clock(rc, order_token_t::ignore);
 
             failover_->on_failure();
 

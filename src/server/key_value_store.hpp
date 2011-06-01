@@ -103,9 +103,9 @@ public:
     `set_timestampers()`, changing them doesn't change anything in the
     `btree_key_value_store_t` itself. They are used by the higher-level code to persist
     metadata to disk. */
-    void set_replication_clock(repli_timestamp_t t);
+    void set_replication_clock(repli_timestamp_t t, order_token_t token);
     repli_timestamp get_replication_clock();
-    void set_last_sync(repli_timestamp_t t);
+    void set_last_sync(repli_timestamp_t t, order_token_t token);
     repli_timestamp get_last_sync();
     void set_replication_master_id(uint32_t ts);
     uint32_t get_replication_master_id();
