@@ -1680,7 +1680,7 @@ std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config
     long long int diff_log_size = mcc.cache.n_patch_log_blocks * c.n_proxies * block_size.ser_value();
     int diff_log_size_mb = ceil_divide(diff_log_size, MEGABYTE);
 
-    snprintf(flags, 100, " -diff-log-size %d", diff_log_size_mb);
+    snprintf(flags, 100, " --diff-log-size %d", diff_log_size_mb);
     return std::string(flags);
 }
 
