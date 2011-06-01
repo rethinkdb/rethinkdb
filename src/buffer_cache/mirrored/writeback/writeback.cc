@@ -8,6 +8,10 @@ writeback_t::begin_transaction_fsm_t::begin_transaction_fsm_t(writeback_t *wb, m
 {
     txn->begin_callback = cb;
 
+    /* We have to give currently waiting transactions the right of way, to make sure
+     that no reordering between writes can happen at this place. */
+    writeback->possibly_unthrottle_transactions();
+
     if (writeback->too_many_dirty_blocks()) {
         /* When a flush happens, we will get popped off the throttled transactions list
 and given a green light. */
