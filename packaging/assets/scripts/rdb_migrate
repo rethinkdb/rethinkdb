@@ -35,6 +35,13 @@ do
     esac
 done
 
+if [ ${#infile[@]} -le "0" ]
+then
+    echo "No infile given. You probably don't want to run this script directly." >&2
+    echo "Please use \"rethinkdb migrate\" instead. See \"rethinkdb migrate help\" for more information." >&2
+    exit 1
+fi
+
 infilecl=()
 for file in "${infile[@]}"
 do
