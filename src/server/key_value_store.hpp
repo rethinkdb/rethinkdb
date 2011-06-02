@@ -92,6 +92,12 @@ public:
 
     void delete_all_keys_for_backfill();
 
+    // metadata interface
+    // TODO (rntz) should this use key_store_t and data_provider_t, etc?
+    // NOTE: key cannot be longer than MAX_KEY_SIZE. currently enforced by guarantee().
+    bool get_meta(const std::string &key, std::string *out);
+    void set_meta(const std::string &key, const std::string &value);
+
     /* The value passed to `set_timestampers()` is the value that will be used as the
     timestamp for all new operations. When the key-value store starts up, it is
     initialized to the value of `get_replication_clock()`. */

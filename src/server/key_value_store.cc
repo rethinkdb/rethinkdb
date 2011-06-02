@@ -80,6 +80,8 @@ void prep_for_shard(
         mirrored_cache_static_config_t *static_config,
         int i) {
 
+    // TODO I'm not sure this needs to switch threads at all, though it might
+    // increase parallelism that it does. - rntz
     on_thread_t thread_switcher(i % get_num_db_threads());
     btree_slice_t::create(pseudoserializers[i], static_config);
 }
@@ -383,4 +385,55 @@ void btree_key_value_store_t::delete_all_keys_for_backfill() {
     for (int i = 0; i < btree_static_config.n_slices; ++i) {
         shards[i]->btree.delete_all_keys_for_backfill();
     }
+}
+
+// metadata interface
+static store_key_t key_from_string(const std::string &key) {
+    guarantee(key.size() <= MAX_KEY_SIZE);
+    store_key_t sk;
+    bool b = str_to_key(key.data(), &sk);
+    rassert(b, "str_to_key on key of length < MAX_KEY_SIZE failed");
+    return sk;
+    (void) b;                   // avoid unused variable warning on release build
+}
+
+bool btree_key_value_store_t::get_meta(const std::string &key, std::string *out) {
+    store_key_t sk = key_from_string(key);
+    // TODO (rntz) should we be worrying about order tokens?
+    get_result_t res = metadata_shard->get(sk, order_token_t::ignore);
+    // This should only be tripped if a gated store was involved, which it wasn't.
+    guarantee(!res.is_not_allowed);
+    if (!res.value) return false;
+
+    // Get the data & copy it into the outstring
+    const const_buffer_group_t *bufs = res.value->get_data_as_buffers();
+    out->assign("");
+    out->reserve(bufs->get_size());
+    size_t nbufs = bufs->num_buffers();
+    for (unsigned i = 0; i < nbufs; ++i) {
+        const_buffer_group_t::buffer_t buf = bufs->get_buffer(i);
+        out->append((const char *) buf.data, (size_t) buf.size);
+    }
+    return true;
+}
+
+void btree_key_value_store_t::set_meta(const std::string &key, const std::string &value) {
+    store_key_t sk = key_from_string(key);
+    boost::shared_ptr<buffered_data_provider_t>
+        datap(new buffered_data_provider_t((const void*) value.data(), value.size()));
+
+    // TODO (rntz) code dup with run_storage_command :/
+    mcflags_t mcflags = 0;      // default, no flags
+    // TODO (rntz) what if it's a large value, and needs the LARGE_VALUE flag? how do we determine this?
+    exptime_t exptime = 0;      // indicates never expiring
+
+    set_result_t res = metadata_shard->sarc(sk, datap, mcflags, exptime,
+        add_policy_yes, replace_policy_yes, // "set" semantics: insert if not present, overwrite if present
+        NO_CAS_SUPPLIED, // not a CAS operation
+        // TODO (rntz) do we need to worry about ordering?
+        order_token_t::ignore);
+
+    // TODO (rntz) consider error conditions more thoroughly
+    // For now, we assume "too large" or "not allowed" can't happen.
+    guarantee(res == sr_stored);
 }
