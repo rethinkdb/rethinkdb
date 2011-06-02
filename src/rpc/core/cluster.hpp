@@ -269,8 +269,6 @@ deserialize cluster messages. */
 
 struct cluster_outpipe_t {
     void write(const void*, size_t);
-    void write_address(const cluster_address_t *addr);
-    static int address_ser_size(const cluster_address_t *addr);
 private:
     friend class cluster_t;
     cluster_outpipe_t(tcp_conn_t *conn, int bytes) : conn(conn), expected(bytes), written(0)
@@ -283,7 +281,6 @@ private:
 
 struct cluster_inpipe_t {
     void read(void *, size_t);
-    void read_address(cluster_address_t *addr);
     void done();
 private:
     friend class cluster_t;

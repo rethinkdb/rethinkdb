@@ -407,15 +407,6 @@ void cluster_outpipe_t::write(const void *buf, size_t size) {
     } catch (tcp_conn_t::write_closed_exc_t) {}
 }
 
-void cluster_outpipe_t::write_address(const cluster_address_t *addr) {
-    write(&addr->peer, sizeof(addr->peer));
-    write(&addr->mailbox, sizeof(addr->mailbox));
-}
-
-int cluster_outpipe_t::address_ser_size(const cluster_address_t *addr) {
-    return sizeof(addr->peer) + sizeof(addr->mailbox);
-}
-
 cluster_outpipe_t::~cluster_outpipe_t() {
     if (written != expected) {
         crash("ser_size() said there would be %d bytes, but serialize() only wrote %d.",
@@ -431,12 +422,6 @@ void cluster_inpipe_t::read(void *buf, size_t size) {
     try {
         conn->read(buf, size);
     } catch (tcp_conn_t::read_closed_exc_t) {}
-}
-
-void cluster_inpipe_t::read_address(cluster_address_t *addr) {
-    read(&addr->peer, sizeof(addr->peer));
-    read(&addr->mailbox, sizeof(addr->mailbox));
-    //debugf("Got an address: peer=%d, mailbox=%d\n", addr->peer, addr->mailbox);
 }
 
 void cluster_inpipe_t::done() {
