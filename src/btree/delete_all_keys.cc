@@ -59,13 +59,21 @@ struct delete_all_keys_traversal_helper_t : public btree_traversal_helper_t {
 // for backfill.  Thus we don't have to record the fact in the delete
 // queue.  (Or, we will have to, along with the neighbor that sent us
 // delete-all-keys operation.)
-// TODO: Add an order token parameter.  (UNUSED order_token_t)
-void btree_delete_all_keys_for_backfill(btree_slice_t *slice) {
+void btree_delete_all_keys_for_backfill(btree_slice_t *slice, order_token_t token) {
+    slice->assert_thread();
+
     rassert(coro_t::self());
 
     delete_all_keys_traversal_helper_t helper;
 
+    slice->pre_begin_transaction_sink_.check_out(token);
+    order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in();
+
     boost::shared_ptr<transaction_t> txn = boost::make_shared<transaction_t>(slice->cache(), helper.transaction_mode(), 0, repli_timestamp::invalid);
+
+    slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
+
+    txn->set_token(slice->post_begin_transaction_source_.check_in());
 
     // The timestamp never gets used, because we're just deleting
     // stuff.  The use of repli_timestamp::invalid here might trip

@@ -50,6 +50,13 @@ mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order
     return dispatching_store.change(m, ct, substore_token);
 }
 
+void shard_store_t::delete_all_keys_for_backfill(order_token_t token) {
+    on_thread_t th(home_thread());
+    sink.check_out(token);
+    order_token_t substore_token = substore_order_source.check_in();
+    btree.delete_all_keys_for_backfill(substore_token);
+}
+
 /* btree_key_value_store_t */
 
 void prep_for_serializer(
@@ -101,9 +108,9 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
         dynamic_config, static_config, _1));
 
     /* Create serializers so we can initialize their contents */
-    standard_serializer_t *serializers[n_files];
+    std::vector<standard_serializer_t *> serializers(n_files);
     pmap(n_files, boost::bind(&create_existing_serializer,
-        dynamic_config, serializers, _1));
+			      dynamic_config, serializers.data(), _1));
 
     {
         /* Prepare serializers for multiplexing */
@@ -119,7 +126,7 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
     }
 
     /* Shut down serializers */
-    pmap(n_files, boost::bind(&destroy_serializer, serializers, _1));
+    pmap(n_files, boost::bind(&destroy_serializer, serializers.data(), _1));
 }
 
 void create_existing_shard(
@@ -237,18 +244,18 @@ void btree_key_value_store_t::check_existing(const std::vector<std::string>& fil
 }
 
 
-void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t) {
+void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
 
     /* Update the value on disk */
-    shards[0]->btree.set_replication_clock(t);
+    shards[0]->btree.set_replication_clock(t, token);
 }
 
 repli_timestamp btree_key_value_store_t::get_replication_clock() {
     return shards[0]->btree.get_replication_clock();   /* Read the value from disk */
 }
 
-void btree_key_value_store_t::set_last_sync(repli_timestamp_t t) {
-    shards[0]->btree.set_last_sync(t);   /* Write the value to disk */
+void btree_key_value_store_t::set_last_sync(repli_timestamp_t t, order_token_t token) {
+    shards[0]->btree.set_last_sync(t, token);   /* Write the value to disk */
 }
 
 repli_timestamp btree_key_value_store_t::get_last_sync() {
@@ -365,8 +372,8 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t
 
 /* btree_key_value_store_t interface */
 
-void btree_key_value_store_t::delete_all_keys_for_backfill() {
+void btree_key_value_store_t::delete_all_keys_for_backfill(order_token_t token) {
     for (int i = 0; i < btree_static_config.n_slices; ++i) {
-        shards[i]->btree.delete_all_keys_for_backfill();
+        coro_t::spawn_now(boost::bind(&shard_store_t::delete_all_keys_for_backfill, shards[i], token));
     }
 }

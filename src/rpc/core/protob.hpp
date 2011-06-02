@@ -11,7 +11,7 @@
 #include <utility>
 #include "logger.hpp"
 
-using namespace google;
+using namespace google; //TODO get rid of these
 using namespace protobuf;
 
 void hd_packet(header::hdr hdr);

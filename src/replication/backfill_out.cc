@@ -16,9 +16,10 @@ perfmon_duration_sampler_t
 
 namespace replication {
 
-struct backfill_and_streaming_manager_t :
+class backfill_and_streaming_manager_t :
     public home_thread_mixin_t
 {
+public:
     /* We construct one `slice_manager_t` per slice */
 
     struct slice_manager_t :
@@ -62,8 +63,7 @@ struct backfill_and_streaming_manager_t :
 
                 backfilling_ = true;
             }
-            coro_t::spawn_now(boost::bind(
-                &btree_slice_t::backfill, &shard->btree, backfill_from, this));
+            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, order_token_t::ignore));
         }
 
         ~slice_manager_t() {
@@ -98,10 +98,14 @@ struct backfill_and_streaming_manager_t :
         /* Functor for replicating changes */
 
         struct change_visitor_t : public boost::static_visitor<mutation_t> {
-
+        private:
             slice_manager_t *manager;
             castime_t castime;
             order_token_t order_token;
+        public:
+            change_visitor_t(slice_manager_t *_manager, castime_t _castime, order_token_t _order_token)
+                : manager(_manager), castime(_castime), order_token(_order_token) { }
+
             mutation_t operator()(const get_cas_mutation_t& m) {
                 block_pm_duration timer(&pm_replication_master_enqueue_cost);
                 manager->realtime_job_queue.push(boost::bind(
@@ -147,10 +151,7 @@ struct backfill_and_streaming_manager_t :
             rassert(castime.timestamp >= min_realtime_timestamp_);
 
             block_pm_duration timer(&pm_replication_master_dispatch_cost);
-            change_visitor_t functor;
-            functor.manager = this;
-            functor.castime = castime;
-            functor.order_token = token;
+            change_visitor_t functor(this, castime, token);
             return boost::apply_visitor(functor, m.mutation);
         }
 
@@ -277,7 +278,7 @@ struct backfill_and_streaming_manager_t :
 
         /* Record the new value of the replication clock */
         replication_clock_ = rc;
-        internal_store_->set_replication_clock(rc);
+        internal_store_->set_replication_clock(rc, order_token_t::ignore);
 
         /* `slice_manager_t::set_replication_clock()` pushes a command to count down the
         `count_down_latch_t` through the same queue that is used for realtime replication
@@ -353,7 +354,7 @@ struct backfill_and_streaming_manager_t :
         happened with the new timestamp and that operation was written to disk but we
         crashed before the new value of the replication clock could be written to disk,
         then the database could behave incorrectly when it started back up. */
-        internal_store_->set_replication_clock(replication_clock_);
+        internal_store_->set_replication_clock(replication_clock_, order_token_t::ignore);
 
         pmap(internal_store_->btree_static_config.n_slices,
              boost::bind(&backfill_and_streaming_manager_t::register_on_slice, this,

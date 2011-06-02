@@ -9,6 +9,8 @@
 
 #include <execinfo.h>
 
+#include "containers/scoped_malloc.hpp"
+
 static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
     /*
     backtrace() gives us lines in one of the following two forms:
@@ -82,13 +84,13 @@ void print_backtrace(FILE *out, bool use_addr2line) {
     if (symbols) {
         for (int i = 0; i < size; i ++) {
             // Parse each line of the backtrace
-            char line[strlen(symbols[i])+1];
-            strcpy(line, symbols[i]);
+	    scoped_malloc<char> line(strlen(symbols[i])+1);
+            strcpy(line.get(), symbols[i]);
             char *executable, *function, *offset, *address;
 
             fprintf(out, "%d: ", i+1);
 
-            if (!parse_backtrace_line(line, &executable, &function, &offset, &address)) {
+            if (!parse_backtrace_line(line.get(), &executable, &function, &offset, &address)) {
                 fprintf(out, "%s\n", symbols[i]);
             } else {
                 if (function) {

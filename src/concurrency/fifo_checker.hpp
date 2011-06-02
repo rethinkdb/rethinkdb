@@ -146,7 +146,7 @@ public:
 #else
     order_sink_t() { }
 
-    void check_out(UNUSED order_token_t token) { }
+    void check_out(UNUSED  order_token_t token) { }
 
 #endif  // ifndef NDEBUG
 
@@ -180,7 +180,7 @@ public:
 #else
     plain_sink_t() { }
 
-    void check_out(UNUSED order_token_t token) { }
+    void check_out(UNUSED  order_token_t token) { }
 #endif  // ifndef NDEBUG
 
 private:

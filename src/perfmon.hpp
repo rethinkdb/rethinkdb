@@ -248,9 +248,10 @@ struct perfmon_function_t :
     public perfmon_t
 {
 public:
-    struct internal_function_t :
+    class internal_function_t :
         public intrusive_list_node_t<internal_function_t>
     {
+    public:
         internal_function_t(perfmon_function_t *p);
         virtual ~internal_function_t();
         virtual std::string compute_stat() = 0;

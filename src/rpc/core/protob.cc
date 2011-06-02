@@ -1,8 +1,8 @@
 #include "rpc/core/protob.hpp"
 
 void hd_packet(header::hdr hdr) {
-    char buffer[1024];
-    guarantee(hdr.SerializeToArray(buffer, 1024));
+    char buffer[2048];
+    guarantee(hdr.SerializeToArray(buffer, 2048));
     print_hd(buffer, 0, hdr.ByteSize());
 }
 
@@ -74,7 +74,7 @@ bool read_protob(tcp_conn_t *conn, Message *msg) {
 }
 
 void write_protob(tcp_conn_t *conn, Message *msg) {
-    char buffer[1024];
+    char buffer[2048];
     guarantee(msg->IsInitialized());
 
     header::hdr hdr;
@@ -92,7 +92,7 @@ void write_protob(tcp_conn_t *conn, Message *msg) {
     hd_packet(hdr);
     fprintf(stderr, "\n"); */
 
-    guarantee(hdr.SerializeToArray(buffer, 1024));
+    guarantee(hdr.SerializeToArray(buffer, 2048));
     conn->write(buffer, hdr.ByteSize());
     //logINF("Snd:%d\n", hdr.ByteSize());
 

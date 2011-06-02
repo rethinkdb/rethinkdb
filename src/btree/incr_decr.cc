@@ -67,14 +67,14 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
     bool increment;   // If false, then decrement
     uint64_t delta;   // Amount to increment or decrement by
 
+    incr_decr_result_t result;
+
     /* Used as temporary storage, so that the value we return from operate() doesn't become invalid
     before run_btree_modify_oper is done with it. */
     union {
         char temp_value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value temp_value;
     };
-
-    incr_decr_result_t result;
 };
 
 incr_decr_result_t btree_incr_decr(const store_key_t &key, btree_slice_t *slice, bool increment, uint64_t delta, castime_t castime, order_token_t token) {

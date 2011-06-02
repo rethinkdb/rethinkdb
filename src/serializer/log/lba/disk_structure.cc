@@ -1,4 +1,5 @@
 #include "disk_structure.hpp"
+#include "containers/scoped_malloc.hpp"
 
 lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *em, direct_file_t *file)
     : em(em), file(file), superblock_extent(NULL), last_extent(NULL)
@@ -84,10 +85,10 @@ void lba_disk_structure_t::add_entry(ser_block_id_t block_id, repli_timestamp re
 
         /* Prepare the new superblock. */
 
-        char buffer[ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE)];
-        bzero(buffer, ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
+	scoped_malloc<char> buffer(ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
+        bzero(buffer.get(), ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE));
 
-        lba_superblock_t *new_superblock = (lba_superblock_t *)buffer;
+        lba_superblock_t *new_superblock = reinterpret_cast<lba_superblock_t *>(buffer.get());
         memcpy(new_superblock->magic, lba_super_magic, LBA_SUPER_MAGIC_SIZE);
         int i = 0;
         for (lba_disk_extent_t *e = extents_in_superblock.head(); e; e = extents_in_superblock.next(e)) {
@@ -99,7 +100,7 @@ void lba_disk_structure_t::add_entry(ser_block_id_t block_id, repli_timestamp re
         /* Write the new superblock */
 
         superblock_offset = superblock_extent->offset + superblock_extent->amount_filled;
-        superblock_extent->append(buffer, ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE), io_account);
+        superblock_extent->append(buffer.get(), ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE), io_account);
     }
 
     if (!last_extent) {
@@ -112,9 +113,10 @@ void lba_disk_structure_t::add_entry(ser_block_id_t block_id, repli_timestamp re
     last_extent->add_entry(lba_entry_t::make(block_id, recency, offset), io_account);
 }
 
-struct lba_writer_t :
+class lba_writer_t :
     public extent_t::sync_callback_t
 {
+public:
     int outstanding_cbs;
     lba_disk_structure_t::sync_callback_t *callback;
     

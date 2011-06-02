@@ -151,13 +151,14 @@ void slave_t::run(signal_t *shutdown_signal) {
             repli_timestamp_t rc = internal_store_->get_replication_clock().next();
             debugf("Incrementing clock from %d to %d\n", rc.time - 1, rc.time);
             internal_store_->set_timestampers(rc);
-            internal_store_->set_replication_clock(rc);
+            internal_store_->set_replication_clock(rc, order_token_t::ignore);
 
             failover_->on_failure();
 
             were_connected_before = false;
 
         } catch (tcp_conn_t::connect_failed_exc_t& e) {
+	    (void)e;
             // If the master was down when we last shut down, it's not so remarkable that it
             // would still be down when we come back up. But if that's not the case and it's
             // our first time connecting, we blame the failure to connect on user error.

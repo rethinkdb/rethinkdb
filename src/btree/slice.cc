@@ -104,6 +104,10 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
         return btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token);
     }
 
+    btree_slice_change_visitor_t(btree_slice_t *_parent, castime_t _ct, order_token_t _order_token)
+        : parent(_parent), ct(_ct), order_token(_order_token) { }
+
+private:
     btree_slice_t *parent;
     castime_t ct;
     order_token_t order_token;
@@ -116,35 +120,37 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, 
 
     token = order_checkpoint_.check_through(token);
 
-    btree_slice_change_visitor_t functor;
-    functor.parent = this;
-    functor.ct = castime;
-    functor.order_token = token;
+    btree_slice_change_visitor_t functor(this, castime, token);
     return boost::apply_visitor(functor, m.mutation);
 }
 
-void btree_slice_t::delete_all_keys_for_backfill() {
+void btree_slice_t::delete_all_keys_for_backfill(order_token_t token) {
     assert_thread();
 
-    btree_delete_all_keys_for_backfill(this);
+    order_sink_.check_out(token);
+
+    btree_delete_all_keys_for_backfill(this, token);
 }
 
-void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback, UNUSED order_token_t token) {
     assert_thread();
 
-    btree_backfill(this, since_when, callback);
+    // TODO: We need to make sure that callers are using a proper substore token.
+
+    //    order_sink_.check_out(token);
+
+    btree_backfill(this, since_when, callback, order_token_t::ignore);
 }
 
-/* TODO: Storing replication clocks and last-sync information like this is kind of ugly because
-it's an abstraction break, which means it might not fit with clustering.
-
-These functions are intentionally verbose because they shouldn't exist at all. The code
-duplication is a protest against how horrible it is to have this data stored here. */
-
-void btree_slice_t::set_replication_clock(repli_timestamp_t t) {
+void btree_slice_t::set_replication_clock(repli_timestamp_t t, UNUSED order_token_t token) {
     on_thread_t th(cache()->home_thread());
+
+    // TODO: We need to make sure that callers are using a proper substore token.
+
+    //    order_sink_.check_out(token);
+
     transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past);
-    // TODO: Set the transaction's order token.
+    // TODO: Set the transaction's order token (not with the token parameter).
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->replication_clock = t;
@@ -162,10 +168,15 @@ repli_timestamp btree_slice_t::get_replication_clock() {
     return sb->replication_clock;
 }
 
-void btree_slice_t::set_last_sync(repli_timestamp_t t) {
+void btree_slice_t::set_last_sync(repli_timestamp_t t, UNUSED order_token_t token) {
     on_thread_t th(cache()->home_thread());
+
+    // TODO: We need to make sure that callers are using a proper substore token.
+
+    //    order_sink_.check_out(token);
+
     transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past);
-    // TODO: Set the transaction's order token.
+    // TODO: Set the transaction's order token (not with the token parameter).
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->last_sync = t;

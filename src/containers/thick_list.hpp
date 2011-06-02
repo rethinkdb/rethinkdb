@@ -68,8 +68,6 @@ public:
     // available, it must be the smallest unused token.  You'll get
     // good performance if you never choose a bad token and use the
     // most recently dropped token.
-
-    // TODO: Consider throwing an exception, instead of returning false.
     bool add(token_type known_token, T const& value) {
         if (free_.empty()) {
             if (known_token == values_.size()) {

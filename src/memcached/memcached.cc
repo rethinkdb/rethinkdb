@@ -510,7 +510,10 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     // that, the server will consider it to be real Unix time value rather
     // than an offset from current time.
     if (exptime <= 60*60*24*30 && exptime > 0) {
-        // TODO: Do we need to handle exptimes in the past here?
+	// If 60*60*24*30 < exptime <= time(NULL), that's fine, the
+	// btree code needs to handle that case gracefully anyway
+	// (since the clock can tick in the middle of an insert
+	// anyway...).  We have tests in expiration.py.
         exptime += time(NULL);
     }
 
@@ -795,13 +798,14 @@ bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
         return false;
     }
 
-    // TODO: A nicer way to do short aliases like this.
-    if (!strcmp(args[0], ".h") && args.size() >= 2) {       // .h is an alias for "rdb hash"
-        std::vector<char *> ctrl_args = args;               // It's ugly, but typing that command out in full is just stupid
-        ctrl_args[0] = (char *) "hash"; // This should be const but it's just for debugging and it won't be modified anyway.
+    // .h is an alias for "rdb hash"
+    if (!strcmp(args[0], ".h") && args.size() >= 2) {
+        std::vector<char *> ctrl_args = args;
+        static char hashstring[] = "hash";
+        ctrl_args[0] = hashstring;
         rh->write(control_t::exec(ctrl_args.size(), ctrl_args.data()));
         return true;
-    } else if (!strcmp(args[0], ".s")) { // There should be a better way of doing this, but it doesn't really matter.
+    } else if (!strcmp(args[0], ".s")) {
         do_quickset(rh, args);
         return true;
     } else {
