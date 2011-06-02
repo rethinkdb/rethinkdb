@@ -156,15 +156,17 @@ void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, T *val
 /* Serializing and unserializing mailbox addresses */
 
 inline void serialize(cluster_outpipe_t *conn, const cluster_address_t &addr) {
-    conn->write_address(&addr);
+    conn->write(&addr.peer, sizeof(addr.peer));
+    conn->write(&addr.mailbox, sizeof(addr.mailbox));
 }
 
 inline int ser_size(const cluster_address_t &addr) {
-    return cluster_outpipe_t::address_ser_size(&addr);
+    return sizeof(addr.peer) + sizeof(addr.mailbox);
 }
 
 inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, cluster_address_t *addr) {
-    conn->read_address(addr);
+    conn->read(&addr->peer, sizeof(addr->peer));
+    conn->read(&addr->mailbox, sizeof(addr->mailbox));
 }
 
 #endif /* __RPC_SERIALIZE_SERIALIZE_HPP__ */

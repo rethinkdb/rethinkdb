@@ -19,10 +19,10 @@ public:
         ::serialize(p, Council::address_t(&council));
     }
 
-    static council_delegate_t<Council> *construct(cluster_inpipe_t *p) {
+    static council_delegate_t<Council> *construct(cluster_inpipe_t *p, boost::function<void()> done) {
         typename Council::address_t addr;
         ::unserialize(p, addr);
-        p->done();
+        done();
         return new council_delegate_t<Council>(addr);
     }
 };
