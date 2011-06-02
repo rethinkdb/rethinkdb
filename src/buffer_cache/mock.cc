@@ -119,7 +119,7 @@ bool mock_transaction_t::commit(mock_transaction_commit_callback_t *callback) {
             acq.enter(&cache->write_operation_random_delay_fifo);
             if (maybe_random_delay(this, &mock_transaction_t::finish_committing, callback)) {
                 acq.leave();
-                finish_committing(NULL);
+                delete this;
                 return true;
             } else {
                 return false;
