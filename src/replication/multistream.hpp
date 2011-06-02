@@ -14,8 +14,6 @@
 namespace replication {
 extern const uint32_t MAX_MESSAGE_SIZE;
 
-// TODO: Do we ever really handle these?
-
 // TODO: We should have separate exception types for multistream
 // exceptions and replication protocol exceptions.
 class protocol_exc_t : public std::exception {
