@@ -115,10 +115,7 @@ bool mock_transaction_t::commit(mock_transaction_commit_callback_t *callback) {
             delete this;
             return true;
         case rwi_write: {
-            coro_fifo_acq_t acq;
-            acq.enter(&cache->write_operation_random_delay_fifo);
             if (maybe_random_delay(this, &mock_transaction_t::finish_committing, callback)) {
-                acq.leave();
                 delete this;
                 return true;
             } else {
@@ -152,10 +149,6 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, mock
 
     mock_buf_t *buf = new mock_buf_t(internal_buf, mode);
     if (internal_buf->lock.lock(mode == rwi_read_outdated_ok ? rwi_read : mode, buf)) {
-        coro_fifo_acq_t acq;
-        if (is_write_mode(mode)) {
-            acq.enter(&cache->write_operation_random_delay_fifo);
-        }
         if (maybe_random_delay(callback, &mock_block_available_callback_t::on_block_available, buf)) {
             return buf;
         } else {
