@@ -35,21 +35,29 @@ extern "C" {
         /* Start at the beginning. */
         sp = (uint64_t *) ((uintptr_t) stack + stack_size);
 
-        /* Align stack. TODO: Is this necessary? */
+        /* Align stack. The x86-64 ABI requires the stack pointer to
+           always be 16-byte-aligned at function calls.  That is,
+           "(%rsp - 8) is always a multiple of 16 when control is
+           transferred to the function entry point". */
         sp = (uint64_t *) (((uintptr_t) sp) & -16L);
 
-        /* TODO: Figure out why some things (e.g. stats) break without this. */
-        sp--;
+        // Currently sp is 16-byte aligned.
 
         /* Set up the instruction pointer; this will be popped off the stack by
          * ret in swapcontext once all the other registers have been "restored". */
         sp--;
+        sp--;
+
+        // Subtracted 2*sizeof(int64_t), so sp is still 16-byte aligned.
+
         *sp = (uint64_t) func;
 
         /* These registers (r12, r13, r14, r15, rbx, rbp) are going to be
          * popped off the stack by swapcontext; they're callee-saved, so
          * whatever happens to be in them will be ignored. */
         sp -= 6;
+
+        // Subtracted 6*sizeof(int64_t), so sp is still 16-byte aligned.
 
         /* Set up stack pointer. */
         *ucp = sp;
