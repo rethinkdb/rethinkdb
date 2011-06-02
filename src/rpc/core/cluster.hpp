@@ -46,9 +46,10 @@ private:
     friend class cluster_t;
     friend class mailbox_srvc_t;
 
-    /* Called to when a message is sent to the mailbox over the network. Should do basically the
-    same thing as run() after deserializing the message. */
-    virtual void unserialize(cluster_inpipe_t *) = 0;
+    /* Called to when a message is sent to the mailbox over the network. Should deserialize the
+    message, then call the second argument to indicate it is done deserializing, then do the
+    same thing as `run()`. */
+    virtual void unserialize(cluster_inpipe_t *, boost::function<void()>) = 0;
 
     /* Called when a message is sent to the mailbox. Should destroy the message that is passed to
     it. Beware: may be called on any thread. */
@@ -112,7 +113,7 @@ public:
     cluster_delegate_t returned from introduce_new_node(). Its return value becomes this cluster's
     cluster_delegate_t. */
     cluster_t(int port, const char *contact_host, int contact_port,
-              boost::function<cluster_delegate_t *(cluster_inpipe_t *)> startup_function);
+              boost::function<cluster_delegate_t *(cluster_inpipe_t *, boost::function<void()>)> startup_function);
 
     /* Returns the delegate you gave it. The cluster_t owns its delegate and will free it! */
     cluster_delegate_t *get_delegate() { return delegate.get(); }
@@ -264,33 +265,51 @@ struct cluster_delegate_t {
     virtual ~cluster_delegate_t() { }
 };
 
-/* cluster_outpipe_t and cluster_inpipe_t are passed to user-code that's supposed to serialize and
-deserialize cluster messages. */
+/* `cluster_outpipe_t` and `cluster_inpipe_t` are passed to user-code that's supposed to serialize
+and deserialize cluster messages. User-code should use them by calling `write()` and `read()`.
+Implementation code should subclass them and override `do_write()` and `do_read()`. */
 
 struct cluster_outpipe_t {
-    void write(const void*, size_t);
-private:
-    friend class cluster_t;
-    cluster_outpipe_t(tcp_conn_t *conn, int bytes) : conn(conn), expected(bytes), written(0)
-        {}
-    ~cluster_outpipe_t();
-    tcp_conn_t *conn;
-    int expected;   // How many total bytes are supposed to be written
-    int written;   // How many bytes have been written
+    void write(const void *buf, size_t size) {
+        written += size;
+        if (written > expected) {
+            crash("ser_size() said there would be %d bytes, but serialize() is trying to write more.",
+                expected);
+        }
+        do_write(buf, size);
+    }
+protected:
+    cluster_outpipe_t(int expected) : written(0), expected(expected) { }
+    virtual ~cluster_outpipe_t() {
+        if (written != expected) {
+            crash("ser_size() said there would be %d bytes, but serialize() only wrote %d.",
+                expected, written);
+        }
+    }
+    virtual void do_write(const void *, size_t) = 0;
+    int written;   // How many bytes we've written so far
+    int expected;   // How long the message is supposed to be
 };
 
 struct cluster_inpipe_t {
-    void read(void *, size_t);
-    void done();
-private:
-    friend class cluster_t;
-    friend class mailbox_srvc_t;
-    cluster_inpipe_t(tcp_conn_t *conn, int bytes) :
-        conn(conn), expected(bytes), readed(0) {}
-    tcp_conn_t *conn;
-    int expected;   // How many total bytes are supposed to be read
-    int readed;   // How many bytes have been read
-    cond_t to_signal_when_done;
+    void read(void *buf, size_t size) {
+        readed += size;
+        if (readed > expected) {
+            crash("The message was %d bytes long, but unserialize() is trying to read more.", expected);
+        }
+        do_read(buf, size);
+    }
+protected:
+    cluster_inpipe_t(int expected) : readed(0), expected(expected) { }
+    virtual ~cluster_inpipe_t() {
+        if (readed != expected) {
+            crash("The message was %d bytes long, but unserialize() only read %d.",
+                expected, readed);
+        }
+    }
+    virtual void do_read(void *, size_t) = 0;
+    int readed;   // How many bytes we've read so far
+    int expected;   // How long the message is supposed to be
 };
 
 #endif /* __RPC_CORE_CLUSTER_HPP__ */

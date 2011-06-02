@@ -51,7 +51,7 @@ struct demo_delegate_t : public cluster_delegate_t {
           map_council_control("map-council", "access the map council", &demo_map_council)
     { }
 
-    static demo_delegate_t *construct(cluster_inpipe_t *p) {
+    static demo_delegate_t *construct(cluster_inpipe_t *p, boost::function<void()> done) {
         set_store_interface_mailbox_t::address_t master_store;
         ::unserialize(p, NULL, &master_store);
         get_store_mailbox_t::address_t master_get_store;
@@ -60,7 +60,7 @@ struct demo_delegate_t : public cluster_delegate_t {
         ::unserialize(p, NULL, &registration_address);
         map_council_t<int, int>::address_t demo_map_council_addr;
         ::unserialize(p, NULL, &demo_map_council_addr);
-        p->done();
+        done();
         return new demo_delegate_t(master_store, master_get_store, registration_address, demo_map_council_addr);
     }
 

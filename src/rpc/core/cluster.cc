@@ -20,6 +20,18 @@ cluster_mailbox_t::~cluster_mailbox_t() {
     get_cluster()->remove_mailbox(this);
 }
 
+/* Concrete subclass of `cluster_outpipe_t` */
+
+struct cluster_peer_outpipe_t : public cluster_outpipe_t {
+    void do_write(const void *buf, size_t size) {
+        try {
+            conn->write(buf, size);
+        } catch (tcp_conn_t::write_closed_exc_t) {}
+    }
+    cluster_peer_outpipe_t(tcp_conn_t *conn, int bytes) : cluster_outpipe_t(bytes), conn(conn) {}
+    tcp_conn_t *conn;
+};
+
 /* Establishing a cluster */
 
 static cluster_t *the_cluster = NULL;
@@ -41,7 +53,7 @@ cluster_t::cluster_t(int port, cluster_delegate_t *d) :
 }
 
 cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
-                     boost::function<cluster_delegate_t *(cluster_inpipe_t *)> startup_function) :
+                     boost::function<cluster_delegate_t *(cluster_inpipe_t *, boost::function<void()>)> startup_function) :
     listener(new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1)))
 {
     rassert(the_cluster == NULL);
@@ -92,9 +104,10 @@ cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
 
     mailbox::intro_msg introduction_header;
     read_protob(&contact_conn, &introduction_header);
-    cluster_inpipe_t intro_msg_pipe(&contact_conn, introduction_header.length());
-    delegate.reset(startup_function(&intro_msg_pipe));
-    intro_msg_pipe.to_signal_when_done.wait();
+    cluster_peer_inpipe_t intro_msg_pipe(&contact_conn, introduction_header.length());
+    cond_t to_signal_when_done;
+    delegate.reset(startup_function(&intro_msg_pipe, boost::bind(&cond_t::pulse, &to_signal_when_done)));
+    to_signal_when_done.wait();
 }
 
 void cluster_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &conn) {
@@ -199,7 +212,7 @@ void cluster_t::handle_unknown_peer(boost::scoped_ptr<tcp_conn_t> &conn, populat
     mailbox::intro_msg intro_msg;
     intro_msg.set_length(intro_size);
     write_protob(conn.get(), &intro_msg);
-    cluster_outpipe_t out_pipe(conn.get(), intro_size);
+    cluster_peer_outpipe_t out_pipe(conn.get(), intro_size);
     delegate->introduce_new_node(&out_pipe);
 }
 
@@ -330,7 +343,7 @@ void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
 #endif
         p->write(&mbox_msg);
 
-        cluster_outpipe_t pipe(p->conn.get(), msg_size);
+        cluster_peer_outpipe_t pipe(p->conn.get(), msg_size);
         msg->serialize(&pipe);
     }
 }
@@ -394,39 +407,4 @@ cluster_address_t::cluster_address_t(cluster_mailbox_t *mailbox) :
 
 void cluster_address_t::send(cluster_message_t *msg) const {
     get_cluster()->send_message(peer, mailbox, msg);
-}
-
-void cluster_outpipe_t::write(const void *buf, size_t size) {
-    written += size;
-    if (written > expected) {
-        crash("ser_size() said there would be %d bytes, but serialize() is trying to write more.",
-            expected);
-    }
-    try {
-        conn->write(buf, size);
-    } catch (tcp_conn_t::write_closed_exc_t) {}
-}
-
-cluster_outpipe_t::~cluster_outpipe_t() {
-    if (written != expected) {
-        crash("ser_size() said there would be %d bytes, but serialize() only wrote %d.",
-            expected, written);
-    }
-}
-
-void cluster_inpipe_t::read(void *buf, size_t size) {
-    readed += size;
-    if (readed > expected) {
-        crash("The message was %d bytes long, but unserialize() is trying to read more.", expected);
-    }
-    try {
-        conn->read(buf, size);
-    } catch (tcp_conn_t::read_closed_exc_t) {}
-}
-
-void cluster_inpipe_t::done() {
-    if (expected != readed) {
-        crash("The message was %d bytes long, but unserialize() only read %d.", expected, readed);
-    }
-    to_signal_when_done.pulse();
 }
