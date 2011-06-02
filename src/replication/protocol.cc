@@ -137,11 +137,11 @@ void replication_stream_handler_t::end_of_stream() {
 void replication_connection_handler_t::process_hello_message(net_hello_t buf) {
     rassert(16 == sizeof(STANDARD_HELLO_MAGIC));
     if (0 != memcmp(buf.hello_magic, STANDARD_HELLO_MAGIC, sizeof(STANDARD_HELLO_MAGIC))) {
-        throw protocol_exc_t("bad hello magic");  // TODO details
+        throw protocol_exc_t("bad hello magic");
     }
 
     if (buf.replication_protocol_version != 1) {
-        throw protocol_exc_t("bad protocol version");  // TODO details
+        throw protocol_exc_t("bad protocol version");
     }
 
     receiver_->hello(buf);
@@ -371,7 +371,6 @@ void repli_stream_t::try_write(const void *data, size_t size) {
         block_pm_duration set_timer(&master_write);
         conn_->write_buffered(data, size);
     } catch (tcp_conn_t::write_closed_exc_t &e) {
-        // TODO: This is disgusting.
 #ifndef REPLICATION_DEBUG
         debugf("try_write failed!\n");
 #endif
