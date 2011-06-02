@@ -510,7 +510,10 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     // that, the server will consider it to be real Unix time value rather
     // than an offset from current time.
     if (exptime <= 60*60*24*30 && exptime > 0) {
-        // TODO: Do we need to handle exptimes in the past here?
+	// If 60*60*24*30 < exptime <= time(NULL), that's fine, the
+	// btree code needs to handle that case gracefully anyway
+	// (since the clock can tick in the middle of an insert
+	// anyway...).  We have tests in expiration.py.
         exptime += time(NULL);
     }
 
