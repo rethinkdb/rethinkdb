@@ -89,17 +89,18 @@ public:
 };
 
 /* cluster_t represents membership in a cluster. Its constructors establish or join a cluster and
-its destructor leaves the cluster. */
+its destructor leaves the cluster. There can only be one cluster active at any time; this is
+because all the cluster-related types access the `cluster_t` via a global variable so that
+you don't have to pass a `cluster_t` everywhere. */
 
-cluster_t &get_cluster();
+cluster_t *get_cluster();   /* Returns the `cluster_t` if there is one, or else NULL. */
 
 class cluster_t :
     public home_thread_mixin_t
 {
 public:
-    cluster_t() {}
     /* Start a new cluster. */
-    void start(int port, cluster_delegate_t *);
+    cluster_t(int port, cluster_delegate_t *);
 
     /* Join an existing cluster.
     
@@ -110,11 +111,13 @@ public:
     'start_function' will be called once with the cluster_message_t* that another node's 
     cluster_delegate_t returned from introduce_new_node(). Its return value becomes this cluster's
     cluster_delegate_t. */
-    void start(int port, const char *contact_host, int contact_port,
-               boost::function<cluster_delegate_t *(cluster_inpipe_t *)> startup_function);
+    cluster_t(int port, const char *contact_host, int contact_port,
+              boost::function<cluster_delegate_t *(cluster_inpipe_t *)> startup_function);
 
     /* Returns the delegate you gave it. The cluster_t owns its delegate and will free it! */
     cluster_delegate_t *get_delegate() { return delegate.get(); }
+
+    void set_delegate(cluster_delegate_t *d) { delegate.reset(d); }
 
     ~cluster_t();
 
@@ -228,6 +231,7 @@ private:
     void kill_peer(int peer);
 
 public:
+    /* TODO: Make this a `signal_t` instead of having a callback? */
     class peer_kill_monitor_t {
     private:
         int peer;
@@ -236,12 +240,12 @@ public:
         peer_kill_monitor_t(int peer, cluster_peer_t::kill_cb_t *cb) 
             : peer(peer), cb(cb)
         {
-            guarantee(get_cluster().peers.find(peer) != get_cluster().peers.end(), "Unknown peer");
-            get_cluster().peers[peer]->monitor_kill(cb);
+            guarantee(get_cluster()->peers.find(peer) != get_cluster()->peers.end(), "Unknown peer");
+            get_cluster()->peers[peer]->monitor_kill(cb);
         }
         ~peer_kill_monitor_t() {
-            guarantee(get_cluster().peers.find(peer) != get_cluster().peers.end(), "Unknown peer");
-            get_cluster().peers[peer]->unmonitor_kill(cb);
+            guarantee(get_cluster()->peers.find(peer) != get_cluster()->peers.end(), "Unknown peer");
+            get_cluster()->peers[peer]->unmonitor_kill(cb);
         }
         DISABLE_COPYING(peer_kill_monitor_t);
     };

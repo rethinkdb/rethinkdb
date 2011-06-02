@@ -134,7 +134,7 @@ void serve(int id, demo_delegate_t *delegate) {
 
     set_store_mailbox_t change_mailbox(&slice);
     get_store_mailbox_t get_mailbox(&slice);
-    delegate->registration_address.call(get_cluster().us, &change_mailbox, &get_mailbox);
+    delegate->registration_address.call(get_cluster()->us, &change_mailbox, &get_mailbox);
 
     int serve_port = 31400 + id;
     memcache_listener_t conn_acceptor(serve_port, &delegate->master_get_store, &delegate->master_store);
@@ -157,6 +157,18 @@ void cluster_main(cluster_config_t config, UNUSED thread_pool_t *thread_pool) {
 
     if (config.contact_id == -1) {
 
+        /* Start a new cluster */
+
+        /* TODO: We initially pass a `NULL` delegate and then later call `set_delegate()`. This is
+        a hack and leads to race conditions because another node could start up and try to
+        connect before we called `set_delegate()`. This is temporary and the metadata-cluster
+        logic will make it obsolete. */
+
+        logINF("Starting new cluster...\n");
+        cluster_t the_cluster(31000 + config.id,
+            NULL);
+        logINF("Cluster started.\n");
+
         /* Start the master-components */
 
         clustered_store_t dispatcher;
@@ -167,27 +179,21 @@ void cluster_main(cluster_config_t config, UNUSED thread_pool_t *thread_pool) {
 
         get_store_mailbox_t master_get_mailbox(&dispatcher);
 
-        /* Start a new cluster */
+        demo_delegate_t delegate(&master_mailbox, &master_get_mailbox, &registration_mailbox);
+        the_cluster.set_delegate(&delegate);
 
-        logINF("Starting new cluster...\n");
-        get_cluster().start(31000 + config.id,
-            new demo_delegate_t(
-                &master_mailbox, &master_get_mailbox,
-                &registration_mailbox));
-        logINF("Cluster started.\n");
-
-        serve(config.id, static_cast<demo_delegate_t *>(get_cluster().get_delegate()));
+        serve(config.id, static_cast<demo_delegate_t *>(the_cluster.get_delegate()));
 
     } else {
 
         /* Join an existing cluster */
 
         logINF("Joining an existing cluster.\n");
-        get_cluster().start(31000 + config.id, "localhost", 31000 + config.contact_id,
+        cluster_t the_cluster(31000 + config.id, "localhost", 31000 + config.contact_id,
             &demo_delegate_t::construct);
         logINF("Cluster started.\n");
 
-        serve(config.id, static_cast<demo_delegate_t *>(get_cluster().get_delegate()));
+        serve(config.id, static_cast<demo_delegate_t *>(the_cluster.get_delegate()));
     }
 
     unreachable("Shutdown not implemented");

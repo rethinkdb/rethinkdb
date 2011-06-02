@@ -3,7 +3,7 @@
 #include <cxxabi.h>
 
 void mailbox_srvc_t::handle(cluster_peer_t *sndr) {
-    if (cluster_mailbox_t *mbox = get_cluster().get_mailbox(msg.id())) {
+    if (cluster_mailbox_t *mbox = get_cluster()->get_mailbox(msg.id())) {
 #ifndef NDEBUG
         if (msg.has_type()) {
             int status; 

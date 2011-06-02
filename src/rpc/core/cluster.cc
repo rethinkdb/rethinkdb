@@ -13,25 +13,26 @@
 #include <cxxabi.h>
 
 cluster_mailbox_t::cluster_mailbox_t() {
-    get_cluster().add_mailbox(this);
+    get_cluster()->add_mailbox(this);
 }
 
 cluster_mailbox_t::~cluster_mailbox_t() {
-    get_cluster().remove_mailbox(this);
+    get_cluster()->remove_mailbox(this);
 }
 
 /* Establishing a cluster */
 
-cluster_t &get_cluster() {
-    static cluster_t cluster;
-    return cluster;
+static cluster_t *the_cluster = NULL;
+
+cluster_t *get_cluster() {
+    return the_cluster;
 }
 
-void cluster_t::start(int port, cluster_delegate_t *d) {
-    delegate.reset(d);
-    listener = new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1));
-
-    //listener->set_callback(this); @jdoliner remove me
+cluster_t::cluster_t(int port, cluster_delegate_t *d) :
+    delegate(d), listener(new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1)))
+{
+    rassert(the_cluster == NULL);
+    the_cluster = this;
 
     /* Initially there is only one node in the cluster: us */
     us = 0;
@@ -39,14 +40,15 @@ void cluster_t::start(int port, cluster_delegate_t *d) {
     print_peers();
 }
 
-void cluster_t::start(int port, const char *contact_host, int contact_port,
-                      boost::function<cluster_delegate_t *(cluster_inpipe_t *)> startup_function) {
-    listener = new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1));
+cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
+                     boost::function<cluster_delegate_t *(cluster_inpipe_t *)> startup_function) :
+    listener(new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1)))
+{
+    rassert(the_cluster == NULL);
+    the_cluster = this;
 
     population::Join_initial initial;
     population::Join_welcome welcome;
-
-    //listener->set_callback(this);
 
     /* Get in touch with our specified contact */
     tcp_conn_t contact_conn(contact_host, contact_port);
@@ -210,7 +212,7 @@ void cluster_t::handle_known_peer(boost::scoped_ptr<tcp_conn_t> &conn, populatio
     peers[initial->addr().id()]->state = cluster_peer_t::connected;
     peers[initial->addr().id()]->conn.swap(conn);
     peers[initial->addr().id()]->write(initial);
-    get_cluster().pulse_peer_join(initial->addr().id());
+    get_cluster()->pulse_peer_join(initial->addr().id());
 
     print_peers();
 
@@ -290,7 +292,9 @@ void cluster_t::kill_peer(int id) {
 }
 
 cluster_t::~cluster_t() {
-    //on_thread_t syncer(home_thread());
+    rassert(the_cluster == this);
+    the_cluster = NULL;
+
     delete listener; //TODO this is causing a segfault figure out why :(
     not_implemented();
 }
@@ -386,10 +390,10 @@ cluster_address_t::cluster_address_t(const cluster_address_t &addr) :
     peer(addr.peer), mailbox(addr.mailbox) { }
 
 cluster_address_t::cluster_address_t(cluster_mailbox_t *mailbox) :
-    peer(get_cluster().us), mailbox(mailbox->id) { }
+    peer(get_cluster()->us), mailbox(mailbox->id) { }
 
 void cluster_address_t::send(cluster_message_t *msg) const {
-    get_cluster().send_message(peer, mailbox, msg);
+    get_cluster()->send_message(peer, mailbox, msg);
 }
 
 void cluster_outpipe_t::write(const void *buf, size_t size) {

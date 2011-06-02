@@ -5,7 +5,8 @@ __thread int uid_counter = 0;
 
 cluster_uid_t cluster_uid_t::create() {
     cluster_uid_t x;
-    x.peer = get_cluster().us;   // TODO: Error if the cluster isn't up yet
+    rassert(get_cluster(), "Can't create a cluster_uid_t until we have joined a cluster");
+    x.peer = get_cluster()->us;
     x.thread = get_thread_id();
     x.counter = uid_counter++;
     rassert(x.is_valid());
