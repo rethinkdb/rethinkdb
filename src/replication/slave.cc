@@ -11,8 +11,6 @@
 
 namespace replication {
 
-// TODO unit test offsets
-
 slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t replication_config,
         failover_config_t failover_config, failover_t *failover) :
     failover_(failover),
