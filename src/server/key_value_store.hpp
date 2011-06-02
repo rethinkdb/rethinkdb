@@ -140,6 +140,7 @@ private:
     serializer_multiplexer_t *multiplexer;   // Helps us split the serializers among the slices
 
     shard_store_t *shards[MAX_SLICES];
+    shard_store_t *metadata_shard;
     uint32_t slice_num(const store_key_t &key);
 
     /* slice debug control_t which allows us to see slice and hash for a key */

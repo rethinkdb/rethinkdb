@@ -109,7 +109,8 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
         /* Prepare serializers for multiplexing */
         std::vector<serializer_t *> serializers_for_multiplexer(n_files);
         for (int i = 0; i < n_files; i++) serializers_for_multiplexer[i] = serializers[i];
-        serializer_multiplexer_t::create(serializers_for_multiplexer, static_config->btree.n_slices);
+        // Add one slice for the metadata slice
+        serializer_multiplexer_t::create(serializers_for_multiplexer, static_config->btree.n_slices + 1);
 
         /* Create pseudoserializers */
         serializer_multiplexer_t multiplexer(serializers_for_multiplexer);
@@ -153,7 +154,7 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     for (int i = 0; i < n_files; i++) serializers_for_multiplexer[i] = serializers[i];
     multiplexer = new serializer_multiplexer_t(serializers_for_multiplexer);
 
-    btree_static_config.n_slices = multiplexer->proxies.size();
+    btree_static_config.n_slices = multiplexer->proxies.size() - 1; // subtract 1 for metadata slice
 
     /* Divide resources among the several slices */
     mirrored_cache_config_t per_slice_config = dynamic_config->cache;
@@ -165,10 +166,21 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     int64_t per_slice_delete_queue_limit = dynamic_config->total_delete_queue_limit / btree_static_config.n_slices;
 
     /* Load btrees */
+    translator_serializer_t **pseudoserializers = multiplexer->proxies.data();
     pmap(btree_static_config.n_slices,
          boost::bind(&create_existing_shard,
-                     multiplexer->proxies.data(), shards,
+                     pseudoserializers, shards,
                      &per_slice_config, per_slice_delete_queue_limit, _1));
+
+    // Load metadata btree
+    // TODO (rntz) code duplication with create_existing_shard
+    {
+        int i = btree_static_config.n_slices;
+        on_thread_t switcher(i % get_num_db_threads());
+        metadata_shard = new shard_store_t(pseudoserializers[i],
+            &dynamic_config->metadata_cache,
+            dynamic_config->metadata_delete_queue_limit);
+    }
 
     /* Initialize the timestampers to the timestamp value on disk */
     repli_timestamp_t t = get_replication_clock();
@@ -197,6 +209,8 @@ void destroy_shard(
 btree_key_value_store_t::~btree_key_value_store_t() {
     /* Shut down btrees */
     pmap(btree_static_config.n_slices, boost::bind(&destroy_shard, shards, _1));
+    // TODO (rntz) hackish reuse of destroy_shard
+    destroy_shard(&metadata_shard, 0);
 
     /* Destroy proxy-serializers */
     delete multiplexer;
