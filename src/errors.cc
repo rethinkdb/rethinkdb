@@ -92,10 +92,10 @@ void print_backtrace(FILE *out, bool use_addr2line) {
                 fprintf(out, "%s\n", symbols[i]);
             } else {
                 if (function) {
-                    if (char *demangled = demangle_cpp_name(function)) {
-                        fprintf(out, "%s", demangled);
-                        free(demangled);
-                    } else {
+                    try {
+                        std::string demangled = demangle_cpp_name(function);
+                        fprintf(out, "%s", demangled.c_str());
+                    } catch (demangle_failed_exc_t) {
                         fprintf(out, "%s+%s", function, offset);
                     }
                 } else {
@@ -183,13 +183,16 @@ Please don't change this function without talking to the people who have already
 been involved in this. */
 
 #include <cxxabi.h>
-char *demangle_cpp_name(const char *mangled_name) {
+
+std::string demangle_cpp_name(const char *mangled_name) {
     int res;
-    char *name = abi::__cxa_demangle(mangled_name, NULL, 0, &res);
+    char *name_as_c_str = abi::__cxa_demangle(mangled_name, NULL, 0, &res);
     if (res == 0) {
-        return name;
+        std::string name_as_std_string(name_as_c_str);
+        free(name_as_c_str);
+        return name_as_std_string;
     } else {
-        return NULL;
+        throw demangle_failed_exc_t();
     }
 }
 
@@ -208,15 +211,19 @@ void ignore_crash_handler(UNUSED int signum) { }
 void terminate_handler() {
     std::type_info *t = abi::__cxa_current_exception_type();
     if (t) {
-        char *name = demangle_cpp_name(t->name());
-        const char *name2 = name ? name : t->name();
+        std::string name;
+        try {
+            name = demangle_cpp_name(t->name());
+        } catch (demangle_failed_exc_t) {
+            name = t->name();
+        }
         try {
             /* This will rethrow whatever unexpected exception was thrown. */
             throw;
         } catch (std::exception& e) {
-            crash("Uncaught exception of type \"%s\"\n  what(): %s", name2, e.what());
+            crash("Uncaught exception of type \"%s\"\n  what(): %s", name.c_str(), e.what());
         } catch (...) {
-            crash("Uncaught exception of type \"%s\"", name2);
+            crash("Uncaught exception of type \"%s\"", name.c_str());
         }
         unreachable();
     } else {

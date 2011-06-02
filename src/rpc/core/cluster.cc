@@ -10,7 +10,6 @@
 #include "rpc/core/pop_srvc.hpp"
 #include "rpc/core/mbox_srvc.hpp"
 #include "rpc/core/mailbox.pb.h"
-#include <cxxabi.h>
 
 cluster_mailbox_t::cluster_mailbox_t() {
     get_cluster()->add_mailbox(this);
@@ -334,12 +333,8 @@ void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
         mbox_msg.set_id(mailbox);
         mbox_msg.set_length(msg_size);   // Inform the receiver how long the message is supposed to be
 #ifndef NDEBUG
-        int status; 
-        char *realname = abi::__cxa_demangle(typeid(*msg).name(), 0, 0, &status);
-        rassert(status == 0);
-
-        mbox_msg.set_type(realname, strlen(realname));
-        free(realname);
+        std::string realname = demangle_cpp_name(typeid(*msg).name());
+        mbox_msg.set_type(realname);
 #endif
         p->write(&mbox_msg);
 
