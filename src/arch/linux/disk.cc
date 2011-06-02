@@ -217,6 +217,14 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
         file_size = size;
     }
 
+    // TODO: We have a very minor correctness issue here, which is that
+    // we don't guarantee data durability for newly created database files.
+    // In theory, we would have to fsync() not only the file itself, but
+    // also the directory containing it. Otherwise the file might not
+    // survive a crash of the system. However, the window for data to get lost
+    // this way is just a few seconds after the creation of a new database,
+    // until the file system flushes the metadata to disk.
+
     // Construct a disk manager. (given that we have an event pool)
     if (linux_thread_pool_t::thread) {
         linux_event_queue_t *queue = &linux_thread_pool_t::thread->queue;
@@ -246,6 +254,9 @@ void linux_file_t::set_size(size_t size) {
     rassert(!is_block);
     int res = ftruncate(fd.get(), size);
     guarantee_err(res == 0, "Could not ftruncate()");
+    fsync(fd.get()); // Make sure that the metadata change gets persisted
+                     // before we start writing to the resized file.
+                     // (to be safe in case of system crashes etc.)
     file_size = size;
 }
 
