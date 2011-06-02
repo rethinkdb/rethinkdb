@@ -108,9 +108,9 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
         dynamic_config, static_config, _1));
 
     /* Create serializers so we can initialize their contents */
-    standard_serializer_t *serializers[n_files];
+    std::vector<standard_serializer_t *> serializers(n_files);
     pmap(n_files, boost::bind(&create_existing_serializer,
-        dynamic_config, serializers, _1));
+			      dynamic_config, serializers.data(), _1));
 
     {
         /* Prepare serializers for multiplexing */
@@ -126,7 +126,7 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
     }
 
     /* Shut down serializers */
-    pmap(n_files, boost::bind(&destroy_serializer, serializers, _1));
+    pmap(n_files, boost::bind(&destroy_serializer, serializers.data(), _1));
 }
 
 void create_existing_shard(

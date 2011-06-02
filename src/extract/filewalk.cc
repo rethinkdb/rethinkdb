@@ -217,6 +217,7 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
                     try {
                         patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
+			(void)e;
                         logERR("Corrupted patch. Ignoring the rest of the log block.\n");
                         break;
                     }
