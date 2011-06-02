@@ -132,24 +132,22 @@ void btree_slice_t::delete_all_keys_for_backfill(order_token_t token) {
     btree_delete_all_keys_for_backfill(this, token);
 }
 
-void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback, order_token_t token) {
+void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback, UNUSED order_token_t token) {
     assert_thread();
 
-    order_sink_.check_out(token);
+    // TODO: We need to make sure that callers are using a proper substore token.
 
-    btree_backfill(this, since_when, callback, token);
+    //    order_sink_.check_out(token);
+
+    btree_backfill(this, since_when, callback, order_token_t::ignore);
 }
 
-/* TODO: Storing replication clocks and last-sync information like this is kind of ugly because
-it's an abstraction break, which means it might not fit with clustering.
-
-These functions are intentionally verbose because they shouldn't exist at all. The code
-duplication is a protest against how horrible it is to have this data stored here. */
-
-void btree_slice_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
+void btree_slice_t::set_replication_clock(repli_timestamp_t t, UNUSED order_token_t token) {
     on_thread_t th(cache()->home_thread());
 
-    order_sink_.check_out(token);
+    // TODO: We need to make sure that callers are using a proper substore token.
+
+    //    order_sink_.check_out(token);
 
     transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token (not with the token parameter).
@@ -170,10 +168,12 @@ repli_timestamp btree_slice_t::get_replication_clock() {
     return sb->replication_clock;
 }
 
-void btree_slice_t::set_last_sync(repli_timestamp_t t, order_token_t token) {
+void btree_slice_t::set_last_sync(repli_timestamp_t t, UNUSED order_token_t token) {
     on_thread_t th(cache()->home_thread());
 
-    order_sink_.check_out(token);
+    // TODO: We need to make sure that callers are using a proper substore token.
+
+    //    order_sink_.check_out(token);
 
     transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past);
     // TODO: Set the transaction's order token (not with the token parameter).
