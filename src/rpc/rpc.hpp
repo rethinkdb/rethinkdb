@@ -56,11 +56,7 @@ private:
     struct message_t : public cluster_message_t {
         message_t()
             { }
-        void serialize(UNUSED cluster_outpipe_t *p) {
-        }
-        int ser_size() {
-             int size = 0;
-             return size;
+        void serialize(UNUSED cluster_outpipe_t *p) const {
         }
     };
 #ifndef NDEBUG
@@ -149,13 +145,8 @@ private:
         call_message_t()
             { }
         cluster_address_t reply_to;
-        void serialize(UNUSED cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) const {
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -165,10 +156,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(UNUSED cluster_outpipe_t *p) {
-        }
-        int ser_size() {
-             return 0;
+        void serialize(UNUSED cluster_outpipe_t *p) const {
         }
     };
 
@@ -268,13 +256,8 @@ private:
         call_message_t()
             { }
         cluster_address_t reply_to;
-        void serialize(UNUSED cluster_outpipe_t *p) {
+        void serialize(UNUSED cluster_outpipe_t *p) const {
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -285,11 +268,8 @@ private:
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, ret);
-        }
-        int ser_size() {
-             return global_ser_size(ret);
         }
     };
 
@@ -348,13 +328,8 @@ private:
         message_t(const arg0_t &arg0)
             : arg0(arg0) { }
         const arg0_t &arg0;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
-        }
-        int ser_size() {
-             int size = 0;
-            size += global_ser_size(arg0);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -448,15 +423,9 @@ private:
             : arg0(arg0) { }
         const arg0_t &arg0;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -466,10 +435,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(UNUSED cluster_outpipe_t *p) {
-        }
-        int ser_size() {
-             return 0;
+        void serialize(UNUSED cluster_outpipe_t *p) const {
         }
     };
 
@@ -572,15 +538,9 @@ private:
             : arg0(arg0) { }
         const arg0_t &arg0;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -591,11 +551,8 @@ private:
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, ret);
-        }
-        int ser_size() {
-             return global_ser_size(ret);
         }
     };
 
@@ -657,15 +614,9 @@ private:
             : arg0(arg0), arg1(arg1) { }
         const arg0_t &arg0;
         const arg1_t &arg1;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
-        }
-        int ser_size() {
-             int size = 0;
-            size += global_ser_size(arg0);
-            size += global_ser_size(arg1);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -763,17 +714,10 @@ private:
         const arg0_t &arg0;
         const arg1_t &arg1;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -783,10 +727,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(UNUSED cluster_outpipe_t *p) {
-        }
-        int ser_size() {
-             return 0;
+        void serialize(UNUSED cluster_outpipe_t *p) const {
         }
     };
 
@@ -892,17 +833,10 @@ private:
         const arg0_t &arg0;
         const arg1_t &arg1;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -913,11 +847,8 @@ private:
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, ret);
-        }
-        int ser_size() {
-             return global_ser_size(ret);
         }
     };
 
@@ -982,17 +913,10 @@ private:
         const arg0_t &arg0;
         const arg1_t &arg1;
         const arg2_t &arg2;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
-        }
-        int ser_size() {
-             int size = 0;
-            size += global_ser_size(arg0);
-            size += global_ser_size(arg1);
-            size += global_ser_size(arg2);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -1094,19 +1018,11 @@ private:
         const arg1_t &arg1;
         const arg2_t &arg2;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -1116,10 +1032,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(UNUSED cluster_outpipe_t *p) {
-        }
-        int ser_size() {
-             return 0;
+        void serialize(UNUSED cluster_outpipe_t *p) const {
         }
     };
 
@@ -1228,19 +1141,11 @@ private:
         const arg1_t &arg1;
         const arg2_t &arg2;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -1251,11 +1156,8 @@ private:
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, ret);
-        }
-        int ser_size() {
-             return global_ser_size(ret);
         }
     };
 
@@ -1323,19 +1225,11 @@ private:
         const arg1_t &arg1;
         const arg2_t &arg2;
         const arg3_t &arg3;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
             global_serialize(p, arg3);
-        }
-        int ser_size() {
-             int size = 0;
-            size += global_ser_size(arg0);
-            size += global_ser_size(arg1);
-            size += global_ser_size(arg2);
-            size += global_ser_size(arg3);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -1441,21 +1335,12 @@ private:
         const arg2_t &arg2;
         const arg3_t &arg3;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
             global_serialize(p, arg3);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -1465,10 +1350,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(UNUSED cluster_outpipe_t *p) {
-        }
-        int ser_size() {
-             return 0;
+        void serialize(UNUSED cluster_outpipe_t *p) const {
         }
     };
 
@@ -1580,21 +1462,12 @@ private:
         const arg2_t &arg2;
         const arg3_t &arg3;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
             global_serialize(p, arg3);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -1605,11 +1478,8 @@ private:
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, ret);
-        }
-        int ser_size() {
-             return global_ser_size(ret);
         }
     };
 
@@ -1680,21 +1550,12 @@ private:
         const arg2_t &arg2;
         const arg3_t &arg3;
         const arg4_t &arg4;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
             global_serialize(p, arg3);
             global_serialize(p, arg4);
-        }
-        int ser_size() {
-             int size = 0;
-            size += global_ser_size(arg0);
-            size += global_ser_size(arg1);
-            size += global_ser_size(arg2);
-            size += global_ser_size(arg3);
-            size += global_ser_size(arg4);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -1804,23 +1665,13 @@ private:
         const arg3_t &arg3;
         const arg4_t &arg4;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
             global_serialize(p, arg3);
             global_serialize(p, arg4);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(arg4);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -1830,10 +1681,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(UNUSED cluster_outpipe_t *p) {
-        }
-        int ser_size() {
-             return 0;
+        void serialize(UNUSED cluster_outpipe_t *p) const {
         }
     };
 
@@ -1948,23 +1796,13 @@ private:
         const arg3_t &arg3;
         const arg4_t &arg4;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
             global_serialize(p, arg3);
             global_serialize(p, arg4);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(arg4);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -1975,11 +1813,8 @@ private:
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, ret);
-        }
-        int ser_size() {
-             return global_ser_size(ret);
         }
     };
 
@@ -2053,23 +1888,13 @@ private:
         const arg3_t &arg3;
         const arg4_t &arg4;
         const arg5_t &arg5;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
             global_serialize(p, arg3);
             global_serialize(p, arg4);
             global_serialize(p, arg5);
-        }
-        int ser_size() {
-             int size = 0;
-            size += global_ser_size(arg0);
-            size += global_ser_size(arg1);
-            size += global_ser_size(arg2);
-            size += global_ser_size(arg3);
-            size += global_ser_size(arg4);
-            size += global_ser_size(arg5);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -2183,7 +2008,7 @@ private:
         const arg4_t &arg4;
         const arg5_t &arg5;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
@@ -2191,17 +2016,6 @@ private:
             global_serialize(p, arg4);
             global_serialize(p, arg5);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(arg4);
-             size += global_ser_size(arg5);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -2211,10 +2025,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(UNUSED cluster_outpipe_t *p) {
-        }
-        int ser_size() {
-             return 0;
+        void serialize(UNUSED cluster_outpipe_t *p) const {
         }
     };
 
@@ -2332,7 +2143,7 @@ private:
         const arg4_t &arg4;
         const arg5_t &arg5;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
@@ -2340,17 +2151,6 @@ private:
             global_serialize(p, arg4);
             global_serialize(p, arg5);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(arg4);
-             size += global_ser_size(arg5);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -2361,11 +2161,8 @@ private:
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, ret);
-        }
-        int ser_size() {
-             return global_ser_size(ret);
         }
     };
 
@@ -2442,7 +2239,7 @@ private:
         const arg4_t &arg4;
         const arg5_t &arg5;
         const arg6_t &arg6;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
@@ -2450,17 +2247,6 @@ private:
             global_serialize(p, arg4);
             global_serialize(p, arg5);
             global_serialize(p, arg6);
-        }
-        int ser_size() {
-             int size = 0;
-            size += global_ser_size(arg0);
-            size += global_ser_size(arg1);
-            size += global_ser_size(arg2);
-            size += global_ser_size(arg3);
-            size += global_ser_size(arg4);
-            size += global_ser_size(arg5);
-            size += global_ser_size(arg6);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -2578,7 +2364,7 @@ private:
         const arg5_t &arg5;
         const arg6_t &arg6;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
@@ -2588,18 +2374,6 @@ private:
             global_serialize(p, arg6);
             global_serialize(p, reply_to);
         }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(arg4);
-             size += global_ser_size(arg5);
-             size += global_ser_size(arg6);
-             size += global_ser_size(reply_to);
-             return size;
-        }
     };
 #ifndef NDEBUG
      const std::type_info& expected_type() {
@@ -2608,10 +2382,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(UNUSED cluster_outpipe_t *p) {
-        }
-        int ser_size() {
-             return 0;
+        void serialize(UNUSED cluster_outpipe_t *p) const {
         }
     };
 
@@ -2732,7 +2503,7 @@ private:
         const arg5_t &arg5;
         const arg6_t &arg6;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
@@ -2741,18 +2512,6 @@ private:
             global_serialize(p, arg5);
             global_serialize(p, arg6);
             global_serialize(p, reply_to);
-        }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(arg4);
-             size += global_ser_size(arg5);
-             size += global_ser_size(arg6);
-             size += global_ser_size(reply_to);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -2763,11 +2522,8 @@ private:
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, ret);
-        }
-        int ser_size() {
-             return global_ser_size(ret);
         }
     };
 
@@ -2847,7 +2603,7 @@ private:
         const arg5_t &arg5;
         const arg6_t &arg6;
         const arg7_t &arg7;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
@@ -2856,18 +2612,6 @@ private:
             global_serialize(p, arg5);
             global_serialize(p, arg6);
             global_serialize(p, arg7);
-        }
-        int ser_size() {
-             int size = 0;
-            size += global_ser_size(arg0);
-            size += global_ser_size(arg1);
-            size += global_ser_size(arg2);
-            size += global_ser_size(arg3);
-            size += global_ser_size(arg4);
-            size += global_ser_size(arg5);
-            size += global_ser_size(arg6);
-            size += global_ser_size(arg7);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -2989,7 +2733,7 @@ private:
         const arg6_t &arg6;
         const arg7_t &arg7;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
@@ -3000,19 +2744,6 @@ private:
             global_serialize(p, arg7);
             global_serialize(p, reply_to);
         }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(arg4);
-             size += global_ser_size(arg5);
-             size += global_ser_size(arg6);
-             size += global_ser_size(arg7);
-             size += global_ser_size(reply_to);
-             return size;
-        }
     };
 #ifndef NDEBUG
      const std::type_info& expected_type() {
@@ -3021,10 +2752,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(UNUSED cluster_outpipe_t *p) {
-        }
-        int ser_size() {
-             return 0;
+        void serialize(UNUSED cluster_outpipe_t *p) const {
         }
     };
 
@@ -3148,7 +2876,7 @@ private:
         const arg6_t &arg6;
         const arg7_t &arg7;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
@@ -3159,19 +2887,6 @@ private:
             global_serialize(p, arg7);
             global_serialize(p, reply_to);
         }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(arg4);
-             size += global_ser_size(arg5);
-             size += global_ser_size(arg6);
-             size += global_ser_size(arg7);
-             size += global_ser_size(reply_to);
-             return size;
-        }
     };
 #ifndef NDEBUG
      const std::type_info& expected_type() {
@@ -3181,11 +2896,8 @@ private:
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, ret);
-        }
-        int ser_size() {
-             return global_ser_size(ret);
         }
     };
 
@@ -3268,7 +2980,7 @@ private:
         const arg6_t &arg6;
         const arg7_t &arg7;
         const arg8_t &arg8;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
@@ -3278,19 +2990,6 @@ private:
             global_serialize(p, arg6);
             global_serialize(p, arg7);
             global_serialize(p, arg8);
-        }
-        int ser_size() {
-             int size = 0;
-            size += global_ser_size(arg0);
-            size += global_ser_size(arg1);
-            size += global_ser_size(arg2);
-            size += global_ser_size(arg3);
-            size += global_ser_size(arg4);
-            size += global_ser_size(arg5);
-            size += global_ser_size(arg6);
-            size += global_ser_size(arg7);
-            size += global_ser_size(arg8);
-             return size;
         }
     };
 #ifndef NDEBUG
@@ -3416,7 +3115,7 @@ private:
         const arg7_t &arg7;
         const arg8_t &arg8;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
@@ -3428,20 +3127,6 @@ private:
             global_serialize(p, arg8);
             global_serialize(p, reply_to);
         }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(arg4);
-             size += global_ser_size(arg5);
-             size += global_ser_size(arg6);
-             size += global_ser_size(arg7);
-             size += global_ser_size(arg8);
-             size += global_ser_size(reply_to);
-             return size;
-        }
     };
 #ifndef NDEBUG
      const std::type_info& expected_type() {
@@ -3450,10 +3135,7 @@ private:
 #endif
 
     struct ret_message_t : public cluster_message_t {
-        void serialize(UNUSED cluster_outpipe_t *p) {
-        }
-        int ser_size() {
-             return 0;
+        void serialize(UNUSED cluster_outpipe_t *p) const {
         }
     };
 
@@ -3580,7 +3262,7 @@ private:
         const arg7_t &arg7;
         const arg8_t &arg8;
         cluster_address_t reply_to;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, arg0);
             global_serialize(p, arg1);
             global_serialize(p, arg2);
@@ -3592,20 +3274,6 @@ private:
             global_serialize(p, arg8);
             global_serialize(p, reply_to);
         }
-        int ser_size() {
-             int size = 0;
-             size += global_ser_size(arg0);
-             size += global_ser_size(arg1);
-             size += global_ser_size(arg2);
-             size += global_ser_size(arg3);
-             size += global_ser_size(arg4);
-             size += global_ser_size(arg5);
-             size += global_ser_size(arg6);
-             size += global_ser_size(arg7);
-             size += global_ser_size(arg8);
-             size += global_ser_size(reply_to);
-             return size;
-        }
     };
 #ifndef NDEBUG
      const std::type_info& expected_type() {
@@ -3615,11 +3283,8 @@ private:
 
     struct ret_message_t : public cluster_message_t {
         ret_t ret;
-        void serialize(cluster_outpipe_t *p) {
+        void serialize(cluster_outpipe_t *p) const {
             global_serialize(p, ret);
-        }
-        int ser_size() {
-             return global_ser_size(ret);
         }
     };
 

@@ -22,13 +22,13 @@ public:
 
 /* Concrete subclass of `cluster_inpipe_t` */
 
-struct cluster_peer_inpipe_t : public cluster_inpipe_t {
+struct cluster_peer_inpipe_t : public checking_inpipe_t {
     void do_read(void *buf, size_t size) {
         try {
             conn->read(buf, size);
         } catch (tcp_conn_t::read_closed_exc_t) {}
     }
-    cluster_peer_inpipe_t(tcp_conn_t *conn, int bytes) : cluster_inpipe_t(bytes), conn(conn) { }
+    cluster_peer_inpipe_t(tcp_conn_t *conn, int bytes) : checking_inpipe_t(bytes), conn(conn) { }
     tcp_conn_t *conn;
 };
 

@@ -120,20 +120,6 @@ isn't a big enough problem to justify not using the RDB_MAKE_SERIALIZABLE
 macro. */
 RDB_MAKE_SERIALIZABLE_2(incr_decr_result_t, res, new_value)
 
-inline void serialize(cluster_outpipe_t *conn, const get_result_t &res) {
-    ::serialize(conn, res.value);
-    ::serialize(conn, res.flags);
-    ::serialize(conn, res.cas);
-}
-
-inline int ser_size(const get_result_t &res) {
-    return ::ser_size(res.value) + ::ser_size(res.flags) + ::ser_size(res.cas);
-}
-
-inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, get_result_t *res) {
-    ::unserialize(conn, es, &res->value);
-    ::unserialize(conn, es, &res->flags);
-    ::unserialize(conn, es, &res->cas);
-}
+RDB_MAKE_SERIALIZABLE_3(get_result_t, value, flags, cas)
 
 #endif /* __CLUSTERING_CLUSTER_STORE_HPP__ */

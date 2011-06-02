@@ -3,7 +3,7 @@
 #define __RPC_SERIALIZE_SERIALIZE_HPP__
 
 #include "arch/arch.hpp"
-#include "rpc/core/cluster.hpp"
+#include "rpc/serialize/pipes.hpp"
 #include <boost/utility.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -13,23 +13,20 @@
 like to automatically know how to (un)serialize as many types as possible, and make it as easy as
 possible to allow the programmer to manually describe the procedure to serialize other types.
 
-To make a type "foo_t" serializable, you must define three functions at the global scope:
+To make a type "foo_t" serializable, you must define two functions at the global scope:
 
-    int ser_size(const foo_t&);
     void serialize(cluster_outpipe_t*, const foo_t&);
     void unserialize(cluster_inpipe_t*, unserialize_extra_storage_t*, foo_t*);
 
 Equivalently, you can define these methods in the class scope of foo_t:
 
-    int ser_size() const;
-    void serialize(cluster_outpipe_t*) const;
-    void unserialize(cluster_inpipe_t*, unserialize_extra_storage_t*);
+    void serialize_self(cluster_outpipe_t*) const;
+    void unserialize_self(cluster_inpipe_t*, unserialize_extra_storage_t*);
 
 serialize() has the job of writing the object to the cluster_outpipe_t*. For most user-defined
 types, you will recursively call serialize() on the members of the type, passing the same
 cluster_outpipe_t* to each one. The serialize() implementation for primitive types calls the
-cluster_outpipe_t's write() method. The total number of bytes that serialize() will write must be
-the same as the return value of ser_size().
+cluster_outpipe_t's write() method.
 
 unserialize() does the reverse; it must read the same number of bytes that were originally written
 and reconstruct the object from that. If defined at global scope, it is passed a default-constructed
@@ -40,9 +37,6 @@ For example, we could make integers serializable like this (ignoring platform-de
 
     void serialize(cluster_outpipe_t *p, int i) {
         p->write(&i, sizeof(i));
-    }
-    int ser_size(int) {
-        return sizeof(int);
     }
     void unserialize(cluster_inpipe_t *p, unserialize_extra_storage_t *es, int *i) {
         p->read(i, sizeof(*i));
@@ -60,9 +54,6 @@ For example, we could write an unserialize() instance for "char*" like this:
         int len = strlen(c);
         serialize(p, len);
         p->write(c, len);
-    }
-    int ser_size(const char *c) {
-        return strlen(c);
     }
     void unserialize(cluster_inpipe_t *p, unserialize_extra_storage_t *es, char **out) {
         int len;
@@ -114,17 +105,13 @@ public:
     }
 };
 
-/* These functions exist so that we can look up appropriate serialize()/unserialize()/ser_size()
+/* These functions exist so that we can look up appropriate serialize()/unserialize()
 implementations even when we are in a class which has a method of the same name. Otherwise, C++
 would assume we wanted the class's method. */
 
 template<class T>
 void global_serialize(cluster_outpipe_t *p, const T &t) {
     serialize(p, t);
-}
-template<class T>
-int global_ser_size(const T &t) {
-    return ser_size(t);
 }
 template<class T>
 void global_unserialize(cluster_inpipe_t *p, unserialize_extra_storage_t *es, T *t) {
@@ -142,31 +129,9 @@ void serialize(cluster_outpipe_t *pipe, const T &value,
 }
 
 template<class T>
-int ser_size(const T &value,
-        typename boost::enable_if< boost::is_class<T> >::type * = 0) {
-    return value.ser_size_self();
-}
-
-template<class T>
 void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, T *value,
         typename boost::enable_if< boost::is_class<T> >::type * = 0) {
     value->unserialize_self(pipe, es);
-}
-
-/* Serializing and unserializing mailbox addresses */
-
-inline void serialize(cluster_outpipe_t *conn, const cluster_address_t &addr) {
-    conn->write(&addr.peer, sizeof(addr.peer));
-    conn->write(&addr.mailbox, sizeof(addr.mailbox));
-}
-
-inline int ser_size(const cluster_address_t &addr) {
-    return sizeof(addr.peer) + sizeof(addr.mailbox);
-}
-
-inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, cluster_address_t *addr) {
-    conn->read(&addr->peer, sizeof(addr->peer));
-    conn->read(&addr->mailbox, sizeof(addr->mailbox));
 }
 
 #endif /* __RPC_SERIALIZE_SERIALIZE_HPP__ */

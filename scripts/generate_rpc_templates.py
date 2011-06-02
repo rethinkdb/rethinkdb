@@ -57,17 +57,11 @@ def generate_async_message_template(nargs):
     for i in xrange(nargs):
         print "        const arg%d_t &arg%d;" % (i, i)
     if nargs > 0:
-        print "        void serialize(cluster_outpipe_t *p) {"
+        print "        void serialize(cluster_outpipe_t *p) const {"
     else:
-        print "        void serialize(UNUSED cluster_outpipe_t *p) {"
+        print "        void serialize(UNUSED cluster_outpipe_t *p) const {"
     for i in xrange(nargs):
         print "            global_serialize(p, arg%d);" % i
-    print "        }"
-    print "        int ser_size() {"
-    print "             int size = 0;"
-    for i in xrange(nargs):
-        print "            size += global_ser_size(arg%d);" % i
-    print "             return size;"
     print "        }"
     print "    };"
     print "#ifndef NDEBUG"
@@ -215,19 +209,12 @@ def generate_sync_message_template(nargs, void):
         print "        const arg%d_t &arg%d;" % (i, i)
     print "        cluster_address_t reply_to;"
     if nargs > 0:
-        print "        void serialize(cluster_outpipe_t *p) {"
+        print "        void serialize(cluster_outpipe_t *p) const {"
     else:
-        print "        void serialize(UNUSED cluster_outpipe_t *p) {"
+        print "        void serialize(UNUSED cluster_outpipe_t *p) const {"
     for i in xrange(nargs):
         print "            global_serialize(p, arg%d);" % i
     print "            global_serialize(p, reply_to);"
-    print "        }"
-    print "        int ser_size() {"
-    print "             int size = 0;"
-    for i in xrange(nargs):
-        print "             size += global_ser_size(arg%d);" % i
-    print "             size += global_ser_size(reply_to);"
-    print "             return size;"
     print "        }"
     print "    };"
     print "#ifndef NDEBUG"
@@ -240,17 +227,11 @@ def generate_sync_message_template(nargs, void):
     if not void:
         print "        ret_t ret;"
     if not void:
-        print "        void serialize(cluster_outpipe_t *p) {"
+        print "        void serialize(cluster_outpipe_t *p) const {"
     else:
-        print "        void serialize(UNUSED cluster_outpipe_t *p) {"
+        print "        void serialize(UNUSED cluster_outpipe_t *p) const {"
     if not void:
         print "            global_serialize(p, ret);"
-    print "        }"
-    print "        int ser_size() {"
-    if not void:
-        print "             return global_ser_size(ret);"
-    else:
-        print "             return 0;"
     print "        }"
     print "    };"
     print

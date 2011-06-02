@@ -21,12 +21,6 @@ def generate_make_serializable_macro(nfields):
     for i in xrange(nfields):
         print "        serialize(pipe, m.field%d); \\" % (i+1)
     print "    } \\"
-    print "    inline int ser_size(const type_t &m) { \\"
-    print "        int total = 0; \\"
-    for i in xrange(nfields):
-        print "        total += ser_size(m.field%d); \\" % (i+1)
-    print "        return total; \\"
-    print "    } \\"
     print "    inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \\"
     for i in xrange(nfields):
         print "        unserialize(pipe, es, &m->field%d); \\" % (i+1)
@@ -40,12 +34,6 @@ def generate_make_me_serializable_macro(nfields):
     print "    void serialize_self(cluster_outpipe_t *pipe) const { \\"
     for i in xrange(nfields):
         print "        global_serialize(pipe, field%d); \\" % (i+1)
-    print "    } \\"
-    print "    int ser_size_self() const { \\"
-    print "        int total = 0; \\"
-    for i in xrange(nfields):
-        print "        total += global_ser_size(field%d); \\" % (i+1)
-    print "        return total; \\"
     print "    } \\"
     print "    void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \\"
     for i in xrange(nfields):

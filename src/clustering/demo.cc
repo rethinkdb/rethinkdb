@@ -71,14 +71,6 @@ struct demo_delegate_t : public cluster_delegate_t {
         return new demo_delegate_t(master_store, master_get_store, registration_address, demo_map_council_addr, routing_map_addr);
     }
 
-    int introduction_ser_size() {
-        return ::ser_size(master_store) +
-               ::ser_size(master_get_store) +
-               ::ser_size(registration_address) +
-               ::ser_size(map_council_t<int, int>::address_t()) +
-               ::ser_size(routing_map.get_address());
-    }
-
     void introduce_new_node(cluster_outpipe_t *p) {
         ::serialize(p, master_store);
         ::serialize(p, master_get_store);
