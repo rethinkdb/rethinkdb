@@ -6,7 +6,7 @@
 #include "boost/ptr_container/ptr_map.hpp"
 #include "clustering/map_council.hpp"
 
-//namespace routing {
+namespace routing {
 //
 //template <class T>
 //class access_map_t :
@@ -146,5 +146,30 @@
 //        (*map)[diff.first] = diff.second;
 //    }
 //};
-//} //namespace routing
+
+class routing_map_t {
+public:
+    typedef map_council_t<int, set_store_mailbox_t::address_t> master_map_t;
+    typedef map_council_t<int, std::pair<set_store_mailbox_t::address_t, get_store_mailbox_t::address_t> > storage_map_t;
+
+    master_map_t master_map;
+    storage_map_t storage_map;
+
+public:
+    routing_map_t() { }
+
+
+    typedef std::pair<master_map_t::address_t, storage_map_t::address_t> address_t;
+
+    routing_map_t(address_t addr)
+        : master_map(addr.first), storage_map(addr.second)
+    { }
+
+
+    address_t get_address() {
+        return make_pair(master_map_t::address_t(&master_map), storage_map_t::address_t(&storage_map));
+    }
+};
+} //namespace routing
+
 #endif
