@@ -17,7 +17,7 @@ will `pop()` from when its own `pop()` method is called. When one of the sub-
 available. */
 
 template<class value_t>
-struct accounting_queue_t :
+class accounting_queue_t :
     public passive_producer_t<value_t>,
     public home_thread_mixin_t
 {
@@ -31,10 +31,11 @@ struct accounting_queue_t :
         rassert(inactive_accounts.empty());
     }
 
-    struct account_t :
+    class account_t :
         public intrusive_list_node_t<account_t>,
         private watchable_t<bool>::watcher_t
     {
+    public:
         account_t(accounting_queue_t *p, passive_producer_t<value_t> *s, int shares) :
             parent(p), source(s), shares(shares), active(false)
         {

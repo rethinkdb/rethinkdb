@@ -5,8 +5,8 @@
 #include "data_provider.hpp"
 #include "btree/value.hpp"
 
-struct get_store_t;
-struct set_store_interface_t;
+class get_store_t;
+class set_store_interface_t;
 class order_source_t;
 
 void serve_memcache(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store, order_source_t *order_source);

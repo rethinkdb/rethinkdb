@@ -92,7 +92,9 @@ CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
 ifeq ($(UNIT_TESTS),0)
+ifeq ($(CLANG),0)
 CXXFLAGS+=-Wswitch-default
+endif
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
