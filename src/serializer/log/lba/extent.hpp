@@ -8,7 +8,7 @@ struct extent_block_t;
 
 class extent_t
 {
-    friend class extent_block_t;
+    friend struct extent_block_t;
     
 public:
     extent_t(extent_manager_t *em, direct_file_t *file);   // Creates new extent

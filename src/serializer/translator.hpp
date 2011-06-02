@@ -8,9 +8,10 @@
 /* Facilities for treating N serializers as M serializers. */
 typedef time_t creation_timestamp_t;
 
-struct translator_serializer_t;
+class translator_serializer_t;
 
-struct serializer_multiplexer_t {
+class serializer_multiplexer_t {
+public:
     /* Blocking call. Assumes the given serializers are empty; initializes them such that they can
     be treated as 'n_proxies' proxy-serializers. */
     static void create(const std::vector<serializer_t *> &underlying, int n_proxies);

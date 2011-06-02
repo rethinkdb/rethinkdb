@@ -11,12 +11,12 @@
 #include "buffer_cache/mirrored/callbacks.hpp"
 #include "buffer_cache/buf_patch.hpp"
 
-struct mc_cache_t;
-struct mc_buf_t;
-struct mc_inner_buf_t;
-struct mc_transaction_t;
+class mc_cache_t;
+class mc_buf_t;
+class mc_inner_buf_t;
+class mc_transaction_t;
 
-struct writeback_t
+class writeback_t
 {
     typedef mc_cache_t cache_t;
     typedef mc_buf_t buf_t;

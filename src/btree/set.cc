@@ -120,12 +120,12 @@ struct btree_set_oper_t : public btree_modify_oper_t {
     replace_policy_t replace_policy;
     cas_t req_cas;
 
+    set_result_t result;
+
     union {
         char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
-
-    set_result_t result;
 };
 
 set_result_t btree_set(const store_key_t &key, btree_slice_t *slice,

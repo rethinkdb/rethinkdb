@@ -10,7 +10,7 @@
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
-struct coro_context_t;
+class coro_context_t;
 
 /* Please only construct one coro_globals_t per thread. Coroutines can only be used when
 a coro_globals_t exists. It exists to take advantage of RAII. */

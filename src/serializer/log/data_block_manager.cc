@@ -120,9 +120,10 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     state = state_ready;
 }
 
-struct dbm_read_ahead_fsm_t :
+class dbm_read_ahead_fsm_t :
     public iocallback_t
 {
+public:
     data_block_manager_t *parent;
     iocallback_t *callback;
     off64_t extent;

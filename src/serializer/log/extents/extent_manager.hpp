@@ -17,7 +17,7 @@
 
 #define NULL_OFFSET off64_t(-1)
 
-struct extent_zone_t;
+class extent_zone_t;
 
 class extent_manager_t {
 public:

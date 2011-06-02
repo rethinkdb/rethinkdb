@@ -10,8 +10,8 @@
 #include "arch/linux/coroutines.hpp"
 #include "arch/timer.hpp"
 
-struct linux_thread_message_t;
-struct linux_thread_t;
+class linux_thread_message_t;
+class linux_thread_t;
 
 /* A thread pool represents a group of threads, each of which is associated with an
 event queue. There is one thread pool per server. It is responsible for starting up

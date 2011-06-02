@@ -96,7 +96,8 @@ private:
 };
 
 
-struct read_locker_t {
+class read_locker_t {
+public:
     read_locker_t(file_knowledge_t *knog) : knog_(knog) {
         guarantee_err(!pthread_rwlock_rdlock(&knog->block_info_lock_), "pthread_rwlock_rdlock failed");
     }
@@ -110,7 +111,8 @@ private:
     file_knowledge_t *knog_;
 };
 
-struct write_locker_t {
+class write_locker_t {
+public:
     write_locker_t(file_knowledge_t *knog) : knog_(knog) {
         guarantee_err(!pthread_rwlock_wrlock(&knog->block_info_lock_), "pthread_rwlock_wrlock failed");
     }
@@ -721,6 +723,7 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
                     try {
                         patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
+			(void)e;
                         ++errs->corrupted_patch_blocks;
                         break;
                     }
