@@ -59,7 +59,7 @@
 // the btree_traversal_helper_t implementation is interested in
 // values.)
 
-struct parent_releaser_t;
+class parent_releaser_t;
 
 struct acquisition_waiter_callback_t {
     virtual void you_may_acquire() = 0;
@@ -240,7 +240,8 @@ void acquire_a_node(traversal_state_t *state, int level, block_id_t block_id, ac
     state->consider_pulsing();
 }
 
-struct parent_releaser_t {
+class parent_releaser_t {
+public:
     virtual void release() = 0;
 protected:
     ~parent_releaser_t() { }
