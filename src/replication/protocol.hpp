@@ -27,7 +27,7 @@ struct stream_pair {
     the value, but it's not guaranteed to contain the entire value. The network logic will later
     fill in the rest of the value. */
     // This uses key_size, which is completely crap.
-    stream_pair(const char *beg, const char *end, size_t size = 0) : stream(), data() {
+    stream_pair(const char *beg, const char *end, ssize_t size = 0) : stream(), data() {
         void *p;
         size_t m = sizeof(T) + reinterpret_cast<const T *>(beg)->key_size;
 
@@ -122,6 +122,7 @@ public:
         try {
             conn_->flush_buffer();
         } catch (tcp_conn_t::write_closed_exc_t &e) {
+	    (void)e;
             // Ignore
         }
         conn_->shutdown_read();

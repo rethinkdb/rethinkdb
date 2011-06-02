@@ -368,6 +368,7 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
         rassert(!inner_buf->do_delete);
 
         switch (mode) {
+            case rwi_read_sync:
             case rwi_read: {
                 data = inner_buf->data;
                 rassert(data != NULL);
@@ -581,6 +582,7 @@ void mc_buf_t::release() {
 
     if (!non_locking_access) {
         switch (mode) {
+            case rwi_read_sync:
             case rwi_read:
             case rwi_write: {
                 inner_buf->lock.unlock();
@@ -643,10 +645,10 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp, UNUSED order_token_t _order_token)
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
     : cache(_cache),
 #ifndef NDEBUG
-      order_token(_order_token),
+      order_token(order_token_t::ignore),
 #endif
       expected_change_count(_expected_change_count),
       access(_access),
@@ -655,7 +657,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
       snapshotted(false)
 {
     block_pm_duration start_timer(&pm_transactions_starting);
-    rassert(access == rwi_read || access == rwi_write);
+    rassert(access == rwi_read || access == rwi_read_sync || access == rwi_write);
     cache->assert_thread();
     rassert(!cache->shutting_down);
     rassert(access == rwi_write || expected_change_count == 0);
@@ -666,10 +668,10 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
 }
 
 /* This version is only for read transactions. */
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED order_token_t _order_token) :
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
     cache(_cache),
 #ifndef NDEBUG
-    order_token(_order_token),
+    order_token(order_token_t::ignore),
 #endif
     expected_change_count(0),
     access(_access),
@@ -751,7 +753,7 @@ mc_buf_t *mc_transaction_t::allocate() {
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     boost::function<void()> call_when_in_line, bool should_load) {
     rassert(block_id != NULL_BLOCK_ID);
-    rassert(is_read_mode(mode) || access != rwi_read);
+    rassert(is_read_mode(mode) || access != rwi_read); // TODO: What is the meaning of this assert?!?
     rassert(should_load || access == rwi_write);
     assert_thread();
 
@@ -999,6 +1001,7 @@ mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
 bool mc_cache_t::contains_block(block_id_t block_id) {
     return find_buf(block_id) != NULL;
 }
+
 
 boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
     // We assume that a priority of 100 means that the transaction should have the same priority as

@@ -60,8 +60,9 @@ signal_t::~signal_t() {
             rassert(waiters.empty(), "Destroying a signal_t with something waiting on it");
             break;
         case state_pulsing:
+            // In particular, waiters.head() won't work in pulse().
             crash("Destroying a signal_t in response to its own pulse() method is "
-                "a bad idea.");
+                  "a bad idea.");
         case state_pulsed:
             rassert(waiters.empty());   // Sanity check
             break;
@@ -80,8 +81,11 @@ void signal_t::pulse() {
     /* Notify waiters. We have to be careful how we loop over the waiters because
     any of the waiters that we haven't notified yet could be removed in response
     to notifying one of the waiters before it. See `remove_waiter()` for the rationale
-    for allowing this. */
-    while (waiter_t *w = waiters.head()) {
+    for allowing this.
+
+    TODO: Please add the rationale to remove_waiter(). */
+    waiter_t *w;
+    while ((w = waiters.head())) {
         waiters.remove(w);
 
         /* `on_signal_pulsed()` shouldn't block, because then the other waiters

@@ -55,8 +55,9 @@ control_t::~control_t() {
 }
 
 /* Control that displays a list of controls */
-struct help_control_t : public control_t
+class help_control_t : public control_t
 {
+public:
     help_control_t() : control_t("help", "Display this help message (use \"rethinkdb help internal\" to show internal commands).") { }
     std::string call(int argc, char **argv) {
         bool show_internal = argc == 2 && argv[1] == std::string("internal");

@@ -40,6 +40,7 @@ struct shard_store_t :
     rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
     mutation_result_t change(const mutation_t &m, order_token_t token);
     mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t token);
+    void delete_all_keys_for_backfill(order_token_t token);
 
     btree_slice_t btree;
     dispatching_store_t dispatching_store;   // For replication
@@ -90,7 +91,7 @@ public:
 
     /* btree_key_value_store_t interface */
 
-    void delete_all_keys_for_backfill();
+    void delete_all_keys_for_backfill(order_token_t token);
 
     /* The value passed to `set_timestampers()` is the value that will be used as the
     timestamp for all new operations. When the key-value store starts up, it is
@@ -101,9 +102,9 @@ public:
     `set_timestampers()`, changing them doesn't change anything in the
     `btree_key_value_store_t` itself. They are used by the higher-level code to persist
     metadata to disk. */
-    void set_replication_clock(repli_timestamp_t t);
+    void set_replication_clock(repli_timestamp_t t, order_token_t token);
     repli_timestamp get_replication_clock();
-    void set_last_sync(repli_timestamp_t t);
+    void set_last_sync(repli_timestamp_t t, order_token_t token);
     repli_timestamp get_last_sync();
     void set_replication_master_id(uint32_t ts);
     uint32_t get_replication_master_id();
