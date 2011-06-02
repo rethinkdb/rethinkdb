@@ -51,6 +51,7 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
+CLANG?=0
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -71,7 +72,11 @@ RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 # Define configuration variables
+ifeq (${CLANG},1)
+CXX:=clang
+else
 CXX:=g++
+endif
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
 STATIC_LIBRARIES:=
 
