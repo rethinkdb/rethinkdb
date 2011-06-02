@@ -80,8 +80,6 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
         gets and sets until we are shut down, regardless of whether the slave connection
         dies again. */
 
-        // TODO: We don't want to open the gates until the backfill
-        // receiver's queues have drained.
         logINF("Now accepting operations normally.\n");
         get_permission_.reset(new gated_get_store_t::open_t(get_gate_));
         set_permission_.reset(new gated_set_store_interface_t::open_t(set_gate_));
