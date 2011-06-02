@@ -21,6 +21,7 @@ class accounting_queue_t :
     public passive_producer_t<value_t>,
     public home_thread_mixin_t
 {
+public:
     accounting_queue_t() :
         passive_producer_t<value_t>(&available_var),
         total_shares(0),
