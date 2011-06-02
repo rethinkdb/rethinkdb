@@ -16,9 +16,10 @@ perfmon_duration_sampler_t
 
 namespace replication {
 
-struct backfill_and_streaming_manager_t :
+class backfill_and_streaming_manager_t :
     public home_thread_mixin_t
 {
+public:
     /* We construct one `slice_manager_t` per slice */
 
     struct slice_manager_t :

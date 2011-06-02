@@ -20,10 +20,10 @@ position in the dense random array; this allows all insertion, deletion, and ran
 done in constant time.
 */
 
-struct mc_inner_buf_t;
-struct mc_cache_t;
+class mc_inner_buf_t;
+class mc_cache_t;
 
-struct page_repl_random_t {
+class page_repl_random_t {
     typedef mc_cache_t cache_t;
     typedef mc_inner_buf_t inner_buf_t;
     

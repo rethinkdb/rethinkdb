@@ -9,14 +9,15 @@
 #include "config/args.hpp"
 #include "arch/linux/event_queue.hpp"
 
-struct linux_thread_pool_t;
+class linux_thread_pool_t;
 
 // TODO: perhaps we can issue cache prefetching commands to the CPU to
 // speed up the process of sending messages across cores.
 
-struct linux_thread_message_t :
+class linux_thread_message_t :
     public intrusive_list_node_t<linux_thread_message_t>
 {
+public:
     virtual ~linux_thread_message_t() {}
     virtual void on_thread_switch() = 0;
 };

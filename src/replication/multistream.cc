@@ -158,6 +158,10 @@ void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
         do_parse_normal_messages(conn, conn_handler, streams);
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
+        if (conn->is_write_open()) {
+            conn->shutdown_write();
+        }
+	(void)e;
     } catch (protocol_exc_t& e) {
         if (conn->is_write_open()) {
             conn->shutdown_write();

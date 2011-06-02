@@ -303,7 +303,7 @@ class mc_cache_account_t {
 
 
 
-struct mc_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
+class mc_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
     friend class load_buf_fsm_t;
     friend class mc_buf_t;
     friend class mc_inner_buf_t;
