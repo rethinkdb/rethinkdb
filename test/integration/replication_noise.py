@@ -262,22 +262,29 @@ class TCPProxy(object):
 
     def run(self):
         def run_pump(from_socket, to_socket, filter, name):
+            action = None
             try:
                 while not self.shutting_down:
+                    action = "settimeout"
                     from_socket.settimeout(1)
+                    action = None
                     try:
+                        action = "receiving"
                         recv_buf = from_socket.recv(4096)
+                        action = None
                         if len(recv_buf) > 0:
                             packets = filter(recv_buf)
                             if packets != None:
                                 packet = ''.join([p for p in packets if p != None])
                                 if len(packet) > 0:
                                     #print "%s: sending %d" % (name, len(packet))
+                                    action = "sending"
                                     to_socket.sendall(packet)
+                                    action = None
                     except socket.timeout:
                         pass
             except socket.error, e:
-                print "%s: Got a socket error: %r" % (name, e)
+                print "%s: Got a socket error (by %s): %r" % (name, action, e)
                 global disconnects
                 disconnects = disconnects + 1
                 if to_socket:
