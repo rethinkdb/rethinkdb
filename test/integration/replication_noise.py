@@ -17,6 +17,9 @@ def start_slave(repli_port, opts, extra_flags, test_dir):
     slave.start()
     return slave
 
+corruptions = 0
+disconnects = 0
+
 class PacketSplitter(object):
     def __init__(self, name):
         self.name = name
@@ -26,7 +29,7 @@ class PacketSplitter(object):
         self.packet_count = 0
 
         global corruptions, disconnects
-        assert corruptions >= disconnects, "We get disconnected more often (%d times) than we corrupt the packets (%d times), probably the server doesn't want to accept our connection" % (disconnects, corruptions)
+        assert corruptions + 10 >= disconnects, "We get disconnected more often (%d times) than we corrupt the packets (%d times), probably the server doesn't want to accept our connection" % (disconnects, corruptions)
 
     def process(self, recv_buf):
         if len(recv_buf) == 0:
@@ -57,9 +60,6 @@ class PacketSplitter(object):
                 break
         self.buffer = self.buffer[p:]
         return result
-
-corruptions = 0
-disconnects = 0
 
 class PacketCorrupter(object):
     def __init__(self, name, corruption_p = 1e-5):
@@ -287,8 +287,6 @@ class TCPProxy(object):
                         pass
             except socket.error, e:
                 print "%s: Got a socket error (by %s): %r" % (name, action, e)
-                global disconnects
-                disconnects = disconnects + 1
                 if to_socket:
                     to_socket.close()
                 if from_socket:
@@ -319,6 +317,9 @@ class TCPProxy(object):
                     finally:
                         self.listening_to_connecting_filter.disconnect()
                         self.connecting_to_listening_filter.disconnect()
+
+                        global disconnects
+                        disconnects = disconnects + 1
 
                         if listening_side != None:
                             print datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " TCPProxy: closing listening socket"
