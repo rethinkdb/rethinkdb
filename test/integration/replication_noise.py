@@ -1,5 +1,6 @@
 #!/usr/bin/python
-import os, sys, socket, random, time, struct, traceback
+import os, sys, socket, random, time, struct, traceback, math
+from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
@@ -242,6 +243,7 @@ class TCPProxy(object):
                     print "accept: %s" % e
             while not self.shutting_down:
                 try:
+                    print "About to connect, time is " + datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
                     connecting_side = socket.create_connection(('localhost', self.connecting_port))
                     print "Connected to %d" % self.connecting_port
                     success = True
@@ -262,22 +264,29 @@ class TCPProxy(object):
 
     def run(self):
         def run_pump(from_socket, to_socket, filter, name):
+            action = None
             try:
                 while not self.shutting_down:
+                    action = "settimeout"
                     from_socket.settimeout(1)
+                    action = None
                     try:
+                        action = "receiving"
                         recv_buf = from_socket.recv(4096)
+                        action = None
                         if len(recv_buf) > 0:
                             packets = filter(recv_buf)
                             if packets != None:
                                 packet = ''.join([p for p in packets if p != None])
                                 if len(packet) > 0:
                                     #print "%s: sending %d" % (name, len(packet))
+                                    action = "sending"
                                     to_socket.sendall(packet)
+                                    action = None
                     except socket.timeout:
                         pass
             except socket.error, e:
-                print "%s: Got a socket error: %r" % (name, e)
+                print "%s: Got a socket error (by %s): %r" % (name, action, e)
                 global disconnects
                 disconnects = disconnects + 1
                 if to_socket:
@@ -312,10 +321,10 @@ class TCPProxy(object):
                         self.connecting_to_listening_filter.disconnect()
 
                         if listening_side != None:
-                            print "TCPProxy: closing listening socket"
+                            print datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " TCPProxy: closing listening socket"
                             listening_side.close()
                         if connecting_side != None:
-                            print "TCPProxy: closing connecting socket"
+                            print datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " TCPProxy: closing connecting socket"
                             connecting_side.close()
         except Exception, e:
             print "Exception in proxy: %s" % e
