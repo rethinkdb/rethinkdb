@@ -10,28 +10,40 @@
 #include "rpc/core/pop_srvc.hpp"
 #include "rpc/core/mbox_srvc.hpp"
 #include "rpc/core/mailbox.pb.h"
-#include <cxxabi.h>
 
 cluster_mailbox_t::cluster_mailbox_t() {
-    get_cluster().add_mailbox(this);
+    get_cluster()->add_mailbox(this);
 }
 
 cluster_mailbox_t::~cluster_mailbox_t() {
-    get_cluster().remove_mailbox(this);
+    get_cluster()->remove_mailbox(this);
 }
+
+/* Concrete subclass of `checking_outpipe_t` that writes to a TCP connection. */
+
+struct cluster_peer_outpipe_t : public checking_outpipe_t {
+    void do_write(const void *buf, size_t size) {
+        try {
+            conn->write(buf, size);
+        } catch (tcp_conn_t::write_closed_exc_t) {}
+    }
+    cluster_peer_outpipe_t(tcp_conn_t *conn, int bytes) : checking_outpipe_t(bytes), conn(conn) {}
+    tcp_conn_t *conn;
+};
 
 /* Establishing a cluster */
 
-cluster_t &get_cluster() {
-    static cluster_t cluster;
-    return cluster;
+static cluster_t *the_cluster = NULL;
+
+cluster_t *get_cluster() {
+    return the_cluster;
 }
 
-void cluster_t::start(int port, cluster_delegate_t *d) {
-    delegate.reset(d);
-    listener = new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1));
-
-    //listener->set_callback(this); @jdoliner remove me
+cluster_t::cluster_t(int port, cluster_delegate_t *d) :
+    delegate(d), listener(new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1)))
+{
+    rassert(the_cluster == NULL);
+    the_cluster = this;
 
     /* Initially there is only one node in the cluster: us */
     us = 0;
@@ -39,14 +51,15 @@ void cluster_t::start(int port, cluster_delegate_t *d) {
     print_peers();
 }
 
-void cluster_t::start(int port, const char *contact_host, int contact_port,
-                      boost::function<cluster_delegate_t *(cluster_inpipe_t *)> startup_function) {
-    listener = new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1));
+cluster_t::cluster_t(int port, const char *contact_host, int contact_port,
+                     boost::function<cluster_delegate_t *(cluster_inpipe_t *, boost::function<void()>)> startup_function) :
+    listener(new tcp_listener_t(port, boost::bind(&cluster_t::on_tcp_listener_accept, this, _1)))
+{
+    rassert(the_cluster == NULL);
+    the_cluster = this;
 
     population::Join_initial initial;
     population::Join_welcome welcome;
-
-    //listener->set_callback(this);
 
     /* Get in touch with our specified contact */
     tcp_conn_t contact_conn(contact_host, contact_port);
@@ -90,9 +103,10 @@ void cluster_t::start(int port, const char *contact_host, int contact_port,
 
     mailbox::intro_msg introduction_header;
     read_protob(&contact_conn, &introduction_header);
-    cluster_inpipe_t intro_msg_pipe(&contact_conn, introduction_header.length());
-    delegate.reset(startup_function(&intro_msg_pipe));
-    intro_msg_pipe.to_signal_when_done.wait();
+    cluster_peer_inpipe_t intro_msg_pipe(&contact_conn, introduction_header.length());
+    cond_t to_signal_when_done;
+    delegate.reset(startup_function(&intro_msg_pipe, boost::bind(&cond_t::pulse, &to_signal_when_done)));
+    to_signal_when_done.wait();
 }
 
 void cluster_t::on_tcp_listener_accept(boost::scoped_ptr<tcp_conn_t> &conn) {
@@ -193,11 +207,17 @@ void cluster_t::handle_unknown_peer(boost::scoped_ptr<tcp_conn_t> &conn, populat
 
     write_protob(conn.get(), &welcome);
 
-    int intro_size = delegate->introduction_ser_size();
+    /* Determine how long the introduction will be */
+    counting_outpipe_t intro_size_counter;
+    delegate->introduce_new_node(&intro_size_counter);
+
+    /* Write the introduction header */
     mailbox::intro_msg intro_msg;
-    intro_msg.set_length(intro_size);
+    intro_msg.set_length(intro_size_counter.bytes);
     write_protob(conn.get(), &intro_msg);
-    cluster_outpipe_t out_pipe(conn.get(), intro_size);
+
+    /* Write the introduction body */
+    cluster_peer_outpipe_t out_pipe(conn.get(), intro_size_counter.bytes);
     delegate->introduce_new_node(&out_pipe);
 }
 
@@ -210,7 +230,7 @@ void cluster_t::handle_known_peer(boost::scoped_ptr<tcp_conn_t> &conn, populatio
     peers[initial->addr().id()]->state = cluster_peer_t::connected;
     peers[initial->addr().id()]->conn.swap(conn);
     peers[initial->addr().id()]->write(initial);
-    get_cluster().pulse_peer_join(initial->addr().id());
+    get_cluster()->pulse_peer_join(initial->addr().id());
 
     print_peers();
 
@@ -290,7 +310,9 @@ void cluster_t::kill_peer(int id) {
 }
 
 cluster_t::~cluster_t() {
-    //on_thread_t syncer(home_thread());
+    rassert(the_cluster == this);
+    the_cluster = NULL;
+
     delete listener; //TODO this is causing a segfault figure out why :(
     not_implemented();
 }
@@ -313,20 +335,21 @@ void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
         cluster_peer_t *p = peers[peer].get();
         mutex_acquisition_t locker(&p->write_lock);
 
-        int msg_size = msg->ser_size();
-        mbox_msg.set_id(mailbox);
-        mbox_msg.set_length(msg_size);   // Inform the receiver how long the message is supposed to be
-#ifndef NDEBUG
-        int status; 
-        char *realname = abi::__cxa_demangle(typeid(*msg).name(), 0, 0, &status);
-        rassert(status == 0);
+        /* Determine how long the message will be */
+        counting_outpipe_t msg_size_counter;
+        msg->serialize(&msg_size_counter);
 
-        mbox_msg.set_type(realname, strlen(realname));
-        free(realname);
+        /* Write a message header */
+        mbox_msg.set_id(mailbox);
+        mbox_msg.set_length(msg_size_counter.bytes);   // Inform the receiver how long the message is supposed to be
+#ifndef NDEBUG
+        std::string realname = demangle_cpp_name(typeid(*msg).name());
+        mbox_msg.set_type(realname);
 #endif
         p->write(&mbox_msg);
 
-        cluster_outpipe_t pipe(p->conn.get(), msg_size);
+        /* Write the message body */
+        cluster_peer_outpipe_t pipe(p->conn.get(), msg_size_counter.bytes);
         msg->serialize(&pipe);
     }
 }
@@ -386,58 +409,8 @@ cluster_address_t::cluster_address_t(const cluster_address_t &addr) :
     peer(addr.peer), mailbox(addr.mailbox) { }
 
 cluster_address_t::cluster_address_t(cluster_mailbox_t *mailbox) :
-    peer(get_cluster().us), mailbox(mailbox->id) { }
+    peer(get_cluster()->us), mailbox(mailbox->id) { }
 
 void cluster_address_t::send(cluster_message_t *msg) const {
-    get_cluster().send_message(peer, mailbox, msg);
-}
-
-void cluster_outpipe_t::write(const void *buf, size_t size) {
-    written += size;
-    if (written > expected) {
-        crash("ser_size() said there would be %d bytes, but serialize() is trying to write more.",
-            expected);
-    }
-    try {
-        conn->write(buf, size);
-    } catch (tcp_conn_t::write_closed_exc_t) {}
-}
-
-void cluster_outpipe_t::write_address(const cluster_address_t *addr) {
-    write(&addr->peer, sizeof(addr->peer));
-    write(&addr->mailbox, sizeof(addr->mailbox));
-}
-
-int cluster_outpipe_t::address_ser_size(const cluster_address_t *addr) {
-    return sizeof(addr->peer) + sizeof(addr->mailbox);
-}
-
-cluster_outpipe_t::~cluster_outpipe_t() {
-    if (written != expected) {
-        crash("ser_size() said there would be %d bytes, but serialize() only wrote %d.",
-            expected, written);
-    }
-}
-
-void cluster_inpipe_t::read(void *buf, size_t size) {
-    readed += size;
-    if (readed > expected) {
-        crash("The message was %d bytes long, but unserialize() is trying to read more.", expected);
-    }
-    try {
-        conn->read(buf, size);
-    } catch (tcp_conn_t::read_closed_exc_t) {}
-}
-
-void cluster_inpipe_t::read_address(cluster_address_t *addr) {
-    read(&addr->peer, sizeof(addr->peer));
-    read(&addr->mailbox, sizeof(addr->mailbox));
-    //debugf("Got an address: peer=%d, mailbox=%d\n", addr->peer, addr->mailbox);
-}
-
-void cluster_inpipe_t::done() {
-    if (expected != readed) {
-        crash("The message was %d bytes long, but unserialize() only read %d.", expected, readed);
-    }
-    to_signal_when_done.pulse();
+    get_cluster()->send_message(peer, mailbox, msg);
 }

@@ -1,24 +1,17 @@
 #include "rpc/core/mbox_srvc.hpp"
 #include "rpc/core/cluster.hpp"
-#include <cxxabi.h>
 
 void mailbox_srvc_t::handle(cluster_peer_t *sndr) {
-    if (cluster_mailbox_t *mbox = get_cluster().get_mailbox(msg.id())) {
+    if (cluster_mailbox_t *mbox = get_cluster()->get_mailbox(msg.id())) {
 #ifndef NDEBUG
         if (msg.has_type()) {
-            int status; 
-            char *realname = abi::__cxa_demangle(mbox->expected_type().name(), 0, 0, &status);
-            rassert(status == 0);
-
-            if (strcmp(realname, msg.type().c_str()) != 0) {
+            std::string realname = demangle_cpp_name(mbox->expected_type().name());
+            if (realname != msg.type()) {
                 logERR("Error, mailbox type mismatch. Mailbox msg of type: %s "
                         "from peer: %d sent to mailbox: %d which is of type: "
                         "%s\n", msg.type().c_str(), sndr->id,  msg.id(),
-                        realname); 
-                free(realname);
+                        realname.c_str()); 
                 goto ERROR_BREAKOUT;
-            } else {
-                free(realname);
             }
         } else {
             logWRN("Peer: %d did not specify type information but I'm supposed"
@@ -27,9 +20,16 @@ void mailbox_srvc_t::handle(cluster_peer_t *sndr) {
                     "this message compile me in release mode\n", sndr->id);
         }
 #endif
-        cluster_inpipe_t inpipe(sndr->conn.get(), msg.length());
-        coro_t::spawn_now(boost::bind(&cluster_mailbox_t::unserialize, mbox, &inpipe));
-        inpipe.to_signal_when_done.wait();
+
+        cluster_peer_inpipe_t inpipe(sndr->conn.get(), msg.length());
+        cond_t to_signal_when_done;
+        coro_t::spawn_now(boost::bind(
+            &cluster_mailbox_t::unserialize, mbox, &inpipe,
+            // Wrap in `boost::function` to avoid a weird `boost::bind()` feature
+            boost::function<void()>(boost::bind(&cond_t::pulse, &to_signal_when_done))
+            ));
+        to_signal_when_done.wait();
+
     } else {
         if (msg.has_type()) { 
             logERR("Unknown mailbox. Mailbox msg of type: %s from peer: %d, sent to nonexistant mailbox:%d\n", msg.type().c_str(), sndr->id, msg.id());

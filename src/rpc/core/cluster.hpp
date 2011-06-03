@@ -13,6 +13,7 @@
 #include "rpc/core/population.pb.h"
 #include "concurrency/cond_var.hpp"
 #include "rpc/core/peer.hpp"
+#include "rpc/serialize/pipes.hpp"
 
 class cluster_t;
 struct cluster_delegate_t;
@@ -25,8 +26,7 @@ subclasses of cluster_message_t; often it is necessary to static_cast<>() to the
 subclass. Every cluster_message_t knows how to write itself to a pipe. */
 
 struct cluster_message_t {
-    virtual void serialize(cluster_outpipe_t *pipe) = 0;   /* May destroy contents */
-    virtual int ser_size() = 0;
+    virtual void serialize(cluster_outpipe_t *pipe) const = 0;
     virtual ~cluster_message_t() { }
 private:
     friend class cluster_t;
@@ -46,9 +46,10 @@ private:
     friend class cluster_t;
     friend class mailbox_srvc_t;
 
-    /* Called to when a message is sent to the mailbox over the network. Should do basically the
-    same thing as run() after deserializing the message. */
-    virtual void unserialize(cluster_inpipe_t *) = 0;
+    /* Called to when a message is sent to the mailbox over the network. Should deserialize the
+    message, then call the second argument to indicate it is done deserializing, then do the
+    same thing as `run()`. */
+    virtual void unserialize(cluster_inpipe_t *, boost::function<void()>) = 0;
 
     /* Called when a message is sent to the mailbox. Should destroy the message that is passed to
     it. Beware: may be called on any thread. */
@@ -78,8 +79,6 @@ public:
 private:
     friend class cluster_mailbox_t;
     friend class cluster_t;
-    friend class cluster_inpipe_t;
-    friend class cluster_outpipe_t;
 
 public: //added for rpcs
     int peer;    // Index into the cluster's 'peers' map
@@ -89,17 +88,18 @@ public:
 };
 
 /* cluster_t represents membership in a cluster. Its constructors establish or join a cluster and
-its destructor leaves the cluster. */
+its destructor leaves the cluster. There can only be one cluster active at any time; this is
+because all the cluster-related types access the `cluster_t` via a global variable so that
+you don't have to pass a `cluster_t` everywhere. */
 
-cluster_t &get_cluster();
+cluster_t *get_cluster();   /* Returns the `cluster_t` if there is one, or else NULL. */
 
 class cluster_t :
     public home_thread_mixin_t
 {
 public:
-    cluster_t() {}
     /* Start a new cluster. */
-    void start(int port, cluster_delegate_t *);
+    cluster_t(int port, cluster_delegate_t *);
 
     /* Join an existing cluster.
     
@@ -110,11 +110,13 @@ public:
     'start_function' will be called once with the cluster_message_t* that another node's 
     cluster_delegate_t returned from introduce_new_node(). Its return value becomes this cluster's
     cluster_delegate_t. */
-    void start(int port, const char *contact_host, int contact_port,
-               boost::function<cluster_delegate_t *(cluster_inpipe_t *)> startup_function);
+    cluster_t(int port, const char *contact_host, int contact_port,
+              boost::function<cluster_delegate_t *(cluster_inpipe_t *, boost::function<void()>)> startup_function);
 
     /* Returns the delegate you gave it. The cluster_t owns its delegate and will free it! */
     cluster_delegate_t *get_delegate() { return delegate.get(); }
+
+    void set_delegate(cluster_delegate_t *d) { delegate.reset(d); }
 
     ~cluster_t();
 
@@ -228,6 +230,7 @@ private:
     void kill_peer(int peer);
 
 public:
+    /* TODO: Make this a `signal_t` instead of having a callback? */
     class peer_kill_monitor_t {
     private:
         int peer;
@@ -236,12 +239,12 @@ public:
         peer_kill_monitor_t(int peer, cluster_peer_t::kill_cb_t *cb) 
             : peer(peer), cb(cb)
         {
-            guarantee(get_cluster().peers.find(peer) != get_cluster().peers.end(), "Unknown peer");
-            get_cluster().peers[peer]->monitor_kill(cb);
+            guarantee(get_cluster()->peers.find(peer) != get_cluster()->peers.end(), "Unknown peer");
+            get_cluster()->peers[peer]->monitor_kill(cb);
         }
         ~peer_kill_monitor_t() {
-            guarantee(get_cluster().peers.find(peer) != get_cluster().peers.end(), "Unknown peer");
-            get_cluster().peers[peer]->unmonitor_kill(cb);
+            guarantee(get_cluster()->peers.find(peer) != get_cluster()->peers.end(), "Unknown peer");
+            get_cluster()->peers[peer]->unmonitor_kill(cb);
         }
         DISABLE_COPYING(peer_kill_monitor_t);
     };
@@ -254,42 +257,10 @@ certain application-specific operations. */
 
 struct cluster_delegate_t {
 
-    virtual int introduction_ser_size() = 0;
+    /* This shouldn't have any effects other than writing to the pipe. */
     virtual void introduce_new_node(cluster_outpipe_t *) = 0;
 
     virtual ~cluster_delegate_t() { }
-};
-
-/* cluster_outpipe_t and cluster_inpipe_t are passed to user-code that's supposed to serialize and
-deserialize cluster messages. */
-
-struct cluster_outpipe_t {
-    void write(const void*, size_t);
-    void write_address(const cluster_address_t *addr);
-    static int address_ser_size(const cluster_address_t *addr);
-private:
-    friend class cluster_t;
-    cluster_outpipe_t(tcp_conn_t *conn, int bytes) : conn(conn), expected(bytes), written(0)
-        {}
-    ~cluster_outpipe_t();
-    tcp_conn_t *conn;
-    int expected;   // How many total bytes are supposed to be written
-    int written;   // How many bytes have been written
-};
-
-struct cluster_inpipe_t {
-    void read(void *, size_t);
-    void read_address(cluster_address_t *addr);
-    void done();
-private:
-    friend class cluster_t;
-    friend class mailbox_srvc_t;
-    cluster_inpipe_t(tcp_conn_t *conn, int bytes) :
-        conn(conn), expected(bytes), readed(0) {}
-    tcp_conn_t *conn;
-    int expected;   // How many total bytes are supposed to be read
-    int readed;   // How many bytes have been read
-    cond_t to_signal_when_done;
 };
 
 #endif /* __RPC_CORE_CLUSTER_HPP__ */

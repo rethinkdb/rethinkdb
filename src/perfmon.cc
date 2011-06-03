@@ -15,6 +15,8 @@ intrusive_list_t<perfmon_t> &get_var_list() {
     return var_list;
 }
 
+// TODO (rntz) remove lock, not necessary with perfmon static initialization restrictions
+
 /* The var lock protects the var list when it is being modified. In theory, this should all work
 automagically because the constructor of every perfmon_t calls get_var_lock(), causing the var lock
 to be constructed before the first perfmon, so it is destroyed after the last perfmon. */

@@ -13,9 +13,11 @@ namespace replication {
 
 void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     mutex_acquisition_t ak(&stream_setup_teardown_);
-    // TODO: Carefully handle case where a slave is already connected.
-    // Note: As destroy_existing_slave_conn_if_it_exists() acquires stream_setup_teardown_ now,
-    // we must be careful in case we want to terminate existing slave connections.
+
+    // Note: As destroy_existing_slave_conn_if_it_exists() acquires
+    // stream_setup_teardown_ now, we would have to be careful in case
+    // we wanted to terminate existing slave connections.  Instead we
+    // terminate the incoming connection.
     if (stream_) { 
         logWRN("Rejecting slave connection because I already have one.\n");
         return;
@@ -40,10 +42,10 @@ void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     introduction.other_id = kvs_->get_replication_slave_id();
     stream_->send(&introduction);
 
-    // TODO when sending/receiving hello handshake, use database magic
-    // to handle case where slave is already connected.
+    // TODO: When sending/receiving hello handshake, use database
+    // magic to handle case where slave is already connected.
 
-    // TODO receive hello handshake before sending other messages.
+    // TODO: Receive hello handshake before sending other messages.
 }
 
 void master_t::destroy_existing_slave_conn_if_it_exists() {
@@ -78,8 +80,6 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
         gets and sets until we are shut down, regardless of whether the slave connection
         dies again. */
 
-        // TODO: We don't want to open the gates until the backfill
-        // receiver's queues have drained.
         logINF("Now accepting operations normally.\n");
         get_permission_.reset(new gated_get_store_t::open_t(get_gate_));
         set_permission_.reset(new gated_set_store_interface_t::open_t(set_gate_));

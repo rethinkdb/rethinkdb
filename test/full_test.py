@@ -301,7 +301,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340,
                     "failover"    : True,
-                    "serve-flags": "--total-delete-queue-limit %d" % (500 * slices)},
+                    "serve-flags": "--total-delete-queue-limit %d" % (15 * slices)},
                           repeat=10, timeout=800)
     
     # Replication with large values

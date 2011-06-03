@@ -56,8 +56,7 @@ struct demo_delegate_t : public cluster_delegate_t {
           map_council_control("map-council", "access the map council", &demo_map_council)
     { }
 
-    static demo_delegate_t *construct(cluster_inpipe_t *p) {
-        BREAKPOINT;
+    static demo_delegate_t *construct(cluster_inpipe_t *p, boost::function<void()> done) {
         set_store_interface_mailbox_t::address_t master_store;
         ::unserialize(p, NULL, &master_store);
         get_store_mailbox_t::address_t master_get_store;
@@ -68,20 +67,11 @@ struct demo_delegate_t : public cluster_delegate_t {
         ::unserialize(p, NULL, &demo_map_council_addr);
         routing::routing_map_t::address_t routing_map_addr;
         ::unserialize(p, NULL, &routing_map_addr);
-        p->done();
+        done();
         return new demo_delegate_t(master_store, master_get_store, registration_address, demo_map_council_addr, routing_map_addr);
     }
 
-    int introduction_ser_size() {
-        return ::ser_size(master_store) +
-               ::ser_size(master_get_store) +
-               ::ser_size(registration_address) +
-               ::ser_size(map_council_t<int, int>::address_t()) +
-               ::ser_size(routing_map.get_address());
-    }
-
     void introduce_new_node(cluster_outpipe_t *p) {
-        BREAKPOINT;
         ::serialize(p, master_store);
         ::serialize(p, master_get_store);
         ::serialize(p, registration_address);
@@ -145,9 +135,9 @@ void serve(int id, demo_delegate_t *delegate) {
 
     set_store_mailbox_t change_mailbox(&slice);
     get_store_mailbox_t get_mailbox(&slice);
-    delegate->registration_address.call(get_cluster().us, &change_mailbox, &get_mailbox);
-    delegate->routing_map.master_map.insert(get_cluster().us, set_store_mailbox_t::address_t(&change_mailbox));
-    delegate->routing_map.storage_map.insert(get_cluster().us, std::make_pair(&change_mailbox, &get_mailbox));
+    delegate->registration_address.call(get_cluster()->us, &change_mailbox, &get_mailbox);
+    delegate->routing_map.master_map.insert(get_cluster()->us, set_store_mailbox_t::address_t(&change_mailbox));
+    delegate->routing_map.storage_map.insert(get_cluster()->us, std::make_pair(&change_mailbox, &get_mailbox));
 
     for (routing::routing_map_t::master_map_t::const_iterator it = delegate->routing_map.master_map.begin(); it != delegate->routing_map.master_map.end(); it++) {
         logINF("Master map entry: %d\n", it->first);
@@ -174,6 +164,18 @@ void cluster_main(cluster_config_t config, UNUSED thread_pool_t *thread_pool) {
 
     if (config.contact_id == -1) {
 
+        /* Start a new cluster */
+
+        /* TODO: We initially pass a `NULL` delegate and then later call `set_delegate()`. This is
+        a hack and leads to race conditions because another node could start up and try to
+        connect before we called `set_delegate()`. This is temporary and the metadata-cluster
+        logic will make it obsolete. */
+
+        logINF("Starting new cluster...\n");
+        cluster_t the_cluster(31000 + config.id,
+            NULL);
+        logINF("Cluster started.\n");
+
         /* Start the master-components */
 
         clustered_store_t dispatcher;
@@ -184,27 +186,21 @@ void cluster_main(cluster_config_t config, UNUSED thread_pool_t *thread_pool) {
 
         get_store_mailbox_t master_get_mailbox(&dispatcher);
 
-        /* Start a new cluster */
+        demo_delegate_t delegate(&master_mailbox, &master_get_mailbox, &registration_mailbox);
+        the_cluster.set_delegate(&delegate);
 
-        logINF("Starting new cluster...\n");
-        get_cluster().start(31000 + config.id,
-            new demo_delegate_t(
-                &master_mailbox, &master_get_mailbox,
-                &registration_mailbox));
-        logINF("Cluster started.\n");
-
-        serve(config.id, static_cast<demo_delegate_t *>(get_cluster().get_delegate()));
+        serve(config.id, static_cast<demo_delegate_t *>(the_cluster.get_delegate()));
 
     } else {
 
         /* Join an existing cluster */
 
         logINF("Joining an existing cluster.\n");
-        get_cluster().start(31000 + config.id, "localhost", 31000 + config.contact_id,
+        cluster_t the_cluster(31000 + config.id, "localhost", 31000 + config.contact_id,
             &demo_delegate_t::construct);
         logINF("Cluster started.\n");
 
-        serve(config.id, static_cast<demo_delegate_t *>(get_cluster().get_delegate()));
+        serve(config.id, static_cast<demo_delegate_t *>(the_cluster.get_delegate()));
     }
 
     unreachable("Shutdown not implemented");
