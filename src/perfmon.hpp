@@ -13,7 +13,6 @@
 
 #include <sstream>
 
-
 // Pad a value to the size of a cache line to avoid false sharing.
 // TODO: This is implemented as a struct with subtraction rather than a union
 // so that it gives an error when trying to pad a value bigger than
@@ -26,7 +25,6 @@ struct cache_line_padded_t {
     value_t value;
     char padding[CACHE_LINE_SIZE - sizeof(value_t)];
 };
-
 
 /* Number formatter */
 
@@ -88,26 +86,48 @@ stats. The command-line flag `--full-perfmon` sets `global_full_perfmon` to true
 
 extern bool global_full_perfmon;
 
+
+// Abstract perfmon subclass that implements perfmon tracking by combining per-thread values.
+// DO NOT INSTANTIATE THIS OUTSIDE OF perfmon.hpp & perfmon.cc
+// see comment below, above begin_stats().
+template<typename thread_stat_t>
+struct perfmon_perthread_t
+    : public perfmon_t
+{
+    perfmon_perthread_t(bool internal = true) : perfmon_t(internal) {};
+
+    virtual void get_thread_stat(thread_stat_t *) = 0;
+    virtual void combine_stats(thread_stat_t *, perfmon_stats_t *) = 0;
+
+    // Method implementations are in perfmon.cc because they use get_thread_id() and
+    // get_num_threads(), defined in arch/core.hpp; but including arch/core.hpp here would cause
+    // circular #includes (things in arch/ use perfmons). Unfortunately this makes instantiating
+    // perfmon_perthread_t outside of perfmon.cc unsafe.
+    void *begin_stats();
+    void visit_stats(void *);
+    void end_stats(void *, perfmon_stats_t *);
+};
+
+
 /* perfmon_counter_t is a perfmon_t that keeps a global counter that can be incremented
 and decremented. (Internally, it keeps many individual counters for thread-safety.) */
-
 class perfmon_counter_t :
-    public perfmon_t
+    // TODO (rntz) does having the values when collecting stats be cache-padded matter?
+    public perfmon_perthread_t<cache_line_padded_t<int64_t> >
 {
+    typedef cache_line_padded_t<int64_t> padded_int64_t;
+    padded_int64_t thread_data[MAX_THREADS];
     friend class perfmon_counter_step_t;
-    cache_line_padded_t<int64_t> values[MAX_THREADS];
     int64_t &get();
     std::string name;
+    void get_thread_stat(padded_int64_t *stat);
+    void combine_stats(padded_int64_t *data, perfmon_stats_t *dest);
 public:
     explicit perfmon_counter_t(std::string name, bool internal = true);
     void operator++(int) { get()++; }
     void operator+=(int64_t num) { get() += num; }
     void operator--(int) { get()--; }
     void operator-=(int64_t num) { get() -= num; }
-    
-    void *begin_stats();
-    void visit_stats(void *);
-    void end_stats(void *, perfmon_stats_t *);
 };
 
 /* perfmon_sampler_t is a perfmon_t that keeps a log of events that happen. When something
@@ -115,12 +135,11 @@ happens, call the perfmon_sampler_t's record() method. The perfmon_sampler_t wil
 record until 'length' ticks have passed. It will produce stats for the number of records in the
 time period, the average record, and the min and max records. */
 
-class perfmon_sampler_t :
-    public perfmon_t
-{
-public:
+// need to use a namespace, not inner classes, so we can pass the auxiliary
+// classes to the templated base classes
+namespace perfmon_sampler {
     typedef double value_t;
-private:
+
     struct stats_t {
         int count;
         value_t sum, min, max;
@@ -147,63 +166,63 @@ private:
             }
         }
     };
-    struct thread_info_t {
-        stats_t current_stats, last_stats;
-        int current_interval;
-    } thread_info[MAX_THREADS];
-    void update(ticks_t now);
 
-    std::string name;
-    ticks_t length;
-    bool include_rate;
-public:
-    perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false, bool internal = true);
-    void record(value_t value);
-    
-    void *begin_stats();
-    void visit_stats(void *);
-    void end_stats(void *, perfmon_stats_t *);
-};
+    class perfmon_sampler_t
+        : public perfmon_perthread_t<stats_t>
+    {
+        struct thread_info_t {
+            stats_t current_stats, last_stats;
+            int current_interval;
+        } thread_data[MAX_THREADS];
+        void get_thread_stat(stats_t *stat);
+        void combine_stats(stats_t *data, perfmon_stats_t *dest);
+        void update(ticks_t now);
+
+        std::string name;
+        ticks_t length;
+        bool include_rate;
+    public:
+        perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false, bool internal = true);
+        void record(value_t value);
+    };
+}
+
+typedef perfmon_sampler::perfmon_sampler_t perfmon_sampler_t;
 
 /* Tracks the mean and standard deviation of a sequence value in constant space
  * & time.
  */
-struct perfmon_stddev_t :
-    public perfmon_t
-{
-    // should be possible to make this a templated class if necessary
-    typedef float T;
 
-    explicit perfmon_stddev_t(std::string name, bool internal = true);
-    void *begin_stats();
-    void visit_stats(void *);
-    void end_stats(void *, perfmon_stats_t *);
-
-    void record(T value);
-
-    // One-pass variance calculation algorithm/datastructure taken from
-    // http://www.cs.berkeley.edu/~mhoemmen/cs194/Tutorials/variance.pdf
-    struct stats_t {
-        stats_t();
-        void add(T value);
-        size_t datapoints() const;
-        T mean() const;
-        T standard_deviation() const;
-        T standard_variance() const;
-
-      private:
-        // N is the number of datapoints, M is the current mean, Q/N is the
-        // standard variance, and sqrt(Q/N) is the standard deviation. Read the
-        // paper for why it works.
-        size_t N;
-        T M, Q;
-    };
+// One-pass variance calculation algorithm/datastructure taken from
+// http://www.cs.berkeley.edu/~mhoemmen/cs194/Tutorials/variance.pdf
+struct stddev_t {
+    stddev_t();
+    void add(float value);
+    size_t datapoints() const;
+    float mean() const;
+    float standard_deviation() const;
+    float standard_variance() const;
 
   private:
+    // N is the number of datapoints, M is the current mean, Q/N is the
+    // standard variance, and sqrt(Q/N) is the standard deviation. Read the
+    // paper for why it works.
+    size_t N;
+    float M, Q;
+};
+
+struct perfmon_stddev_t
+    : public perfmon_perthread_t<stddev_t>
+{
+    // should be possible to make this a templated class if necessary
+    explicit perfmon_stddev_t(std::string name, bool internal = true);
+    void record(float value);
+
+  private:
+    stddev_t thread_data[MAX_THREADS]; // TODO (rntz) should this be cache-line padded?
+    void get_thread_stat(stddev_t *stat);
+    void combine_stats(stddev_t *data, perfmon_stats_t *dest);
     std::string name;
-    // TODO: Should the elements be cache-line padded?
-    stats_t thread_info[MAX_THREADS];
-    stats_t *get();
 };
 
 /* `perfmon_rate_monitor_t` keeps track of the number of times some event happens
@@ -211,25 +230,22 @@ per second. It is different from `perfmon_sampler_t` in that it does not associa
 a number with each event, but you can record many events at once. For example, it
 would be good for recording how fast bytes are sent over the network. */
 
-class perfmon_rate_monitor_t :
-    public perfmon_t
+class perfmon_rate_monitor_t
+    : public perfmon_perthread_t<double>
 {
 private:
     struct thread_info_t {
         double current_count, last_count;
         int current_interval;
-    } thread_info[MAX_THREADS];
+    } thread_data[MAX_THREADS];
     void update(ticks_t now);
-
     std::string name;
     ticks_t length;
+    void get_thread_stat(double *stat);
+    void combine_stats(double *data, perfmon_stats_t *dest);
 public:
     perfmon_rate_monitor_t(std::string name, ticks_t length, bool internal = true);
     void record(double value = 1.0);
-    
-    void *begin_stats();
-    void visit_stats(void *);
-    void end_stats(void *, perfmon_stats_t *);
 };
 
 /* perfmon_duration_sampler_t is a perfmon_t that monitors events that have a

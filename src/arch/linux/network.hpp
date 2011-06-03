@@ -11,6 +11,7 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
+#include "perfmon.hpp"
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 

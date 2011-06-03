@@ -7,7 +7,7 @@
 namespace unittest {
 
 TEST(PerfmonTest, StddevComputation) {
-    typedef perfmon_stddev_t::stats_t t;
+    typedef stddev_t t;
 
     {   t stats;
         EXPECT_EQ(0, stats.datapoints());
