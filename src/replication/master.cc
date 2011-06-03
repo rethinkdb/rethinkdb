@@ -88,8 +88,6 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
     assert_thread();
 
     if (stream_) {
-        assert_thread();
-
         /* So we can't shut down yet */
         streaming_cond_.reset();
 

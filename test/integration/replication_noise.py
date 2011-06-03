@@ -1,5 +1,6 @@
 #!/usr/bin/python
-import os, sys, socket, random, time, struct, traceback
+import os, sys, socket, random, time, struct, traceback, math
+from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 from test_common import *
 
@@ -242,6 +243,7 @@ class TCPProxy(object):
                     print "accept: %s" % e
             while not self.shutting_down:
                 try:
+                    print "About to connect, time is " + datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
                     connecting_side = socket.create_connection(('localhost', self.connecting_port))
                     print "Connected to %d" % self.connecting_port
                     success = True
@@ -319,10 +321,10 @@ class TCPProxy(object):
                         self.connecting_to_listening_filter.disconnect()
 
                         if listening_side != None:
-                            print "TCPProxy: closing listening socket"
+                            print datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " TCPProxy: closing listening socket"
                             listening_side.close()
                         if connecting_side != None:
-                            print "TCPProxy: closing connecting socket"
+                            print datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " TCPProxy: closing connecting socket"
                             connecting_side.close()
         except Exception, e:
             print "Exception in proxy: %s" % e
