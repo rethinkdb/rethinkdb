@@ -234,9 +234,9 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                 gated_get_store_t gated_get_store(&store);
                 gated_set_store_interface_t gated_set_store(&store);
                 memcache_conn_acceptor_callback_t conn_acceptor_callback(&gated_get_store, &gated_set_store, &pigeoncoop);
-                conn_acceptor_t conn_acceptor(cmd_config->port, &conn_acceptor_callback);
-
                 if (cmd_config->replication_config.active) {
+
+                    conn_acceptor_t conn_acceptor(cmd_config->port, &conn_acceptor_callback);
 
                     /* Failover callbacks. It's not safe to add or remove them when the slave is
                     running, so we have to set them all up now. */
@@ -272,6 +272,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                 } else if (cmd_config->replication_master_active) {
 
+                    conn_acceptor_t conn_acceptor(cmd_config->port, &conn_acceptor_callback);
+
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
                     store.set_replication_master_id(NOT_A_SLAVE);
@@ -295,6 +297,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
                     // Open the gates to allow real queries
                     gated_get_store_t::open_t permit_gets(&gated_get_store);
                     gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
+
+                    conn_acceptor_t conn_acceptor(cmd_config->port, &conn_acceptor_callback);
 
                     logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
 
