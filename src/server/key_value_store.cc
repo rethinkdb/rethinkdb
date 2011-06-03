@@ -8,6 +8,8 @@
 #include "replication/master.hpp"
 #include "cmd_args.hpp"
 
+#include <math.h>
+
 /* shard_store_t */
 
 shard_store_t::shard_store_t(
@@ -139,6 +141,16 @@ void create_existing_shard(
     shards[i] = new shard_store_t(pseudoserializers[i], dynamic_config, delete_queue_limit);
 }
 
+static mirrored_cache_config_t partition_cache_config(const mirrored_cache_config_t &orig, float share) {
+    mirrored_cache_config_t shard = orig;
+    shard.max_size = std::max((long long) floorf(orig.max_size * share), 1LL);
+    shard.max_dirty_size = std::max((long long) floorf(orig.max_dirty_size * share), 1LL);
+    shard.flush_dirty_size = std::max((long long) floorf(orig.flush_dirty_size * share), 1LL);
+    shard.io_priority_reads = std::max((int) floorf(orig.io_priority_reads * share), 1);
+    shard.io_priority_writes = std::max((int) floorf(orig.io_priority_writes * share), 1);
+    return shard;
+}
+
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config)
     : hash_control(this) {
 
@@ -158,14 +170,16 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
 
     btree_static_config.n_slices = multiplexer->proxies.size() - 1; // subtract 1 for metadata slice
 
-    /* Divide resources among the several slices */
-    mirrored_cache_config_t per_slice_config = dynamic_config->cache;
-    per_slice_config.max_size = std::max(dynamic_config->cache.max_size / btree_static_config.n_slices, 1LL);
-    per_slice_config.max_dirty_size = std::max(dynamic_config->cache.max_dirty_size / btree_static_config.n_slices, 1LL);
-    per_slice_config.flush_dirty_size = std::max(dynamic_config->cache.flush_dirty_size / btree_static_config.n_slices, 1LL);
-    per_slice_config.io_priority_reads = std::max(dynamic_config->cache.io_priority_reads / btree_static_config.n_slices, 1);
-    per_slice_config.io_priority_writes = std::max(dynamic_config->cache.io_priority_writes / btree_static_config.n_slices, 1);
-    int64_t per_slice_delete_queue_limit = dynamic_config->total_delete_queue_limit / btree_static_config.n_slices;
+    // calculate what share of the resources we have go to the metadata shard
+    float resource_total = 1 + (METADATA_SHARD_RESOURCE_QUOTIENT / btree_static_config.n_slices);
+    float shard_share = 1 / (btree_static_config.n_slices * resource_total);
+    float metadata_shard_share = METADATA_SHARD_RESOURCE_QUOTIENT / resource_total;
+
+    /* Divide resources among the several slices and the metadata slice */
+    mirrored_cache_config_t per_slice_config = partition_cache_config(dynamic_config->cache, shard_share);
+    mirrored_cache_config_t metadata_slice_config = partition_cache_config(dynamic_config->cache, metadata_shard_share);
+    int64_t per_slice_delete_queue_limit = dynamic_config->total_delete_queue_limit * shard_share;
+    int64_t metadata_slice_delete_queue_limit = dynamic_config->total_delete_queue_limit * metadata_shard_share;
 
     /* Load btrees */
     translator_serializer_t **pseudoserializers = multiplexer->proxies.data();
@@ -180,8 +194,7 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
         int i = btree_static_config.n_slices;
         on_thread_t switcher(i % get_num_db_threads());
         metadata_shard = new shard_store_t(pseudoserializers[i],
-            &dynamic_config->metadata_cache,
-            dynamic_config->metadata_delete_queue_limit);
+            &metadata_slice_config, metadata_slice_delete_queue_limit);
     }
 
     /* Initialize the timestampers to the timestamp value on disk */

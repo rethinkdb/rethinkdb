@@ -129,10 +129,8 @@ struct btree_key_value_store_dynamic_config_t {
     std::vector<log_serializer_private_dynamic_config_t> serializer_private;
 
     mirrored_cache_config_t cache;
-    mirrored_cache_config_t metadata_cache;
 
     int64_t total_delete_queue_limit;
-    int64_t metadata_delete_queue_limit;
 };
 
 /* Configuration for the store (btree, cache, and serializers) that is set at database

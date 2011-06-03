@@ -287,5 +287,10 @@
 // Size of a cache line (used in cache_line_padded_t).
 #define CACHE_LINE_SIZE                           64
 
+// What fraction of a normal slice's resources we reserve for the metadata shard
+// TODO (rntz) this should be runtime controllable
+// TODO (rntz) should there be a more fine-grained way to specify the metadata shard's resources?
+#define METADATA_SHARD_RESOURCE_QUOTIENT          0.1f
+
 #endif // __CONFIG_ARGS_H__
 
