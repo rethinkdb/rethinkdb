@@ -14,6 +14,7 @@
 #include "arch/linux/event_queue/poll.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "logger.hpp"
+#include "perfmon.hpp"
 
 int user_to_poll(int mode) {
 

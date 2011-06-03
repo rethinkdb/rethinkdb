@@ -1,3 +1,9 @@
+/* Please avoid #include'ing this file from other headers unless you absolutely
+ * need to. Please #include "perfmon_types.hpp" instead. This helps avoid
+ * potential circular dependency problems, since perfmons are used all over the
+ * place but also depend on a significant chunk of our threading infrastructure
+ * (by way of get_thread_id() & co).
+ */
 #ifndef __PERFMON_HPP__
 #define __PERFMON_HPP__
 
@@ -10,8 +16,11 @@
 #include "containers/intrusive_list.hpp"
 #include <limits>
 #include "server/control.hpp"
+#include "perfmon_types.hpp"
 
 #include <sstream>
+
+#include "arch/core.hpp"
 
 // Pad a value to the size of a cache line to avoid false sharing.
 // TODO: This is implemented as a struct with subtraction rather than a union
@@ -88,24 +97,26 @@ extern bool global_full_perfmon;
 
 
 // Abstract perfmon subclass that implements perfmon tracking by combining per-thread values.
-// DO NOT INSTANTIATE THIS OUTSIDE OF perfmon.hpp & perfmon.cc
-// see comment below, above begin_stats().
 template<typename thread_stat_t>
 struct perfmon_perthread_t
     : public perfmon_t
 {
     perfmon_perthread_t(bool internal = true) : perfmon_t(internal) {};
 
+    void *begin_stats() {
+        return new thread_stat_t[get_num_threads()];
+    }
+    void visit_stats(void *data) {
+        get_thread_stat(&((thread_stat_t *) data)[get_thread_id()]);
+    }
+    void end_stats(void *data, perfmon_stats_t *dest) {
+        combine_stats((thread_stat_t*) data, dest);
+        delete[] (thread_stat_t*) data;
+    }
+
+  protected:
     virtual void get_thread_stat(thread_stat_t *) = 0;
     virtual void combine_stats(thread_stat_t *, perfmon_stats_t *) = 0;
-
-    // Method implementations are in perfmon.cc because they use get_thread_id() and
-    // get_num_threads(), defined in arch/core.hpp; but including arch/core.hpp here would cause
-    // circular #includes (things in arch/ use perfmons). Unfortunately this makes instantiating
-    // perfmon_perthread_t outside of perfmon.cc unsafe.
-    void *begin_stats();
-    void visit_stats(void *);
-    void end_stats(void *, perfmon_stats_t *);
 };
 
 
@@ -166,28 +177,28 @@ namespace perfmon_sampler {
             }
         }
     };
-
-    class perfmon_sampler_t
-        : public perfmon_perthread_t<stats_t>
-    {
-        struct thread_info_t {
-            stats_t current_stats, last_stats;
-            int current_interval;
-        } thread_data[MAX_THREADS];
-        void get_thread_stat(stats_t *stat);
-        void combine_stats(stats_t *data, perfmon_stats_t *dest);
-        void update(ticks_t now);
-
-        std::string name;
-        ticks_t length;
-        bool include_rate;
-    public:
-        perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false, bool internal = true);
-        void record(value_t value);
-    };
 }
 
-typedef perfmon_sampler::perfmon_sampler_t perfmon_sampler_t;
+class perfmon_sampler_t
+    : public perfmon_perthread_t<perfmon_sampler::stats_t>
+{
+    typedef perfmon_sampler::value_t value_t;
+    typedef perfmon_sampler::stats_t stats_t;
+    struct thread_info_t {
+        stats_t current_stats, last_stats;
+        int current_interval;
+    } thread_data[MAX_THREADS];
+    void get_thread_stat(stats_t *stat);
+    void combine_stats(stats_t *data, perfmon_stats_t *dest);
+    void update(ticks_t now);
+
+    std::string name;
+    ticks_t length;
+    bool include_rate;
+  public:
+    perfmon_sampler_t(std::string name, ticks_t length, bool include_rate = false, bool internal = true);
+    void record(value_t value);
+};
 
 /* Tracks the mean and standard deviation of a sequence value in constant space
  * & time.

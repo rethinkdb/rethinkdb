@@ -6,7 +6,6 @@
 #include <poll.h>
 #include <vector>
 #include "config/args.hpp"
-#include "perfmon.hpp"
 
 // Event queue structure
 struct poll_event_queue_t : public event_queue_base_t {

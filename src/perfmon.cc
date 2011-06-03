@@ -76,24 +76,6 @@ perfmon_t::~perfmon_t() {
 
 bool global_full_perfmon = false;
 
-/* perfmon_perthread_t */
-template<typename thread_stat_t>
-void *perfmon_perthread_t<thread_stat_t>::begin_stats() {
-    return new thread_stat_t[get_num_threads()];
-}
-
-template<typename thread_stat_t>
-void perfmon_perthread_t<thread_stat_t>::visit_stats(void *data) {
-    get_thread_stat(&((thread_stat_t *) data)[get_thread_id()]);
-}
-
-template<typename thread_stat_t>
-void perfmon_perthread_t<thread_stat_t>::end_stats(void *data, perfmon_stats_t *dest) {
-    combine_stats((thread_stat_t*) data, dest);
-    delete[] (thread_stat_t*) data;
-}
-
-
 /* perfmon_counter_t */
 
 perfmon_counter_t::perfmon_counter_t(std::string name, bool internal)

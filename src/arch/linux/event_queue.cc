@@ -3,6 +3,7 @@
 #include "arch/linux/thread_pool.hpp"
 #include "concurrency/cond_var.hpp"
 #include "utils.hpp"
+#include "perfmon.hpp"
 
 perfmon_duration_sampler_t pm_eventloop("eventloop", secs_to_ticks(1.0));
 

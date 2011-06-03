@@ -1,4 +1,5 @@
 #include "extent.hpp"
+#include "perfmon.hpp"
 
 struct extent_block_t :
     public extent_t::sync_callback_t,

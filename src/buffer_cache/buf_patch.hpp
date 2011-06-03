@@ -1,6 +1,8 @@
 #ifndef __BUF_PATCH_HPP__
 #define	__BUF_PATCH_HPP__
 
+#include <sstream>
+
 /*
  * This file provides the basic buf_patch_t type as well as a few low-level binary
  * patch implementations (currently memmove and memcpy patches)

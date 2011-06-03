@@ -8,6 +8,7 @@
 #include <ucontext.h>
 #include <arch/arch.hpp>
 
+#include "perfmon.hpp"
 #include "utils.hpp"
 
 #ifdef VALGRIND
