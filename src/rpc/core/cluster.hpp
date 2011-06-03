@@ -39,7 +39,7 @@ cluster_address_t with this mailbox and then call send() on the address. */
 struct cluster_mailbox_t
 {
     cluster_mailbox_t();
-    ~cluster_mailbox_t();
+    virtual ~cluster_mailbox_t();
 
 private:
     friend class cluster_address_t;

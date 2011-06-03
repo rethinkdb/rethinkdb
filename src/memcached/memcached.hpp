@@ -29,6 +29,8 @@ struct memcached_interface_t {
     };
     virtual void read(void *,size_t) = 0;
     virtual void read_line(std::vector<char> *) = 0;
+
+    virtual ~memcached_interface_t() { }
 };
 
 void handle_memcache(

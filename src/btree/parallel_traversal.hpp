@@ -15,7 +15,7 @@ class btree_slice_t;
 struct acquisition_start_callback_t {
     virtual void on_started_acquisition() = 0;
 protected:
-    ~acquisition_start_callback_t() { }
+    virtual ~acquisition_start_callback_t() { }
 };
 
 class interesting_children_callback_t : public acquisition_start_callback_t {
