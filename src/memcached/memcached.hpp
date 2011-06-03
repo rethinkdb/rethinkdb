@@ -21,6 +21,8 @@ public:
         : get_store(get_store), set_store(set_store), requests_out_sem(max_concurrent_queries_per_connection)
     { }
 
+    virtual ~txt_memcached_handler_if() { }
+
     get_store_t *get_store;
     set_store_interface_t *set_store;
 

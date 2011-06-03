@@ -87,7 +87,7 @@ public:
 
 protected:
     home_thread_mixin_t() : real_home_thread(get_thread_id()) { }
-    ~home_thread_mixin_t() { }
+    virtual ~home_thread_mixin_t() { }
 
     int real_home_thread;
 

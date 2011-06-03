@@ -192,7 +192,7 @@ void process_a_internal_node(traversal_state_t *state, buf_t *buf, int level);
 struct node_ready_callback_t {
     virtual void on_node_ready(buf_t *buf) = 0;
 protected:
-    ~node_ready_callback_t() { }
+    virtual ~node_ready_callback_t() { }
 };
 
 struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t, public block_available_callback_t {
@@ -244,7 +244,7 @@ class parent_releaser_t {
 public:
     virtual void release() = 0;
 protected:
-    ~parent_releaser_t() { }
+    virtual ~parent_releaser_t() { }
 };
 
 struct internal_node_releaser_t : public parent_releaser_t {
@@ -256,6 +256,8 @@ struct internal_node_releaser_t : public parent_releaser_t {
         delete this;
     }
     internal_node_releaser_t(buf_t *buf, traversal_state_t *state) : buf_(buf), state_(state) { }
+
+    virtual ~internal_node_releaser_t() { }
 };
 
 void btree_parallel_traversal(boost::shared_ptr<transactor_t>& txor, btree_slice_t *slice, btree_traversal_helper_t *helper) {
