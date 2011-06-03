@@ -13,14 +13,14 @@ private:
     int total_refreshes;
 public:
     progress_bar_t(std::string, int);
-    ~progress_bar_t() { 
+    virtual ~progress_bar_t() { 
         if (total_refreshes > 0)
             printf("\n"); 
     }
 
     void refresh();
     virtual void draw() = 0;
-    virtual void reset_bar();
+    void reset_bar();
     void draw_bar(float, int eta = -1); 
 };
 
