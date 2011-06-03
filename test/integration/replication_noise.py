@@ -17,15 +17,19 @@ def start_slave(repli_port, opts, extra_flags, test_dir):
     return slave
 
 class PacketSplitter(object):
-    def __init__(self, name, hello_size):
+    def __init__(self, name):
         self.name = name
         self.buffer = ""
-        self.current_msg_size = hello_size
+        self.hello_packet = '13rethinkdbrepl\x00\x01\x00\x00\x00'
+        self.current_msg_size = len(self.hello_packet)
         self.packet_count = 0
+
+        global corruptions, disconnects
+        assert corruptions >= disconnects, "We get disconnected more often (%d times) than we corrupt the packets (%d times), probably the server doesn't want to accept our connection" % (disconnects, corruptions)
 
     def process(self, recv_buf):
         if len(recv_buf) == 0:
-            return ""
+            return []
         self.buffer = self.buffer + recv_buf
         result = []
         p = 0
@@ -36,7 +40,13 @@ class PacketSplitter(object):
                 break
             if p+self.current_msg_size <= len(self.buffer):
                 #print "%s msg size: %d" % (self.name, self.current_msg_size)
-                result.append(self.buffer[p:p+self.current_msg_size])
+                msg = self.buffer[p:p+self.current_msg_size]
+
+                if self.hello_packet != None:
+                    assert self.hello_packet == msg, "Unexpected hello packet, probably someone has changed the protocol but forgot to update the test!"
+                    self.hello_packet = None
+
+                result.append(msg)
                 p = p + self.current_msg_size
                 self.current_msg_size = 0
                 self.packet_count = self.packet_count + 1
@@ -46,6 +56,9 @@ class PacketSplitter(object):
                 break
         self.buffer = self.buffer[p:]
         return result
+
+corruptions = 0
+disconnects = 0
 
 class PacketCorrupter(object):
     def __init__(self, name, corruption_p = 1e-5):
@@ -164,13 +177,15 @@ class PacketCorrupter(object):
     def process(self, packet):
         if len(packet) >= 3:
             multipart_aspect = struct.unpack('<B', packet[2])[0]
-            assert multipart_aspect >= 0x81 and multipart_aspect <= 0x84, "Error: multipart_aspect has unknown value 0x%02x. Probably packet structure has changed and someone forgot to update the test." % multipart_aspect
+            assert multipart_aspect >= 0x81 and multipart_aspect <= 0x84, "Error: multipart_aspect has unknown value 0x%02x. Probably packet structure has changed and someone forgot to update the test. Packet contents: %r" % (multipart_aspect, packet)
             stream_id_present = multipart_aspect != 0x81 # 0x81 is "small packet"
             header_offset = 7 if stream_id_present else 3
             assert len(packet) >= header_offset
             stream_id = struct.unpack("<I", packet[3:7])[0] if stream_id_present else None
 
             if random.random() <= self.corruption_p:
+                global corruptions
+                corruptions = corruptions + 1
                 sz = struct.unpack('<H', packet[0:2])[0]
                 value_offset = min(len(packet), header_offset+20)
 
@@ -190,6 +205,125 @@ class PacketCorrupter(object):
                 self.add_stream_id(stream_id)
             return packet
 
+class TCPProxy(object):
+    # listening_to_connecting_filter and connecting_to_listening_filter must have the following methods:
+    #   connected()
+    #   process(packet) -> [packets]
+    #   disconnected()
+    def __init__(self, listening_port, connecting_port, max_connect_failures, listening_to_connecting_filter, connecting_to_listening_filter, listening_to_connecting_name, connecting_to_listening_name):
+        self.connecting_port = connecting_port
+        self.listening_port = listening_port
+        self.max_connect_failures = max_connect_failures
+        self.listening_to_connecting_filter = listening_to_connecting_filter
+        self.connecting_to_listening_filter = connecting_to_listening_filter
+        self.listening_to_connecting_name = listening_to_connecting_name
+        self.connecting_to_listening_name = connecting_to_listening_name
+        self.shutting_down = False
+        self.exception = None
+
+        self.listener = socket.socket()
+        self.listener.bind(('localhost', self.listening_port))
+        self.listener.listen(1)
+
+    def accept_and_then_connect(self):
+        connect_failures = 0
+        listening_side = None
+        connecting_side = None
+        success = False
+        try:
+            while not self.shutting_down and listening_side == None:
+                self.listener.settimeout(1)
+                try:
+                    (listening_side, address) = self.listener.accept()
+                    print "Accepted connect on %d" % self.listening_port
+                except socket.timeout:
+                    pass
+                except Exception, e:
+                    print "accept: %s" % e
+            while not self.shutting_down:
+                try:
+                    connecting_side = socket.create_connection(('localhost', self.connecting_port))
+                    print "Connected to %d" % self.connecting_port
+                    success = True
+                    return (listening_side, connecting_side)
+                except Exception, e:
+                    print "connect: %s" % e
+                    connect_failures = connect_failures + 1
+                    if connect_failures > self.max_connect_failures:
+                        self.shutting_down = True
+                        raise RuntimeError("Failed to connect to master replication port: probably it doesn't want us to connect")
+            return (None, None)
+        finally:
+            if not success:
+                if listening_side != None:
+                    listening_side.close()
+                if connecting_side != None:
+                    connecting_side.close()
+
+    def run(self):
+        def run_pump(from_socket, to_socket, filter, name):
+            try:
+                while not self.shutting_down:
+                    from_socket.settimeout(1)
+                    try:
+                        recv_buf = from_socket.recv(4096)
+                        if len(recv_buf) > 0:
+                            packets = filter(recv_buf)
+                            if packets != None:
+                                packet = ''.join([p for p in packets if p != None])
+                                if len(packet) > 0:
+                                    #print "%s: sending %d" % (name, len(packet))
+                                    to_socket.sendall(packet)
+                    except socket.timeout:
+                        pass
+            except socket.error, e:
+                print "%s: Got a socket error: %r" % (name, e)
+                global disconnects
+                disconnects = disconnects + 1
+                if to_socket:
+                    to_socket.close()
+                if from_socket:
+                    from_socket.close()
+            except Exception, e:
+                #exc_type, exc_value, exc_traceback = sys.exc_info()
+                #traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stderr)
+                print "Exception in run_pump(%s): %s" % (name, e)
+                self.exception = e
+                self.shutdown()
+
+        (listening_side, connecting_side) = (None, None)
+        try:
+            while not self.shutting_down:
+                (listening_side, connecting_side) = self.accept_and_then_connect()
+                if not self.shutting_down:
+                    assert listening_side != None and connecting_side != None
+
+                    try:
+                        self.listening_to_connecting_filter.connect()
+                        self.connecting_to_listening_filter.connect()
+                        master_to_slave = threading.Thread(target=run_pump, args=(connecting_side, listening_side, self.connecting_to_listening_filter.process, self.connecting_to_listening_name))
+                        slave_to_master = threading.Thread(target=run_pump, args=(listening_side, connecting_side, self.listening_to_connecting_filter.process, self.listening_to_connecting_name))
+                        master_to_slave.start()
+                        slave_to_master.start()
+                        master_to_slave.join()
+                        slave_to_master.join()
+                    finally:
+                        self.listening_to_connecting_filter.disconnect()
+                        self.connecting_to_listening_filter.disconnect()
+
+                        if listening_side != None:
+                            print "TCPProxy: closing listening socket"
+                            listening_side.close()
+                        if connecting_side != None:
+                            print "TCPProxy: closing connecting socket"
+                            connecting_side.close()
+        except Exception, e:
+            print "Exception in proxy: %s" % e
+            self.exception = e
+
+    def shutdown(self):
+        self.shutting_down = True
+
 def start_evil_monkey(master_repli_port, master_to_slave_corruption_p, slave_to_master_corruption_p, dont_corrupt_first, test_dir):
     class EvilMonkey(threading.Thread):
         def __init__(self, master_repli_port, master_to_slave_corruption_p, slave_to_master_corruption_p, dont_corrupt_first):
@@ -198,96 +332,53 @@ def start_evil_monkey(master_repli_port, master_to_slave_corruption_p, slave_to_
             self.slave_to_master_corruption_p = slave_to_master_corruption_p
             self.dont_corrupt_first = dont_corrupt_first
             self.repli_port = find_unused_port()
-            self.master_socket = None
-            self.proxied_socket = socket.socket()
-            self.proxied_socket.bind(('localhost', self.repli_port))
-            self.proxied_socket.listen(1)
-            self.shutting_down = False
-            self.master_to_slave = None
-            self.slave_to_master = None
             self.exception = None
-
-        def connect(self):
-            print "Trying to connect to master replication port"
-            connect_failures = 0
-            while not self.shutting_down:
-                try:
-                    master_socket = socket.create_connection(('localhost', master_repli_port))
-                    self.proxied_socket.settimeout(1)
-                    (connected_proxied_socket, address) = self.proxied_socket.accept()
-                    print "master<->slave connection established"
-                    return (master_socket, connected_proxied_socket)
-                except Exception, e:
-                    print "connect: %s" % e
-                    #time.sleep(1)
-                    connect_failures = connect_failures + 1
-                    if connect_failures > 60:
-                        self.shutting_down = True
-                        raise RuntimeError("Failed to connect to master replication port: probably it doesn't want us to connect")
-            return (None, None)
-
+            self.max_connect_failures = 60
 
         def run(self):
-            connected_proxied_socket = None
-            try:
-                while not self.shutting_down:
-                    (self.master_socket, connected_proxied_socket) = self.connect()
-                    if self.shutting_down:
-                        break
+            class Processor(object):
+                def __init__(self, corruption_p, dont_corrupt_packets, name):
+                    self.corruption_p = corruption_p
+                    self.dont_corrupt_packets = dont_corrupt_packets
+                    self.name = name
+                    self.reset()
 
-                    self.master_to_slave = threading.Thread(target=self.run_pump, args=(self.master_socket, connected_proxied_socket, self.master_to_slave_corruption_p, self.dont_corrupt_first, 32, 'master->slave'))
-                    self.slave_to_master = threading.Thread(target=self.run_pump, args=(connected_proxied_socket, self.master_socket, self.slave_to_master_corruption_p, self.dont_corrupt_first, 28, 'slave->master'))
-                    self.master_to_slave.start()
-                    self.slave_to_master.start()
-                    self.master_to_slave.join()
-                    self.master_to_slave = None
-                    self.slave_to_master.join()
-                    self.slave_to_master = None
-            except Exception, e:
-                self.exception = e
+                def reset(self):
+                    self.dont_corrupt_count = self.dont_corrupt_packets
+                    self.proto = PacketSplitter(self.name)
+                    self.corrupter = PacketCorrupter(self.name, self.corruption_p)
+
+                def process(self, buffer):
+                    # print "%s: recv: %d" % (self.name, len(buffer))
+                    packets = self.proto.process(buffer)
+                    result = []
+                    for packet in packets:
+                        #print "%s: msg: %d %r" % (self.name, len(packet), packet)
+                        if self.dont_corrupt_count > 0:
+                            self.dont_corrupt_count = self.dont_corrupt_count-1
+                        else:
+                            packet = self.corrupter.process(packet)
+                        result.append(packet)
+                    return result
+                def connect(self):
+                    self.reset()
+                def disconnect(self):
+                    pass
+
+            slave_to_master_name = 'slave->master'
+            master_to_slave_name = 'master->slave'
+            master_to_slave_processor = Processor(self.master_to_slave_corruption_p, self.dont_corrupt_first, master_to_slave_name)
+            slave_to_master_processor = Processor(self.slave_to_master_corruption_p, self.dont_corrupt_first, slave_to_master_name)
+            self.proxy = TCPProxy(self.repli_port, master_repli_port, self.max_connect_failures, slave_to_master_processor, master_to_slave_processor, slave_to_master_name, master_to_slave_name)
+            try:
+                self.proxy.run()
             finally:
-                if self.master_socket is not None:
-                    self.master_socket.close()
-                if connected_proxied_socket:
-                    connected_proxied_socket.close()
-
-        def run_pump(self, from_socket, to_socket, corruption_p, dont_corrupt_first, hello_size, name):
-            #print "Pump %s started" % name
-            proto = PacketSplitter(name, hello_size)
-            packetCorrupter = PacketCorrupter(name, corruption_p)
-            dont_corrupt_packets = dont_corrupt_first
-            try:
-                while not self.shutting_down:
-                    from_socket.settimeout(1)
-                    try:
-                        recv_buf = from_socket.recv(4096)
-                        packets = proto.process(recv_buf)
-                        for packet in packets:
-                            if dont_corrupt_packets > 0:
-                                dont_corrupt_packets = dont_corrupt_packets-1
-                            else:
-                                packet = packetCorrupter.process(packet)
-                                #packetCorrupter.process(packet)
-
-                            if packet:
-                                to_socket.sendall(packet)
-                    except socket.timeout:
-                        pass
-            except socket.error, e:
-                print "%s: Got a socket error: %r" % (name, e)
-                if to_socket:
-                    to_socket.close()
-                if from_socket:
-                    from_socket.close()
-            except Exception, e:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stderr)
+                self.exception = self.proxy.exception
 
         def shutdown(self):
-            if not self.shutting_down:
-                self.shutting_down = True
-                self.join()
-    
+            self.proxy.shutdown()
+            self.join()
+
     evil_monkey = EvilMonkey(master_repli_port, master_to_slave_corruption_p, slave_to_master_corruption_p, dont_corrupt_first)
     evil_monkey.start()
     return evil_monkey
@@ -305,12 +396,16 @@ def test_function(opts, extra_flags=[], test_dir=TestDir()):
     stresser = None
     stresser_waiter_thread = None
     try:
+        print "Starting master"
         master = start_master(opts, extra_flags, test_dir=test_dir)
+        print "Starting Evil Monkey"
         evil_monkey = start_evil_monkey(master.master_port, opts['master_to_slave_corruption_p'], opts['slave_to_master_corruption_p'], opts['dont_corrupt_first'], test_dir=test_dir)
+        print "Starting slave"
         slave = start_slave(evil_monkey.repli_port, opts, extra_flags, test_dir=test_dir)
 
         if opts['stress_client']:
-            time.sleep(10)
+            #time.sleep(10)
+            print "Starting stress client"
             stresser = stress_client(port=master.port, workload=
                                           { "deletes":  opts["ndeletes"],
                                             "updates":  opts["nupdates"],
