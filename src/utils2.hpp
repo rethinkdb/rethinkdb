@@ -85,7 +85,11 @@ double ticks_to_secs(ticks_t ticks);
 // debug.hpp (and debug.cc).
 /* Debugging printing API (prints current thread in addition to message) */
 
+#ifndef NDEBUG
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
+#else
+#define debugf(...) ((void)0)
+#endif
 
 
 // Returns a random number in [0, n).  Is not perfectly uniform; the
