@@ -680,7 +680,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
     snapshotted(false)
 {
     block_pm_duration start_timer(&pm_transactions_starting);
-    rassert(access == rwi_read);
+    rassert(access == rwi_read || access == rwi_read_sync);
     cache->assert_thread();
     rassert(!cache->shutting_down);
     cache->num_live_transactions++;

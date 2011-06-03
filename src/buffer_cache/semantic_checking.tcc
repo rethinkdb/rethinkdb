@@ -113,7 +113,7 @@ scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *
     access(access),
     inner_transaction(&cache->inner_cache, access)
 {
-    rassert(access == rwi_read);
+    rassert(access == rwi_read || access == rwi_read_sync);
 }
 
 template<class inner_cache_t>
