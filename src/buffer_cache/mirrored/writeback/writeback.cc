@@ -264,6 +264,8 @@ void writeback_t::flush_timer_callback(void *ctx) {
     writeback_t *self = static_cast<writeback_t *>(ctx);
     self->flush_timer = NULL;
 
+    self->cache->assert_thread();
+
     pm_patches_size_ratio.record(self->cache->max_patches_size_ratio);
 
     if (self->active_flushes < self->max_concurrent_flushes || self->num_dirty_blocks() < (float)self->max_dirty_blocks * RAISE_PATCHES_RATIO_AT_FRACTION_OF_UNSAVED_DATA_LIMIT) {
@@ -277,7 +279,7 @@ void writeback_t::flush_timer_callback(void *ctx) {
         if (!self->wait_for_flush)
             self->cache->max_patches_size_ratio = (unsigned int)(0.9f * (float)self->cache->max_patches_size_ratio + 0.1f * (float)MAX_PATCHES_SIZE_RATIO_MAX);
     }
-    
+
     /* Don't sync if we're in the shutdown process, because if we do that we'll trip an rassert() on
     the cache, and besides we're about to sync anyway. */
     if (!self->cache->shutting_down && (self->num_dirty_blocks() > 0 || self->sync_callbacks.size() > 0)) {
