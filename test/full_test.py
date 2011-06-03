@@ -540,6 +540,17 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 340 },
                   repeat=5, timeout=460 * ec2)
 
+    do_test_cloud("integration/replication_noise.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 90
+                  },
+                  repeat=1, timeout=150*ec2)
+
     for suite_test in os.listdir('integration/memcached_suite'):
         if not suite_test.endswith(".t"): continue
 
