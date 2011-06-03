@@ -303,12 +303,19 @@ void writeback_t::concurrent_flush_t::start_and_acquire_lock() {
 
     /* Start a read transaction so we can request bufs. */
     rassert(transaction == NULL);
-    bool saved_shutting_down = parent->cache->shutting_down;
-    parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
+    {
+        // There _must_ not be waiting in the begin_transaction call
+        // because then we could have a race condition with
+        // shutting_down.
+        ASSERT_NO_CORO_WAITING;
 
-    // It's a read transaction, that's why we use repli_timestamp::invalid.
-    transaction = parent->cache->begin_transaction(rwi_read, 0, repli_timestamp::invalid, NULL);
-    parent->cache->shutting_down = saved_shutting_down;
+        bool saved_shutting_down = parent->cache->shutting_down;
+        parent->cache->shutting_down = false;   // Backdoor around "no new transactions" assert.
+
+        // It's a read transaction, that's why we use repli_timestamp::invalid.
+        transaction = parent->cache->begin_transaction(rwi_read, 0, repli_timestamp::invalid, NULL);
+        parent->cache->shutting_down = saved_shutting_down;
+    }
     rassert(transaction != NULL); // Read txns always start immediately.
 
     /* Request exclusive flush_lock, forcing all write txns to complete. */
