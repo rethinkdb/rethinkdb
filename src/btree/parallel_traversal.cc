@@ -63,7 +63,7 @@ class parent_releaser_t;
 struct acquisition_waiter_callback_t {
     virtual void you_may_acquire() = 0;
 protected:
-    ~acquisition_waiter_callback_t() { }
+    virtual ~acquisition_waiter_callback_t() { }
 };
 
 

@@ -8,10 +8,12 @@ and deserialize cluster messages. User-code should use them by calling `write()`
 
 struct cluster_outpipe_t {
     virtual void write(const void *buf, size_t size) = 0;
+    virtual ~cluster_outpipe_t() { }
 };
 
 struct cluster_inpipe_t {
     virtual void read(void *buf, size_t size) = 0;
+    virtual ~cluster_inpipe_t() { }
 };
 
 /* `counting_outpipe_t` is like `cluster_outpipe_t` except that it just determines what the
