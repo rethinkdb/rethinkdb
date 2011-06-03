@@ -1019,6 +1019,8 @@ boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {
+    assert_thread();
+
     writeback.on_transaction_commit(txn);
 
     num_live_transactions--;

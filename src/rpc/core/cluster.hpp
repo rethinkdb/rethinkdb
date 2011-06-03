@@ -13,6 +13,7 @@
 #include "rpc/core/population.pb.h"
 #include "concurrency/cond_var.hpp"
 #include "rpc/core/peer.hpp"
+#include "rpc/serialize/pipes.hpp"
 
 class cluster_t;
 struct cluster_delegate_t;
@@ -25,8 +26,7 @@ subclasses of cluster_message_t; often it is necessary to static_cast<>() to the
 subclass. Every cluster_message_t knows how to write itself to a pipe. */
 
 struct cluster_message_t {
-    virtual void serialize(cluster_outpipe_t *pipe) = 0;   /* May destroy contents */
-    virtual int ser_size() = 0;
+    virtual void serialize(cluster_outpipe_t *pipe) const = 0;
     virtual ~cluster_message_t() { }
 private:
     friend class cluster_t;
@@ -79,8 +79,6 @@ public:
 private:
     friend class cluster_mailbox_t;
     friend class cluster_t;
-    friend class cluster_inpipe_t;
-    friend class cluster_outpipe_t;
 
 public: //added for rpcs
     int peer;    // Index into the cluster's 'peers' map
@@ -259,57 +257,10 @@ certain application-specific operations. */
 
 struct cluster_delegate_t {
 
-    virtual int introduction_ser_size() = 0;
+    /* This shouldn't have any effects other than writing to the pipe. */
     virtual void introduce_new_node(cluster_outpipe_t *) = 0;
 
     virtual ~cluster_delegate_t() { }
-};
-
-/* `cluster_outpipe_t` and `cluster_inpipe_t` are passed to user-code that's supposed to serialize
-and deserialize cluster messages. User-code should use them by calling `write()` and `read()`.
-Implementation code should subclass them and override `do_write()` and `do_read()`. */
-
-struct cluster_outpipe_t {
-    void write(const void *buf, size_t size) {
-        written += size;
-        if (written > expected) {
-            crash("ser_size() said there would be %d bytes, but serialize() is trying to write more.",
-                expected);
-        }
-        do_write(buf, size);
-    }
-protected:
-    cluster_outpipe_t(int expected) : written(0), expected(expected) { }
-    virtual ~cluster_outpipe_t() {
-        if (written != expected) {
-            crash("ser_size() said there would be %d bytes, but serialize() only wrote %d.",
-                expected, written);
-        }
-    }
-    virtual void do_write(const void *, size_t) = 0;
-    int written;   // How many bytes we've written so far
-    int expected;   // How long the message is supposed to be
-};
-
-struct cluster_inpipe_t {
-    void read(void *buf, size_t size) {
-        readed += size;
-        if (readed > expected) {
-            crash("The message was %d bytes long, but unserialize() is trying to read more.", expected);
-        }
-        do_read(buf, size);
-    }
-protected:
-    cluster_inpipe_t(int expected) : readed(0), expected(expected) { }
-    virtual ~cluster_inpipe_t() {
-        if (readed != expected) {
-            crash("The message was %d bytes long, but unserialize() only read %d.",
-                expected, readed);
-        }
-    }
-    virtual void do_read(void *, size_t) = 0;
-    int readed;   // How many bytes we've read so far
-    int expected;   // How long the message is supposed to be
 };
 
 #endif /* __RPC_CORE_CLUSTER_HPP__ */

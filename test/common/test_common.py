@@ -53,8 +53,8 @@ def make_option_parser():
     o["min-qps"] = IntFlag("--min-qps", None)
     o["garbage-range"] = MultiValueFlag("--garbage-range", [float_converter, float_converter], default = None)
     o["failover"] = BoolFlag("--failover")
-    o["kill_failover_server_prob"] = FloatFlag("--kill-failover-server-prob", .01)
-    o["resurrect_failover_server_prob"] = FloatFlag("--resurrect-failover-server-prob", .01)
+    o["kill_failover_server_prob"] = FloatFlag("--kill-failover-server-prob", .002)
+    o["resurrect_failover_server_prob"] = FloatFlag("--resurrect-failover-server-prob", .002)
     o["failover-script"] = StringFlag("--failover-script", "")
     o["timeout"] = IntFlag("--timeout", None)
     return o

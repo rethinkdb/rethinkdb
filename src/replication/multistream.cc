@@ -161,6 +161,8 @@ void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
         if (conn->is_write_open()) {
             conn->shutdown_write();
         }
+        debugf("Reading end closed on replication connection.\n");
+
 	(void)e;
     } catch (protocol_exc_t& e) {
         if (conn->is_write_open()) {
@@ -169,9 +171,9 @@ void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
         if (conn->is_read_open()) {
             conn->shutdown_read();
         }
-        logERR("Bad data was sent on the replication connection:  %s", e.what());
+        logERR("Bad data was sent on the replication connection:  %s\n", e.what());
 
-        // TODO: What else should happen when handling this?
+        debugf("Bad data was sent on the replication connection:  %s\n", e.what());
     }
 
     conn_handler->conn_closed();

@@ -19,15 +19,15 @@ cluster_mailbox_t::~cluster_mailbox_t() {
     get_cluster()->remove_mailbox(this);
 }
 
-/* Concrete subclass of `cluster_outpipe_t` */
+/* Concrete subclass of `checking_outpipe_t` that writes to a TCP connection. */
 
-struct cluster_peer_outpipe_t : public cluster_outpipe_t {
+struct cluster_peer_outpipe_t : public checking_outpipe_t {
     void do_write(const void *buf, size_t size) {
         try {
             conn->write(buf, size);
         } catch (tcp_conn_t::write_closed_exc_t) {}
     }
-    cluster_peer_outpipe_t(tcp_conn_t *conn, int bytes) : cluster_outpipe_t(bytes), conn(conn) {}
+    cluster_peer_outpipe_t(tcp_conn_t *conn, int bytes) : checking_outpipe_t(bytes), conn(conn) {}
     tcp_conn_t *conn;
 };
 
@@ -207,11 +207,17 @@ void cluster_t::handle_unknown_peer(boost::scoped_ptr<tcp_conn_t> &conn, populat
 
     write_protob(conn.get(), &welcome);
 
-    int intro_size = delegate->introduction_ser_size();
+    /* Determine how long the introduction will be */
+    counting_outpipe_t intro_size_counter;
+    delegate->introduce_new_node(&intro_size_counter);
+
+    /* Write the introduction header */
     mailbox::intro_msg intro_msg;
-    intro_msg.set_length(intro_size);
+    intro_msg.set_length(intro_size_counter.bytes);
     write_protob(conn.get(), &intro_msg);
-    cluster_peer_outpipe_t out_pipe(conn.get(), intro_size);
+
+    /* Write the introduction body */
+    cluster_peer_outpipe_t out_pipe(conn.get(), intro_size_counter.bytes);
     delegate->introduce_new_node(&out_pipe);
 }
 
@@ -329,16 +335,21 @@ void cluster_t::send_message(int peer, int mailbox, cluster_message_t *msg) {
         cluster_peer_t *p = peers[peer].get();
         mutex_acquisition_t locker(&p->write_lock);
 
-        int msg_size = msg->ser_size();
+        /* Determine how long the message will be */
+        counting_outpipe_t msg_size_counter;
+        msg->serialize(&msg_size_counter);
+
+        /* Write a message header */
         mbox_msg.set_id(mailbox);
-        mbox_msg.set_length(msg_size);   // Inform the receiver how long the message is supposed to be
+        mbox_msg.set_length(msg_size_counter.bytes);   // Inform the receiver how long the message is supposed to be
 #ifndef NDEBUG
         std::string realname = demangle_cpp_name(typeid(*msg).name());
         mbox_msg.set_type(realname);
 #endif
         p->write(&mbox_msg);
 
-        cluster_peer_outpipe_t pipe(p->conn.get(), msg_size);
+        /* Write the message body */
+        cluster_peer_outpipe_t pipe(p->conn.get(), msg_size_counter.bytes);
         msg->serialize(&pipe);
     }
 }

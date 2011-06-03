@@ -28,19 +28,11 @@ the class scope. */
 #define RDB_MAKE_SERIALIZABLE_0(type_t) \
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
     } \
     extern int dont_use_RDB_MAKE_SERIALIZABLE_within_a_class_body;
 #define RDB_MAKE_ME_SERIALIZABLE_0() \
     void serialize_self(cluster_outpipe_t *pipe) const { \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
     }
@@ -49,11 +41,6 @@ the class scope. */
     inline void serialize(cluster_outpipe_t *pipe, const type_t &m) { \
         serialize(pipe, m.field1); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
     } \
@@ -61,11 +48,6 @@ the class scope. */
 #define RDB_MAKE_ME_SERIALIZABLE_1(field1) \
     void serialize_self(cluster_outpipe_t *pipe) const { \
         global_serialize(pipe, field1); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -76,12 +58,6 @@ the class scope. */
         serialize(pipe, m.field1); \
         serialize(pipe, m.field2); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -91,12 +67,6 @@ the class scope. */
     void serialize_self(cluster_outpipe_t *pipe) const { \
         global_serialize(pipe, field1); \
         global_serialize(pipe, field2); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -109,13 +79,6 @@ the class scope. */
         serialize(pipe, m.field2); \
         serialize(pipe, m.field3); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -127,13 +90,6 @@ the class scope. */
         global_serialize(pipe, field1); \
         global_serialize(pipe, field2); \
         global_serialize(pipe, field3); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -148,14 +104,6 @@ the class scope. */
         serialize(pipe, m.field3); \
         serialize(pipe, m.field4); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -169,14 +117,6 @@ the class scope. */
         global_serialize(pipe, field2); \
         global_serialize(pipe, field3); \
         global_serialize(pipe, field4); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -193,15 +133,6 @@ the class scope. */
         serialize(pipe, m.field4); \
         serialize(pipe, m.field5); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -217,15 +148,6 @@ the class scope. */
         global_serialize(pipe, field3); \
         global_serialize(pipe, field4); \
         global_serialize(pipe, field5); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -244,16 +166,6 @@ the class scope. */
         serialize(pipe, m.field5); \
         serialize(pipe, m.field6); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -271,16 +183,6 @@ the class scope. */
         global_serialize(pipe, field4); \
         global_serialize(pipe, field5); \
         global_serialize(pipe, field6); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -301,17 +203,6 @@ the class scope. */
         serialize(pipe, m.field6); \
         serialize(pipe, m.field7); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -331,17 +222,6 @@ the class scope. */
         global_serialize(pipe, field5); \
         global_serialize(pipe, field6); \
         global_serialize(pipe, field7); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -364,18 +244,6 @@ the class scope. */
         serialize(pipe, m.field7); \
         serialize(pipe, m.field8); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -397,18 +265,6 @@ the class scope. */
         global_serialize(pipe, field6); \
         global_serialize(pipe, field7); \
         global_serialize(pipe, field8); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -433,19 +289,6 @@ the class scope. */
         serialize(pipe, m.field8); \
         serialize(pipe, m.field9); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        total += ser_size(m.field9); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -469,19 +312,6 @@ the class scope. */
         global_serialize(pipe, field7); \
         global_serialize(pipe, field8); \
         global_serialize(pipe, field9); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        total += global_ser_size(field9); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -508,20 +338,6 @@ the class scope. */
         serialize(pipe, m.field9); \
         serialize(pipe, m.field10); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        total += ser_size(m.field9); \
-        total += ser_size(m.field10); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -547,20 +363,6 @@ the class scope. */
         global_serialize(pipe, field8); \
         global_serialize(pipe, field9); \
         global_serialize(pipe, field10); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        total += global_ser_size(field9); \
-        total += global_ser_size(field10); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -589,21 +391,6 @@ the class scope. */
         serialize(pipe, m.field10); \
         serialize(pipe, m.field11); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        total += ser_size(m.field9); \
-        total += ser_size(m.field10); \
-        total += ser_size(m.field11); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -631,21 +418,6 @@ the class scope. */
         global_serialize(pipe, field9); \
         global_serialize(pipe, field10); \
         global_serialize(pipe, field11); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        total += global_ser_size(field9); \
-        total += global_ser_size(field10); \
-        total += global_ser_size(field11); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -676,22 +448,6 @@ the class scope. */
         serialize(pipe, m.field11); \
         serialize(pipe, m.field12); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        total += ser_size(m.field9); \
-        total += ser_size(m.field10); \
-        total += ser_size(m.field11); \
-        total += ser_size(m.field12); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -721,22 +477,6 @@ the class scope. */
         global_serialize(pipe, field10); \
         global_serialize(pipe, field11); \
         global_serialize(pipe, field12); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        total += global_ser_size(field9); \
-        total += global_ser_size(field10); \
-        total += global_ser_size(field11); \
-        total += global_ser_size(field12); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -769,23 +509,6 @@ the class scope. */
         serialize(pipe, m.field12); \
         serialize(pipe, m.field13); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        total += ser_size(m.field9); \
-        total += ser_size(m.field10); \
-        total += ser_size(m.field11); \
-        total += ser_size(m.field12); \
-        total += ser_size(m.field13); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -817,23 +540,6 @@ the class scope. */
         global_serialize(pipe, field11); \
         global_serialize(pipe, field12); \
         global_serialize(pipe, field13); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        total += global_ser_size(field9); \
-        total += global_ser_size(field10); \
-        total += global_ser_size(field11); \
-        total += global_ser_size(field12); \
-        total += global_ser_size(field13); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -868,24 +574,6 @@ the class scope. */
         serialize(pipe, m.field13); \
         serialize(pipe, m.field14); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        total += ser_size(m.field9); \
-        total += ser_size(m.field10); \
-        total += ser_size(m.field11); \
-        total += ser_size(m.field12); \
-        total += ser_size(m.field13); \
-        total += ser_size(m.field14); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -919,24 +607,6 @@ the class scope. */
         global_serialize(pipe, field12); \
         global_serialize(pipe, field13); \
         global_serialize(pipe, field14); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        total += global_ser_size(field9); \
-        total += global_ser_size(field10); \
-        total += global_ser_size(field11); \
-        total += global_ser_size(field12); \
-        total += global_ser_size(field13); \
-        total += global_ser_size(field14); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -973,25 +643,6 @@ the class scope. */
         serialize(pipe, m.field14); \
         serialize(pipe, m.field15); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        total += ser_size(m.field9); \
-        total += ser_size(m.field10); \
-        total += ser_size(m.field11); \
-        total += ser_size(m.field12); \
-        total += ser_size(m.field13); \
-        total += ser_size(m.field14); \
-        total += ser_size(m.field15); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -1027,25 +678,6 @@ the class scope. */
         global_serialize(pipe, field13); \
         global_serialize(pipe, field14); \
         global_serialize(pipe, field15); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        total += global_ser_size(field9); \
-        total += global_ser_size(field10); \
-        total += global_ser_size(field11); \
-        total += global_ser_size(field12); \
-        total += global_ser_size(field13); \
-        total += global_ser_size(field14); \
-        total += global_ser_size(field15); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -1084,26 +716,6 @@ the class scope. */
         serialize(pipe, m.field15); \
         serialize(pipe, m.field16); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        total += ser_size(m.field9); \
-        total += ser_size(m.field10); \
-        total += ser_size(m.field11); \
-        total += ser_size(m.field12); \
-        total += ser_size(m.field13); \
-        total += ser_size(m.field14); \
-        total += ser_size(m.field15); \
-        total += ser_size(m.field16); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -1141,26 +753,6 @@ the class scope. */
         global_serialize(pipe, field14); \
         global_serialize(pipe, field15); \
         global_serialize(pipe, field16); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        total += global_ser_size(field9); \
-        total += global_ser_size(field10); \
-        total += global_ser_size(field11); \
-        total += global_ser_size(field12); \
-        total += global_ser_size(field13); \
-        total += global_ser_size(field14); \
-        total += global_ser_size(field15); \
-        total += global_ser_size(field16); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -1201,27 +793,6 @@ the class scope. */
         serialize(pipe, m.field16); \
         serialize(pipe, m.field17); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        total += ser_size(m.field9); \
-        total += ser_size(m.field10); \
-        total += ser_size(m.field11); \
-        total += ser_size(m.field12); \
-        total += ser_size(m.field13); \
-        total += ser_size(m.field14); \
-        total += ser_size(m.field15); \
-        total += ser_size(m.field16); \
-        total += ser_size(m.field17); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -1261,27 +832,6 @@ the class scope. */
         global_serialize(pipe, field15); \
         global_serialize(pipe, field16); \
         global_serialize(pipe, field17); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        total += global_ser_size(field9); \
-        total += global_ser_size(field10); \
-        total += global_ser_size(field11); \
-        total += global_ser_size(field12); \
-        total += global_ser_size(field13); \
-        total += global_ser_size(field14); \
-        total += global_ser_size(field15); \
-        total += global_ser_size(field16); \
-        total += global_ser_size(field17); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -1324,28 +874,6 @@ the class scope. */
         serialize(pipe, m.field17); \
         serialize(pipe, m.field18); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        total += ser_size(m.field9); \
-        total += ser_size(m.field10); \
-        total += ser_size(m.field11); \
-        total += ser_size(m.field12); \
-        total += ser_size(m.field13); \
-        total += ser_size(m.field14); \
-        total += ser_size(m.field15); \
-        total += ser_size(m.field16); \
-        total += ser_size(m.field17); \
-        total += ser_size(m.field18); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -1387,28 +915,6 @@ the class scope. */
         global_serialize(pipe, field16); \
         global_serialize(pipe, field17); \
         global_serialize(pipe, field18); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        total += global_ser_size(field9); \
-        total += global_ser_size(field10); \
-        total += global_ser_size(field11); \
-        total += global_ser_size(field12); \
-        total += global_ser_size(field13); \
-        total += global_ser_size(field14); \
-        total += global_ser_size(field15); \
-        total += global_ser_size(field16); \
-        total += global_ser_size(field17); \
-        total += global_ser_size(field18); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \
@@ -1453,29 +959,6 @@ the class scope. */
         serialize(pipe, m.field18); \
         serialize(pipe, m.field19); \
     } \
-    inline int ser_size(const type_t &m) { \
-        int total = 0; \
-        total += ser_size(m.field1); \
-        total += ser_size(m.field2); \
-        total += ser_size(m.field3); \
-        total += ser_size(m.field4); \
-        total += ser_size(m.field5); \
-        total += ser_size(m.field6); \
-        total += ser_size(m.field7); \
-        total += ser_size(m.field8); \
-        total += ser_size(m.field9); \
-        total += ser_size(m.field10); \
-        total += ser_size(m.field11); \
-        total += ser_size(m.field12); \
-        total += ser_size(m.field13); \
-        total += ser_size(m.field14); \
-        total += ser_size(m.field15); \
-        total += ser_size(m.field16); \
-        total += ser_size(m.field17); \
-        total += ser_size(m.field18); \
-        total += ser_size(m.field19); \
-        return total; \
-    } \
     inline void unserialize(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es, type_t *m) { \
         unserialize(pipe, es, &m->field1); \
         unserialize(pipe, es, &m->field2); \
@@ -1519,29 +1002,6 @@ the class scope. */
         global_serialize(pipe, field17); \
         global_serialize(pipe, field18); \
         global_serialize(pipe, field19); \
-    } \
-    int ser_size_self() const { \
-        int total = 0; \
-        total += global_ser_size(field1); \
-        total += global_ser_size(field2); \
-        total += global_ser_size(field3); \
-        total += global_ser_size(field4); \
-        total += global_ser_size(field5); \
-        total += global_ser_size(field6); \
-        total += global_ser_size(field7); \
-        total += global_ser_size(field8); \
-        total += global_ser_size(field9); \
-        total += global_ser_size(field10); \
-        total += global_ser_size(field11); \
-        total += global_ser_size(field12); \
-        total += global_ser_size(field13); \
-        total += global_ser_size(field14); \
-        total += global_ser_size(field15); \
-        total += global_ser_size(field16); \
-        total += global_ser_size(field17); \
-        total += global_ser_size(field18); \
-        total += global_ser_size(field19); \
-        return total; \
     } \
     void unserialize_self(cluster_inpipe_t *pipe, unserialize_extra_storage_t *es) { \
         global_unserialize(pipe, es, &field1); \

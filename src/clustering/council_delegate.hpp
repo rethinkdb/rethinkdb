@@ -12,9 +12,6 @@ public:
         : council(addr)
     { }
 
-    int introduction_ser_size() {
-        return ser_size(Council::address_t(&council));
-    }
     void introduce_new_node(cluster_outpipe_t *p) {
         ::serialize(p, Council::address_t(&council));
     }
