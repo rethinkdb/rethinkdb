@@ -169,7 +169,7 @@ void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
         if (conn->is_read_open()) {
             conn->shutdown_read();
         }
-        logERR("Bad data was sent on the replication connection:  %s", e.what());
+        logERR("Bad data was sent on the replication connection:  %s\n", e.what());
 
         // TODO: What else should happen when handling this?
     }
