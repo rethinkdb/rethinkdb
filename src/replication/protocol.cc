@@ -1,6 +1,7 @@
 #include "replication/protocol.hpp"
 #include "replication/debug.hpp"
 #include "concurrency/coro_fifo.hpp"
+#include "perfmon.hpp"
 
 /* If `REPLICATION_DEBUG` is defined, then every time a network message is sent
 or received, the contents of the message will be printed to `stderr`. */

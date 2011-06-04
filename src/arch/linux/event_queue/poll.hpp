@@ -3,6 +3,7 @@
 #define __POLL_EVENT_QUEUE_HPP__
 
 #include <queue>
+#include <map>
 #include <poll.h>
 #include <vector>
 #include "config/args.hpp"

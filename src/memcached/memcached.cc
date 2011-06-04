@@ -15,6 +15,7 @@
 #include "store.hpp"
 #include "logger.hpp"
 #include "arch/os_signal.hpp"
+#include "perfmon.hpp"
 
 /* txt_memcached_handler_t only exists as a convenient thing to pass around to do_get(),
 do_storage(), and the like. */

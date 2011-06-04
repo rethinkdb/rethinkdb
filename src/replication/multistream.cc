@@ -1,7 +1,7 @@
 #include "replication/multistream.hpp"
 #include "containers/scoped_malloc.hpp"
 #include "containers/thick_list.hpp"
-
+#include "perfmon.hpp"
 
 namespace replication {
 

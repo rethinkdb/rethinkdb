@@ -36,6 +36,7 @@ struct cache_line_padded_t {
 };
 
 /* Number formatter */
+// TODO (rntz) should this go somewhere else?
 
 template<class T>
 std::string format(T value, std::streamsize prec) {

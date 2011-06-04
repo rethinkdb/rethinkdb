@@ -1,4 +1,5 @@
 #include "replication/backfill_sender.hpp"
+#include "perfmon.hpp"
 
 namespace replication {
 perfmon_duration_sampler_t
