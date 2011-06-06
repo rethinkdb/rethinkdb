@@ -11,9 +11,6 @@
 
 class transactor_t {
 public:
-    // HEY: Get rid of these order_token_t::ignore uses, and make
-    // people pass them explicitly.
-
     // This must be used in read mode or (read_mode_outdated_ok)
     transactor_t(cache_t *cache, access_t access);
 
