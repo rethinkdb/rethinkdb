@@ -2,13 +2,20 @@
 
 #include "btree/rget.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/signal.hpp"
+#include "concurrency/side_coro.hpp"
 #include "concurrency/pmap.hpp"
 #include "db_thread_info.hpp"
 #include "replication/backfill.hpp"
 #include "replication/master.hpp"
 #include "cmd_args.hpp"
+#include "arch/timing.hpp"
+
+#include <boost/shared_ptr.hpp>
 
 #include <math.h>
+
+static void co_persist_stats(btree_key_value_store_t *, signal_t *); // forward decl
 
 /* shard_store_t */
 
@@ -200,6 +207,13 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     /* Initialize the timestampers to the timestamp value on disk */
     repli_timestamp_t t = get_replication_clock();
     set_timestampers(t);
+
+    // Unpersist stats & create the stat persistence coro
+    // TODO (rntz) should this really be in the constructor? what if it errors?
+    // But how else can I ensure the first unpersist happens before the first persist?
+    persistent_stat_t::unpersist_all(this);
+    stat_persistence_side_coro_ptr.reset(
+        new side_coro_handler_t(boost::bind(&co_persist_stats, this, _1)));
 }
 
 static void set_one_timestamper(shard_store_t **shards, int i, repli_timestamp_t t) {
@@ -449,4 +463,22 @@ void btree_key_value_store_t::set_meta(const std::string &key, const std::string
     // TODO (rntz) consider error conditions more thoroughly
     // For now, we assume "too large" or "not allowed" can't happen.
     guarantee(res == sr_stored);
+}
+
+static void pulse_shared_ptr(boost::shared_ptr<cond_t> cvar) {
+    cvar->pulse();
+}
+
+static void co_persist_stats(btree_key_value_store_t *store, signal_t *shutdown) {
+    for (;;) {
+        // Could do this without a shared_ptr, but it would be more complicated.
+        boost::shared_ptr<cond_t> wakeup(new cond_t());
+        cond_link_t linkme(shutdown, wakeup.get());
+        call_with_delay(STAT_PERSIST_FREQUENCY_MS, boost::bind(pulse_shared_ptr, wakeup), NULL);
+        wakeup->wait_eagerly();
+        if (shutdown->is_pulsed()) break;
+
+        // Persist stats
+        persistent_stat_t::persist_all(store);
+    }
 }

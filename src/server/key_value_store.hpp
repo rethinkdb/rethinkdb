@@ -1,10 +1,13 @@
 #ifndef __BTREE_KEY_VALUE_STORE_HPP__
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
+#include <boost/scoped_ptr.hpp>
+
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "utils.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/signal.hpp"
 #include "server/cmd_args.hpp"
 #include "server/control.hpp"
 #include "server/dispatching_store.hpp"
@@ -12,6 +15,7 @@
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "store.hpp"
+#include "stats/persist.hpp"
 
 namespace replication {
     class backfill_and_streaming_manager_t;
@@ -55,7 +59,8 @@ class btree_key_value_store_t :
     castimes if they are coming from a replication slave; it takes changes without castimes if they
     are coming directly from a memcached handler. This is kind of hacky. */
     public set_store_interface_t,
-    public set_store_t
+    public set_store_t,
+    public metadata_store_t
 {
 public:
     // Blocks
@@ -92,8 +97,7 @@ public:
 
     void delete_all_keys_for_backfill();
 
-    // metadata interface
-    // TODO (rntz) should this use key_store_t and data_provider_t, etc?
+    /* metadata_store_t interface */
     // NOTE: key cannot be longer than MAX_KEY_SIZE. currently enforced by guarantee().
     bool get_meta(const std::string &key, std::string *out);
     void set_meta(const std::string &key, const std::string &value);
@@ -146,8 +150,11 @@ private:
     serializer_multiplexer_t *multiplexer;   // Helps us split the serializers among the slices
 
     shard_store_t *shards[MAX_SLICES];
-    shard_store_t *metadata_shard;
     uint32_t slice_num(const store_key_t &key);
+
+    shard_store_t *metadata_shard;
+    // Used for persisting stats; see stats/persist.hpp
+    boost::scoped_ptr<side_coro_handler_t> stat_persistence_side_coro_ptr;
 
     /* slice debug control_t which allows us to see slice and hash for a key */
     class hash_control_t :

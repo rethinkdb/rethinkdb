@@ -292,5 +292,8 @@
 // TODO (rntz) should there be a more fine-grained way to specify the metadata shard's resources?
 #define METADATA_SHARD_RESOURCE_QUOTIENT          0.1f
 
+// The frequency (in ms) with which statistics are persisted to disk (see stat/persist.hpp)
+#define STAT_PERSIST_FREQUENCY_MS                 1000
+
 #endif // __CONFIG_ARGS_H__
 
