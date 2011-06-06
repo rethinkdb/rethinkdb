@@ -42,6 +42,7 @@ struct shard_store_t :
     mutation_result_t change(const mutation_t &m, order_token_t token);
     mutation_result_t change(const mutation_t &m, castime_t ct, order_token_t token);
     void delete_all_keys_for_backfill(order_token_t token);
+    void set_replication_clock(repli_timestamp_t t, order_token_t token);
 
     btree_slice_t btree;
     dispatching_store_t dispatching_store;   // For replication

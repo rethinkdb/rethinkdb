@@ -58,6 +58,12 @@ void shard_store_t::delete_all_keys_for_backfill(order_token_t token) {
     btree.delete_all_keys_for_backfill(substore_token);
 }
 
+void shard_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
+    on_thread_t th(home_thread());
+    sink.check_out(token);
+    btree.set_replication_clock(substore_order_source.check_in());
+}
+
 /* btree_key_value_store_t */
 
 void prep_for_serializer(
@@ -246,9 +252,7 @@ void btree_key_value_store_t::check_existing(const std::vector<std::string>& fil
 
 
 void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
-
-    /* Update the value on disk */
-    shards[0]->btree.set_replication_clock(t, token);
+    shards[0]->set_replication_clock(t, token);
 }
 
 repli_timestamp btree_key_value_store_t::get_replication_clock() {

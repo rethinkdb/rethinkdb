@@ -145,12 +145,10 @@ void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *ca
     btree_backfill(this, since_when, callback, token);
 }
 
-void btree_slice_t::set_replication_clock(repli_timestamp_t t, UNUSED order_token_t token) {
-    on_thread_t th(cache()->home_thread());
+void btree_slice_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
+    assert_thread();
 
-    // TODO: We need to make sure that callers are using a proper substore token.
-
-    //    order_sink_.check_out(token);
+    order_sink_.check_out(token);
 
     transactor_t transactor(cache(), rwi_write, 0, repli_timestamp_t::distant_past);
     // TODO: Set order token (not with the token parameter)
