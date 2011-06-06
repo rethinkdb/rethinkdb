@@ -168,6 +168,8 @@ public:
 
         /* Logic for incrementing replication clock */
 
+        // TODO: WTF is up with this function name?  This doesn't even
+        // call set_replication_clock on the btree!
         void set_replication_clock(repli_timestamp_t new_timestamp, boost::function<void()> job) {
             on_thread_t thread_switcher(shard_->home_thread());
 
