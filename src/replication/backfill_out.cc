@@ -60,7 +60,7 @@ public:
 
                 backfilling_ = true;
             }
-            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, order_token_t::ignore));
+            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, shard->substore_order_source.check_in()));
         }
 
         ~slice_manager_t() {
