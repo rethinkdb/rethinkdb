@@ -63,7 +63,7 @@ public:
 
                 backfilling_ = true;
             }
-            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, order_token_t::ignore));
+            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, shard->substore_order_source.check_in()));
         }
 
         ~slice_manager_t() {
@@ -157,6 +157,8 @@ public:
 
         /* Logic for incrementing replication clock */
 
+        // TODO: WTF is up with this function name?  This doesn't even
+        // call set_replication_clock on the btree!
         void set_replication_clock(repli_timestamp_t new_timestamp, boost::function<void()> job) {
             on_thread_t thread_switcher(shard_->home_thread());
 

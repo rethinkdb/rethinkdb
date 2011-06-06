@@ -36,7 +36,7 @@ void progress_bar_t::draw_bar(float progress,  int eta) {
 
     if (eta == -1 && progress > 0) {
         //Do automatic linear interpolation for eta
-        eta = ((1.0f / progress) - 1) * ticks_to_secs(get_ticks() - start_time);
+        eta = int(((1.0f / progress) - 1) * ticks_to_secs(get_ticks() - start_time));
     }
 
     if (eta == -1) printf("ETA: -");

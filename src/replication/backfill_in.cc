@@ -77,7 +77,7 @@ void backfill_storer_t::backfill_delete_everything(order_token_t token) {
     print_backfill_warning_ = true;
     ensure_backfilling();
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::delete_all_keys_for_backfill, kvs_, order_token_t::ignore));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::delete_all_keys_for_backfill, kvs_, token));
 }
 
 void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) {
@@ -96,7 +96,7 @@ void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) 
         // timestamp is part of the "->change" interface in a way not
         // relevant to slaves -- it's used when putting deletions into the
         // delete queue.
-        castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid), order_token_t::ignore
+        castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid), token
         ));
 }
 
@@ -116,7 +116,7 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) 
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_,
-        mut, castime_t(atom.cas_or_zero, atom.recency), order_token_t::ignore
+        mut, castime_t(atom.cas_or_zero, atom.recency), token
         ));
 
     if (atom.cas_or_zero != 0) {
@@ -131,7 +131,7 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) 
         block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
         backfill_queue_.push(boost::bind(
             &btree_key_value_store_t::change, kvs_,
-            cas_mut, castime_t(atom.cas_or_zero, atom.recency), order_token_t::ignore));
+            cas_mut, castime_t(atom.cas_or_zero, atom.recency), token));
     }
 }
 
@@ -156,8 +156,8 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
     /* Write replication clock before timestamp so that if the flush happens
     between them, we will redo the backfill instead of proceeding with a wrong
     replication clock. */
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, timestamp, order_token_t::ignore));
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, timestamp, order_token_t::ignore));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, timestamp, token));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, timestamp, token));
 
     /* We want the realtime queue to accept operations without throttling until
     the backfill is over, and then to start throttling. To make sure that we

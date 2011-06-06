@@ -10,6 +10,8 @@ identifies as the committer.
 
 import os, sys, signal, tempfile, shutil, subprocess, traceback, gitroot, datetime
 
+log_dir = "git-test-logs"
+
 # Parse the arguments
 from vcoptparse import *
 op = OptParser()
@@ -43,8 +45,12 @@ if opts["logoutput"]:
     if opts["file"]:
         extra_args.extend(["--file", opts["file"]])
 
+
+    if not os.path.exists(os.path.join(os.path.expanduser("~"), log_dir)):
+        os.mkdir(os.path.join(os.path.expanduser("~"), log_dir))
+
     sys.stdout = sys.__stdout__ = sys.stderr = sys.__stderr__ = \
-        file(os.path.join(os.path.expanduser("~"), "git-test-%s-%s.out" % (datetime.datetime.now(), os.getpid())), "w", 0)
+        file(os.path.join(os.path.expanduser("~"), log_dir, "git-test-%s-%s.out" % (datetime.datetime.now(), os.getpid())), "w", 0)
 
 # If we are backgrounded, then we ignore SIGHUP and implicitly set the email flag if not given.
 if opts["background"]:
