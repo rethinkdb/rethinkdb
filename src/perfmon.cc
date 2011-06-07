@@ -210,11 +210,12 @@ stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
     // V = (\sum_i N_i (V_i + M_i^2)) / N - M^2
 
     size_t total_datapoints = 0; // becomes N
-    float total_means = 0.0;     // becomes \sum_i M_i
+    float total_means = 0.0;     // becomes \sum_i N_i M_i
     float total_var = 0.0;       // becomes \sum_i N_i (V_i + M_i^2)
     for (size_t i = 0; i < nelts; ++i) {
         const stddev_t &stat = data[i];
         size_t N = stat.datapoints();
+        if (!N) continue;
         float M = stat.mean(), V = stat.standard_variance();
         total_datapoints += N;
         total_means += N * M;
@@ -241,15 +242,14 @@ stddev_t perfmon_stddev_t::combine_stats(stddev_t *stats) {
 }
 
 void perfmon_stddev_t::output_stat(const stddev_t &stat, perfmon_stats_t *dest) {
+    (*dest)[name + "_count"] = format(stat.datapoints());
     if (stat.datapoints()) {
         (*dest)[name + "_mean"] = format(stat.mean());
-        (*dest)[name + "_var"] = format(stat.standard_variance());
-        (*dest)[name + "_dev"] = format(stat.standard_deviation());
+        (*dest)[name + "_stddev"] = format(stat.standard_deviation());
     } else {
         // No stats
         (*dest)[name + "_mean"] = "-";
-        (*dest)[name + "_var"] = "-";
-        (*dest)[name + "_dev"] = "-";
+        (*dest)[name + "_stddev"] = "-";
     }
 }
 
