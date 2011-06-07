@@ -122,10 +122,10 @@ void order_sink_t::verify_token_value_and_update(order_token_t token, std::pair<
     // to ensure that multiple actions don't get interrupted.  And
     // resending the same action isn't normally a problem.
     if (token.read_mode_) {
-        rassert(token.value_ >= ls_pair->first, "token.value_ = %ld, last_seens_[token.bucket_].first = %ld, token.bucket_ = %d", token.value_, ls_pair->first, token.bucket_);
+        rassert(token.value_ >= ls_pair->first, "token.value_ = 0x%lx, last_seens_[token.bucket_].first = 0x%lx, token.bucket_ = %d", token.value_, ls_pair->first, token.bucket_);
         ls_pair->second = std::max(ls_pair->second, token.value_);
     } else {
-        rassert(token.value_ >= ls_pair->second, "token.value_ = %ld, last_seens_[token.bucket_].second = %ld, token.bucket_ = %d", token.value_, ls_pair->second, token.bucket_);
+        rassert(token.value_ >= ls_pair->second, "token.value_ = 0x%lx, last_seens_[token.bucket_].second = 0x%lx, token.bucket_ = %d", token.value_, ls_pair->second, token.bucket_);
         ls_pair->first = ls_pair->second = token.value_;
     }
 }

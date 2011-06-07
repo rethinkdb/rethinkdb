@@ -48,8 +48,12 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
     large_buf_ref *t_o_ref = delete_queue::timestamps_and_offsets_largebuf(queue_root_buf);
     large_buf_ref *keys_ref = delete_queue::keys_largebuf(queue_root_buf);
 
-
-    rassert(t_o_ref->size % sizeof(delete_queue::t_and_o) == 0);
+#ifndef NDEBUG
+    {
+        bool modcmp = t_o_ref->size % sizeof(delete_queue::t_and_o) == 0;
+        rassert(modcmp);
+    }
+#endif
 
     // Figure out what we need to do.
     bool will_want_to_dequeue = (keys_ref->size + 1 + int64_t(key->size) > delete_queue_limit);
@@ -160,7 +164,12 @@ bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id
 
     if (t_o_ref->size != 0 && keys_ref->size != 0) {
 
-        rassert(t_o_ref->size % sizeof(delete_queue::t_and_o) == 0);
+#ifndef NDEBUG
+        {
+            bool modcmp = t_o_ref->size % sizeof(delete_queue::t_and_o) == 0;
+            rassert(modcmp);
+        }
+#endif
 
         // TODO: DON'T hold the queue_root lock for the entire operation.  Sheesh.
 

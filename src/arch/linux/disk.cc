@@ -332,7 +332,12 @@ linux_file_t::~linux_file_t() {
 void linux_file_t::verify(UNUSED size_t offset, UNUSED size_t length, UNUSED const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
-    rassert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
-    rassert(offset % DEVICE_BLOCK_SIZE == 0);
-    rassert(length % DEVICE_BLOCK_SIZE == 0);
+#ifndef NDEBUG
+    bool bufmod = (intptr_t)buf % DEVICE_BLOCK_SIZE == 0;
+    rassert(bufmod);
+    bool offmod = offset % DEVICE_BLOCK_SIZE == 0;
+    rassert(offmod);
+    bool lengthmod = length % DEVICE_BLOCK_SIZE == 0;
+    rassert(lengthmod);
+#endif
 }

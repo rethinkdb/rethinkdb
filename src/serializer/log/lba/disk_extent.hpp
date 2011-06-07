@@ -25,7 +25,12 @@ public:
     {
         // Make sure that the size of the header is a multiple of the size of one entry, so that the
         // header doesn't prevent the entries from aligning with DEVICE_BLOCK_SIZE.
-        rassert(offsetof(lba_extent_t, entries[0]) % sizeof(lba_entry_t) == 0);
+#ifndef NDEBUG
+        {
+            bool modcmp = offsetof(lba_extent_t, entries[0]) % sizeof(lba_entry_t) == 0;
+            rassert(modcmp);
+        }
+#endif
         rassert(offsetof(lba_extent_t, entries[0]) == sizeof(lba_extent_t::header_t));
         
         lba_extent_t::header_t header;
