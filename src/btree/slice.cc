@@ -154,7 +154,7 @@ void btree_slice_t::set_replication_clock(repli_timestamp_t t, order_token_t tok
     // TODO: Set order token (not with the token parameter)
     buf_lock_t superblock(transactor, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
-    rassert(sb->replication_clock < t, "sb->replication_clock = %u, t = %u", sb->replication_clock.time, t.time);
+    //    rassert(sb->replication_clock < t, "sb->replication_clock = %u, t = %u", sb->replication_clock.time, t.time);
     sb->replication_clock = std::max(sb->replication_clock, t);
 }
 
