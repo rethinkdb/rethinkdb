@@ -236,6 +236,9 @@ void destroy_shard(
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {
+    // make sure side coro finishes so we're done with the metadata shard
+    stat_persistence_side_coro_ptr.reset();
+
     /* Shut down btrees */
     pmap(btree_static_config.n_slices, boost::bind(&destroy_shard, shards, _1));
     // TODO (rntz) hackish reuse of destroy_shard
@@ -470,13 +473,18 @@ static void pulse_shared_ptr(boost::shared_ptr<cond_t> cvar) {
 }
 
 static void co_persist_stats(btree_key_value_store_t *store, signal_t *shutdown) {
-    for (;;) {
+    // TODO (rntz) this function is the cause of a leaked timer warning message, investigate
+    while (!shutdown->is_pulsed()) {
         // Could do this without a shared_ptr, but it would be more complicated.
         boost::shared_ptr<cond_t> wakeup(new cond_t());
         cond_link_t linkme(shutdown, wakeup.get());
-        call_with_delay(STAT_PERSIST_FREQUENCY_MS, boost::bind(pulse_shared_ptr, wakeup), NULL);
+        call_with_delay(STAT_PERSIST_FREQUENCY_MS, boost::bind(pulse_shared_ptr, wakeup),
+                        // XXX (rntz) practically speaking, passing shutdown as an abort signal
+                        // prevents the leaked timer problem, but in theory it could result in
+                        // pulse_shared_pointer not managing to run before shutdown. I don't think
+                        // this is a problem, though; it's garbage anyway, so who cares...
+                        shutdown);
         wakeup->wait_eagerly();
-        if (shutdown->is_pulsed()) break;
 
         // Persist stats
         persistent_stat_t::persist_all(store);

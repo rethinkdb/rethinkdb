@@ -5,6 +5,7 @@
 #include "containers/intrusive_list.hpp"
 #include "perfmon.hpp"
 
+#include <stdlib.h>
 #include <sstream>
 
 struct metadata_store_t {
@@ -29,7 +30,7 @@ struct persistent_stat_t
     virtual std::string persist_key() = 0;
     // unpersist is not required, and should not be assumed, to be threadsafe (it should not be
     // called from multiple threads simultaneously)
-    virtual void unpersist(const std::string) = 0;
+    virtual void unpersist(const std::string&) = 0;
     // {begin,visit,end}_persist are used much the same as the similar-named methods on perfmons. No
     // two instances of the persistence process should be occurring at the same time (though of
     // course, visit_persist() may occur simultaneously on different threads).
@@ -47,7 +48,7 @@ struct persistent_stat_perthread_t
     void *begin_persist() { return new thread_stat_t[get_num_threads()]; }
 
     void visit_persist(void *data) {
-        reset_thread_stat(&((thread_stat_t *) data)[get_thread_id()]);
+        get_thread_persist(&((thread_stat_t *) data)[get_thread_id()]);
     }
 
     std::string end_persist(void *data) {
@@ -58,10 +59,24 @@ struct persistent_stat_perthread_t
     }
 
   protected:
-    // Should read off the thread's stat /and reset it/, since it is about to get combined &
-    // persisted. Is neither required nor assumed to be threadsafe.
-    virtual void reset_thread_stat(thread_stat_t *stat) = 0;
+    virtual void get_thread_persist(thread_stat_t *stat) = 0;
     virtual std::string combine_persist(thread_stat_t *stats) = 0;
+};
+
+// Persistent perfmon counter
+struct perfmon_persistent_counter_t
+    : public perfmon_counter_t
+    , public persistent_stat_perthread_t<cache_line_padded_t<int64_t> >
+{
+    explicit perfmon_persistent_counter_t(std::string name, bool internal = true);
+    std::string persist_key();
+    void get_thread_persist(padded_int64_t *);
+    int64_t combine_stats(padded_int64_t *);
+    std::string combine_persist(padded_int64_t *);
+    void unpersist(const std::string &);
+
+  private:
+    int64_t unpersisted_value;
 };
 
 #endif

@@ -98,7 +98,7 @@ extern bool global_full_perfmon;
 
 
 // Abstract perfmon subclass that implements perfmon tracking by combining per-thread values.
-template<typename thread_stat_t>
+template<typename thread_stat_t, typename combined_stat_t = thread_stat_t>
 struct perfmon_perthread_t
     : public perfmon_t
 {
@@ -111,30 +111,39 @@ struct perfmon_perthread_t
         get_thread_stat(&((thread_stat_t *) data)[get_thread_id()]);
     }
     void end_stats(void *data, perfmon_stats_t *dest) {
-        combine_stats((thread_stat_t*) data, dest);
+        combined_stat_t combined = combine_stats((thread_stat_t *) data);
+        output_stat(combined, dest);
         delete[] (thread_stat_t*) data;
     }
 
   protected:
     virtual void get_thread_stat(thread_stat_t *) = 0;
-    virtual void combine_stats(thread_stat_t *, perfmon_stats_t *) = 0;
+    virtual combined_stat_t combine_stats(thread_stat_t *) = 0;
+    virtual void output_stat(const combined_stat_t &, perfmon_stats_t *) = 0;
 };
 
+// Convenience macros for subclasses of perfmon_perthread_t that implement its pure virtual methods.
+#define PERFMON_PERTHREAD_IMPL2(thread_stat_t, combined_stat_t)         \
+    void get_thread_stat(thread_stat_t *);                              \
+    combined_stat_t combine_stats(thread_stat_t *);                     \
+    void output_stat(const combined_stat_t &, perfmon_stats_t *)
+
+#define PERFMON_PERTHREAD_IMPL(thread_stat_t) PERFMON_PERTHREAD_IMPL2(thread_stat_t, thread_stat_t)
 
 /* perfmon_counter_t is a perfmon_t that keeps a global counter that can be incremented
 and decremented. (Internally, it keeps many individual counters for thread-safety.) */
 class perfmon_counter_t :
     // TODO (rntz) does having the values when collecting stats be cache-padded matter?
-    public perfmon_perthread_t<cache_line_padded_t<int64_t> >
+    public perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t>
 {
-    typedef cache_line_padded_t<int64_t> padded_int64_t;
-    padded_int64_t thread_data[MAX_THREADS];
     friend class perfmon_counter_step_t;
-    int64_t &get();
+  protected:
+    typedef cache_line_padded_t<int64_t> padded_int64_t;
     std::string name;
-    void get_thread_stat(padded_int64_t *stat);
-    void combine_stats(padded_int64_t *data, perfmon_stats_t *dest);
-public:
+    padded_int64_t thread_data[MAX_THREADS];
+    int64_t &get();
+    PERFMON_PERTHREAD_IMPL2(padded_int64_t, int64_t);
+  public:
     explicit perfmon_counter_t(std::string name, bool internal = true);
     void operator++(int) { get()++; }
     void operator+=(int64_t num) { get() += num; }
@@ -189,8 +198,7 @@ class perfmon_sampler_t
         stats_t current_stats, last_stats;
         int current_interval;
     } thread_data[MAX_THREADS];
-    void get_thread_stat(stats_t *stat);
-    void combine_stats(stats_t *data, perfmon_stats_t *dest);
+    PERFMON_PERTHREAD_IMPL(stats_t);
     void update(ticks_t now);
 
     std::string name;
@@ -214,6 +222,7 @@ struct stddev_t {
     float mean() const;
     float standard_deviation() const;
     float standard_variance() const;
+    static stddev_t combine(size_t nelts, stddev_t *data);
 
   private:
     // N is the number of datapoints, M is the current mean, Q/N is the
@@ -232,8 +241,7 @@ struct perfmon_stddev_t
 
   private:
     stddev_t thread_data[MAX_THREADS]; // TODO (rntz) should this be cache-line padded?
-    void get_thread_stat(stddev_t *stat);
-    void combine_stats(stddev_t *data, perfmon_stats_t *dest);
+    PERFMON_PERTHREAD_IMPL(stddev_t);
     std::string name;
 };
 
@@ -253,8 +261,7 @@ private:
     void update(ticks_t now);
     std::string name;
     ticks_t length;
-    void get_thread_stat(double *stat);
-    void combine_stats(double *data, perfmon_stats_t *dest);
+    PERFMON_PERTHREAD_IMPL(double);
 public:
     perfmon_rate_monitor_t(std::string name, ticks_t length, bool internal = true);
     void record(double value = 1.0);

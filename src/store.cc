@@ -28,7 +28,8 @@ set_result_t set_store_interface_t::sarc(const store_key_t &key, boost::shared_p
     mut.add_policy = add_policy;
     mut.replace_policy = replace_policy;
     mut.old_cas = old_cas;
-    return boost::get<set_result_t>(change(mut, token).result);
+    mutation_result_t res = change(mut, token);
+    return boost::get<set_result_t>(res.result);
 }
 
 incr_decr_result_t set_store_interface_t::incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, order_token_t token) {

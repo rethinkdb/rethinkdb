@@ -50,3 +50,30 @@ void persistent_stat_t::unpersist_all(metadata_store_t *store) {
         }
     }
 }
+
+
+// perfmon_persistent_counter_t
+perfmon_persistent_counter_t::perfmon_persistent_counter_t(std::string name, bool internal)
+    : perfmon_counter_t(name, internal)
+    , unpersisted_value(0) { }
+
+std::string perfmon_persistent_counter_t::persist_key() { return name; }
+
+void perfmon_persistent_counter_t::get_thread_persist(padded_int64_t *stat) { stat->value = get(); }
+
+int64_t perfmon_persistent_counter_t::combine_stats(padded_int64_t *stats) {
+    return perfmon_counter_t::combine_stats(stats) + unpersisted_value;
+}
+
+std::string perfmon_persistent_counter_t::combine_persist(padded_int64_t *stats) {
+    int64_t total = combine_stats(stats); // a little hackish
+    std::stringstream ss(std::ios_base::out);
+    ss << total;
+    return ss.str();
+}
+
+void perfmon_persistent_counter_t::unpersist(const std::string &value) {
+    rassert(unpersisted_value == 0, "unpersist called multiple times");
+    // TODO (rntz) are we guaranteed long long == int64_t?
+    unpersisted_value = atoll(value.data());
+}

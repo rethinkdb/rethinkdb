@@ -79,7 +79,7 @@ bool global_full_perfmon = false;
 /* perfmon_counter_t */
 
 perfmon_counter_t::perfmon_counter_t(std::string name, bool internal)
-    : perfmon_perthread_t<cache_line_padded_t<int64_t> > (internal), name(name)
+    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t> (internal), name(name)
 {
     for (int i = 0; i < MAX_THREADS; i++) thread_data[i].value = 0;
 }
@@ -92,10 +92,14 @@ void perfmon_counter_t::get_thread_stat(padded_int64_t *stat) {
     stat->value = get();
 }
 
-void perfmon_counter_t::combine_stats(padded_int64_t *data, perfmon_stats_t *dest) {
+int64_t perfmon_counter_t::combine_stats(padded_int64_t *data) {
     int64_t value = 0;
     for (int i = 0; i < get_num_threads(); i++) value += data[i].value;
-    (*dest)[name] = format(value);
+    return value;
+}
+
+void perfmon_counter_t::output_stat(const int64_t &stat, perfmon_stats_t *dest) {
+    (*dest)[name] = format(stat);
 }
 
 /* perfmon_sampler_t */
@@ -141,12 +145,15 @@ void perfmon_sampler_t::get_thread_stat(stats_t *stat) {
     *stat = thread_data[get_thread_id()].last_stats;
 }
 
-void perfmon_sampler_t::combine_stats(stats_t *stats, perfmon_stats_t *dest) {
+perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(stats_t *stats) {
     stats_t aggregated;
     for (int i = 0; i < get_num_threads(); i++) {
         aggregated.aggregate(stats[i]);
     }
+    return aggregated;
+}
 
+void perfmon_sampler_t::output_stat(const stats_t &aggregated, perfmon_stats_t *dest) {
     if (aggregated.count > 0) {
         (*dest)[name + "_avg"] = format(aggregated.sum / aggregated.count);
         (*dest)[name + "_min"] = format(aggregated.min);
@@ -189,6 +196,37 @@ float stddev_t::mean() const { return M; }
 float stddev_t::standard_variance() const { return Q / N; }
 float stddev_t::standard_deviation() const { return sqrt(standard_variance()); }
 
+stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
+    // See http://en.wikipedia.org/wiki/Standard_deviation#Combining_standard_deviations
+    // N{,_i}: datapoints in {total,ith thread}
+    // M{,_i}: mean of {total,ith thread}
+    // V{,_i}: variance of {total,ith thread}
+    // M = (\sum_i N_i M_i) / N
+    // V = (\sum_i N_i (V_i + M_i^2)) / N - M^2
+
+    size_t total_datapoints = 0; // becomes N
+    float total_means = 0.0;     // becomes \sum_i M_i
+    float total_var = 0.0;       // becomes \sum_i N_i (V_i + M_i^2)
+    for (size_t i = 0; i < nelts; ++i) {
+        const stddev_t &stat = data[i];
+        size_t N = stat.datapoints();
+        float M = stat.mean(), V = stat.standard_variance();
+        total_datapoints += N;
+        total_means += N * M;
+        total_var += N * (V + M * M);
+    }
+
+    stddev_t result;
+    if (total_datapoints) {
+        result.N = total_datapoints;
+        result.M = total_means / total_datapoints;
+        float variance = total_var / total_datapoints - result.M * result.M;
+        // Q/N = standard variance
+        result.Q = variance * total_datapoints;
+    }
+    return result;
+}
+
 
 perfmon_stddev_t::perfmon_stddev_t(std::string name, bool internal)
     : perfmon_perthread_t<stddev_t>(internal), name(name) { }
@@ -197,32 +235,15 @@ void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
     *stat = thread_data[get_thread_id()];
 }
 
-void perfmon_stddev_t::combine_stats(stddev_t *stats, perfmon_stats_t *dest) {
-    // See http://en.wikipedia.org/wiki/Standard_deviation#Combining_standard_deviations
-    // N{,_i}: datapoints in {total,ith thread}
-    // M{,_i}: mean of {total,ith thread}
-    // V{,_i}: variance of {total,ith thread}
-    // M = (\sum_i N_i M_i) / N
-    // V = (\sum_i N_i (V_i + M_i^2)) / N - M^2
+stddev_t perfmon_stddev_t::combine_stats(stddev_t *stats) {
+    return stddev_t::combine(get_num_threads(), stats);
+}
 
-    float total_datapoints = 0.0; // becomes N
-    float total_means = 0.0;      // becomes \sum_i M_i
-    float total_var = 0.0;        // becomes \sum_i N_i (V_i + M_i^2)
-    for (int i = 0; i < get_num_threads(); ++i) {
-        const stddev_t &stat = stats[i];
-        float N = stat.datapoints(), M = stat.mean(), V = stat.standard_variance();
-        total_datapoints += N;
-        total_means += N * M;
-        total_var += N * (V + M * M);
-    }
-
-    if (total_datapoints) {
-        float mean = total_means / total_datapoints;
-        float variance = total_var / total_datapoints - mean * mean;
-        float deviation = sqrt(variance);
-        (*dest)[name + "_mean"] = format(mean);
-        (*dest)[name + "_var"] = format(variance);
-        (*dest)[name + "_dev"] = format(deviation);
+void perfmon_stddev_t::output_stat(const stddev_t &stat, perfmon_stats_t *dest) {
+    if (stat.datapoints()) {
+        (*dest)[name + "_mean"] = format(stat.mean());
+        (*dest)[name + "_var"] = format(stat.standard_variance());
+        (*dest)[name + "_dev"] = format(stat.standard_deviation());
     } else {
         // No stats
         (*dest)[name + "_mean"] = "-";
@@ -276,14 +297,15 @@ void perfmon_rate_monitor_t::get_thread_stat(double *stat) {
     *stat = thread_data[get_thread_id()].last_count;
 }
 
-void perfmon_rate_monitor_t::combine_stats(double *stats, perfmon_stats_t *dest) {
+double perfmon_rate_monitor_t::combine_stats(double *stats) {
     double total = 0;
-    for (int i = 0; i < get_num_threads(); i++) {
-        total += stats[i];
-    }
+    for (int i = 0; i < get_num_threads(); i++) total += stats[i];
+    return total;
+}    
 
-    (*dest)[name] = format(total / ticks_to_secs(length));
-};
+void perfmon_rate_monitor_t::output_stat(const double &stat, perfmon_stats_t *dest) {
+    (*dest)[name] = format(stat / ticks_to_secs(length));
+}
 
 /* perfmon_function_t */
 
