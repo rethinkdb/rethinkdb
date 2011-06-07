@@ -16,6 +16,7 @@
 #include "logger.hpp"
 #include "arch/os_signal.hpp"
 #include "perfmon.hpp"
+#include "stats/persist.hpp"
 
 /* txt_memcached_handler_t only exists as a convenient thing to pass around to do_get(),
 do_storage(), and the like. */
@@ -184,6 +185,12 @@ perfmon_duration_sampler_t
     pm_cmd_get("cmd_get", secs_to_ticks(1.0), false),
     pm_cmd_rget("cmd_rget", secs_to_ticks(1.0), false);
 
+perfmon_persistent_stddev_t
+    pm_get_key_size("cmd_get_key_size"),
+    pm_storage_key_size("cmd_set_key_size"),
+    pm_storage_value_size("cmd_set_val_size"),
+    pm_delete_key_size("cmd_delete_key_size");
+
 /* do_get() is used for "get" and "gets" commands. */
 
 struct get_t {
@@ -214,6 +221,7 @@ void do_get(txt_memcached_handler_t *rh, bool with_cas, int argc, char **argv, o
             rh->client_error_bad_command_line_format();
             return;
         }
+        pm_get_key_size.record((float) gets.back().key.size);
     }
     if (gets.size() == 0) {
         rh->error();
@@ -485,6 +493,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
         rh->client_error_bad_command_line_format();
         return;
     }
+    pm_storage_key_size.record((float) key.size);
 
     /* Next parse the flags */
     mcflags_t mcflags = strtoul_strict(argv[2], &invalid_char, 10);
@@ -522,6 +531,7 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
         rh->client_error_bad_command_line_format();
         return;
     }
+    pm_storage_value_size.record((float) value_size);
 
     /* If a "cas", parse the cas_command unique */
     cas_t unique = NO_CAS_SUPPLIED;
@@ -693,6 +703,7 @@ void do_delete(txt_memcached_handler_t *rh, int argc, char **argv, order_token_t
         rh->client_error_bad_command_line_format();
         return;
     }
+    pm_delete_key_size.record((float) key.size);
 
     /* Parse "noreply" */
     bool noreply;
