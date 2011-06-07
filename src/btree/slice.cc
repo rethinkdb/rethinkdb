@@ -149,7 +149,8 @@ void btree_slice_t::set_replication_clock(repli_timestamp_t t, order_token_t tok
     // TODO: Set the transaction's order token (not with the token parameter).
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
-    sb->replication_clock = t;
+    //    rassert(sb->replication_clock < t, "sb->replication_clock = %u, t = %u", sb->replication_clock.time, t.time);
+    sb->replication_clock = std::max(sb->replication_clock, t);
 }
 
 // TODO: Why are we using repli_timestamp_t::distant_past instead of
