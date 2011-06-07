@@ -423,7 +423,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     }
     
     if (config.store_static_config.serializer.extent_size() % config.store_static_config.serializer.block_size().ser_value() != 0) {
-        fail_due_to_user_error("Extent size (%d) is not a multiple of block size (%d).", 
+        fail_due_to_user_error("Extent size (%lu) is not a multiple of block size (%lu).",
              config.store_static_config.serializer.extent_size(),
              config.store_static_config.serializer.block_size().ser_value());
     }
@@ -540,11 +540,11 @@ void parsing_cmd_config_t::set_extent_size(const char* value) {
     long long int target;
     const long long int minimum_value = 1ll;
     const long long int maximum_value = TERABYTE;
-    
+
     target = parse_longlong(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
-        fail_due_to_user_error("Extent size must be a number from %d to %d.", minimum_value, maximum_value);
-        
+        fail_due_to_user_error("Extent size must be a number from %lld to %lld.", minimum_value, maximum_value);
+
     store_static_config.serializer.unsafe_extent_size() = static_cast<long long unsigned int>(target);
 }
 
@@ -562,7 +562,7 @@ long long parsing_cmd_config_t::parse_diff_log_size(const char* value) {
 
     result = parse_longlong(value) * MEGABYTE;
     if (parsing_failed || !is_in_range(result, minimum_value, maximum_value))
-        fail_due_to_user_error("Diff log size must be a number from %d to %d.", minimum_value, maximum_value);
+        fail_due_to_user_error("Diff log size must be a number from %lld to %lld.", minimum_value, maximum_value);
 
     return result;
 }
@@ -576,7 +576,7 @@ void parsing_cmd_config_t::set_block_size(const char* value) {
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Block size must be a number from %d to %d.", minimum_value, maximum_value);
     if (target % DEVICE_BLOCK_SIZE != 0)
-        fail_due_to_user_error("Block size must be a multiple of %d.", DEVICE_BLOCK_SIZE);
+        fail_due_to_user_error("Block size must be a multiple of %ld.", DEVICE_BLOCK_SIZE);
         
     store_static_config.serializer.unsafe_block_size() = static_cast<unsigned int>(target);
 }

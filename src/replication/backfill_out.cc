@@ -46,7 +46,7 @@ public:
                    included in the backfill, and no operation with timestamp `new_timestamp`
                    will be included. */
 
-                rassert(shard_->timestamper.get_timestamp() < new_timestamp, "shard_->timestamper.get_timestamp() = %u, new_timestamp = %u", shard_->timestamper.get_timestamp(), new_timestamp);
+                rassert(shard_->timestamper.get_timestamp() < new_timestamp, "shard_->timestamper.get_timestamp() = %u, new_timestamp = %u", shard_->timestamper.get_timestamp().time, new_timestamp.time);
 
                 shard_->timestamper.set_timestamp(new_timestamp);
 
@@ -226,7 +226,7 @@ public:
         void on_keyvalue(backfill_atom_t atom) {
             // This runs in the scheduler context
             rassert(get_thread_id() == shard_->home_thread());
-            rassert(atom.recency < max_backfill_timestamp_, "atom.recency (%u) < max_backfill_timestamp_ (%u)", atom.recency, max_backfill_timestamp_);
+            rassert(atom.recency < max_backfill_timestamp_, "atom.recency (%u) < max_backfill_timestamp_ (%u)", atom.recency.time, max_backfill_timestamp_.time);
             rassert(backfilling_);
             backfill_job_queue.push(boost::bind(
                 &backfill_and_realtime_streaming_callback_t::backfill_set, parent_->handler_,
