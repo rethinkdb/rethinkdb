@@ -217,11 +217,14 @@ class perfmon_sampler_t
 // http://www.cs.berkeley.edu/~mhoemmen/cs194/Tutorials/variance.pdf
 struct stddev_t {
     stddev_t();
+    stddev_t(size_t datapoints, float mean, float variance);
+
     void add(float value);
     size_t datapoints() const;
     float mean() const;
     float standard_deviation() const;
     float standard_variance() const;
+    //stddev_t merge(const stddev_t &other);
     static stddev_t combine(size_t nelts, stddev_t *data);
 
   private:
@@ -239,10 +242,11 @@ struct perfmon_stddev_t
     explicit perfmon_stddev_t(std::string name, bool internal = true);
     void record(float value);
 
+  protected:
+    std::string name;
+    PERFMON_PERTHREAD_IMPL(stddev_t);
   private:
     stddev_t thread_data[MAX_THREADS]; // TODO (rntz) should this be cache-line padded?
-    PERFMON_PERTHREAD_IMPL(stddev_t);
-    std::string name;
 };
 
 /* `perfmon_rate_monitor_t` keeps track of the number of times some event happens

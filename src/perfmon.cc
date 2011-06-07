@@ -40,9 +40,7 @@ void co_perfmon_visit(int thread, const std::vector<void*> &data, bool include_i
     }
 }
 
-
 void perfmon_get_stats(perfmon_stats_t *dest, bool include_internal) {
-
     std::vector<void*> data;
 
     data.reserve(get_var_list().size());
@@ -170,11 +168,18 @@ void perfmon_sampler_t::output_stat(const stats_t &aggregated, perfmon_stats_t *
 
 /* perfmon_stddev_t */
 
-stddev_t::stddev_t() :
+stddev_t::stddev_t()
 #ifndef NAN
 #error "Implementation doesn't support NANs"
 #endif
-    N(0), M(NAN), Q(NAN) { }
+    : N(0), M(NAN), Q(NAN) { }
+
+stddev_t::stddev_t(size_t n, float mean, float variance)
+    : N(n), M(mean), Q(variance * n)
+{
+    if (N == 0)
+        rassert(isnan(M) && isnan(Q));
+}
 
 void stddev_t::add(float value) {
     // See http://www.cs.berkeley.edu/~mhoemmen/cs194/Tutorials/variance.pdf
@@ -216,15 +221,11 @@ stddev_t stddev_t::combine(size_t nelts, stddev_t *data) {
         total_var += N * (V + M * M);
     }
 
-    stddev_t result;
     if (total_datapoints) {
-        result.N = total_datapoints;
-        result.M = total_means / total_datapoints;
-        float variance = total_var / total_datapoints - result.M * result.M;
-        // Q/N = standard variance
-        result.Q = variance * total_datapoints;
+        float mean = total_means / total_datapoints;
+        return stddev_t(total_datapoints, mean, total_var / total_datapoints - mean * mean);
     }
-    return result;
+    return stddev_t();
 }
 
 

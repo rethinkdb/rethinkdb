@@ -5,9 +5,6 @@
 #include "containers/intrusive_list.hpp"
 #include "perfmon.hpp"
 
-#include <stdlib.h>
-#include <sstream>
-
 struct metadata_store_t {
     // TODO (rntz) should this use key_store_t and data_provider_t, etc?
     virtual bool get_meta(const std::string &key, std::string *out) = 0;
@@ -63,20 +60,38 @@ struct persistent_stat_perthread_t
     virtual std::string combine_persist(thread_stat_t *stats) = 0;
 };
 
+#define PERSISTENT_STAT_PERTHREAD_IMPL(thread_stat_t)   \
+    void get_thread_persist(thread_stat_t *);           \
+    std::string combine_persist(thread_stat_t *);       \
+    std::string persist_key();                          \
+    void unpersist(const std::string&)
+
 // Persistent perfmon counter
 struct perfmon_persistent_counter_t
     : public perfmon_counter_t
     , public persistent_stat_perthread_t<cache_line_padded_t<int64_t> >
 {
     explicit perfmon_persistent_counter_t(std::string name, bool internal = true);
-    std::string persist_key();
-    void get_thread_persist(padded_int64_t *);
+
+    PERSISTENT_STAT_PERTHREAD_IMPL(padded_int64_t);
     int64_t combine_stats(padded_int64_t *);
-    std::string combine_persist(padded_int64_t *);
-    void unpersist(const std::string &);
 
   private:
     int64_t unpersisted_value;
+};
+
+// Persistent stddev
+struct perfmon_persistent_stddev_t
+    : public perfmon_stddev_t
+    , public persistent_stat_perthread_t<stddev_t>
+{
+    explicit perfmon_persistent_stddev_t(std::string name, bool internal = true);
+
+    PERSISTENT_STAT_PERTHREAD_IMPL(stddev_t);
+    stddev_t combine_stats(stddev_t *);
+
+  private:
+    stddev_t unpersisted_value;
 };
 
 #endif
