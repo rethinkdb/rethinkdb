@@ -51,8 +51,13 @@ public:
     
     void add_entry(lba_entry_t entry, file_t::account_t *io_account) {
         // Make sure that entries will align with DEVICE_BLOCK_SIZE
-        rassert(DEVICE_BLOCK_SIZE % sizeof(lba_entry_t) == 0);
-        
+#ifndef NDEBUG
+        {
+            bool modcmp = DEVICE_BLOCK_SIZE % sizeof(lba_entry_t) == 0;
+            rassert(modcmp);
+        }
+#endif
+
         // Make sure that there is room
         rassert(data->amount_filled + sizeof(lba_entry_t) <= em->extent_size);
         

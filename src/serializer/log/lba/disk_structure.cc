@@ -264,8 +264,13 @@ void lba_disk_structure_t::prepare_metablock(lba_shard_metablock_t *mb_out) {
         mb_out->last_lba_extent_offset = last_extent->offset;
         mb_out->last_lba_extent_entries_count = last_extent->count;
 
-        rassert((offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * mb_out->last_lba_extent_entries_count)
-               % DEVICE_BLOCK_SIZE == 0);
+#ifndef NDEBUG
+        {
+            bool modcmp = (offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * mb_out->last_lba_extent_entries_count)
+                % DEVICE_BLOCK_SIZE == 0;
+            rassert(modcmp);
+        }
+#endif
     } else {
         mb_out->last_lba_extent_offset = NULL_OFFSET;
         mb_out->last_lba_extent_entries_count = 0;
