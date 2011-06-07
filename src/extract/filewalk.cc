@@ -157,6 +157,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
             return;
         }
 
+        // TODO isn't this check redundant?
         if (cfg.mod_count == config_t::NO_FORCED_MOD_COUNT) {
             cfg.mod_count = serializer_multiplexer_t::compute_mod_count(serbuf->this_serializer, serbuf->n_files, serbuf->n_proxies);
         }
