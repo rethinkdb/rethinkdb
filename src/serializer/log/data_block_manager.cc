@@ -162,10 +162,10 @@ struct dbm_read_ahead_fsm_t :
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
             } else {
-                const ser_block_id_t block_id = ((buf_data_t*)current_buf)->block_id;
+                const block_id_t block_id = ((buf_data_t*)current_buf)->block_id;
 
                 // Determine whether the block is live.
-                bool block_is_live = block_id.value != 0;
+                bool block_is_live = block_id != 0;
                 // Do this by checking the LBA
                 const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
                 block_is_live = block_is_live && !flagged_lba_offset.parts.is_delete && flagged_lba_offset.has_value(flagged_lba_offset);
@@ -213,7 +213,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_t::account_t
     return false;
 }
 
-bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, file_t::account_t *io_account, iocallback_t *cb) {
+bool data_block_manager_t::write(const void *buf_in, block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, file_t::account_t *io_account, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
@@ -407,8 +407,8 @@ void data_block_manager_t::run_gc() {
                     if (gc_state.current_entry->g_array[i]) continue;
 
                     char *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
-                    ser_block_id_t id = (reinterpret_cast<buf_data_t *>(block))->block_id;
-                    rassert(id != ser_block_id_t::null());
+                    block_id_t id = (reinterpret_cast<buf_data_t *>(block))->block_id;
+                    rassert(id != NULL_BLOCK_ID);
                     void *data = block + sizeof(buf_data_t);
 
                     gc_writes.push_back(gc_write_t(id, data));

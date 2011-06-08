@@ -102,15 +102,15 @@ struct lba_metablock_mixin_t {
 // PADDING_BLOCK_ID and flagged_off64_t::padding() indicate that an entry in the LBA list only exists to fill
 // out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
 
-static const ser_block_id_t PADDING_BLOCK_ID = ser_block_id_t::null();
+static const block_id_t PADDING_BLOCK_ID = NULL_BLOCK_ID;
 
 struct lba_entry_t {
-    ser_block_id_t block_id;
+    block_id_t block_id;
     repli_timestamp recency;
     // An offset into the file, with is_delete set appropriately.
     flagged_off64_t offset;
 
-    static inline lba_entry_t make(ser_block_id_t block_id, repli_timestamp recency, flagged_off64_t offset) {
+    static inline lba_entry_t make(block_id_t block_id, repli_timestamp recency, flagged_off64_t offset) {
         lba_entry_t entry;
         entry.block_id = block_id;
         entry.recency = recency;

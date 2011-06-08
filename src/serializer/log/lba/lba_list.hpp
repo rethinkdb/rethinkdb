@@ -36,12 +36,12 @@ public:
     bool start_existing(direct_file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
     
 public:
-    flagged_off64_t get_block_offset(ser_block_id_t block);
-    repli_timestamp get_block_recency(ser_block_id_t block);
+    flagged_off64_t get_block_offset(block_id_t block);
+    repli_timestamp get_block_recency(block_id_t block);
     
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
     that block ID. */
-    ser_block_id_t max_block_id();
+    block_id_t max_block_id();
     
 #ifndef NDEBUG
     bool is_extent_referenced(off64_t offset);
@@ -50,7 +50,7 @@ public:
 #endif
     
 public:
-    void set_block_offset(ser_block_id_t block, repli_timestamp recency,
+    void set_block_offset(block_id_t block, repli_timestamp recency,
                           flagged_off64_t offset, file_t::account_t *io_account);
 
     struct sync_callback_t {

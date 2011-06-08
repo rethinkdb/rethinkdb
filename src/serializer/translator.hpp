@@ -38,14 +38,14 @@ underlying serializers. */
 struct config_block_id_t {
     /* This type is kind of silly. */
 
-    ser_block_id_t ser_id;
+    block_id_t ser_id;
 
-    ser_block_id_t subsequent_ser_id() const { return ser_block_id_t::make(ser_id.value + 1); }
-    static inline config_block_id_t make(ser_block_id_t::number_t num) {
+    block_id_t subsequent_ser_id() const { return ser_id + 1; }
+    static inline config_block_id_t make(block_id_t num) {
         rassert(num == 0);  // only one possible config_block_id_t value.
 
         config_block_id_t ret;
-        ret.ser_id = ser_block_id_t::make(num);
+        ret.ser_id = num;
         return ret;
     }
 };
@@ -81,7 +81,7 @@ threads. */
 
 class translator_serializer_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
 public:
-    /* We need our own read_ahead interface which uses block_id_t instead of ser_block_id_t (in contrast to the one in serializer) */
+    /* We need our own read_ahead interface which uses block_id_t instead of block_id_t (in contrast to the one in serializer) */
     class read_ahead_callback_t {
     public:
         virtual ~read_ahead_callback_t() { }
@@ -104,12 +104,12 @@ public:
     // Translates a block id given the particular parameters.  This
     // needs to be exposed in some way because recovery tools depend
     // on it.
-    static ser_block_id_t translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid);
-    ser_block_id_t translate_block_id(block_id_t id);
+    static block_id_t translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid);
+    block_id_t translate_block_id(block_id_t id);
 
     // "Inverts" translate_block_id, converting inner_id back to mod_id (not back to id).
-    static int untranslate_block_id_to_mod_id(ser_block_id_t inner_id, int mod_count, config_block_id_t cfgid);
-    static block_id_t untranslate_block_id_to_id(ser_block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid);
+    static int untranslate_block_id_to_mod_id(block_id_t inner_id, int mod_count, config_block_id_t cfgid);
+    static block_id_t untranslate_block_id_to_id(block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid);
 
 public:
     /* The translator serializer will only use block IDs on the inner serializer that
@@ -161,7 +161,7 @@ public:
     repli_timestamp get_recency(block_id_t id);
 
 public:
-    bool offer_read_ahead_buf(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
 };
 
 #endif /* __SERIALIZER_TRANSLATOR_HPP__ */

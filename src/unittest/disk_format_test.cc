@@ -65,9 +65,9 @@ TEST(DiskFormatTest, LbaEntryT) {
 
     lba_entry_t ent = lba_entry_t::make_padding_entry();
     ASSERT_TRUE(lba_entry_t::is_padding(&ent));
-    ent = lba_entry_t::make(ser_block_id_t::make(1), repli_timestamp::invalid, flagged_off64_t::real(1));
+    ent = lba_entry_t::make(1, repli_timestamp::invalid, flagged_off64_t::real(1));
     ASSERT_FALSE(lba_entry_t::is_padding(&ent));
-    ent = lba_entry_t::make(ser_block_id_t::make(1), repli_timestamp::invalid, flagged_off64_t::deleteblock(1));
+    ent = lba_entry_t::make(1, repli_timestamp::invalid, flagged_off64_t::deleteblock(1));
     ASSERT_FALSE(lba_entry_t::is_padding(&ent));
 }
 

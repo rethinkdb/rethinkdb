@@ -21,7 +21,7 @@ protected:
     raw_block_t();
     ~raw_block_t();
     void init(int64_t size, nondirect_file_t *file, off64_t offset);
-    bool init(block_size_t size, nondirect_file_t *file, off64_t offset, ser_block_id_t ser_block_id);
+    bool init(block_size_t size, nondirect_file_t *file, off64_t offset, block_id_t ser_block_id);
 
     buf_data_t *realbuf;
 private:

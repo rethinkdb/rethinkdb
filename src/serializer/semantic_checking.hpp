@@ -54,7 +54,7 @@ private:
 
 private:
     struct persisted_block_info_t {
-        ser_block_id_t block_id;
+        block_id_t block_id;
         block_info_t block_info;
     };
     int semantic_fd;
@@ -126,12 +126,12 @@ public:
         public read_callback_t
     {
         semantic_checking_serializer_t *parent;
-        ser_block_id_t block_id;
+        block_id_t block_id;
         void *buf;
         block_info_t expected_block_state;
         read_callback_t *callback;
 
-        reader_t(semantic_checking_serializer_t *parent, ser_block_id_t block_id, void *buf, block_info_t expected_block_state)
+        reader_t(semantic_checking_serializer_t *parent, block_id_t block_id, void *buf, block_info_t expected_block_state)
             : parent(parent), block_id(block_id), buf(buf), expected_block_state(expected_block_state) {}
 
         void on_serializer_read() {
@@ -166,7 +166,7 @@ public:
         }
     };
 
-    bool do_read(ser_block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback) {
+    bool do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback) {
 #ifdef SERIALIZER_DEBUG_PRINT
         printf("Reading %ld\n", block_id);
 #endif
@@ -181,7 +181,7 @@ public:
         }
     }
 
-    ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf) {
+    ser_transaction_id_t get_current_transaction_id(block_id_t block_id, const void* buf) {
         // TODO: Implement some checking for this operation
         return inner_serializer.get_current_transaction_id(block_id, buf);
     }
@@ -256,11 +256,11 @@ public:
         return inner_serializer.get_block_size();
     }
 
-    ser_block_id_t max_block_id() {
+    block_id_t max_block_id() {
         return inner_serializer.max_block_id();
     }
 
-    bool block_in_use(ser_block_id_t id) {
+    bool block_in_use(block_id_t id) {
         bool in_use = inner_serializer.block_in_use(id);
         switch (blocks.get(id.value).state) {
             case block_info_t::state_unknown: break;
@@ -271,7 +271,7 @@ public:
         return in_use;
     }
 
-    repli_timestamp get_recency(ser_block_id_t id) {
+    repli_timestamp get_recency(block_id_t id) {
         return inner_serializer.get_recency(id);
     }
 

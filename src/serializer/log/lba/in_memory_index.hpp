@@ -21,15 +21,15 @@ public:
 
     // TODO: Rename this function.  It's one greater than the max
     // block id.
-    ser_block_id_t max_block_id();
+    block_id_t max_block_id();
 
     struct info_t {
         flagged_off64_t offset;
         repli_timestamp recency;
     };
 
-    info_t get_block_info(ser_block_id_t id);
-    void set_block_info(ser_block_id_t id, repli_timestamp recency,
+    info_t get_block_info(block_id_t id);
+    void set_block_info(block_id_t id, repli_timestamp recency,
                         flagged_off64_t offset);
 
 #ifndef NDEBUG

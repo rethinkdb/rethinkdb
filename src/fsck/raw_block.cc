@@ -16,7 +16,7 @@ void raw_block_t::init(int64_t size, nondirect_file_t *file, off64_t offset) {
     buf = (void *)(realbuf + 1);
 }
 
-bool raw_block_t::init(block_size_t size, nondirect_file_t *file, off64_t offset, ser_block_id_t ser_block_id) {
+bool raw_block_t::init(block_size_t size, nondirect_file_t *file, off64_t offset, block_id_t ser_block_id) {
     init(size.ser_value(), file, offset);
 
     if (realbuf->block_id != ser_block_id) {
