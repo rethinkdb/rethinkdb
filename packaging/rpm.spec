@@ -137,7 +137,6 @@ fi
 
 %dir %attr(0755,root,root) %{scripts_dir}
 %attr(0755,root,root) %{scripts_dir}/rdb_migrate
-%attr(0755,root,root) %{scripts_dir}/unused_port
 
 %doc %attr(0444,root,root) %{man1_dir}/%{server_exec_name_versioned}.1.gz
 
