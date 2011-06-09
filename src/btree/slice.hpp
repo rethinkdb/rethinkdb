@@ -81,7 +81,7 @@ private:
 
     const std::string informal_name_;
 
-    order_sink_t order_sink_;
+    plain_sink_t order_sink_;
 
     DISABLE_COPYING(btree_slice_t);
 };
