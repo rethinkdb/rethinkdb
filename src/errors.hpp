@@ -55,8 +55,8 @@
         BREAKPOINT;                                                 \
     } while (0)
 
-void report_fatal_error(const char*, int, const char*, ...);
-void report_user_error(const char*, ...);
+void report_fatal_error(const char*, int, const char*, ...) __attribute__((format (printf, 3, 4)));
+void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
 
 #define stringify(x) #x
 
@@ -69,7 +69,7 @@ void report_user_error(const char*, ...);
 #define guarantee_xerr(cond, err, msg, args...) do {                            \
         if (!(cond)) {                                                          \
             if (err == 0) {                                                     \
-                crash_or_trap(format_assert_message("Guarantee", cond) msg);    \
+                crash_or_trap(format_assert_message("Guarantee", cond) msg, ##args); \
             } else {                                                            \
                 crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, err, strerror(err), ##args);  \
             }                                                                   \
@@ -87,7 +87,7 @@ void report_user_error(const char*, ...);
 #define rassert(cond, msg...) do {                                        \
         if (!(cond)) {                                                    \
             crash_or_trap(format_assert_message("Assertion", cond) msg);  \
-        }                           \
+        }                                                                 \
     } while (0)
 #define rassert_err(cond, msg, args...) do {                                \
         if (!(cond)) {                                                      \

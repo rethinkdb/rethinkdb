@@ -680,7 +680,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
     snapshotted(false)
 {
     block_pm_duration start_timer(&pm_transactions_starting);
-    rassert(access == rwi_read);
+    rassert(access == rwi_read || access == rwi_read_sync);
     cache->assert_thread();
     rassert(!cache->shutting_down);
     cache->num_live_transactions++;
@@ -927,6 +927,14 @@ mc_cache_t::mc_cache_t(
 mc_cache_t::~mc_cache_t() {
     shutting_down = true;
     serializer->unregister_read_ahead_cb(this);
+    /* When unregister_read_ahead_cb returns, it is guaranteed that our
+     offer_read_ahead_buf() method does not get called anymore.
+     However, if offer_read_ahead_buf() got called during the execution of
+     unregister_read_ahead_cb(), it might have placed a message for
+     unregister_read_ahead_cb_home_thread() on the message queue. We must make
+     sure that this message gets processed before we continue destructing
+     ourselves, thus the yield here. */
+    coro_t::yield();
 
     /* Wait for all transactions to commit before shutting down */
     if (num_live_transactions > 0) {
@@ -1019,6 +1027,8 @@ boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {
+    assert_thread();
+
     writeback.on_transaction_commit(txn);
 
     num_live_transactions--;

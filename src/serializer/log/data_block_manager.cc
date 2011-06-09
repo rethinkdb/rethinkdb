@@ -149,7 +149,12 @@ public:
     void on_io_complete() {
         rassert(off_in >= (off64_t)read_ahead_offset);
         rassert(off_in < (off64_t)read_ahead_offset + (off64_t)read_ahead_size);
-        rassert((off_in - (off64_t)read_ahead_offset) % parent->static_config->block_size().ser_value() == 0);
+#ifndef NDEBUG
+        {
+            bool modcmp = (off_in - (off64_t)read_ahead_offset) % parent->static_config->block_size().ser_value() == 0;
+            rassert(modcmp);
+        }
+#endif
 
         // Walk over the read ahead buffer and copy stuff...
         for (uint64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {

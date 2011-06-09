@@ -41,15 +41,21 @@ void *malloc_aligned(size_t size, size_t alignment) {
     return ptr;
 }
 
+#ifndef NDEBUG
 void debugf(const char *msg, ...) {
     flockfile(stderr);
+    precise_time_t t = get_time_now();
+    char formatted_time[formatted_precise_time_length+1];
+    format_precise_time(t, formatted_time, sizeof(formatted_time));
+    fprintf(stderr, "%s Thread %d: ", formatted_time, get_thread_id());
+
     va_list args;
     va_start(args, msg);
-    fprintf(stderr, "Thread %d: ", get_thread_id());
     vfprintf(stderr, msg, args);
     va_end(args);
     funlockfile(stderr);
 }
+#endif
 
 /* This object exists only to call srand(time(NULL)) in its constructor, before main() runs. */
 struct rand_initter_t {

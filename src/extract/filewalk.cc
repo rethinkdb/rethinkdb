@@ -141,9 +141,9 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
         std::map<size_t, off64_t>::const_iterator config_offset_it = offsets.find(CONFIG_BLOCK_ID.ser_id.value);
         if (!(CONFIG_BLOCK_ID.ser_id.value < n && config_offset_it != offsets.end())) {
             fail_due_to_user_error(
-                "Config block cannot be found (CONFIG_BLOCK_ID = %u, highest block id = %u)."
+                "Config block cannot be found (CONFIG_BLOCK_ID = %u, highest block id = %zu)."
                 "  Use --force-slice-count to override.\n",
-                 CONFIG_BLOCK_ID, n);
+                 CONFIG_BLOCK_ID.ser_id.value, n);
         }
         off64_t off = config_offset_it->second;
 

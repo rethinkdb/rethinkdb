@@ -373,6 +373,7 @@ void repli_stream_t::try_write(const void *data, size_t size) {
 #ifndef REPLICATION_DEBUG
         debugf("try_write failed!\n");
 #endif
+        debugf("Writing end closed on network connection.\n");
 
         /* Master died; we happened to be mid-write at the time. A tcp_conn_t::read_closed_exc_t
         will be thrown somewhere and that will cause us to shut down. So we can ignore this
