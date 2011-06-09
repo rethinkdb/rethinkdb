@@ -113,7 +113,7 @@ public:
 
     boost::shared_ptr<cache_account_t> create_account(int priority);
 
-    void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool contains_block(block_id_t block_id);
 
 private:

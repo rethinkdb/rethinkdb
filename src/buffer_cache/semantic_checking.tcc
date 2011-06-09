@@ -189,8 +189,8 @@ boost::shared_ptr<typename inner_cache_t::cache_account_t> scc_cache_t<inner_cac
 }
 
 template<class inner_cache_t>
-void scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
-    inner_cache.offer_read_ahead_buf(block_id, buf, recency_timestamp);
+bool scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+    return inner_cache.offer_read_ahead_buf(block_id, buf, recency_timestamp);
 }
 
 template<class inner_cache_t>

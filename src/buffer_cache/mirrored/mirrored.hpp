@@ -398,7 +398,7 @@ private:
     unsigned int max_patches_size_ratio;
 
 public:
-    void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
 private:
     bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool can_read_ahead_block_be_accepted(block_id_t block_id);

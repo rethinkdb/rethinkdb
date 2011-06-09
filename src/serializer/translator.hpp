@@ -79,15 +79,10 @@ of the block IDs available on the inner serializer, but presents the illusion of
 serializer. It is used for splitting one serializer among several buffer caches on different
 threads. */
 
-class translator_serializer_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
+class translator_serializer_t : public serializer_t, public serializer_t::read_ahead_callback_t {
 public:
-    /* We need our own read_ahead interface which uses block_id_t instead of block_id_t (in contrast to the one in serializer) */
-    class read_ahead_callback_t {
-    public:
-        virtual ~read_ahead_callback_t() { }
-        /* The callee must take care of freeing buf by calling free(buf) */
-        virtual void offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) = 0;
-    };
+    typedef serializer_t::read_ahead_callback_t read_ahead_callback_t;
+
     void register_read_ahead_cb(read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
     
@@ -101,14 +96,15 @@ private:
 public:
     virtual ~translator_serializer_t() {}
 
-    // Translates a block id given the particular parameters.  This
-    // needs to be exposed in some way because recovery tools depend
-    // on it.
+    // Translates a block id from external (meaningful to the translator_serializer_t) to internal
+    // (meaningful to the underlying inner serializer) given the particular parameters. This needs
+    // to be exposed in some way because recovery tools depend on it.
     static block_id_t translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid);
     block_id_t translate_block_id(block_id_t id);
 
     // "Inverts" translate_block_id, converting inner_id back to mod_id (not back to id).
     static int untranslate_block_id_to_mod_id(block_id_t inner_id, int mod_count, config_block_id_t cfgid);
+    // ... and this one converts inner_id back to id, given mod_id.
     static block_id_t untranslate_block_id_to_id(block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid);
 
 public:
@@ -125,30 +121,7 @@ public:
 
     bool do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, serializer_t::read_callback_t *callback);
     ser_transaction_id_t get_current_transaction_id(block_id_t block_id, const void* buf);
-    struct write_t {
-        block_id_t block_id;
-        bool recency_specified;
-        bool buf_specified;
-        repli_timestamp recency;
-        const void *buf;
-        bool write_empty_deleted_block;
-        serializer_t::write_block_callback_t *callback;
-        bool assign_transaction_id;
-
-        static write_t make_touch(block_id_t block_id_, repli_timestamp recency_, serializer_t::write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, false, NULL, true, callback_, false);
-        }
-
-        static write_t make(block_id_t block_id_, repli_timestamp recency_, const void *buf_, bool write_empty_deleted_block_, serializer_t::write_block_callback_t *callback_) {
-            return write_t(block_id_, true, recency_, true, buf_, write_empty_deleted_block_, callback_, true);
-        }
-
-    private:
-        write_t(block_id_t block_id_, bool recency_specified_, repli_timestamp recency_,
-                bool buf_specified_, const void *buf_, bool write_empty_deleted_block_, serializer_t::write_block_callback_t *callback_, bool assign_transaction_id)
-            : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_), recency(recency_), buf(buf_), write_empty_deleted_block(write_empty_deleted_block_), callback(callback_), assign_transaction_id(assign_transaction_id) { }
-    };
-    bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, serializer_t::write_txn_callback_t *callback, serializer_t::write_tid_callback_t *tid_callback = NULL);
+    bool do_write(serializer_t::write_t *writes, int num_writes, file_t::account_t *io_account, serializer_t::write_txn_callback_t *callback, serializer_t::write_tid_callback_t *tid_callback = NULL);
     block_size_t get_block_size();
 
     // Returns the first never-used block id.  Every block with id

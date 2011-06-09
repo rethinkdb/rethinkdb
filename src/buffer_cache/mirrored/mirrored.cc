@@ -1026,11 +1026,13 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-void mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
     do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, recency_timestamp));
+    return true;
 }
 
+// TODO (rntz) why does this return a bool? no-one will ever see it!
 bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     assert_thread();
 

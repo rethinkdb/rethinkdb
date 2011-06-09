@@ -88,6 +88,10 @@ struct serializer_t :
 
         friend class log_serializer_t;
 
+        static write_t make_touch(block_id_t block_id_, repli_timestamp recency_, write_block_callback_t *callback_) {
+            return write_t(block_id_, true, recency_, false, NULL, true, callback_, false);
+        }
+
         static write_t make(block_id_t block_id_, repli_timestamp recency_, const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_) {
             return write_t(block_id_, true, recency_, true, buf_, write_empty_deleted_block_, callback_, true);
         }
