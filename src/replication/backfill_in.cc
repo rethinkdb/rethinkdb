@@ -66,7 +66,9 @@ void backfill_storer_t::ensure_backfilling() {
         // In order to do that, we first drain all realtime operations that are
         // still lingering around (is it possible at all that there are any?).
         // Then we set the queue_picker_ to only take requests from the backfill queue.
+	debugf("backfill_storer_t:      Draining coro_pool_ for realtime operations to finish.\n");
         coro_pool_.drain();
+	debugf("backfill_storer_t: DONE Draining coro_pool_ for realtime operations to finish.\n");
         queue_picker_.set_sources(make_vector<passive_producer_t<boost::function<void()> > *>(&backfill_queue_));
     }
     backfilling_ = true;
@@ -175,8 +177,10 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
     // a lock object with each operation we push on the backfill_queue. That lock's
     // lifespan would be until the corresponding operation finishes. We would then
     // wait until all the locks have been released.
+    debugf("backfill_storer_t:      Draining coro_pool_ to make sure that backfill operations finish.\n");
     coro_pool_.drain();
-    
+    debugf("backfill_storer_t: DONE Draining coro_pool_ to make sure that backfill operations finish.\n");
+
     /* Allow the `listing_passive_producer_t` to run operations from the
     `realtime_queue_` once the `backfill_queue_` is empty (which it actually should
      be anyway by now). */
