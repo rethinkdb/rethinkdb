@@ -8,29 +8,26 @@
 
 namespace replication {
 
-/* `listing_passive_producer_t` is a `passive_producer_t` that reads from a
-series of queues. When the first one is empty, it tries the next one. */
+/* A passive_producer_t that reads from a series of queues. When the
+first one is empty, it tries the next one. */
 
-template<class value_t>
-struct listing_passive_producer_t :
-    public passive_producer_t<value_t>
-{
-    listing_passive_producer_t(std::vector<passive_producer_t<value_t> *> producers) :
-        passive_producer_t<value_t>(&available_var)
-    {
-        set_sources(producers);
+template <class value_t>
+class selective_passive_producer_t : public passive_producer_t<value_t> {
+public:
+    selective_passive_producer_t(passive_producer_t<value_t> *selectee) :
+        passive_producer_t<value_t>(&available_var) {
+        set_source(selectee);
     }
-    ~listing_passive_producer_t() {
-        set_sources(std::vector<passive_producer_t<value_t> *>());
+    ~selective_passive_producer_t() {
+        set_source(NULL);
     }
-    void set_sources(std::vector<passive_producer_t<value_t> *> producers) {
+    void set_source(passive_producer_t<value_t> *selectee) {
         while (watcher_t *w = watchers.head()) {
             watchers.remove(w);
             delete w;
         }
-        for (int i = 0; i < (int)producers.size(); i++) {
-            watcher_t *w = new watcher_t(this, producers[i]);
-            watchers.push_back(w);
+	if (selectee != NULL) {
+	    watchers.push_back(new watcher_t(this, selectee));
         }
         recompute();
     }
@@ -40,7 +37,7 @@ private:
         public watchable_t<bool>::watcher_t,
         public intrusive_list_node_t<watcher_t>
     {
-        watcher_t(listing_passive_producer_t *par, passive_producer_t<value_t> *pro) :
+        watcher_t(selective_passive_producer_t *par, passive_producer_t<value_t> *pro) :
             parent(par), producer(pro)
         {
             producer->available->add_watcher(this);
@@ -51,7 +48,7 @@ private:
         void on_watchable_changed() {
             parent->recompute();
         }
-        listing_passive_producer_t *parent;
+	selective_passive_producer_t *parent;
         passive_producer_t<value_t> *producer;
     };
     intrusive_list_t<watcher_t> watchers;
@@ -116,7 +113,7 @@ private:
     btree_key_value_store_t *kvs_;
     bool backfilling_, print_backfill_warning_;
     limited_fifo_queue_t<boost::function<void()> > backfill_queue_, realtime_queue_;
-    listing_passive_producer_t<boost::function<void()> > queue_picker_;
+    selective_passive_producer_t<boost::function<void()> > queue_picker_;
     coro_pool_t coro_pool_;
 };
 

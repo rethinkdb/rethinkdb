@@ -44,7 +44,7 @@ backfill_storer_t::backfill_storer_t(btree_key_value_store_t *underlying) :
     kvs_(underlying), backfilling_(false), print_backfill_warning_(false),
     backfill_queue_(BACKFILL_QUEUE_CAPACITY),
     realtime_queue_(SEMAPHORE_NO_LIMIT, 0.5, &pm_replication_slave_realtime_queue),
-    queue_picker_(make_vector<passive_producer_t<boost::function<void()> > *>(&backfill_queue_)),
+    queue_picker_(&backfill_queue_),
     coro_pool_(CORO_POOL_SIZE, &queue_picker_)
 {
 }
@@ -69,7 +69,7 @@ void backfill_storer_t::ensure_backfilling() {
 	debugf("backfill_storer_t:      Draining coro_pool_ for realtime operations to finish.\n");
         coro_pool_.drain();
 	debugf("backfill_storer_t: DONE Draining coro_pool_ for realtime operations to finish.\n");
-        queue_picker_.set_sources(make_vector<passive_producer_t<boost::function<void()> > *>(&backfill_queue_));
+        queue_picker_.set_source(&backfill_queue_);
     }
     backfilling_ = true;
 }
@@ -184,9 +184,7 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
     /* Allow the `listing_passive_producer_t` to run operations from the
     `realtime_queue_` once the `backfill_queue_` is empty (which it actually should
      be anyway by now). */
-    queue_picker_.set_sources(
-        make_vector<passive_producer_t<boost::function<void()> > *>(
-            &backfill_queue_, &realtime_queue_));
+    queue_picker_.set_source(&realtime_queue_);
 
 #ifndef NDEBUG
     master_t::inside_backfill_done_or_backfill = false;
