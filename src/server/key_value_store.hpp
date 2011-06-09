@@ -36,7 +36,7 @@ struct shard_store_t :
     public get_store_t
 {
     shard_store_t(
-        translator_serializer_t *translator_serializer,
+        serializer_t *serializer,
         mirrored_cache_config_t *dynamic_config,
         int64_t delete_queue_limit);
 
@@ -152,9 +152,10 @@ private:
     shard_store_t *shards[MAX_SLICES];
     uint32_t slice_num(const store_key_t &key);
 
+    standard_serializer_t *metadata_serializer;
     shard_store_t *metadata_shard;
     // Used for persisting stats; see stats/persist.hpp
-    boost::scoped_ptr<side_coro_handler_t> stat_persistence_side_coro_ptr;
+    side_coro_handler_t *stat_persistence_side_coro_ptr;
 
     /* slice debug control_t which allows us to see slice and hash for a key */
     class hash_control_t :

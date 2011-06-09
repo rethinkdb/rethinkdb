@@ -20,10 +20,10 @@ static void co_persist_stats(btree_key_value_store_t *, signal_t *); // forward 
 /* shard_store_t */
 
 shard_store_t::shard_store_t(
-    translator_serializer_t *translator_serializer,
+    serializer_t *serializer,
     mirrored_cache_config_t *dynamic_config,
     int64_t delete_queue_limit) :
-    btree(translator_serializer, dynamic_config, delete_queue_limit),
+    btree(serializer, dynamic_config, delete_queue_limit),
     dispatching_store(&btree),
     timestamper(&dispatching_store)
     { }
@@ -60,7 +60,6 @@ mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order
 }
 
 /* btree_key_value_store_t */
-
 void prep_for_serializer(
         btree_key_value_store_dynamic_config_t *dynamic_config,
         btree_key_value_store_static_config_t *static_config,
@@ -72,32 +71,44 @@ void prep_for_serializer(
         &static_config->serializer);
 }
 
-void create_existing_serializer(
+void create_existing_serializer(standard_serializer_t **serializer, int i,
+                                log_serializer_dynamic_config_t *config,
+                                log_serializer_private_dynamic_config_t *privconfig) {
+    on_thread_t switcher(i % get_num_db_threads());
+    *serializer = new standard_serializer_t(config, privconfig);
+}
+
+void create_existing_shard_serializer(
         btree_key_value_store_dynamic_config_t *dynamic_config,
         standard_serializer_t **serializers,
         int i) {
-
-    /* Go to an appropriate thread to run the serializer on */
-    on_thread_t thread_switcher(i % get_num_db_threads());
-    serializers[i] = new standard_serializer_t(
-        &dynamic_config->serializer,
-        &dynamic_config->serializer_private[i]);
+    create_existing_serializer(&serializers[i], i,
+                               &dynamic_config->serializer,
+                               &dynamic_config->serializer_private[i]);
 }
 
-void prep_for_shard(
+void prep_serializer(
+        serializer_t *serializer,
+        mirrored_cache_static_config_t *static_config,
+        int i) {
+    on_thread_t thread_switcher(i % get_num_db_threads());
+    btree_slice_t::create(serializer, static_config);
+}
+
+void prep_serializer_for_shard(
         translator_serializer_t **pseudoserializers,
         mirrored_cache_static_config_t *static_config,
         int i) {
-
-    // TODO I'm not sure this needs to switch threads at all, though it might
-    // increase parallelism that it does. - rntz
-    on_thread_t thread_switcher(i % get_num_db_threads());
-    btree_slice_t::create(pseudoserializers[i], static_config);
+    prep_serializer(pseudoserializers[i], static_config, i);
 }
 
-void destroy_serializer(standard_serializer_t **serializers, int i) {
-    on_thread_t thread_switcher(serializers[i]->home_thread());
-    delete serializers[i];
+void destroy_serializer(standard_serializer_t *serializer) {
+    on_thread_t thread_switcher(serializer->home_thread());
+    delete serializer;
+}
+
+void destroy_shard_serializer(standard_serializer_t **serializers, int i) {
+    destroy_serializer(serializers[i]);
 }
 
 void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dynamic_config,
@@ -113,39 +124,57 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
 
     /* Create serializers so we can initialize their contents */
     standard_serializer_t *serializers[n_files];
-    pmap(n_files, boost::bind(&create_existing_serializer,
+    pmap(n_files, boost::bind(&create_existing_shard_serializer,
         dynamic_config, serializers, _1));
-
     {
         /* Prepare serializers for multiplexing */
         std::vector<serializer_t *> serializers_for_multiplexer(n_files);
         for (int i = 0; i < n_files; i++) serializers_for_multiplexer[i] = serializers[i];
-        // Add one slice for the metadata slice
-        serializer_multiplexer_t::create(serializers_for_multiplexer, static_config->btree.n_slices + 1);
+        serializer_multiplexer_t::create(serializers_for_multiplexer, static_config->btree.n_slices);
 
         /* Create pseudoserializers */
         serializer_multiplexer_t multiplexer(serializers_for_multiplexer);
 
         /* Initialize the btrees. */
-        pmap(multiplexer.proxies.size(), boost::bind(&prep_for_shard, multiplexer.proxies.data(), &static_config->cache, _1));
+        pmap(multiplexer.proxies.size(), boost::bind(
+                 &prep_serializer_for_shard, multiplexer.proxies.data(), &static_config->cache, _1));
     }
 
     /* Shut down serializers */
-    pmap(n_files, boost::bind(&destroy_serializer, serializers, _1));
+    pmap(n_files, boost::bind(&destroy_shard_serializer, serializers, _1));
+
+    // Create, initialize, & shutdown metadata serializer
+    standard_serializer_t::create(&dynamic_config->serializer,
+                                  &dynamic_config->metadata_serializer_private,
+                                  &static_config->serializer);
+    standard_serializer_t *metadata_serializer;
+    create_existing_serializer(&metadata_serializer, n_files,
+                               &dynamic_config->serializer, &dynamic_config->metadata_serializer_private);
+    prep_serializer(metadata_serializer, &static_config->cache, n_files);
+    destroy_serializer(metadata_serializer);
 }
 
 void create_existing_shard(
-        translator_serializer_t **pseudoserializers,
-        shard_store_t **shards,
+        shard_store_t **shard,
+        int i,
+        serializer_t *serializer,
         mirrored_cache_config_t *dynamic_config,
-        int64_t delete_queue_limit,
-        int i) {
+        int64_t delete_queue_limit)
+{
+    on_thread_t thread_switcher(i % get_num_db_threads());
+    *shard = new shard_store_t(serializer, dynamic_config, delete_queue_limit);
+}
 
+void create_existing_data_shard(
+        shard_store_t **shards,
+        int i,
+        translator_serializer_t **pseudoserializers,
+        mirrored_cache_config_t *dynamic_config,
+        int64_t delete_queue_limit)
+{
     // TODO try to align slices with serializers so that when possible, a slice is on the
     // same thread as its serializer
-    on_thread_t thread_switcher(i % get_num_db_threads());
-
-    shards[i] = new shard_store_t(pseudoserializers[i], dynamic_config, delete_queue_limit);
+    create_existing_shard(&shards[i], i, pseudoserializers[i], dynamic_config, delete_queue_limit);
 }
 
 static mirrored_cache_config_t partition_cache_config(const mirrored_cache_config_t &orig, float share) {
@@ -161,13 +190,13 @@ static mirrored_cache_config_t partition_cache_config(const mirrored_cache_confi
 btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_config_t *dynamic_config)
     : hash_control(this) {
 
-    /* Start serializers */
+    /* Start data shard serializers */
     n_files = dynamic_config->serializer_private.size();
     rassert(n_files > 0);
     rassert(n_files <= MAX_SERIALIZERS);
 
     for (int i = 0; i < n_files; i++) serializers[i] = NULL;
-    pmap(n_files, boost::bind(&create_existing_serializer, dynamic_config, serializers, _1));
+    pmap(n_files, boost::bind(&create_existing_shard_serializer, dynamic_config, serializers, _1));
     for (int i = 0; i < n_files; i++) rassert(serializers[i]);
 
     /* Multiplex serializers so we have enough proxy-serializers for our slices */
@@ -175,7 +204,7 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     for (int i = 0; i < n_files; i++) serializers_for_multiplexer[i] = serializers[i];
     multiplexer = new serializer_multiplexer_t(serializers_for_multiplexer);
 
-    btree_static_config.n_slices = multiplexer->proxies.size() - 1; // subtract 1 for metadata slice
+    btree_static_config.n_slices = multiplexer->proxies.size();
 
     // calculate what share of the resources we have go to the metadata shard
     float resource_total = 1 + (METADATA_SHARD_RESOURCE_QUOTIENT / btree_static_config.n_slices);
@@ -191,29 +220,26 @@ btree_key_value_store_t::btree_key_value_store_t(btree_key_value_store_dynamic_c
     /* Load btrees */
     translator_serializer_t **pseudoserializers = multiplexer->proxies.data();
     pmap(btree_static_config.n_slices,
-         boost::bind(&create_existing_shard,
-                     pseudoserializers, shards,
-                     &per_slice_config, per_slice_delete_queue_limit, _1));
-
-    // Load metadata btree
-    // TODO (rntz) code duplication with create_existing_shard
-    {
-        int i = btree_static_config.n_slices;
-        on_thread_t switcher(i % get_num_db_threads());
-        metadata_shard = new shard_store_t(pseudoserializers[i],
-            &metadata_slice_config, metadata_slice_delete_queue_limit);
-    }
+         boost::bind(&create_existing_data_shard, shards, _1,
+                     pseudoserializers, &per_slice_config, per_slice_delete_queue_limit));
 
     /* Initialize the timestampers to the timestamp value on disk */
     repli_timestamp_t t = get_replication_clock();
     set_timestampers(t);
 
+    // Start metadata serializer & load its btree
+    create_existing_serializer(&metadata_serializer, n_files,
+                               &dynamic_config->serializer,
+                               &dynamic_config->metadata_serializer_private);
+    create_existing_shard(&metadata_shard, btree_static_config.n_slices,
+                          metadata_serializer, &metadata_slice_config, metadata_slice_delete_queue_limit);
+
     // Unpersist stats & create the stat persistence coro
     // TODO (rntz) should this really be in the constructor? what if it errors?
     // But how else can I ensure the first unpersist happens before the first persist?
     persistent_stat_t::unpersist_all(this);
-    stat_persistence_side_coro_ptr.reset(
-        new side_coro_handler_t(boost::bind(&co_persist_stats, this, _1)));
+    stat_persistence_side_coro_ptr =
+        new side_coro_handler_t(boost::bind(&co_persist_stats, this, _1));
 }
 
 static void set_one_timestamper(shard_store_t **shards, int i, repli_timestamp_t t) {
@@ -226,29 +252,25 @@ void btree_key_value_store_t::set_timestampers(repli_timestamp_t t) {
     pmap(btree_static_config.n_slices, boost::bind(&set_one_timestamper, shards, _1, t));
 }
 
-void destroy_shard(
-        shard_store_t **shards,
-        int i) {
-
+void destroy_shard(shard_store_t **shards, int i) {
     on_thread_t thread_switcher(shards[i]->home_thread());
-
     delete shards[i];
 }
 
 btree_key_value_store_t::~btree_key_value_store_t() {
     // make sure side coro finishes so we're done with the metadata shard
-    stat_persistence_side_coro_ptr.reset();
+    delete stat_persistence_side_coro_ptr;
 
     /* Shut down btrees */
     pmap(btree_static_config.n_slices, boost::bind(&destroy_shard, shards, _1));
-    // TODO (rntz) hackish reuse of destroy_shard
-    destroy_shard(&metadata_shard, 0);
+    destroy_shard(&metadata_shard, 0); // hackish reuse of destroy_shard
 
     /* Destroy proxy-serializers */
     delete multiplexer;
 
     /* Shut down serializers */
-    pmap(n_files, boost::bind(&destroy_serializer, serializers, _1));
+    pmap(n_files, boost::bind(&destroy_shard_serializer, serializers, _1));
+    destroy_serializer(metadata_serializer);
 }
 
 /* Function to check if any of the files seem to contain existing databases */

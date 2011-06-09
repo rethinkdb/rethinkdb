@@ -208,6 +208,7 @@
 
 //filenames for the database
 #define DEFAULT_DB_FILE_NAME                      "rethinkdb_data"
+#define DEFAULT_DB_METADATA_FILE_NAME             "rethinkdb_metadata"
 
 // We assume there will never be more than this many blocks. The value
 // is computed by dividing 1 TB by the smallest reasonable block size.

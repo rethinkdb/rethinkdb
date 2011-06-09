@@ -15,14 +15,15 @@
 void usage_serve() {
     Help_Pager *help = Help_Pager::instance();
     help->pagef("Usage:\n"
-                "        rethinkdb serve [OPTIONS] [-f <file_1> -f <file_2> ...]\n"
+                "        rethinkdb serve [OPTIONS] [-f <file_1> -f <file_2> ... --metadata-file <file>]\n"
                 "        Serve a database with one or more storage files.\n"
                 "\n"
                 "Options:\n"
 
     //          "                        24 characters start here.                              | < last character
                 "  -f, --file            Path to file or block device where database goes.\n"
-                "                        Can be specified multiple times to use multiple files.\n");
+                "                        Can be specified multiple times to use multiple files.\n"
+                "  --metadata-file       Path to file or block device used for database metadata.\n");
     help->pagef("  -c, --cores           Number of cores to use for handling requests.\n"
                 "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
                 "                        blocks, in megabytes. This should be ~80%% of\n" 
@@ -198,13 +199,15 @@ enum {
     flush_threshold,
     full_perfmon,
     total_delete_queue_limit,
-    memcache_file
+    memcache_file,
+    metadata_file
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     parsing_cmd_config_t config;
 
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
+    log_serializer_private_dynamic_config_t &metadata_private_config = config.store_dynamic_config.metadata_serializer_private;
 
     /* main() will have automatically inserted "serve" if no argument was specified */
     rassert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create") || !strcmp(argv[0], "import"));
@@ -255,6 +258,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
                 {"file",                 required_argument, 0, 'f'},
+                {"metadata-file",        required_argument, 0, metadata_file},
 #ifdef SEMANTIC_SERIALIZER_CHECK
                 {"semantic-file",        required_argument, 0, 'S'},
 #endif
@@ -314,6 +318,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
 #endif
             case 'm':
                 config.set_max_cache_size(optarg); break;
+            case metadata_file:
+                config.set_metadata_file(optarg); break;
             case wait_for_flush:
                 config.set_wait_for_flush(optarg); break;
             case flush_timer:
@@ -374,31 +380,50 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     }
     
     /* "Idiot mode" -- do something reasonable for novice users */
+    bool no_data_files = private_configs.empty();
+    bool no_metadata_file = metadata_private_config.db_filename.empty();
     
-    if (private_configs.empty() && !config.create_store) {        
-        struct log_serializer_private_dynamic_config_t db_info;
-        db_info.db_filename = DEFAULT_DB_FILE_NAME;
-#ifdef SEMANTIC_SERIALIZER_CHECK
-        db_info.semantic_filename = std::string(DEFAULT_DB_FILE_NAME) + DEFAULT_SEMANTIC_EXTENSION;
-#endif
-        private_configs.push_back(db_info);
-        
-        int res = access(DEFAULT_DB_FILE_NAME, F_OK);
-        if (res == 0) {
-            /* Found a database file -- try to load it */
-            config.create_store = false;   // This is redundant
-        } else if (res == -1 && errno == ENOENT) {
-            /* Create a new database */
-            config.create_store = true;
-            config.shutdown_after_creation = false;
-        } else {
-            fail_due_to_user_error("Could not access() path \"%s\": %s", DEFAULT_DB_FILE_NAME, strerror(errno));
+    if (!config.create_store) {
+        if (no_data_files && no_metadata_file) {
+            struct log_serializer_private_dynamic_config_t db_info;
+            db_info.db_filename = DEFAULT_DB_FILE_NAME;
+            metadata_private_config.db_filename = DEFAULT_DB_METADATA_FILE_NAME;
+    #ifdef SEMANTIC_SERIALIZER_CHECK
+            db_info.semantic_filename = std::string(DEFAULT_DB_FILE_NAME) + DEFAULT_SEMANTIC_EXTENSION;
+            metadata_private_config.semantic_filename = std::string(DEFAULT_DB_METADATA_FILE_NAME) + DEFAULT_SEMANTIC_EXTENSION;
+    #endif
+            private_configs.push_back(db_info);
+
+            int res1 = access(DEFAULT_DB_FILE_NAME, F_OK);
+            int errno1 = errno;
+            int res2 = access(DEFAULT_DB_METADATA_FILE_NAME, F_OK);
+            int errno2 = errno;
+            if (res1 == 0 && res2 == 0) {
+                /* Found database files -- try to load */
+                config.create_store = false;   // This is redundant
+            } else if (res1 == -1 && errno1 == ENOENT && res2 == -1 && errno2 == ENOENT) {
+                /* Create a new database */
+                config.create_store = true;
+                config.shutdown_after_creation = false;
+            } else {
+                if (res1)
+                    report_user_error("Could not access() path \"%s\": %s", DEFAULT_DB_FILE_NAME, strerror(errno1));
+                if (res2)
+                    report_user_error("Could not access() path \"%s\": %s", DEFAULT_DB_METADATA_FILE_NAME, strerror(errno2));
+                exit(-1);
+            }
+        } else if (no_data_files) {
+            fprintf(stderr, "Metadata file specified, but no data files specified; use -f.\n");
+            usage_serve();
+        } else if (no_metadata_file) {
+            fprintf(stderr, "Data file(s) specified, but no metadata file specified; use --metadata-file.\n");
+            usage_serve();
         }
-    } else if (private_configs.empty() && config.create_store) {
-        fprintf(stderr, "You must explicitly specify one or more paths with -f.\n");
+    } else if (config.create_store && (no_data_files || no_metadata_file)) {
+        fprintf(stderr, "You must explicitly specify one or more paths with -f, and one with --metadata-file.\n");
         usage_create();
     }
-    
+
     /* Sanity-check the input */
     
     if (config.store_dynamic_config.cache.max_dirty_size == 0 ||
@@ -488,6 +513,13 @@ void parsing_cmd_config_t::push_private_config(const char* value) {
     db_info.semantic_filename = std::string(value) + DEFAULT_SEMANTIC_EXTENSION;
 #endif
     store_dynamic_config.serializer_private.push_back(db_info);
+}
+
+void parsing_cmd_config_t::set_metadata_file(const char *value) {
+    store_dynamic_config.metadata_serializer_private.db_filename = std::string(value);
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    store_dynamic_config.metadata_serializer_private.semantic_filename = std::string(value) + DEFAULT_SEMANTIC_EXTENSION;
+#endif
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
@@ -834,18 +866,23 @@ void cmd_config_t::print_runtime_flags() {
 }
 
 void cmd_config_t::print_database_flags() {
-    printf("--- Database ---\n");
-    printf("Slices.............%d\n", store_static_config.btree.n_slices);
-    printf("Block size.........%ldKB\n", store_static_config.serializer.block_size().ser_value() / KILOBYTE);
-    printf("Extent size........%ldKB\n", store_static_config.serializer.extent_size() / KILOBYTE);
-    
+    log_serializer_private_dynamic_config_t &metadata_config = store_dynamic_config.metadata_serializer_private;
     const std::vector<log_serializer_private_dynamic_config_t>& private_configs = store_dynamic_config.serializer_private;
+
+    printf("--- Database ---\n");
+    printf("Slices..................%d\n", store_static_config.btree.n_slices);
+    printf("Block size..............%ldKB\n", store_static_config.serializer.block_size().ser_value() / KILOBYTE);
+    printf("Extent size.............%ldKB\n", store_static_config.serializer.extent_size() / KILOBYTE);
+    printf("Metadata file...........%s\n", metadata_config.db_filename.c_str());
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    printf("Metadata semantic file..%s\n", metadata_config.semantic_filename.c_str());
+#endif
     
     for (size_t i = 0; i != private_configs.size(); i++) {
         const log_serializer_private_dynamic_config_t& db_info = private_configs[i];
-        printf("File %.2u............%s\n", (uint) i + 1, db_info.db_filename.c_str());
+        printf("File %.2u.................%s\n", (uint) i + 1, db_info.db_filename.c_str());
 #ifdef SEMANTIC_SERIALIZER_CHECK
-        printf("Semantic file %.2u...%s\n", (uint) i + 1, db_info.semantic_filename.c_str());
+        printf("Semantic file %.2u........%s\n", (uint) i + 1, db_info.semantic_filename.c_str());
 #endif
     }
 }
