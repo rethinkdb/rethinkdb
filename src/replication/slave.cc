@@ -174,7 +174,8 @@ void slave_t::run(signal_t *shutdown_signal) {
             timeout_ = std::min(timeout_ * TIMEOUT_GROWTH_FACTOR, (long)TIMEOUT_CAP);
 
             cond_t c;
-            call_with_delay(timeout, boost::bind(&cond_t::pulse, &c), &c);
+            signal_timer_t retry_timer(timeout);
+            cond_link_t proceed_when_delay_is_over(&retry_timer, &c);
             pulse_to_reset_failover_.watch(&c);
             cond_link_t abort_delay_on_shutdown(shutdown_signal, &c);
             c.wait();
