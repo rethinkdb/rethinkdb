@@ -314,7 +314,9 @@ bash_completion_dir:=/etc/bash_completion.d
 internal_bash_completion_dir:=$(share_dir)$(bash_completion_dir)
 scripts_dir:=$(share_dir)/scripts
 
-ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate $(ASSETS_DIR)/scripts/unused_port
+ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
+
+CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
 FULL_SERVER_EXEC_NAME=$(bin_dir)/$(SERVER_EXEC_NAME)
 FULL_SERVER_EXEC_NAME_VERSIONED=$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
