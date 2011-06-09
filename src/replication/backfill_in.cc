@@ -73,15 +73,13 @@ void backfill_storer_t::ensure_backfilling() {
 }
 
 void backfill_storer_t::backfill_delete_everything(order_token_t token) {
-    order_sink_.check_out(token);
     print_backfill_warning_ = true;
     ensure_backfilling();
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::delete_all_keys_for_backfill, kvs_, order_token_t::ignore));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::delete_all_keys_for_backfill, kvs_, token));
 }
 
 void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) {
-    order_sink_.check_out(token);
     print_backfill_warning_ = true;
     ensure_backfilling();
 
@@ -96,12 +94,11 @@ void backfill_storer_t::backfill_deletion(store_key_t key, order_token_t token) 
         // timestamp is part of the "->change" interface in a way not
         // relevant to slaves -- it's used when putting deletions into the
         // delete queue.
-        castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid), order_token_t::ignore
+        castime_t(NO_CAS_SUPPLIED, repli_timestamp::invalid), token
         ));
 }
 
 void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) {
-    order_sink_.check_out(token);
     print_backfill_warning_ = true;
     ensure_backfilling();
 
@@ -116,7 +113,7 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) 
     block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::change, kvs_,
-        mut, castime_t(atom.cas_or_zero, atom.recency), order_token_t::ignore
+        mut, castime_t(atom.cas_or_zero, atom.recency), token
         ));
 
     if (atom.cas_or_zero != 0) {
@@ -131,7 +128,7 @@ void backfill_storer_t::backfill_set(backfill_atom_t atom, order_token_t token) 
         block_pm_duration timer(&pm_replication_slave_backfill_enqueue);
         backfill_queue_.push(boost::bind(
             &btree_key_value_store_t::change, kvs_,
-            cas_mut, castime_t(atom.cas_or_zero, atom.recency), order_token_t::ignore));
+            cas_mut, castime_t(atom.cas_or_zero, atom.recency), token));
     }
 }
 
@@ -140,8 +137,6 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
     rassert(!master_t::inside_backfill_done_or_backfill);
     master_t::inside_backfill_done_or_backfill = true;
 #endif
-
-    order_sink_.check_out(token);
 
     /* Call ensure_backfilling() a last time just to make sure that the queue_picker_ is set
      up correctly (i.e. does not process the realtime queue yet). Otherwise draining the coro_pool
@@ -156,8 +151,8 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
     /* Write replication clock before timestamp so that if the flush happens
     between them, we will redo the backfill instead of proceeding with a wrong
     replication clock. */
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, timestamp, order_token_t::ignore));
-    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, timestamp, order_token_t::ignore));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_replication_clock, kvs_, timestamp, token));
+    backfill_queue_.push(boost::bind(&btree_key_value_store_t::set_last_sync, kvs_, timestamp, token));
 
     /* We want the realtime queue to accept operations without throttling until
     the backfill is over, and then to start throttling. To make sure that we
@@ -195,7 +190,6 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
 }
 
 void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t castime, order_token_t token) {
-    order_sink_.check_out(token);
     get_cas_mutation_t mut;
     mut.key = key;
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
@@ -203,14 +197,12 @@ void backfill_storer_t::realtime_get_cas(const store_key_t& key, castime_t casti
 }
 
 void backfill_storer_t::realtime_sarc(sarc_mutation_t& m, castime_t castime, order_token_t token) {
-    order_sink_.check_out(token);
     block_pm_duration timer(&pm_replication_slave_realtime_enqueue);
     realtime_queue_.push(boost::bind(&btree_key_value_store_t::change, kvs_, m, castime, token));
 }
 
 void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount,
                                            castime_t castime, order_token_t token) {
-    order_sink_.check_out(token);
     incr_decr_mutation_t mut;
     mut.key = key;
     mut.kind = kind;
@@ -221,7 +213,6 @@ void backfill_storer_t::realtime_incr_decr(incr_decr_kind_t kind, const store_ke
 
 void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, const store_key_t &key,
                                                 boost::shared_ptr<data_provider_t> data, castime_t castime, order_token_t token) {
-    order_sink_.check_out(token);
     append_prepend_mutation_t mut;
     mut.key = key;
     mut.data = data;
@@ -231,7 +222,6 @@ void backfill_storer_t::realtime_append_prepend(append_prepend_kind_t kind, cons
 }
 
 void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timestamp timestamp, order_token_t token) {
-    order_sink_.check_out(token);
     delete_mutation_t mut;
     mut.key = key;
     mut.dont_put_in_delete_queue = true;
@@ -245,7 +235,6 @@ void backfill_storer_t::realtime_delete_key(const store_key_t &key, repli_timest
 }
 
 void backfill_storer_t::realtime_time_barrier(repli_timestamp_t timestamp, order_token_t token) {
-    // TODO order_token_t: use the token.
     /* Write the replication clock before writing `last_sync` so that if we crash between
     them, we'll re-sync that second instead of proceeding with a wrong replication clock.
     There is no need to change the timestamper because there are no sets being sent to this

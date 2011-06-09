@@ -95,7 +95,8 @@ public:
     void large_buf_assertions() const {
         rassert(is_large());
         rassert(size >= sizeof(large_buf_ref));
-        rassert((size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0);
+        bool modcmp = (size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0;
+        rassert(modcmp);
     }
 #endif
 

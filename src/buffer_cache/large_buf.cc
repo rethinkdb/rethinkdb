@@ -647,7 +647,7 @@ buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64
     rassert(offset + size <= max_offset(levels));
 
     if (tr != NULL) {
-        rassert(tr->level == levels, "tr->level=%d, levels=%d, offset=%d, size=%d\n", tr->level, levels, offset, size);
+        rassert(tr->level == levels, "tr->level=%d, levels=%d, offset=%ld, size=%ld\n", tr->level, levels, offset, size);
 
         if (levels != 1) {
             walk_tree_structures(&tr->children, offset, size, levels - 1, bufdoer, buftree_cleaner);
@@ -875,7 +875,7 @@ void large_buf_t::lv_release() {
 
 large_buf_t::~large_buf_t() {
     lv_release();
-    rassert(num_bufs == 0, "num_bufs == 0 failed.. num_bufs is %d", num_bufs);
+    rassert(num_bufs == 0, "num_bufs == 0 failed.. num_bufs is %ld", num_bufs);
 }
 
 

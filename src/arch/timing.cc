@@ -3,63 +3,37 @@
 
 // nap()
 
-static void wake_coroutine(void *coro) {
-    reinterpret_cast<coro_t*>(coro)->notify_now();
-}
-
 void nap(int ms) {
-    rassert(coro_t::self(), "Not in a coroutine context");
-    rassert(ms >= 0);
-
-    if (ms != 0) {
-        (void) fire_timer_once(ms, &wake_coroutine, reinterpret_cast<void*>(coro_t::self()));
-        coro_t::wait();
+    if (ms > 0) {
+        signal_timer_t timer(ms);
+        timer.wait_lazily();
     } else {
         coro_t::yield();
     }
 }
 
-// call_with_delay()
+// signal_timer_t
 
-struct delayed_caller_t : public signal_t::waiter_t {
+signal_timer_t::signal_timer_t(int ms) {
+    rassert(ms >= 0);
+    timer = fire_timer_once(ms, &signal_timer_t::on_timer_ring, this);
+}
 
-    delayed_caller_t(int delay_ms, const boost::function<void()> &cb, signal_t *ab) :
-        ttok(NULL), callback(cb), aborter(ab)
-    {
-        rassert(callback);
-        if (aborter && aborter->is_pulsed()) {
-            delete this;
-        } else {
-            if (aborter) aborter->add_waiter(this);
-            ttok = fire_timer_once(delay_ms, &delayed_caller_t::on_timer, static_cast<void*>(this));
-        }
-    }
+signal_timer_t::~signal_timer_t() {
+    if (timer) cancel_timer(timer);
+}
 
-    timer_token_t *ttok;
-    boost::function<void()> callback;
-    signal_t *aborter;
-
-    void on_signal_pulsed() {
-        cancel_timer(ttok);
-        delete this;
-    }
-
-    static void on_timer(void *s) {
-        delayed_caller_t *self = static_cast<delayed_caller_t*>(s);
-        if (self->aborter) self->aborter->remove_waiter(self);
-        self->callback();
-        delete self;
-    }
-};
-
-void call_with_delay(int delay_ms, const boost::function<void()> &fun, signal_t *aborter) {
-    new delayed_caller_t(delay_ms, fun, aborter);
+void signal_timer_t::on_timer_ring(void *v_timer) {
+    signal_timer_t *self = reinterpret_cast<signal_timer_t*>(v_timer);
+    self->timer = NULL;
+    self->pulse();
 }
 
 // repeating_timer_t
 
 repeating_timer_t::repeating_timer_t(int frequency_ms, boost::function<void(void)> ring) :
     ring(ring) {
+    rassert(frequency_ms > 0);
     timer = add_timer(frequency_ms, &repeating_timer_t::on_timer_ring, this);
 }
 

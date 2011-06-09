@@ -1,5 +1,18 @@
-# This is a generated file, composed of the following suppression rules:
+# RethinkDB specific suppressions
+{
+   False conflict between mc_cache_t destructor and calls to mc_cache_t offer_read_ahead_buf(). See #365
+   drd:ConflictingAccess
+   fun:_ZN10mc_cache_tD0Ev
+}
+{
+   False conflict between mc_cache_t destructor and calls to mc_cache_t offer_read_ahead_buf(). See #365
+   drd:ConflictingAccess
+   fun:_ZN23translator_serializer_t20offer_read_ahead_bufE14ser_block_id_tPv17repli_timestamp_t
+}
+
+# This used to be a generated file, composed of the following suppression rules:
 #  exp-ptrcheck.supp xfree-3.supp xfree-4.supp glibc-2.X-drd.supp glibc-2.34567-NPTL-helgrind.supp glibc-2.X.supp debian.supp
+# But it has been modified to work on Amazon's EC2 Linux AMIs.
 {
    lib-X11-used-old-pointer-after-realloc-1
    exp-ptrcheck:Heap
