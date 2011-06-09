@@ -67,7 +67,7 @@ check "$?" "Version extraction failed"
 #TODO this should maybe be a seperate file... might not be so important
 if [ "$version" = "0.1" ]
 then
-    old_rdb=/usr/bin/rethinkdb1.0
+    old_rdb=/usr/bin/rethinkdb-1.0
 else
     croak "Unrecognized file version: $version"
 fi
