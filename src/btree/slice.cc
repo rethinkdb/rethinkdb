@@ -64,6 +64,12 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 
     sb->replication_clock = sb->last_sync = repli_timestamp_t::distant_past;
     sb->replication_master_id = sb->replication_slave_id = 0;
+
+    // This is a work-around for some over-sensitivity of Valgrind drd.
+    // We unregister the cache as a read-ahead callback before destructing
+    // it, even though the cache's destructor would handle this anyway.
+    // See issue #365 for a more detailed analysis.
+    serializer->unregister_read_ahead_cb(cache.get());
 }
 
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
@@ -72,6 +78,17 @@ btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
     : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit) { }
 
 btree_slice_t::~btree_slice_t() {
+    // TODO: Valgrind drd is over-sensitive when it comes to
+    // inter-thread calls to methods of an object which is in
+    // destruction, even though those calls can be perfectly
+    // valid at their respective time.
+    // Destructing a cache that has read-ahead enabled can trigger such
+    // a warning if the serializer runs on a different thread.
+    // The drd warning can be worked around by unregistering the read-ahead
+    // callback first, which we currently only do after database creation
+    // (see above). If drd warnings come up, we should add such a call
+    // to this place too. (compare issue #365)
+
     // Cache's destructor handles flushing and stuff
 }
 
