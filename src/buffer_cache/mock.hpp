@@ -94,17 +94,17 @@ class mock_cache_account_t {
     DISABLE_COPYING(mock_cache_account_t);
 };
 
-class mock_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
+class mock_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
 public:
     typedef mock_buf_t buf_t;
     typedef mock_transaction_t transaction_t;
     typedef mock_cache_account_t cache_account_t;
 
     static void create(
-        translator_serializer_t *serializer,
+        serializer_t *serializer,
         mirrored_cache_static_config_t *static_config);
     mock_cache_t(
-        translator_serializer_t *serializer,
+        serializer_t *serializer,
         mirrored_cache_config_t *dynamic_config);
     ~mock_cache_t();
 
@@ -121,7 +121,7 @@ private:
     friend class mock_buf_t;
     friend class internal_buf_t;
 
-    translator_serializer_t *serializer;
+    serializer_t *serializer;
     drain_semaphore_t transaction_counter;
     block_size_t block_size;
     segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> bufs;

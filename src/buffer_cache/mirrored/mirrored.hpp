@@ -9,7 +9,6 @@
 #include "concurrency/cond_var.hpp"
 #include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
-#include "serializer/translator.hpp"
 #include "server/cmd_args.hpp"
 #include "buffer_cache/stats.hpp"
 #include "buffer_cache/buf_patch.hpp"
@@ -296,7 +295,7 @@ class mc_cache_account_t {
 
 
 
-struct mc_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
+struct mc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
     friend class load_buf_fsm_t;
     friend class mc_buf_t;
     friend class mc_inner_buf_t;
@@ -327,7 +326,7 @@ private:
     // extensible when some policy implementation requires access to
     // components it wasn't originally given.
 
-    translator_serializer_t *serializer;
+    serializer_t *serializer;
 
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,
@@ -341,8 +340,8 @@ private:
     free_list_t free_list;
 
 public:
-    static void create(translator_serializer_t *serializer, mirrored_cache_static_config_t *config);
-    mc_cache_t(translator_serializer_t *serializer, mirrored_cache_config_t *dynamic_config);
+    static void create(serializer_t *serializer, mirrored_cache_static_config_t *config);
+    mc_cache_t(serializer_t *serializer, mirrored_cache_config_t *dynamic_config);
     ~mc_cache_t();
 
 public:

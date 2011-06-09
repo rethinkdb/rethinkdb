@@ -6,6 +6,7 @@
 #include <boost/crc.hpp>
 #include "containers/two_level_array.hpp"
 #include "buffer_cache/buf_patch.hpp"
+#include "serializer/serializer.hpp"
 
 // TODO: Have the semantic checking cache make sure that the
 // repli_timestamps are correct.
@@ -96,17 +97,17 @@ private:
 /* Cache */
 
 template<class inner_cache_t>
-class scc_cache_t : public home_thread_mixin_t, public translator_serializer_t::read_ahead_callback_t {
+class scc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
 public:
     typedef scc_buf_t<inner_cache_t> buf_t;
     typedef scc_transaction_t<inner_cache_t> transaction_t;
     typedef typename inner_cache_t::cache_account_t cache_account_t;
 
     static void create(
-        translator_serializer_t *serializer,
+        serializer_t *serializer,
         mirrored_cache_static_config_t *static_config);
     scc_cache_t(
-        translator_serializer_t *serializer,
+        serializer_t *serializer,
         mirrored_cache_config_t *dynamic_config);
 
     block_size_t get_block_size();

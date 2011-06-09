@@ -7,7 +7,6 @@
 #include "flush_time_randomizer.hpp"
 #include "utils.hpp"
 #include "serializer/serializer.hpp"
-#include "serializer/translator.hpp"
 #include "buffer_cache/buf_patch.hpp"
 
 struct mc_cache_t;
@@ -209,7 +208,7 @@ public:
         transaction_t *transaction;
 
         // Transaction to submit to the serializer
-        std::vector<translator_serializer_t::write_t> serializer_writes;
+        std::vector<serializer_t::write_t> serializer_writes;
 
         // We need these to update the transaction ids after issuing a serializer write
         std::vector<inner_buf_t*> serializer_inner_bufs;

@@ -5,7 +5,7 @@
 
 const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };
 
-void patch_disk_storage_t::create(translator_serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config) {
+void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config) {
 
     /* Prepare the config block */
     mc_config_block_t *c = reinterpret_cast<mc_config_block_t *>(serializer->malloc());
@@ -13,7 +13,7 @@ void patch_disk_storage_t::create(translator_serializer_t *serializer, block_id_
     c->magic = mc_config_block_t::expected_magic;
     c->cache = *config;
 
-    translator_serializer_t::write_t write = translator_serializer_t::write_t::make(
+    serializer_t::write_t write = serializer_t::write_t::make(
         start_id,
         repli_timestamp::invalid,
         c,

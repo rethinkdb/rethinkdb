@@ -17,7 +17,7 @@
 #include "replication/delete_queue.hpp"
 #include "replication/master.hpp"
 
-void btree_slice_t::create(translator_serializer_t *serializer,
+void btree_slice_t::create(serializer_t *serializer,
                            mirrored_cache_static_config_t *static_config) {
     cache_t::create(serializer, static_config);
 
@@ -66,7 +66,7 @@ void btree_slice_t::create(translator_serializer_t *serializer,
     sb->replication_master_id = sb->replication_slave_id = 0;
 }
 
-btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
+btree_slice_t::btree_slice_t(serializer_t *serializer,
                              mirrored_cache_config_t *dynamic_config,
                              int64_t delete_queue_limit)
     : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit) { }

@@ -814,7 +814,7 @@ file_t::account_t *mc_transaction_t::get_io_account() const {
     return (cache_account_.get() == NULL ? cache->reads_io_account.get() : cache_account_->io_account_.get());
 }
 
-void get_subtree_recencies_helper(int slice_home_thread, translator_serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
+void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
     serializer->assert_thread();
 
     for (size_t i = 0; i < num_block_ids; ++i) {
@@ -850,7 +850,7 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
  * Cache implementation.
  */
 
-void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_static_config_t *config) {
+void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t *config) {
     /* Initialize config block and differential log */
 
     patch_disk_storage_t::create(serializer, MC_CONFIGBLOCK_ID, config);
@@ -861,7 +861,7 @@ void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_stat
 
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
-    translator_serializer_t::write_t write = translator_serializer_t::write_t::make(
+    serializer_t::write_t write = serializer_t::write_t::make(
         SUPERBLOCK_ID, repli_timestamp::invalid, superblock, false, NULL);
 
     struct : public serializer_t::write_txn_callback_t, public cond_t {
@@ -873,7 +873,7 @@ void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_stat
 }
 
 mc_cache_t::mc_cache_t(
-            translator_serializer_t *serializer,
+            serializer_t *serializer,
             mirrored_cache_config_t *dynamic_config) :
 
     dynamic_config(*dynamic_config),
@@ -1047,7 +1047,7 @@ bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf
     // Check if we want to unregister ourselves
     if (page_repl.is_full(5)) {
         // unregister_read_ahead_cb requires a coro context, but we might not be in any
-        coro_t::spawn_now(boost::bind(&translator_serializer_t::unregister_read_ahead_cb, serializer, this));
+        coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
 
     return true;
