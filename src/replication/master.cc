@@ -88,7 +88,7 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
     /* So we can't shut down yet */
     streaming_cond_.reset();
 
-    if (!get_permission_) {
+    if (!get_permission_ && stream_) {
         /* We just finished the reverse-backfill operation from the first slave.
         Now we can accept gets and sets. At this point we will continue accepting
         gets and sets until we are shut down, regardless of whether the slave connection
