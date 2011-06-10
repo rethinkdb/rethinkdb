@@ -22,8 +22,8 @@ void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
         logWRN("Rejecting slave connection because I already have one.\n");
         return;
     }
-    if (!streaming_cond_.get_signal()) {
-        logWRN("Rejecting slave connection because the previous one has not been cleaned up yet.\n");
+    if (!streaming_cond_.get_signal() || !streaming_cond_.get_signal()->is_pulsed()) {
+        logWRN("Rejecting slave connection because the previous one has not cleaned up yet.\n");
         return;
     }
 
