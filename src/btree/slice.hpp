@@ -78,7 +78,7 @@ private:
     order_checkpoint_t order_checkpoint_;
 
     // TODO: Check that we use this variable.
-    order_sink_t order_sink_;
+    plain_sink_t order_sink_;
 
     DISABLE_COPYING(btree_slice_t);
 };
