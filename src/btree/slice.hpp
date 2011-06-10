@@ -84,7 +84,7 @@ private:
     // Cache account to be used when backfilling.
     boost::shared_ptr<cache_account_t> backfill_account;
 
-    order_sink_t order_sink_;
+    plain_sink_t order_sink_;
 
     DISABLE_COPYING(btree_slice_t);
 };
