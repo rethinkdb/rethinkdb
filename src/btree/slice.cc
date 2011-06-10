@@ -69,7 +69,8 @@ void btree_slice_t::create(translator_serializer_t *serializer,
 btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
                              mirrored_cache_config_t *dynamic_config,
                              int64_t delete_queue_limit)
-    : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit) { }
+    : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit),
+        backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) { }
 
 btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff
@@ -137,7 +138,7 @@ void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *ca
 
     order_sink_.check_out(token);
 
-    btree_backfill(this, since_when, callback, token);
+    btree_backfill(this, since_when, backfill_account, callback, token);
 }
 
 void btree_slice_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {

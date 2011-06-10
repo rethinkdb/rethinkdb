@@ -77,6 +77,9 @@ private:
     the order sinks on the individual blocks in the buffer cache. */
     order_checkpoint_t order_checkpoint_;
 
+    // Cache account to be used when backfilling.
+    boost::shared_ptr<cache_account_t> backfill_account;
+
     // TODO: Check that we use this variable.
     plain_sink_t order_sink_;
 
