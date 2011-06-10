@@ -123,7 +123,7 @@ public:
     order_source_t(UNUSED order_source_pigeoncoop_t *coop) { }
     ~order_source_t() { }
 
-    order_token_t check_in() { return order_token_t(); }
+    order_token_t check_in(const std::string&) { return order_token_t(); }
 #endif  // ndef NDEBUG
 
 private:
@@ -160,8 +160,8 @@ public:
     void backfill_begun() { }
     void backfill_done() { }
 
-    order_token_t check_in_backfill_operation() { return order_token_t(); }
-    order_token_t check_in_realtime_operation() { return order_token_t(); }
+    order_token_t check_in_backfill_operation(const std::string&) { return order_token_t(); }
+    order_token_t check_in_realtime_operation(const std::string&) { return order_token_t(); }
 
 #endif  // ifndef NDEBUG
 
