@@ -8,7 +8,7 @@
 #define ORDER_IGNORE (-1)
 #define ORDER_IGNORE (-1)
 
-const order_token_t order_token_t::ignore(order_bucket_t(ORDER_IGNORE, ORDER_IGNORE), ORDER_IGNORE, false);
+const order_token_t order_token_t::ignore(order_bucket_t(ORDER_IGNORE, ORDER_IGNORE), ORDER_IGNORE, false, "order_token_t::ignore");
 #else
 const order_token_t order_token_t::ignore;
 #endif  // ifndef NDEBUG
@@ -47,14 +47,15 @@ bool order_bucket_t::valid() {
 
 order_token_t::order_token_t() : bucket_(ORDER_INVALID, ORDER_INVALID), value_(ORDER_INVALID) { }
 
-order_token_t::order_token_t(order_bucket_t bucket, int64_t x, bool read_mode)
-    : bucket_(bucket), read_mode_(read_mode), value_(x) { }
+order_token_t::order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string& tag)
+    : bucket_(bucket), read_mode_(read_mode), value_(x), tag_(tag) { }
 
 order_token_t order_token_t::with_read_mode() const {
-    return order_token_t(bucket_, value_, true);
+    return order_token_t(bucket_, value_, true, tag_);
 }
 
 bool order_token_t::read_mode() const { return read_mode_; }
+const std::string& order_token_t::tag() const { return tag_; }
 
 
 
@@ -107,10 +108,10 @@ order_source_t::~order_source_t() {
     pigeoncoops[get_thread_id()].unregister_bucket(bucket_.number_, counter_);
 }
 
-order_token_t order_source_t::check_in() {
+order_token_t order_source_t::check_in(const std::string& tag) {
     assert_thread();
     ++counter_;
-    return order_token_t(bucket_, counter_, false);
+    return order_token_t(bucket_, counter_, false, tag);
 }
 
 
@@ -154,18 +155,19 @@ void backfill_receiver_order_source_t::backfill_done() {
     counter_ += REALTIME_COUNTER_INCREMENT;
 }
 
-order_token_t backfill_receiver_order_source_t::check_in_backfill_operation() {
+order_token_t backfill_receiver_order_source_t::check_in_backfill_operation(const std::string& tag) {
     assert_thread();
     backfill_active_ = true;
     rassert(backfill_active_);
     ++counter_;
-    return order_token_t(bucket_, counter_, false);
+    return order_token_t(bucket_, counter_, false, "backfill+" + tag);
 }
 
-order_token_t backfill_receiver_order_source_t::check_in_realtime_operation() {
+order_token_t backfill_receiver_order_source_t::check_in_realtime_operation(const std::string& tag) {
     assert_thread();
     ++counter_;
-    return order_token_t(bucket_, counter_ + (backfill_active_ ? REALTIME_COUNTER_INCREMENT : 0), false);
+    return order_token_t(bucket_, counter_ + (backfill_active_ ? REALTIME_COUNTER_INCREMENT : 0),
+			 false, "realtime+" + tag);
 }
 
 
@@ -180,30 +182,29 @@ void order_sink_t::check_out(order_token_t token) {
         make a new entry in the map and fill it with a pair of (0, 0).
         Either way, `last_seen` will be a pointer to the `std::pair`
         that ends up in the map. */
-        last_seens_map_t::iterator it = last_seens_.insert(
-            last_seens_map_t::value_type(token.bucket_, std::pair<int64_t, int64_t>(0, 0))
-            ).first;
-        std::pair<int64_t, int64_t> *last_seen = &(*it).second;
+        last_seens_map_t::iterator it = last_seens_.insert(last_seens_map_t::value_type(token.bucket_, std::pair<tagged_seen_t, tagged_seen_t>(tagged_seen_t(0, "0"), tagged_seen_t(0, "0")))).first;
+        std::pair<tagged_seen_t, tagged_seen_t> *last_seen = &(*it).second;
         verify_token_value_and_update(token, last_seen);
     }
 }
 
-void order_sink_t::verify_token_value_and_update(order_token_t token, std::pair<int64_t, int64_t> *ls_pair) {
+void order_sink_t::verify_token_value_and_update(order_token_t token, std::pair<tagged_seen_t, tagged_seen_t> *ls_pair) {
     // We tolerate equality in this comparison because it can be used
     // to ensure that multiple actions don't get interrupted.  And
     // resending the same action isn't normally a problem.
     if (token.read_mode_) {
-        rassert(token.value_ >= ls_pair->first, "token.value_ = %ld, last_seens_[token.bucket_].first = %ld, token.bucket_ = (%d,%d)", token.value_, ls_pair->first, token.bucket_.thread_, token.bucket_.number_);
-        ls_pair->second = std::max(ls_pair->second, token.value_);
+	rassert(token.value_ >= ls_pair->first.value, "read_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%d,%d)", token.value_, ls_pair->first.value, token.tag_.c_str(), ls_pair->first.tag.c_str(), token.bucket_.thread_, token.bucket_.number_);
+	if (ls_pair->second.value < token.value_) {
+	    ls_pair->second = tagged_seen_t(token.value_, token.tag_);
+	}
     } else {
-        rassert(token.value_ >= ls_pair->second, "token.value_ = %ld, last_seens_[token.bucket_].second = %ld, token.bucket_ = (%d,%d)", token.value_, ls_pair->second, token.bucket_.thread_, token.bucket_.number_);
-        ls_pair->first = ls_pair->second = token.value_;
+        rassert(token.value_ >= ls_pair->second.value, "write_mode expected (0x%lx >= 0x%lx), (%s >= %s), bucket = (%d,%d)", token.value_, ls_pair->second.value, token.tag_.c_str(), ls_pair->second.tag.c_str(), token.bucket_.thread_, token.bucket_.number_);
+        ls_pair->first = ls_pair->second = tagged_seen_t(token.value_, token.tag_);
     }
 }
 
 
-
-plain_sink_t::plain_sink_t() : ls_pair_(0, 0), have_bucket_(false) { }
+plain_sink_t::plain_sink_t() : ls_pair_(tagged_seen_t(0, "0"), tagged_seen_t(0, "0")), have_bucket_(false) { }
 
 void plain_sink_t::check_out(order_token_t token) {
     assert_thread();
@@ -221,11 +222,15 @@ void plain_sink_t::check_out(order_token_t token) {
 }
 
 
+void order_checkpoint_t::set_tagappend(const std::string& tagappend) {
+    rassert(tagappend_.empty());
+    tagappend_ = "+" + tagappend;
+}
 
 order_token_t order_checkpoint_t::check_through(order_token_t tok) {
     assert_thread();
     sink_.check_out(tok);
-    order_token_t tok2 = source_.check_in();
+    order_token_t tok2 = source_.check_in(tok.tag() + tagappend_);
     if (tok.read_mode()) tok2 = tok2.with_read_mode();
     return tok2;
 }

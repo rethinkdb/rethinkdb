@@ -22,7 +22,7 @@ shard_store_t::shard_store_t(
 get_result_t shard_store_t::get(const store_key_t &key, order_token_t token) {
     on_thread_t th(home_thread());
     sink.check_out(token);
-    order_token_t substore_token = substore_order_source.check_in().with_read_mode();
+    order_token_t substore_token = substore_order_source.check_in(token.tag() + "+shard_store_t::get").with_read_mode();
     // We need to let gets reorder themselves, and haven't implemented that yet.
     return btree.get(key, substore_token);
 }
@@ -30,7 +30,7 @@ get_result_t shard_store_t::get(const store_key_t &key, order_token_t token) {
 rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     on_thread_t th(home_thread());
     sink.check_out(token);
-    order_token_t substore_token = substore_order_source.check_in().with_read_mode();
+    order_token_t substore_token = substore_order_source.check_in(token.tag() + "+shard_store_t::rget").with_read_mode();
     // We need to let gets reorder themselves, and haven't implemented that yet.
     return btree.rget(left_mode, left_key, right_mode, right_key, substore_token);
 }
@@ -38,7 +38,7 @@ rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t
 mutation_result_t shard_store_t::change(const mutation_t &m, order_token_t token) {
     on_thread_t th(home_thread());
     sink.check_out(token);
-    order_token_t substore_token = substore_order_source.check_in();
+    order_token_t substore_token = substore_order_source.check_in(token.tag() + "+shard_store_t::change()");
     return timestamper.change(m, substore_token);
 }
 
@@ -46,21 +46,21 @@ mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order
     /* Bypass the timestamper because we already have a castime_t */
     on_thread_t th(home_thread());
     sink.check_out(token);
-    order_token_t substore_token = substore_order_source.check_in();
+    order_token_t substore_token = substore_order_source.check_in(token.tag() + "+shard_store_t::change(with castime_t)");
     return dispatching_store.change(m, ct, substore_token);
 }
 
 void shard_store_t::delete_all_keys_for_backfill(order_token_t token) {
     on_thread_t th(home_thread());
     sink.check_out(token);
-    order_token_t substore_token = substore_order_source.check_in();
+    order_token_t substore_token = substore_order_source.check_in(token.tag() + "shard_store_t::delete_all_keys_for_backfill");
     btree.delete_all_keys_for_backfill(substore_token);
 }
 
 void shard_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
     on_thread_t th(home_thread());
     sink.check_out(token);
-    btree.set_replication_clock(t, substore_order_source.check_in());
+    btree.set_replication_clock(t, substore_order_source.check_in(token.tag() + "shard_store_t::set_replication_clock"));
 }
 
 /* btree_key_value_store_t */

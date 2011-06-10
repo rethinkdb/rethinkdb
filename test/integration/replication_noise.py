@@ -206,6 +206,13 @@ class PacketCorrupter(object):
                 self.add_stream_id(stream_id)
             return packet
 
+def really_close(sock):
+    try:
+        sock.shutdown(socket.SHUT_RDWR)
+    except IOError:
+        pass
+    sock.close()
+
 class TCPProxy(object):
     # listening_to_connecting_filter and connecting_to_listening_filter must have the following methods:
     #   connected()
@@ -258,9 +265,9 @@ class TCPProxy(object):
         finally:
             if not success:
                 if listening_side != None:
-                    listening_side.close()
+                    really_close(listening_side)
                 if connecting_side != None:
-                    connecting_side.close()
+                    really_close(connecting_side)
 
     def run(self):
         def run_pump(from_socket, to_socket, filter, name):
@@ -288,9 +295,9 @@ class TCPProxy(object):
             except socket.error, e:
                 print "%s: Got a socket error (by %s): %r" % (name, action, e)
                 if to_socket:
-                    to_socket.close()
+                    really_close(to_socket)
                 if from_socket:
-                    from_socket.close()
+                    really_close(from_socket)
             except Exception, e:
                 #exc_type, exc_value, exc_traceback = sys.exc_info()
                 #traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stderr)
@@ -323,10 +330,10 @@ class TCPProxy(object):
 
                         if listening_side != None:
                             print datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " TCPProxy: closing listening socket"
-                            listening_side.close()
+                            really_close(listening_side)
                         if connecting_side != None:
                             print datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + " TCPProxy: closing connecting socket"
-                            connecting_side.close()
+                            really_close(connecting_side)
         except Exception, e:
             print "Exception in proxy: %s" % e
             self.exception = e

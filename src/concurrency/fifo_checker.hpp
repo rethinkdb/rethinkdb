@@ -41,7 +41,7 @@ public:
     order_token_t();
     order_token_t with_read_mode() const;
     bool read_mode() const;
-
+    const std::string& tag() const;
 #else
     order_token_t() { }
     order_token_t with_read_mode() const { return order_token_t(); }
@@ -49,14 +49,18 @@ public:
     int bucket() const { return 0; }
     bool read_mode() const { return true; }
     int64_t value() const { return 0; }
+    std::string tag() const { return ""; }
 #endif  // ifndef NDEBUG
 
 private:
 #ifndef NDEBUG
-    order_token_t(order_bucket_t bucket, int64_t x, bool read_mode);
+    order_token_t(order_bucket_t bucket, int64_t x, bool read_mode, const std::string& tag);
     order_bucket_t bucket_;
     bool read_mode_;
     int64_t value_;
+    // This tag would be inefficient on VC++ or some other non-GNU
+    // std::string implementation, since we copy by value.
+    std::string tag_;
 #endif  // ifndef NDEBUG
 
     friend class order_source_t;
@@ -76,7 +80,7 @@ public:
     order_source_t();
     ~order_source_t();
 
-    order_token_t check_in();
+    order_token_t check_in(const std::string& tag);
 #else
     order_source_t() { }
     ~order_source_t() { }
@@ -111,8 +115,8 @@ public:
     void backfill_begun();
     void backfill_done();
 
-    order_token_t check_in_backfill_operation();
-    order_token_t check_in_realtime_operation();
+    order_token_t check_in_backfill_operation(const std::string& tag);
+    order_token_t check_in_realtime_operation(const std::string& tag);
 #else
     backfill_receiver_order_source_t() { }
 
@@ -134,6 +138,12 @@ private:
     DISABLE_COPYING(backfill_receiver_order_source_t);
 };
 
+struct tagged_seen_t {
+    int64_t value;
+    std::string tag;
+
+    tagged_seen_t(int64_t _value, const std::string& _tag) : value(_value), tag(_tag) { }
+};
 
 /* Eventually order tokens get to an order sink, and those of the same
    bucket had better arrive in the right order. */
@@ -154,11 +164,11 @@ private:
 
 #ifndef NDEBUG
     friend class plain_sink_t;
-    static void verify_token_value_and_update(order_token_t token, std::pair<int64_t, int64_t> *ls_pair);
+    static void verify_token_value_and_update(order_token_t token, std::pair<tagged_seen_t, tagged_seen_t> *ls_pair);
 
     // We keep two last seen values because reads can be reordered.
     // .first = last seen write, .second = max(last seen read, last seen write)
-    typedef std::map<order_bucket_t, std::pair<int64_t, int64_t> > last_seens_map_t;
+    typedef std::map<order_bucket_t, std::pair<tagged_seen_t, tagged_seen_t> > last_seens_map_t;
     last_seens_map_t last_seens_;
 #endif  // ifndef NDEBUG
 
@@ -186,7 +196,7 @@ public:
 private:
 #ifndef NDEBUG
     // The pair of last seen values.
-    std::pair<int64_t, int64_t> ls_pair_;
+    std::pair<tagged_seen_t, tagged_seen_t> ls_pair_;
 
     /* If `have_bucket_`, then `bucket_` is the bucket that we are associated with.
     If we get an order token from a different bucket we crap out. */
@@ -202,6 +212,7 @@ private:
 class order_checkpoint_t : public home_thread_mixin_t {
 public:
 #ifndef NDEBUG
+    void set_tagappend(const std::string& tagappend);
     order_token_t check_through(order_token_t token);
 #else
     order_token_t check_through(UNUSED order_token_t token) { return order_token_t(); }
@@ -211,6 +222,7 @@ private:
 #ifndef NDEBUG
     order_sink_t sink_;
     order_source_t source_;
+    std::string tagappend_;
 #endif
 };
 

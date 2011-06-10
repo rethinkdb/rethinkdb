@@ -70,7 +70,9 @@ btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
                              mirrored_cache_config_t *dynamic_config,
                              int64_t delete_queue_limit)
     : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit),
-        backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) { }
+        backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) {
+    order_checkpoint_.set_tagappend("slice");
+}
 
 btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff
