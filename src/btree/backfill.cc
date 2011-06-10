@@ -14,9 +14,6 @@
 #include "btree/slice.hpp"
 
 
-#define BACKFILL_CACHE_PRIORITY 10
-
-
 class btree_slice_t;
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
@@ -121,11 +118,8 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 };
 
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback, order_token_t token) {
+void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token) {
     {
-        // Run backfilling at a reduced priority
-        boost::shared_ptr<cache_account_t> backfill_account = slice->cache()->create_account(BACKFILL_CACHE_PRIORITY);
-
         rassert(coro_t::self());
 
         backfill_traversal_helper_t helper(callback, since_when);
