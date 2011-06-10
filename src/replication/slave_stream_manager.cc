@@ -87,6 +87,10 @@ void slave_stream_manager_t::conn_closed() {
     }
 
     shutdown_cond_.pulse();
+
+    // TODO: This might fail for future versions of the order source, which
+    // require a backfill to have begun before it can be done.
+    order_source->backfill_done();
 }
 
 void slave_stream_manager_t::on_signal_pulsed() {
