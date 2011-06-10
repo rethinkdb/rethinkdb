@@ -167,8 +167,8 @@ repli_stream_t::repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_call
 }
 
 repli_stream_t::~repli_stream_t() {
-    drain_semaphore_.drain();   // Wait for any active send()s to finish
     stop_sending_heartbeats();
+    drain_semaphore_.drain();   // Wait for any active send()s to finish
     unwatch_heartbeat();
     rassert(!conn_->is_read_open());
 
