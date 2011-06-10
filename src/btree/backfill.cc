@@ -131,13 +131,13 @@ void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_c
         backfill_traversal_helper_t helper(callback, since_when);
 
         slice->pre_begin_transaction_sink_.check_out(token);
-        order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in().with_read_mode();
+        order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
 
         boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), rwi_read_sync);
 
         slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
 
-        txor->get()->set_token(slice->post_begin_transaction_source_.check_in().with_read_mode());
+        txor->get()->set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post").with_read_mode());
 
 #ifndef NDEBUG
         boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());

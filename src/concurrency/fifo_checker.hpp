@@ -43,6 +43,7 @@ public:
     int bucket() const;
     bool read_mode() const;
     int64_t value() const;
+    const std::string& tag() const;
 #else
     order_token_t() { }
     order_token_t with_read_mode() const { return order_token_t(); }
@@ -50,15 +51,19 @@ public:
     int bucket() const { return 0; }
     bool read_mode() const { return true; }
     int64_t value() const { return 0; }
+    std::string tag() const { return ""; }
 #endif  // ifndef NDEBUG
 
 private:
 
 #ifndef NDEBUG
-    order_token_t(int bucket, int64_t x, bool read_mode);
+    order_token_t(int bucket, int64_t x, bool read_mode, const std::string& tag);
     int bucket_;
     bool read_mode_;
     int64_t value_;
+    // This tag would be inefficient on VC++ or some other non-GNU
+    // std::string implementation, since we copy by value.
+    std::string tag_;
 #endif  // ifndef NDEBUG
 
     friend class order_source_t;
@@ -112,7 +117,7 @@ public:
     order_source_t(order_source_pigeoncoop_t *coop);
     ~order_source_t();
 
-    order_token_t check_in();
+    order_token_t check_in(const std::string& tag);
 #else
     order_source_t(UNUSED int bucket = 0, UNUSED boost::function<void()> unregisterator = order_source_pigeoncoop_t::nop) { }
     order_source_t(UNUSED order_source_pigeoncoop_t *coop) { }
@@ -147,8 +152,8 @@ public:
     void backfill_begun();
     void backfill_done();
 
-    order_token_t check_in_backfill_operation();
-    order_token_t check_in_realtime_operation();
+    order_token_t check_in_backfill_operation(const std::string& tag);
+    order_token_t check_in_realtime_operation(const std::string& tag);
 #else
     backfill_receiver_order_source_t(UNUSED int bucket = BACKFILL_RECEIVER_ORDER_SOURCE_BUCKET) { }
 
@@ -171,6 +176,13 @@ private:
     DISABLE_COPYING(backfill_receiver_order_source_t);
 };
 
+struct tagged_seen_t {
+    int64_t value;
+    std::string tag;
+
+    tagged_seen_t(int64_t _value, const std::string& _tag) : value(_value), tag(_tag) { }
+};
+
 /* Eventually order tokens get to an order sink, and those of the same
    bucket had better arrive in the right order. */
 class order_sink_t {
@@ -190,11 +202,11 @@ private:
 
 #ifndef NDEBUG
     friend class plain_sink_t;
-    static void verify_token_value_and_update(order_token_t token, std::pair<int64_t, int64_t> *ls_pair);
+    static void verify_token_value_and_update(order_token_t token, std::pair<tagged_seen_t, tagged_seen_t> *ls_pair);
 
     // We keep two last seen values because reads can be reordered.
     // .first = last seen write, .second = max(last seen read, last seen write)
-    std::vector<std::pair<int64_t, int64_t> > last_seens_;
+    std::vector<std::pair<tagged_seen_t, tagged_seen_t> > last_seens_;
 #endif  // ifndef NDEBUG
 
     DISABLE_COPYING(order_sink_t);
@@ -218,7 +230,7 @@ public:
 private:
 #ifndef NDEBUG
     // The pair of last seen values.
-    std::pair<int64_t, int64_t> ls_pair_;
+    std::pair<tagged_seen_t, tagged_seen_t> ls_pair_;
 #endif
 
     DISABLE_COPYING(plain_sink_t);

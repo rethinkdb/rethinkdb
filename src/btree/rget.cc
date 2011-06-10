@@ -57,10 +57,10 @@
 
 rget_result_t btree_rget_slice(btree_slice_t *slice, rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     slice->pre_begin_transaction_sink_.check_out(token);
-    order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in().with_read_mode();
+    order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
     boost::shared_ptr<transactor_t> transactor = boost::shared_ptr<transactor_t>(new transactor_t(slice->cache(), rwi_read));
     slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
-    transactor->get()->set_token(slice->post_begin_transaction_source_.check_in().with_read_mode());
+    transactor->get()->set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post").with_read_mode());
 
     transactor->get()->snapshot();
     return unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> >(

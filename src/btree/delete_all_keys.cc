@@ -67,13 +67,13 @@ void btree_delete_all_keys_for_backfill(btree_slice_t *slice, order_token_t toke
     delete_all_keys_traversal_helper_t helper;
 
     slice->pre_begin_transaction_sink_.check_out(token);
-    order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in();
+    order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token");
 
     boost::shared_ptr<transactor_t> txor = boost::make_shared<transactor_t>(slice->cache(), helper.transaction_mode(), 0, repli_timestamp::invalid);
 
     slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
 
-    txor->get()->set_token(slice->post_begin_transaction_source_.check_in());
+    txor->get()->set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post"));
 
     // The timestamp never gets used, because we're just deleting
     // stuff.  The use of repli_timestamp::invalid here might trip

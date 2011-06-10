@@ -10,7 +10,7 @@ void dispatching_store_t::set_dispatcher(boost::function<mutation_t(const mutati
 mutation_result_t dispatching_store_t::change(const mutation_t &m, castime_t castime, order_token_t substore_token) {
     assert_thread();
     if (dispatcher) {
-        order_token_t dispatchee_token = order_source_for_dispatchee.check_in();
+        order_token_t dispatchee_token = order_source_for_dispatchee.check_in(substore_token.tag() + "+dispatchee");
         return substore->change(dispatcher(m, castime, dispatchee_token), castime, substore_token);
     } else {
         return substore->change(m, castime, substore_token);

@@ -1020,7 +1020,7 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
         }
 
         /* Dispatch to the appropriate subclass */
-        order_token_t token = order_source->check_in();
+        order_token_t token = order_source->check_in(std::string("handle_memcache+") + args[0]);
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
             do_get(rh, false, args.size(), args.data(), token.with_read_mode());
         } else if (!strcmp(args[0], "gets")) {
