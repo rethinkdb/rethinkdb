@@ -74,7 +74,8 @@ btree_slice_t::btree_slice_t(translator_serializer_t *serializer,
     : pre_begin_transaction_read_mode_source_(PRE_BEGIN_TRANSACTION_READ_MODE_BUCKET),
       pre_begin_transaction_write_mode_source_(PRE_BEGIN_TRANSACTION_WRITE_MODE_BUCKET),
       cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit),
-      informal_name_(informal_name) { }
+      informal_name_(informal_name),
+      backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) { }
 
 btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff
@@ -142,7 +143,7 @@ void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *ca
 
     order_sink_.check_out(token);
 
-    btree_backfill(this, since_when, callback, token);
+    btree_backfill(this, since_when, backfill_account, callback, token);
 }
 
 void btree_slice_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {

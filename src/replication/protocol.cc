@@ -171,6 +171,8 @@ repli_stream_t::~repli_stream_t() {
     stop_sending_heartbeats();
     unwatch_heartbeat();
     rassert(!conn_->is_read_open());
+
+    debugf("Closing repli_stream_t()\n");
 }
 
 template <class net_struct_type>

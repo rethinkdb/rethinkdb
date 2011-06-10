@@ -161,6 +161,7 @@ void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
         if (conn->is_write_open()) {
             conn->shutdown_write();
         }
+        logERR("Replication connection was closed.\n");
         debugf("Reading end closed on replication connection.\n");
 
 	(void)e;

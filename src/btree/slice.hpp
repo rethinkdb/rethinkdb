@@ -81,6 +81,9 @@ private:
 
     const std::string informal_name_;
 
+    // Cache account to be used when backfilling.
+    boost::shared_ptr<cache_account_t> backfill_account;
+
     plain_sink_t order_sink_;
 
     DISABLE_COPYING(btree_slice_t);
