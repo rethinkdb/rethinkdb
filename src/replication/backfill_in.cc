@@ -145,7 +145,6 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
      as we do below wouldn't work as expected. */
     ensure_backfilling();
     print_backfill_warning_ = false;
-    backfilling_ = false;
 
     backfill_queue_.push(boost::bind(
         &btree_key_value_store_t::set_timestampers, kvs_, timestamp));
@@ -180,6 +179,7 @@ void backfill_storer_t::backfill_done(repli_timestamp_t timestamp, order_token_t
     debugf("backfill_storer_t:      Draining coro_pool_ to make sure that backfill operations finish.\n");
     coro_pool_.drain();
     debugf("backfill_storer_t: DONE Draining coro_pool_ to make sure that backfill operations finish.\n");
+    backfilling_ = false;
 
     /* Allow the `listing_passive_producer_t` to run operations from the
     `realtime_queue_` once the `backfill_queue_` is empty (which it actually should
