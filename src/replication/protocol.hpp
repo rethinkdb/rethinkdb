@@ -125,7 +125,9 @@ public:
 	    (void)e;
             // Ignore
         }
-        conn_->shutdown_read();
+        if (conn_->is_read_open()) {
+            conn_->shutdown_read();
+        }
     }
 
     void send(net_introduce_t *msg);
