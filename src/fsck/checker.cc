@@ -1716,6 +1716,9 @@ bool check_files(const config_t *cfg) {
         return false;
     }
 
+    printf("ERROR temporary hack to make fsck fail.\n");
+    return false;
+
     interfile_errors errs;
     if (!check_interfile(&knog, &errs)) {
         report_interfile_errors(errs);
