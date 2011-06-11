@@ -48,7 +48,8 @@ def make_option_parser():
     o["stress"] = StringFlag("--stress", "")
     o["sigint-timeout"] = IntFlag("--sigint-timeout", 60)
     o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
-    o["ssds"] = AllArgsAfterFlag("--ssds", default = [])
+    o["ssds"] = StringFlag("--ssds", default = [])
+    o["num-files"] = IntFlag("--num-files", default = 1)
     o["mem-cap"] = IntFlag("--mem-cap", None)
     o["min-qps"] = IntFlag("--min-qps", None)
     o["garbage-range"] = MultiValueFlag("--garbage-range", [float_converter, float_converter], default = None)
@@ -211,15 +212,24 @@ class DataFiles(object):
         if self.opts["ssds"]:
             self.files = [ssd.replace(' ','') for ssd in self.opts["ssds"]]
         else:
+            num_files = self.opts["num-files"]
             db_data_dir = test_dir.p("db_data")
             if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
-            db_data_path = os.path.join(db_data_dir, "data_file")
             tries = 0
-            while os.path.exists(db_data_path):
+            while True:
                 tries += 1
-                db_data_path = os.path.join(db_data_dir, "data_file_%d" % tries)
-            self.files = [db_data_path]
-        
+                paths = []
+                failure = False
+                for filenum in range(1, 1 + num_files):
+                    db_data_path = os.path.join(db_data_dir, "data" + ("" if num_files <= 1 else str(filenum)) + "_file_" + str(tries))
+                    if (os.path.exists(db_data_path)):
+                        failure = True
+                        break
+                    paths.append(db_data_path)
+                if not failure:
+                    self.files = paths
+                    break
+
         run_executable([
             get_executable_path(opts, "rethinkdb"), "create", "--force",
             "-s", str(self.opts["slices"]),

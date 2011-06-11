@@ -56,16 +56,6 @@ try:
               "fsck"        : True},
             repeat=1, timeout=120)
 
-    do_test_cloud("integration/serial_mix.py",
-            { "auto"        : True,
-              "mode"        : "debug",
-              "no-valgrind" : False,
-              "duration"    : 30,
-              "cores"       : 3,
-              "slices"      : 1,
-              "fsck"        : True,
-              "ssds"        : ['data1', 'data2'] },
-            repeat=1, timeout=120)
 
     # Report the results
     report_cloud()
