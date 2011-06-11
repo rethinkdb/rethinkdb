@@ -88,6 +88,7 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
     /* So we can't shut down yet */
     streaming_cond_.reset();
 
+    bool opened = false;
     if (!get_permission_ && stream_) {
         /* We just finished the reverse-backfill operation from the first slave.
         Now we can accept gets and sets. At this point we will continue accepting
@@ -95,6 +96,7 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
         dies again. */
 
         logINF("Now accepting operations normally.\n");
+        opened = true;
         get_permission_.reset(new gated_get_store_t::open_t(get_gate_));
         set_permission_.reset(new gated_set_store_interface_t::open_t(set_gate_));
     }
@@ -108,6 +110,10 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
         backfill_and_realtime_stream(kvs_, since_when, this, &cond);
 
         debugf("backfill_and_realtime_stream() returned.\n");
+    } else if (opened) {
+        // This might be useful for debugging #366, not sure if it's a useful message
+        // in general...
+        debugf("The slave disconnected right after we started accepting operations.\n");
     }
 
     /* So we can shut down */
