@@ -214,6 +214,7 @@ struct cmd_config_t {
     replication_config_t replication_config;
     int replication_master_listen_port;
     bool replication_master_active;
+    bool force_unslavify;
 
     // Configuration for failover
     failover_config_t failover_config;

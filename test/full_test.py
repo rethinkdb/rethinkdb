@@ -225,7 +225,19 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 60,
                     "fsck"        : True},
                   repeat=5, timeout=600)
-    
+
+
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "duration"    : 10,
+                    "cores"       : cores,
+                    "slices"      : 2 * slices,
+                    "fsck"        : True,
+                    "num-files"   : 2 },
+                  repeat=1, timeout=120)
+
     # Regression test for https://github.com/coffeemug/rethinkdb/issues/269 and https://github.com/coffeemug/rethinkdb/issues/267
     do_test_cloud("integration/multi_serial_mix.py",
                   { "auto"        : True,

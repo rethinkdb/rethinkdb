@@ -190,6 +190,7 @@ enum {
     read_ahead,
     diff_log_size,
     force_create,
+    force_unslavify,
     coroutine_stack_size,
     master_port,
     slave_of,
@@ -237,6 +238,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     {
         int do_help = 0;
         int do_force_create = 0;
+        int do_force_unslavify = 0;
         int do_full_perfmon = 0;
         struct option long_options[] =
             {
@@ -264,6 +266,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"port",                 required_argument, 0, 'p'},
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
+                {"force-unslavify",      no_argument, &do_force_unslavify, 1},
                 {"help",                 no_argument, &do_help, 1},
                 {"master",               required_argument, 0, master_port},
                 {"slave-of",             required_argument, 0, slave_of},
@@ -283,6 +286,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             c = 'h';
         if (do_force_create)
             c = force_create;
+        if (do_force_unslavify)
+            c = force_unslavify;
         if (do_full_perfmon) {
             c = full_perfmon;
         }
@@ -343,6 +348,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_coroutine_stack_size(optarg); break;
             case force_create:
                 config.force_create = true; break;
+            case force_unslavify:
+                config.force_unslavify = true; break;
             case master_port:
                 config.set_master_listen_port(optarg); break;
             case slave_of:
@@ -913,6 +920,7 @@ cmd_config_t::cmd_config_t() {
     replication_config.heartbeat_timeout = DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT;
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;
     replication_master_active = false;
+    force_unslavify = false;
 
     store_static_config.serializer.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
     store_static_config.serializer.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;

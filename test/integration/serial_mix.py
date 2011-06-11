@@ -113,7 +113,6 @@ def random_action(opts, mc, clone, deleted):
 def test(opts, mc, test_dir):
     clone = {}
     deleted = set()
-    
     start_time = time.time()
     while time.time() < start_time + opts["duration"]:
         random_action(opts, mc, clone, deleted)
