@@ -394,6 +394,12 @@ class Server(object):
         print "%s shut down successfully." % self.name.capitalize()
         if self.opts["fsck"]: self.data_files.fsck()
 
+    def shutdown_or_just_fsck(self):
+        if self.running:
+            self.shutdown()
+        elif self.opts["fsck"]:
+            self.data_files.fsck()
+
     def kill(self):
         if self.opts["interactive"]:
             # We're in interactive mode, probably in GDB. Don't kill it.
@@ -669,7 +675,7 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
                 if stat_checker: stat_checker.stop()
 
             for server in servers:
-                if server.running: server.shutdown()
+                server.shutdown_or_just_fsck()
 
             if test_failure: raise test_failure
 
@@ -759,8 +765,8 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
             if stat_checker:
                 stat_checker.stop()
 
-            if server.running: server.shutdown()
-            if repli_server.running: repli_server.shutdown()
+            server.shutdown_or_just_fsck()
+            repli_server.shutdown_or_just_fsck()
     
             if test_failure: raise test_failure
 
@@ -789,9 +795,9 @@ def master_slave_main(test_function, opts, timeout = 30, extra_flags = [], test_
             if stat_checker:
                 stat_checker.stop()
 
-            if server.running: server.shutdown()
-            if repli_server.running: repli_server.shutdown()
-    
+            server.shutdown_or_just_fsck()
+            repli_server.shutdown_or_just_fsck()
+
             if test_failure: raise test_failure
 
     except ValueError, e:
