@@ -518,9 +518,9 @@ class FailoverMemcachedWrapper(object):
 
     def kill_server(self, victim):
 
-        # To avoid spurious failures, give the server a second to dump
+        # To avoid spurious failures, give the server some seconds to dump
         # its realtime operations to the slave.
-        time.sleep(1)
+        time.sleep(5)
         self.print_and_reset_ops()
 
         assert not self.down[victim]
