@@ -290,6 +290,30 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 340,
                     "failover"    : True},
                           repeat=10, timeout=800)
+
+    # Replication with shorter heartbeat timeout (to provoke disconnects)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 340,
+                    "serve-flags" : "--heartbeat-timeout 10",
+                    "failover"    : True},
+                          repeat=10, timeout=800)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 340,
+                    "serve-flags" : "--heartbeat-timeout 4",
+                    "failover"    : True},
+                          repeat=5, timeout=800)
     
     # Replication with small delete queue
     do_test_cloud("integration/serial_mix.py",
