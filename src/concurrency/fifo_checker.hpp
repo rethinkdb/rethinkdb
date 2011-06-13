@@ -215,6 +215,7 @@ public:
     void set_tagappend(const std::string& tagappend);
     order_token_t check_through(order_token_t token);
 #else
+    void set_tagappend(UNUSED const std::string& tagappend) { }
     order_token_t check_through(UNUSED order_token_t token) { return order_token_t(); }
 #endif  // ndef NDEBUG
 
