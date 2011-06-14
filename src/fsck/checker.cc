@@ -203,7 +203,7 @@ public:
     enum { no_block = raw_block_err_count, already_accessed, transaction_id_invalid, transaction_id_too_large, patch_transaction_id_mismatch };
 
     static const char *error_name(error code) {
-        static const char *codes[] = {"already accessed", "bad transaction id", "transaction id too large", "patch applies to future revision of the block"};
+        static const char *codes[] = {"no block", "already accessed", "bad transaction id", "transaction id too large", "patch applies to future revision of the block"};
         return code >= raw_block_err_count ? codes[code - raw_block_err_count] : raw_block_t::error_name(code);
     }
 
@@ -1160,7 +1160,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
                 desc.block_id = id;
 
                 btree_block_t zeroblock;
-                if (!zeroblock.init(cx, id)) {
+                if (!zeroblock.init(cx.file, cx.knog, ser_block_id_t::make(id))) {
                     desc.loading_error = zeroblock.err;
                     errs->allegedly_deleted_blocks.push_back(desc);
                 } else {
