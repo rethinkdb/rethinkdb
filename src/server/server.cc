@@ -276,6 +276,15 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
+                    uint32_t replication_master_id = store.get_replication_master_id();
+                    if (replication_master_id != 0 && replication_master_id != NOT_A_SLAVE &&
+                            !cmd_config->force_unslavify) {
+                        fail_due_to_user_error("This data file used to be for a replication slave. "
+                            "If this data file is used for a replication master, it will be "
+                            "impossible to later use it for a replication slave. If you are sure "
+                            "you want to irreversibly turn this into a non-slave data file, run "
+                            "again with the `--force-unslavify` flag.");
+                    }
                     store.set_replication_master_id(NOT_A_SLAVE);
 
                     backfill_receiver_order_source_t master_order_source(BACKFILL_RECEIVER_ORDER_SOURCE_BUCKET);
@@ -292,6 +301,15 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
 
                     /* Make it impossible for this database file to later be used as a slave, because
                     that would confuse the replication logic. */
+                    uint32_t replication_master_id = store.get_replication_master_id();
+                    if (replication_master_id != 0 && replication_master_id != NOT_A_SLAVE &&
+                            !cmd_config->force_unslavify) {
+                        fail_due_to_user_error("This data file used to be for a replication slave. "
+                            "If this data file is used for a standalone server, it will be "
+                            "impossible to later use it for a replication slave. If you are sure "
+                            "you want to irreversibly turn this into a non-slave data file, run "
+                            "again with the `--force-unslavify` flag.");
+                    }
                     store.set_replication_master_id(NOT_A_SLAVE);
 
                     // Open the gates to allow real queries

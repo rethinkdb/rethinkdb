@@ -16,6 +16,11 @@ slave_stream_manager_t::slave_stream_manager_t(boost::scoped_ptr<tcp_conn_t> *co
     backfill_storer_(kvs),
     interrupted_by_external_event_(false) {
 
+    // Assume backfilling when starting up.
+    // (which is in sync with backill_storer_, which initially takes operations
+    // from the backfill queue)
+    order_source->backfill_begun();
+
     stream_ = new repli_stream_t(*conn, this, heartbeat_timeout);
 
     cond_ = cond;
@@ -87,6 +92,10 @@ void slave_stream_manager_t::conn_closed() {
     }
 
     shutdown_cond_.pulse();
+
+    // TODO: This might fail for future versions of the order source, which
+    // require a backfill to have begun before it can be done.
+    order_source->backfill_done();
 }
 
 void slave_stream_manager_t::on_signal_pulsed() {

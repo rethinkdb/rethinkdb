@@ -203,7 +203,7 @@ public:
     enum { no_block = raw_block_err_count, already_accessed, transaction_id_invalid, transaction_id_too_large, patch_transaction_id_mismatch };
 
     static const char *error_name(error code) {
-        static const char *codes[] = {"already accessed", "bad transaction id", "transaction id too large", "patch applies to future revision of the block"};
+        static const char *codes[] = {"no block", "already accessed", "bad transaction id", "transaction id too large", "patch applies to future revision of the block"};
         return code >= raw_block_err_count ? codes[code - raw_block_err_count] : raw_block_t::error_name(code);
     }
 
@@ -651,7 +651,8 @@ bool check_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_b
 
     // Load all cache config blocks and check them for consistency
     const int mod_count = serializer_multiplexer_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->n_proxies);
-    for (int slice_id = 0; slice_id < knog->config_block->n_proxies; ++slice_id) {
+    debugf("COMPUTING mod_count=%d, n_files=%d, n_proxies=%d, this_serializer=%d\n", mod_count, knog->config_block->n_files, knog->config_block->n_proxies, knog->config_block->this_serializer);
+    for (int slice_id = 0; slice_id < mod_count; ++slice_id) {
         ser_block_id_t config_block_ser_id = translator_serializer_t::translate_block_id(MC_CONFIGBLOCK_ID, mod_count, slice_id, CONFIG_BLOCK_ID);
         btree_block_t mc_config_block;
         if (!mc_config_block.init(file, knog, config_block_ser_id)) {
@@ -906,8 +907,6 @@ void check_large_buf(slicecx_t& cx, const large_buf_ref *ref, int ref_size_bytes
 
             int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
 
-            printf("inlined was %d\n", inlined);
-
             // The part before '&&' ensures no overflow in the part after.
             if (1 <= inlined && inlined <= int((ref_size_bytes - sizeof(large_buf_ref)) / sizeof(block_id_t))) {
 
@@ -926,9 +925,6 @@ void check_large_buf(slicecx_t& cx, const large_buf_ref *ref, int ref_size_bytes
             }
         }
     }
-
-    printf("Saw large buf ref->offset=%ld, ref->size=%ld, ref_size_bytes=%d, sizeof(large_buf_ref)=%d\n",
-           ref->offset, ref->size, ref_size_bytes, (int)sizeof(large_buf_ref));
 
     errs->bogus_ref = true;
 }
@@ -1164,7 +1160,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
                 desc.block_id = id;
 
                 btree_block_t zeroblock;
-                if (!zeroblock.init(cx, id)) {
+                if (!zeroblock.init(cx.file, cx.knog, ser_block_id_t::make(id))) {
                     desc.loading_error = zeroblock.err;
                     errs->allegedly_deleted_blocks.push_back(desc);
                 } else {
@@ -1221,12 +1217,10 @@ void check_delete_queue(slicecx_t& cx, block_id_t block_id, delete_queue_errors 
     large_buf_ref *keys_ref = replication::delete_queue::keys_largebuf(buf);
     int keys_ref_size = replication::delete_queue::keys_largebuf_ref_size(cx.block_size());
 
-    printf("Checking t_and_o size=%ld\n", t_and_o->size);
     if (t_and_o->size != 0) {
         check_large_buf(cx, t_and_o, replication::delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE, &errs->timestamp_buf);
     }
 
-    printf("Checking keys_ref size=%ld\n", keys_ref->size);
     if (keys_ref->size != 0) {
         check_large_buf(cx, keys_ref, keys_ref_size, &errs->keys_buf);
     }
@@ -1721,6 +1715,7 @@ bool check_files(const config_t *cfg) {
     if (any) {
         return false;
     }
+
 
     interfile_errors errs;
     if (!check_interfile(&knog, &errs)) {

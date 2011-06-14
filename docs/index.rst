@@ -717,7 +717,10 @@ Hazards to watch out for
 
 If you run RethinkDB even once in non-slave-mode on a set of slave data
 files, those data files will be irreversibly changed, and you won't be
-able to use them in slave-mode ever again!
+able to use them in slave-mode ever again. RethinkDB will warn you when
+you try to use data files from a slave in non-slave mode, but you can
+override the warning by passing the ``--force-unslavify`` flag on the
+command line.
 
 Don't use multiple slaves with the same master. If you disconnect the slave
 and then connect a new one, RethinkDB will accept the new slave, but if

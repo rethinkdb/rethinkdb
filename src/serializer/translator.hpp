@@ -70,7 +70,7 @@ struct multiplexer_config_block_t {
     int32_t this_serializer;
 
     /* How many sub-serializers this serializer group is acting as */
-    int n_proxies;
+    int32_t n_proxies;
 
     static const block_magic_t expected_magic;
 };

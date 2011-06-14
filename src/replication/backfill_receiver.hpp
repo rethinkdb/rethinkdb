@@ -34,6 +34,7 @@ struct backfill_receiver_t :
 
 private:
     backfill_and_realtime_streaming_callback_t *const cb;
+protected:
     backfill_receiver_order_source_t *order_source;
 };
 

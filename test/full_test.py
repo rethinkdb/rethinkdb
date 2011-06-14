@@ -225,7 +225,19 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 60,
                     "fsck"        : True},
                   repeat=5, timeout=600)
-    
+
+
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "duration"    : 10,
+                    "cores"       : cores,
+                    "slices"      : 2 * slices,
+                    "fsck"        : True,
+                    "num-files"   : 2 },
+                  repeat=1, timeout=120)
+
     # Regression test for https://github.com/coffeemug/rethinkdb/issues/269 and https://github.com/coffeemug/rethinkdb/issues/267
     do_test_cloud("integration/multi_serial_mix.py",
                   { "auto"        : True,
@@ -290,7 +302,44 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 340,
                     "failover"    : True},
                           repeat=10, timeout=800)
-    
+
+    # Replication with shorter heartbeat timeout (to provoke disconnects)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 340,
+                    "serve-flags" : "--heartbeat-timeout 10",
+                    "failover"    : True},
+                          repeat=10, timeout=800)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 340,
+                    "serve-flags" : "--heartbeat-timeout 4",
+                    "failover"    : True},
+                          repeat=5, timeout=800)
+    # ...and one more if we don't use Valgrind (otherwise stuff is too slow for this to work)
+    if not checker:
+        do_test_cloud("integration/serial_mix.py",
+                      { "auto"        : True,
+                        "mode"        : mode,
+                        "no-valgrind" : not checker,
+                        "protocol"    : protocol,
+                        "cores"       : cores,
+                        "slices"      : slices,
+                        "duration"    : 340,
+                        "serve-flags" : "--heartbeat-timeout 1",
+                        "failover"    : True},
+                              repeat=5, timeout=800)
+
     # Replication with small delete queue
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,

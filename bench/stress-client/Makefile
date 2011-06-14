@@ -15,7 +15,7 @@ ifeq ($(MYSQL),1)
 endif
 
 ifeq ($(LIBMEMCACHED),1)
-    INCLUDE += -I../../../lib/libmemcached
+    INCLUDE += -I../../lib/libmemcached
     LIBS += -lmemcached
     DEFINES += -DUSE_LIBMEMCACHED
 endif
