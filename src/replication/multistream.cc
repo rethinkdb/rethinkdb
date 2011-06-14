@@ -65,7 +65,9 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
         uint32_t ident = multipart_hdr->ident;
 
         if (multipart_hdr->message_multipart_aspect == FIRST) {
+#ifdef REPLICATION_DEBUG
             debugf("FIRST for ident %u\n", ident);
+#endif
             if (!streams.add(ident, connection_handler->new_stream_handler())) {
                 throw protocol_exc_t("reused live ident code");
             }
@@ -73,7 +75,9 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
             streams[ident]->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
 
         } else if (multipart_hdr->message_multipart_aspect == MIDDLE || multipart_hdr->message_multipart_aspect == LAST) {
+#ifdef REPLICATION_DEBUG
             debugf("MIDDLE or LAST for ident %u\n", ident);
+#endif
             stream_handler_t *h = streams[ident];
             if (h == NULL) {
                 throw protocol_exc_t("inactive stream identifier");
@@ -81,7 +85,9 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
 
             h->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
             if (multipart_hdr->message_multipart_aspect == LAST) {
+#ifdef REPLICATION_DEBUG
                 debugf("WAS LAST for ident %u\n", ident);
+#endif
                 h->end_of_stream();
                 delete h;
                 streams.drop(ident);

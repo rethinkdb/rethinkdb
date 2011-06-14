@@ -79,12 +79,11 @@ leaving until the number of objects drops to the desired capacity. */
 
 class adjustable_semaphore_t {
     struct lock_request_t :
-        public intrusive_list_node_t<lock_request_t>,
-        public thread_message_t
+        public intrusive_list_node_t<lock_request_t>
     {
         semaphore_available_callback_t *cb;
         int count;
-        void on_thread_switch() {
+        void on_available() {
             cb->on_semaphore_available();
             delete this;
         }
@@ -119,7 +118,7 @@ public:
             void on_semaphore_available() { pulse(); }
         } cb;
         lock(&cb, count);
-        cb.wait();
+        cb.wait_eagerly();
     }
 
     void unlock(int count = 1) {
@@ -164,7 +163,7 @@ private:
         lock_request_t *h;
         while ((h = waiters.head()) && try_lock(h->count)) {
             waiters.remove(h);
-            call_later_on_this_thread(h);
+            h->on_available();
         }
     }
 };

@@ -63,7 +63,7 @@ public:
 
                 backfilling_ = true;
             }
-            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, shard->substore_order_source.check_in("slice_manager_t").with_read_mode()));
+            coro_t::spawn_now(boost::bind(&btree_slice_t::backfill, &shard->btree, backfill_from, this, shard->dispatching_store.substore_order_source.check_in("slice_manager_t").with_read_mode()));
         }
 
         ~slice_manager_t() {
@@ -146,7 +146,6 @@ public:
         mutation_t dispatch_change(
                 UNUSED drain_semaphore_t::lock_t keep_alive,
                 const mutation_t& m, castime_t castime, order_token_t token) {
-
             rassert(get_thread_id() == shard_->home_thread());
             rassert(castime.timestamp >= min_realtime_timestamp_);
 
