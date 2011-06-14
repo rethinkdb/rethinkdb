@@ -52,11 +52,13 @@ public:
 
     void co_lock(int count = 1) {
         rassert(!in_callback);
-        struct : public semaphore_available_callback_t, public cond_t {
+        struct : public semaphore_available_callback_t, public one_waiter_cond_t {
             void on_semaphore_available() { pulse(); }
         } cb;
         lock(&cb, count);
         cb.wait_eagerly();
+        // TODO: Remove the need for in_callback checks.
+        coro_t::yield();
     }
 
     void unlock(int count = 1) {
@@ -137,11 +139,13 @@ public:
 
     void co_lock(int count = 1) {
         rassert(!in_callback);
-        struct : public semaphore_available_callback_t, public cond_t {
+        struct : public semaphore_available_callback_t, public one_waiter_cond_t {
             void on_semaphore_available() { pulse(); }
         } cb;
         lock(&cb, count);
         cb.wait_eagerly();
+        // TODO: remove need for in_callback checks
+        coro_t::yield();
     }
 
     void unlock(int count = 1) {
