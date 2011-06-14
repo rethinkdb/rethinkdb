@@ -82,10 +82,16 @@ tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *bu
 }
 
 void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
+    // Suspend watching for the heartbeat while we are handling the message.
+    // In case handling it takes very long, we might time out otherwise just
+    // due to the fact that we are unable to handle incoming heartbeat messages
+    // as we are still busy handling this one.
+    heartbeat_receiver_t::pause_watching_heartbeat_t hb_pauser = hb_receiver_->pause_watching_heartbeat();
+
     // Notify the heartbeat receiver that we got something (which means that the connection is alive)
-    if (hb_receiver_) {
-        hb_receiver_->note_heartbeat();
-    }
+    // (Note: this might be a no-op while watching the heartbeat is paused, depending
+    // on the implementation of the heartbeat receiver. It certainly doesn't hurt though.)
+    hb_receiver_->note_heartbeat();
     
     if (!saw_first_part_) {
         uint8_t msgcode = *reinterpret_cast<const uint8_t *>(buf);
@@ -128,6 +134,9 @@ void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
 void replication_stream_handler_t::end_of_stream() {
     rassert(saw_first_part_);
     if (tracker_obj_) {
+        // Suspend watching for the heartbeat while we are handling the message.
+        // (see above for further description)
+        heartbeat_receiver_t::pause_watching_heartbeat_t hb_pauser = hb_receiver_->pause_watching_heartbeat();
         tracker_obj_->function();
         delete tracker_obj_;
         tracker_obj_ = NULL;
