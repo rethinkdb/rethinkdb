@@ -159,7 +159,6 @@ int run_migrate(int argc, char **argv) {
 #ifdef MIGRATION_SCRIPT_LOCATION //Defined in src/Makefile
     //TODO check that the script exists and give a worthwhile error message
     command_line.push_back(MIGRATION_SCRIPT_LOCATION);
-    fprintf(stderr, MIGRATION_SCRIPT_LOCATION);
 #else
     crash("Trying to run migration without a specified script location.\n" 
           "This probably means that you're trying to run migration\n"
