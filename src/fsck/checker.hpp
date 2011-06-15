@@ -59,12 +59,6 @@ struct config_t {
 
 bool check_files(const config_t *config);
 
-std::string extract_command_line_args(const config_t *cfg);
-
-
-
 }  // namespace fsck
-
-
 
 #endif  // __FSCK_CHECKER_HPP__

@@ -1784,35 +1784,4 @@ bool check_files(const config_t *cfg) {
     return false;
 }
 
-//extract the command line arguments from the file
-std::string extract_command_line_args(const config_t *cfg) {
-    std::string flags;
-    knowledge_t knog(cfg->input_filenames);
-
-    if (!knog.files[0]->exists()) {
-        fail_due_to_user_error("No such file \"%s\"", knog.file_knog[0]->filename.c_str());
-    }
-
-    flags.append(extract_static_config_flags(knog.files[0], knog.file_knog[0]));
-
-    config_block_errors errs;
-    check_config_block(knog.files[0], knog.file_knog[0], &errs);
-
-    flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
-
-
-    return flags;
-}
-
-std::string extract_version(const config_t& cfg) {
-    std::string version;
-    knowledge_t knog(cfg.input_filenames);
-
-    if (!knog.files[0]->exists()) {
-        fail_due_to_user_error("No such file \"%s\"", knog.file_knog[0]->filename.c_str());
-    }
-
-    return extract_static_config_version(knog.files[0], knog.file_knog[0]);
-}
-
 }  // namespace fsck
