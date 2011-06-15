@@ -285,12 +285,15 @@ void check_filesize(nondirect_file_t *file, file_knowledge_t *knog) {
     knog->filesize = file->get_size();
 }
 
-const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes" };
-enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes };
+const char *static_config_errstring[] = { "none", "bad_file", "bad_software_name", "bad_version", "bad_sizes" };
+enum static_config_error { static_config_none = 0, bad_file, bad_software_name, bad_version, bad_sizes };
 
 bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_config_error *err, const config_t *cfg) {
     block_t header;
-    header.init(DEVICE_BLOCK_SIZE, file, 0);
+    if (!header.init(DEVICE_BLOCK_SIZE, file, 0)) {
+        *err = bad_file;
+        return false;
+    }
     static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
 
     log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
@@ -334,14 +337,18 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
 
 std::string extract_static_config_version(nondirect_file_t *file, UNUSED file_knowledge_t *knog) {
     block_t header;
-    header.init(DEVICE_BLOCK_SIZE, file, 0);
+    if (!header.init(DEVICE_BLOCK_SIZE, file, 0)) {
+        return "(not available, could not load first block of file)";
+    }
     static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
     return std::string(buf->version, int(sizeof(VERSION_STRING)));
 }
 
 std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_knowledge_t *knog) {
     block_t header;
-    header.init(DEVICE_BLOCK_SIZE, file, 0);
+    if (!header.init(DEVICE_BLOCK_SIZE, file, 0)) {
+        return "(not available, could not load first block of file)";
+    }
     static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
 
     log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
@@ -357,6 +364,7 @@ std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_know
 }
 
 struct metablock_errors {
+    int unloadable_count;  // should be zero
     int bad_crc_count;  // should be zero
     int bad_markers_count;  // must be zero
     int bad_content_count;  // must be zero
@@ -364,15 +372,18 @@ struct metablock_errors {
     int total_count;
     bool not_monotonic;  // should be false
     bool no_valid_metablocks;  // must be false
+    bool implausible_block_failure;  // must be false;
 };
 
 bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_errors *errs) {
+    errs->unloadable_count = 0;
     errs->bad_markers_count = 0;
     errs->bad_crc_count = 0;
     errs->bad_content_count = 0;
     errs->zeroed_count = 0;
     errs->not_monotonic = false;
     errs->no_valid_metablocks = false;
+    errs->implausible_block_failure = false;
 
     std::vector<off64_t> metablock_offsets;
     initialize_metablock_offsets(knog->static_config->extent_size(), &metablock_offsets);
@@ -394,7 +405,9 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
         off64_t off = metablock_offsets[i];
 
         block_t b;
-        b.init(DEVICE_BLOCK_SIZE, file, off);
+        if (!b.init(DEVICE_BLOCK_SIZE, file, off)) {
+            errs->unloadable_count++;
+        }
         crc_metablock_t *metablock = ptr_cast<crc_metablock_t>(b.realbuf);
 
         if (metablock->check_crc()) {
@@ -446,7 +459,10 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
     }
 
     block_t high_block;
-    high_block.init(DEVICE_BLOCK_SIZE, file, metablock_offsets[high_version_index]);
+    if (!high_block.init(DEVICE_BLOCK_SIZE, file, metablock_offsets[high_version_index])) {
+        errs->implausible_block_failure = true;
+        return false;
+    }
     crc_metablock_t *high_metablock = ptr_cast<crc_metablock_t>(high_block.realbuf);
     knog->metablock = high_metablock->metablock;
     return true;
@@ -498,7 +514,11 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
     }
 
     block_t extent;
-    extent.init(knog->static_config->extent_size(), file, extent_offset);
+    if (!extent.init(knog->static_config->extent_size(), file, extent_offset)) {
+        // a redundant check
+        errs->code = lba_extent_errors::bad_extent_offset;
+        return false;
+    }
     lba_extent_t *buf = ptr_cast<lba_extent_t>(extent.realbuf);
 
     errs->total_count += entries_count;
@@ -569,7 +589,11 @@ bool check_lba_shard(nondirect_file_t *file, file_knowledge_t *knog, lba_shard_m
         }
 
         block_t superblock;
-        superblock.init(superblock_aligned_size, file, shard->lba_superblock_offset);
+        if (!superblock.init(superblock_aligned_size, file, shard->lba_superblock_offset)) {
+            // a redundant check
+            errs->code = lba_shard_errors::bad_lba_superblock_offset;
+            return false;
+        }
         const lba_superblock_t *buf = ptr_cast<lba_superblock_t>(superblock.realbuf);
 
         if (0 != memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE)) {
@@ -1395,6 +1419,9 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
     }
     const metablock_errors *mb;
     if (errs.metablock_errs.is_known(&mb)) {
+        if (mb->unloadable_count > 0) {
+            printf("ERROR %s %d of %d metablocks were unloadable\n", state, mb->unloadable_count, mb->total_count);
+        }
         if (mb->bad_crc_count > 0) {
             printf("WARNING %s %d of %d metablocks have bad CRC\n", state, mb->bad_crc_count, mb->total_count);
         }
@@ -1412,6 +1439,9 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
         }
         if (mb->no_valid_metablocks) {
             printf("ERROR %s no valid metablocks\n", state);
+        }
+        if (mb->implausible_block_failure) {
+            printf("ERROR %s a metablock we once loaded became unloadable (your computer is broken)\n", state);
         }
     }
     const lba_errors *lba;
@@ -1666,7 +1696,9 @@ std::string extract_slices_flags(const multiplexer_config_block_t& c) {
 std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config_block_t& c, const mc_config_block_t& mcc) {
     // TODO: This is evil code replication, just because we need the block size...
     block_t header;
-    header.init(DEVICE_BLOCK_SIZE, file, 0);
+    if (!header.init(DEVICE_BLOCK_SIZE, file, 0)) {
+        return " --diff-log-size intentionally-invalid";
+    }
     static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
     log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
     block_size_t block_size = static_cfg->block_size();
