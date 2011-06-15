@@ -88,6 +88,7 @@ void heartbeat_receiver_t::heartbeat_timeout_callback(void *data) {
     heartbeat_receiver_t *self = ptr_cast<heartbeat_receiver_t>(data);
 
     self->heartbeat_timer_ = NULL;
+    self->watch_heartbeat_active_ = false;
     logINF("Did not receive a heartbeat within the last %d ms.\n", self->heartbeat_timeout_ms_);
 
     coro_t::spawn_now(boost::bind(&heartbeat_receiver_t::on_heartbeat_timeout_wrapper, self));
@@ -100,9 +101,9 @@ heartbeat_receiver_t::pause_watching_heartbeat_t heartbeat_receiver_t::pause_wat
 heartbeat_receiver_t::pause_watching_heartbeat_t::pause_watching_heartbeat_t(heartbeat_receiver_t *parent) :
         parent_(parent) {
 
-    if (parent_->pause_watching_heartbeat_count_++ == 0 && parent_->watch_heartbeat_active_) {
+    rassert(!parent_->watch_heartbeat_active_ || parent_->heartbeat_timer_); // Consistency check...
+    if (parent_->pause_watching_heartbeat_count_++ == 0 && parent_->heartbeat_timer_) {
         // We are the first pauser
-        rassert(parent_->heartbeat_timer_);
         cancel_timer(parent_->heartbeat_timer_);
         parent_->heartbeat_timer_ = NULL;
     }
