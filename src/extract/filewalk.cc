@@ -189,10 +189,10 @@ void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
         block_t b;
-        b.init(cfg.block_size().ser_value(), &file, offset);
-
-        if (check_all_known_magic(*(block_magic_t *)b.buf) || memcmp((char*)b.buf, "LOGB00", 6) == 0) { // TODO: Refactor
-            registry.tell_block(offset, b.buf_data());
+        if (b.init(cfg.block_size().ser_value(), &file, offset)) {
+            if (check_all_known_magic(*(block_magic_t *)b.buf) || memcmp((char*)b.buf, "LOGB00", 6) == 0) { // TODO: Refactor
+                registry.tell_block(offset, b.buf_data());
+            }
         }
     }
 }
@@ -203,7 +203,9 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
         block_t b;
-        b.init(cfg.block_size().ser_value(), &file, offset);
+        if (!b.init(cfg.block_size().ser_value(), &file, offset)) {
+            continue;
+        }
 
         ser_block_id_t block_id = b.buf_data().block_id;
 
@@ -313,7 +315,9 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
         block_t b;
-        b.init(cfg.block_size().ser_value(), &file, offset);
+        if (!b.init(cfg.block_size().ser_value(), &file, offset)) {
+            continue;
+        }
         
         ser_block_id_t block_id = b.buf_data().block_id;
 
@@ -554,7 +558,9 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
     }
 
     block_t headerblock;
-    headerblock.init(DEVICE_BLOCK_SIZE, &file, 0);
+    if (!headerblock.init(DEVICE_BLOCK_SIZE, &file, 0)) {
+        logINF("Could not even read header block from file %s\n", db_file.c_str());
+    }
 
     static_header_t *header = (static_header_t *)headerblock.realbuf;
 
