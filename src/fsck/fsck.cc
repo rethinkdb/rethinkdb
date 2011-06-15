@@ -15,11 +15,12 @@ namespace fsck {
 void usage(UNUSED const char *name) {
     Help_Pager *help = Help_Pager::instance();
     help->pagef("Usage:\n"
-                "        rethinkdb fsck [OPTIONS] -f <file_1> [-f <file_2> ...]\n");
+                "        rethinkdb fsck [OPTIONS] -f <file_1> [-f <file_2> ...] [--metadata-file <file>]\n");
     help->pagef("\n"
                 "Options:\n"
                 "  -f  --file                Path to file or block device where part or all of\n"
                 "                            the database exists.\n"
+                "      --metadata-file       Path to the file where the database metadata exists\n"
                 "      --ignore-diff-log     Do not apply patches from the diff log while\n"
                 "                            checking the database.\n");
     help->pagef("\n"
@@ -36,6 +37,7 @@ void usage(UNUSED const char *name) {
 }
 
 enum { ignore_diff_log = 256,  // Start these values above the ASCII range.
+       metadata_file,
 };
 
 void parse_cmd_args(int argc, char **argv, config_t *config) {
@@ -54,6 +56,7 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
         static const struct option long_options[] =
             {
                 {"file", required_argument, 0, 'f'},
+                {"metadata-file", required_argument, 0, metadata_file},
                 {"ignore-diff-log", no_argument, 0, ignore_diff_log},
                 {"log-file", required_argument, 0, 'l'},
                 {"help", no_argument, &do_help, 1},
@@ -86,6 +89,9 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
             break;
         case 'f':
             config->input_filenames.push_back(optarg);
+            break;
+        case metadata_file:
+            config->metadata_filename = std::string(optarg);
             break;
         case ignore_diff_log:
             config->ignore_diff_log = true;

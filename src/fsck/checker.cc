@@ -129,13 +129,23 @@ private:
 struct knowledge_t {
     std::vector<nondirect_file_t *> files;
     std::vector<file_knowledge_t *> file_knog;
+    nondirect_file_t *metadata_file;
+    file_knowledge_t *metadata_file_knog;
 
-    explicit knowledge_t(const std::vector<std::string>& filenames)
+    explicit knowledge_t(const std::vector<std::string>& filenames, const std::string &metadata_filename)
         : files(filenames.size(), NULL), file_knog(filenames.size(), NULL) {
         for (int i = 0, n = filenames.size(); i < n; ++i) {
             nondirect_file_t *file = new nondirect_file_t(filenames[i].c_str(), file_t::mode_read);
             files[i] = file;
             file_knog[i] = new file_knowledge_t(filenames[i]);
+        }
+
+        if (!metadata_filename.empty()) {
+            metadata_file = new nondirect_file_t(metadata_filename.c_str(), file_t::mode_read);
+            metadata_file_knog = new file_knowledge_t(metadata_filename);
+        } else {
+            metadata_file = NULL;
+            metadata_file_knog = NULL;
         }
     }
 
@@ -144,6 +154,8 @@ struct knowledge_t {
             delete files[i];
             delete file_knog[i];
         }
+        delete metadata_file;
+        delete metadata_file_knog;
     }
 
     int num_files() const { return files.size(); }
@@ -163,15 +175,13 @@ public:
     using raw_block_t::init;
 };
 
-// This doesn't really make the blocks, but it's a nice name.  See btree_block_t below.
+// Context needed to check a particular slice/btree
 struct slicecx_t {
     nondirect_file_t *file;
     file_knowledge_t *knog;
-    int global_slice_id;
-    int local_slice_id;
-    int mod_count;
     std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
     const config_t *cfg;
+
     void clear_buf_patches() {
         for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches)
             for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch)
@@ -180,18 +190,49 @@ struct slicecx_t {
         patch_map.clear();
     }
 
-    slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, int _global_slice_id, const config_t *_cfg)
-        : file(_file), knog(_knog), global_slice_id(_global_slice_id), local_slice_id(global_slice_id / knog->config_block->n_files),
-          mod_count(serializer_multiplexer_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->n_proxies)),
-          cfg(_cfg) { }
-    block_id_t to_ser_block_id(block_id_t id) const {
-        return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID);
-    }
     block_size_t block_size() const {
         return knog->static_config->block_size();
     }
-private:
+
+    virtual block_id_t to_ser_block_id(block_id_t id) const = 0;
+    virtual bool is_valid_key(const btree_key_t &key) const = 0;
+
+    slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, const config_t *_cfg)
+        : file(_file), knog(_knog), cfg(_cfg) { }
+
+  private:
     DISABLE_COPYING(slicecx_t);
+};
+
+// A slice all by its lonesome in a file.
+struct raw_slicecx_t : public slicecx_t {
+    raw_slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, const config_t *_cfg) : slicecx_t(_file, _knog, _cfg) { }
+    block_id_t to_ser_block_id(block_id_t id) const { return id; }
+    bool is_valid_key(UNUSED const btree_key_t &key) const { return true; }
+};
+
+// A slice which is part of a multiplexed set of slices via serializer_multipler_t
+struct multiplexed_slicecx_t : public slicecx_t {
+    int global_slice_id;
+    int local_slice_id;
+    int mod_count;
+
+    multiplexed_slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, int _global_slice_id, const config_t *_cfg)
+        : slicecx_t(_file, _knog, _cfg)
+        , global_slice_id(_global_slice_id), local_slice_id(global_slice_id / knog->config_block->n_files)
+        , mod_count(serializer_multiplexer_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->n_proxies))
+        { }
+
+    block_id_t to_ser_block_id(block_id_t id) const {
+        return translator_serializer_t::translate_block_id(id, mod_count, local_slice_id, CONFIG_BLOCK_ID);
+    }
+
+    bool is_valid_key(const btree_key_t &key) const {
+        store_key_t store_key;
+        store_key.size = key.size;
+        memcpy(store_key.contents, key.contents, key.size);
+        return btree_key_value_store_t::hash(store_key) % knog->config_block->n_proxies == (unsigned) global_slice_id;
+    }
 };
 
 // A loader/destroyer of btree blocks, which performs all the
@@ -624,15 +665,30 @@ struct config_block_errors {
     bool bad_magic;  // must be false
     bool mc_bad_magic;  // must be false
     bool mc_inconsistent; // must be false
+
+    config_block_errors()
+        : block_open_code(btree_block_t::none), mc_block_open_code(btree_block_t::none)
+        , bad_magic(false), mc_bad_magic(false), mc_inconsistent(false) { }
 };
 
-bool check_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_block_errors *errs) {
-    errs->block_open_code = btree_block_t::none;
-    errs->bad_magic = false;
-    errs->mc_block_open_code = btree_block_t::none;
-    errs->mc_bad_magic = false;
-    errs->mc_inconsistent = false;
+bool check_mc_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_block_errors *errs,
+                           block_id_t config_block_ser_id, const mc_config_block_t **mc_buf_ptr)
+{
+    btree_block_t mc_config_block;
+    if (!mc_config_block.init(file, knog, config_block_ser_id)) {
+        errs->mc_block_open_code = mc_config_block.err;
+        return false;
+    }
 
+    *mc_buf_ptr = ptr_cast<mc_config_block_t>(mc_config_block.buf);
+    if (!check_magic<mc_config_block_t>((*mc_buf_ptr)->magic)) {
+        errs->mc_bad_magic = true;
+        return false;
+    }
+    return true;
+}
+
+bool check_multiplexed_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_block_errors *errs) {
     btree_block_t config_block;
     if (!config_block.init(file, knog, CONFIG_BLOCK_ID.ser_id)) {
         errs->block_open_code = config_block.err;
@@ -651,17 +707,9 @@ bool check_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_b
     const int mod_count = serializer_multiplexer_t::compute_mod_count(knog->config_block->this_serializer, knog->config_block->n_files, knog->config_block->n_proxies);
     for (int slice_id = 0; slice_id < knog->config_block->n_proxies; ++slice_id) {
         block_id_t config_block_ser_id = translator_serializer_t::translate_block_id(MC_CONFIGBLOCK_ID, mod_count, slice_id, CONFIG_BLOCK_ID);
-        btree_block_t mc_config_block;
-        if (!mc_config_block.init(file, knog, config_block_ser_id)) {
-            errs->mc_block_open_code = mc_config_block.err;
+        const mc_config_block_t *mc_buf;
+        if (!check_mc_config_block(file, knog, errs, config_block_ser_id, &mc_buf))
             return false;
-        }
-        const mc_config_block_t *mc_buf = ptr_cast<mc_config_block_t>(mc_config_block.buf);
-
-        if (!check_magic<mc_config_block_t>(mc_buf->magic)) {
-            errs->mc_bad_magic = true;
-            return false;
-        }
 
         if (slice_id == 0) {
             knog->mc_config_block = *mc_buf;
@@ -673,6 +721,14 @@ bool check_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_b
         }
     }
 
+    return true;
+}
+
+bool check_raw_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_block_errors *errs) {
+    const mc_config_block_t *mc_buf;
+    if (!check_mc_config_block(file, knog, errs, MC_CONFIGBLOCK_ID, &mc_buf))
+        return false;
+    knog->mc_config_block = *mc_buf;
     return true;
 }
 
@@ -845,14 +901,6 @@ private:
     DISABLE_COPYING(subtree_errors);
 };
 
-
-bool is_valid_hash(const slicecx_t& cx, const btree_key_t *key) {
-    store_key_t store_key;
-    store_key.size = key->size;
-    memcpy(store_key.contents, key->contents, key->size);
-    return btree_key_value_store_t::hash(store_key) % cx.knog->config_block->n_proxies == (unsigned)cx.global_slice_id;
-}
-
 void check_large_buf_subtree(slicecx_t& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, largebuf_error *errs);
 
 void check_large_buf_children(slicecx_t& cx, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, largebuf_error *errs) {
@@ -984,7 +1032,7 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_
         const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
 
         errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
-        errs->keys_in_wrong_slice |= !is_valid_hash(cx, &pair->key);
+        errs->keys_in_wrong_slice |= cx.is_valid_key(pair->key);
         errs->out_of_order |= !(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0);
 
         value_error valerr(errs->block_id);
@@ -1115,8 +1163,6 @@ private:
 };
 
 void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
-    block_id_t min_block = translator_serializer_t::translate_block_id(0, cx.mod_count, cx.local_slice_id, CONFIG_BLOCK_ID);
-
     block_id_t end;
     {
         read_locker_t locker(cx.knog);
@@ -1125,7 +1171,9 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
 
     block_id_t first_valueless_block = NULL_BLOCK_ID;
 
-    for (block_id_t id = min_block; id < end; id += cx.mod_count) {
+    for (block_id_t id_iter = 0, id = cx.to_ser_block_id(0);
+         id < end;
+         id = cx.to_ser_block_id(++id_iter)) {
         block_knowledge_t info;
         {
             read_locker_t locker(cx.knog);
@@ -1252,9 +1300,8 @@ struct slice_errors {
     }
 };
 
-void check_slice(nondirect_file_t *file, file_knowledge_t *knog, int global_slice_number, slice_errors *errs, const config_t *cfg) {
-    slicecx_t cx(file, knog, global_slice_number, cfg);
-
+//nondirect_file_t *file, file_knowledge_t *knog, int global_slice_number, slice_errors *errs, const config_t *cfg) {
+void check_slice(slicecx_t &cx, slice_errors *errs) {
     check_and_load_diff_log(cx, &errs->diff_log_errs);
 
     block_id_t root_block_id;
@@ -1291,16 +1338,6 @@ struct check_to_config_block_errors {
     learned_t<lba_errors> lba_errs;
     learned_t<config_block_errors> config_block_errs;
 };
-
-
-bool check_to_config_block(nondirect_file_t *file, file_knowledge_t *knog, check_to_config_block_errors *errs, const config_t *cfg) {
-    check_filesize(file, knog);
-
-    return check_static_config(file, knog, &errs->static_config_err.use(), cfg)
-        && check_metablock(file, knog, &errs->metablock_errs.use())
-        && check_lba(file, knog, &errs->lba_errs.use())
-        && check_config_block(file, knog, &errs->config_block_errs.use());
-}
 
 struct interfile_errors {
     bool all_have_correct_num_files;  // should be true
@@ -1354,40 +1391,42 @@ bool check_interfile(knowledge_t *knog, interfile_errors *errs) {
 struct all_slices_errors {
     int n_slices;
     slice_errors *slice;
+    slice_errors *metadata_slice;
 
-    explicit all_slices_errors(int n_slices_) : n_slices(n_slices_), slice(new slice_errors[n_slices_]) { }
+    explicit all_slices_errors(int n_slices_, bool has_metadata_file)
+        : n_slices(n_slices_), slice(new slice_errors[n_slices_]) {
+        metadata_slice = has_metadata_file ? new slice_errors : NULL;
+    }
 
-    ~all_slices_errors() { delete[] slice; }
+    ~all_slices_errors() { delete[] slice; if (metadata_slice) delete metadata_slice; }
 };
 
 struct slice_parameter_t {
-    nondirect_file_t *file;
-    file_knowledge_t *knog;
-    int global_slice_number;
+    slicecx_t *cx;
     slice_errors *errs;
-    const config_t *cfg;
 };
 
 void *do_check_slice(void *slice_param) {
     slice_parameter_t *p = reinterpret_cast<slice_parameter_t *>(slice_param);
-    check_slice(p->file, p->knog, p->global_slice_number, p->errs, p->cfg);
+    check_slice(*p->cx, p->errs);
+    delete p->cx;
     delete p;
     return NULL;
 }
 
+void launch_check_slice(pthread_t *thread, slicecx_t *cx, slice_errors *errs) {
+    slice_parameter_t *param = new slice_parameter_t;
+    param->cx = cx;
+    param->errs = errs;
+    guarantee_err(!pthread_create(thread, NULL, do_check_slice, param), "pthread_create not working");
+}
+
 void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t>& threads, file_knowledge_t *knog, all_slices_errors *errs, const config_t *cfg) {
     int step = knog->config_block->n_files;
-
     for (int i = knog->config_block->this_serializer; i < errs->n_slices; i += step) {
         errs->slice[i].global_slice_number = i;
         errs->slice[i].home_filename = knog->filename;
-        slice_parameter_t *param = new slice_parameter_t;
-        param->file = file;
-        param->knog = knog;
-        param->global_slice_number = i;
-        param->errs = &errs->slice[i];
-        param->cfg = cfg;
-        guarantee_err(!pthread_create(&threads[i], NULL, do_check_slice, param), "pthread_create not working");
+        launch_check_slice(&threads[i], new multiplexed_slicecx_t(file, knog, i, cfg), &errs->slice[i]);
     }
 }
 
@@ -1459,6 +1498,23 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
             printf("ERROR %s mirrored cache config blocks are inconsistent\n", state);
         }
     }
+}
+
+bool check_and_report_to_config_block(nondirect_file_t *file, file_knowledge_t *knog, const config_t *cfg,
+                                      bool multiplexed) {
+    check_to_config_block_errors errs;
+    check_filesize(file, knog);
+    bool success = check_static_config(file, knog, &errs.static_config_err.use(), cfg)
+        && check_metablock(file, knog, &errs.metablock_errs.use())
+        && check_lba(file, knog, &errs.lba_errs.use())
+        && (multiplexed ? check_multiplexed_config_block(file, knog, &errs.config_block_errs.use())
+            : check_raw_config_block(file, knog, &errs.config_block_errs.use()));
+    if (!success) {
+        std::string s = std::string("(in file '") + knog->filename + "')";
+        state = s.c_str();
+        report_pre_config_block_errors(errs);
+    }
+    return success;
 }
 
 void report_interfile_errors(const interfile_errors &errs) {
@@ -1650,6 +1706,11 @@ bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
         ok &= report_slice_errors(&slices_errs.slice[i]);
     }
 
+    // report errors in metadata file
+    std::string s = std::string("(metadata slice , file '") + slices_errs.metadata_slice->home_filename + "')";
+    state = s.c_str();
+    ok &= report_slice_errors(slices_errs.metadata_slice);
+
     return ok;
 }
 
@@ -1668,7 +1729,7 @@ std::string extract_slices_flags(const multiplexer_config_block_t& c) {
 
 bool check_files(const config_t *cfg) {
     // 1. Open.
-    knowledge_t knog(cfg->input_filenames);
+    knowledge_t knog(cfg->input_filenames, cfg->metadata_filename);
 
     int num_files = knog.num_files();
 
@@ -1680,26 +1741,23 @@ bool check_files(const config_t *cfg) {
         }
     }
 
+    if (knog.metadata_file && !knog.metadata_file->exists())
+        fail_due_to_user_error("No such file \"%s\"", knog.metadata_file_knog->filename.c_str());
+
     /* A few early exits if we want some specific pieces of information */
     if (cfg->print_file_version) {
         printf("VERSION: %s\n", extract_static_config_version(knog.files[0], knog.file_knog[0]).c_str());
         return true;
     }
 
-    bool any = false;
-    for (int i = 0; i < num_files; ++i) {
-        check_to_config_block_errors errs;
-        if (!check_to_config_block(knog.files[i], knog.file_knog[i], &errs, cfg)) {
-            any = true;
-            std::string s = std::string("(in file '") + knog.file_knog[i]->filename + "')";
-            state = s.c_str();
-            report_pre_config_block_errors(errs);
-        }
-    }
+    bool success = true;
+    for (int i = 0; i < num_files; ++i)
+        success &= check_and_report_to_config_block(knog.files[i], knog.file_knog[i], cfg, true);
 
-    if (any) {
-        return false;
-    }
+    if (knog.metadata_file)
+        success &= check_and_report_to_config_block(knog.metadata_file, knog.metadata_file_knog, cfg, false);
+
+    if (!success) return false;
 
     interfile_errors errs;
     if (!check_interfile(&knog, &errs)) {
@@ -1707,38 +1765,40 @@ bool check_files(const config_t *cfg) {
         return false;
     }
 
-    if (!cfg->print_command_line) {
-        print_interfile_summary(*knog.file_knog[0]->config_block, *knog.file_knog[0]->mc_config_block);
-
-        // A thread for every slice.
-        int n_slices = knog.file_knog[0]->config_block->n_proxies;
-        std::vector<pthread_t> threads(n_slices);
-        all_slices_errors slices_errs(n_slices);
-        for (int i = 0; i < num_files; ++i) {
-            launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs, cfg);
-        }
-
-        // Wait for all threads to finish.
-        for (int i = 0; i < n_slices; ++i) {
-            guarantee_err(!pthread_join(threads[i], NULL), "pthread_join failing");
-        }
-
-        bool ok = report_post_config_block_errors(slices_errs);
-        return ok;
-    } else {
+    if (cfg->print_command_line) {
         std::string flags("FLAGS: ");
         flags.append(extract_static_config_flags(knog.files[0], knog.file_knog[0]));
         flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
         printf("%s\n", flags.c_str());
         return true;
     }
-    return false;
+
+    print_interfile_summary(*knog.file_knog[0]->config_block, *knog.file_knog[0]->mc_config_block);
+
+    // A thread for every slice.
+    int n_slices = knog.file_knog[0]->config_block->n_proxies;
+    std::vector<pthread_t> threads(n_slices + 1); // + 1 for metadata slice
+    all_slices_errors slices_errs(n_slices, knog.metadata_file != NULL);
+    for (int i = 0; i < num_files; ++i) {
+        launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs, cfg);
+    }
+
+    // ... and one for the metadata slice
+    launch_check_slice(&threads[n_slices], new raw_slicecx_t(knog.metadata_file, knog.metadata_file_knog, cfg),
+                       slices_errs.metadata_slice);
+
+    // Wait for all threads to finish.
+    for (unsigned i = 0; i < threads.size(); ++i) {
+        guarantee_err(!pthread_join(threads[i], NULL), "pthread_join failing");
+    }
+
+    return report_post_config_block_errors(slices_errs);
 }
 
 //extract the command line arguments from the file
 std::string extract_command_line_args(const config_t *cfg) {
     std::string flags;
-    knowledge_t knog(cfg->input_filenames);
+    knowledge_t knog(cfg->input_filenames, cfg->metadata_filename);
 
     if (!knog.files[0]->exists()) {
         fail_due_to_user_error("No such file \"%s\"", knog.file_knog[0]->filename.c_str());
@@ -1747,7 +1807,7 @@ std::string extract_command_line_args(const config_t *cfg) {
     flags.append(extract_static_config_flags(knog.files[0], knog.file_knog[0]));
 
     config_block_errors errs;
-    check_config_block(knog.files[0], knog.file_knog[0], &errs);
+    check_multiplexed_config_block(knog.files[0], knog.file_knog[0], &errs);
 
     flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
 
@@ -1757,7 +1817,7 @@ std::string extract_command_line_args(const config_t *cfg) {
 
 std::string extract_version(const config_t& cfg) {
     std::string version;
-    knowledge_t knog(cfg.input_filenames);
+    knowledge_t knog(cfg.input_filenames, cfg.metadata_filename);
 
     if (!knog.files[0]->exists()) {
         fail_due_to_user_error("No such file \"%s\"", knog.file_knog[0]->filename.c_str());
