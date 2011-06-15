@@ -24,10 +24,16 @@ class semaphore_t {
     int capacity, current;
     intrusive_list_t<lock_request_t> waiters;
 
+#ifndef NDEBUG
     bool in_callback;
+#endif
 
 public:
-    semaphore_t(int cap) : capacity(cap), current(0), in_callback(false) {
+    semaphore_t(int cap) : capacity(cap), current(0)
+#ifndef NDEBUG
+                         , in_callback(false)
+#endif
+    {
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     }
 
@@ -36,10 +42,10 @@ public:
         rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
         if (current + count <= capacity || capacity == SEMAPHORE_NO_LIMIT) {
             current += count;
-            in_callback = true;
+            DEBUG_ONLY(in_callback = true);
             cb->on_semaphore_available();
             rassert(in_callback);
-            in_callback = false;
+            DEBUG_ONLY(in_callback = false);
         } else {
             lock_request_t *r = new lock_request_t;
             r->count = count;
@@ -68,10 +74,10 @@ public:
                 waiters.remove(h);
                 current += h->count;
                 rassert(!in_callback);
-                in_callback = true;
+                DEBUG_ONLY(in_callback = true);
                 h->on_available();
                 rassert(in_callback);
-                in_callback = false;
+                DEBUG_ONLY(in_callback = false);
             }
         }
     }
@@ -103,11 +109,16 @@ class adjustable_semaphore_t {
     float trickle_fraction, trickle_points;
     intrusive_list_t<lock_request_t> waiters;
 
+#ifndef NDEBUG
     bool in_callback;
+#endif
 
 public:
     adjustable_semaphore_t(int cap, float tf = 0.0) :
-        capacity(cap), current(0), trickle_fraction(tf), trickle_points(0), in_callback(false)
+        capacity(cap), current(0), trickle_fraction(tf), trickle_points(0)
+#ifndef NDEBUG
+        , in_callback(false)
+#endif
     {
         rassert(trickle_fraction <= 1.0 && trickle_fraction >= 0.0);
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
@@ -118,10 +129,10 @@ public:
         rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
         if (try_lock(count)) {
             rassert(!in_callback);
-            in_callback = true;
+            DEBUG_ONLY(in_callback = true);
             cb->on_semaphore_available();
             rassert(in_callback);
-            in_callback = false;
+            DEBUG_ONLY(in_callback = false);
         } else {
             lock_request_t *r = new lock_request_t;
             r->count = count;
@@ -184,10 +195,10 @@ private:
         while ((h = waiters.head()) && try_lock(h->count)) {
             waiters.remove(h);
             rassert(!in_callback);
-            in_callback = true;
+            DEBUG_ONLY(in_callback = true);
             h->on_available();
             rassert(in_callback);
-            in_callback = false;
+            DEBUG_ONLY(in_callback = false);
         }
     }
 };

@@ -238,8 +238,6 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     
     res = pthread_barrier_destroy(&barrier);
     guarantee(res == 0, "Could not destroy barrier");
-    
-    // Fin.
 }
 
 // Note: Maybe we should use a signalfd instead of a signal handler, and then

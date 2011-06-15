@@ -35,9 +35,14 @@ void* linux_aio_getevents_noeventfd_t::io_event_loop(void *arg) {
     io_event events[MAX_IO_EVENT_PROCESSING_BATCH_SIZE];
 
     do {
+        /* XXX Notice: The use of a timeout here is necessary here to prevent a
+         * terrible race condition (Issue #377). The problem is that we rely on
+         * the signal to get us out of io_getevents call so if we get it before
+         * we make the call nothing gets us out. */
+        timespec timeout = {1,0}; //a 1 second timeout
         int nevents = io_getevents(parent->parent->aio_context.id, 1, MAX_IO_EVENT_PROCESSING_BATCH_SIZE,
-                                   events, NULL);
-        if(nevents == -EINTR) {
+                                   events, &timeout);
+        if (nevents == -EINTR || nevents == 0) {
             if(parent->shutting_down)
                 break;
             else
@@ -84,8 +89,6 @@ linux_aio_getevents_noeventfd_t::~linux_aio_getevents_noeventfd_t()
 {
     int res;
     
-    // First rule of fight club - we can't shut down until our IO
-    // thread does. So notify it and wait...
     struct sigaction sa;
     bzero((char*)&sa, sizeof(struct sigaction));
     sa.sa_sigaction = &shutdown_signal_handler;
