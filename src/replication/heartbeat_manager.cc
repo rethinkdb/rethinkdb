@@ -29,7 +29,7 @@ void heartbeat_sender_t::stop_sending_heartbeats() {
 }
 
 void heartbeat_sender_t::send_heartbeat_callback(void *data) {
-    heartbeat_sender_t *self = ptr_cast<heartbeat_sender_t>(data);
+    heartbeat_sender_t *self = reinterpret_cast<heartbeat_sender_t *>(data);
 
     self->heartbeat_timer_ = NULL;
     coro_t::spawn_now(boost::bind(&heartbeat_sender_t::send_heartbeat_wrapper, self));
@@ -85,7 +85,7 @@ void heartbeat_receiver_t::note_heartbeat() {
 }
 
 void heartbeat_receiver_t::heartbeat_timeout_callback(void *data) {
-    heartbeat_receiver_t *self = ptr_cast<heartbeat_receiver_t>(data);
+    heartbeat_receiver_t *self = reinterpret_cast<heartbeat_receiver_t *>(data);
 
     self->heartbeat_timer_ = NULL;
     self->watch_heartbeat_active_ = false;

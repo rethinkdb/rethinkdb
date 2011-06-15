@@ -88,9 +88,9 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         for (size_t i = 0; i < bg->num_buffers(); i++) {
             const_buffer_group_t::buffer_t b = bg->get_buffer(i);
             if (dp->get_size() < MAX_BUFFERED_GET_SIZE) {
-                write(ptr_cast<const char>(b.data), b.size);
+                write(reinterpret_cast<const char *>(b.data), b.size);
             } else {
-                write_unbuffered(ptr_cast<const char>(b.data), b.size);
+                write_unbuffered(reinterpret_cast<const char *>(b.data), b.size);
             }
         }
     }

@@ -294,9 +294,9 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
         *err = bad_file;
         return false;
     }
-    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
+    static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
 
-    log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
+    log_serializer_static_config_t *static_cfg = reinterpret_cast<log_serializer_static_config_t *>(buf + 1);
 
     block_size_t block_size = static_cfg->block_size();
     uint64_t extent_size = static_cfg->extent_size();
@@ -340,7 +340,7 @@ std::string extract_static_config_version(nondirect_file_t *file, UNUSED file_kn
     if (!header.init(DEVICE_BLOCK_SIZE, file, 0)) {
         return "(not available, could not load first block of file)";
     }
-    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
+    static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
     return std::string(buf->version, int(sizeof(VERSION_STRING)));
 }
 
@@ -349,9 +349,9 @@ std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_know
     if (!header.init(DEVICE_BLOCK_SIZE, file, 0)) {
         return "(not available, could not load first block of file)";
     }
-    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
+    static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
 
-    log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
+    log_serializer_static_config_t *static_cfg = reinterpret_cast<log_serializer_static_config_t *>(buf + 1);
 
     block_size_t block_size = static_cfg->block_size();
     uint64_t extent_size = static_cfg->extent_size();
@@ -408,7 +408,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
         if (!b.init(DEVICE_BLOCK_SIZE, file, off)) {
             errs->unloadable_count++;
         }
-        crc_metablock_t *metablock = ptr_cast<crc_metablock_t>(b.realbuf);
+        crc_metablock_t *metablock = reinterpret_cast<crc_metablock_t *>(b.realbuf);
 
         if (metablock->check_crc()) {
             if (0 != memcmp(metablock->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC))
@@ -439,7 +439,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
             // There can be bad CRCs for metablocks that haven't been
             // used yet, if the database is very young.
             bool all_zero = true;
-            char *buf = ptr_cast<char>(b.realbuf);
+            char *buf = reinterpret_cast<char *>(b.realbuf);
             for (int i = 0; i < DEVICE_BLOCK_SIZE; ++i) {
                 all_zero &= (buf[i] == 0);
             }
@@ -463,7 +463,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
         errs->implausible_block_failure = true;
         return false;
     }
-    crc_metablock_t *high_metablock = ptr_cast<crc_metablock_t>(high_block.realbuf);
+    crc_metablock_t *high_metablock = reinterpret_cast<crc_metablock_t *>(high_block.realbuf);
     knog->metablock = high_metablock->metablock;
     return true;
 }
@@ -519,7 +519,7 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
         errs->code = lba_extent_errors::bad_extent_offset;
         return false;
     }
-    lba_extent_t *buf = ptr_cast<lba_extent_t>(extent.realbuf);
+    lba_extent_t *buf = reinterpret_cast<lba_extent_t *>(extent.realbuf);
 
     errs->total_count += entries_count;
 
@@ -594,7 +594,7 @@ bool check_lba_shard(nondirect_file_t *file, file_knowledge_t *knog, lba_shard_m
             errs->code = lba_shard_errors::bad_lba_superblock_offset;
             return false;
         }
-        const lba_superblock_t *buf = ptr_cast<lba_superblock_t>(superblock.realbuf);
+        const lba_superblock_t *buf = reinterpret_cast<lba_superblock_t *>(superblock.realbuf);
 
         if (0 != memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE)) {
             errs->code = lba_shard_errors::bad_lba_superblock_magic;
@@ -664,7 +664,7 @@ bool check_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_b
         errs->block_open_code = config_block.err;
         return false;
     }
-    const multiplexer_config_block_t *buf = ptr_cast<multiplexer_config_block_t>(config_block.buf);
+    const multiplexer_config_block_t *buf = reinterpret_cast<multiplexer_config_block_t *>(config_block.buf);
 
     if (!check_magic<multiplexer_config_block_t>(buf->magic)) {
         errs->bad_magic = true;
@@ -683,7 +683,7 @@ bool check_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_b
             errs->mc_block_open_code = mc_config_block.err;
             return false;
         }
-        const mc_config_block_t *mc_buf = ptr_cast<mc_config_block_t>(mc_config_block.buf);
+        const mc_config_block_t *mc_buf = reinterpret_cast<mc_config_block_t *>(mc_config_block.buf);
 
         if (!check_magic<mc_config_block_t>(mc_buf->magic)) {
             errs->mc_bad_magic = true;
@@ -903,8 +903,8 @@ void check_large_buf_subtree(slicecx_t& cx, int levels, int64_t offset, int64_t 
         err.bad_magic = false;
         errs->segment_errors.push_back(err);
     } else {
-        if ((levels == 1 && !check_magic<large_buf_leaf>(ptr_cast<large_buf_leaf>(b.buf)->magic))
-            || (levels > 1 && !check_magic<large_buf_internal>(ptr_cast<large_buf_internal>(b.buf)->magic))) {
+        if ((levels == 1 && !check_magic<large_buf_leaf>(reinterpret_cast<large_buf_leaf *>(b.buf)->magic))
+            || (levels > 1 && !check_magic<large_buf_internal>(reinterpret_cast<large_buf_internal *>(b.buf)->magic))) {
             largebuf_error::segment_error err;
             err.block_id = block_id;
             err.block_code = btree_block_t::none;
@@ -914,7 +914,7 @@ void check_large_buf_subtree(slicecx_t& cx, int levels, int64_t offset, int64_t 
         }
 
         if (levels > 1) {
-            check_large_buf_children(cx, levels - 1, offset, size, ptr_cast<large_buf_internal>(b.buf)->kids, errs);
+            check_large_buf_children(cx, levels - 1, offset, size, reinterpret_cast<large_buf_internal *>(b.buf)->kids, errs);
         }
     }
 }
@@ -973,7 +973,7 @@ bool leaf_node_inspect_range(const slicecx_t& cx, const leaf_node_t *buf, uint16
         && offset >= buf->frontmost_offset) {
         const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
         const btree_value *value = pair->value();
-        uint32_t value_offset = (ptr_cast<char>(value) - ptr_cast<char>(pair)) + offset;
+        uint32_t value_offset = (reinterpret_cast<const char *>(value) - reinterpret_cast<const char *>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
         if (value_offset <= cx.block_size().value() - 2) {
             uint32_t tot_offset = value_offset + value->full_size();
@@ -1025,7 +1025,7 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_
 }
 
 bool internal_node_begin_offset_in_range(const slicecx_t& cx, const internal_node_t *buf, uint16_t offset) {
-    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<char>(buf) + offset)->key.size <= cx.block_size().value();
+    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + reinterpret_cast<const btree_internal_pair *>(reinterpret_cast<const char *>(buf) + offset)->key.size <= cx.block_size().value();
 }
 
 void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs);
@@ -1095,20 +1095,20 @@ void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const bt
 
     node_error node_err(id);
 
-    if (!node::has_sensible_offsets(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+    if (!node::has_sensible_offsets(cx.block_size(), reinterpret_cast<node_t *>(node.buf))) {
         node_err.value_out_of_buf = true;
     } else {
         if (lo != NULL && hi != NULL) {
             // (We're happy with an underfull root block.)
-            if (node::is_underfull(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+            if (node::is_underfull(cx.block_size(), reinterpret_cast<node_t *>(node.buf))) {
                 node_err.block_underfull = true;
             }
         }
 
-        if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
-            check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
-        } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
-            check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
+        if (check_magic<leaf_node_t>(reinterpret_cast<leaf_node_t *>(node.buf)->magic)) {
+            check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
+        } else if (check_magic<internal_node_t>(reinterpret_cast<internal_node_t *>(node.buf)->magic)) {
+            check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
         } else {
             node_err.bad_magic = true;
         }
@@ -1174,7 +1174,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
                 if (!b.init(cx.file, cx.knog, ser_block_id_t::make(id))) {
                     desc.loading_error = b.err;
                 } else {
-                    desc.magic = *ptr_cast<block_magic_t>(b.buf);
+                    desc.magic = *reinterpret_cast<block_magic_t *>(b.buf);
                 }
 
                 errs->orphan_blocks.push_back(desc);
@@ -1188,7 +1188,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
                     desc.loading_error = zeroblock.err;
                     errs->allegedly_deleted_blocks.push_back(desc);
                 } else {
-                    block_magic_t magic = *ptr_cast<block_magic_t>(zeroblock.buf);
+                    block_magic_t magic = *reinterpret_cast<block_magic_t *>(zeroblock.buf);
                     if (!(log_serializer_t::zerobuf_magic == magic)) {
                         desc.magic = magic;
                         errs->allegedly_deleted_blocks.push_back(desc);
@@ -1286,7 +1286,7 @@ void check_slice(nondirect_file_t *file, file_knowledge_t *knog, int global_slic
             errs->superblock_code = btree_superblock.err;
             return;
         }
-        const btree_superblock_t *buf = ptr_cast<btree_superblock_t>(btree_superblock.buf);
+        const btree_superblock_t *buf = reinterpret_cast<btree_superblock_t *>(btree_superblock.buf);
         if (!check_magic<btree_superblock_t>(buf->magic)) {
             errs->superblock_bad_magic = true;
             return;
@@ -1699,8 +1699,8 @@ std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config
     if (!header.init(DEVICE_BLOCK_SIZE, file, 0)) {
         return " --diff-log-size intentionally-invalid";
     }
-    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
-    log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
+    static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
+    log_serializer_static_config_t *static_cfg = reinterpret_cast<log_serializer_static_config_t *>(buf + 1);
     block_size_t block_size = static_cfg->block_size();
 
 

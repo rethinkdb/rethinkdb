@@ -512,13 +512,13 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
 }
 
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
-    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
-    const uint8_t *range8 = ptr_cast<const uint8_t>(range_start);
+    const uint8_t *p8 = reinterpret_cast<const uint8_t *>(p);
+    const uint8_t *range8 = reinterpret_cast<const uint8_t *>(range_start);
     return range8 <= p8 && p8 < range8 + size_in_bytes;
 }
 
 bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes) {
-    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
+    const uint8_t *p8 = reinterpret_cast<const uint8_t *>(p);
     return ptr_in_byte_range(p, range_start, size_in_bytes) &&
         (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
 }
@@ -537,9 +537,9 @@ void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
         get_data_major_write();
         memcpy(dest, src, n);
     } else {
-        size_t offset = ptr_cast<uint8_t>(dest) - ptr_cast<uint8_t>(data);
+        size_t offset = reinterpret_cast<uint8_t *>(dest) - reinterpret_cast<uint8_t *>(data);
         // transaction ID will be set later...
-        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, ptr_cast<const char>(src), n));
+        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, reinterpret_cast<const char *>(src), n));
     }
 }
 
@@ -557,8 +557,8 @@ void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
         get_data_major_write();
         memmove(dest, src, n);
     } else {
-        size_t dest_offset = ptr_cast<uint8_t>(dest) - ptr_cast<uint8_t>(data);
-        size_t src_offset = ptr_cast<uint8_t>(src) - ptr_cast<uint8_t>(data);
+        size_t dest_offset = reinterpret_cast<uint8_t *>(dest) - reinterpret_cast<uint8_t *>(data);
+        size_t src_offset = reinterpret_cast<const uint8_t *>(src) - reinterpret_cast<uint8_t *>(data);
         // transaction ID will be set later...
         apply_patch(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
     }
