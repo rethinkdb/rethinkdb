@@ -102,7 +102,7 @@ void slave_stream_manager_t::on_signal_pulsed() {
     assert_thread();
 
     interrupted_by_external_event_ = true;
-    stream_->shutdown();   // Will cause conn_closed() to be called
+    coro_t::spawn_now(boost::bind(&repli_stream_t::shutdown, stream_));   // Will cause conn_closed() to be called
 }
 
 }
