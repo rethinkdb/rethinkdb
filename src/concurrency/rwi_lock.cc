@@ -72,6 +72,7 @@ bool rwi_lock_t::try_lock(access_t access, bool from_queue) {
     //    debugf("rwi_lock_t::try_lock (access = %d, state = %d)\n", access, state);
     bool res = false;
     switch (access) {
+        case rwi_read_sync:
         case rwi_read:
             res = try_lock_read(from_queue);
             break;

@@ -717,7 +717,10 @@ Hazards to watch out for
 
 If you run RethinkDB even once in non-slave-mode on a set of slave data
 files, those data files will be irreversibly changed, and you won't be
-able to use them in slave-mode ever again!
+able to use them in slave-mode ever again. RethinkDB will warn you when
+you try to use data files from a slave in non-slave mode, but you can
+override the warning by passing the ``--force-unslavify`` flag on the
+command line.
 
 Don't use multiple slaves with the same master. If you disconnect the slave
 and then connect a new one, RethinkDB will accept the new slave, but if
@@ -948,6 +951,28 @@ It is also possible to set per-user open file handles limits by editing
 
   rethinkdb soft nofile 2048
   rethinkdb hard nofile 8192
+
+---------------------------
+Read errors on ext4 and xfs
+---------------------------
+
+Certain versions of the Linux kernel have a bug in their implementations of
+both the ext4 and xfs file systems. These bugs can cause RethinkDB to fail with
+the following error message:
+"Got wrong block when reading from disk (id 0 instead of X)."
+
+Any of the following steps can be taken to work-around this issue:
+
+- Upgrade or patch the Linux kernel. The required kernel patches are listed on
+  this page: https://bugzilla.kernel.org/show_bug.cgi?id=16165
+- Run RethinkDB with the ``--io-backend pool`` command line option. Doing so
+  might result in a slightly reduced query throughput and/or increased latency
+  for some workloads.
+- If possible, use RethinkDB directly on a block device or use a different file
+  system for the partition which holds the RethinkDB data file(s).
+- The file system creation flag ``-O ^extent`` can be used with ``mkfs.ext4`` to
+  disable extent-based allocation on ext4 file systems. Ext4 file systems that
+  do not use extent-based allocation do not seem to be affected by the issue.
 
 =======
 Support

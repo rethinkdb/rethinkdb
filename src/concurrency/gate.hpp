@@ -59,8 +59,8 @@ struct gate_t {
     };
 
 private:
-    friend class open_t;
-    friend class entry_t;
+    friend struct open_t;
+    friend struct entry_t;
 
     /* True if the gate is open. False if the gate is closed or in the process of closing. */
     bool open;
@@ -124,8 +124,8 @@ struct threadsafe_gate_t {
     };
 
 private:
-    friend class open_t;
-    friend class entry_t;
+    friend struct open_t;
+    friend struct entry_t;
     void create_gate(int i) {
         on_thread_t thread_switcher(i);
         subgates[i] = new gate_t;

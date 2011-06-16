@@ -48,17 +48,17 @@ struct ls_read_fsm_t;
 struct ls_start_new_fsm_t;
 struct ls_start_existing_fsm_t;
 
-struct log_serializer_t :
+class log_serializer_t :
     public serializer_t,
     private data_block_manager_t::gc_writer_t,
     private data_block_manager_t::shutdown_callback_t,
     private lba_index_t::shutdown_callback_t
 {
-    friend class ls_block_writer_t;
-    friend class ls_write_fsm_t;
-    friend class ls_read_fsm_t;
-    friend class ls_start_new_fsm_t;
-    friend class ls_start_existing_fsm_t;
+    friend struct ls_block_writer_t;
+    friend struct ls_write_fsm_t;
+    friend struct ls_read_fsm_t;
+    friend struct ls_start_new_fsm_t;
+    friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
     friend class dbm_read_ahead_fsm_t;
 

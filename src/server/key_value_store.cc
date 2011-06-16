@@ -30,33 +30,36 @@ shard_store_t::shard_store_t(
 
 get_result_t shard_store_t::get(const store_key_t &key, order_token_t token) {
     on_thread_t th(home_thread());
-    sink.check_out(token);
-    order_token_t substore_token = substore_order_source.check_in().with_read_mode();
     // We need to let gets reorder themselves, and haven't implemented that yet.
-    return btree.get(key, substore_token);
+    return dispatching_store.get(key, token);
 }
 
 rget_result_t shard_store_t::rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) {
     on_thread_t th(home_thread());
-    sink.check_out(token);
-    order_token_t substore_token = substore_order_source.check_in().with_read_mode();
+
     // We need to let gets reorder themselves, and haven't implemented that yet.
-    return btree.rget(left_mode, left_key, right_mode, right_key, substore_token);
+    return dispatching_store.rget(left_mode, left_key, right_mode, right_key, token);
 }
 
 mutation_result_t shard_store_t::change(const mutation_t &m, order_token_t token) {
     on_thread_t th(home_thread());
-    sink.check_out(token);
-    order_token_t substore_token = substore_order_source.check_in();
-    return timestamper.change(m, substore_token);
+    return timestamper.change(m, token);
 }
 
 mutation_result_t shard_store_t::change(const mutation_t &m, castime_t ct, order_token_t token) {
     /* Bypass the timestamper because we already have a castime_t */
     on_thread_t th(home_thread());
-    sink.check_out(token);
-    order_token_t substore_token = substore_order_source.check_in();
-    return dispatching_store.change(m, ct, substore_token);
+    return dispatching_store.change(m, ct, token);
+}
+
+void shard_store_t::delete_all_keys_for_backfill(order_token_t token) {
+    on_thread_t th(home_thread());
+    dispatching_store.delete_all_keys_for_backfill(token);
+}
+
+void shard_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
+    on_thread_t th(home_thread());
+    dispatching_store.set_replication_clock(t, token);
 }
 
 /* btree_key_value_store_t */
@@ -123,9 +126,9 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
         dynamic_config, static_config, _1));
 
     /* Create serializers so we can initialize their contents */
-    standard_serializer_t *serializers[n_files];
+    std::vector<standard_serializer_t *> serializers(n_files);
     pmap(n_files, boost::bind(&create_existing_shard_serializer,
-        dynamic_config, serializers, _1));
+                              dynamic_config, serializers.data(), _1));
     {
         /* Prepare serializers for multiplexing */
         std::vector<serializer_t *> serializers_for_multiplexer(n_files);
@@ -141,7 +144,7 @@ void btree_key_value_store_t::create(btree_key_value_store_dynamic_config_t *dyn
     }
 
     /* Shut down serializers */
-    pmap(n_files, boost::bind(&destroy_shard_serializer, serializers, _1));
+    pmap(n_files, boost::bind(&destroy_shard_serializer, serializers.data(), _1));
 
     // Create, initialize, & shutdown metadata serializer
     standard_serializer_t::create(&dynamic_config->serializer,
@@ -305,18 +308,16 @@ void btree_key_value_store_t::check_existing(const std::vector<std::string>& fil
 }
 
 
-void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t) {
-
-    /* Update the value on disk */
-    shards[0]->btree.set_replication_clock(t);
+void btree_key_value_store_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
+    shards[0]->set_replication_clock(t, token);
 }
 
 repli_timestamp btree_key_value_store_t::get_replication_clock() {
     return shards[0]->btree.get_replication_clock();   /* Read the value from disk */
 }
 
-void btree_key_value_store_t::set_last_sync(repli_timestamp_t t) {
-    shards[0]->btree.set_last_sync(t);   /* Write the value to disk */
+void btree_key_value_store_t::set_last_sync(repli_timestamp_t t, order_token_t token) {
+    shards[0]->btree.set_last_sync(t, token);   /* Write the value to disk */
 }
 
 repli_timestamp btree_key_value_store_t::get_last_sync() {
@@ -433,9 +434,9 @@ mutation_result_t btree_key_value_store_t::change(const mutation_t &m, castime_t
 
 /* btree_key_value_store_t interface */
 
-void btree_key_value_store_t::delete_all_keys_for_backfill() {
+void btree_key_value_store_t::delete_all_keys_for_backfill(order_token_t token) {
     for (int i = 0; i < btree_static_config.n_slices; ++i) {
-        shards[i]->btree.delete_all_keys_for_backfill();
+        coro_t::spawn_now(boost::bind(&shard_store_t::delete_all_keys_for_backfill, shards[i], token));
     }
 }
 
@@ -490,23 +491,13 @@ void btree_key_value_store_t::set_meta(const std::string &key, const std::string
     guarantee(res == sr_stored);
 }
 
-static void pulse_shared_ptr(boost::shared_ptr<cond_t> cvar) {
-    cvar->pulse();
-}
-
 static void co_persist_stats(btree_key_value_store_t *store, signal_t *shutdown) {
-    // TODO (rntz) this function is the cause of a leaked timer warning message, investigate
     while (!shutdown->is_pulsed()) {
-        // Could do this without a shared_ptr, but it would be more complicated.
-        boost::shared_ptr<cond_t> wakeup(new cond_t());
-        cond_link_t linkme(shutdown, wakeup.get());
-        call_with_delay(STAT_PERSIST_FREQUENCY_MS, boost::bind(pulse_shared_ptr, wakeup),
-                        // XXX (rntz) practically speaking, passing shutdown as an abort signal
-                        // prevents the leaked timer problem, but in theory it could result in
-                        // pulse_shared_pointer not managing to run before shutdown. I don't think
-                        // this is a problem, though; it's garbage anyway, so who cares...
-                        shutdown);
-        wakeup->wait_eagerly();
+        signal_timer_t timer(STAT_PERSIST_FREQUENCY_MS);
+        cond_t wakeup;
+        cond_link_t link_shutdown(shutdown, &wakeup);
+        cond_link_t link_timer(&timer, &wakeup);
+        wakeup.wait();
 
         // Persist stats
         persistent_stat_t::persist_all(store);

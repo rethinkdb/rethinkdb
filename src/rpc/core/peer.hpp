@@ -162,6 +162,8 @@ public:
     {
         friend class cluster_peer_t;
         virtual void on_kill() = 0;
+    protected:
+        virtual ~kill_cb_t() { }
     };
 
 private:

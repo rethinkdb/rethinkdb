@@ -88,7 +88,7 @@ struct accounting_diskmgr_t {
     passive_producer_t<payload_t *> * const producer;
     void done(payload_t *p) {
         // p really is an action_t...
-        action_t *a = ptr_cast<action_t>(p);
+        action_t *a = reinterpret_cast<action_t *>(p);
         a->account->outstanding_requests_limiter.unlock(1);
         done_fun(static_cast<action_t *>(p));
     }

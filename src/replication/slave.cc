@@ -11,8 +11,6 @@
 
 namespace replication {
 
-// TODO unit test offsets
-
 slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t replication_config,
         failover_config_t failover_config, failover_t *failover) :
     failover_(failover),
@@ -151,13 +149,14 @@ void slave_t::run(signal_t *shutdown_signal) {
             repli_timestamp_t rc = internal_store_->get_replication_clock().next();
             debugf("Incrementing clock from %d to %d\n", rc.time - 1, rc.time);
             internal_store_->set_timestampers(rc);
-            internal_store_->set_replication_clock(rc);
+            internal_store_->set_replication_clock(rc, order_token_t::ignore);
 
             failover_->on_failure();
 
             were_connected_before = false;
 
         } catch (tcp_conn_t::connect_failed_exc_t& e) {
+	    (void)e;
             // If the master was down when we last shut down, it's not so remarkable that it
             // would still be down when we come back up. But if that's not the case and it's
             // our first time connecting, we blame the failure to connect on user error.
@@ -173,7 +172,8 @@ void slave_t::run(signal_t *shutdown_signal) {
             timeout_ = std::min(timeout_ * TIMEOUT_GROWTH_FACTOR, (long)TIMEOUT_CAP);
 
             cond_t c;
-            call_with_delay(timeout, boost::bind(&cond_t::pulse, &c), &c);
+            signal_timer_t retry_timer(timeout);
+            cond_link_t proceed_when_delay_is_over(&retry_timer, &c);
             pulse_to_reset_failover_.watch(&c);
             cond_link_t abort_delay_on_shutdown(shutdown_signal, &c);
             c.wait();

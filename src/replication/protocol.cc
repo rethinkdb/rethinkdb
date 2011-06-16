@@ -83,10 +83,16 @@ tracker_obj_t *check_value_streamer(message_callback_t *receiver, const char *bu
 }
 
 void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
+    // Suspend watching for the heartbeat while we are handling the message.
+    // In case handling it takes very long, we might time out otherwise just
+    // due to the fact that we are unable to handle incoming heartbeat messages
+    // as we are still busy handling this one.
+    heartbeat_receiver_t::pause_watching_heartbeat_t hb_pauser = hb_receiver_->pause_watching_heartbeat();
+
     // Notify the heartbeat receiver that we got something (which means that the connection is alive)
-    if (hb_receiver_) {
-        hb_receiver_->note_heartbeat();
-    }
+    // (Note: this might be a no-op while watching the heartbeat is paused, depending
+    // on the implementation of the heartbeat receiver. It certainly doesn't hurt though.)
+    hb_receiver_->note_heartbeat();
     
     if (!saw_first_part_) {
         uint8_t msgcode = *reinterpret_cast<const uint8_t *>(buf);
@@ -129,6 +135,9 @@ void replication_stream_handler_t::stream_part(const char *buf, size_t size) {
 void replication_stream_handler_t::end_of_stream() {
     rassert(saw_first_part_);
     if (tracker_obj_) {
+        // Suspend watching for the heartbeat while we are handling the message.
+        // (see above for further description)
+        heartbeat_receiver_t::pause_watching_heartbeat_t hb_pauser = hb_receiver_->pause_watching_heartbeat();
         tracker_obj_->function();
         delete tracker_obj_;
         tracker_obj_ = NULL;
@@ -138,11 +147,11 @@ void replication_stream_handler_t::end_of_stream() {
 void replication_connection_handler_t::process_hello_message(net_hello_t buf) {
     rassert(16 == sizeof(STANDARD_HELLO_MAGIC));
     if (0 != memcmp(buf.hello_magic, STANDARD_HELLO_MAGIC, sizeof(STANDARD_HELLO_MAGIC))) {
-        throw protocol_exc_t("bad hello magic");  // TODO details
+        throw protocol_exc_t("bad hello magic");
     }
 
     if (buf.replication_protocol_version != 1) {
-        throw protocol_exc_t("bad protocol version");  // TODO details
+        throw protocol_exc_t("bad protocol version");
     }
 
     receiver_->hello(buf);
@@ -168,10 +177,12 @@ repli_stream_t::repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_call
 }
 
 repli_stream_t::~repli_stream_t() {
-    drain_semaphore_.drain();   // Wait for any active send()s to finish
     stop_sending_heartbeats();
+    drain_semaphore_.drain();   // Wait for any active send()s to finish
     unwatch_heartbeat();
     rassert(!conn_->is_read_open());
+
+    debugf("Closing repli_stream_t()\n");
 }
 
 template <class net_struct_type>
@@ -370,10 +381,11 @@ void repli_stream_t::try_write(const void *data, size_t size) {
         block_pm_duration set_timer(&master_write);
         conn_->write_buffered(data, size);
     } catch (tcp_conn_t::write_closed_exc_t &e) {
-        // TODO: This is disgusting.
+	(void)e;
 #ifndef REPLICATION_DEBUG
         debugf("try_write failed!\n");
 #endif
+        debugf("Writing end closed on network connection.\n");
 
         /* Master died; we happened to be mid-write at the time. A tcp_conn_t::read_closed_exc_t
         will be thrown somewhere and that will cause us to shut down. So we can ignore this
@@ -383,8 +395,10 @@ void repli_stream_t::try_write(const void *data, size_t size) {
 
 void repli_stream_t::flush() {
     try {
+        mutex_acquisition_t ak(&outgoing_mutex_, true);
         conn_->flush_buffer_eventually();
     } catch (tcp_conn_t::write_closed_exc_t &e) {
+	(void)e;
         /* Ignore; see `repli_stream_t::try_write()`. */
     }
 }

@@ -65,7 +65,9 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
         uint32_t ident = multipart_hdr->ident;
 
         if (multipart_hdr->message_multipart_aspect == FIRST) {
+#ifdef REPLICATION_DEBUG
             debugf("FIRST for ident %u\n", ident);
+#endif
             if (!streams.add(ident, connection_handler->new_stream_handler())) {
                 throw protocol_exc_t("reused live ident code");
             }
@@ -73,7 +75,9 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
             streams[ident]->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
 
         } else if (multipart_hdr->message_multipart_aspect == MIDDLE || multipart_hdr->message_multipart_aspect == LAST) {
+#ifdef REPLICATION_DEBUG
             debugf("MIDDLE or LAST for ident %u\n", ident);
+#endif
             stream_handler_t *h = streams[ident];
             if (h == NULL) {
                 throw protocol_exc_t("inactive stream identifier");
@@ -81,7 +85,9 @@ size_t handle_message(connection_handler_t *connection_handler, const char *buf,
 
             h->stream_part(buf + sizeof(net_multipart_header_t), msgsize - sizeof(net_multipart_header_t));
             if (multipart_hdr->message_multipart_aspect == LAST) {
+#ifdef REPLICATION_DEBUG
                 debugf("WAS LAST for ident %u\n", ident);
+#endif
                 h->end_of_stream();
                 delete h;
                 streams.drop(ident);
@@ -158,6 +164,13 @@ void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
         do_parse_normal_messages(conn, conn_handler, streams);
 
     } catch (tcp_conn_t::read_closed_exc_t& e) {
+        if (conn->is_write_open()) {
+            conn->shutdown_write();
+        }
+        logERR("Replication connection was closed.\n");
+        debugf("Reading end closed on replication connection.\n");
+
+	(void)e;
     } catch (protocol_exc_t& e) {
         if (conn->is_write_open()) {
             conn->shutdown_write();
@@ -165,9 +178,9 @@ void do_parse_messages(tcp_conn_t *conn, connection_handler_t *conn_handler) {
         if (conn->is_read_open()) {
             conn->shutdown_read();
         }
-        logERR("Bad data was sent on the replication connection:  %s", e.what());
+        logERR("Bad data was sent on the replication connection:  %s\n", e.what());
 
-        // TODO: What else should happen when handling this?
+        debugf("Bad data was sent on the replication connection:  %s\n", e.what());
     }
 
     conn_handler->conn_closed();

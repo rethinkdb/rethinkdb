@@ -65,8 +65,8 @@ class scc_transaction_t :
     typedef scc_buf_t<inner_cache_t> buf_t;
 
 public:
-    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token);
-    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, order_token_t token);
+    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+    scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access);
     ~scc_transaction_t();
 
     // TODO: Implement semantic checking for snapshots!
@@ -85,6 +85,8 @@ public:
     scc_cache_t<inner_cache_t> *cache;
 
     order_token_t order_token;
+
+    void set_token(order_token_t token) { order_token = token; }
 
 private:
     bool snapshotted; // Disables CRC checks
@@ -111,11 +113,12 @@ public:
         mirrored_cache_config_t *dynamic_config);
 
     block_size_t get_block_size();
-
     boost::shared_ptr<cache_account_t> create_account(int priority);
 
     bool offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool contains_block(block_id_t block_id);
+
+    coro_fifo_t& co_begin_coro_fifo() { return inner_cache.co_begin_coro_fifo(); }
 
 private:
     inner_cache_t inner_cache;

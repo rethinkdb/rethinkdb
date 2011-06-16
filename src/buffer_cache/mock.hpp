@@ -4,6 +4,7 @@
 #include <boost/shared_ptr.hpp>
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/coro_fifo.hpp"
 #include "concurrency/drain_semaphore.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "containers/segmented_vector.hpp"
@@ -64,8 +65,8 @@ class mock_transaction_t :
     typedef mock_buf_t buf_t;
 
 public:
-    mock_transaction_t(mock_cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token);
-    mock_transaction_t(mock_cache_t *cache, access_t access, order_token_t token);
+    mock_transaction_t(mock_cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+    mock_transaction_t(mock_cache_t *cache, access_t access);
     ~mock_transaction_t();
 
     void snapshot() { }
@@ -79,6 +80,8 @@ public:
     mock_cache_t *cache;
 
     order_token_t order_token;
+
+    void set_token(order_token_t token) { order_token = token; }
 
 private:
     friend class mock_cache_t;
@@ -116,6 +119,8 @@ public:
 
     bool contains_block(block_id_t id);
 
+    coro_fifo_t& co_begin_coro_fifo() { return co_begin_coro_fifo_; }
+
 private:
     friend class mock_transaction_t;
     friend class mock_buf_t;
@@ -124,7 +129,14 @@ private:
     serializer_t *serializer;
     drain_semaphore_t transaction_counter;
     block_size_t block_size;
+
+    // Makes sure that write operations do not get reordered, which
+    // throttling is supposed to do in the real buffer cache.
+    coro_fifo_t write_operation_random_delay_fifo;
+
     segmented_vector_t<internal_buf_t *, MAX_BLOCK_ID> bufs;
+
+    coro_fifo_t co_begin_coro_fifo_;
 };
 
 #endif /* __BUFFER_CACHE_MOCK_HPP__ */

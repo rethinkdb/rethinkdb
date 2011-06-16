@@ -29,7 +29,10 @@ class extent_zone_t {
     unsigned int offset_to_id(off64_t extent) {
         rassert(extent < end);
         rassert(extent >= start);
-        rassert(extent % extent_size == 0);
+#ifndef NDEBUG
+        bool extent_mod_extent_size_equals_zero = extent % extent_size == 0;
+        rassert(extent_mod_extent_size_equals_zero);
+#endif
         return (extent - start) / extent_size;
     }
     
@@ -52,8 +55,12 @@ public:
     extent_zone_t(off64_t start, off64_t end, size_t extent_size)
         : start(start), end(end), extent_size(extent_size), _held_extents(0)
     {
-        rassert(start % extent_size == 0);
-        rassert(end % extent_size == 0);
+#ifndef NDEBUG
+        bool start_aligned = start % extent_size == 0;
+        rassert(start_aligned);
+        bool end_aligned = end % extent_size == 0;
+        rassert(end_aligned);
+#endif
     }
     
     void reserve_extent(off64_t extent) {
@@ -114,7 +121,10 @@ public:
 extent_manager_t::extent_manager_t(direct_file_t *file, log_serializer_static_config_t *static_config, log_serializer_dynamic_config_t *dynamic_config)
     : static_config(static_config), dynamic_config(dynamic_config), extent_size(static_config->extent_size()), dbfile(file), state(state_reserving_extents), n_extents_in_use(0)
 {
-    rassert(extent_size % DEVICE_BLOCK_SIZE == 0);
+#ifndef NDEBUG
+    bool modcmp = extent_size % DEVICE_BLOCK_SIZE == 0;
+    rassert(modcmp);
+#endif
     
     if (file->is_block_device() || dynamic_config->file_size > 0) {
         /* If we are given a fixed file size, we pretend to be on a block device. */

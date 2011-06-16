@@ -690,7 +690,8 @@ void linux_tcp_listener_t::accept_loop(signal_t *shutdown_signal) {
             be interrupted immediately if something wants to shut us down. */
             cond_t c;
             cond_link_t interrupt_wait_on_shutdown(shutdown_signal, &c);
-            call_with_delay(backoff_delay_ms, boost::bind(&cond_t::pulse, &c), &c);
+            signal_timer_t backoff_delay_timer(backoff_delay_ms);
+            cond_link_t interrupt_wait_on_timer(&backoff_delay_timer, &c);
             c.wait();
 
             /* Exponentially increase backoff time */

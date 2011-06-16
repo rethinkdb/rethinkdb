@@ -58,12 +58,12 @@
 // the btree_traversal_helper_t implementation is interested in
 // values.)
 
-struct parent_releaser_t;
+class parent_releaser_t;
 
 struct acquisition_waiter_callback_t {
     virtual void you_may_acquire() = 0;
 protected:
-    ~acquisition_waiter_callback_t() { }
+    virtual ~acquisition_waiter_callback_t() { }
 };
 
 
@@ -191,7 +191,7 @@ void process_a_internal_node(traversal_state_t *state, buf_t *buf, int level);
 struct node_ready_callback_t {
     virtual void on_node_ready(buf_t *buf) = 0;
 protected:
-    ~node_ready_callback_t() { }
+    virtual ~node_ready_callback_t() { }
 };
 
 struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
@@ -229,10 +229,11 @@ void acquire_a_node(traversal_state_t *state, int level, block_id_t block_id, ac
     state->consider_pulsing();
 }
 
-struct parent_releaser_t {
+class parent_releaser_t {
+public:
     virtual void release() = 0;
 protected:
-    ~parent_releaser_t() { }
+    virtual ~parent_releaser_t() { }
 };
 
 struct internal_node_releaser_t : public parent_releaser_t {
@@ -244,6 +245,8 @@ struct internal_node_releaser_t : public parent_releaser_t {
         delete this;
     }
     internal_node_releaser_t(buf_t *buf, traversal_state_t *state) : buf_(buf), state_(state) { }
+
+    virtual ~internal_node_releaser_t() { }
 };
 
 void btree_parallel_traversal(boost::shared_ptr<transaction_t>& txn, btree_slice_t *slice, btree_traversal_helper_t *helper) {

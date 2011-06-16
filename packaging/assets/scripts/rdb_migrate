@@ -35,6 +35,13 @@ do
     esac
 done
 
+if [ ${#infile[@]} -le "0" ]
+then
+    echo "No infile given. You probably don't want to run this script directly." >&2
+    echo "Please use \"rethinkdb migrate\" instead. See \"rethinkdb migrate help\" for more information." >&2
+    exit 1
+fi
+
 infilecl=()
 for file in "${infile[@]}"
 do
@@ -60,7 +67,7 @@ check "$?" "Version extraction failed"
 #TODO this should maybe be a seperate file... might not be so important
 if [ "$version" = "0.1" ]
 then
-    old_rdb=/usr/bin/rethinkdb1.0
+    old_rdb=/usr/bin/rethinkdb-1.0
 else
     croak "Unrecognized file version: $version"
 fi
@@ -74,15 +81,18 @@ then
     flags+=" --force "
 fi
 
-echo -n "Extracting old data.."
+echo -n "Extracting old data.. "
 "$old_rdb" extract "${infilecl[@]}" -o "$intermediate_file" -l /dev/null
 check "$?" "Extraction failed."
 echo "done"
 
-echo -n "Creating new database.."
+echo -n "Creating new database.. "
 "$new_rdb" create "${outfilecl[@]}" $flags -l /dev/null
 check "$?" "New database creation failed."
 echo "done"
 
-"$new_rdb" import --memcached-file "$intermediate_file" -l /dev/null
+echo -n "Importing data.. "
+"$new_rdb" import "${outfilecl[@]}" --memcached-file "$intermediate_file" -l /dev/null
+check "$?" "Importing data into new database failed."
 echo "done"
+

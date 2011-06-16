@@ -41,7 +41,7 @@ void btree_slice_t::create(serializer_t *serializer,
     boost::scoped_ptr<cache_t> cache(new cache_t(serializer, &startup_dynamic_config));
 
     /* Initialize the btree superblock and the delete queue */
-    boost::shared_ptr<transaction_t> txn(new transaction_t(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past, order_token_t::ignore));
+    boost::shared_ptr<transaction_t> txn(new transaction_t(cache.get(), rwi_write, 1, repli_timestamp_t::distant_past));
 
     buf_lock_t superblock(txn.get(), SUPERBLOCK_ID, rwi_write);
 
@@ -69,7 +69,10 @@ void btree_slice_t::create(serializer_t *serializer,
 btree_slice_t::btree_slice_t(serializer_t *serializer,
                              mirrored_cache_config_t *dynamic_config,
                              int64_t delete_queue_limit)
-    : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit) { }
+    : cache_(serializer, dynamic_config), delete_queue_limit_(delete_queue_limit),
+        backfill_account(cache()->create_account(BACKFILL_CACHE_PRIORITY)) {
+    order_checkpoint_.set_tagappend("slice");
+}
 
 btree_slice_t::~btree_slice_t() {
     // Cache's destructor handles flushing and stuff
@@ -104,6 +107,10 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
         return btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token);
     }
 
+    btree_slice_change_visitor_t(btree_slice_t *_parent, castime_t _ct, order_token_t _order_token)
+        : parent(_parent), ct(_ct), order_token(_order_token) { }
+
+private:
     btree_slice_t *parent;
     castime_t ct;
     order_token_t order_token;
@@ -116,37 +123,37 @@ mutation_result_t btree_slice_t::change(const mutation_t &m, castime_t castime, 
 
     token = order_checkpoint_.check_through(token);
 
-    btree_slice_change_visitor_t functor;
-    functor.parent = this;
-    functor.ct = castime;
-    functor.order_token = token;
+    btree_slice_change_visitor_t functor(this, castime, token);
     return boost::apply_visitor(functor, m.mutation);
 }
 
-void btree_slice_t::delete_all_keys_for_backfill() {
+void btree_slice_t::delete_all_keys_for_backfill(order_token_t token) {
     assert_thread();
 
-    btree_delete_all_keys_for_backfill(this);
+    order_sink_.check_out(token);
+
+    btree_delete_all_keys_for_backfill(this, token);
 }
 
-void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback) {
+void btree_slice_t::backfill(repli_timestamp since_when, backfill_callback_t *callback, order_token_t token) {
     assert_thread();
 
-    btree_backfill(this, since_when, callback);
+    order_sink_.check_out(token);
+
+    btree_backfill(this, since_when, backfill_account, callback, token);
 }
 
-/* TODO: Storing replication clocks and last-sync information like this is kind of ugly because
-it's an abstraction break, which means it might not fit with clustering.
+void btree_slice_t::set_replication_clock(repli_timestamp_t t, order_token_t token) {
+    assert_thread();
 
-These functions are intentionally verbose because they shouldn't exist at all. The code
-duplication is a protest against how horrible it is to have this data stored here. */
+    order_sink_.check_out(token);
 
-void btree_slice_t::set_replication_clock(repli_timestamp_t t) {
-    on_thread_t th(cache()->home_thread());
-    transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past);
+    // TODO: Set the transaction's order token (not with the token parameter).
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
-    sb->replication_clock = t;
+    //    rassert(sb->replication_clock < t, "sb->replication_clock = %u, t = %u", sb->replication_clock.time, t.time);
+    sb->replication_clock = std::max(sb->replication_clock, t);
 }
 
 // TODO: Why are we using repli_timestamp_t::distant_past instead of
@@ -154,15 +161,22 @@ void btree_slice_t::set_replication_clock(repli_timestamp_t t) {
 
 repli_timestamp btree_slice_t::get_replication_clock() {
     on_thread_t th(cache()->home_thread());
-    transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past);
+    // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
     return sb->replication_clock;
 }
 
-void btree_slice_t::set_last_sync(repli_timestamp_t t) {
+void btree_slice_t::set_last_sync(repli_timestamp_t t, UNUSED order_token_t token) {
     on_thread_t th(cache()->home_thread());
-    transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+
+    // TODO: We need to make sure that callers are using a proper substore token.
+
+    //    order_sink_.check_out(token);
+
+    transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past);
+    // TODO: Set the transaction's order token (not with the token parameter).
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->last_sync = t;
@@ -170,7 +184,8 @@ void btree_slice_t::set_last_sync(repli_timestamp_t t) {
 
 repli_timestamp btree_slice_t::get_last_sync() {
     on_thread_t th(cache()->home_thread());
-    transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past);
+    // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
     return sb->last_sync;
@@ -178,7 +193,8 @@ repli_timestamp btree_slice_t::get_last_sync() {
 
 void btree_slice_t::set_replication_master_id(uint32_t t) {
     on_thread_t th(cache()->home_thread());
-    transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past);
+    // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->replication_master_id = t;
@@ -186,7 +202,8 @@ void btree_slice_t::set_replication_master_id(uint32_t t) {
 
 uint32_t btree_slice_t::get_replication_master_id() {
     on_thread_t th(cache()->home_thread());
-    transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past);
+    // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
     return sb->replication_master_id;
@@ -194,7 +211,8 @@ uint32_t btree_slice_t::get_replication_master_id() {
 
 void btree_slice_t::set_replication_slave_id(uint32_t t) {
     on_thread_t th(cache()->home_thread());
-    transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t transaction(cache(), rwi_write, 0, repli_timestamp_t::distant_past);
+    // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_write);
     btree_superblock_t *sb = reinterpret_cast<btree_superblock_t *>(superblock->get_data_major_write());
     sb->replication_slave_id = t;
@@ -202,7 +220,8 @@ void btree_slice_t::set_replication_slave_id(uint32_t t) {
 
 uint32_t btree_slice_t::get_replication_slave_id() {
     on_thread_t th(cache()->home_thread());
-    transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+    transaction_t transaction(cache(), rwi_read, 0, repli_timestamp_t::distant_past);
+    // TODO: Set the transaction's order token.
     buf_lock_t superblock(&transaction, SUPERBLOCK_ID, rwi_read);
     const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
     return sb->replication_slave_id;

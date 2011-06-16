@@ -13,9 +13,6 @@
 #include "btree/slice.hpp"
 
 
-#define BACKFILL_CACHE_PRIORITY 10
-
-
 class btree_slice_t;
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_t {
@@ -120,21 +117,24 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 };
 
 
-// TODO: Add an order token parameter.  (UNUSED order_token_t)
-void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
+void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token) {
     {
-        // Run backfilling at a reduced priority
-        boost::shared_ptr<cache_account_t> backfill_account = slice->cache()->create_account(BACKFILL_CACHE_PRIORITY);
-
-#ifndef NDEBUG
-        boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
-#endif
-
         rassert(coro_t::self());
 
         backfill_traversal_helper_t helper(callback, since_when);
 
-        boost::shared_ptr<transaction_t> txn = boost::make_shared<transaction_t>(slice->cache(), rwi_read, order_token_t::ignore);
+        slice->pre_begin_transaction_sink_.check_out(token);
+        order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
+
+        boost::shared_ptr<transaction_t> txn = boost::make_shared<transaction_t>(slice->cache(), rwi_read_sync);
+
+        slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
+
+	txn->set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post").with_read_mode());
+
+#ifndef NDEBUG
+        boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
+#endif
 
         txn->set_account(backfill_account);
         txn->snapshot();

@@ -141,9 +141,9 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
         std::map<size_t, off64_t>::const_iterator config_offset_it = offsets.find(CONFIG_BLOCK_ID.ser_id);
         if (!(CONFIG_BLOCK_ID.ser_id < n && config_offset_it != offsets.end())) {
             fail_due_to_user_error(
-                "Config block cannot be found (CONFIG_BLOCK_ID = %u, highest block id = %u)."
+                "Config block cannot be found (CONFIG_BLOCK_ID = %u, highest block id = %zu)."
                 "  Use --force-slice-count to override.\n",
-                 CONFIG_BLOCK_ID, n);
+                 CONFIG_BLOCK_ID.ser_id, n);
         }
         off64_t off = config_offset_it->second;
 
@@ -190,10 +190,10 @@ void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
         block_t b;
-        b.init(cfg.block_size().ser_value(), &file, offset);
-
-        if (check_all_known_magic(*(block_magic_t *)b.buf) || memcmp((char*)b.buf, "LOGB00", 6) == 0) { // TODO: Refactor
-            registry.tell_block(offset, b.buf_data());
+        if (b.init(cfg.block_size().ser_value(), &file, offset)) {
+            if (check_all_known_magic(*(block_magic_t *)b.buf) || memcmp((char*)b.buf, "LOGB00", 6) == 0) { // TODO: Refactor
+                registry.tell_block(offset, b.buf_data());
+            }
         }
     }
 }
@@ -204,7 +204,9 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
         block_t b;
-        b.init(cfg.block_size().ser_value(), &file, offset);
+        if (!b.init(cfg.block_size().ser_value(), &file, offset)) {
+            continue;
+        }
 
         block_id_t block_id = b.buf_data().block_id;
 
@@ -218,6 +220,7 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
                     try {
                         patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
+			(void)e;
                         logERR("Corrupted patch. Ignoring the rest of the log block.\n");
                         break;
                     }
@@ -313,7 +316,9 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
         block_t b;
-        b.init(cfg.block_size().ser_value(), &file, offset);
+        if (!b.init(cfg.block_size().ser_value(), &file, offset)) {
+            continue;
+        }
         
         block_id_t block_id = b.buf_data().block_id;
 
@@ -553,7 +558,9 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
     }
 
     block_t headerblock;
-    headerblock.init(DEVICE_BLOCK_SIZE, &file, 0);
+    if (!headerblock.init(DEVICE_BLOCK_SIZE, &file, 0)) {
+        logINF("Could not even read header block from file %s\n", db_file.c_str());
+    }
 
     static_header_t *header = (static_header_t *)headerblock.realbuf;
 

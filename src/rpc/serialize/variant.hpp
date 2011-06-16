@@ -32,19 +32,6 @@ void serialize(cluster_outpipe_t *conn, const boost::variant<BOOST_VARIANT_ENUM_
     boost::apply_visitor(functor, v);
 }
 
-/* Functor to get the size of the right member of the variant */
-struct ser_size_variant_visitor_t : public boost::static_visitor<int> {
-    template<class T>
-    int operator()(const T &v) const {
-        return ser_size(v);
-    }
-};
-
-template<BOOST_VARIANT_ENUM_PARAMS(class T)>
-int ser_size(const boost::variant<BOOST_VARIANT_ENUM_PARAMS(T)> &v) {
-    return ::ser_size(v.which()) + boost::apply_visitor(ser_size_variant_visitor_t(), v);
-}
-
 /* We need to be sure to pick the right class for unserialization. To do this we use
 boost::mpl to iterate along a "list" of types until we get to the right one. This code
 is adapted from boost::serialization's handing of variants. */

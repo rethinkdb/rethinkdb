@@ -3,6 +3,7 @@
 
 #include "rpc/serialize/serialize.hpp"
 #include "rpc/serialize/basic.hpp"
+#include "rpc/core/cluster.hpp"
 #include "store.hpp"
 #include <map>
 
@@ -14,16 +15,6 @@ void serialize(cluster_outpipe_t *conn, const std::vector<element_t> &e) {
     for (int i = 0; i < (int)e.size(); i++) {
         serialize(conn, e[i]);
     }
-}
-
-template<class element_t>
-int ser_size(const std::vector<element_t> &e) {
-    int size = 0;
-    size += ser_size(int(e.size()));
-    for (int i = 0; i < (int)e.size(); i++) {
-        size += ser_size(e[i]);
-    }
-    return size;
 }
 
 template<class element_t>
@@ -46,11 +37,6 @@ void serialize(cluster_outpipe_t *conn, const std::pair<T, U> &pair) {
 }
 
 template<class T, class U>
-int ser_size(const std::pair<T, U> &pair) {
-    return ser_size(pair.first) + ser_size(pair.second);
-}
-
-template<class T, class U>
 void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, std::pair<T, U> *pair) {
     unserialize(conn, es, &(pair->first));
     unserialize(conn, es, &(pair->second));
@@ -64,17 +50,6 @@ void serialize(cluster_outpipe_t *conn, const std::map<K, V> &m) {
         serialize(conn, it->first);
         serialize(conn, it->second);
     }
-}
-
-template<class K, class V>
-int ser_size(const std::map<K, V> &m) {
-    int size = 0;
-    size += ser_size(int(m.size()));
-    for (typename std::map<K, V>::const_iterator it = m.begin(); it != m.end(); it++) {
-        size += ser_size((*it).first);
-        size += ser_size((*it).second);
-    }
-    return size;
 }
 
 template<class K, class V>
@@ -101,15 +76,6 @@ void serialize(cluster_outpipe_t *conn, const boost::scoped_ptr<object_t> &p) {
 }
 
 template<class object_t>
-int ser_size(const boost::scoped_ptr<object_t> &p) {
-    if (p) {
-        return ser_size(true) + ser_size(*p);
-    } else {
-        return ser_size(false);
-    }
-}
-
-template<class object_t>
 void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, boost::scoped_ptr<object_t> *p) {
     bool is_non_null;
     unserialize(conn, es, &is_non_null);
@@ -129,10 +95,6 @@ inline void serialize(cluster_outpipe_t *conn, const ip_address_t &addr) {
     conn->write(&addr, sizeof(ip_address_t));
 }
 
-inline int ser_size(const ip_address_t *addr) {
-    return sizeof(*addr);
-}
-
 inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, ip_address_t *addr) {
     rassert(sizeof(ip_address_t) == 4);
     conn->read(addr, sizeof(ip_address_t));
@@ -143,13 +105,6 @@ inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage
 inline void serialize(cluster_outpipe_t *conn, const store_key_t &key) {
     conn->write(&key.size, sizeof(key.size));
     conn->write(key.contents, key.size);
-}
-
-inline int ser_size(const store_key_t &key) {
-    int size = 0;
-    size += sizeof(key.size);
-    size += key.size;
-    return size;
 }
 
 inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, store_key_t *key) {
@@ -171,15 +126,6 @@ inline void serialize(cluster_outpipe_t *conn,  data_provider_t *data) {
         }
     } else {
         ::serialize(conn, false);
-    }
-}
-
-inline int ser_size(data_provider_t *data) {
-    if (data) {
-        int size = data->get_size();
-        return ser_size(true) + ser_size(size) + data->get_size();
-    } else {
-        return ser_size(false);
     }
 }
 
@@ -205,10 +151,6 @@ inline void serialize(cluster_outpipe_t *conn, const boost::shared_ptr<data_prov
     serialize(conn, data.get());
 }
 
-inline int ser_size(const boost::shared_ptr<data_provider_t> &data) {
-    return ser_size(data.get());
-}
-
 inline void unserialize(cluster_inpipe_t *conn, unserialize_extra_storage_t *es, boost::shared_ptr<data_provider_t> *data) {
     bool non_null;
     ::unserialize(conn, es, &non_null);
@@ -232,12 +174,20 @@ inline void serialize(UNUSED cluster_outpipe_t *conn, UNUSED const order_token_t
     // Do nothing
 }
 
-inline int ser_size(UNUSED const order_token_t &tok) {
-    return 0;
-}
-
 inline void unserialize(UNUSED cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, order_token_t *tok) {
     *tok = order_token_t::ignore;
+}
+
+/* Serializing and unserializing mailbox addresses */
+
+inline void serialize(cluster_outpipe_t *conn, const cluster_address_t &addr) {
+    conn->write(&addr.peer, sizeof(addr.peer));
+    conn->write(&addr.mailbox, sizeof(addr.mailbox));
+}
+
+inline void unserialize(cluster_inpipe_t *conn, UNUSED unserialize_extra_storage_t *es, cluster_address_t *addr) {
+    conn->read(&addr->peer, sizeof(addr->peer));
+    conn->read(&addr->mailbox, sizeof(addr->mailbox));
 }
 
 #endif /* __RPC_SERIALIZE_OTHERS_HPP__ */

@@ -35,7 +35,6 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         }
 
         buffer_group_t buffer_group;
-        bool is_old_large_value = false;
 
         // Figure out where the data is going to need to go and prepare a place for it
 
@@ -55,7 +54,6 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 large_buflock->allocate(new_size);
                 if (append) large_buflock->fill_at(0, old_value->value(), old_value->value_size());
                 else        large_buflock->fill_at(data->get_size(), old_value->value(), old_value->value_size());
-                is_old_large_value = false;
             } else { // large -> large; expand existing large value
                 memcpy(&value, old_value, MAX_BTREE_VALUE_SIZE);
                 large_buflock.swap(old_large_buflock);
@@ -72,7 +70,6 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
                 }
 
                 value.size += refsize_adjustment;
-                is_old_large_value = true;
             }
 
             // Figure out the pointers and sizes where data needs to go
@@ -117,11 +114,12 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
     boost::shared_ptr<data_provider_t> data;
     bool append;   // true = append, false = prepend
 
+    boost::scoped_ptr<large_buf_t> large_buflock;
+
     union {
         char value_memory[MAX_BTREE_VALUE_SIZE];
         btree_value value;
     };
-    boost::scoped_ptr<large_buf_t> large_buflock;
 };
 
 append_prepend_result_t btree_append_prepend(const store_key_t &key, btree_slice_t *slice, boost::shared_ptr<data_provider_t> data, bool append, castime_t castime, order_token_t token) {

@@ -27,7 +27,7 @@ struct stream_pair {
     the value, but it's not guaranteed to contain the entire value. The network logic will later
     fill in the rest of the value. */
     // This uses key_size, which is completely crap.
-    stream_pair(const char *beg, const char *end, size_t size = 0) : stream(), data() {
+    stream_pair(const char *beg, const char *end, ssize_t size = 0) : stream(), data() {
         void *p;
         size_t m = sizeof(T) + reinterpret_cast<const T *>(beg)->key_size;
 
@@ -113,18 +113,21 @@ public:
     repli_stream_t(boost::scoped_ptr<tcp_conn_t>& conn, message_callback_t *recv_callback, int heartbeat_timeout);
     ~repli_stream_t();
 
-    // Call shutdown() when you want the repli_stream to stop. shutdown() will return
-    // immediately but cause the connection to be closed and cause conn_closed() to
-    // be called.
+    // Call shutdown() when you want the repli_stream to stop. shutdown() causes
+    // the connection to be closed and conn_closed() to be called.
     void shutdown() {
         unwatch_heartbeat();
         stop_sending_heartbeats();
         try {
+            mutex_acquisition_t ak(&outgoing_mutex_); // flush_buffer() would interfere with active writes
             conn_->flush_buffer();
         } catch (tcp_conn_t::write_closed_exc_t &e) {
+	    (void)e;
             // Ignore
         }
-        conn_->shutdown_read();
+        if (conn_->is_read_open()) {
+            conn_->shutdown_read();
+        }
     }
 
     void send(net_introduce_t *msg);
@@ -153,7 +156,6 @@ protected:
     }
     void on_heartbeat_timeout() {
         logINF("Terminating connection due to heartbeat timeout.\n");
-        mutex_acquisition_t ak(&outgoing_mutex_); // Make sure we finish any currently active writes
         shutdown();
     }
 

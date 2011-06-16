@@ -124,4 +124,39 @@ private:
     cond_weak_ptr_t dest;
 };
 
+class one_waiter_cond_t {
+public:
+    one_waiter_cond_t() : pulsed_(false), waiter_(NULL) { }
+    ~one_waiter_cond_t() {
+        rassert(pulsed_);
+        rassert(!waiter_);
+    }
+
+    void pulse() {
+        rassert(!pulsed_);
+        pulsed_ = true;
+        if (waiter_) {
+            coro_t *tmp = waiter_;
+            waiter_ = NULL;
+            tmp->notify_now();
+            // we might be destroyed here
+        }
+    }
+
+    void wait_eagerly() {
+        rassert(!waiter_);
+        if (!pulsed_) {
+            waiter_ = coro_t::self();
+            coro_t::wait();
+            rassert(pulsed_);
+        }
+    }
+
+private:
+    bool pulsed_;
+    coro_t *waiter_;
+
+    DISABLE_COPYING(one_waiter_cond_t);
+};
+
 #endif /* __CONCURRENCY_COND_VAR_HPP__ */

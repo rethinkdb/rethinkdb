@@ -32,7 +32,7 @@ struct transaction_t :
     {
         /* If there aren't enough blocks to update, then convert the updates into inserts */
         
-        if (updates > ser->max_block_id().value) {
+        if (updates > ser->max_block_id()) {
             inserts += updates;
             updates = 0;
         }
@@ -48,18 +48,18 @@ struct transaction_t :
         /* As a simple way to avoid updating the same block twice in one transaction, select
         a contiguous range of blocks starting at a random offset within range */
         
-        ser_block_id_t begin = ser_block_id_t::make(stress::random(0, ser->max_block_id().value - updates));
+        block_id_t begin = stress::random(0, ser->max_block_id() - updates);
 
         // We just need some value for this.
-        repli_timestamp tstamp = repli_time(time(NULL));
+        repli_timestamp_t tstamp = repli_timestamp_t::distant_past;
         for (unsigned i = 0; i < updates; i++) {
-            writes.push_back(serializer_t::write_t::make(ser_block_id_t::make(begin.value + i), tstamp, dummy_buf, true, NULL));
+            writes.push_back(serializer_t::write_t::make(begin + i, tstamp, dummy_buf, true, NULL));
         }
 
         /* Generate new IDs to insert by simply taking (highest ID + 1) */
 
         for (unsigned i = 0; i < inserts; i++) {
-            writes.push_back(serializer_t::write_t::make(ser_block_id_t::make(ser->max_block_id().value + i), tstamp, dummy_buf, true, NULL));
+            writes.push_back(serializer_t::write_t::make(ser->max_block_id() + i, tstamp, dummy_buf, true, NULL));
         }
 
         start_time = get_ticks();

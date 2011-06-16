@@ -108,6 +108,10 @@ public:
 
         stream_exists_cond_.pulse();    // If anything was waiting for stream to close, signal it
         interrupt_streaming_cond_.pulse_if_non_null();   // Will interrupt any running backfill/stream operation
+
+        // TODO: This might fail for future versions of the order source, which
+        // require a backfill to have begun before it can be done.
+        order_source->backfill_done();
     }
 
     void do_backfill_and_realtime_stream(repli_timestamp since_when);

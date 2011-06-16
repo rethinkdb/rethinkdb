@@ -16,7 +16,7 @@ typedef uint64_t cas_t;
 /* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
 counter. */
 
-// for safety  TODO: move this to a different file
+// for safety
 struct repli_timestamp_t {
     uint32_t time;
 
@@ -39,7 +39,9 @@ struct repli_timestamp_t {
     static const repli_timestamp_t distant_past;
     static const repli_timestamp_t invalid;
 };
-typedef repli_timestamp_t repli_timestamp;   // TODO switch name over completely to "_t" version
+
+// TODO: switch name over completely to "_t" version
+typedef repli_timestamp_t repli_timestamp;
 
 struct const_charslice {
     const char *beg, *end;
@@ -89,16 +91,6 @@ void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
 int randint(int n);
-
-// The existence of these functions does not constitute an endorsement
-// for casts.  These constitute an endorsement for the use of
-// reinterpret_cast, rather than C-style casts.  The latter can break
-// const correctness.
-template <class T>
-inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); }
-
-template <class T>
-inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
 
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins with a minus

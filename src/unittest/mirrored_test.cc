@@ -27,11 +27,11 @@ private:
         // we will get an assertion failure during mc_inner_buf creation, but since creating it is a
         // bug in the first place, it's fine to do so in this test (although I'm definitely not proud
         // of doing so).
-        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+        transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past);
         block_id_t block_A, block_B;
         create_two_blocks(&t0, block_A, block_B);
 
-        transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore);
+        transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
         buf_t *buf1_A = acq(&t1, block_A, rwi_write);
         buf1_A->mark_deleted(false);
@@ -39,7 +39,7 @@ private:
 
         // create a fake buffer (be careful with populating it with data
         void *fake_buf = serializer->malloc();
-        buf_data_t *ser_data = ptr_cast<buf_data_t>(fake_buf);
+        buf_data_t *ser_data = reinterpret_cast<buf_data_t *>(fake_buf);
         ser_data--;
         ser_data->block_id = serializer->translate_block_id(block_A);
         ser_data->transaction_id = 1;

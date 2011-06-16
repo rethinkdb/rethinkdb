@@ -9,6 +9,7 @@ struct metadata_store_t {
     // TODO (rntz) should this use key_store_t and data_provider_t, etc?
     virtual bool get_meta(const std::string &key, std::string *out) = 0;
     virtual void set_meta(const std::string &key, const std::string &value) = 0;
+    virtual ~metadata_store_t() { }
 };
 
 // A stat about the store, persisted via btree_key_value_store_t::{get,set}_meta
@@ -16,7 +17,7 @@ struct persistent_stat_t
     : public intrusive_list_node_t<persistent_stat_t>
 {
     persistent_stat_t();
-    ~persistent_stat_t();
+    virtual ~persistent_stat_t();
 
     // Invariant: a call to unpersist_all comes before the first call to persist_all
     // Invariant: always called on the same store

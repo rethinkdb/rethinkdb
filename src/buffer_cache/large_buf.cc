@@ -132,7 +132,7 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
 #endif
 
     if (levels > 1) {
-        large_buf_internal *node = ptr_cast<large_buf_internal>(ret->buf->get_data_major_write());
+        large_buf_internal *node = reinterpret_cast<large_buf_internal *>(ret->buf->get_data_major_write());
         node->magic = large_buf_internal::expected_magic;
 
 #ifndef NDEBUG
@@ -142,7 +142,7 @@ buftree_t *large_buf_t::allocate_buftree(int64_t offset, int64_t size, int level
 #endif
 
     } else {
-        large_buf_leaf *node = ptr_cast<large_buf_leaf>(ret->buf->get_data_major_write());
+        large_buf_leaf *node = reinterpret_cast<large_buf_leaf *>(ret->buf->get_data_major_write());
         node->magic = large_buf_leaf::expected_magic;
     }
 
@@ -409,7 +409,7 @@ void large_buf_t::adds_level(block_id_t *ids, int num_roots
 #endif
 
     // TODO: Do we really want a major_write?
-    large_buf_internal *node = ptr_cast<large_buf_internal>(ret->buf->get_data_major_write());
+    large_buf_internal *node = reinterpret_cast<large_buf_internal *>(ret->buf->get_data_major_write());
 
     node->magic = large_buf_internal::expected_magic;
 
@@ -610,7 +610,7 @@ void large_buf_t::removes_level(block_id_t *ids, int copyees) {
 
     buftree_t *tr = roots[0];
 
-    const large_buf_internal *node = ptr_cast<large_buf_internal>(tr->buf->get_data_read());
+    const large_buf_internal *node = reinterpret_cast<const large_buf_internal *>(tr->buf->get_data_read());
     for (int i = 0; i < copyees; ++i) {
         ids[i] = node->kids[i];
     }
@@ -647,7 +647,7 @@ buftree_t *large_buf_t::walk_tree_structure(buftree_t *tr, int64_t offset, int64
     rassert(offset + size <= max_offset(levels));
 
     if (tr != NULL) {
-        rassert(tr->level == levels, "tr->level=%d, levels=%d, offset=%d, size=%d\n", tr->level, levels, offset, size);
+        rassert(tr->level == levels, "tr->level=%d, levels=%d, offset=%ld, size=%ld\n", tr->level, levels, offset, size);
 
         if (levels != 1) {
             walk_tree_structures(&tr->children, offset, size, levels - 1, bufdoer, buftree_cleaner);
@@ -820,7 +820,7 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
             // actually loaded the leaf node block.
 
             if (root_ref->offset > 0) {
-                large_buf_leaf *leaf = ptr_cast<large_buf_leaf>(roots[0]->buf->get_data_major_write());
+                large_buf_leaf *leaf = reinterpret_cast<large_buf_leaf *>(roots[0]->buf->get_data_major_write());
                 rassert(uint64_t(root_ref->offset) <= block_size().value() - offsetof(large_buf_leaf, buf));
                 rassert(uint64_t(root_ref->offset + root_ref->size) <= block_size().value() - offsetof(large_buf_leaf, buf));
                 memmove(leaf->buf, leaf->buf + root_ref->offset, root_ref->size);
@@ -830,7 +830,7 @@ void large_buf_t::unprepend(int64_t extra_size, int *refsize_adjustment_out) {
             int64_t substepsize = max_offset(sublevels - 1);
 
             // TODO only get_data_write if we actually need to shift.
-            large_buf_internal *node = ptr_cast<large_buf_internal>(roots[0]->buf->get_data_major_write());
+            large_buf_internal *node = reinterpret_cast<large_buf_internal *>(roots[0]->buf->get_data_major_write());
             root_ref->offset -= substepsize * try_shifting(&roots[0]->children, node->kids, root_ref->offset, root_ref->size, substepsize);
 
             // Consider removing a level.
@@ -875,7 +875,7 @@ void large_buf_t::lv_release() {
 
 large_buf_t::~large_buf_t() {
     lv_release();
-    rassert(num_bufs == 0, "num_bufs == 0 failed.. num_bufs is %d", num_bufs);
+    rassert(num_bufs == 0, "num_bufs == 0 failed.. num_bufs is %ld", num_bufs);
 }
 
 

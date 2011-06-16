@@ -40,7 +40,6 @@ public:
     // Acquires the old large value; this exists because some
     // btree_modify_opers need to acquire it in a particular way.
 
-    // TIED lb TO lbref  TODO CHECK CALLERS
     virtual void actually_acquire_large_value(large_buf_t *lb) {
         co_acquire_large_buf(lb);
     }

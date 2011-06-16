@@ -116,7 +116,7 @@ mock_buf_t *mock_transaction_t::acquire(block_id_t block_id, access_t mode, boos
 
     internal_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
 
-    if (!(mode == rwi_read || mode == rwi_read_outdated_ok)) {
+    if (!(mode == rwi_read || mode == rwi_read_outdated_ok || mode == rwi_read_sync)) {
         internal_buf->subtree_recency = recency_timestamp;
     }
 
@@ -152,14 +152,14 @@ void mock_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num
     cb->got_subtree_recencies();
 }
 
-mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, UNUSED int expected_change_count, repli_timestamp _recency_timestamp, order_token_t _order_token)
-    : cache(_cache), order_token(_order_token), access(_access), recency_timestamp(_recency_timestamp) {
+mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, UNUSED int expected_change_count, repli_timestamp _recency_timestamp)
+    : cache(_cache), order_token(order_token_t::ignore), access(_access), recency_timestamp(_recency_timestamp) {
     cache->transaction_counter.acquire();
     if (access == rwi_write) nap(5);   // TODO: Nap for a random amount of time.
 }
 
-mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access, order_token_t _order_token)
-    : cache(_cache), order_token(_order_token), access(_access) {
+mock_transaction_t::mock_transaction_t(mock_cache_t *_cache, access_t _access)
+    : cache(_cache), order_token(order_token_t::ignore), access(_access) {
     cache->transaction_counter.acquire();
 }
 

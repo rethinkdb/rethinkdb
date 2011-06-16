@@ -368,6 +368,7 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
         rassert(!inner_buf->do_delete);
 
         switch (mode) {
+            case rwi_read_sync:
             case rwi_read: {
                 data = inner_buf->data;
                 rassert(data != NULL);
@@ -511,13 +512,13 @@ patch_counter_t mc_buf_t::get_next_patch_counter() {
 }
 
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes) {
-    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
-    const uint8_t *range8 = ptr_cast<const uint8_t>(range_start);
+    const uint8_t *p8 = reinterpret_cast<const uint8_t *>(p);
+    const uint8_t *range8 = reinterpret_cast<const uint8_t *>(range_start);
     return range8 <= p8 && p8 < range8 + size_in_bytes;
 }
 
 bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes) {
-    const uint8_t *p8 = ptr_cast<const uint8_t>(p);
+    const uint8_t *p8 = reinterpret_cast<const uint8_t *>(p);
     return ptr_in_byte_range(p, range_start, size_in_bytes) &&
         (n_bytes == 0 || ptr_in_byte_range(p8 + n_bytes - 1, range_start, size_in_bytes));
 }
@@ -536,9 +537,9 @@ void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
         get_data_major_write();
         memcpy(dest, src, n);
     } else {
-        size_t offset = ptr_cast<uint8_t>(dest) - ptr_cast<uint8_t>(data);
+        size_t offset = reinterpret_cast<uint8_t *>(dest) - reinterpret_cast<uint8_t *>(data);
         // transaction ID will be set later...
-        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, ptr_cast<const char>(src), n));
+        apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, reinterpret_cast<const char *>(src), n));
     }
 }
 
@@ -556,8 +557,8 @@ void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
         get_data_major_write();
         memmove(dest, src, n);
     } else {
-        size_t dest_offset = ptr_cast<uint8_t>(dest) - ptr_cast<uint8_t>(data);
-        size_t src_offset = ptr_cast<uint8_t>(src) - ptr_cast<uint8_t>(data);
+        size_t dest_offset = reinterpret_cast<uint8_t *>(dest) - reinterpret_cast<uint8_t *>(data);
+        size_t src_offset = reinterpret_cast<const uint8_t *>(src) - reinterpret_cast<uint8_t *>(data);
         // transaction ID will be set later...
         apply_patch(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
     }
@@ -581,6 +582,7 @@ void mc_buf_t::release() {
 
     if (!non_locking_access) {
         switch (mode) {
+            case rwi_read_sync:
             case rwi_read:
             case rwi_write: {
                 inner_buf->lock.unlock();
@@ -643,10 +645,10 @@ perfmon_duration_sampler_t
     pm_transactions_active("transactions_active", secs_to_ticks(1)),
     pm_transactions_committing("transactions_committing", secs_to_ticks(1));
 
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp, UNUSED order_token_t _order_token)
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
     : cache(_cache),
 #ifndef NDEBUG
-      order_token(_order_token),
+      order_token(order_token_t::ignore),
 #endif
       expected_change_count(_expected_change_count),
       access(_access),
@@ -655,7 +657,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
       snapshotted(false)
 {
     block_pm_duration start_timer(&pm_transactions_starting);
-    rassert(access == rwi_read || access == rwi_write);
+    rassert(access == rwi_read || access == rwi_read_sync || access == rwi_write);
     cache->assert_thread();
     rassert(!cache->shutting_down);
     rassert(access == rwi_write || expected_change_count == 0);
@@ -666,10 +668,10 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
 }
 
 /* This version is only for read transactions. */
-mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED order_token_t _order_token) :
+mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
     cache(_cache),
 #ifndef NDEBUG
-    order_token(_order_token),
+    order_token(order_token_t::ignore),
 #endif
     expected_change_count(0),
     access(_access),
@@ -678,7 +680,7 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, UNUSED ord
     snapshotted(false)
 {
     block_pm_duration start_timer(&pm_transactions_starting);
-    rassert(access == rwi_read);
+    rassert(access == rwi_read || access == rwi_read_sync);
     cache->assert_thread();
     rassert(!cache->shutting_down);
     cache->num_live_transactions++;
@@ -751,7 +753,7 @@ mc_buf_t *mc_transaction_t::allocate() {
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     boost::function<void()> call_when_in_line, bool should_load) {
     rassert(block_id != NULL_BLOCK_ID);
-    rassert(is_read_mode(mode) || access != rwi_read);
+    rassert(is_read_mode(mode) || access != rwi_read); // TODO: What is the meaning of this assert?!?
     rassert(should_load || access == rwi_write);
     assert_thread();
 
@@ -925,6 +927,14 @@ mc_cache_t::mc_cache_t(
 mc_cache_t::~mc_cache_t() {
     shutting_down = true;
     serializer->unregister_read_ahead_cb(this);
+    /* When unregister_read_ahead_cb returns, it is guaranteed that our
+     offer_read_ahead_buf() method does not get called anymore.
+     However, if offer_read_ahead_buf() got called during the execution of
+     unregister_read_ahead_cb(), it might have placed a message for
+     unregister_read_ahead_cb_home_thread() on the message queue. We must make
+     sure that this message gets processed before we continue destructing
+     ourselves, thus the yield here. */
+    coro_t::yield();
 
     /* Wait for all transactions to commit before shutting down */
     if (num_live_transactions > 0) {
@@ -1000,6 +1010,7 @@ bool mc_cache_t::contains_block(block_id_t block_id) {
     return find_buf(block_id) != NULL;
 }
 
+
 boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
     // We assume that a priority of 100 means that the transaction should have the same priority as
     // all the non-accounted transactions together. Not sure if this makes sense.
@@ -1016,6 +1027,8 @@ boost::shared_ptr<mc_cache_account_t> mc_cache_t::create_account(int priority) {
 }
 
 void mc_cache_t::on_transaction_commit(transaction_t *txn) {
+    assert_thread();
+
     writeback.on_transaction_commit(txn);
 
     num_live_transactions--;

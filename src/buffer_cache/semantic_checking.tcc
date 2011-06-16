@@ -97,23 +97,23 @@ scc_buf_t<inner_cache_t>::scc_buf_t(scc_cache_t<inner_cache_t> *_cache, bool sna
 /* Transaction */
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token) :
+scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp) :
     cache(cache),
-    order_token(token),
+    order_token(order_token_t::ignore),
     snapshotted(false),
     access(access),
-    inner_transaction(&cache->inner_cache, access, expected_change_count, recency_timestamp, token)
+    inner_transaction(&cache->inner_cache, access, expected_change_count, recency_timestamp)
     { }
 
 template<class inner_cache_t>
-scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access, order_token_t token) :
+scc_transaction_t<inner_cache_t>::scc_transaction_t(scc_cache_t<inner_cache_t> *cache, access_t access) :
     cache(cache),
-    order_token(token),
+    order_token(order_token_t::ignore),
     snapshotted(false),
     access(access),
-    inner_transaction(&cache->inner_cache, access, token)
+    inner_transaction(&cache->inner_cache, access)
 {
-    rassert(access == rwi_read);
+    rassert(access == rwi_read || access == rwi_read_sync);
 }
 
 template<class inner_cache_t>

@@ -25,10 +25,11 @@ void lba_list_t::prepare_initial_metablock(metablock_mixin_t *mb) {
     }
 }
 
-struct lba_start_fsm_t :
+class lba_start_fsm_t :
     private lba_disk_structure_t::load_callback_t,
     private lba_disk_structure_t::read_callback_t
 {
+public:
     int cbs_out;
     lba_list_t *owner;
     lba_list_t::ready_callback_t *callback;
@@ -116,9 +117,10 @@ void lba_list_t::set_block_offset(block_id_t block, repli_timestamp recency, fla
     disk_structures[block % LBA_SHARD_FACTOR]->add_entry(block, recency, offset, io_account);
 }
 
-struct lba_syncer_t :
+class lba_syncer_t :
     public lba_disk_structure_t::sync_callback_t
 {
+public:
     lba_list_t *owner;
     bool done, should_delete_self;
     int structures_unsynced;
@@ -170,9 +172,10 @@ void lba_list_t::consider_gc(file_t::account_t *io_account) {
     }
 }
 
-struct gc_fsm_t :
+class gc_fsm_t :
     public lba_disk_structure_t::sync_callback_t
 {
+public:
     lba_list_t *owner;
     int i;
     

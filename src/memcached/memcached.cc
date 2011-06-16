@@ -90,9 +90,9 @@ struct txt_memcached_handler_t : public home_thread_mixin_t {
         for (size_t i = 0; i < bg->num_buffers(); i++) {
             const_buffer_group_t::buffer_t b = bg->get_buffer(i);
             if (dp->get_size() < MAX_BUFFERED_GET_SIZE) {
-                write(ptr_cast<const char>(b.data), b.size);
+                write(reinterpret_cast<const char *>(b.data), b.size);
             } else {
-                write_unbuffered(ptr_cast<const char>(b.data), b.size);
+                write_unbuffered(reinterpret_cast<const char *>(b.data), b.size);
             }
         }
     }
@@ -520,7 +520,10 @@ void do_storage(txt_memcached_handler_t *rh, storage_command_t sc, int argc, cha
     // that, the server will consider it to be real Unix time value rather
     // than an offset from current time.
     if (exptime <= 60*60*24*30 && exptime > 0) {
-        // TODO: Do we need to handle exptimes in the past here?
+	// If 60*60*24*30 < exptime <= time(NULL), that's fine, the
+	// btree code needs to handle that case gracefully anyway
+	// (since the clock can tick in the middle of an insert
+	// anyway...).  We have tests in expiration.py.
         exptime += time(NULL);
     }
 
@@ -807,13 +810,14 @@ bool parse_debug_command(txt_memcached_handler_t *rh, std::vector<char*> args) {
         return false;
     }
 
-    // TODO: A nicer way to do short aliases like this.
-    if (!strcmp(args[0], ".h") && args.size() >= 2) {       // .h is an alias for "rdb hash"
-        std::vector<char *> ctrl_args = args;               // It's ugly, but typing that command out in full is just stupid
-        ctrl_args[0] = (char *) "hash"; // This should be const but it's just for debugging and it won't be modified anyway.
+    // .h is an alias for "rdb hash"
+    if (!strcmp(args[0], ".h") && args.size() >= 2) {
+        std::vector<char *> ctrl_args = args;
+        static char hashstring[] = "hash";
+        ctrl_args[0] = hashstring;
         rh->write(control_t::exec(ctrl_args.size(), ctrl_args.data()));
         return true;
-    } else if (!strcmp(args[0], ".s")) { // There should be a better way of doing this, but it doesn't really matter.
+    } else if (!strcmp(args[0], ".s")) {
         do_quickset(rh, args);
         return true;
     } else {
@@ -872,7 +876,7 @@ void handle_memcache(memcached_interface_t *interface, get_store_t *get_store,
         }
 
         /* Dispatch to the appropriate subclass */
-        order_token_t token = order_source.check_in();
+	order_token_t token = order_source.check_in(std::string("handle_memcache+") + args[0]);
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
             do_get(&rh, false, args.size(), args.data(), token.with_read_mode());
         } else if (!strcmp(args[0], "gets")) {

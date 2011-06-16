@@ -57,17 +57,11 @@ def generate_async_message_template(nargs):
     for i in xrange(nargs):
         print "        const arg%d_t &arg%d;" % (i, i)
     if nargs > 0:
-        print "        void serialize(cluster_outpipe_t *p) {"
+        print "        void serialize(cluster_outpipe_t *p) const {"
     else:
-        print "        void serialize(UNUSED cluster_outpipe_t *p) {"
+        print "        void serialize(UNUSED cluster_outpipe_t *p) const {"
     for i in xrange(nargs):
         print "            global_serialize(p, arg%d);" % i
-    print "        }"
-    print "        int ser_size() {"
-    print "             int size = 0;"
-    for i in xrange(nargs):
-        print "            size += global_ser_size(arg%d);" % i
-    print "             return size;"
     print "        }"
     print "    };"
     print "#ifndef NDEBUG"
@@ -75,12 +69,12 @@ def generate_async_message_template(nargs):
     print "         return typeid(message_t);"
     print "     }"
     print "#endif"
-    print "    void unserialize(cluster_inpipe_t *p) {"
+    print "    void unserialize(%scluster_inpipe_t *p, boost::function<void()> done) {" % ("UNUSED " if nargs == 0 else "")
     print "        unserialize_extra_storage_t extra_storage;"
     for i in xrange(nargs):
         print "        arg%d_t arg%d;" % (i, i)
         print "        global_unserialize(p, &extra_storage, &arg%d);" % i
-    print "        p->done();"
+    print "        done();"
     print "        callback(%s);" % ", ".join("arg%d" % i for i in xrange(nargs))
     print "        // Args become invalid here because extra_storage dies"
     print "    }"
@@ -133,18 +127,18 @@ def generate_sync_message_template(nargs, void):
     print "                bool pulsed; //Truly annoying that we need to keep track of this"
     print "            public:"
     print "                reply_listener_t() : pulsed(false) {}"
-    print "                void unserialize(cluster_inpipe_t *p) {"
+    print "                void unserialize(%scluster_inpipe_t *p, boost::function<void()> done) {" % ("UNUSED " if nargs == 0 else "")
     if not void:
         print "                    ret_t ret;"
         print "                    // No extra storage because this is a return, not a call"
         print "                    global_unserialize(p, NULL, &ret);"
-        print "                    p->done();"
+        print "                    done();"
         print "                    on_thread_t syncer(home_thread());"
         print "                    if (pulsed) return;"
         print "                    else pulsed = true;"
         print "                    pulse(std::make_pair(true, ret));"
     else:
-        print "                    p->done();"
+        print "                    done();"
         print "                    on_thread_t syncer(home_thread());"
         print "                    if (pulsed) return;"
         print "                    else pulsed = true;"
@@ -215,19 +209,12 @@ def generate_sync_message_template(nargs, void):
         print "        const arg%d_t &arg%d;" % (i, i)
     print "        cluster_address_t reply_to;"
     if nargs > 0:
-        print "        void serialize(cluster_outpipe_t *p) {"
+        print "        void serialize(cluster_outpipe_t *p) const {"
     else:
-        print "        void serialize(UNUSED cluster_outpipe_t *p) {"
+        print "        void serialize(UNUSED cluster_outpipe_t *p) const {"
     for i in xrange(nargs):
         print "            global_serialize(p, arg%d);" % i
     print "            global_serialize(p, reply_to);"
-    print "        }"
-    print "        int ser_size() {"
-    print "             int size = 0;"
-    for i in xrange(nargs):
-        print "             size += global_ser_size(arg%d);" % i
-    print "             size += global_ser_size(reply_to);"
-    print "             return size;"
     print "        }"
     print "    };"
     print "#ifndef NDEBUG"
@@ -240,30 +227,24 @@ def generate_sync_message_template(nargs, void):
     if not void:
         print "        ret_t ret;"
     if not void:
-        print "        void serialize(cluster_outpipe_t *p) {"
+        print "        void serialize(cluster_outpipe_t *p) const {"
     else:
-        print "        void serialize(UNUSED cluster_outpipe_t *p) {"
+        print "        void serialize(UNUSED cluster_outpipe_t *p) const {"
     if not void:
         print "            global_serialize(p, ret);"
-    print "        }"
-    print "        int ser_size() {"
-    if not void:
-        print "             return global_ser_size(ret);"
-    else:
-        print "             return 0;"
     print "        }"
     print "    };"
     print
     print "    boost::function< %s(%s) > callback;" % (ret, args)
     print
-    print "    void unserialize(cluster_inpipe_t *p) {"
+    print "    void unserialize(%scluster_inpipe_t *p, boost::function<void()> done) {" % ("UNUSED " if nargs == 0 else "")
     print "        unserialize_extra_storage_t extra_storage;"
     for i in xrange(nargs):
         print "        arg%d_t arg%d;" % (i, i)
         print "        global_unserialize(p, &extra_storage, &arg%d);" % i
     print "        cluster_address_t reply_addr;"
     print "        global_unserialize(p, &extra_storage, &reply_addr);"
-    print "        p->done();"
+    print "        done();"
     print "        ret_message_t rm;"
     if not void:
         print "        rm.ret = callback(%s);" % ", ".join("arg%d" % i for i in xrange(nargs))

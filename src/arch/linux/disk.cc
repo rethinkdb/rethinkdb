@@ -84,7 +84,8 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
         conflict_resolver(),
         accounter(),
         backend_stats(&pm_io_disk_backend_reads, &pm_io_disk_backend_writes, accounter.producer),
-        backend(queue, backend_stats.producer)
+        backend(queue, backend_stats.producer),
+        outstanding_txn(0)
     {
         /* Hook up the `submit_fun`s of the parts of the IO stack that are above the
         queue. (The parts below the queue use the `passive_producer_t` interface instead
@@ -100,6 +101,10 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
         stack_stats.done_fun = boost::bind(&linux_templated_disk_manager_t<backend_t>::done, this, _1);
     }
 
+    ~linux_templated_disk_manager_t() {
+        rassert(outstanding_txn == 0, "Closing a file with outstanding txns\n");
+    }
+
     void *create_account(int pri, int outstanding_requests_limit) {
         return reinterpret_cast<void*>(new typename accounter_t::account_t(&accounter, pri, outstanding_requests_limit));
     }
@@ -109,6 +114,7 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
     }
 
     void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
+        outstanding_txn++;
         action_t *a = new action_t;
         a->make_write(fd, buf, count, offset);
         a->account = reinterpret_cast<typename accounter_t::account_t*>(account);
@@ -117,6 +123,7 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
     }
 
     void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
+        outstanding_txn++;
         action_t *a = new action_t;
         a->make_read(fd, buf, count, offset);
         a->account = reinterpret_cast<typename accounter_t::account_t*>(account);
@@ -125,10 +132,14 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
     };
 
     void done(typename stack_stats_t::action_t *a) {
+        outstanding_txn--;
         action_t *a2 = static_cast<action_t *>(a);
         a2->cb->on_io_complete();
         delete a2;
     }
+
+private:
+    int outstanding_txn;
 };
 
 /* Disk account object */
@@ -217,6 +228,14 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
         file_size = size;
     }
 
+    // TODO: We have a very minor correctness issue here, which is that
+    // we don't guarantee data durability for newly created database files.
+    // In theory, we would have to fsync() not only the file itself, but
+    // also the directory containing it. Otherwise the file might not
+    // survive a crash of the system. However, the window for data to get lost
+    // this way is just a few seconds after the creation of a new database,
+    // until the file system flushes the metadata to disk.
+
     // Construct a disk manager. (given that we have an event pool)
     if (linux_thread_pool_t::thread) {
         linux_event_queue_t *queue = &linux_thread_pool_t::thread->queue;
@@ -246,6 +265,9 @@ void linux_file_t::set_size(size_t size) {
     rassert(!is_block);
     int res = ftruncate(fd.get(), size);
     guarantee_err(res == 0, "Could not ftruncate()");
+    fsync(fd.get()); // Make sure that the metadata change gets persisted
+                     // before we start writing to the resized file.
+                     // (to be safe in case of system crashes etc.)
     file_size = size;
 }
 
@@ -321,7 +343,12 @@ linux_file_t::~linux_file_t() {
 void linux_file_t::verify(UNUSED size_t offset, UNUSED size_t length, UNUSED const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
-    rassert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
-    rassert(offset % DEVICE_BLOCK_SIZE == 0);
-    rassert(length % DEVICE_BLOCK_SIZE == 0);
+#ifndef NDEBUG
+    bool bufmod = (intptr_t)buf % DEVICE_BLOCK_SIZE == 0;
+    rassert(bufmod);
+    bool offmod = offset % DEVICE_BLOCK_SIZE == 0;
+    rassert(offmod);
+    bool lengthmod = length % DEVICE_BLOCK_SIZE == 0;
+    rassert(lengthmod);
+#endif
 }

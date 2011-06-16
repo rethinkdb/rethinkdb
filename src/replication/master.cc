@@ -13,11 +13,17 @@ namespace replication {
 
 void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     mutex_acquisition_t ak(&stream_setup_teardown_);
-    // TODO: Carefully handle case where a slave is already connected.
-    // Note: As destroy_existing_slave_conn_if_it_exists() acquires stream_setup_teardown_ now,
-    // we must be careful in case we want to terminate existing slave connections.
+
+    // Note: As destroy_existing_slave_conn_if_it_exists() acquires
+    // stream_setup_teardown_ now, we would have to be careful in case
+    // we wanted to terminate existing slave connections.  Instead we
+    // terminate the incoming connection.
     if (stream_) { 
         logWRN("Rejecting slave connection because I already have one.\n");
+        return;
+    }
+    if (!streaming_cond_.get_signal() || !streaming_cond_.get_signal()->is_pulsed()) {
+        logWRN("Rejecting slave connection because the previous one has not cleaned up yet.\n");
         return;
     }
 
@@ -40,10 +46,10 @@ void master_t::on_conn(boost::scoped_ptr<linux_tcp_conn_t>& conn) {
     introduction.other_id = kvs_->get_replication_slave_id();
     stream_->send(&introduction);
 
-    // TODO when sending/receiving hello handshake, use database magic
-    // to handle case where slave is already connected.
+    // TODO: When sending/receiving hello handshake, use database
+    // magic to handle case where slave is already connected.
 
-    // TODO receive hello handshake before sending other messages.
+    // TODO: Receive hello handshake before sending other messages.
 }
 
 void master_t::destroy_existing_slave_conn_if_it_exists() {
@@ -72,15 +78,25 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
     master_t::inside_backfill_done_or_backfill = true;
 #endif
 
-    if (!get_permission_) {
+    // Because opening the gate is blocking, there is a race where while we are opening
+    // the gates, the connection is closed. This is ok, but if before we actually
+    // get down to check stream_, a new connection could have been established.
+    // In that case we can end up in weird situations.
+    // To make sure this doesn't happen, we reset the streaming_cond during this
+    // whole process, so no new slave can connect.
+
+    /* So we can't shut down yet */
+    streaming_cond_.reset();
+
+    bool opened = false;
+    if (!get_permission_ && stream_) {
         /* We just finished the reverse-backfill operation from the first slave.
         Now we can accept gets and sets. At this point we will continue accepting
         gets and sets until we are shut down, regardless of whether the slave connection
         dies again. */
 
-        // TODO: We don't want to open the gates until the backfill
-        // receiver's queues have drained.
         logINF("Now accepting operations normally.\n");
+        opened = true;
         get_permission_.reset(new gated_get_store_t::open_t(get_gate_));
         set_permission_.reset(new gated_set_store_interface_t::open_t(set_gate_));
     }
@@ -88,20 +104,20 @@ void master_t::do_backfill_and_realtime_stream(repli_timestamp since_when) {
     assert_thread();
 
     if (stream_) {
-        assert_thread();
-
-        /* So we can't shut down yet */
-        streaming_cond_.reset();
 
         cond_t cond; // when cond is pulsed, backfill_and_realtime_stream() will return
         interrupt_streaming_cond_.watch(&cond);
         backfill_and_realtime_stream(kvs_, since_when, this, &cond);
 
         debugf("backfill_and_realtime_stream() returned.\n");
-
-        /* So we can shut down */
-        streaming_cond_.pulse();
+    } else if (opened) {
+        // This might be useful for debugging #366, not sure if it's a useful message
+        // in general...
+        debugf("The slave disconnected right after we started accepting operations.\n");
     }
+
+    /* So we can shut down */
+    streaming_cond_.pulse();
 
     /* We leave get_permission_ and set_permission_ open so that we continue accepting queries
     even now that the slave is down */

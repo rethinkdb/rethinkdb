@@ -65,6 +65,17 @@ public:
     // cache, this is used by the page replacement algorithm to see whether the buffer is in use.)
     bool locked();
 
+    struct acq_t {
+        acq_t(rwi_lock_t *l, access_t m) : lock(l) {
+            lock->co_lock(m);
+        }
+        ~acq_t() {
+            lock->unlock();
+        }
+    private:
+        rwi_lock_t *lock;
+    };
+
 private:
     enum rwi_state {
         rwis_unlocked,

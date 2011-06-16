@@ -49,7 +49,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past;
 
-        boost::shared_ptr<transaction_t> txn(new transaction_t(cache, rwi_write, 0, time, order_token_t::ignore));
+        boost::shared_ptr<transaction_t> txn(new transaction_t(cache, rwi_write, 0, time));
 
         union {
             large_buf_ref ref;
@@ -105,7 +105,7 @@ private:
 
         repli_timestamp time = repli_timestamp_t::distant_past;
 
-        boost::shared_ptr<transaction_t> txn(new transaction_t(cache, rwi_write, 0, time, order_token_t::ignore));
+        boost::shared_ptr<transaction_t> txn(new transaction_t(cache, rwi_write, 0, time));
 
         union {
             large_buf_ref ref;

@@ -13,6 +13,14 @@ enum access_t {
     // written to by another task.
     rwi_read_outdated_ok,
 
+    // Intent to read, but guarantees that starting transactions
+    // does keep in order with write transactions. In other words,
+    // this means that the read transaction can see the effects
+    // of any write transactions started before it.
+    // Specifically, those read transactions get throttled just like
+    // writes.
+    rwi_read_sync,
+
     // Intent to write
     rwi_write,
 

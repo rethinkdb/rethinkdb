@@ -19,7 +19,13 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
 
     // TODO: We should really already be on the right thread.
     on_thread_t mover(slice->home_thread());
-    boost::shared_ptr<transaction_t> transaction(new transaction_t(slice->cache(), rwi_read, token));
+    // We can use repli_timestamp::invalid here because it's the timestamp for a read-only transaction.
+    slice->pre_begin_transaction_sink_.check_out(token);
+    order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
+    boost::shared_ptr<transaction_t> transaction(new transaction_t(slice->cache(), rwi_read));
+    slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
+
+    transaction->set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post").with_read_mode());
 
     // Acquire the superblock
 

@@ -51,6 +51,7 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
+CLANG?=0
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -73,13 +74,17 @@ RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 # Define configuration variables
+ifeq (${CLANG},1)
+CXX:=clang
+else
 CXX:=g++
-LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio -lprotoc
-STATIC_LIBRARIES:=
+endif
+LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
+STATIC_LIBRARIES:=protoc protobuf
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -I$(PROTO_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror
+CXXFLAGS+=-I$(SOURCE_DIR) -I$(PROTO_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -89,7 +94,9 @@ CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
 ifeq ($(UNIT_TESTS),0)
+ifeq ($(CLANG),0)
 CXXFLAGS+=-Wswitch-default
+endif
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
@@ -307,7 +314,9 @@ bash_completion_dir:=/etc/bash_completion.d
 internal_bash_completion_dir:=$(share_dir)$(bash_completion_dir)
 scripts_dir:=$(share_dir)/scripts
 
-ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate $(ASSETS_DIR)/scripts/unused_port
+ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
+
+CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
 FULL_SERVER_EXEC_NAME=$(bin_dir)/$(SERVER_EXEC_NAME)
 FULL_SERVER_EXEC_NAME_VERSIONED=$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)

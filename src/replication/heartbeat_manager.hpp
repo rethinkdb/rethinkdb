@@ -38,6 +38,25 @@ private:
 class heartbeat_receiver_t {
 public:
     void note_heartbeat();
+
+    class pause_watching_heartbeat_t {
+    public:
+        pause_watching_heartbeat_t(const pause_watching_heartbeat_t& o);
+        pause_watching_heartbeat_t& operator=(const pause_watching_heartbeat_t& o);
+        ~pause_watching_heartbeat_t();
+    private:
+        static void release_parent(heartbeat_receiver_t *parent);
+
+        friend class heartbeat_receiver_t;
+        pause_watching_heartbeat_t(heartbeat_receiver_t *parent);
+        heartbeat_receiver_t *parent_;
+    };
+    /* As long as the returned pause_watching_heartbeat_t object (or one of its
+     * copies) exists, heartbeats are ignored and no heartbeat timeout can happen.
+     * Multiple such objects can exist at any time and watching the heartbeat
+     * is suspended until the last one has been destructed.
+     */
+    pause_watching_heartbeat_t pause_watching_heartbeat();
     
 protected:
     heartbeat_receiver_t(int heartbeat_timeout_ms);
@@ -51,6 +70,9 @@ private:
     void on_heartbeat_timeout_wrapper() {
         on_heartbeat_timeout();
     }
+
+    int pause_watching_heartbeat_count_;
+    bool watch_heartbeat_active_;
 
     int heartbeat_timeout_ms_;
     timer_token_t *heartbeat_timer_;

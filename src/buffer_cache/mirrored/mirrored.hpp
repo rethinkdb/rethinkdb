@@ -4,6 +4,7 @@
 #include "arch/arch.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/coro_fifo.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/cond_var.hpp"
@@ -225,8 +226,8 @@ class mc_transaction_t :
     friend struct acquire_lock_callback_t;
     
 public:
-    mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp, order_token_t token);
-    mc_transaction_t(cache_t *cache, access_t access, order_token_t token);   // Not for use with write transactions
+    mc_transaction_t(cache_t *cache, access_t access, int expected_change_count, repli_timestamp recency_timestamp);
+    mc_transaction_t(cache_t *cache, access_t access);   // Not for use with write transactions
     ~mc_transaction_t();
 
     cache_t *get_cache() const { return cache; }
@@ -249,6 +250,12 @@ public:
     void snapshot();
 
     void set_account(boost::shared_ptr<cache_account_t> cache_account);
+
+    void set_token(UNUSED  order_token_t token) {
+#ifndef NDEBUG
+        order_token = token;
+#endif
+    }
 
     cache_t *cache;
 
@@ -295,7 +302,7 @@ class mc_cache_account_t {
 
 
 
-struct mc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
+class mc_cache_t : public home_thread_mixin_t, public serializer_t::read_ahead_callback_t {
     friend class load_buf_fsm_t;
     friend class mc_buf_t;
     friend class mc_inner_buf_t;
@@ -402,10 +409,14 @@ private:
     bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
 
-
     typedef std::map<mc_inner_buf_t::version_id_t, mc_transaction_t*> snapshots_map_t;
     snapshots_map_t active_snapshots;
     mc_inner_buf_t::version_id_t next_snapshot_version;
+
+public:
+    coro_fifo_t& co_begin_coro_fifo() { return co_begin_coro_fifo_; }
+private:
+    coro_fifo_t co_begin_coro_fifo_;
 
     DISABLE_COPYING(mc_cache_t);
 };

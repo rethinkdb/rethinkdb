@@ -176,6 +176,7 @@ void usage_import() {
     help->pagef("\n"
                 "Files are imported in the order specified, thus if a key is set in successive\n" 
                 "files it will ultimately be set to the value in the last file it's metioned in.\n");
+    exit(0);
 }
 
 enum {
@@ -190,6 +191,7 @@ enum {
     read_ahead,
     diff_log_size,
     force_create,
+    force_unslavify,
     coroutine_stack_size,
     master_port,
     slave_of,
@@ -239,6 +241,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     {
         int do_help = 0;
         int do_force_create = 0;
+        int do_force_unslavify = 0;
         int do_full_perfmon = 0;
         struct option long_options[] =
             {
@@ -267,6 +270,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"port",                 required_argument, 0, 'p'},
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
+                {"force-unslavify",      no_argument, &do_force_unslavify, 1},
                 {"help",                 no_argument, &do_help, 1},
                 {"master",               required_argument, 0, master_port},
                 {"slave-of",             required_argument, 0, slave_of},
@@ -286,6 +290,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             c = 'h';
         if (do_force_create)
             c = force_create;
+        if (do_force_unslavify)
+            c = force_unslavify;
         if (do_full_perfmon) {
             c = full_perfmon;
         }
@@ -348,6 +354,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_coroutine_stack_size(optarg); break;
             case force_create:
                 config.force_create = true; break;
+            case force_unslavify:
+                config.force_unslavify = true; break;
             case master_port:
                 config.set_master_listen_port(optarg); break;
             case slave_of:
@@ -447,7 +455,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     }
     
     if (config.store_static_config.serializer.extent_size() % config.store_static_config.serializer.block_size().ser_value() != 0) {
-        fail_due_to_user_error("Extent size (%d) is not a multiple of block size (%d).", 
+        fail_due_to_user_error("Extent size (%lu) is not a multiple of block size (%lu).",
              config.store_static_config.serializer.extent_size(),
              config.store_static_config.serializer.block_size().ser_value());
     }
@@ -571,11 +579,11 @@ void parsing_cmd_config_t::set_extent_size(const char* value) {
     long long int target;
     const long long int minimum_value = 1ll;
     const long long int maximum_value = TERABYTE;
-    
+
     target = parse_longlong(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
-        fail_due_to_user_error("Extent size must be a number from %d to %d.", minimum_value, maximum_value);
-        
+        fail_due_to_user_error("Extent size must be a number from %lld to %lld.", minimum_value, maximum_value);
+
     store_static_config.serializer.unsafe_extent_size() = static_cast<long long unsigned int>(target);
 }
 
@@ -593,7 +601,7 @@ long long parsing_cmd_config_t::parse_diff_log_size(const char* value) {
 
     result = parse_longlong(value) * MEGABYTE;
     if (parsing_failed || !is_in_range(result, minimum_value, maximum_value))
-        fail_due_to_user_error("Diff log size must be a number from %d to %d.", minimum_value, maximum_value);
+        fail_due_to_user_error("Diff log size must be a number from %lld to %lld.", minimum_value, maximum_value);
 
     return result;
 }
@@ -607,7 +615,7 @@ void parsing_cmd_config_t::set_block_size(const char* value) {
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Block size must be a number from %d to %d.", minimum_value, maximum_value);
     if (target % DEVICE_BLOCK_SIZE != 0)
-        fail_due_to_user_error("Block size must be a multiple of %d.", DEVICE_BLOCK_SIZE);
+        fail_due_to_user_error("Block size must be a multiple of %ld.", DEVICE_BLOCK_SIZE);
         
     store_static_config.serializer.unsafe_block_size() = static_cast<unsigned int>(target);
 }
@@ -660,11 +668,6 @@ void parsing_cmd_config_t::set_max_cache_size(const char* value) {
     if (parsing_failed || !is_positive(int_value))
         fail_due_to_user_error("Cache size must be a positive number.");
 
-    // TODO: Explain why this code is commented out, for wtf is there commented out code without explanation?
-
-    //if (is_at_most(int_value, static_cast<int>(get_total_ram() / 1024 / 1024)))
-    //    fail_due_to_user_error("Cache size is larger than this machine's total memory (%s MB).", get_total_ram() / 1024 / 1024);
-        
     store_dynamic_config.cache.max_size = (long long)(int_value) * MEGABYTE;
 }
 
@@ -954,6 +957,7 @@ cmd_config_t::cmd_config_t() {
     replication_config.heartbeat_timeout = DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT;
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;
     replication_master_active = false;
+    force_unslavify = false;
 
     store_static_config.serializer.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
     store_static_config.serializer.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;
