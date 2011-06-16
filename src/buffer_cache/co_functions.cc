@@ -36,18 +36,18 @@ void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size, t
 
 void co_acquire_large_buf(large_buf_t *lb, threadsafe_cond_t *acquisition_cond) {
     lb->assert_thread();
-    co_acquire_large_buf_slice(lb, 0, lb->root_ref->size, acquisition_cond);
+    co_acquire_large_buf_slice(lb, 0, lb->get_root_ref()->size, acquisition_cond);
 }
 
 void co_acquire_large_buf_lhs(large_buf_t *lb) {
     lb->assert_thread();
-    co_acquire_large_buf_slice(lb, 0, std::min(1L, lb->root_ref->size));
+    co_acquire_large_buf_slice(lb, 0, std::min(1L, lb->get_root_ref()->size));
 }
 
 void co_acquire_large_buf_rhs(large_buf_t *lb) {
     lb->assert_thread();
-    int64_t beg = std::max(int64_t(0), lb->root_ref->size - 1);
-    co_acquire_large_buf_slice(lb, beg, lb->root_ref->size - beg);
+    int64_t beg = std::max(int64_t(0), lb->get_root_ref()->size - 1);
+    co_acquire_large_buf_slice(lb, beg, lb->get_root_ref()->size - beg);
 }
 
 void co_acquire_large_buf_for_delete(large_buf_t *large_value) {

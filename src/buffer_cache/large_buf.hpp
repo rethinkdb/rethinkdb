@@ -53,13 +53,12 @@ enum should_load_code_t {
 
 
 class large_buf_t : public tree_available_callback_t {
-public:
+private:
     // The large_buf_ref (which resides in a btree_modify_oper_t,
     // typically) that this large_buf_t is attached to.  This is not
     // _truly_ const, see HACK_root_ref.
     large_buf_ref *const root_ref;
 
-private:
     // An upper bound of the size of the root_ref.  For example, btree
     // leaf nodes probably still give a ref_limit of
     // MAX_IN_NODE_VALUE_SIZE, which is probably still 250 bytes (and
@@ -109,6 +108,10 @@ public:
 
     explicit large_buf_t(const boost::shared_ptr<transaction_t>& txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, access_t access);
     ~large_buf_t();
+
+    const large_buf_ref *get_root_ref() const {
+        return root_ref;
+    }
 
     // This is a COMPLETE HACK
     void HACK_root_ref(large_buf_ref *alternate_root_ref) {
