@@ -699,21 +699,21 @@ struct config_block_errors {
         , bad_magic(false), mc_bad_magic(false), mc_inconsistent(false) { }
 };
 
-bool check_mc_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_block_errors *errs,
-                           block_id_t config_block_ser_id, const mc_config_block_t **mc_buf_ptr)
+const mc_config_block_t *       // returns NULL on error
+check_mc_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_block_errors *errs,
+                      block_id_t config_block_ser_id, btree_block_t *block)
 {
-    btree_block_t mc_config_block;
-    if (!mc_config_block.init(file, knog, config_block_ser_id)) {
-        errs->mc_block_open_code = mc_config_block.err;
-        return false;
+    if (!block->init(file, knog, config_block_ser_id)) {
+        errs->mc_block_open_code = block->err;
+        return NULL;
     }
 
-    *mc_buf_ptr = reinterpret_cast<mc_config_block_t *>(mc_config_block.buf);
-    if (!check_magic<mc_config_block_t>((*mc_buf_ptr)->magic)) {
+    const mc_config_block_t *buf = reinterpret_cast<mc_config_block_t *>(block->buf);
+    if (!check_magic<mc_config_block_t>(buf->magic)) {
         errs->mc_bad_magic = true;
-        return false;
+        return NULL;
     }
-    return true;
+    return buf;
 }
 
 bool check_multiplexed_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_block_errors *errs) {
@@ -736,17 +736,15 @@ bool check_multiplexed_config_block(nondirect_file_t *file, file_knowledge_t *kn
     debugf("COMPUTING mod_count=%d, n_files=%d, n_proxies=%d, this_serializer=%d\n", mod_count, knog->config_block->n_files, knog->config_block->n_proxies, knog->config_block->this_serializer);
     for (int slice_id = 0; slice_id < mod_count; ++slice_id) {
         block_id_t config_block_ser_id = translator_serializer_t::translate_block_id(MC_CONFIGBLOCK_ID, mod_count, slice_id, CONFIG_BLOCK_ID);
-        const mc_config_block_t *mc_buf = NULL; // initialization not necessary, but avoids gcc warning
-        if (!check_mc_config_block(file, knog, errs, config_block_ser_id, &mc_buf))
-            return false;
+        btree_block_t mc_config_block;
+        const mc_config_block_t *mc_buf = check_mc_config_block(file, knog, errs, config_block_ser_id, &mc_config_block);
+        if (mc_buf == NULL) return false;
 
         if (slice_id == 0) {
             knog->mc_config_block = *mc_buf;
-        } else {
-            if (memcmp(mc_buf, &knog->mc_config_block, sizeof(mc_config_block_t)) != 0) {
-                errs->mc_inconsistent = true;
-                return false;
-            }
+        } else if (memcmp(mc_buf, &knog->mc_config_block, sizeof(mc_config_block_t)) != 0) {
+            errs->mc_inconsistent = true;
+            return false;
         }
     }
 
@@ -754,9 +752,9 @@ bool check_multiplexed_config_block(nondirect_file_t *file, file_knowledge_t *kn
 }
 
 bool check_raw_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_block_errors *errs) {
-    const mc_config_block_t *mc_buf;
-    if (!check_mc_config_block(file, knog, errs, MC_CONFIGBLOCK_ID, &mc_buf))
-        return false;
+    btree_block_t mc_config_block;
+    const mc_config_block_t *mc_buf = check_mc_config_block(file, knog, errs, MC_CONFIGBLOCK_ID, &mc_config_block);
+    if (mc_buf == NULL) return false;
     knog->mc_config_block = *mc_buf;
     return true;
 }
@@ -1057,7 +1055,7 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_
         const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
 
         errs->keys_too_big |= (pair->key.size > MAX_KEY_SIZE);
-        errs->keys_in_wrong_slice |= cx.is_valid_key(pair->key);
+        errs->keys_in_wrong_slice |= !cx.is_valid_key(pair->key);
         errs->out_of_order |= !(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0);
 
         value_error valerr(errs->block_id);
@@ -1707,7 +1705,10 @@ bool report_diff_log_errors(const diff_log_errors *errs) {
     return ok;
 }
 
-bool report_slice_errors(const slice_errors *errs) {
+bool report_slice_errors(const std::string &slice_name, const slice_errors *errs) {
+    std::string s = std::string("(") + slice_name + ", file '" + errs->home_filename + "')";
+    state = s.c_str();
+
     if (errs->superblock_code != btree_block_t::none) {
         printf("ERROR %s could not find btree superblock: %s\n", state, btree_block_t::error_name(errs->superblock_code));
         return false;
@@ -1728,17 +1729,12 @@ bool report_post_config_block_errors(const all_slices_errors& slices_errs) {
     for (int i = 0; i < slices_errs.n_slices; ++i) {
         char buf[100] = { 0 };
         snprintf(buf, 99, "%d", i);
-        std::string file = slices_errs.slice[i].home_filename;
-        std::string s = std::string("(slice ") + buf + ", file '" + file + "')";
-        state = s.c_str();
-
-        ok &= report_slice_errors(&slices_errs.slice[i]);
+        ok &= report_slice_errors(std::string("slice ") + buf, &slices_errs.slice[i]);
     }
 
     // report errors in metadata file
-    std::string s = std::string("(metadata slice , file '") + slices_errs.metadata_slice->home_filename + "')";
-    state = s.c_str();
-    ok &= report_slice_errors(slices_errs.metadata_slice);
+    if (slices_errs.metadata_slice)
+        ok &= report_slice_errors("metadata slice", slices_errs.metadata_slice);
 
     return ok;
 }
@@ -1828,15 +1824,16 @@ bool check_files(const config_t *cfg) {
 
     // A thread for every slice.
     int n_slices = knog.file_knog[0]->config_block->n_proxies;
-    std::vector<pthread_t> threads(n_slices + 1); // + 1 for metadata slice
+    std::vector<pthread_t> threads(n_slices + (knog.metadata_file ? 1 : 0));
     all_slices_errors slices_errs(n_slices, knog.metadata_file != NULL);
     for (int i = 0; i < num_files; ++i) {
         launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs, cfg);
     }
 
     // ... and one for the metadata slice
-    launch_check_slice(&threads[n_slices], new raw_slicecx_t(knog.metadata_file, knog.metadata_file_knog, cfg),
-                       slices_errs.metadata_slice);
+    if (knog.metadata_file)
+        launch_check_slice(&threads[n_slices], new raw_slicecx_t(knog.metadata_file, knog.metadata_file_knog, cfg),
+                           slices_errs.metadata_slice);
 
     // Wait for all threads to finish.
     for (unsigned i = 0; i < threads.size(); ++i) {

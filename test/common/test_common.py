@@ -222,12 +222,14 @@ class DataFiles(object):
                 failure = False
                 for filenum in range(1, 1 + num_files):
                     db_data_path = os.path.join(db_data_dir, "data" + ("" if num_files <= 1 else str(filenum)) + "_file_" + str(tries))
-                    if (os.path.exists(db_data_path)):
-                        failure = True
-                        break
+                    failure = os.path.exists(db_data_path)
+                    if failure: break
                     paths.append(db_data_path)
-                if not failure:
+                if failure: continue
+                db_metadata_path = os.path.join(db_data_dir, "metadata_file_" + str(tries))
+                if not os.path.exists(db_metadata_path):
                     self.files = paths
+                    self.metadata_file = db_metadata_path
                     break
 
         run_executable([
@@ -245,8 +247,8 @@ class DataFiles(object):
     def rethinkdb_flags(self):
         flags = []
         for file in self.files:
-            flags.append("-f")
-            flags.append(file)
+            flags.extend(["-f", file])
+        flags.extend(["--metadata-file", self.metadata_file])
         return flags
     
     def fsck(self):
