@@ -245,12 +245,9 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, void *buf, UNUSED repli_timestamp recency_timestamp) {
-    // TODO (rntz) this seems wrong. except for the fact that translator_serializer_t requires that
-    // we return true here, wouldn't it be preferable to not free the buffer and instead return
-    // false? And couldn't translator_serializer_t be changed?
-    serializer->free(buf);
-    return true;
+bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED repli_timestamp recency_timestamp) {
+    // We never use read-ahead.
+    return false;
 }
 
 bool mock_cache_t::contains_block(UNUSED block_id_t id) {
