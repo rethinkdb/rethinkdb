@@ -109,9 +109,7 @@ public:
     explicit large_buf_t(const boost::shared_ptr<transaction_t>& txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, access_t access);
     ~large_buf_t();
 
-    const large_buf_ref *get_root_ref() const {
-        return root_ref;
-    }
+    int64_t size() const { return root_ref->size; }
 
     // This is a COMPLETE HACK
     void HACK_root_ref(large_buf_ref *alternate_root_ref) {
