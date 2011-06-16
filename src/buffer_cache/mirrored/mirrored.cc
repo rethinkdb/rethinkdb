@@ -2,6 +2,8 @@
 #include "buffer_cache/stats.hpp"
 #include "mirrored.hpp"
 
+#include "stats/persist.hpp"
+
 /**
  * Buffer implementation.
  */
@@ -9,6 +11,8 @@
 perfmon_counter_t pm_registered_snapshots("registered_snapshots"),
                   pm_registered_snapshot_blocks("registered_snapshot_blocks");
 perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1));
+
+perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache_misses");
 
 // This loads a block from the serializer and stores it into buf.
 void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_account) {
@@ -1003,7 +1007,10 @@ size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *d
 }
 
 mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
-    return page_map.find(block_id);
+    inner_buf_t *buf = page_map.find(block_id);
+    if (buf) pm_cache_hits++;
+    else pm_cache_misses++;
+    return buf;
 }
 
 bool mc_cache_t::contains_block(block_id_t block_id) {
