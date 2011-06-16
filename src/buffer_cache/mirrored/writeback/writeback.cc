@@ -532,11 +532,20 @@ void writeback_t::concurrent_flush_t::update_transaction_ids() {
             serializer_inner_bufs[inner_buf_ix++]->transaction_id = parent->cache->serializer->get_current_transaction_id(serializer_writes[i].block_id, serializer_writes[i].buf);
         }
 
-        // We assume that all deleted blocks are reflected in the serializer's LBA (in case of the log serializer) by now
-        // and will not get offered as read-ahead blocks anymore.
-        // Therefore we can remove them from our reject_read_ahead_blocks list.
-        // TODO: I don't like this implicit assumption (which is not really part of the tid_callback semantics). Change it.
-        parent->reject_read_ahead_blocks.erase(serializer_writes[i].block_id);
+        // TODO: The serializer's semantics of buf_specified is kinda weird in the case of deletions,
+        // because deletions have buf_specified set to true, but buf being NULL.
+        if (serializer_writes[i].buf_specified && !serializer_writes[i].buf) {
+            // It's a deletion
+
+            // We assume that all deleted blocks are reflected in the serializer's LBA (in case of the log serializer) by now
+            // and will not get offered as read-ahead blocks anymore.
+            // Therefore we can remove them from our reject_read_ahead_blocks list.
+            // TODO: I don't like this implicit assumption (which is not really part of the tid_callback semantics). Change it.
+            parent->reject_read_ahead_blocks.erase(serializer_writes[i].block_id);
+
+            // Also we are now allowed to reuse the block id without further conflicts
+            parent->cache->free_list.release_block_id(serializer_writes[i].block_id);
+        }
     }
     transaction_ids_have_been_updated = true;
 
