@@ -41,8 +41,12 @@ public:
 
     class pause_watching_heartbeat_t {
     public:
+        pause_watching_heartbeat_t(const pause_watching_heartbeat_t& o);
+        pause_watching_heartbeat_t& operator=(const pause_watching_heartbeat_t& o);
         ~pause_watching_heartbeat_t();
     private:
+        static void release_parent(heartbeat_receiver_t *parent);
+
         friend class heartbeat_receiver_t;
         pause_watching_heartbeat_t(heartbeat_receiver_t *parent);
         heartbeat_receiver_t *parent_;

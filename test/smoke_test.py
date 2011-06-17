@@ -52,7 +52,6 @@ try:
               "duration"    : 30,
               "cores"       : 3,
               "slices"      : 1,
-              "failover"    : True,
               "fsck"        : True},
             repeat=1, timeout=120)
 

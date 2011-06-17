@@ -184,7 +184,7 @@ public:
 
                 const repli_timestamp recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
 
-                buf_data_t *data = ptr_cast<buf_data_t>(parent->serializer->malloc());
+                buf_data_t *data = reinterpret_cast<buf_data_t *>(parent->serializer->malloc());
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
@@ -229,7 +229,7 @@ bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, se
 
     pm_serializer_data_blocks_written++;
 
-    const buf_data_t *data = ptr_cast<buf_data_t>(buf_in);
+    const buf_data_t *data = reinterpret_cast<const buf_data_t *>(buf_in);
     data--;
     if (transaction_id != NULL_SER_TRANSACTION_ID) {
         *const_cast<buf_data_t *>(data) = make_buf_data_t(block_id, transaction_id);

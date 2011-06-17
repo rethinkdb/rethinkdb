@@ -285,15 +285,18 @@ void check_filesize(nondirect_file_t *file, file_knowledge_t *knog) {
     knog->filesize = file->get_size();
 }
 
-const char *static_config_errstring[] = { "none", "bad_software_name", "bad_version", "bad_sizes" };
-enum static_config_error { static_config_none = 0, bad_software_name, bad_version, bad_sizes };
+const char *static_config_errstring[] = { "none", "bad_file", "bad_software_name", "bad_version", "bad_sizes" };
+enum static_config_error { static_config_none = 0, bad_file, bad_software_name, bad_version, bad_sizes };
 
 bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_config_error *err, const config_t *cfg) {
     block_t header;
-    header.init(DEVICE_BLOCK_SIZE, file, 0);
-    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
+    if (!header.init(DEVICE_BLOCK_SIZE, file, 0)) {
+        *err = bad_file;
+        return false;
+    }
+    static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
 
-    log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
+    log_serializer_static_config_t *static_cfg = reinterpret_cast<log_serializer_static_config_t *>(buf + 1);
 
     block_size_t block_size = static_cfg->block_size();
     uint64_t extent_size = static_cfg->extent_size();
@@ -334,17 +337,21 @@ bool check_static_config(nondirect_file_t *file, file_knowledge_t *knog, static_
 
 std::string extract_static_config_version(nondirect_file_t *file, UNUSED file_knowledge_t *knog) {
     block_t header;
-    header.init(DEVICE_BLOCK_SIZE, file, 0);
-    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
+    if (!header.init(DEVICE_BLOCK_SIZE, file, 0)) {
+        return "(not available, could not load first block of file)";
+    }
+    static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
     return std::string(buf->version, int(sizeof(VERSION_STRING)));
 }
 
 std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_knowledge_t *knog) {
     block_t header;
-    header.init(DEVICE_BLOCK_SIZE, file, 0);
-    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
+    if (!header.init(DEVICE_BLOCK_SIZE, file, 0)) {
+        return "(not available, could not load first block of file)";
+    }
+    static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
 
-    log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
+    log_serializer_static_config_t *static_cfg = reinterpret_cast<log_serializer_static_config_t *>(buf + 1);
 
     block_size_t block_size = static_cfg->block_size();
     uint64_t extent_size = static_cfg->extent_size();
@@ -357,6 +364,7 @@ std::string extract_static_config_flags(nondirect_file_t *file, UNUSED file_know
 }
 
 struct metablock_errors {
+    int unloadable_count;  // should be zero
     int bad_crc_count;  // should be zero
     int bad_markers_count;  // must be zero
     int bad_content_count;  // must be zero
@@ -364,15 +372,18 @@ struct metablock_errors {
     int total_count;
     bool not_monotonic;  // should be false
     bool no_valid_metablocks;  // must be false
+    bool implausible_block_failure;  // must be false;
 };
 
 bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_errors *errs) {
+    errs->unloadable_count = 0;
     errs->bad_markers_count = 0;
     errs->bad_crc_count = 0;
     errs->bad_content_count = 0;
     errs->zeroed_count = 0;
     errs->not_monotonic = false;
     errs->no_valid_metablocks = false;
+    errs->implausible_block_failure = false;
 
     std::vector<off64_t> metablock_offsets;
     initialize_metablock_offsets(knog->static_config->extent_size(), &metablock_offsets);
@@ -394,8 +405,10 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
         off64_t off = metablock_offsets[i];
 
         block_t b;
-        b.init(DEVICE_BLOCK_SIZE, file, off);
-        crc_metablock_t *metablock = ptr_cast<crc_metablock_t>(b.realbuf);
+        if (!b.init(DEVICE_BLOCK_SIZE, file, off)) {
+            errs->unloadable_count++;
+        }
+        crc_metablock_t *metablock = reinterpret_cast<crc_metablock_t *>(b.realbuf);
 
         if (metablock->check_crc()) {
             if (0 != memcmp(metablock->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC))
@@ -426,7 +439,7 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
             // There can be bad CRCs for metablocks that haven't been
             // used yet, if the database is very young.
             bool all_zero = true;
-            char *buf = ptr_cast<char>(b.realbuf);
+            char *buf = reinterpret_cast<char *>(b.realbuf);
             for (int i = 0; i < DEVICE_BLOCK_SIZE; ++i) {
                 all_zero &= (buf[i] == 0);
             }
@@ -446,8 +459,11 @@ bool check_metablock(nondirect_file_t *file, file_knowledge_t *knog, metablock_e
     }
 
     block_t high_block;
-    high_block.init(DEVICE_BLOCK_SIZE, file, metablock_offsets[high_version_index]);
-    crc_metablock_t *high_metablock = ptr_cast<crc_metablock_t>(high_block.realbuf);
+    if (!high_block.init(DEVICE_BLOCK_SIZE, file, metablock_offsets[high_version_index])) {
+        errs->implausible_block_failure = true;
+        return false;
+    }
+    crc_metablock_t *high_metablock = reinterpret_cast<crc_metablock_t *>(high_block.realbuf);
     knog->metablock = high_metablock->metablock;
     return true;
 }
@@ -498,8 +514,12 @@ bool check_lba_extent(nondirect_file_t *file, file_knowledge_t *knog, unsigned i
     }
 
     block_t extent;
-    extent.init(knog->static_config->extent_size(), file, extent_offset);
-    lba_extent_t *buf = ptr_cast<lba_extent_t>(extent.realbuf);
+    if (!extent.init(knog->static_config->extent_size(), file, extent_offset)) {
+        // a redundant check
+        errs->code = lba_extent_errors::bad_extent_offset;
+        return false;
+    }
+    lba_extent_t *buf = reinterpret_cast<lba_extent_t *>(extent.realbuf);
 
     errs->total_count += entries_count;
 
@@ -569,8 +589,12 @@ bool check_lba_shard(nondirect_file_t *file, file_knowledge_t *knog, lba_shard_m
         }
 
         block_t superblock;
-        superblock.init(superblock_aligned_size, file, shard->lba_superblock_offset);
-        const lba_superblock_t *buf = ptr_cast<lba_superblock_t>(superblock.realbuf);
+        if (!superblock.init(superblock_aligned_size, file, shard->lba_superblock_offset)) {
+            // a redundant check
+            errs->code = lba_shard_errors::bad_lba_superblock_offset;
+            return false;
+        }
+        const lba_superblock_t *buf = reinterpret_cast<lba_superblock_t *>(superblock.realbuf);
 
         if (0 != memcmp(buf, lba_super_magic, LBA_SUPER_MAGIC_SIZE)) {
             errs->code = lba_shard_errors::bad_lba_superblock_magic;
@@ -640,7 +664,7 @@ bool check_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_b
         errs->block_open_code = config_block.err;
         return false;
     }
-    const multiplexer_config_block_t *buf = ptr_cast<multiplexer_config_block_t>(config_block.buf);
+    const multiplexer_config_block_t *buf = reinterpret_cast<multiplexer_config_block_t *>(config_block.buf);
 
     if (!check_magic<multiplexer_config_block_t>(buf->magic)) {
         errs->bad_magic = true;
@@ -659,7 +683,7 @@ bool check_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_b
             errs->mc_block_open_code = mc_config_block.err;
             return false;
         }
-        const mc_config_block_t *mc_buf = ptr_cast<mc_config_block_t>(mc_config_block.buf);
+        const mc_config_block_t *mc_buf = reinterpret_cast<mc_config_block_t *>(mc_config_block.buf);
 
         if (!check_magic<mc_config_block_t>(mc_buf->magic)) {
             errs->mc_bad_magic = true;
@@ -879,8 +903,8 @@ void check_large_buf_subtree(slicecx_t& cx, int levels, int64_t offset, int64_t 
         err.bad_magic = false;
         errs->segment_errors.push_back(err);
     } else {
-        if ((levels == 1 && !check_magic<large_buf_leaf>(ptr_cast<large_buf_leaf>(b.buf)->magic))
-            || (levels > 1 && !check_magic<large_buf_internal>(ptr_cast<large_buf_internal>(b.buf)->magic))) {
+        if ((levels == 1 && !check_magic<large_buf_leaf>(reinterpret_cast<large_buf_leaf *>(b.buf)->magic))
+            || (levels > 1 && !check_magic<large_buf_internal>(reinterpret_cast<large_buf_internal *>(b.buf)->magic))) {
             largebuf_error::segment_error err;
             err.block_id = block_id;
             err.block_code = btree_block_t::none;
@@ -890,7 +914,7 @@ void check_large_buf_subtree(slicecx_t& cx, int levels, int64_t offset, int64_t 
         }
 
         if (levels > 1) {
-            check_large_buf_children(cx, levels - 1, offset, size, ptr_cast<large_buf_internal>(b.buf)->kids, errs);
+            check_large_buf_children(cx, levels - 1, offset, size, reinterpret_cast<large_buf_internal *>(b.buf)->kids, errs);
         }
     }
 }
@@ -949,7 +973,7 @@ bool leaf_node_inspect_range(const slicecx_t& cx, const leaf_node_t *buf, uint16
         && offset >= buf->frontmost_offset) {
         const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
         const btree_value *value = pair->value();
-        uint32_t value_offset = (ptr_cast<char>(value) - ptr_cast<char>(pair)) + offset;
+        uint32_t value_offset = (reinterpret_cast<const char *>(value) - reinterpret_cast<const char *>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
         if (value_offset <= cx.block_size().value() - 2) {
             uint32_t tot_offset = value_offset + value->full_size();
@@ -1001,7 +1025,7 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_
 }
 
 bool internal_node_begin_offset_in_range(const slicecx_t& cx, const internal_node_t *buf, uint16_t offset) {
-    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + ptr_cast<btree_internal_pair>(ptr_cast<char>(buf) + offset)->key.size <= cx.block_size().value();
+    return (cx.block_size().value() - sizeof(btree_internal_pair)) >= offset && offset >= buf->frontmost_offset && offset + sizeof(btree_internal_pair) + reinterpret_cast<const btree_internal_pair *>(reinterpret_cast<const char *>(buf) + offset)->key.size <= cx.block_size().value();
 }
 
 void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const btree_key_t *hi, subtree_errors *errs);
@@ -1071,20 +1095,20 @@ void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const bt
 
     node_error node_err(id);
 
-    if (!node::has_sensible_offsets(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+    if (!node::has_sensible_offsets(cx.block_size(), reinterpret_cast<node_t *>(node.buf))) {
         node_err.value_out_of_buf = true;
     } else {
         if (lo != NULL && hi != NULL) {
             // (We're happy with an underfull root block.)
-            if (node::is_underfull(cx.block_size(), ptr_cast<node_t>(node.buf))) {
+            if (node::is_underfull(cx.block_size(), reinterpret_cast<node_t *>(node.buf))) {
                 node_err.block_underfull = true;
             }
         }
 
-        if (check_magic<leaf_node_t>(ptr_cast<leaf_node_t>(node.buf)->magic)) {
-            check_subtree_leaf_node(cx, ptr_cast<leaf_node_t>(node.buf), lo, hi, errs, &node_err);
-        } else if (check_magic<internal_node_t>(ptr_cast<internal_node_t>(node.buf)->magic)) {
-            check_subtree_internal_node(cx, ptr_cast<internal_node_t>(node.buf), lo, hi, errs, &node_err);
+        if (check_magic<leaf_node_t>(reinterpret_cast<leaf_node_t *>(node.buf)->magic)) {
+            check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
+        } else if (check_magic<internal_node_t>(reinterpret_cast<internal_node_t *>(node.buf)->magic)) {
+            check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
         } else {
             node_err.bad_magic = true;
         }
@@ -1150,7 +1174,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
                 if (!b.init(cx.file, cx.knog, ser_block_id_t::make(id))) {
                     desc.loading_error = b.err;
                 } else {
-                    desc.magic = *ptr_cast<block_magic_t>(b.buf);
+                    desc.magic = *reinterpret_cast<block_magic_t *>(b.buf);
                 }
 
                 errs->orphan_blocks.push_back(desc);
@@ -1164,7 +1188,7 @@ void check_slice_other_blocks(slicecx_t& cx, other_block_errors *errs) {
                     desc.loading_error = zeroblock.err;
                     errs->allegedly_deleted_blocks.push_back(desc);
                 } else {
-                    block_magic_t magic = *ptr_cast<block_magic_t>(zeroblock.buf);
+                    block_magic_t magic = *reinterpret_cast<block_magic_t *>(zeroblock.buf);
                     if (!(log_serializer_t::zerobuf_magic == magic)) {
                         desc.magic = magic;
                         errs->allegedly_deleted_blocks.push_back(desc);
@@ -1262,7 +1286,7 @@ void check_slice(nondirect_file_t *file, file_knowledge_t *knog, int global_slic
             errs->superblock_code = btree_superblock.err;
             return;
         }
-        const btree_superblock_t *buf = ptr_cast<btree_superblock_t>(btree_superblock.buf);
+        const btree_superblock_t *buf = reinterpret_cast<btree_superblock_t *>(btree_superblock.buf);
         if (!check_magic<btree_superblock_t>(buf->magic)) {
             errs->superblock_bad_magic = true;
             return;
@@ -1331,7 +1355,7 @@ bool check_interfile(knowledge_t *knog, interfile_errors *errs) {
         errs->all_have_same_num_files &= (cb.n_files == zeroth.n_files);
         errs->all_have_same_num_slices &= (cb.n_proxies == zeroth.n_proxies);
         errs->all_have_same_creation_timestamp &= (cb.creation_timestamp == zeroth.creation_timestamp);
-        errs->out_of_order_serializers |= (i == cb.this_serializer);
+        errs->out_of_order_serializers |= !(i == cb.this_serializer);
         errs->bad_this_serializer_values |= (cb.this_serializer < 0 || cb.this_serializer >= cb.n_files);
         if (cb.this_serializer < num_files && cb.this_serializer >= 0) {
             counts[cb.this_serializer] += 1;
@@ -1384,7 +1408,8 @@ void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread
         param->global_slice_number = i;
         param->errs = &errs->slice[i];
         param->cfg = cfg;
-        guarantee_err(!pthread_create(&threads[i], NULL, do_check_slice, param), "pthread_create not working");
+        threads.resize(threads.size() + 1);
+        guarantee_err(!pthread_create(&threads[threads.size() - 1], NULL, do_check_slice, param), "pthread_create not working");
     }
 }
 
@@ -1395,6 +1420,9 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
     }
     const metablock_errors *mb;
     if (errs.metablock_errs.is_known(&mb)) {
+        if (mb->unloadable_count > 0) {
+            printf("ERROR %s %d of %d metablocks were unloadable\n", state, mb->unloadable_count, mb->total_count);
+        }
         if (mb->bad_crc_count > 0) {
             printf("WARNING %s %d of %d metablocks have bad CRC\n", state, mb->bad_crc_count, mb->total_count);
         }
@@ -1412,6 +1440,9 @@ void report_pre_config_block_errors(const check_to_config_block_errors& errs) {
         }
         if (mb->no_valid_metablocks) {
             printf("ERROR %s no valid metablocks\n", state);
+        }
+        if (mb->implausible_block_failure) {
+            printf("ERROR %s a metablock we once loaded became unloadable (your computer is broken)\n", state);
         }
     }
     const lba_errors *lba;
@@ -1666,9 +1697,11 @@ std::string extract_slices_flags(const multiplexer_config_block_t& c) {
 std::string extract_cache_flags(nondirect_file_t *file, const multiplexer_config_block_t& c, const mc_config_block_t& mcc) {
     // TODO: This is evil code replication, just because we need the block size...
     block_t header;
-    header.init(DEVICE_BLOCK_SIZE, file, 0);
-    static_header_t *buf = ptr_cast<static_header_t>(header.realbuf);
-    log_serializer_static_config_t *static_cfg = ptr_cast<log_serializer_static_config_t>(buf + 1);
+    if (!header.init(DEVICE_BLOCK_SIZE, file, 0)) {
+        return " --diff-log-size intentionally-invalid";
+    }
+    static_header_t *buf = reinterpret_cast<static_header_t *>(header.realbuf);
+    log_serializer_static_config_t *static_cfg = reinterpret_cast<log_serializer_static_config_t *>(buf + 1);
     block_size_t block_size = static_cfg->block_size();
 
 
@@ -1718,8 +1751,10 @@ bool check_files(const config_t *cfg) {
 
 
     interfile_errors errs;
-    if (!check_interfile(&knog, &errs)) {
-        report_interfile_errors(errs);
+    bool no_critical_interfile_err = check_interfile(&knog, &errs);
+    report_interfile_errors(errs);  // We report interfile errors regardless of whether
+                                    // any of them are critical or not (some might be just warnings)
+    if (!no_critical_interfile_err) {
         return false;
     }
 
@@ -1728,14 +1763,14 @@ bool check_files(const config_t *cfg) {
 
         // A thread for every slice.
         int n_slices = knog.file_knog[0]->config_block->n_proxies;
-        std::vector<pthread_t> threads(n_slices);
+        std::vector<pthread_t> threads;
         all_slices_errors slices_errs(n_slices);
         for (int i = 0; i < num_files; ++i) {
             launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs, cfg);
         }
 
         // Wait for all threads to finish.
-        for (int i = 0; i < n_slices; ++i) {
+        for (size_t i = 0; i < threads.size(); ++i) {
             guarantee_err(!pthread_join(threads[i], NULL), "pthread_join failing");
         }
 
@@ -1750,37 +1785,6 @@ bool check_files(const config_t *cfg) {
         return true;
     }
     return false;
-}
-
-//extract the command line arguments from the file
-std::string extract_command_line_args(const config_t *cfg) {
-    std::string flags;
-    knowledge_t knog(cfg->input_filenames);
-
-    if (!knog.files[0]->exists()) {
-        fail_due_to_user_error("No such file \"%s\"", knog.file_knog[0]->filename.c_str());
-    }
-
-    flags.append(extract_static_config_flags(knog.files[0], knog.file_knog[0]));
-
-    config_block_errors errs;
-    check_config_block(knog.files[0], knog.file_knog[0], &errs);
-
-    flags.append(extract_slices_flags(*knog.file_knog[0]->config_block));
-
-
-    return flags;
-}
-
-std::string extract_version(const config_t& cfg) {
-    std::string version;
-    knowledge_t knog(cfg.input_filenames);
-
-    if (!knog.files[0]->exists()) {
-        fail_due_to_user_error("No such file \"%s\"", knog.file_knog[0]->filename.c_str());
-    }
-
-    return extract_static_config_version(knog.files[0], knog.file_knog[0]);
 }
 
 }  // namespace fsck

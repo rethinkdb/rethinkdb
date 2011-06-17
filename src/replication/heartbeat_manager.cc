@@ -29,7 +29,7 @@ void heartbeat_sender_t::stop_sending_heartbeats() {
 }
 
 void heartbeat_sender_t::send_heartbeat_callback(void *data) {
-    heartbeat_sender_t *self = ptr_cast<heartbeat_sender_t>(data);
+    heartbeat_sender_t *self = reinterpret_cast<heartbeat_sender_t *>(data);
 
     self->heartbeat_timer_ = NULL;
     coro_t::spawn_now(boost::bind(&heartbeat_sender_t::send_heartbeat_wrapper, self));
@@ -85,9 +85,10 @@ void heartbeat_receiver_t::note_heartbeat() {
 }
 
 void heartbeat_receiver_t::heartbeat_timeout_callback(void *data) {
-    heartbeat_receiver_t *self = ptr_cast<heartbeat_receiver_t>(data);
+    heartbeat_receiver_t *self = reinterpret_cast<heartbeat_receiver_t *>(data);
 
     self->heartbeat_timer_ = NULL;
+    self->watch_heartbeat_active_ = false;
     logINF("Did not receive a heartbeat within the last %d ms.\n", self->heartbeat_timeout_ms_);
 
     coro_t::spawn_now(boost::bind(&heartbeat_receiver_t::on_heartbeat_timeout_wrapper, self));
@@ -100,7 +101,8 @@ heartbeat_receiver_t::pause_watching_heartbeat_t heartbeat_receiver_t::pause_wat
 heartbeat_receiver_t::pause_watching_heartbeat_t::pause_watching_heartbeat_t(heartbeat_receiver_t *parent) :
         parent_(parent) {
 
-    if (parent_->pause_watching_heartbeat_count_++ == 0) {
+    rassert(!parent_->watch_heartbeat_active_ || parent_->heartbeat_timer_); // Consistency check...
+    if (parent_->pause_watching_heartbeat_count_++ == 0 && parent_->heartbeat_timer_) {
         // We are the first pauser
         cancel_timer(parent_->heartbeat_timer_);
         parent_->heartbeat_timer_ = NULL;
@@ -108,11 +110,32 @@ heartbeat_receiver_t::pause_watching_heartbeat_t::pause_watching_heartbeat_t(hea
 }
 
 heartbeat_receiver_t::pause_watching_heartbeat_t::~pause_watching_heartbeat_t() {
-    if (--parent_->pause_watching_heartbeat_count_ == 0) {
+    release_parent(parent_);
+}
+
+heartbeat_receiver_t::pause_watching_heartbeat_t::pause_watching_heartbeat_t(const pause_watching_heartbeat_t& o) : parent_(NULL) {
+    *this = o;
+}
+
+void heartbeat_receiver_t::pause_watching_heartbeat_t::release_parent(heartbeat_receiver_t *parent) {
+    if (--parent->pause_watching_heartbeat_count_ == 0) {
         // We were the last pauser, resume watching the heartbeat if it is active
-        if (parent_->watch_heartbeat_active_) {
-            rassert(!parent_->heartbeat_timer_);
-            parent_->heartbeat_timer_ = fire_timer_once(parent_->heartbeat_timeout_ms_, parent_->heartbeat_timeout_callback, parent_);
+        if (parent->watch_heartbeat_active_) {
+            rassert(!parent->heartbeat_timer_);
+            parent->heartbeat_timer_ = fire_timer_once(parent->heartbeat_timeout_ms_, parent->heartbeat_timeout_callback, parent);
         }
     }
 }
+
+heartbeat_receiver_t::pause_watching_heartbeat_t& heartbeat_receiver_t::pause_watching_heartbeat_t::operator=(const heartbeat_receiver_t::pause_watching_heartbeat_t& o) {
+    heartbeat_receiver_t *old_parent = parent_;
+
+    parent_ = o.parent_;
+    rassert(parent_->pause_watching_heartbeat_count_ > 0);
+    parent_->pause_watching_heartbeat_count_++;
+
+    release_parent(old_parent);
+
+    return *this;
+}
+

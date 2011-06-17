@@ -7,7 +7,7 @@ small_value_data_provider_t::small_value_data_provider_t(const btree_value *_val
     // This can be called in the scheduler thread.
 
     rassert(!_value->is_large());
-    const char *data = ptr_cast<char>(_value->value());
+    const char *data = reinterpret_cast<const char *>(_value->value());
     value.assign(data, data + _value->value_size());
     buffer_group.add_buffer(value.size(), value.data());
 }

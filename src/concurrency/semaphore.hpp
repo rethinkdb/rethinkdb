@@ -27,7 +27,11 @@ class semaphore_t {
     bool in_callback;
 
 public:
-    semaphore_t(int cap) : capacity(cap), current(0), in_callback(false) {
+    semaphore_t(int cap) : capacity(cap), current(0)
+#ifndef NDEBUG
+                         , in_callback(false)
+#endif
+    {
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     }
 
@@ -36,10 +40,10 @@ public:
         rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
         if (current + count <= capacity || capacity == SEMAPHORE_NO_LIMIT) {
             current += count;
-            in_callback = true;
+            DEBUG_ONLY(in_callback = true);
             cb->on_semaphore_available();
             rassert(in_callback);
-            in_callback = false;
+            DEBUG_ONLY(in_callback = false);
         } else {
             lock_request_t *r = new lock_request_t;
             r->count = count;
@@ -68,10 +72,10 @@ public:
                 waiters.remove(h);
                 current += h->count;
                 rassert(!in_callback);
-                in_callback = true;
+                DEBUG_ONLY(in_callback = true);
                 h->on_available();
                 rassert(in_callback);
-                in_callback = false;
+                DEBUG_ONLY(in_callback = false);
             }
         }
     }
@@ -118,10 +122,10 @@ public:
         rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);
         if (try_lock(count)) {
             rassert(!in_callback);
-            in_callback = true;
+            DEBUG_ONLY(in_callback = true);
             cb->on_semaphore_available();
             rassert(in_callback);
-            in_callback = false;
+            DEBUG_ONLY(in_callback = false);
         } else {
             lock_request_t *r = new lock_request_t;
             r->count = count;
@@ -188,10 +192,10 @@ private:
         while ((h = waiters.head()) && try_lock(h->count)) {
             waiters.remove(h);
             rassert(!in_callback);
-            in_callback = true;
+            DEBUG_ONLY(in_callback = true);
             h->on_available();
             rassert(in_callback);
-            in_callback = false;
+            DEBUG_ONLY(in_callback = false);
         }
     }
 };

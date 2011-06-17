@@ -92,16 +92,6 @@ void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 // bias tends to get worse when RAND_MAX is far from a multiple of n.
 int randint(int n);
 
-// The existence of these functions does not constitute an endorsement
-// for casts.  These constitute an endorsement for the use of
-// reinterpret_cast, rather than C-style casts.  The latter can break
-// const correctness.
-template <class T>
-inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); }
-
-template <class T>
-inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
-
 bool begins_with_minus(const char *string);
 // strtoul() and strtoull() will for some reason not fail if the input begins with a minus
 // sign. strtoul_strict() and strtoull_strict() do.
