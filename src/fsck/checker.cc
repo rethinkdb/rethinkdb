@@ -1062,7 +1062,7 @@ bool check_interfile(knowledge *knog, interfile_errors *errs) {
         errs->all_have_same_num_files &= (cb.n_files == zeroth.n_files);
         errs->all_have_same_num_slices &= (cb.btree_config.n_slices == zeroth.btree_config.n_slices);
         errs->all_have_same_db_creation_timestamp &= (cb.database_creation_timestamp == zeroth.database_creation_timestamp);
-        errs->out_of_order_serializers |= (i == cb.this_serializer);
+        errs->out_of_order_serializers |= !(i == cb.this_serializer);
         errs->bad_this_serializer_values |= (cb.this_serializer < 0 || cb.this_serializer >= cb.n_files);
         if (cb.this_serializer < num_files && cb.this_serializer >= 0) {
             counts[cb.this_serializer] += 1;
@@ -1113,7 +1113,8 @@ void launch_check_after_config_block(direct_file_t *file, std::vector<pthread_t>
         param->knog = knog;
         param->global_slice_number = i;
         param->errs = &errs->slice[i];
-        guarantee_err(!pthread_create(&threads[i], NULL, do_check_slice, param), "pthread_create not working");
+        threads.resize(threads.size() + 1);
+        guarantee_err(!pthread_create(&threads[threads.size() - 1], NULL, do_check_slice, param), "pthread_create not working");
     }
 }
 
@@ -1355,8 +1356,10 @@ bool check_files(const config_t& cfg) {
     }
 
     interfile_errors errs;
-    if (!check_interfile(&knog, &errs)) {
-        report_interfile_errors(errs);
+    bool no_critical_interfile_err = check_interfile(&knog, &errs);
+    report_interfile_errors(errs);  // We report interfile errors regardless of whether
+                                    // any of them are critical or not (some might be just warnings)
+    if (!no_critical_interfile_err) {
         return false;
     }
 
@@ -1365,14 +1368,14 @@ bool check_files(const config_t& cfg) {
 
         // A thread for every slice.
         int n_slices = knog.file_knog[0]->config_block->btree_config.n_slices;
-        std::vector<pthread_t> threads(n_slices);
+        std::vector<pthread_t> threads;
         all_slices_errors slices_errs(n_slices);
         for (int i = 0; i < num_files; ++i) {
             launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs);
         }
 
         // Wait for all threads to finish.
-        for (int i = 0; i < n_slices; ++i) {
+        for (size_t i = 0; i < threads.size(); ++i) {
             guarantee_err(!pthread_join(threads[i], NULL), "pthread_join failing");
         }
 
