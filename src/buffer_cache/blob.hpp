@@ -6,20 +6,24 @@
 
 class transaction_t;
 class buffer_group_t;
+class block_size_t;
 
 class blob_t {
 public:
-    blob_t(transaction_t *txn, const char *ref, size_t maxreflen);
-    void dump_ref(char *ref_out, size_t confirm_maxreflen);
+    blob_t(block_size_t block_size, const char *ref, size_t maxreflen);
+    void dump_ref(block_size_t block_size, char *ref_out, size_t confirm_maxreflen);
     ~blob_t();
 
 
-    size_t refsize() const;
+    size_t refsize(block_size_t block_size) const;
     int64_t valuesize() const;
 
-    buffer_group_t expose_region(int64_t offset, int64_t size);
-    void insert_region(int64_t offset, int64_t size);
-    void remove_region(int64_t offset, int64_t size);
+    void expose_region(transaction_t *txn, int64_t offset, int64_t size, buffer_group_t *buffer_group_out);
+    void append_region(transaction_t *txn, int64_t size);
+    void prepend_region(transaction_t *txn, int64_t size);
+
+    void unappend_region(transaction_t *txn, int64_t size);
+    void unprepend_region(transaction_t *txn, int64_t size);
 
 private:
     char *ref_;
