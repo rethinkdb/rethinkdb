@@ -1061,8 +1061,8 @@ void handle_memcache(txt_memcached_handler_if *rh, order_source_t *order_source)
         } else if(!strcmp(args[0], "rethinkdb") || !strcmp(args[0], "rdb")) {
             rh->write(control_t::exec(args.size() - 1, args.data() + 1));
         } else if (!strcmp(args[0], "version")) {
-            if (args.size() == 2) {
-                rh->writef("VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
+            if (args.size() == 1) {
+                rh.writef("VERSION rethinkdb-%s\r\n", RETHINKDB_VERSION);
             } else {
                 rh->error();
             }
