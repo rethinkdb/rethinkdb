@@ -84,7 +84,12 @@ size_t blob_t::refsize(block_size_t block_size) const {
 }
 
 int64_t blob_t::valuesize() const {
-    crash("not yet implemented.");
+    size_t shortsize = short_size(ref_);
+    if (shortsize <= maxreflen - 1) {
+        return shortsize;
+    } else {
+        return big_size(ref_);
+    }
     return 0;
 }
 
