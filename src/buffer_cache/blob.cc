@@ -14,7 +14,7 @@ void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, i
 
 
 size_t small_size(const char *ref, size_t maxreflen) {
-    // small value sizes range from 0 to maxreflen - 1, and maxreflen indicates large value.
+    // small value sizes range from 0 to maxreflen - BIG_SIZE_OFFSET(maxreflen), and maxreflen indicates large value.
     if (maxreflen <= 255) {
         return *reinterpret_cast<const uint8_t *>(ref);
     } else {
@@ -22,16 +22,25 @@ size_t small_size(const char *ref, size_t maxreflen) {
     }
 }
 
-bool is_small(const char *ref, size_t maxreflen) {
+bool size_would_be_small(size_t proposed_size, size_t maxreflen) {
+    return proposed_size <= maxreflen - BIG_SIZE_OFFSET(maxreflen);
+}
+
+void set_small_size(char *ref, size_t size, size_t maxreflen) {
+    rassert(size_would_be_small(size, maxreflen));
     if (maxreflen <= 255) {
-        return *reinterpret_cast<const uint8_t *>(ref) < maxreflen;
+        *reinterpret_cast<uint8_t *>(ref) = size;
     } else {
-        return *reinterpret_cast<const uint16_t *>(ref) < maxreflen;
+        *reinterpret_cast<uint16_t *>(ref) = size;
     }
 }
 
+bool is_small(const char *ref, size_t maxreflen) {
+    return small_size(ref, maxreflen) < maxreflen;
+}
+
 char *small_buffer(char *ref, size_t maxreflen) {
-    return ref + (maxreflen <= 255 ? 1 : 2);
+    return ref + BIG_SIZE_OFFSET(maxreflen);
 }
 
 int64_t big_size(const char *ref, size_t maxreflen) {
@@ -62,8 +71,8 @@ const block_id_t *internal_node_block_ids(const void *buf) {
     return reinterpret_cast<const block_id_t *>(reinterpret_cast<const char *>(buf) + sizeof(block_magic_t));
 }
 
-std::pair<size_t, int> big_ref_info(block_size_t block_size, int64_t size, int64_t offset, size_t maxreflen) {
-    rassert(size > int64_t(maxreflen - 1));
+std::pair<size_t, int> big_ref_info(block_size_t block_size, int64_t offset, int64_t size, size_t maxreflen) {
+    rassert(size > int64_t(maxreflen - BIG_SIZE_OFFSET(maxreflen)));
     int64_t max_blockid_count = (maxreflen - BLOCK_IDS_OFFSET(maxreflen)) / sizeof(block_id_t);
 
     int64_t block_count = ceil_divide(size + offset, leaf_size(block_size));
@@ -79,15 +88,19 @@ std::pair<size_t, int> big_ref_info(block_size_t block_size, int64_t size, int64
 
 std::pair<size_t, int> ref_info(block_size_t block_size, const char *ref, size_t maxreflen) {
     size_t smallsize = small_size(ref, maxreflen);
-    if (smallsize <= maxreflen - 1) {
-        return std::pair<size_t, int>(1 + smallsize, 0);
+    if (smallsize <= maxreflen - BIG_SIZE_OFFSET(maxreflen)) {
+        return std::pair<size_t, int>(BIG_SIZE_OFFSET(maxreflen) + smallsize, 0);
     } else {
-        return big_ref_info(block_size, big_size(ref, maxreflen), big_offset(ref, maxreflen), maxreflen);
+        return big_ref_info(block_size, big_offset(ref, maxreflen), big_size(ref, maxreflen), maxreflen);
     }
 }
 
 size_t ref_size(block_size_t block_size, const char *ref, size_t maxreflen) {
     return ref_info(block_size, ref, maxreflen).first;
+}
+
+size_t ref_value_offset(const char *ref, size_t maxreflen) {
+    return is_small(ref, maxreflen) ? 0 : big_offset(ref, maxreflen);
 }
 
 int64_t stepsize(block_size_t block_size, int levels) {
