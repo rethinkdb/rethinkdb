@@ -1,7 +1,6 @@
 #ifndef __BUFFER_CACHE_TYPES_HPP__
 #define __BUFFER_CACHE_TYPES_HPP__
 
-#include "utils2.hpp"
 #include "serializer/types.hpp"
 
 typedef uint32_t block_id_t;

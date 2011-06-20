@@ -4,9 +4,35 @@
 #include <stdint.h>
 #include <stddef.h>
 
-class transaction_t;
+#include "buffer_cache/buffer_cache.hpp"
+
+typedef uint32_t block_id_t;
+
 class buffer_group_t;
-class block_size_t;
+
+class blob_acq_t {
+public:
+    blob_acq_t() { }
+    ~blob_acq_t() {
+        for (int i = 0, e = bufs_.size(); i < e; ++i) {
+            bufs_[i]->release();
+        }
+    }
+
+    void add_buf(buf_t *buf) {
+        bufs_.push_back(buf);
+    }
+
+private:
+    std::vector<buf_t *> bufs_;
+
+    // disable copying
+    blob_acq_t(const blob_acq_t&);
+    void operator=(const blob_acq_t&);
+};
+
+
+union temporary_acq_tree_node_t;
 
 class blob_t {
 public:
@@ -18,7 +44,7 @@ public:
     size_t refsize(block_size_t block_size) const;
     int64_t valuesize() const;
 
-    void expose_region(transaction_t *txn, int64_t offset, int64_t size, buffer_group_t *buffer_group_out);
+    void expose_region(transaction_t *txn, access_t mode, int64_t offset, int64_t size, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
     void append_region(transaction_t *txn, int64_t size);
     void prepend_region(transaction_t *txn, int64_t size);
 

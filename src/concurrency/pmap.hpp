@@ -38,6 +38,7 @@ void pmap(int count, const callable_t &c) {
     cond.wait();
 }
 
+// TODO: Passing end by reference seems very questionable to me.
 template<typename callable_t, typename iterator_t>
 void pmap(iterator_t start, const iterator_t &end, const callable_t &c) {
     cond_t cond;
