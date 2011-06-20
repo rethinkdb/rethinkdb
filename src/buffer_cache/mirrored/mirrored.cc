@@ -933,6 +933,8 @@ mc_cache_t::~mc_cache_t() {
      unregister_read_ahead_cb_home_thread() on the message queue. We must make
      sure that this message gets processed before we continue destructing
      ourselves, thus the yield here. */
+
+    // TODO: Use a semaphore.
     coro_t::yield();
 
     /* Wait for all transactions to commit before shutting down */
