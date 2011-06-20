@@ -4,26 +4,30 @@
 #include "serializer/types.hpp"
 #include "containers/buffer_group.hpp"
 
-#define SHORT_SIZE_OFFSET 0
-#define BIG_SIZE_OFFSET 1
-#define BIG_OFFSET_OFFSET (BIG_SIZE_OFFSET + sizeof(int64_t))
-#define BLOCK_IDS_OFFSET (BIG_OFFSET_OFFSET + sizeof(int64_t))
+#define BIG_SIZE_OFFSET(maxreflen) ((maxreflen) <= 255 ? 1 : 2)
+#define BIG_OFFSET_OFFSET(maxreflen) (BIG_SIZE_OFFSET(maxreflen) + sizeof(int64_t))
+#define BLOCK_IDS_OFFSET(maxreflen) (BIG_OFFSET_OFFSET(maxreflen) + sizeof(int64_t))
 
 
-uint8_t short_size(const char *ref) {
-    return *reinterpret_cast<const uint8_t *>(ref + SHORT_SIZE_OFFSET);
+size_t short_size(const char *ref, size_t maxreflen) {
+    // short value sizes range from 0 to maxreflen - 1, and maxreflen indicates large value.
+    if (maxreflen <= 255) {
+        return *reinterpret_cast<const uint8_t *>(ref);
+    } else {
+        return *reinterpret_cast<const uint16_t *>(ref);
+    }
 }
 
-int64_t big_size(const char *ref) {
-    return *reinterpret_cast<const int64_t *>(ref + BIG_SIZE_OFFSET);
+int64_t big_size(const char *ref, size_t maxreflen) {
+    return *reinterpret_cast<const int64_t *>(ref + BIG_SIZE_OFFSET(maxreflen));
 }
 
-int64_t big_offset(const char *ref) {
-    return *reinterpret_cast<const int64_t *>(ref + BIG_OFFSET_OFFSET);
+int64_t big_offset(const char *ref, size_t maxreflen) {
+    return *reinterpret_cast<const int64_t *>(ref + BIG_OFFSET_OFFSET(maxreflen));
 }
 
-block_id_t *block_ids(char *ref) {
-    return reinterpret_cast<block_id_t *>(ref + BLOCK_IDS_OFFSET);
+block_id_t *block_ids(char *ref, size_t maxreflen) {
+    return reinterpret_cast<block_id_t *>(ref + BLOCK_IDS_OFFSET(maxreflen));
 }
 
 int64_t leaf_size(block_size_t block_size) {
@@ -36,7 +40,7 @@ int64_t internal_node_count(block_size_t block_size) {
 
 std::pair<size_t, int> big_ref_info(block_size_t block_size, int64_t size, int64_t offset, size_t maxreflen) {
     rassert(size > int64_t(maxreflen - 1));
-    int64_t max_blockid_count = (maxreflen - BLOCK_IDS_OFFSET) / sizeof(block_id_t);
+    int64_t max_blockid_count = (maxreflen - BLOCK_IDS_OFFSET(maxreflen)) / sizeof(block_id_t);
 
     int64_t block_count = ceil_divide(size + offset, leaf_size(block_size));
 
@@ -46,15 +50,15 @@ std::pair<size_t, int> big_ref_info(block_size_t block_size, int64_t size, int64
         ++levels;
     }
 
-    return std::pair<size_t, int>(BLOCK_IDS_OFFSET + sizeof(block_id_t) * block_count, levels);
+    return std::pair<size_t, int>(BLOCK_IDS_OFFSET(maxreflen) + sizeof(block_id_t) * block_count, levels);
 }
 
 std::pair<size_t, int> ref_info(block_size_t block_size, const char *ref, size_t maxreflen) {
-    size_t shortsize = short_size(ref);
+    size_t shortsize = short_size(ref, maxreflen);
     if (shortsize <= maxreflen - 1) {
         return std::pair<size_t, int>(1 + shortsize, 0);
     } else {
-        return big_ref_info(block_size, big_size(ref), big_offset(ref), maxreflen);
+        return big_ref_info(block_size, big_size(ref, maxreflen), big_offset(ref, maxreflen), maxreflen);
     }
 }
 
@@ -64,7 +68,7 @@ size_t ref_size(block_size_t block_size, const char *ref, size_t maxreflen) {
 
 blob_t::blob_t(block_size_t block_size, const char *ref, size_t maxreflen)
     : ref_(reinterpret_cast<char *>(malloc(maxreflen))), maxreflen_(maxreflen) {
-    rassert(maxreflen >= BLOCK_IDS_OFFSET + sizeof(block_id_t));
+    rassert(maxreflen >= BLOCK_IDS_OFFSET(maxreflen) + sizeof(block_id_t));
     memcpy(ref_, ref, ref_size(block_size, ref, maxreflen));
 }
 
@@ -84,11 +88,12 @@ size_t blob_t::refsize(block_size_t block_size) const {
 }
 
 int64_t blob_t::valuesize() const {
-    size_t shortsize = short_size(ref_);
-    if (shortsize <= maxreflen - 1) {
+    size_t shortsize = short_size(ref_, maxreflen_);
+    if (shortsize <= maxreflen_ - 1) {
         return shortsize;
     } else {
-        return big_size(ref_);
+        rassert(shortsize == maxreflen_);
+        return big_size(ref_, maxreflen_);
     }
     return 0;
 }
