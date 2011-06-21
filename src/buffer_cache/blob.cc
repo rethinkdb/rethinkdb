@@ -108,6 +108,7 @@ size_t ref_value_offset(const char *ref, size_t maxreflen) {
 }
 
 int64_t stepsize(block_size_t block_size, int levels) {
+    rassert(levels > 0);
     int64_t step = leaf_size(block_size);
     for (int i = 0; i < levels - 1; ++i) {
         step *= internal_node_count(block_size);
@@ -399,3 +400,36 @@ bool blob_t::allocate_to_dimensions(transaction_t *txn, int levels, int64_t new_
         return false;
     }
 }
+
+
+// This function changes the value of ref_value_offset(ref_,
+// maxreflen_) while keeping ref_value_offset(...) + valuesize()
+// constant.  It either adds min_shift or more to said value and
+// returns true, or it does nothing and returns false.  For example,
+// if min_shift is 1, it might add 4080 to the offset.  If min_shift
+// is -3, it might do nothing and return true (since 0 is greater than
+// -3).  If min_shift is -4100, it might add -4080 to the offset.  Or
+// it might add 0 to the offset, doing nothing and returning true.
+// (The number 4080 pops up because it's a possible return value of
+// stepsize.)
+bool shift_at_least(transaction_t *txn, int levels, int64_t min_shift) {
+    if (levels == 0) {
+        if (min_shift <= 0) {
+            
+        }
+    }
+
+    block_size_t block_size = txn->get_cache()->get_block_size();
+
+    int64_t step = stepsize(block_size, levels);
+
+    
+
+
+
+
+
+
+
+}
+
