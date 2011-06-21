@@ -99,7 +99,7 @@ def random_action(opts, mc, clone, deleted):
             raise ValueError("Could not append/prepend %r to key %r" % (value_to_pend, key))
         verify(opts, mc, clone, deleted, key)
     
-    elif what_to_do < 0.99:
+    else:
         # Delete
         if not clone: return
         key = random.choice(clone.keys())
@@ -109,29 +109,10 @@ def random_action(opts, mc, clone, deleted):
         if ok == 0:
             raise ValueError("Could not delete %r." % key)
         verify(opts, mc, clone, deleted, key)
-    
-    else:
-        # TODO: We can't perform a really long operation here because
-        # it screws with our timeout system. We need to break this out
-        # into a separate test.
-        
-        # Delete everything, then put it all back
-        # for key in clone:
-        #     ok = mc.delete(key)
-        #     if ok == 0:
-        #         raise ValueError("Could not delete %r." % key)
-        # verify_all(opts, mc, {}, set(clone.keys()))
-        # for key in clone:
-        #     ok = mc.set(key, clone[key])
-        #     if ok == 0:
-        #         raise ValueError("Could not set %r to %r." % (key, value))
-        # verify_all(opts, mc, clone, deleted)
-        pass
 
 def test(opts, mc, test_dir):
     clone = {}
     deleted = set()
-    
     start_time = time.time()
     while time.time() < start_time + opts["duration"]:
         random_action(opts, mc, clone, deleted)
@@ -142,5 +123,6 @@ if __name__ == "__main__":
     op["valuesize"] = IntFlag("--valuesize", 10000)
     op["thorough"] = BoolFlag("--thorough")
     op["restart_server_prob"] = FloatFlag("--restart-server-prob", 0)
+    op["extra-timeout"] = IntFlag("--extra-timeout", 60)
     opts = op.parse(sys.argv)
-    simple_test_main(test, opts, timeout = opts["duration"] + 60)
+    simple_test_main(test, opts, timeout = opts["duration"] + opts["extra-timeout"])

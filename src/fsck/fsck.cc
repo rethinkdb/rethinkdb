@@ -15,23 +15,29 @@ namespace fsck {
 void usage(UNUSED const char *name) {
     Help_Pager *help = Help_Pager::instance();
     help->pagef("Usage:\n"
-                "        rethinkdb fsck [OPTIONS] -f <file_1> [-f <file_2> ...]\n");
+                "        rethinkdb fsck [OPTIONS] -f <file_1> [-f <file_2> ...] [--metadata-file <file>]\n");
     help->pagef("\n"
                 "Options:\n"
                 "  -f  --file                Path to file or block device where part or all of\n"
                 "                            the database exists.\n"
+                "      --metadata-file       Path to the file where the database metadata exists\n"
                 "      --ignore-diff-log     Do not apply patches from the diff log while\n"
                 "                            checking the database.\n");
     help->pagef("\n"
                 "Output options:\n"
                 "  -l  --log-file            File to log to.  If not provided, messages will be\n"
                 "                            printed to stderr.\n");
+#ifndef NDEBUG
+    help->pagef("  -c  --command-line        Print the command line arguments that were used\n"
+                "                            to start this server.\n");
+#endif
     help->pagef("\n"
                 "Fsck is used to check one or more files for consistency\n");
     exit(0);
 }
 
 enum { ignore_diff_log = 256,  // Start these values above the ASCII range.
+       metadata_file,
 };
 
 void parse_cmd_args(int argc, char **argv, config_t *config) {
@@ -45,20 +51,33 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
     }
     for (;;) {
         int do_help = 0;
+        int command_line = 0;
+        int extract_version = 0;
         static const struct option long_options[] =
             {
                 {"file", required_argument, 0, 'f'},
+                {"metadata-file", required_argument, 0, metadata_file},
                 {"ignore-diff-log", no_argument, 0, ignore_diff_log},
                 {"log-file", required_argument, 0, 'l'},
                 {"help", no_argument, &do_help, 1},
+                {"command-line", no_argument, &command_line, 'c'},
+                {"version", no_argument, &extract_version, 'v'},
                 {0, 0, 0, 0}
             };
 
         int option_index = 0;
-        int c = getopt_long(argc, argv, "f:l:h", long_options, &option_index);
+        int c = getopt_long(argc, argv, "f:l:hcv", long_options, &option_index);
 
         if (do_help) {
             c = 'h';
+        }
+
+        if(command_line) {
+            c = 'c';
+        }
+
+        if (extract_version) {
+            c = 'v';
         }
 
         // Detect the end of the options.
@@ -71,11 +90,20 @@ void parse_cmd_args(int argc, char **argv, config_t *config) {
         case 'f':
             config->input_filenames.push_back(optarg);
             break;
+        case metadata_file:
+            config->metadata_filename = std::string(optarg);
+            break;
         case ignore_diff_log:
             config->ignore_diff_log = true;
             break;
         case 'l':
             config->log_file_name = optarg;
+            break;
+        case 'c':
+            config->print_command_line = true;
+            break;
+        case 'v':
+            config->print_file_version = true;
             break;
         case 'h':
             usage(argv[0]);
@@ -117,7 +145,7 @@ int run_fsck(int argc, char **argv) {
         log_file = fopen(config.log_file_name.c_str(), "w");
     }
 
-    if (check_files(config)) {
+    if (check_files(&config)) {
         return EXIT_SUCCESS;
     } else {
         return EXIT_FAILURE;

@@ -4,7 +4,7 @@
 
 #include "containers/intrusive_list.hpp"
 #include "concurrency/access.hpp"
-#include "arch/arch.hpp"
+#include "arch/core.hpp"
 
 // Forward declarations
 struct rwi_lock_t;
@@ -48,8 +48,10 @@ public:
     // Call to lock for read, write, intent, or upgrade intent to write
     bool lock(access_t access, lock_available_callback_t *callback);
 
-    // Like lock() but blocks; only legal in a coroutine.
-    void co_lock(access_t access);
+    // Like `lock()` but blocks; only legal in a coroutine. If `call_when_in_line` is not zero,
+    // it will be called as soon as `co_lock()` has gotten in line for the lock but before
+    // `co_lock()` actually returns.
+    void co_lock(access_t access, boost::function<void()> call_when_in_line = 0);
 
     // Call if you've locked for read or write, or upgraded to write,
     // and are now unlocking.
@@ -62,6 +64,17 @@ public:
     // Returns true if the lock is locked in any form, but doesn't acquire the lock. (In the buffer
     // cache, this is used by the page replacement algorithm to see whether the buffer is in use.)
     bool locked();
+
+    struct acq_t {
+        acq_t(rwi_lock_t *l, access_t m) : lock(l) {
+            lock->co_lock(m);
+        }
+        ~acq_t() {
+            lock->unlock();
+        }
+    private:
+        rwi_lock_t *lock;
+    };
 
 private:
     enum rwi_state {

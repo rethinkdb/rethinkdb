@@ -48,21 +48,18 @@ namespace fsck {
 
 struct config_t {
     std::vector<std::string> input_filenames;
+    std::string metadata_filename;
     std::string log_file_name;
     bool ignore_diff_log;
 
-    config_t() {
-        // Default values
-        ignore_diff_log = false;
-    }
+    bool print_command_line;
+    bool print_file_version;
+
+    config_t() : ignore_diff_log(false), print_command_line(false), print_file_version(false) {}
 };
 
-bool check_files(const config_t& config);
-
-
+bool check_files(const config_t *config);
 
 }  // namespace fsck
-
-
 
 #endif  // __FSCK_CHECKER_HPP__

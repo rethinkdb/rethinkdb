@@ -1,17 +1,18 @@
 #include <math.h>
 #include "server.hpp"
 #include "db_thread_info.hpp"
-#include "memcached/memcached.hpp"
+#include "memcached/tcp_conn.hpp"
+#include "memcached/file.hpp"
 #include "diskinfo.hpp"
 #include "concurrency/cond_var.hpp"
 #include "logger.hpp"
 #include "server/cmd_args.hpp"
 #include "replication/master.hpp"
 #include "replication/slave.hpp"
-#include "replication/load_balancer.hpp"
 #include "control.hpp"
 #include "gated_store.hpp"
 #include "concurrency/promise.hpp"
+#include "arch/os_signal.hpp"
 
 int run_server(int argc, char *argv[]) {
 
@@ -34,6 +35,7 @@ int run_server(int argc, char *argv[]) {
         }
     } starter;
     starter.cmd_config = &config;
+
 
     // Run the server.
     thread_pool_t thread_pool(config.n_workers);
@@ -133,16 +135,8 @@ private:
 }
 #endif
 
-void wait_for_sigint() {
-
-    struct : public thread_message_t, public cond_t {
-        void on_thread_switch() { pulse(); }
-    } interrupt_cond;
-    thread_pool_t::set_interrupt_message(&interrupt_cond);
-    interrupt_cond.wait();
-}
-
 void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
+    os_signal_cond_t os_signal_cond;
     try {
         /* Start logger */
         log_controller_t log_controller;
@@ -193,93 +187,110 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             /* This continuously checks to see if RethinkDB has expired */
             timebomb::periodic_checker_t timebomb_checker(store.get_creation_timestamp());
 #endif
-
-            /* Start accepting connections. We use gated-stores so that the code can
-            forbid gets and sets at appropriate times. */
-            gated_get_store_t gated_get_store(&store);
-            gated_set_store_interface_t gated_set_store(&store);
-            conn_acceptor_t conn_acceptor(cmd_config->port,
-                boost::bind(&serve_memcache, _1, &gated_get_store, &gated_set_store));
-
-            if (cmd_config->replication_config.active) {
-
-                /* Failover callbacks. It's not safe to add or remove them when the slave is
-                running, so we have to set them all up now. */
-                failover_t failover;   // Keeps track of all the callbacks
-
-                /* So that Amazon's Elastic Load Balancer (ELB) can tell when master goes down */
-                boost::scoped_ptr<elb_t> elb;
-                if (cmd_config->failover_config.elb_port != -1) {
-                    elb.reset(new elb_t(elb_t::slave, cmd_config->failover_config.elb_port));
-                    failover.add_callback(elb.get());
+            if (!cmd_config->import_config.file.empty()) {
+                store.set_replication_master_id(NOT_A_SLAVE);
+                std::vector<std::string>::iterator it;
+                for(it = cmd_config->import_config.file.begin(); it != cmd_config->import_config.file.end(); it++) {
+                    logINF("Importing file %s...\n", it->c_str());
+                    import_memcache(*it, &store, &os_signal_cond);
+                    logINF("Done\n");
                 }
+            } else {
+                /* Start accepting connections. We use gated-stores so that the code can
+                forbid gets and sets at appropriate times. */
+                gated_get_store_t gated_get_store(&store);
+                gated_set_store_interface_t gated_set_store(&store);
 
-                /* So that we call the appropriate user-defined callback on failure */
-                boost::scoped_ptr<failover_script_callback_t> failover_script;
-                if (strlen(cmd_config->failover_config.failover_script_path) > 0) {
-                    failover_script.reset(new failover_script_callback_t(
-                        cmd_config->failover_config.failover_script_path));
-                    failover.add_callback(failover_script.get());
-                }
+                if (cmd_config->replication_config.active) {
 
-                /* So that we accept/reject gets and sets at the appropriate times */
-                failover_query_enabler_disabler_t query_enabler(&gated_set_store, &gated_get_store);
-                failover.add_callback(&query_enabler);
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
 
-                {
-                    logINF("Starting up as a slave...\n");
-                    replication::slave_t slave(&store, cmd_config->replication_config,
-                        cmd_config->failover_config, &failover);
+                    /* Failover callbacks. It's not safe to add or remove them when the slave is
+                    running, so we have to set them all up now. */
+                    failover_t failover;   // Keeps track of all the callbacks
+
+                    /* So that we call the appropriate user-defined callback on failure */
+                    boost::scoped_ptr<failover_script_callback_t> failover_script;
+                    if (strlen(cmd_config->failover_config.failover_script_path) > 0) {
+                        failover_script.reset(new failover_script_callback_t(
+                            cmd_config->failover_config.failover_script_path));
+                        failover.add_callback(failover_script.get());
+                    }
+
+                    /* So that we accept/reject gets and sets at the appropriate times */
+                    failover_query_enabler_disabler_t query_enabler(&gated_set_store, &gated_get_store);
+                    failover.add_callback(&query_enabler);
+
+                    {
+                        logINF("Starting up as a slave...\n");
+                        replication::slave_t slave(&store, cmd_config->replication_config,
+                            cmd_config->failover_config, &failover);
+
+                        wait_for_sigint();
+
+                        logINF("Waiting for running operations to finish...\n");
+
+                        /* Slave destructor called here */
+                    }
+
+                    /* query_enabler destructor called here; has the side effect of draining queries. */
+
+                    /* Other failover destructors called here */
+
+                } else if (cmd_config->replication_master_active) {
+
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
+
+                    /* Make it impossible for this database file to later be used as a slave, because
+                    that would confuse the replication logic. */
+                    uint32_t replication_master_id = store.get_replication_master_id();
+                    if (replication_master_id != 0 && replication_master_id != NOT_A_SLAVE &&
+                            !cmd_config->force_unslavify) {
+                        fail_due_to_user_error("This data file used to be for a replication slave. "
+                            "If this data file is used for a replication master, it will be "
+                            "impossible to later use it for a replication slave. If you are sure "
+                            "you want to irreversibly turn this into a non-slave data file, run "
+                            "again with the `--force-unslavify` flag.");
+                    }
+                    store.set_replication_master_id(NOT_A_SLAVE);
+
+                    backfill_receiver_order_source_t master_order_source;
+                    replication::master_t master(cmd_config->replication_master_listen_port, &store, cmd_config->replication_config, &gated_get_store, &gated_set_store, &master_order_source);
 
                     wait_for_sigint();
 
                     logINF("Waiting for running operations to finish...\n");
+                    /* Master destructor called here */
 
-                    /* Slave destructor called here */
+                } else {
+
+                    /* We aren't doing any sort of replication. */
+
+                    /* Make it impossible for this database file to later be used as a slave, because
+                    that would confuse the replication logic. */
+                    uint32_t replication_master_id = store.get_replication_master_id();
+                    if (replication_master_id != 0 && replication_master_id != NOT_A_SLAVE &&
+                            !cmd_config->force_unslavify) {
+                        fail_due_to_user_error("This data file used to be for a replication slave. "
+                            "If this data file is used for a standalone server, it will be "
+                            "impossible to later use it for a replication slave. If you are sure "
+                            "you want to irreversibly turn this into a non-slave data file, run "
+                            "again with the `--force-unslavify` flag.");
+                    }
+                    store.set_replication_master_id(NOT_A_SLAVE);
+
+                    // Open the gates to allow real queries
+                    gated_get_store_t::open_t permit_gets(&gated_get_store);
+                    gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
+
+                    memcache_listener_t conn_acceptor(cmd_config->port, &gated_get_store, &gated_set_store);
+
+                    logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
+
+                    wait_for_sigint();
+
+                    logINF("Waiting for running operations to finish...\n");
                 }
-
-                /* query_enabler destructor called here; has the side effect of draining queries. */
-
-                /* Other failover destructors called here */
-
-            } else if (cmd_config->replication_master_active) {
-
-                /* Make it impossible for this database file to later be used as a slave, because
-                that would confuse the replication logic. */
-                store.set_replication_master_id(NOT_A_SLAVE);
-
-                replication::master_t master(cmd_config->replication_master_listen_port, &store, &gated_get_store, &gated_set_store);
-
-                /* So that Amazon's Elastic Load Balancer (ELB) can tell when
-                 * master is up. TODO: This might report us as being up when we aren't actually
-                 accepting queries. */
-                boost::scoped_ptr<elb_t> elb;
-                if (cmd_config->failover_config.elb_port != -1) {
-                    elb.reset(new elb_t(elb_t::master, cmd_config->failover_config.elb_port));
-                }
-
-                wait_for_sigint();
-
-                logINF("Waiting for running operations to finish...\n");
-                /* Master destructor called here */
-
-            } else {
-
-                /* We aren't doing any sort of replication. */
-
-                /* Make it impossible for this database file to later be used as a slave, because
-                that would confuse the replication logic. */
-                store.set_replication_master_id(NOT_A_SLAVE);
-
-                // Open the gates to allow real queries
-                gated_get_store_t::open_t permit_gets(&gated_get_store);
-                gated_set_store_interface_t::open_t permit_sets(&gated_set_store);
-
-                logINF("Server will now permit memcached queries on port %d.\n", cmd_config->port);
-
-                wait_for_sigint();
-
-                logINF("Waiting for running operations to finish...\n");
             }
 
             logINF("Waiting for changes to flush to disk...\n");
@@ -290,8 +301,8 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
             logINF("Shutting down...\n");
         }
 
-    } catch (conn_acceptor_t::address_in_use_exc_t) {
-        logERR("Port %d is already in use -- aborting.\n", cmd_config->port); //TODO move into the conn_acceptor
+    } catch (tcp_listener_t::address_in_use_exc_t) {
+        logERR("Port %d is already in use -- aborting.\n", cmd_config->port);
     }
 
     /* The penultimate step of shutting down is to make sure that all messages
@@ -304,8 +315,9 @@ void server_main(cmd_config_t *cmd_config, thread_pool_t *thread_pool) {
         on_thread_t thread_switcher(i);
     }
 
-    /* Finally tell the thread pool to stop. TODO: Eventually, the thread pool should stop
-    automatically when server_main() returns. */
+    /* Finally tell the thread pool to stop.
+    TODO: We should make it so the thread pool stops automatically when server_main()
+    returns. */
     thread_pool->shutdown();
 }
 

@@ -8,11 +8,16 @@
 struct ip_address_t {
     ip_address_t() { }
     ip_address_t(const char *);   // Address with hostname or IP
+    ip_address_t(uint32_t);
     static ip_address_t us();
 
     bool operator==(const ip_address_t &x);   // Compare addresses
     bool operator!=(const ip_address_t &x);
 
+public:
+    uint32_t ip_as_uint32();
+
+public:
     struct in_addr addr;
 };
 

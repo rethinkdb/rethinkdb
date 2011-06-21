@@ -51,6 +51,7 @@ SEMANTIC_SERIALIZER_CHECK?=0
 MOCK_CACHE_CHECK?=0
 VERBOSE?=0
 UNIT_TESTS?=$(DEBUG)
+CLANG?=0
 
 # Set TRIAL to 1 to build a 21-day trial version. If you want a different number of days, set TIMEBOMB to the number of days instead.
 TRIAL?=0
@@ -66,18 +67,24 @@ else
 BUILD_DIR:=$(BUILD_ROOT_DIR)/release
 endif
 
+PROTO_DIR:=$(BUILD_DIR)/proto
+
 PACKAGES_DIR:=$(BUILD_ROOT_DIR)/packages
 RPM_PACKAGE_DIR:=$(PACKAGES_DIR)/rpm
 DEB_PACKAGE_DIR:=$(PACKAGES_DIR)/deb
 
 # Define configuration variables
+ifeq (${CLANG},1)
+CXX:=clang
+else
 CXX:=g++
+endif
 LDFLAGS:=-Wl,--no-as-needed -lpthread -lrt -laio
-STATIC_LIBRARIES:=
+STATIC_LIBRARIES:=protoc protobuf
 
 CXXFLAGS?=
 
-CXXFLAGS+=-I$(SOURCE_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror
+CXXFLAGS+=-I$(SOURCE_DIR) -I$(PROTO_DIR) -Wall -Wextra -Wformat=2 -Wswitch-enum -Werror -Wnon-virtual-dtor
 CXXFLAGS+="-DPRODUCT_NAME=\"$(PRODUCT_NAME)\""
 
 ifeq ($(SOLO),1)
@@ -87,15 +94,14 @@ CXXFLAGS+=-DRETHINKDB_CACHE_PRODUCT
 endif
 
 ifeq ($(UNIT_TESTS),0)
+ifeq ($(CLANG),0)
 CXXFLAGS+=-Wswitch-default
+endif
 endif
 
 ifeq ($(AGRESSIVE_BUF_UNLOADING),1)
 CXXFLAGS+=-DAGRESSIVE_BUF_UNLOADING=1
 endif
-
-# Configure libcoroutine
-CXXFLAGS+=-DUSE_UCONTEXT
 
 STRIP_ON_INSTALL?=1
 
@@ -103,8 +109,6 @@ STRIP_ON_INSTALL?=1
 ifeq ($(DEBUG),1)
 SYMBOLS:=1
 CXXFLAGS+=-O0
-# -rdynamic is necessary so that backtrace_symbols() works properly
-LDFLAGS+=-rdynamic
 else
 # use -fno-strict-aliasing to not break things
 # march=native used to break the serializer
@@ -139,7 +143,10 @@ endif
 ifeq ($(CALLGRIND),1)
 SYMBOLS=1
 endif
+
 ifeq ($(SYMBOLS),1)
+# -rdynamic is necessary so that backtrace_symbols() works properly
+LDFLAGS+=-rdynamic
 CXXFLAGS+=-g
 endif
 
@@ -159,6 +166,10 @@ endif
 
 ifeq ($(BTREE_DEBUG),1)
 CXXFLAGS+=-DBTREE_DEBUG
+endif
+
+ifeq ($(MALLOC_PROF),1)
+CXXFLAGS+=-DMALLOC_PROF
 endif
 
 ifeq ($(SERIALIZER_DEBUG),1)
@@ -226,13 +237,20 @@ else
 SOURCES:=$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`")
 endif
 
+PROTO_SOURCES:=$(shell find $(SOURCE_DIR) -name '*.proto')
+PROTO_HEADERS:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.h,$(PROTO_SOURCES))
+PROTO_CODE:=$(patsubst $(SOURCE_DIR)/%.proto,$(PROTO_DIR)/%.pb.cc,$(PROTO_SOURCES))
+PROTO_NAMES+=$(patsubst $(PROTO_DIR)/%.cc,%,$(PROTO_CODE))
+PROTO_OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(PROTO_NAMES))
+
 NAMES:=$(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS:=$(patsubst %,$(DEP_DIR)/%.d,$(NAMES))
-OBJS:=$(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
+OBJS:=$(PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`"))
 
-SERVER_NOMAIN_OBJS:=$(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
+SERVER_EXEC_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR)/unittest`"))
+
+SERVER_NOMAIN_OBJS:=$(PROTO_OBJS) $(patsubst %.cc,$(OBJ_DIR)/%.o,$(shell find $(SOURCE_DIR) -name '*.cc' | grep -vF "`find $(SOURCE_DIR) -name 'main.cc'`"))
 
 SERVER_UNIT_TEST_OBJS:=$(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -275,6 +293,8 @@ RPM_BUILD_ROOT=$(RPM_PACKAGE_DIR)/BUILD
 DEB_CONTROL_ROOT=$(DEB_PACKAGE_DIR)/DEBIAN
 RPM_SPEC_FILE=$(RPM_PACKAGE_DIR)/SPECS/rethinkdb.spec
 
+ASSETS_DIR:=../packaging/assets
+
 RETHINKDB_VERSION_RPM=$(subst -,_,$(RETHINKDB_PACKAGING_VERSION))
 DEB_PACKAGE_REVISION?=1
 RETHINKDB_VERSION_DEB=$(RETHINKDB_PACKAGING_VERSION)-$(DEB_PACKAGE_REVISION)
@@ -292,6 +312,11 @@ man1_dir:=$(man_dir)/man1
 share_dir:=$(prefix)/share/$(VERSIONED_PACKAGE_NAME)
 bash_completion_dir:=/etc/bash_completion.d
 internal_bash_completion_dir:=$(share_dir)$(bash_completion_dir)
+scripts_dir:=$(share_dir)/scripts
+
+ASSET_SCRIPTS:=$(ASSETS_DIR)/scripts/rdb_migrate
+
+CXXFLAGS+=-DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
 FULL_SERVER_EXEC_NAME=$(bin_dir)/$(SERVER_EXEC_NAME)
 FULL_SERVER_EXEC_NAME_VERSIONED=$(bin_dir)/$(SERVER_EXEC_NAME_VERSIONED)
@@ -311,31 +336,33 @@ ifeq ($(STRIP_ON_INSTALL),1)
 	$(QUIET) strip --strip-unneeded $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 endif
 
-install-manpages: ../docs/man/rethinkdb.1
+install-manpages: $(ASSETS_DIR)/man/rethinkdb.1
 	$(QUIET) install -m755 -d $(DESTDIR)$(man1_dir)
 # TODO: support other man pages
-	$(QUIET) gzip -9 < ../docs/man/rethinkdb.1 | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz;
+	$(QUIET) gzip -9 < $(ASSETS_DIR)/man/rethinkdb.1 | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz;
 #	$(QUIET) for manpage in $(MAN_PAGES); do \
 #			gzip -9 < $$manpage | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$$(basename $$manpage).gz; \
 #		done
 
-install-tools: ../scripts/rethinkdb.bash
+install-tools: $(ASSETS_DIR)/scripts/rethinkdb.bash $(ASSET_SCRIPTS)
 	$(QUIET) install -m755 -d $(DESTDIR)$(internal_bash_completion_dir)
 	$(QUIET) install -m755 -d $(DESTDIR)$(bash_completion_dir)
 	$(QUIET) m4 																												\
 			-D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" 											\
 			-D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" 	\
-			../scripts/rethinkdb.bash | install -m644 /dev/stdin $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
+			$(ASSETS_DIR)/scripts/rethinkdb.bash | install -m644 /dev/stdin $(DESTDIR)$(internal_bash_completion_dir)/$(SERVER_EXEC_NAME).bash
+	$(QUIET) install -m755 -d $(DESTDIR)$(scripts_dir)
+	$(QUIET) for s in $(ASSET_SCRIPTS); do install -m755 "$$s" $(DESTDIR)$(scripts_dir)/$$(basename $$s); done
 
 install-docs:
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
-	$(QUIET) install -m644 -T ../docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
+	$(QUIET) install -m644 -T $(ASSETS_DIR)/docs/LICENSE $(DESTDIR)$(doc_dir)/copyright
 
 install: install-binaries install-manpages install-docs install-tools
 install-rpm: install
 install-deb: install
 	$(QUIET) install -m755 -d $(DESTDIR)$(doc_dir)
-	$(QUIET) sed	-e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION_DEB)/' ../docs/changelog.Debian | \
+	$(QUIET) sed	-e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION_DEB)/' $(ASSETS_DIR)/docs/changelog.Debian | \
 		gzip -c9 | \
 		install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
@@ -427,6 +454,7 @@ build-rpm: all prepare_rpm_package_dirs
 				-D "MAN1_DIR=$(man1_dir)"																					\
 				-D "BASH_COMPLETION_DIR=$(bash_completion_dir)" 									\
 				-D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)"	\
+				-D "SCRIPTS_DIR=$(scripts_dir)"																		\
 				-D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" 									\
 			$(RPM_SPEC_INPUT) >$(RPM_SPEC_FILE)
 
@@ -467,6 +495,14 @@ rpm-suse10:
 endif
 
 # Build rules
+
+# Special recipe for the proto buffer generated code
+$(PROTO_DIR)/%.pb.h: $(SOURCE_DIR)/%.proto
+	$(QUIET) mkdir -p $(PROTO_DIR)
+ifeq ($(VERBOSE),0)
+	@echo "    protoc --cpp_out $(PROTO_DIR) $<"
+endif
+	$(QUIET) protoc --cpp_out $(PROTO_DIR) $<
 
 $(BUILD_DIR)/$(SERVER_EXEC_NAME): $(OBJS) $(BUILD_DIR)
 ifeq ($(VERBOSE),0)
@@ -540,7 +576,7 @@ endif
 	valgrind --tool=callgrind $(CALLGRIND_FLAGS) $(BUILD_DIR)/$(SERVER_EXEC_NAME) -p $(RUN_PORT) -f $(RUN_FILE) $(RUN_FLAGS)
 
 tags:
-	$(QUIET) ctags -R -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
+	$(QUIET) ctags -R --c++-kinds=+p --fields=+iaS --extra=+q -f $(TAGS) --langmap="c++:.cc.tcc.hpp"
 
 cscope:
 	$(QUIET) cscope -bR -f $(CSCOPE_XREF)
@@ -568,7 +604,16 @@ $(BUILD_DIR):
 
 # Object files
 
-$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile
+# Proto buffers object files
+# This is hacky, as the following rule is just a duplicate of the rule for our own sources
+$(OBJ_DIR)/%.pb.o:  $(PROTO_DIR)/%.pb.cc Makefile $(PROTO_HEADERS)
+	$(QUIET) mkdir -p $(dir $@)
+ifeq ($(VERBOSE),0)
+	@echo "    CC $< -o $@"
+endif
+	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
+
+$(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc Makefile $(PROTO_HEADERS)
 	$(QUIET) mkdir -p $(dir $@)
 ifeq ($(VERBOSE),0)
 	@echo "    CC $< -o $@"
@@ -576,7 +621,8 @@ endif
 	$(QUIET) $(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Dependencies
-$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc
+# TODO: Adding PROTO_HEADERS here is kind of hacky
+$(DEP_DIR)/%.d: $(SOURCE_DIR)/%.cc $(PROTO_HEADERS)
 	$(QUIET) mkdir -p $(dir $@)
 	$(QUIET) $(CXX) $(CXXFLAGS) -M $< > $@.$$$$;				   \
 	sed 's,$(notdir $*)\.o[ :]*,$(OBJ_DIR)/$*.o $@ : ,g' < $@.$$$$ > $@;	  \

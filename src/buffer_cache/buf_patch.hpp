@@ -1,6 +1,8 @@
 #ifndef __BUF_PATCH_HPP__
 #define	__BUF_PATCH_HPP__
 
+#include <sstream>
+
 /*
  * This file provides the basic buf_patch_t type as well as a few low-level binary
  * patch implementations (currently memmove and memcpy patches)
@@ -119,6 +121,11 @@ private:
     patch_operation_code_t operation_code;
 };
 
+struct dereferencing_buf_patch_compare_t {
+    bool operator()(buf_patch_t *const& x, buf_patch_t *const& y) const {
+        return *x < *y;
+    }
+};
 
 /* Binary patches */
 

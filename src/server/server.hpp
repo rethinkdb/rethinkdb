@@ -6,7 +6,6 @@
 #include "server/key_value_store.hpp"
 #include "utils.hpp"
 #include "store.hpp"
-#include "conn_acceptor.hpp"
 #include "utils.hpp"
 #include "perfmon.hpp"
 #include "server/cmd_args.hpp"

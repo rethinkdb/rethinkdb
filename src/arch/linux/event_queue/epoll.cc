@@ -15,6 +15,7 @@
 #include "arch/linux/event_queue/epoll.hpp"
 #include "arch/linux/thread_pool.hpp"
 #include "logger.hpp"
+#include "perfmon.hpp"
 
 int user_to_epoll(int mode) {
 

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
+#include <unistd.h>
 #include "errors.hpp"
 
 ip_address_t::ip_address_t(const char *host) {
@@ -29,6 +30,10 @@ ip_address_t::ip_address_t(const char *host) {
     freeaddrinfo(addr_possibilities);
 }
 
+ip_address_t::ip_address_t(uint32_t a) {
+    addr.s_addr = a;
+}
+
 bool ip_address_t::operator==(const ip_address_t &x) {
     return !memcmp(&addr, &x.addr, sizeof(struct in_addr));
 }
@@ -44,4 +49,8 @@ ip_address_t ip_address_t::us() {
     guarantee(res == 0, "gethostname() failed: %s\n", strerror(errno));
 
     return ip_address_t(name);
+}
+
+uint32_t ip_address_t::ip_as_uint32() {
+    return addr.s_addr;
 }

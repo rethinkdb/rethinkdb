@@ -43,7 +43,7 @@ struct mc_config_block_t {
 
 class patch_disk_storage_t {
 public:
-    static void create(translator_serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config);
+    static void create(serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config);
     patch_disk_storage_t(mc_cache_t &cache, block_id_t start_id);
     ~patch_disk_storage_t();
 

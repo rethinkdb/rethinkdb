@@ -1,6 +1,7 @@
 #include "server/control.hpp"
 #include "arch/spinlock.hpp"
 
+#include "utils2.hpp"
 #include "logger.hpp"
 #include "errors.hpp"
 
@@ -36,8 +37,8 @@ std::string control_t::exec(int argc, char **argv) {
     }
 }
 
-control_t::control_t(const std::string& _key, const std::string& _help_string, bool _secret)
-    : key(_key), help_string(_help_string), secret(_secret)
+control_t::control_t(const std::string& _key, const std::string& _help_string, bool _internal)
+    : key(_key), help_string(_help_string), internal(_internal)
 {
     rassert(key.size() > 0);
     spinlock_acq_t control_acq(&get_control_lock());
@@ -54,31 +55,19 @@ control_t::~control_t() {
 }
 
 /* Control that displays a list of controls */
-struct help_control_t : public control_t
+class help_control_t : public control_t
 {
-    help_control_t() : control_t("help", "Display this help message.") { }
+public:
+    help_control_t() : control_t("help", "Display this help message (use \"rethinkdb help internal\" to show internal commands).") { }
     std::string call(int argc, char **argv) {
-
-        bool show_secret = false;
-        if (argc == 2 && argv[1] == std::string("secret")) {
-            show_secret = true;
-        } else if (argc != 1) {
-            return "\"rethinkdb help\" does not expect a parameter.\r\n";
-        }
-
-#ifndef NDEBUG
-        show_secret = true;
-#endif
+        bool show_internal = argc == 2 && argv[1] == std::string("internal");
 
         spinlock_acq_t control_acq(&get_control_lock());
-        std::string res = "\r\nThe following commands are available:\r\n\r\n";
+        std::string res = strprintf("The following %scommands are available:\r\n", show_internal ? "internal " : "");
         for (control_map_t::iterator it = get_control_map().begin(); it != get_control_map().end(); it++) {
-            if ((*it).second->secret && !show_secret) continue;
-            res += (*it).first + ": " + (*it).second->help_string;
-            if ((*it).second->secret) res += " (secret)";
-            res += "\r\n";
+            if (it->second->internal != show_internal) continue;
+            res += "rethinkdb " + it->first + ": " + it->second->help_string + "\r\n";
         }
-        res += "\r\n";
         return res;
     }
 } help_control;

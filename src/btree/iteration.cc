@@ -1,11 +1,17 @@
 #include "btree/iteration.hpp"
 #include "btree/btree_data_provider.hpp"
+#include "perfmon.hpp"
 
-leaf_iterator_t::leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<transactor_t>& transactor) :
-    leaf(leaf), index(index), lock(lock), transactor(transactor) {
+perfmon_counter_t
+    leaf_iterators("leaf_iterators"),
+    slice_leaves_iterators("slice_leaves_iterators");
+
+leaf_iterator_t::leaf_iterator_t(const leaf_node_t *leaf, int index, buf_lock_t *lock, const boost::shared_ptr<transaction_t>& transaction) :
+    leaf(leaf), index(index), lock(lock), transaction(transaction) {
 
     rassert(leaf != NULL);
     rassert(lock != NULL);
+    leaf_iterators++;
 }
 
 boost::optional<key_with_data_provider_t> leaf_iterator_t::next() {
@@ -27,31 +33,31 @@ void leaf_iterator_t::prefetch() {
 }
 
 leaf_iterator_t::~leaf_iterator_t() {
+    leaf_iterators--;
     done();
 }
 
 void leaf_iterator_t::done() {
     if (lock) {
-        thread_saver_t saver;
-        transactor->get()->ensure_thread(saver);
+        on_thread_t th(transaction->home_thread());
         delete lock;
         lock = NULL;
     }
 }
 
 key_with_data_provider_t leaf_iterator_t::pair_to_key_with_data_provider(const btree_leaf_pair* pair) {
-    thread_saver_t saver;
-    transactor->get()->ensure_thread(saver);
-    value_data_provider_t *data_provider = value_data_provider_t::create(pair->value(), transactor);
+    on_thread_t th(transaction->home_thread());
+    value_data_provider_t *data_provider = value_data_provider_t::create(pair->value(), transaction);
     return key_with_data_provider_t(key_to_str(&pair->key), pair->value()->mcflags(),
         boost::shared_ptr<data_provider_t>(data_provider));
 }
 
-slice_leaves_iterator_t::slice_leaves_iterator_t(const boost::shared_ptr<transactor_t>& transactor, btree_slice_t *slice,
+slice_leaves_iterator_t::slice_leaves_iterator_t(const boost::shared_ptr<transaction_t>& transaction, btree_slice_t *slice,
     rget_bound_mode_t left_mode, const btree_key_t *left_key, rget_bound_mode_t right_mode, const btree_key_t *right_key) :
-        transactor(transactor), slice(slice),
+        transaction(transaction), slice(slice),
         left_mode(left_mode), left_key(left_key), right_mode(right_mode), right_key(right_key),
         traversal_state(), started(false), nevermore(false) {
+            slice_leaves_iterators++;
 }
 
 boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::next() {
@@ -69,6 +75,7 @@ void slice_leaves_iterator_t::prefetch() {
 }
 
 slice_leaves_iterator_t::~slice_leaves_iterator_t() {
+    slice_leaves_iterators--;
     done();
 }
 
@@ -81,12 +88,11 @@ void slice_leaves_iterator_t::done() {
 }
 
 boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
-    thread_saver_t saver;
-    on_thread_t mover(slice->home_thread); // Move to the slice's thread.
+    on_thread_t mover(slice->home_thread()); // Move to the slice's thread.
 
     started = true;
     // TODO: Why is this a buf_lock_t pointer?  That's not how buf_lock_t should be used.
-    buf_lock_t *buf_lock = new buf_lock_t(saver, *transactor, block_id_t(SUPERBLOCK_ID), rwi_read);
+    buf_lock_t *buf_lock = new buf_lock_t(transaction.get(), block_id_t(SUPERBLOCK_ID), rwi_read);
     block_id_t root_id = ptr_cast<btree_superblock_t>(buf_lock->buf()->get_data_read())->root_block;
     rassert(root_id != SUPERBLOCK_ID);
 
@@ -102,7 +108,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
     }
 
     {
-        buf_lock_t tmp(saver, *transactor, root_id, rwi_read);
+        buf_lock_t tmp(transaction.get(), root_id, rwi_read);
         buf_lock->swap(tmp);
     }
 
@@ -125,7 +131,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
 
         block_id_t child_id = get_child_id(i_node, index);
 
-        buf_lock = new buf_lock_t(saver, *transactor, child_id, rwi_read);
+        buf_lock = new buf_lock_t(transaction.get(), child_id, rwi_read);
         node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
     }
 
@@ -137,7 +143,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
     int index = leaf::impl::get_offset_index(l_node, left_key);
 
     if (index < l_node->npairs) {
-        return boost::make_optional(new leaf_iterator_t(l_node, index, buf_lock, transactor));
+        return boost::make_optional(new leaf_iterator_t(l_node, index, buf_lock, transaction));
     } else {
         // there's nothing more in this leaf, we might as well move to the next leaf
         delete buf_lock;
@@ -166,12 +172,11 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_next_leaf() {
 }
 
 boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(block_id_t node_id) {
-    thread_saver_t saver;
-    on_thread_t mover(slice->home_thread); // Move to the slice's thread.
+    on_thread_t mover(slice->home_thread()); // Move to the slice's thread.
 
     // TODO: Why is there a buf_lock_t pointer?  This is not how
     // buf_lock_t works.  Just use a buf_t pointer then.
-    buf_lock_t *buf_lock = new buf_lock_t(saver, *transactor, node_id, rwi_read);
+    buf_lock_t *buf_lock = new buf_lock_t(transaction.get(), node_id, rwi_read);
     const node_t *node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
 
     while (node::is_internal(node)) {
@@ -184,7 +189,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(blo
 
         block_id_t child_id = get_child_id(i_node, leftmost_child_index);
 
-        buf_lock = new buf_lock_t(saver, *transactor, child_id, rwi_read);
+        buf_lock = new buf_lock_t(transaction.get(), child_id, rwi_read);
         node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
     }
     rassert(node != NULL);
@@ -192,7 +197,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(blo
     rassert(buf_lock != NULL);
 
     const leaf_node_t *l_node = ptr_cast<leaf_node_t>(node);
-    return boost::make_optional(new leaf_iterator_t(l_node, 0, buf_lock, transactor));
+    return boost::make_optional(new leaf_iterator_t(l_node, 0, buf_lock, transaction));
 }
 
 block_id_t slice_leaves_iterator_t::get_child_id(const internal_node_t *i_node, int index) const {
@@ -203,9 +208,9 @@ block_id_t slice_leaves_iterator_t::get_child_id(const internal_node_t *i_node, 
     return child_id;
 }
 
-slice_keys_iterator_t::slice_keys_iterator_t(const boost::shared_ptr<transactor_t>& transactor_, btree_slice_t *slice_,
+slice_keys_iterator_t::slice_keys_iterator_t(const boost::shared_ptr<transaction_t>& transaction_, btree_slice_t *slice_,
         rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key) :
-    transactor(transactor_), slice(slice_),
+    transaction(transaction_), slice(slice_),
     left_mode(left_mode), left_key(left_key), right_mode(right_mode), right_key(right_key),
     left_str(key_to_str(left_key)), right_str(key_to_str(right_key)),
     no_more_data(false), active_leaf(NULL), leaves_iterator(NULL) { }
@@ -229,7 +234,7 @@ void slice_keys_iterator_t::prefetch() {
 }
 
 boost::optional<key_with_data_provider_t> slice_keys_iterator_t::get_first_value() {
-    leaves_iterator = new slice_leaves_iterator_t(transactor, slice, left_mode, left_key.key(), right_mode, right_key.key());
+    leaves_iterator = new slice_leaves_iterator_t(transaction, slice, left_mode, left_key.key(), right_mode, right_key.key());
 
     // get the first leaf with our left key (or something greater)
     boost::optional<leaf_iterator_t*> first = leaves_iterator->next();

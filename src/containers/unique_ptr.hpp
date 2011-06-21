@@ -11,7 +11,7 @@ this hack. It's like an auto_ptr, but with two differences:
    modifies it.
 */
 
-template<class T>
+/* template<class T>
 class unique_ptr_t {
 
     template<class T2> friend class unique_ptr_t;
@@ -94,5 +94,10 @@ public:
         reset_invalid();
     }
 };
+
+template<class T, class U>
+unique_ptr_t<T> static_pointer_cast(const unique_ptr_t<U> &ptr) {
+    return static_cast<T*>(ptr.release());
+} */
 
 #endif /* __CONTAINERS_UNIQUE_PTR_HPP__ */

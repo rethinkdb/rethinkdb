@@ -2,14 +2,16 @@
 
 #include <algorithm>
 
+#include "arch/arch.hpp"
 #include "errors.hpp"
 #include "buffer_cache/co_functions.hpp"
-#include "buffer_cache/transactor.hpp"
 #include "btree/btree_data_provider.hpp"
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/parallel_traversal.hpp"
+#include "btree/slice.hpp"
+
 
 class btree_slice_t;
 
@@ -17,15 +19,15 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
     // The deletes have to go first (since they get overridden by
     // newer sets)
-    void preprocess_btree_superblock(boost::shared_ptr<transactor_t>& txor, const btree_superblock_t *superblock) {
+    void preprocess_btree_superblock(boost::shared_ptr<transaction_t>& txn, const btree_superblock_t *superblock) {
         assert_thread();
-        if (!dump_keys_from_delete_queue(txor, superblock->delete_queue_block, since_when_, callback_)) {
+        if (!dump_keys_from_delete_queue(txn, superblock->delete_queue_block, since_when_, callback_)) {
             // Set since_when_ to the minimum timestamp, so that we backfill everything.
             since_when_.time = 0;
         }
     }
 
-    void process_a_leaf(boost::shared_ptr<transactor_t>& txor, buf_t *leaf_node_buf) {
+    void process_a_leaf(boost::shared_ptr<transaction_t>& txn, buf_t *leaf_node_buf) {
         assert_thread();
         const leaf_node_t *data = reinterpret_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
@@ -40,7 +42,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
             if (recency.time >= since_when_.time) {
                 const btree_value *value = pair->value();
-                unique_ptr_t<value_data_provider_t> data_provider(value_data_provider_t::create(value, txor));
+                boost::shared_ptr<value_data_provider_t> data_provider(value_data_provider_t::create(value, txn));
                 backfill_atom_t atom;
                 atom.key.assign(pair->key.size, pair->key.contents);
                 atom.value = data_provider;
@@ -62,7 +64,6 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         // do nothing
     }
 
-    access_t transaction_mode() { return rwi_read; }
     access_t btree_superblock_mode() { return rwi_read; }
     access_t btree_node_mode() { return rwi_read; }
 
@@ -95,7 +96,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         }
     };
 
-    void filter_interesting_children(boost::shared_ptr<transactor_t>& txor, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb) {
+    void filter_interesting_children(boost::shared_ptr<transaction_t>& txn, const block_id_t *block_ids, int num_block_ids, interesting_children_callback_t *cb) {
         assert_thread();
         annoying_t *fsm = new annoying_t;
         fsm->cb = cb;
@@ -105,7 +106,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         fsm->since_when = since_when_;
         fsm->recencies.reset(new repli_timestamp[num_block_ids]);
 
-        txor->get()->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
+        txn->get_subtree_recencies(fsm->block_ids.get(), num_block_ids, fsm->recencies.get(), fsm);
     }
 
     backfill_callback_t *callback_;
@@ -116,13 +117,34 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 };
 
 
+void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token) {
+    {
+        rassert(coro_t::self());
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback) {
-    rassert(coro_t::self());
+        backfill_traversal_helper_t helper(callback, since_when);
 
-    backfill_traversal_helper_t helper(callback, since_when);
+        slice->pre_begin_transaction_sink_.check_out(token);
+        order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
 
-    btree_parallel_traversal(slice, repli_timestamp::invalid, &helper);
+        boost::shared_ptr<transaction_t> txn = boost::make_shared<transaction_t>(slice->cache(), rwi_read_sync);
 
-    callback->done();
+        slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
+
+	txn->set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post").with_read_mode());
+
+#ifndef NDEBUG
+        boost::scoped_ptr<assert_no_coro_waiting_t> no_coro_waiting(new assert_no_coro_waiting_t());
+#endif
+
+        txn->set_account(backfill_account);
+        txn->snapshot();
+
+#ifndef NDEBUG
+        no_coro_waiting.reset();
+#endif
+
+        btree_parallel_traversal(txn, slice, &helper);
+    }
+
+    callback->done_backfill();
 }

@@ -17,10 +17,9 @@ struct linux_io_config_t {
     typedef linux_iocallback_t iocallback_t;
 
     typedef linux_tcp_listener_t tcp_listener_t;
-    typedef linux_tcp_listener_callback_t tcp_listener_callback_t;
-    
+
     typedef linux_tcp_conn_t tcp_conn_t;
-    
+
     static timer_token_t *add_timer(long ms, void (*callback)(void *), void *ctx) {
         return linux_thread_pool_t::thread->timer_handler.add_timer_internal(ms, callback, ctx, false);
     }
@@ -31,6 +30,20 @@ struct linux_io_config_t {
     
     static void cancel_timer(timer_token_t *timer) {
         linux_thread_pool_t::thread->timer_handler.cancel_timer(timer);
+    }
+
+
+    /* System configuration*/
+    static int get_cpu_count() {
+        return sysconf(_SC_NPROCESSORS_ONLN);
+    }
+
+    static long get_available_ram() {
+        return (long)sysconf(_SC_AVPHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
+    }
+
+    static long get_total_ram() {
+        return (long)sysconf(_SC_PHYS_PAGES) * (long)sysconf(_SC_PAGESIZE);
     }
 };
 

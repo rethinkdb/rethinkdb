@@ -23,8 +23,7 @@ static void install_log_controller(log_controller_t *lc, int thread) {
     log_controller_lock = new rwi_lock_t;
 }
 
-log_controller_t::log_controller_t() {
-    home_thread = get_thread_id();
+log_controller_t::log_controller_t() : home_thread_(get_thread_id()) {
     pmap(get_num_threads(), boost::bind(&install_log_controller, this, _1));
 }
 
@@ -144,7 +143,7 @@ void mlogf(const char *format, ...) {
 void write_log_message(log_message_t *msg, log_controller_t *lc) {
 
     {
-        on_thread_t thread_switcher(lc->home_thread);
+        on_thread_t thread_switcher(lc->home_thread_);
         fwrite(msg->contents.data(), 1, msg->contents.size(), log_file);
     }
 
@@ -163,3 +162,4 @@ void mlog_end() {
     }
     current_message = NULL;
 }
+

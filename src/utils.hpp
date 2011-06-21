@@ -15,6 +15,7 @@
 #include <string>
 
 // Precise time (time+nanoseconds) for logging, etc.
+
 struct precise_time_t : public tm {
     uint32_t ns;    // nanoseconds since the start of the second
                     // beware:
@@ -37,78 +38,76 @@ const size_t formatted_precise_time_length = 26;    // not including null
 void format_precise_time(const precise_time_t& time, char* buf, size_t max_chars);
 std::string format_precise_time(const precise_time_t& time);
 
+/* Printing binary data to stdout in a nice format */
+
 void print_hd(const void *buf, size_t offset, size_t length);
 
 // Fast string compare
+
 int sized_strcmp(const char *str1, int len1, const char *str2, int len2);
 
 std::string strip_spaces(std::string); 
 
-/* The home thread mixin is a simple mixin for objects that are primarily associated with
-a single thread. It just keeps track of the thread that the object was created on and
-makes sure that it is destroyed from the same thread. It exposes the ID of that thread
-as the "home_thread" variable. */
 
-class thread_saver_t {
-public:
-    thread_saver_t() : thread_id_(get_thread_id()) {
-        assert_good_thread_id(thread_id_);
-    }
-    explicit thread_saver_t(int thread_id) : thread_id_(thread_id) {
-        assert_good_thread_id(thread_id_);
-    }
-    ~thread_saver_t() {
-        coro_t::move_to_thread(thread_id_);
-    }
+/* The home thread mixin is a mixin for objects that can only be used
+on a single thread. Its thread ID is exposed as the `home_thread()`
+method. Some subclasses of `home_thread_mixin_t` can be moved to
+another thread; to do this, you can use the `rethread_t` type or the
+`rethread()` method. */
 
-private:
-    int thread_id_;
-    DISABLE_COPYING(thread_saver_t);
-};
+#define INVALID_THREAD (-1)
 
 class home_thread_mixin_t {
 public:
-    const int home_thread;
+    int home_thread() const { return real_home_thread; }
 
-    void assert_thread() {
-        rassert(home_thread == get_thread_id());
+    void assert_thread() const {
+        rassert(home_thread() == get_thread_id());
     }
 
-    // We force callers to pass a thread_saver_t to ensure that they
-    // know exactly what they're doing.
-    void ensure_thread(UNUSED const thread_saver_t& saver) {
-        // TODO: make sure nobody is calling move_to_thread except us
-        // and thread_saver_t.
-        coro_t::move_to_thread(home_thread);
-    }
+    virtual void rethread(int thread);
+
+    struct rethread_t {
+        rethread_t(home_thread_mixin_t *m, int thread);
+        ~rethread_t();
+    private:
+        home_thread_mixin_t *mixin;
+        int old_thread, new_thread;
+    };
+
 protected:
-    home_thread_mixin_t() : home_thread(get_thread_id()) { }
-    ~home_thread_mixin_t() { }
+    home_thread_mixin_t();
+    virtual ~home_thread_mixin_t();
+
+    int real_home_thread;
 
 private:
     // Things with home threads should not be copyable, since we don't
-    // want to nonchalantly copy their home_thread variable.
+    // want to nonchalantly copy their real_home_thread variable.
     DISABLE_COPYING(home_thread_mixin_t);
 };
+
+/* `on_thread_t` switches to the given thread in its constructor, then switches
+back in its destructor. For example:
+
+    printf("Suppose we are on thread 1.\n");
+    {
+        on_thread_t thread_switcher(2);
+        printf("Now we are on thread 2.\n");
+    }
+    printf("And now we are on thread 1 again.\n");
+
+*/
 
 struct on_thread_t : public home_thread_mixin_t {
     on_thread_t(int thread) {
         coro_t::move_to_thread(thread);
     }
     ~on_thread_t() {
-        coro_t::move_to_thread(home_thread);
+        coro_t::move_to_thread(home_thread());
     }
 };
 
-template <class ForwardIterator, class StrictWeakOrdering>
-bool is_sorted(ForwardIterator first, ForwardIterator last,
-                       StrictWeakOrdering comp) {
-    for(ForwardIterator it = first; it + 1 < last; it++) {
-        if (!comp(*it, *(it+1)))
-            return false;
-    }
-    return true;
-}
 
 /* API to allow a nicer way of performing jobs on other cores than subclassing
 from thread_message_t. Call do_on_thread() with an object and a method for that object.
@@ -120,15 +119,6 @@ void do_on_thread(int thread, const callable_t& callable);
 
 template<class callable_t>
 void do_later(const callable_t &callable);
-
-// Provides a compare operator which compares the dereferenced values of pointers T* (for use in std:sort etc)
-template <typename obj_t>
-class dereferencing_compare_t {
-public:
-    bool operator()(obj_t * const &o1, obj_t * const &o2) const {
-        return *o1 < *o2;
-    }
-};
 
 #include "utils.tcc"
 

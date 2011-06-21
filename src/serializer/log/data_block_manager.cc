@@ -70,7 +70,8 @@ void data_block_manager_t::end_reconstruct() {
 void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t *last_metablock) {
     rassert(state == state_unstarted);
     dbfile = file;
-    gc_io_account.reset(new file_t::account_t(file, GC_IO_PRIORITY));
+    gc_io_account_nice.reset(new file_t::account_t(file, GC_IO_PRIORITY_NICE));
+    gc_io_account_high.reset(new file_t::account_t(file, GC_IO_PRIORITY_HIGH));
     
     /* Reconstruct the active data block extents from the metablock. */
     
@@ -119,9 +120,10 @@ void data_block_manager_t::start_existing(direct_file_t *file, metablock_mixin_t
     state = state_ready;
 }
 
-struct dbm_read_ahead_fsm_t :
+class dbm_read_ahead_fsm_t :
     public iocallback_t
 {
+public:
     data_block_manager_t *parent;
     iocallback_t *callback;
     off64_t extent;
@@ -147,7 +149,12 @@ struct dbm_read_ahead_fsm_t :
     void on_io_complete() {
         rassert(off_in >= (off64_t)read_ahead_offset);
         rassert(off_in < (off64_t)read_ahead_offset + (off64_t)read_ahead_size);
-        rassert((off_in - (off64_t)read_ahead_offset) % parent->static_config->block_size().ser_value() == 0);
+#ifndef NDEBUG
+        {
+            bool modcmp = (off_in - (off64_t)read_ahead_offset) % parent->static_config->block_size().ser_value() == 0;
+            rassert(modcmp);
+        }
+#endif
 
         // Walk over the read ahead buffer and copy stuff...
         for (uint64_t current_block = 0; current_block * parent->static_config->block_size().ser_value() < read_ahead_size; ++current_block) {
@@ -161,10 +168,10 @@ struct dbm_read_ahead_fsm_t :
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
             } else {
-                const ser_block_id_t block_id = ((buf_data_t*)current_buf)->block_id;
+                const block_id_t block_id = ((buf_data_t*)current_buf)->block_id;
 
                 // Determine whether the block is live.
-                bool block_is_live = block_id.value != 0;
+                bool block_is_live = block_id != 0;
                 // Do this by checking the LBA
                 const flagged_off64_t flagged_lba_offset = parent->serializer->lba_index->get_block_offset(block_id);
                 block_is_live = block_is_live && !flagged_lba_offset.parts.is_delete && flagged_lba_offset.has_value(flagged_lba_offset);
@@ -177,7 +184,7 @@ struct dbm_read_ahead_fsm_t :
 
                 const repli_timestamp recency_timestamp = parent->serializer->lba_index->get_block_recency(block_id);
 
-                buf_data_t *data = ptr_cast<buf_data_t>(parent->serializer->malloc());
+                buf_data_t *data = reinterpret_cast<buf_data_t *>(parent->serializer->malloc());
                 --data;
                 memcpy(data, current_buf, parent->static_config->block_size().ser_value());
                 ++data;
@@ -212,7 +219,7 @@ bool data_block_manager_t::read(off64_t off_in, void *buf_out, file_t::account_t
     return false;
 }
 
-bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, file_t::account_t *io_account, iocallback_t *cb) {
+bool data_block_manager_t::write(const void *buf_in, block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, file_t::account_t *io_account, iocallback_t *cb) {
     // Either we're ready to write, or we're shutting down and just
     // finished reading blocks for gc and called do_write.
     rassert(state == state_ready
@@ -222,7 +229,7 @@ bool data_block_manager_t::write(const void *buf_in, ser_block_id_t block_id, se
 
     pm_serializer_data_blocks_written++;
 
-    const buf_data_t *data = ptr_cast<buf_data_t>(buf_in);
+    const buf_data_t *data = reinterpret_cast<const buf_data_t *>(buf_in);
     data--;
     if (transaction_id != NULL_SER_TRANSACTION_ID) {
         *const_cast<buf_data_t *>(data) = make_buf_data_t(block_id, transaction_id);
@@ -287,6 +294,23 @@ void data_block_manager_t::mark_garbage(off64_t offset) {
     }
 }
 
+file_t::account_t *data_block_manager_t::choose_gc_io_account() {
+    // Start going into high priority as soon as the garbage ratio is more than
+    // 2% above the configured goal.
+    // The idea is that we use the nice i/o account whenever possible, except
+    // if it proofs insufficient to maintain an acceptable garbage ratio, in
+    // which case we switch over to the high priority account until the situation
+    // has improved.
+
+    // This means that we can end up oscillating between both accounts, which
+    // is probably fine. TODO: Make sure it actually is in practice!
+    if (garbage_ratio() > dynamic_config->gc_high_ratio * 1.02f) {
+        return gc_io_account_high.get();
+    } else {
+        return gc_io_account_nice.get();
+    }
+}
+
 void data_block_manager_t::start_gc() {
     if (gc_state.step() == gc_ready) run_gc();
 }
@@ -307,6 +331,10 @@ void data_block_manager_t::run_gc() {
         run_again = false;
         switch (gc_state.step()) {
             case gc_ready:
+                if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) {
+                    return;
+                }
+
                 gc_state.set_step(gc_ready_lock_available);
                 serializer->main_mutex.lock(this);
                 break;
@@ -315,7 +343,7 @@ void data_block_manager_t::run_gc() {
                 serializer->main_mutex.unlock();
 
                 if (gc_pq.empty() || !should_we_keep_gcing(*gc_pq.peak())) {
-                    gc_state.set_step(gc_ready);
+                    gc_state.set_step(gc_ready);                    
                     return;
                 }
 
@@ -341,7 +369,7 @@ void data_block_manager_t::run_gc() {
                         dbfile->read_async(gc_state.current_entry->offset + (i * static_config->block_size().ser_value()),
                                            static_config->block_size().ser_value(),
                                            gc_state.gc_blocks + (i * static_config->block_size().ser_value()),
-                                           gc_io_account.get(),
+                                           choose_gc_io_account(),
                                            &(gc_state.gc_read_callback));
                         gc_state.refcount++;
                     }
@@ -385,8 +413,8 @@ void data_block_manager_t::run_gc() {
                     if (gc_state.current_entry->g_array[i]) continue;
 
                     char *block = gc_state.gc_blocks + i * static_config->block_size().ser_value();
-                    ser_block_id_t id = (reinterpret_cast<buf_data_t *>(block))->block_id;
-                    rassert(id != ser_block_id_t::null());
+                    block_id_t id = (reinterpret_cast<buf_data_t *>(block))->block_id;
+                    rassert(id != NULL_BLOCK_ID);
                     void *data = block + sizeof(buf_data_t);
 
                     gc_writes.push_back(gc_write_t(id, data));
@@ -397,7 +425,7 @@ void data_block_manager_t::run_gc() {
                 gc_state.set_step(gc_write);
 
                 /* schedule the write */
-                bool done = gc_writer->write_gcs(gc_writes.data(), gc_writes.size(), gc_io_account.get(), this);
+                bool done = gc_writer->write_gcs(gc_writes.data(), gc_writes.size(), choose_gc_io_account(), this);
                 if (!done) break;
             }
                 

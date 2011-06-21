@@ -12,7 +12,7 @@ struct count_down_latch_t : public signal_t {
     count_down_latch_t(size_t count) : count(count) { }
 
     void count_down() {
-        do_on_thread(home_thread, boost::bind(&count_down_latch_t::do_count_down, this));
+        do_on_thread(home_thread(), boost::bind(&count_down_latch_t::do_count_down, this));
     }
 private:
     void do_count_down() {

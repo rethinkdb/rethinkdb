@@ -2,7 +2,6 @@
 #define __REPLICATION_DELETE_QUEUE_HPP__
 
 #include "buffer_cache/buffer_cache.hpp"
-#include "buffer_cache/transactor.hpp"
 
 /*
                        D E L E T E   Q U E U E
@@ -67,6 +66,16 @@ namespace replication {
 
 namespace delete_queue {
 
+// The offset of the primal offset.
+extern const int TIMESTAMPS_AND_OFFSETS_SIZE;
+
+off64_t *primal_offset(void *root_buffer);
+large_buf_ref *timestamps_and_offsets_largebuf(void *root_buffer);
+large_buf_ref *keys_largebuf(void *root_buffer);
+int keys_largebuf_ref_size(block_size_t block_size);
+
+
+
 struct t_and_o {
     repli_timestamp timestamp;
     off64_t offset;
@@ -80,7 +89,7 @@ struct delete_queue_block_t {
     static const block_magic_t expected_magic;
 };
 
-void initialize_empty_delete_queue(boost::shared_ptr<transactor_t>& txor, delete_queue_block_t *dqb, block_size_t block_size);
+void initialize_empty_delete_queue(boost::shared_ptr<transaction_t>& txn, delete_queue_block_t *dqb, block_size_t block_size);
 
 // Instead of passing keys one by one, we just pass the buffers that
 // contain all the keys.  These can then get passed in the same manner
@@ -100,7 +109,7 @@ protected:
 // Acquires a delete queue, appends a (timestamp, key) pair to the
 // queue, and releases the queue.  The delete queue is identified by
 // queue_root.  This must be called on the transaction's home thread.
-void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp timestamp, const store_key_t *key);
+void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<transaction_t>& txn, block_id_t queue_root, repli_timestamp timestamp, const store_key_t *key);
 
 // Dumps keys from the delete queue, blocking until all the keys in
 // the interval have been passed to the recipient.  All keys whose
@@ -108,7 +117,7 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, boost::shared_ptr<trans
 // end_timestamp are passed to recipient, in no particular order.
 //
 // Returns false if we should send _everything_ when backfilling.
-bool dump_keys_from_delete_queue(boost::shared_ptr<transactor_t>& txor, block_id_t queue_root, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient);
+bool dump_keys_from_delete_queue(boost::shared_ptr<transaction_t>& txn, block_id_t queue_root, repli_timestamp begin_timestamp, deletion_key_stream_receiver_t *recipient);
 
 
 

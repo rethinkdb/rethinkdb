@@ -1,6 +1,6 @@
 DEBUG?=0
-CXXFLAGS=-Wall -pg -g -DUSE_UCONTEXT
-LDFLAGS=-Wall -rdynamic -lrt -laio -pg -g -lgsl -lgslcblas -lgtest
+CXXFLAGS=-Wall -pg -g -DUSE_UCONTEXT -DNDEBUG=1
+LDFLAGS=-Wall -rdynamic -lrt -laio -pg -g -lgsl -lgslcblas -lgtest -lprotoc
 OBJDIR:=../../build/release/obj
 
 serializer-bench: main.cc Makefile

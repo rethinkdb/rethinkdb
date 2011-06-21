@@ -19,12 +19,12 @@ namespace extract {
 
 typedef config_t::override_t cfg_t;
 
-class block : public fsck::raw_block {
+class block_t : public fsck::raw_block_t {
 public:
-    block() { }
+    block_t() { }
 
-    using raw_block::init;
-    using raw_block::realbuf;
+    using raw_block_t::init;
+    using raw_block_t::realbuf;
 
     const buf_data_t& buf_data() const {
         return *realbuf;
@@ -32,7 +32,7 @@ public:
 };
 
 
-struct charslice {
+struct charslice_t {
     const char *buf;
     size_t len;
 };
@@ -53,7 +53,7 @@ public:
         }
     }
     void dump(const btree_key_t *key, mcflags_t flags, exptime_t exptime,
-              charslice *slices, size_t num_slices) {
+              charslice_t *slices, size_t num_slices) {
         int len = 0;
         for (size_t i = 0; i < num_slices; ++i) {
             len += slices[i].len;
@@ -89,7 +89,7 @@ void observe_blocks(block_registry &registry, nondirect_file_t &file, const cfg_
 void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, nondirect_file_t& file, const cfg_t cfg, uint64_t filesize);
 bool check_config(const cfg_t& cfg);
-void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter);
+void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair *pair, block_id_t this_block, int pair_size_limiter);
 void walkfile(dumper_t &dumper, const char *path);
 
 
@@ -138,16 +138,16 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
     size_t n = offsets.rbegin()->first;
 
     if (cfg.mod_count == config_t::NO_FORCED_MOD_COUNT) {
-        std::map<size_t, off64_t>::const_iterator config_offset_it = offsets.find(CONFIG_BLOCK_ID.ser_id.value);
-        if (!(CONFIG_BLOCK_ID.ser_id.value < n && config_offset_it != offsets.end())) {
+        std::map<size_t, off64_t>::const_iterator config_offset_it = offsets.find(CONFIG_BLOCK_ID.ser_id);
+        if (!(CONFIG_BLOCK_ID.ser_id < n && config_offset_it != offsets.end())) {
             fail_due_to_user_error(
-                "Config block cannot be found (CONFIG_BLOCK_ID = %u, highest block id = %u)."
+                "Config block cannot be found (CONFIG_BLOCK_ID = %u, highest block id = %zu)."
                 "  Use --force-slice-count to override.\n",
-                 CONFIG_BLOCK_ID, n);
+                 CONFIG_BLOCK_ID.ser_id, n);
         }
         off64_t off = config_offset_it->second;
 
-        block serblock;
+        block_t serblock;
         serblock.init(cfg.block_size(), &file, off, CONFIG_BLOCK_ID.ser_id);
         multiplexer_config_block_t *serbuf = (multiplexer_config_block_t *)serblock.buf;
 
@@ -157,6 +157,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
             return;
         }
 
+        // TODO isn't this check redundant?
         if (cfg.mod_count == config_t::NO_FORCED_MOD_COUNT) {
             cfg.mod_count = serializer_multiplexer_t::compute_mod_count(serbuf->this_serializer, serbuf->n_files, serbuf->n_proxies);
         }
@@ -188,11 +189,11 @@ void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
-        block b;
-        b.init(cfg.block_size().ser_value(), &file, offset);
-
-        if (check_all_known_magic(*(block_magic_t *)b.buf) || memcmp((char*)b.buf, "LOGB00", 6) == 0) { // TODO: Refactor
-            registry.tell_block(offset, b.buf_data());
+        block_t b;
+        if (b.init(cfg.block_size().ser_value(), &file, offset)) {
+            if (check_all_known_magic(*(block_magic_t *)b.buf) || memcmp((char*)b.buf, "LOGB00", 6) == 0) { // TODO: Refactor
+                registry.tell_block(offset, b.buf_data());
+            }
         }
     }
 }
@@ -202,12 +203,14 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
-        block b;
-        b.init(cfg.block_size().ser_value(), &file, offset);
+        block_t b;
+        if (!b.init(cfg.block_size().ser_value(), &file, offset)) {
+            continue;
+        }
 
-        ser_block_id_t block_id = b.buf_data().block_id;
+        block_id_t block_id = b.buf_data().block_id;
 
-        if (offsets.find(block_id.value) != offsets.end() && offsets.find(block_id.value)->second == offset) {
+        if (offsets.find(block_id) != offsets.end() && offsets.find(block_id)->second == offset) {
             const void *data = b.buf;
             if (memcmp(reinterpret_cast<const char *>(data), "LOGB00", 6) == 0) {
                 int num_patches = 0;
@@ -217,6 +220,7 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
                     try {
                         patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
+			(void)e;
                         logERR("Corrupted patch. Ignoring the rest of the log block.\n");
                         break;
                     }
@@ -239,7 +243,7 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
 
     for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = buf_patches.begin(); patch_list != buf_patches.end(); ++patch_list) {
         // Sort the list to get patches in the right order
-        patch_list->second.sort(dereferencing_compare_t<buf_patch_t>());
+        patch_list->second.sort(dereferencing_buf_patch_compare_t());
     }
 }
 
@@ -270,20 +274,19 @@ bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
                     // Recover...
                     logERR("Recovering from a corrupted leaf node block. Data might be lost.\n");
                     if (pair_offset < pair_offsets_back_offset) {
-                        leaf->pair_offsets[j] = pair_offsets_back_offset;
+                        leaf->pair_offsets[j] = pair_offsets_back_offset; // This is most probably not the right location. But it's still better than an illegal one
                     } else {
-                        leaf->pair_offsets[j] = cfg.block_size().value() - sizeof(btree_leaf_pair) - sizeof(btree_value);
+                        leaf->pair_offsets[j] = pair_offsets_back_offset; // This is most probably not the right location. But it's still better than an illegal one
                     }
                 }
-
-                for (int j = 0; j < num_pairs; ++j) {
-                    uint16_t pair_offset = leaf->pair_offsets[j];
-                    btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
-                    if ((signed int)cfg.block_size().value() - (signed int)pair_offset < 0 || !leaf_pair_fits(pair, (signed int)cfg.block_size().value() - (signed int)pair_offset)) {
-                        logERR("A pair juts off the end of the block. Truncating.\n");
-                        pair->key.size = 0;
-                        pair->value()->size = 0;
-                    }
+            }
+            for (int j = 0; j < num_pairs; ++j) {
+                uint16_t pair_offset = leaf->pair_offsets[j];
+                btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
+                if (!leaf_pair_fits(pair, (signed int)cfg.block_size().value() - (signed int)pair_offset)) {
+                    logERR("A pair juts off the end of the block. Truncating pair.\n");
+                    pair->key.size = 0;
+                    pair->value()->size = 0;
                 }
             }
         } else {
@@ -312,12 +315,14 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
     for (off64_t offset = 0, max_offset = filesize - cfg.block_size().ser_value();
          offset <= max_offset;
          offset += cfg.block_size().ser_value()) {
-        block b;
-        b.init(cfg.block_size().ser_value(), &file, offset);
+        block_t b;
+        if (!b.init(cfg.block_size().ser_value(), &file, offset)) {
+            continue;
+        }
         
-        ser_block_id_t block_id = b.buf_data().block_id;
+        block_id_t block_id = b.buf_data().block_id;
 
-        if (offsets.find(block_id.value) != offsets.end() && offsets.find(block_id.value)->second == offset) {
+        if (offsets.find(block_id) != offsets.end() && offsets.find(block_id)->second == offset) {
             int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(block_id, cfg.mod_count, CONFIG_BLOCK_ID);
             block_id_t cache_block_id = translator_serializer_t::untranslate_block_id_to_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
 
@@ -341,7 +346,7 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
                     const leaf_node_t *leaf = (leaf_node_t *)b.buf;
                     // If the block is not considered consistent, but still is a leaf, something is wrong with the block.
                     if (check_magic<leaf_node_t>(leaf->magic)) {
-                        logERR("Not replaying patches for block %u. The block seems to be corrupted.\n", block_id.value);
+                        logERR("Not replaying patches for block %u. The block seems to be corrupted.\n", block_id);
                     }
                 }
             }
@@ -368,22 +373,22 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
     }
 }
 
-struct blocks {
-    std::vector<block *> bs;
-    blocks() { }
-    ~blocks() {
+struct blocks_t {
+    std::vector<block_t *> bs;
+    blocks_t() { }
+    ~blocks_t() {
         for (int64_t i = 0, n = bs.size(); i < n; ++i) {
             delete bs[i];
         }
     }
 private:
-    DISABLE_COPYING(blocks);
+    DISABLE_COPYING(blocks_t);
 };
 
 
-bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks);
+bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks);
 
-bool get_large_buf_segments_from_children(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks) {
+bool get_large_buf_segments_from_children(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks) {
 
     int64_t step = large_buf_t::compute_max_offset(cfg.block_size(), sublevels);
 
@@ -399,21 +404,20 @@ bool get_large_buf_segments_from_children(const cfg_t& cfg, const btree_key_t *k
     return true;
 }
 
-bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks) {
+bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks) {
 
-    ser_block_id_t trans = translator_serializer_t::translate_block_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
-    ser_block_id_t::number_t trans_id = trans.value;
+    block_id_t trans = translator_serializer_t::translate_block_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
 
-    std::map<size_t, off64_t>::const_iterator offset_it = offsets.find(trans_id);
+    std::map<size_t, off64_t>::const_iterator offset_it = offsets.find(trans);
 
     if (offset_it == offsets.end()) {
         logERR("With key '%.*s': no blocks seen with block id: %u\n",
-               key->size, key->contents, trans.value);
+               key->size, key->contents, trans);
         return false;
     }
 
     if (levels == 1) {
-        block *b = new block();
+        block_t *b = new block_t();
         segblocks->bs.push_back(b);
         
         b->init(cfg.block_size(), &file, offset_it->second, trans);
@@ -428,7 +432,7 @@ bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *ke
 
         return true;
     } else {
-        block internal;
+        block_t internal;
         internal.init(cfg.block_size(), &file, offset_it->second, trans);
 
         const large_buf_internal *buf = reinterpret_cast<const large_buf_internal *>(internal.buf);
@@ -443,7 +447,7 @@ bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *ke
     }
 }
 
-bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, const large_buf_ref *ref, int ref_size_bytes, const cfg_t& cfg, int mod_id, const std::map<size_t, off64_t>& offsets, blocks *segblocks) {
+bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, const large_buf_ref *ref, int ref_size_bytes, const cfg_t& cfg, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks) {
 
     // This is copied and pasted from fsck's check_large_buf in checker.cc.
 
@@ -482,9 +486,9 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
 
 
 // Dumps the values for a given pair.
-void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair *pair, ser_block_id_t this_block, int pair_size_limiter) {
+void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair *pair, block_id_t this_block, int pair_size_limiter) {
     if (pair_size_limiter < 0 || !leaf_pair_fits(pair, pair_size_limiter)) {
-        logERR("(In block %u) A pair juts off the end of the block.\n", this_block.value);
+        logERR("(In block %u) A pair juts off the end of the block.\n", this_block);
         return;
     }
 
@@ -498,8 +502,8 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
     const char *valuebuf = value->value();
 
     // We're going to write the value, split into pieces, into this set of pieces.
-    std::vector<charslice> pieces;
-    blocks segblocks;
+    std::vector<charslice_t> pieces;
+    blocks_t segblocks;
 
 
     logDBG("Dumping value for key '%.*s'...\n",
@@ -528,7 +532,7 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
                 bytes_left -= pieces[i].len;
             }
         } else {
-            logERR("(In block %u) Value for key '%.*s' is corrupted.\n", this_block.value, int(key->size), key->contents);
+            logERR("(In block %u) Value for key '%.*s' is corrupted.\n", this_block, int(key->size), key->contents);
             return;
         }
     } else {
@@ -553,8 +557,10 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
         fail_due_to_user_error("Could not open `%s' for reading: %s", db_file.c_str(), strerror(errno));
     }
 
-    block headerblock;
-    headerblock.init(DEVICE_BLOCK_SIZE, &file, 0);
+    block_t headerblock;
+    if (!headerblock.init(DEVICE_BLOCK_SIZE, &file, 0)) {
+        logINF("Could not even read header block from file %s\n", db_file.c_str());
+    }
 
     static_header_t *header = (static_header_t *)headerblock.realbuf;
 

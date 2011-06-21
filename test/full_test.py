@@ -123,7 +123,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 1800,
                     "fsck"        : False},
-                  repeat=3, timeout=2400 * ec2)
+                  repeat=2, timeout=2400 * ec2)
 
     # Run an modify-heavy workload for half hour
     do_test_cloud("integration/stress_load.py",
@@ -139,7 +139,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "ninserts"    : 10,
                     "nreads"      : 1,
                     "fsck"        : False},
-                  repeat=3, timeout=2400)
+                  repeat=2, timeout=2400)
 
     do_test_cloud("integration/stress_load.py",
                   { "auto"        : True,
@@ -158,7 +158,35 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "fsck"        : False,
                     #"min-qps"     : 20 # a very reasonable limit #this is temporarily disabled because cmd_set_persec isn't available on servers
                     },
-                  repeat=3, timeout=2400)
+                  repeat=2, timeout=2400)
+
+    # Run a canonical + rget workload for twenty minutes
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 1200,
+                    "nrgets"      : 1,
+                    "fsck"        : False},
+                  repeat=2, timeout=2400 * ec2)
+                  
+    # Run a canonical + rget workload for twenty minutes under memory pressure
+    do_test_cloud("integration/stress_load.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "memory"      : 8,
+                    "diff-log-size" : 4,
+                    "duration"    : 1200,
+                    "nrgets"      : 1,
+                    "fsck"        : False},
+                  repeat=2, timeout=2400 * ec2)
 
     do_test_cloud("integration/replication_stress_load.py",
                   { "auto"        : True,
@@ -197,7 +225,19 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "duration"    : 60,
                     "fsck"        : True},
                   repeat=5, timeout=600)
-    
+
+
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "duration"    : 10,
+                    "cores"       : cores,
+                    "slices"      : 2 * slices,
+                    "fsck"        : True,
+                    "num-files"   : 2 },
+                  repeat=1, timeout=120)
+
     # Regression test for https://github.com/coffeemug/rethinkdb/issues/269 and https://github.com/coffeemug/rethinkdb/issues/267
     do_test_cloud("integration/multi_serial_mix.py",
                   { "auto"        : True,
@@ -249,8 +289,9 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340,
                     "restart-server-prob" : "0.0005"},
-                          repeat=5, timeout=400)
+                          repeat=5, timeout=600)
     
+    # Replication
     do_test_cloud("integration/serial_mix.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -260,7 +301,100 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340,
                     "failover"    : True},
-                          repeat=10, timeout=400)
+                          repeat=10, timeout=800)
+
+    # Replication with shorter heartbeat timeout (to provoke disconnects)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 340,
+                    "serve-flags" : "--heartbeat-timeout 10",
+                    "failover"    : True},
+                          repeat=10, timeout=800)
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 340,
+                    "serve-flags" : "--heartbeat-timeout 4",
+                    "failover"    : True},
+                          repeat=5, timeout=800)
+    # ...and one more if we don't use Valgrind (otherwise stuff is too slow for this to work)
+    if not checker:
+        do_test_cloud("integration/serial_mix.py",
+                      { "auto"        : True,
+                        "mode"        : mode,
+                        "no-valgrind" : not checker,
+                        "protocol"    : protocol,
+                        "cores"       : cores,
+                        "slices"      : slices,
+                        "duration"    : 340,
+                        "serve-flags" : "--heartbeat-timeout 1",
+                        "failover"    : True},
+                              repeat=5, timeout=800)
+
+    # Replication with small delete queue
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 340,
+                    "failover"    : True,
+                    "serve-flags": "--total-delete-queue-limit %d" % (15 * slices)},
+                          repeat=10, timeout=800)
+    
+    # Replication with large values
+    do_test_cloud("integration/serial_mix.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "valuesize"   : 2 * 1024 * 1024,
+                    "duration"    : 340,
+                    "failover"    : True,
+                    "kill-failover-server-prob": 0.1,
+                    "resurrect-failover-server-prob": 0.1},
+                          repeat=5, timeout=800)
+    
+    # Replication with CAS
+    do_test_cloud("integration/cas.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "failover"    : True,
+                    "kill-failover-server-prob": 0.1,
+                    "resurrect-failover-server-prob": 0.1,
+                    "timeout"     : 800},
+                          repeat=5, timeout=800)
+    
+    # Replication with flags
+    do_test_cloud("integration/flags.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "failover"    : True,
+                    "kill-failover-server-prob": 0.1,
+                    "resurrect-failover-server-prob": 0.1,
+                    "timeout"     : 120},
+                          repeat=5, timeout=800)
     
     do_test_cloud("integration/append_prepend.py",
                   { "auto"        : True,
@@ -436,6 +570,15 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices},
                   repeat=1, timeout=30 * ec2)
 
+    do_test_cloud("regression/issue_327.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices},
+                  repeat=1, timeout=60 * ec2)
+
     do_test_cloud("integration/replication.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -445,6 +588,17 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "slices"      : slices,
                     "duration"    : 340 },
                   repeat=5, timeout=460 * ec2)
+
+    do_test_cloud("integration/replication_noise.py",
+                  { "auto"        : True,
+                    "mode"        : mode,
+                    "no-valgrind" : not checker,
+                    "protocol"    : protocol,
+                    "cores"       : cores,
+                    "slices"      : slices,
+                    "duration"    : 90
+                  },
+                  repeat=1, timeout=150*ec2)
 
     for suite_test in os.listdir('integration/memcached_suite'):
         if not suite_test.endswith(".t"): continue
@@ -586,17 +740,6 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "diff-log-size" : 0,
                     "fsck"        : False},
                   repeat=3, timeout=300 * ec2)
-    do_test_cloud("integration/elb_behavior.py",
-                  { "auto"        : True,
-                    "mode"        : mode,
-                    "no-valgrind" : not checker,
-                    "protocol"    : protocol,
-                    "cores"       : 1,
-                    "slices"      : 1,
-                    "duration"    : 180,
-                    "diff-log-size" : 0,
-                    "fsck"        : False},
-                  repeat=1, timeout=300 * ec2)
     do_test_cloud("integration/failover_script.py",
                   { "auto"        : True,
                     "mode"        : mode,
@@ -616,6 +759,34 @@ def run_all_tests(mode, checker, protocol, cores, slices):
     # Canonical tests are included in all tests
     run_canonical_tests(mode, checker, protocol, cores, slices)
 
+# Tests with special requirements that will supply their own mode and such.
+def run_fixed_tests():
+    # This test takes too long in debug mode, unfortunately, so we won't run it
+    # nightly for now.
+    #for (mode,checker) in [("debug", None),
+    #                       ("debug", "valgrind"),
+    #                       ("release", None)]:
+    #    for (max_key,key_len,val_len,pattern) in [("5000",   "5","45", "fwd"),
+    #                                              ("50000",  "5","45", "fwd"),
+    #                                              ("50000",  "5","45", "rev"),
+    #                                              ("30000",  "5","45", "fwd"),
+    #                                              ("50000",  "6","45", "fwd"),
+    #                                              ("50000",  "5","230","mid"),
+    #                                              ("1000000","7","230","midrev")]:
+    #        do_test_cloud("integration/deletion.py",
+    #                      { "auto"        : True,
+    #                        "mode"        : mode,
+    #                        "no-valgrind" : not checker,
+    #                        "protocol"    : "text",
+    #                        "cores"       : 1,
+    #                        "slices"      : 1,
+    #                        "max-key"     : max_key,
+    #                        "key-len"     : key_len,
+    #                        "val-len"     : val_len,
+    #                        "pattern"     : pattern },
+    #                      repeat=1, timeout=2400) # TODO: Decrease this once we see how long these tests actually take.
+    pass
+
 # For safety: ensure that nodes are terminated in case of exceptions
 try:
     # Setup the EC2 testing nodes
@@ -629,6 +800,8 @@ try:
             for (cores, slices) in [(2, 8)]:
                 # RUN ALL TESTS
                 run_all_tests(mode, checker, protocol, cores, slices)
+
+    run_fixed_tests()
 
     # GO THROUGH ALL OUR ENVIRONMENTS
     for (mode, checker) in [

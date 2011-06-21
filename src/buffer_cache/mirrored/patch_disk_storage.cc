@@ -1,10 +1,11 @@
 #include "buffer_cache/mirrored/patch_disk_storage.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "mirrored.hpp"
 
 const block_magic_t mc_config_block_t::expected_magic = { { 'm','c','f','g' } };
 
-void patch_disk_storage_t::create(translator_serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config) {
+void patch_disk_storage_t::create(serializer_t *serializer, block_id_t start_id, mirrored_cache_static_config_t *config) {
 
     /* Prepare the config block */
     mc_config_block_t *c = reinterpret_cast<mc_config_block_t *>(serializer->malloc());
@@ -12,7 +13,7 @@ void patch_disk_storage_t::create(translator_serializer_t *serializer, block_id_
     c->magic = mc_config_block_t::expected_magic;
     c->cache = *config;
 
-    translator_serializer_t::write_t write = translator_serializer_t::write_t::make(
+    serializer_t::write_t write = serializer_t::write_t::make(
         start_id,
         repli_timestamp::invalid,
         c,
@@ -20,7 +21,7 @@ void patch_disk_storage_t::create(translator_serializer_t *serializer, block_id_
         NULL);
 
     /* Write it to the serializer */
-    on_thread_t switcher(serializer->home_thread);
+    on_thread_t switcher(serializer->home_thread());
 
     struct : public serializer_t::write_txn_callback_t, public cond_t {
         void on_serializer_write_txn() { pulse(); }
@@ -38,7 +39,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
 
     // Read the existing config block & determine which blocks are alive
     {
-        on_thread_t switcher(cache.serializer->home_thread);
+        on_thread_t switcher(cache.serializer->home_thread());
 
         // Load and parse config block
         mc_config_block_t *config_block = reinterpret_cast<mc_config_block_t *>(cache.serializer->malloc());
@@ -50,9 +51,9 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
         number_of_blocks = config_block->cache.n_patch_log_blocks;
         cache.serializer->free(config_block);
 
-        if ((long long)number_of_blocks > (long long)cache.dynamic_config->max_size / cache.get_block_size().ser_value()) {
+        if ((long long)number_of_blocks > (long long)cache.dynamic_config.max_size / cache.get_block_size().ser_value()) {
             fail_due_to_user_error("The cache of size %d blocks is too small to hold this database's diff log of %d blocks.",
-                (int)(cache.dynamic_config->max_size / cache.get_block_size().ser_value()),
+                (int)(cache.dynamic_config.max_size / cache.get_block_size().ser_value()),
                 (int)(number_of_blocks));
         }
 
@@ -82,7 +83,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
         if (!block_is_empty[current_block - first_block]) {
             /* This automatically starts reading the block from disk and registers it with the
             cache. */
-            new mc_inner_buf_t(&cache, current_block, true);
+            new mc_inner_buf_t(&cache, current_block, true, cache.reads_io_account.get());
         }
     }
 
@@ -140,10 +141,10 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
                 current_offset += patch->get_serialized_size();
                 // Only store the patch if the corresponding block still exists
                 // (otherwise we'd get problems when flushing the log, as deleted blocks would cause an error)
-                rassert(get_thread_id() == cache.home_thread);
-                coro_t::move_to_thread(cache.serializer->home_thread);
+                rassert(get_thread_id() == cache.home_thread());
+                coro_t::move_to_thread(cache.serializer->home_thread());
                 bool block_in_use = cache.serializer->block_in_use(patch->get_block_id());
-                coro_t::move_to_thread(cache.home_thread);
+                coro_t::move_to_thread(cache.home_thread());
                 if (block_in_use)
                     patch_map[patch->get_block_id()].push_back(patch);
                 else
@@ -154,7 +155,7 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
 
     for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patch_list = patch_map.begin(); patch_list != patch_map.end(); ++patch_list) {
         // Sort the list to get patches in the right order
-        patch_list->second.sort(dereferencing_compare_t<buf_patch_t>());
+        patch_list->second.sort(dereferencing_buf_patch_compare_t());
 
         // Store list into in_core_storage
         in_memory_storage.load_block_patch_list(patch_list->first, patch_list->second);
@@ -421,49 +422,21 @@ void patch_disk_storage_t::init_log_block(const block_id_t log_block_id) {
     bzero(reinterpret_cast<char *>(buf_data) + sizeof(LOG_BLOCK_MAGIC), cache.serializer->get_block_size().value() - sizeof(LOG_BLOCK_MAGIC));
 }
 
-// Just the same as in buffer_cache/co_functions.cc (TODO: Refactor?)
-struct co_block_available_callback_2_t : public mc_block_available_callback_t {
-    coro_t *self;
-    mc_buf_t *value;
-
-    virtual void on_block_available(mc_buf_t *block) {
-        value = block;
-        self->notify();
-    }
-
-    mc_buf_t *join() {
-        self = coro_t::self();
-        coro_t::wait();
-        return value;
-    }
-};
-
 mc_buf_t *patch_disk_storage_t::acquire_block_no_locking(const block_id_t block_id) {
     cache.assert_thread();
 
     mc_inner_buf_t *inner_buf = cache.page_map.find(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
-        inner_buf = new mc_inner_buf_t(&cache, block_id, true);
+        inner_buf = new mc_inner_buf_t(&cache, block_id, true, cache.reads_io_account.get());
     }
-    
-    // We still have to acquire the lock once to wait for the buf to get ready
-    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_read, mc_inner_buf_t::faux_version_id, false);
 
-    if (buf->ready) {
-        // Release the lock we've got
-        buf->inner_buf->lock.unlock();
-        buf->non_locking_access = true;
-        buf->mode = rwi_write;
-        return buf;
-    } else {
-        co_block_available_callback_2_t cb;
-        buf->callback = &cb;
-        buf = cb.join();
-        // Release the lock we've got
-        buf->inner_buf->lock.unlock();
-        buf->non_locking_access = true;
-        buf->mode = rwi_write;
-        return buf;
-    }
+    // We still have to acquire the lock once to wait for the buf to get ready
+    mc_buf_t *buf = new mc_buf_t(inner_buf, rwi_read, mc_inner_buf_t::faux_version_id, false, 0);
+
+    // Release the lock we've got
+    buf->inner_buf->lock.unlock();
+    buf->non_locking_access = true;
+    buf->mode = rwi_write;
+    return buf;
 }

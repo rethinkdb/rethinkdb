@@ -2,54 +2,61 @@
 #define __CONCURRENCY_CORO_POOL_HPP__
 
 #include "errors.hpp"
-#include "concurrency/cond_var.hpp"
-#include "concurrency/gate.hpp"
-#include "concurrency/semaphore.hpp"
+#include "concurrency/queue/passive_producer.hpp"
+#include "concurrency/drain_semaphore.hpp"
 
-/* coro_pool_t allows tasks to be queued. These tasks are dispatched
-to a number of coroutine workers. The workers themselves get allocated and destroyed
-dynamically, obeying some limit on the maximal number of running worker coroutines.
+/* coro_pool_t maintains a bunch of coroutines; when you give it tasks, it
+distributes them among the coroutines. It draws its tasks from a
+`passive_producer_t<boost::function<void()> >*`.
 
-TODO: coro_pool_t should be split. The part that actually dispatches the coroutines
-should be an active consumer. The part that queues up the coroutines should be a
-separate, generic queue object. */
+Right now, a number of different things depent on the `coro_pool_t` finishing
+all of its tasks and draining its `passive_producer_t` before its destructor
+returns. */
 
-class coro_pool_t : public home_thread_mixin_t {
+class coro_pool_t :
+    public home_thread_mixin_t,
+    private watchable_t<bool>::watcher_t
+{
 public:
-    coro_pool_t(size_t worker_count_, size_t max_queue_depth_) :
-        queue_depth_sem(max_queue_depth_),
+    coro_pool_t(size_t worker_count_, passive_producer_t<boost::function<void()> > *source) :
+        source(source),
         max_worker_count(worker_count_),
         active_worker_count(0)
     {
         rassert(max_worker_count > 0);
+        on_watchable_changed();   // Start process if necessary
+        source->available->add_watcher(this);
     }
 
     ~coro_pool_t() {
         assert_thread();
-
-        task_drain_semaphore.drain();
+        source->available->remove_watcher(this);
         coro_drain_semaphore.drain();
-
-        rassert(task_queue.empty());
         rassert(active_worker_count == 0);
     }
 
-    void queue_task(const boost::function<void()> task) {
+    void rethread(int new_thread) {
+        /* Can't rethread while there are active operations */
+        rassert(active_worker_count == 0);
+        rassert(!source->available->get());
+        real_home_thread = new_thread;
+        coro_drain_semaphore.rethread(new_thread);
+    }
 
-        rassert(task);
-        on_thread_t thread_switcher(home_thread);
+    // Blocks until all pending tasks have been processed. The coro_pool_t is
+    // reusable immediately after drain() returns.
+    void drain() {
+        assert_thread();
+        coro_drain_semaphore.drain();
+    }
 
-        rassert(active_worker_count <= max_worker_count);
+private:
+    passive_producer_t<boost::function<void()> > *source;
 
-        // Place the task on the queue
-        task_drain_semaphore.acquire();
-        queue_depth_sem.co_lock();
-        task_queue.push_back(task);
-
-        // Spawn a new worker if permitted
-        if (active_worker_count < max_worker_count) {
-            ++active_worker_count;
-            coro_t::spawn(boost::bind(
+    void on_watchable_changed() {
+        assert_thread();
+        while (source->available->get() && active_worker_count < max_worker_count) {
+            coro_t::spawn_now(boost::bind(
                 &coro_pool_t::worker_run,
                     this,
                     drain_semaphore_t::lock_t(&coro_drain_semaphore)
@@ -57,24 +64,19 @@ public:
         }
     }
 
-private:
-    semaphore_t queue_depth_sem;
+    int max_worker_count, active_worker_count;
 
-    int max_worker_count;
-    int active_worker_count;
-    std::deque<boost::function<void()> > task_queue;
-
-    drain_semaphore_t task_drain_semaphore, coro_drain_semaphore;
+    drain_semaphore_t coro_drain_semaphore;
 
     void worker_run(UNUSED drain_semaphore_t::lock_t coro_drain_semaphore_lock) {
         assert_thread();
-        while (!task_queue.empty()) {
-            boost::function<void()> task = task_queue.front();
-            task_queue.pop_front();
-            task();
-            queue_depth_sem.unlock();
-            task_drain_semaphore.release();
-            assert_thread(); // Make sure that task() didn't mess with us
+        ++active_worker_count;
+        rassert(active_worker_count <= max_worker_count);
+        while (source->available->get()) {
+            /* Pop the task that we are going to do off the queue */
+            boost::function<void()> task = source->pop();
+            task();   // Perform the task
+            assert_thread();   // Make sure that `task()` didn't mess with us
         }
         --active_worker_count;
     }

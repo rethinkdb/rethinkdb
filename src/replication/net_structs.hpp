@@ -10,10 +10,12 @@ namespace replication {
 
 enum multipart_aspect { SMALL = 0x81, FIRST = 0x82, MIDDLE = 0x83, LAST = 0x84 };
 
-enum message_code { MSGCODE_NIL = 0, INTRODUCE,
-                    BACKFILL, BACKFILL_COMPLETE, BACKFILL_DELETE_EVERYTHING, BACKFILL_SET, BACKFILL_DELETE,
-                    // TODO: Explicitly number these
-                    GET_CAS, SARC, INCR, DECR, APPEND, PREPEND, DELETE, NOP };
+enum message_code { MSGCODE_NIL = 0, INTRODUCE = 1,
+                    BACKFILL = 2, BACKFILL_COMPLETE = 3, BACKFILL_DELETE_EVERYTHING = 4,
+                    BACKFILL_SET = 5, BACKFILL_DELETE = 6,
+
+                    GET_CAS = 7, SARC = 8, INCR = 9, DECR = 10, APPEND = 11, PREPEND = 12,
+                    DELETE = 13, TIMEBARRIER = 14, HEARTBEAT = 15 };
 
 struct net_castime_t {
     cas_t proposed_cas;
@@ -33,17 +35,23 @@ struct net_introduce_t {
 } __attribute__((__packed__));
 
 struct net_header_t {
-    uint8_t message_multipart_aspect;
-    uint8_t msgcode;
     uint16_t msgsize;
+    uint8_t message_multipart_aspect;
 } __attribute__((__packed__));
 
 struct net_multipart_header_t {
-    uint8_t message_multipart_aspect;
-    uint8_t msgcode;
     uint16_t msgsize;
+    uint8_t message_multipart_aspect;
     uint32_t ident;
 } __attribute__((__packed__));
+
+// Non-multipart messages consist of a net_header_t, followed by a
+// uint8_t message_code, followed by a structure type defined below.
+
+// Multipart messages consist of a net_multipart_header_t, followed by
+// { a uint8_t message_code, then some structure type defined below,
+// if it's the first message of the stream | another piece of the
+// message, if it's not the first message in the stream }
 
 struct net_backfill_t {
     repli_timestamp timestamp;
@@ -54,14 +62,16 @@ struct net_backfill_complete_t {
 } __attribute__((__packed__));
 
 struct net_backfill_delete_everything_t {
-    // We need at least 4 bytes so that we do not get a msgsize
-    // smaller than sizeof(net_multipart_header_t).
+    // Unnecessary padding.
     uint32_t padding;
 } __attribute__((__packed__));
 
-// TODO: Get rid of one of these, and maybe just make the protocol
-// "layer" completely symmetric.
-struct net_nop_t {
+struct net_heartbeat_t {
+    // Unnecessary padding.
+    uint32_t padding;
+} __attribute__((__packed__));
+
+struct net_timebarrier_t {
     repli_timestamp timestamp;
 } __attribute__((__packed__));
 
@@ -147,18 +157,6 @@ struct net_backfill_delete_t {
     uint16_t padding;
     uint16_t key_size;
     char key[];
-} __attribute__((__packed__));
-
-template <class T>
-struct headed {
-    net_header_t hdr;
-    T data;
-} __attribute__((__packed__));
-
-template <class T>
-struct multipart_headed {
-    net_multipart_header_t hdr;
-    T data;
 } __attribute__((__packed__));
 
 }  // namespace replication

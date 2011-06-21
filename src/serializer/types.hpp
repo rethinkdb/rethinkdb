@@ -10,40 +10,21 @@ typedef uint64_t ser_transaction_id_t;
 #define NULL_SER_TRANSACTION_ID (ser_transaction_id_t(0))
 #define FIRST_SER_TRANSACTION_ID (ser_transaction_id_t(1))
 
-struct ser_block_id_t {
-    typedef uint32_t number_t;
-
-    // Distrust things that access value directly.
-    number_t value;
-
-    inline bool operator==(ser_block_id_t other) const { return value == other.value; }
-    inline bool operator!=(ser_block_id_t other) const { return value != other.value; }
-    inline bool operator<(ser_block_id_t other) const { return value < other.value; }
-
-    static inline ser_block_id_t make(number_t num) {
-        rassert(num != number_t(-1));
-        ser_block_id_t ret;
-        ret.value = num;
-        return ret;
-    }
-
-    static inline ser_block_id_t null() {
-        ser_block_id_t ret;
-        ret.value = uint32_t(-1);
-        return ret;
-    }
-};
+typedef uint32_t block_id_t;
+#define NULL_BLOCK_ID (block_id_t(-1))
 
 /* TODO: buf_data_t and block_size_t depend on the serializer implementation details, so they don't
 belong in this file. */
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
 struct buf_data_t {
-    ser_block_id_t block_id;
+    block_id_t block_id;
     ser_transaction_id_t transaction_id;
 } __attribute__((__packed__));
 
 
+// TODO: Hopefully it's not serialized using more than 16 bits.
+//
 //  block_size_t is serialized as part of some patches.  Changing this changes the disk format!
 class block_size_t {
 public:

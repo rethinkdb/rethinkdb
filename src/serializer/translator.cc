@@ -24,7 +24,7 @@ void prep_serializer(
 
     /* Go to the thread the serializer is running on because it can only be accessed safely from
     that thread */
-    on_thread_t thread_switcher(ser->home_thread);
+    on_thread_t thread_switcher(ser->home_thread());
 
     /* Write the initial configuration block */
     multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(
@@ -64,7 +64,7 @@ void create_proxies(const std::vector<serializer_t *> &underlying,
 
     /* Go to the thread the serializer is running on because it is only safe to access on that
     thread and because the pseudoserializers must be created on that thread */
-    on_thread_t thread_switcher(ser->home_thread);
+    on_thread_t thread_switcher(ser->home_thread());
 
     /* Load config block */
     multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(ser->malloc());
@@ -125,7 +125,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
 
     /* Figure out how many slices there are gonna be and figure out what the creation magic is */
     {
-        on_thread_t thread_switcher(underlying[0]->home_thread);
+        on_thread_t thread_switcher(underlying[0]->home_thread());
 
         /* Load config block */
         multiplexer_config_block_t *c = reinterpret_cast<multiplexer_config_block_t *>(
@@ -152,7 +152,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
 }
 
 void destroy_proxy(std::vector<translator_serializer_t *> *proxies, int i) {
-    on_thread_t thread_switcher((*proxies)[i]->home_thread);
+    on_thread_t thread_switcher((*proxies)[i]->home_thread());
     delete (*proxies)[i];
 }
 
@@ -168,25 +168,25 @@ int serializer_multiplexer_t::compute_mod_count(int32_t file_number, int32_t n_f
 
 /* translator_serializer_t */
 
-ser_block_id_t translator_serializer_t::translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid) {
-    return ser_block_id_t::make(id * mod_count + mod_id + cfgid.subsequent_ser_id().value);
+block_id_t translator_serializer_t::translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid) {
+    return id * mod_count + mod_id + cfgid.subsequent_ser_id();
 }
 
-int translator_serializer_t::untranslate_block_id_to_mod_id(ser_block_id_t inner_id, int mod_count, config_block_id_t cfgid) {
+int translator_serializer_t::untranslate_block_id_to_mod_id(block_id_t inner_id, int mod_count, config_block_id_t cfgid) {
     // We know that inner_id == id * mod_count + mod_id + min.
     // Thus inner_id - min == id * mod_count + mod_id.
     // It follows that inner_id - min === mod_id (modulo mod_count).
     // So (inner_id - min) % mod_count == mod_id (since 0 <= mod_id < mod_count).
     // (And inner_id - min >= 0, so '%' works as expected.)
-    return (inner_id.value - cfgid.subsequent_ser_id().value) % mod_count;
+    return (inner_id - cfgid.subsequent_ser_id()) % mod_count;
 }
 
-block_id_t translator_serializer_t::untranslate_block_id_to_id(ser_block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid) {
+block_id_t translator_serializer_t::untranslate_block_id_to_id(block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid) {
     // (simply dividing by mod_count should be sufficient, but this is cleaner)
-    return (inner_id.value - cfgid.subsequent_ser_id().value - mod_id) / mod_count;
+    return (inner_id - cfgid.subsequent_ser_id() - mod_id) / mod_count;
 }
 
-ser_block_id_t translator_serializer_t::translate_block_id(block_id_t id) {
+block_id_t translator_serializer_t::translate_block_id(block_id_t id) {
     return translate_block_id(id, mod_count, mod_id, cfgid);
 }
 
@@ -209,8 +209,8 @@ void translator_serializer_t::free(void *ptr) {
     inner->free(ptr);
 }
 
-file_t::account_t *translator_serializer_t::make_io_account(int priority) {
-    return inner->make_io_account(priority);
+file_t::account_t *translator_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
+    return inner->make_io_account(priority, outstanding_requests_limit);
 }
 
 bool translator_serializer_t::do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, serializer_t::read_callback_t *callback) {
@@ -258,14 +258,14 @@ block_size_t translator_serializer_t::get_block_size() {
 }
 
 block_id_t translator_serializer_t::max_block_id() {
-    int64_t x = inner->max_block_id().value - cfgid.subsequent_ser_id().value;
+    int64_t x = inner->max_block_id() - cfgid.subsequent_ser_id();
     if (x <= 0) {
         x = 0;
     } else {
         while (x % mod_count != mod_id) x++;
         x /= mod_count;
     }
-    rassert(translate_block_id(x).value >= inner->max_block_id().value);
+    rassert(translate_block_id(x) >= inner->max_block_id());
 
     while (x > 0) {
         --x;
@@ -286,7 +286,7 @@ repli_timestamp translator_serializer_t::get_recency(block_id_t id) {
     return inner->get_recency(translate_block_id(id));
 }
 
-bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     inner->assert_thread();
 
     // Offer the buffer if we are the correct shard
@@ -298,7 +298,9 @@ bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void
 
     if (read_ahead_callback) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
-        read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, recency_timestamp);
+        if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, recency_timestamp))
+            // They aren't going to free the buffer, so we do.
+            inner->free(buf);
     } else {
         // Discard the buffer
         inner->free(buf);
@@ -307,14 +309,14 @@ bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void
 }
 
 void translator_serializer_t::register_read_ahead_cb(translator_serializer_t::read_ahead_callback_t *cb) {
-    on_thread_t t(inner->home_thread);
+    on_thread_t t(inner->home_thread());
 
     rassert(!read_ahead_callback);
     inner->register_read_ahead_cb(this);
     read_ahead_callback = cb;
 }
 void translator_serializer_t::unregister_read_ahead_cb(UNUSED translator_serializer_t::read_ahead_callback_t *cb) {
-    on_thread_t t(inner->home_thread);
+    on_thread_t t(inner->home_thread());
 
     rassert(read_ahead_callback == NULL || cb == read_ahead_callback);
     inner->unregister_read_ahead_cb(this);

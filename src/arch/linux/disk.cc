@@ -10,6 +10,7 @@
 #include "arch/linux/arch.hpp"
 #include "config/args.hpp"
 #include "utils2.hpp"
+#include "print_backtrace.hpp"
 #include "arch/linux/coroutines.hpp"
 #include "logger.hpp"
 #include "arch/linux/disk/aio.hpp"
@@ -25,8 +26,8 @@ perfmon_duration_sampler_t
     pm_io_disk_stack_writes("io_disk_stack_writes", secs_to_ticks(1));
 
 perfmon_duration_sampler_t
-    pm_io_disk_backend_reads("io_disk_backend_reads", secs_to_ticks(1)),
-    pm_io_disk_backend_writes("io_disk_backend_writes", secs_to_ticks(1));
+    pm_io_disk_backend_reads("io_disk_backend_reads", secs_to_ticks(1), false),
+    pm_io_disk_backend_writes("io_disk_backend_writes", secs_to_ticks(1), false);
 
 /* Disk manager object takes care of queueing operations, collecting statistics, preventing
 conflicts, and actually sending them to the disk. Defined as an abstract class so that different
@@ -37,7 +38,7 @@ actual implementations can be swapped in at runtime. */
 struct linux_disk_manager_t {
     virtual ~linux_disk_manager_t() { }
 
-    virtual void *create_account(int priority) = 0;
+    virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
     virtual void destroy_account(void *account) = 0;
 
     virtual void submit_write(fd_t fd, const void *buf, size_t count, size_t offset,
@@ -49,54 +50,50 @@ struct linux_disk_manager_t {
 template<class backend_t>
 struct linux_templated_disk_manager_t : public linux_disk_manager_t {
 
-    /* This is the whole IO stack in reverse order. At the top level, we allocate a new
-    action_t object for each operation and record its callback. Then it passes through
-    the conflict resolver, which enforces ordering constraints between IO operations by
-    holding back operations that must be run after other, currently-running, operations.
-    Then it goes to the account manager, which queues up running IO operations according
-    to which account they are part of. Finally the account manager passes the IO
-    operations to the backend, which might use a thread pool or might be AIO-based.
-
-    At two points in the process -- once as soon as it is submitted, and again right
-    before it is sent to the backend -- its statistics are recorded. The "stack stats"
-    will tell you how many IO opeations are queued. The "backend stats" will tell you
-    how long the OS takes to perform the operations. Note that it's not perfect, because
-    it counts operations that have been queued by the backend but not sent to the OS yet
-    as having been sent to the OS. */
-
-    backend_t backend;
-
-    typedef stats_diskmgr_t<typename backend_t::action_t> backend_stats_t;
-    backend_stats_t backend_stats;
-
+    typedef stats_diskmgr_2_t<typename backend_t::action_t> backend_stats_t;
     typedef accounting_diskmgr_t<typename backend_stats_t::action_t> accounter_t;
-    accounter_t accounter;
-
     typedef conflict_resolving_diskmgr_t<typename accounter_t::action_t> conflict_resolver_t;
-    conflict_resolver_t conflict_resolver;
-
     typedef stats_diskmgr_t<typename conflict_resolver_t::action_t> stack_stats_t;
-    stack_stats_t stack_stats;
-
     struct action_t : public stack_stats_t::action_t {
         linux_iocallback_t *cb;
     };
 
+    /* These fields describe the entire IO stack. At the top level, we allocate a new
+    action_t object for each operation and record its callback. Then it passes through
+    the conflict resolver, which enforces ordering constraints between IO operations by
+    holding back operations that must be run after other, currently-running, operations.
+    Then it goes to the account manager, which queues up running IO operations according
+    to which account they are part of. Finally the backend (which may be either AIO-based
+    or thread-pool-based) pops the IO operations from the queue.
+
+    At two points in the process--once as soon as it is submitted, and again right
+    as the backend pops it off the queue--its statistics are recorded. The "stack stats"
+    will tell you how many IO operations are queued. The "backend stats" will tell you
+    how long the OS takes to perform the operations. Note that it's not perfect, because
+    it counts operations that have been queued by the backend but not sent to the OS yet
+    as having been sent to the OS. */
+
+    stack_stats_t stack_stats;
+    conflict_resolver_t conflict_resolver;
+    accounter_t accounter;
+    backend_stats_t backend_stats;
+    backend_t backend;
+
     linux_templated_disk_manager_t(linux_event_queue_t *queue) :
-        backend(queue),
-        backend_stats(&pm_io_disk_backend_reads, &pm_io_disk_backend_writes),
-        /* The parameter to `accounter` is how many IO operations it will pass on to `backend`
-        before waiting for some of them to complete. If it is too high, then the accounting will be
-        biased. If it is too low, then `backend`'s pipeline won't always be full. */
-        accounter(TARGET_IO_QUEUE_DEPTH * 2),
-        stack_stats(&pm_io_disk_stack_reads, &pm_io_disk_stack_writes)
+        stack_stats(&pm_io_disk_stack_reads, &pm_io_disk_stack_writes),
+        conflict_resolver(),
+        accounter(),
+        backend_stats(&pm_io_disk_backend_reads, &pm_io_disk_backend_writes, accounter.producer),
+        backend(queue, backend_stats.producer),
+        outstanding_txn(0)
     {
-        /* Hook up the different elements in the stack to one another by setting their callback
-        functions appropriately */
+        /* Hook up the `submit_fun`s of the parts of the IO stack that are above the
+        queue. (The parts below the queue use the `passive_producer_t` interface instead
+        of a callback function.) */
         stack_stats.submit_fun = boost::bind(&conflict_resolver_t::submit, &conflict_resolver, _1);
         conflict_resolver.submit_fun = boost::bind(&accounter_t::submit, &accounter, _1);
-        accounter.submit_fun = boost::bind(&backend_stats_t::submit, &backend_stats, _1);
-        backend_stats.submit_fun = boost::bind(&backend_t::submit, &backend, _1);
+
+        /* Hook up everything's `done_fun`. */
         backend.done_fun = boost::bind(&backend_stats_t::done, &backend_stats, _1);
         backend_stats.done_fun = boost::bind(&accounter_t::done, &accounter, _1);
         accounter.done_fun = boost::bind(&conflict_resolver_t::done, &conflict_resolver, _1);
@@ -104,8 +101,12 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
         stack_stats.done_fun = boost::bind(&linux_templated_disk_manager_t<backend_t>::done, this, _1);
     }
 
-    void *create_account(int pri) {
-        return reinterpret_cast<void*>(new typename accounter_t::account_t(&accounter, pri));
+    ~linux_templated_disk_manager_t() {
+        rassert(outstanding_txn == 0, "Closing a file with outstanding txns\n");
+    }
+
+    void *create_account(int pri, int outstanding_requests_limit) {
+        return reinterpret_cast<void*>(new typename accounter_t::account_t(&accounter, pri, outstanding_requests_limit));
     }
 
     void destroy_account(void *account) {
@@ -113,6 +114,7 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
     }
 
     void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
+        outstanding_txn++;
         action_t *a = new action_t;
         a->make_write(fd, buf, count, offset);
         a->account = reinterpret_cast<typename accounter_t::account_t*>(account);
@@ -121,6 +123,7 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
     }
 
     void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
+        outstanding_txn++;
         action_t *a = new action_t;
         a->make_read(fd, buf, count, offset);
         a->account = reinterpret_cast<typename accounter_t::account_t*>(account);
@@ -129,16 +132,20 @@ struct linux_templated_disk_manager_t : public linux_disk_manager_t {
     };
 
     void done(typename stack_stats_t::action_t *a) {
+        outstanding_txn--;
         action_t *a2 = static_cast<action_t *>(a);
         a2->cb->on_io_complete();
         delete a2;
     }
+
+private:
+    int outstanding_txn;
 };
 
 /* Disk account object */
 
-linux_file_t::account_t::account_t(linux_file_t *par, int pri) :
-    parent(par), account(parent->diskmgr->create_account(pri))
+linux_file_t::account_t::account_t(linux_file_t *par, int pri, int outstanding_requests_limit) :
+    parent(par), account(parent->diskmgr->create_account(pri, outstanding_requests_limit))
     { }
 
 linux_file_t::account_t::~account_t() {
@@ -185,8 +192,25 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
     // Open the file
 
     fd.reset(open(path, flags, 0644));
-    if (fd.get() == INVALID_FD)
-        fail_due_to_user_error("Inaccessible database file: \"%s\": %s", path, strerror(errno));
+    if (fd.get() == INVALID_FD) {
+        fail_due_to_user_error(
+            "Inaccessible database file: \"%s\": %s"
+            "\nSome possible reasons:"
+            "%s"    // for creation/open error
+            "%s"    // for O_DIRECT message
+            "%s",   // for O_NOATIME message
+            path, strerror(errno),
+            is_block ?
+                "\n- the database device couldn't be opened for reading and writing" :
+                "\n- the database file couldn't be created or opened for reading and writing",
+            is_really_direct ?
+                (is_block ?
+                    "\n- the database block device cannot be opened with O_DIRECT flag" :
+                    "\n- the database file is located on a filesystem that doesn't support O_DIRECT open flag (e.g. in case when the filesystem is working in journaled mode)"
+                ) : "",
+            !is_block ? "\n- user which was used to start the database is not an owner of the file" : ""
+        );
+    }
 
     file_exists = true;
 
@@ -204,6 +228,14 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
         file_size = size;
     }
 
+    // TODO: We have a very minor correctness issue here, which is that
+    // we don't guarantee data durability for newly created database files.
+    // In theory, we would have to fsync() not only the file itself, but
+    // also the directory containing it. Otherwise the file might not
+    // survive a crash of the system. However, the window for data to get lost
+    // this way is just a few seconds after the creation of a new database,
+    // until the file system flushes the metadata to disk.
+
     // Construct a disk manager. (given that we have an event pool)
     if (linux_thread_pool_t::thread) {
         linux_event_queue_t *queue = &linux_thread_pool_t::thread->queue;
@@ -213,7 +245,7 @@ linux_file_t::linux_file_t(const char *path, int mode, bool is_really_direct, co
             diskmgr.reset(new linux_templated_disk_manager_t<pool_diskmgr_t>(queue));
         }
 
-        default_account.reset(new account_t(this, 1));
+        default_account.reset(new account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }
 
@@ -233,6 +265,9 @@ void linux_file_t::set_size(size_t size) {
     rassert(!is_block);
     int res = ftruncate(fd.get(), size);
     guarantee_err(res == 0, "Could not ftruncate()");
+    fsync(fd.get()); // Make sure that the metadata change gets persisted
+                     // before we start writing to the resized file.
+                     // (to be safe in case of system crashes etc.)
     file_size = size;
 }
 
@@ -308,7 +343,12 @@ linux_file_t::~linux_file_t() {
 void linux_file_t::verify(UNUSED size_t offset, UNUSED size_t length, UNUSED const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
-    rassert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
-    rassert(offset % DEVICE_BLOCK_SIZE == 0);
-    rassert(length % DEVICE_BLOCK_SIZE == 0);
+#ifndef NDEBUG
+    bool bufmod = (intptr_t)buf % DEVICE_BLOCK_SIZE == 0;
+    rassert(bufmod);
+    bool offmod = offset % DEVICE_BLOCK_SIZE == 0;
+    rassert(offmod);
+    bool lengthmod = length % DEVICE_BLOCK_SIZE == 0;
+    rassert(lengthmod);
+#endif
 }

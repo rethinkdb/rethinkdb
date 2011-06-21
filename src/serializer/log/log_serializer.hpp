@@ -48,17 +48,17 @@ struct ls_read_fsm_t;
 struct ls_start_new_fsm_t;
 struct ls_start_existing_fsm_t;
 
-struct log_serializer_t :
+class log_serializer_t :
     public serializer_t,
     private data_block_manager_t::gc_writer_t,
     private data_block_manager_t::shutdown_callback_t,
     private lba_index_t::shutdown_callback_t
 {
-    friend class ls_block_writer_t;
-    friend class ls_write_fsm_t;
-    friend class ls_read_fsm_t;
-    friend class ls_start_new_fsm_t;
-    friend class ls_start_existing_fsm_t;
+    friend struct ls_block_writer_t;
+    friend struct ls_write_fsm_t;
+    friend struct ls_read_fsm_t;
+    friend struct ls_start_new_fsm_t;
+    friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
     friend class dbm_read_ahead_fsm_t;
 
@@ -98,25 +98,25 @@ public:
     void *clone(void*); // clones a buf
     void free(void*);
 
-    file_t::account_t *make_io_account(int priority);
+    file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
 
     void register_read_ahead_cb(read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
-    bool do_read(ser_block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback);
-    ser_transaction_id_t get_current_transaction_id(ser_block_id_t block_id, const void* buf);
+    bool do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback);
+    ser_transaction_id_t get_current_transaction_id(block_id_t block_id, const void* buf);
     bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback = NULL) {
         return do_write(writes, num_writes, io_account, callback, tid_callback, false);
     }
     block_size_t get_block_size();
-    ser_block_id_t max_block_id();
-    bool block_in_use(ser_block_id_t id);
-    repli_timestamp get_recency(ser_block_id_t id);
+    block_id_t max_block_id();
+    bool block_in_use(block_id_t id);
+    repli_timestamp get_recency(block_id_t id);
 
 private:
     bool do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback, bool main_mutex_has_been_acquired);
 
     std::vector<read_ahead_callback_t*> read_ahead_callbacks;
-    bool offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
+    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool should_perform_read_ahead();
 
     /* Called by the data block manager when it wants us to rewrite some blocks */

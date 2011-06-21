@@ -1,10 +1,10 @@
 #include "free_list.hpp"
 #include "buffer_cache/stats.hpp"
 
-array_free_list_t::array_free_list_t(translator_serializer_t *serializer)
+array_free_list_t::array_free_list_t(serializer_t *serializer)
     : serializer(serializer)
 {
-    on_thread_t switcher(serializer->home_thread);
+    on_thread_t switcher(serializer->home_thread());
     num_blocks_in_use = 0;
     next_new_block_id = serializer->max_block_id();
     for (block_id_t i = 0; i < next_new_block_id; i++) {

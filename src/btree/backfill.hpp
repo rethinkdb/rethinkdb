@@ -5,11 +5,14 @@
 #include "store.hpp"
 #include "replication/delete_queue.hpp"
 
+// Run backfilling at a reduced priority
+#define BACKFILL_CACHE_PRIORITY 10
+
 class btree_slice_t;
 
 struct backfill_atom_t {
     store_key_t key;
-    unique_ptr_t<data_provider_t> value;
+    boost::shared_ptr<data_provider_t> value;
     mcflags_t flags;
     exptime_t exptime;
     repli_timestamp recency;
@@ -21,7 +24,7 @@ struct backfill_atom_t {
 class backfill_callback_t : public replication::deletion_key_stream_receiver_t {
 public:
     virtual void on_keyvalue(backfill_atom_t atom) = 0;
-    virtual void done() = 0;
+    virtual void done_backfill() = 0;
 protected:
     virtual ~backfill_callback_t() { }
 };
@@ -30,7 +33,7 @@ protected:
 or equal than `since_when` but which reached the tree before `btree_backfill()` was called.
 It may also find changes that happened before `since_when`. */
 
-void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, backfill_callback_t *callback);
+void btree_backfill(btree_slice_t *slice, repli_timestamp since_when, boost::shared_ptr<cache_account_t> backfill_account, backfill_callback_t *callback, order_token_t token);
 
 
 #endif  // __BTREE_BACKFILL_HPP__

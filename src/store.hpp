@@ -5,6 +5,7 @@
 #include "arch/arch.hpp"
 #include "data_provider.hpp"
 #include "concurrency/cond_var.hpp"
+#include "concurrency/fifo_checker.hpp"
 #include "containers/iterators.hpp"
 #include "containers/unique_ptr.hpp"
 #include <boost/shared_ptr.hpp>
@@ -71,10 +72,10 @@ struct key_with_data_provider_t {
 };
 
 // A NULL unique pointer means not allowed
-typedef unique_ptr_t<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
+typedef boost::shared_ptr<one_way_iterator_t<key_with_data_provider_t> > rget_result_t;
 
 struct get_result_t {
-    get_result_t(unique_ptr_t<data_provider_t> v, mcflags_t f, cas_t c) :
+    get_result_t(boost::shared_ptr<data_provider_t> v, mcflags_t f, cas_t c) :
         is_not_allowed(false), value(v), flags(f), cas(c) { }
     get_result_t() :
         is_not_allowed(false), value(), flags(0), cas(0) { }
@@ -84,16 +85,17 @@ struct get_result_t {
 
     // NULL means not found. Parts of the store may wait for the data_provider_t's destructor,
     // so don't hold on to it forever.
-    unique_ptr_t<data_provider_t> value;
+    boost::shared_ptr<data_provider_t> value;
 
     mcflags_t flags;
     cas_t cas;
 };
 
-struct get_store_t {
-    virtual get_result_t get(const store_key_t &key) = 0;
+class get_store_t {
+public:
+    virtual get_result_t get(const store_key_t &key, order_token_t token) = 0;
     virtual rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key,
-        rget_bound_mode_t right_mode, const store_key_t &right_key) = 0;
+                               rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token) = 0;
     virtual ~get_store_t() {}
 };
 
@@ -106,8 +108,8 @@ struct castime_t {
 
     castime_t(cas_t proposed_cas_, repli_timestamp timestamp_)
         : proposed_cas(proposed_cas_), timestamp(timestamp_) { }
-    // TODO: ugh.
-    castime_t() { }
+
+    castime_t() : proposed_cas(0), timestamp(repli_timestamp::invalid) { }
 };
 
 /* get_cas is a mutation instead of another method on get_store_t because it may need to
@@ -137,7 +139,7 @@ struct sarc_mutation_t {
 
     /* The value to give the key; must not be NULL.
     TODO: Should NULL mean a deletion? */
-    unique_ptr_t<data_provider_t> data;
+    boost::shared_ptr<data_provider_t> data;
 
     /* The flags to store with the value */
     mcflags_t flags;
@@ -155,6 +157,8 @@ struct sarc_mutation_t {
     the return value will be sr_didnt_replace. */
     replace_policy_t replace_policy;
     cas_t old_cas;
+
+    //sarc_mutation_t() { BREAKPOINT; }
 };
 
 enum set_result_t {
@@ -167,8 +171,6 @@ enum set_result_t {
     sr_didnt_replace,
     /* Returned if the value to be stored is too big */
     sr_too_large,
-    /* Returned if the data_provider_t that you gave returned have_failed(). */
-    sr_data_provider_failed,
     /* Returned if the store doesn't want you to do what you're doing. */
     sr_not_allowed,
 };
@@ -215,20 +217,22 @@ enum append_prepend_kind_t { append_prepend_APPEND, append_prepend_PREPEND };
 struct append_prepend_mutation_t {
     append_prepend_kind_t kind;
     store_key_t key;
-    unique_ptr_t<data_provider_t> data;
+    boost::shared_ptr<data_provider_t> data;
 };
 
 enum append_prepend_result_t {
     apr_success,
     apr_too_large,
     apr_not_found,
-    apr_data_provider_failed,
     apr_not_allowed,
 };
 
 struct mutation_t {
+    typedef boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation_variant_t;
+    mutation_variant_t mutation;
 
-    boost::variant<get_cas_mutation_t, sarc_mutation_t, delete_mutation_t, incr_decr_mutation_t, append_prepend_mutation_t> mutation;
+    mutation_t() { 
+    }
 
     // implicit
     template<class T>
@@ -240,7 +244,10 @@ struct mutation_t {
 
 struct mutation_result_t {
 
-    boost::variant<get_result_t, set_result_t, delete_result_t, incr_decr_result_t, append_prepend_result_t> result;
+    typedef boost::variant<get_result_t, set_result_t, delete_result_t, incr_decr_result_t, append_prepend_result_t> result_variant_t;
+    result_variant_t result;
+
+    mutation_result_t() { }
 
     // implicit
     template<class T>
@@ -251,13 +258,13 @@ class set_store_interface_t {
 
 public:
     /* These NON-VIRTUAL methods all construct a mutation_t and then call change(). */
-    get_result_t get_cas(const store_key_t &key);
-    set_result_t sarc(const store_key_t &key, unique_ptr_t<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas);
-    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount);
-    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, unique_ptr_t<data_provider_t> data);
-    delete_result_t delete_key(const store_key_t &key, bool dont_store_in_delete_queue=false);
+    get_result_t get_cas(const store_key_t &key, order_token_t token);
+    set_result_t sarc(const store_key_t &key, boost::shared_ptr<data_provider_t> data, mcflags_t flags, exptime_t exptime, add_policy_t add_policy, replace_policy_t replace_policy, cas_t old_cas, order_token_t token);
+    incr_decr_result_t incr_decr(incr_decr_kind_t kind, const store_key_t &key, uint64_t amount, order_token_t token);
+    append_prepend_result_t append_prepend(append_prepend_kind_t kind, const store_key_t &key, boost::shared_ptr<data_provider_t> data, order_token_t token);
+    delete_result_t delete_key(const store_key_t &key, order_token_t token, bool dont_store_in_delete_queue=false);
 
-    virtual mutation_result_t change(const mutation_t&) = 0;
+    virtual mutation_result_t change(const mutation_t&, order_token_t) = 0;
 
     virtual ~set_store_interface_t() {}
 };
@@ -273,7 +280,7 @@ arbitrary order.*/
 class set_store_t {
 
 public:
-    virtual mutation_result_t change(const mutation_t&, castime_t) = 0;
+    virtual mutation_result_t change(const mutation_t&, castime_t, order_token_t) = 0;
 
     virtual ~set_store_t() {}
 };
@@ -291,11 +298,14 @@ class timestamping_set_store_interface_t :
 public:
     timestamping_set_store_interface_t(set_store_t *target);
 
-    mutation_result_t change(const mutation_t &);
+    mutation_result_t change(const mutation_t&, order_token_t);
 
     /* When we pass a mutation through, we give it a timestamp determined by the last call to
     set_timestamp(). */
     void set_timestamp(repli_timestamp_t ts);
+#ifndef NDEBUG
+    repli_timestamp_t get_timestamp() const { return timestamp; }
+#endif
 
 private:
     castime_t make_castime();

@@ -15,14 +15,15 @@
 void usage_serve() {
     Help_Pager *help = Help_Pager::instance();
     help->pagef("Usage:\n"
-                "        rethinkdb serve [OPTIONS] [-f <file_1> -f <file_2> ...]\n"
+                "        rethinkdb serve [OPTIONS] [-f <file_1> -f <file_2> ... --metadata-file <file>]\n"
                 "        Serve a database with one or more storage files.\n"
                 "\n"
                 "Options:\n"
 
     //          "                        24 characters start here.                              | < last character
                 "  -f, --file            Path to file or block device where database goes.\n"
-                "                        Can be specified multiple times to use multiple files.\n");
+                "                        Can be specified multiple times to use multiple files.\n"
+                "  --metadata-file       Path to file or block device used for database metadata.\n");
     help->pagef("  -c, --cores           Number of cores to use for handling requests.\n"
                 "  -m, --max-cache-size  Maximum amount of RAM to use for caching disk\n"
                 "                        blocks, in megabytes. This should be ~80%% of\n" 
@@ -101,12 +102,14 @@ void usage_serve() {
                 "                        slave it will be replica of the master and will respond\n"
                 "                        only to get and rget. When the master goes down it will\n"
                 "                        begin responding to writes.\n"
+                "      --heartbeat-timeout\n"
+                "                        If the slave does not receive a heartbeat message from the\n"
+                "                        master within --heartbeat-timeout seconds, it will\n"
+                "                        terminate the connection and try to reconnect. If that\n"
+                "                        fails too, it will assume masterhood.\n"
                 "      --failover-script Used in conjunction with --slave-of to specify a script\n"
                 "                        that will be run when the master fails and comes back up\n"
-                "                        see manual for an example script.\n" //TODO @jdoliner add this to the manual slava where is the manual?
-                "      --run-behind-elb  Used in conjunction with --slave-of makes the server\n"
-                "                        compatible with Amazon Elastic Load Balancer (using TCP as\n"
-                "                        the protocol.) See manual for a detailed description.\n"); //TODO add this to manual
+                "                        see manual for an example script.\n");
     help->pagef("\n"
                 "Serve can be called with no arguments to run a server with default parameters.\n"
                 "For best performance RethinkDB should be run with one --file per device and a\n"
@@ -160,6 +163,22 @@ void usage_create() {
     exit(0);
 }
 
+void usage_import() {
+    Help_Pager *help = Help_Pager::instance();
+    help->pagef("Usage:\n"
+                "        rethinkdb import [OPTIONS] -f <file_1> [-f <file_2> ...]\n" 
+                "                  --memcached-file <mc_file1> [--memcached-file <mc_file2> ...]\n"
+                "        Import data from raw  memcached commands.\n");
+    help->pagef("\n"
+                "Output options:\n"
+                "  -l, --log-file        File to log to. If not provided, messages will be\n"
+                "                        printed to stderr.\n");
+    help->pagef("\n"
+                "Files are imported in the order specified, thus if a key is set in successive\n" 
+                "files it will ultimately be set to the value in the last file it's metioned in.\n");
+    exit(0);
+}
+
 enum {
     wait_for_flush = 256, // Start these values above the ASCII range.
     flush_timer,
@@ -172,33 +191,47 @@ enum {
     read_ahead,
     diff_log_size,
     force_create,
+    force_unslavify,
     coroutine_stack_size,
     master_port,
     slave_of,
-    failover_script,
     heartbeat_timeout,
+    failover_script,
     flush_concurrency,
     flush_threshold,
-    run_behind_elb,
-    failover,
     full_perfmon,
-    total_delete_queue_limit
+    total_delete_queue_limit,
+    memcache_file,
+    metadata_file
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     parsing_cmd_config_t config;
 
     std::vector<log_serializer_private_dynamic_config_t>& private_configs = config.store_dynamic_config.serializer_private;
+    log_serializer_private_dynamic_config_t &metadata_private_config = config.store_dynamic_config.metadata_serializer_private;
 
     /* main() will have automatically inserted "serve" if no argument was specified */
-    rassert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create"));
+    rassert(!strcmp(argv[0], "serve") || !strcmp(argv[0], "create") || !strcmp(argv[0], "import"));
+
+    if (argc >= 2 && !strcmp(argv[1], "help")) {
+        if (!strcmp(argv[0], "serve"))
+            usage_serve();
+        else if (!strcmp(argv[0], "create"))
+            usage_create();
+        else if (!strcmp(argv[0], "import"))
+            usage_import();
+        else
+            unreachable();
+    }
 
     if (!strcmp(argv[0], "create")) {
-        if (argc >= 2 && !strcmp(argv[1], "help")) {
-            usage_create();
-        }
         config.create_store = true;
         config.shutdown_after_creation = true;
+    }
+
+    if (!strcmp(argv[0], "import")) {
+        config.import_config.do_import = true;
     }
 
     bool slices_set_by_user = false;
@@ -208,6 +241,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     {
         int do_help = 0;
         int do_force_create = 0;
+        int do_force_unslavify = 0;
         int do_full_perfmon = 0;
         struct option long_options[] =
             {
@@ -227,6 +261,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
                 {"file",                 required_argument, 0, 'f'},
+                {"metadata-file",        required_argument, 0, metadata_file},
 #ifdef SEMANTIC_SERIALIZER_CHECK
                 {"semantic-file",        required_argument, 0, 'S'},
 #endif
@@ -235,16 +270,16 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"port",                 required_argument, 0, 'p'},
                 {"verbose",              no_argument, (int*)&config.verbose, 1},
                 {"force",                no_argument, &do_force_create, 1},
+                {"force-unslavify",      no_argument, &do_force_unslavify, 1},
                 {"help",                 no_argument, &do_help, 1},
                 {"master",               required_argument, 0, master_port},
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
-                {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout}, //TODO @sam push this through to where you want it
-                {"run-behind-elb",       required_argument, 0, run_behind_elb},
-                {"failover",             no_argument, 0, failover}, //TODO hook this up
+                {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout},
                 {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
+                {"memcached-file", required_argument, 0, memcache_file},
                 {0, 0, 0, 0}
             };
 
@@ -255,6 +290,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
             c = 'h';
         if (do_force_create)
             c = force_create;
+        if (do_force_unslavify)
+            c = force_unslavify;
         if (do_full_perfmon) {
             c = full_perfmon;
         }
@@ -287,6 +324,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
 #endif
             case 'm':
                 config.set_max_cache_size(optarg); break;
+            case metadata_file:
+                config.set_metadata_file(optarg); break;
             case wait_for_flush:
                 config.set_wait_for_flush(optarg); break;
             case flush_timer:
@@ -315,25 +354,29 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_coroutine_stack_size(optarg); break;
             case force_create:
                 config.force_create = true; break;
+            case force_unslavify:
+                config.force_unslavify = true; break;
             case master_port:
                 config.set_master_listen_port(optarg); break;
             case slave_of:
                 config.set_master_addr(optarg); break;
+            case heartbeat_timeout:
+                config.set_heartbeat_timeout(optarg); break;
             case failover_script:
                 config.set_failover_file(optarg); break;
-            case heartbeat_timeout:
-                not_implemented(); break;
-            case run_behind_elb:
-                config.set_elb_port(optarg); break;
             case full_perfmon:
                 global_full_perfmon = true; break;
             case total_delete_queue_limit:
                 config.set_total_delete_queue_limit(optarg); break;
+            case memcache_file:
+                config.import_config.add_import_file(optarg); break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */
                 if (config.create_store) {
                     usage_create();
+                } else if (config.import_config.do_import) {
+                    usage_import();
                 } else {
                     usage_serve();
                 }
@@ -345,31 +388,50 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     }
     
     /* "Idiot mode" -- do something reasonable for novice users */
+    bool no_data_files = private_configs.empty();
+    bool no_metadata_file = metadata_private_config.db_filename.empty();
     
-    if (private_configs.empty() && !config.create_store) {        
-        struct log_serializer_private_dynamic_config_t db_info;
-        db_info.db_filename = DEFAULT_DB_FILE_NAME;
-#ifdef SEMANTIC_SERIALIZER_CHECK
-        db_info.semantic_filename = std::string(DEFAULT_DB_FILE_NAME) + DEFAULT_SEMANTIC_EXTENSION;
-#endif
-        private_configs.push_back(db_info);
-        
-        int res = access(DEFAULT_DB_FILE_NAME, F_OK);
-        if (res == 0) {
-            /* Found a database file -- try to load it */
-            config.create_store = false;   // This is redundant
-        } else if (res == -1 && errno == ENOENT) {
-            /* Create a new database */
-            config.create_store = true;
-            config.shutdown_after_creation = false;
-        } else {
-            fail_due_to_user_error("Could not access() path \"%s\": %s", DEFAULT_DB_FILE_NAME, strerror(errno));
+    if (!config.create_store) {
+        if (no_data_files && no_metadata_file) {
+            struct log_serializer_private_dynamic_config_t db_info;
+            db_info.db_filename = DEFAULT_DB_FILE_NAME;
+            metadata_private_config.db_filename = DEFAULT_DB_METADATA_FILE_NAME;
+    #ifdef SEMANTIC_SERIALIZER_CHECK
+            db_info.semantic_filename = std::string(DEFAULT_DB_FILE_NAME) + DEFAULT_SEMANTIC_EXTENSION;
+            metadata_private_config.semantic_filename = std::string(DEFAULT_DB_METADATA_FILE_NAME) + DEFAULT_SEMANTIC_EXTENSION;
+    #endif
+            private_configs.push_back(db_info);
+
+            int res1 = access(DEFAULT_DB_FILE_NAME, F_OK);
+            int errno1 = errno;
+            int res2 = access(DEFAULT_DB_METADATA_FILE_NAME, F_OK);
+            int errno2 = errno;
+            if (res1 == 0 && res2 == 0) {
+                /* Found database files -- try to load */
+                config.create_store = false;   // This is redundant
+            } else if (res1 == -1 && errno1 == ENOENT && res2 == -1 && errno2 == ENOENT) {
+                /* Create a new database */
+                config.create_store = true;
+                config.shutdown_after_creation = false;
+            } else {
+                if (res1)
+                    report_user_error("Could not access() path \"%s\": %s", DEFAULT_DB_FILE_NAME, strerror(errno1));
+                if (res2)
+                    report_user_error("Could not access() path \"%s\": %s", DEFAULT_DB_METADATA_FILE_NAME, strerror(errno2));
+                exit(-1);
+            }
+        } else if (no_data_files) {
+            fprintf(stderr, "Metadata file specified, but no data files specified; use -f.\n");
+            usage_serve();
+        } else if (no_metadata_file) {
+            fprintf(stderr, "Data file(s) specified, but no metadata file specified; use --metadata-file.\n");
+            usage_serve();
         }
-    } else if (private_configs.empty() && config.create_store) {
-        fprintf(stderr, "You must explicitly specify one or more paths with -f.\n");
+    } else if (config.create_store && (no_data_files || no_metadata_file)) {
+        fprintf(stderr, "You must explicitly specify one or more paths with -f, and one with --metadata-file.\n");
         usage_create();
     }
-    
+
     /* Sanity-check the input */
     
     if (config.store_dynamic_config.cache.max_dirty_size == 0 ||
@@ -393,7 +455,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
     }
     
     if (config.store_static_config.serializer.extent_size() % config.store_static_config.serializer.block_size().ser_value() != 0) {
-        fail_due_to_user_error("Extent size (%d) is not a multiple of block size (%d).", 
+        fail_due_to_user_error("Extent size (%lu) is not a multiple of block size (%lu).",
              config.store_static_config.serializer.extent_size(),
              config.store_static_config.serializer.block_size().ser_value());
     }
@@ -461,6 +523,13 @@ void parsing_cmd_config_t::push_private_config(const char* value) {
     store_dynamic_config.serializer_private.push_back(db_info);
 }
 
+void parsing_cmd_config_t::set_metadata_file(const char *value) {
+    store_dynamic_config.metadata_serializer_private.db_filename = std::string(value);
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    store_dynamic_config.metadata_serializer_private.semantic_filename = std::string(value) + DEFAULT_SEMANTIC_EXTENSION;
+#endif
+}
+
 #ifdef SEMANTIC_SERIALIZER_CHECK
 void parsing_cmd_config_t::set_last_semantic_file(const char* value) {    
     if (store_dynamic_config.serializer_private.size() == 0)
@@ -510,11 +579,11 @@ void parsing_cmd_config_t::set_extent_size(const char* value) {
     long long int target;
     const long long int minimum_value = 1ll;
     const long long int maximum_value = TERABYTE;
-    
+
     target = parse_longlong(value);
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
-        fail_due_to_user_error("Extent size must be a number from %d to %d.", minimum_value, maximum_value);
-        
+        fail_due_to_user_error("Extent size must be a number from %lld to %lld.", minimum_value, maximum_value);
+
     store_static_config.serializer.unsafe_extent_size() = static_cast<long long unsigned int>(target);
 }
 
@@ -532,7 +601,7 @@ long long parsing_cmd_config_t::parse_diff_log_size(const char* value) {
 
     result = parse_longlong(value) * MEGABYTE;
     if (parsing_failed || !is_in_range(result, minimum_value, maximum_value))
-        fail_due_to_user_error("Diff log size must be a number from %d to %d.", minimum_value, maximum_value);
+        fail_due_to_user_error("Diff log size must be a number from %lld to %lld.", minimum_value, maximum_value);
 
     return result;
 }
@@ -546,7 +615,7 @@ void parsing_cmd_config_t::set_block_size(const char* value) {
     if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
         fail_due_to_user_error("Block size must be a number from %d to %d.", minimum_value, maximum_value);
     if (target % DEVICE_BLOCK_SIZE != 0)
-        fail_due_to_user_error("Block size must be a multiple of %d.", DEVICE_BLOCK_SIZE);
+        fail_due_to_user_error("Block size must be a multiple of %ld.", DEVICE_BLOCK_SIZE);
         
     store_static_config.serializer.unsafe_block_size() = static_cast<unsigned int>(target);
 }
@@ -599,11 +668,6 @@ void parsing_cmd_config_t::set_max_cache_size(const char* value) {
     if (parsing_failed || !is_positive(int_value))
         fail_due_to_user_error("Cache size must be a positive number.");
 
-    // TODO: Explain why this code is commented out, for wtf is there commented out code without explanation?
-
-    //if (is_at_most(int_value, static_cast<int>(get_total_ram() / 1024 / 1024)))
-    //    fail_due_to_user_error("Cache size is larger than this machine's total memory (%s MB).", get_total_ram() / 1024 / 1024);
-        
     store_dynamic_config.cache.max_size = (long long)(int_value) * MEGABYTE;
 }
 
@@ -699,6 +763,17 @@ void parsing_cmd_config_t::set_master_addr(const char *value) {
     replication_config.active = true;
 }
 
+void parsing_cmd_config_t::set_heartbeat_timeout(const char* value) {
+    int& target = replication_config.heartbeat_timeout;
+    const int minimum_value = REPLICATION_HEARTBEAT_INTERVAL / 1000 + 1;
+    const int maximum_value = 3600;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
+        fail_due_to_user_error("Heartbeat timeout must be a number from %d to %d.", minimum_value, maximum_value);
+    target *= 1000; // Convert to milliseconds
+}
+
 void parsing_cmd_config_t::set_total_delete_queue_limit(const char *value) {
     int64_t target = parse_longlong(value);
     if (parsing_failed || target < 0)
@@ -712,22 +787,6 @@ void parsing_cmd_config_t::set_failover_file(const char* value) {
         fail_due_to_user_error("Failover script path is too long");
 
     strcpy(failover_config.failover_script_path, value);
-}
-void parsing_cmd_config_t::set_heartbeat_timeout(const char* value) {
-    failover_config.heartbeat_timeout = parse_int(value);
-
-    if (failover_config.heartbeat_timeout < 0)
-        fail_due_to_user_error("Heartbeat cannot be negative");
-}
-
-void parsing_cmd_config_t::set_elb_port(const char *value) {
-    int& target = failover_config.elb_port;
-    const int minimum_value = 0;
-    const int maximum_value = 65535;
-    
-    target = parse_int(value);
-    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
-        fail_due_to_user_error("Invalid TCP port (must be a number from %d to %d).", minimum_value, maximum_value);
 }
 
 void parsing_cmd_config_t::set_io_backend(const char* value) {
@@ -810,18 +869,23 @@ void cmd_config_t::print_runtime_flags() {
 }
 
 void cmd_config_t::print_database_flags() {
-    printf("--- Database ---\n");
-    printf("Slices.............%d\n", store_static_config.btree.n_slices);
-    printf("Block size.........%ldKB\n", store_static_config.serializer.block_size().ser_value() / KILOBYTE);
-    printf("Extent size........%ldKB\n", store_static_config.serializer.extent_size() / KILOBYTE);
-    
+    log_serializer_private_dynamic_config_t &metadata_config = store_dynamic_config.metadata_serializer_private;
     const std::vector<log_serializer_private_dynamic_config_t>& private_configs = store_dynamic_config.serializer_private;
+
+    printf("--- Database ---\n");
+    printf("Slices..................%d\n", store_static_config.btree.n_slices);
+    printf("Block size..............%ldKB\n", store_static_config.serializer.block_size().ser_value() / KILOBYTE);
+    printf("Extent size.............%ldKB\n", store_static_config.serializer.extent_size() / KILOBYTE);
+    printf("Metadata file...........%s\n", metadata_config.db_filename.c_str());
+#ifdef SEMANTIC_SERIALIZER_CHECK
+    printf("Metadata semantic file..%s\n", metadata_config.semantic_filename.c_str());
+#endif
     
     for (size_t i = 0; i != private_configs.size(); i++) {
         const log_serializer_private_dynamic_config_t& db_info = private_configs[i];
-        printf("File %.2u............%s\n", (uint) i + 1, db_info.db_filename.c_str());
+        printf("File %.2u.................%s\n", (uint) i + 1, db_info.db_filename.c_str());
 #ifdef SEMANTIC_SERIALIZER_CHECK
-        printf("Semantic file %.2u...%s\n", (uint) i + 1, db_info.semantic_filename.c_str());
+        printf("Semantic file %.2u........%s\n", (uint) i + 1, db_info.semantic_filename.c_str());
 #endif
     }
 }
@@ -866,7 +930,7 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.serializer.num_active_data_extents = DEFAULT_ACTIVE_DATA_EXTENTS;
     store_dynamic_config.serializer.file_size = 0;   // Unlimited file size
     store_dynamic_config.serializer.file_zone_size = GIGABYTE;
-    store_dynamic_config.serializer.read_ahead = false;
+    store_dynamic_config.serializer.read_ahead = true;
     /* #if WE_ARE_ON_LINUX */
     store_dynamic_config.serializer.io_backend = aio_native;
     /* #endif */
@@ -878,6 +942,8 @@ cmd_config_t::cmd_config_t() {
     store_dynamic_config.cache.flush_dirty_size = 0;
     store_dynamic_config.cache.flush_waiting_threshold = DEFAULT_FLUSH_WAITING_THRESHOLD;
     store_dynamic_config.cache.max_concurrent_flushes = DEFAULT_MAX_CONCURRENT_FLUSHES;
+    store_dynamic_config.cache.io_priority_reads = CACHE_READS_IO_PRIORITY;
+    store_dynamic_config.cache.io_priority_writes = CACHE_WRITES_IO_PRIORITY;
 
     store_dynamic_config.total_delete_queue_limit = DEFAULT_TOTAL_DELETE_QUEUE_LIMIT;
 
@@ -888,8 +954,10 @@ cmd_config_t::cmd_config_t() {
     replication_config.port = DEFAULT_REPLICATION_PORT;
     memset(replication_config.hostname, 0, MAX_HOSTNAME_LEN);
     replication_config.active = false;
+    replication_config.heartbeat_timeout = DEFAULT_REPLICATION_HEARTBEAT_TIMEOUT;
     replication_master_listen_port = DEFAULT_REPLICATION_PORT;
     replication_master_active = false;
+    force_unslavify = false;
 
     store_static_config.serializer.unsafe_extent_size() = DEFAULT_EXTENT_SIZE;
     store_static_config.serializer.unsafe_block_size() = DEFAULT_BTREE_BLOCK_SIZE;

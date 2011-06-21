@@ -1,4 +1,5 @@
 #include "extent.hpp"
+#include "perfmon.hpp"
 
 struct extent_block_t :
     public extent_t::sync_callback_t,
@@ -68,7 +69,10 @@ extent_t::extent_t(extent_manager_t *em, direct_file_t *file, off64_t loc, size_
     : offset(loc), amount_filled(size), em(em), file(file), last_block(NULL), current_block(NULL)
 {
     em->reserve_extent(offset);
-    rassert(amount_filled % DEVICE_BLOCK_SIZE == 0);
+#ifndef NDEBUG
+    bool modcmp = amount_filled % DEVICE_BLOCK_SIZE == 0;
+    rassert(modcmp);
+#endif
     pm_serializer_lba_extents++;
 }
 
@@ -122,7 +126,10 @@ void extent_t::append(void *buffer, size_t length, file_t::account_t *io_account
 }
 
 void extent_t::sync(sync_callback_t *cb) {
-    rassert(amount_filled % DEVICE_BLOCK_SIZE == 0);
+#ifndef NDEBUG
+    bool modcmp = amount_filled % DEVICE_BLOCK_SIZE == 0;
+    rassert(modcmp);
+#endif
     rassert(!current_block);
     if (last_block) {
         last_block->sync_cbs.push_back(cb);

@@ -4,7 +4,6 @@
 #include <queue>
 
 #include "replication/protocol.hpp"
-#include "replication/queueing_store.hpp"
 #include "server/cmd_args.hpp"
 #include "server/control.hpp"
 #include "store.hpp"
@@ -25,8 +24,7 @@
 #define N_SECONDS (5*60)
 #define MAX_RECONNECTS_PER_N_SECONDS (5)
 
-/* This is a hack and we shouldn't be tied to this particular type */
-struct btree_key_value_store_t;
+class btree_key_value_store_t;
 
 namespace replication {
 

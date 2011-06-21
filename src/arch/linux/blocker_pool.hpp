@@ -6,8 +6,9 @@
 #include "arch/linux/system_event.hpp"
 #include <pthread.h>
 
-struct blocker_pool_t : public linux_event_callback_t {
-
+struct blocker_pool_t :
+    public linux_event_callback_t
+{
     blocker_pool_t(int nthreads, linux_event_queue_t *queue);
     ~blocker_pool_t();
 
@@ -19,6 +20,7 @@ struct blocker_pool_t : public linux_event_callback_t {
         /* done() will be called within the main thread pool once run() is done. */
         virtual void done() = 0;
 
+    protected:
         virtual ~job_t() {}
     };
     void do_job(job_t *job);

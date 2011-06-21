@@ -4,6 +4,7 @@
 #include <list>
 #include <boost/scoped_array.hpp>
 #include <boost/bind.hpp>
+#include "containers/intrusive_list.hpp"
 
 namespace unittest {
 
@@ -52,11 +53,11 @@ struct test_driver_t {
         conflicting actions */
         for (intrusive_list_t<core_action_t>::iterator it = running_actions.begin();
              it != running_actions.end(); it++) {
-            if (!(a->is_read && (*it).is_read)) {
+            if (!(a->is_read && (*it)->is_read)) {
                 /* They aren't both reads, so they should be non-overlapping. */
                 ASSERT_TRUE(
-                    (int)a->offset >= (int)((*it).offset + (*it).count) ||
-                    (int)(*it).offset >= (int)(a->offset + a->count));
+                    (int)a->offset >= (int)((*it)->offset + (*it)->count) ||
+                    (int)(*it)->offset >= (int)(a->offset + a->count));
             }
         }
 

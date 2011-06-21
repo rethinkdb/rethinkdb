@@ -5,7 +5,6 @@
 #include <boost/shared_ptr.hpp>
 
 #include "buffer_cache/buffer_cache.hpp"
-#include "buffer_cache/transactor.hpp"
 #include "config/args.hpp"
 
 #include "containers/buffer_group.hpp"
@@ -54,13 +53,12 @@ enum should_load_code_t {
 
 
 class large_buf_t : public tree_available_callback_t {
-public:
+private:
     // The large_buf_ref (which resides in a btree_modify_oper_t,
     // typically) that this large_buf_t is attached to.  This is not
     // _truly_ const, see HACK_root_ref.
     large_buf_ref *const root_ref;
 
-private:
     // An upper bound of the size of the root_ref.  For example, btree
     // leaf nodes probably still give a ref_limit of
     // MAX_IN_NODE_VALUE_SIZE, which is probably still 250 bytes (and
@@ -72,7 +70,7 @@ private:
     access_t const access;
 
     // The transaction in which this large_buf_t's lifetime exists.
-    boost::shared_ptr<transactor_t> const txor;
+    boost::shared_ptr<transaction_t> const txn;
 
     // When we allocate or acquire a large buffer, we create a tree of
     // butrees, parallel to the on-disk tree, where each node holds
@@ -108,8 +106,10 @@ public:
     int64_t num_bufs;
 #endif
 
-    explicit large_buf_t(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, access_t access);
+    explicit large_buf_t(const boost::shared_ptr<transaction_t>& txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, access_t access);
     ~large_buf_t();
+
+    int64_t size() const { return root_ref->size; }
 
     // This is a COMPLETE HACK
     void HACK_root_ref(large_buf_ref *alternate_root_ref) {
@@ -124,7 +124,7 @@ public:
     void acquire_for_unprepend(int64_t extra_size, large_buf_available_callback_t *callback);
 
     // HEY: Just put this in co_functions.
-    static void co_enqueue(const boost::shared_ptr<transactor_t>& txor, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, const void *buf, int64_t n);
+    static void co_enqueue(const boost::shared_ptr<transaction_t>& txn, large_buf_ref *root_ref, lbref_limit_t ref_limit, int64_t amount_to_dequeue, const void *buf, int64_t n);
 
 
 
@@ -142,8 +142,7 @@ public:
 
     void mark_deleted();
 
-    // TODO:  Stop being a bad programmer and start knowing what thread you're on.
-    void ensure_thread(const thread_saver_t& saver) const { (*txor)->ensure_thread(saver); }
+    void assert_thread() const { txn->assert_thread(); }
 
     void on_block_available(buf_t *buf);
 
@@ -199,7 +198,7 @@ private:
     void removes_level(block_id_t *ids, int copyees);
     int try_shifting(std::vector<buftree_t *> *trs, block_id_t *block_ids, int64_t offset, int64_t size, int64_t stepsize);
 
-    block_size_t block_size() const { return (*txor)->cache->get_block_size(); }
+    block_size_t block_size() const { return txn->cache->get_block_size(); }
 
     void lv_release();
 

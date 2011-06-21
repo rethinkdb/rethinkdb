@@ -111,8 +111,8 @@ struct ls_start_existing_fsm_t :
         
         if (state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
-            for (ser_block_id_t::number_t id = 0; id < ser->lba_index->max_block_id().value; id++) {
-                flagged_off64_t offset = ser->lba_index->get_block_offset(ser_block_id_t::make(id));
+            for (block_id_t id = 0; id < ser->lba_index->max_block_id(); id++) {
+                flagged_off64_t offset = ser->lba_index->get_block_offset(id);
                 if (flagged_off64_t::can_be_gced(offset)) {
                     ser->data_block_manager->mark_live(offset.parts.value);
                 }
@@ -264,9 +264,9 @@ void log_serializer_t::free(void *ptr) {
     ::free(reinterpret_cast<void *>(data));
 }
 
-file_t::account_t *log_serializer_t::make_io_account(int priority) {
+file_t::account_t *log_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
     rassert(dbfile);
-    return new file_t::account_t(dbfile, priority);
+    return new file_t::account_t(dbfile, priority, outstanding_requests_limit);
 }
 
 /* Each transaction written is handled by a new ls_write_fsm_t instance. This is so that
@@ -377,7 +377,7 @@ struct ls_block_writer_t :
     }
 };
 
-perfmon_duration_sampler_t pm_serializer_writes("serializer_writes", secs_to_ticks(1));
+perfmon_duration_sampler_t pm_serializer_writes("serializer_writes", secs_to_ticks(1), false);
 
 struct ls_write_fsm_t :
     private iocallback_t,
@@ -454,7 +454,9 @@ struct ls_write_fsm_t :
     
     void on_thread_switch() {        
         // Launch up to this many block writers at a time, then yield the CPU
-        const int target_chunk_size = 100;
+        const int target_chunk_size = 1024; /* This must not be too low, otherwise writes
+                                             might hold the main_mutex for too long,
+                                             blocking out reads. */
         int chunk_size = 0;
         while (num_writes > 0 && chunk_size < target_chunk_size) {
             ls_block_writer_t *writer = new ls_block_writer_t(ser, *writes, io_account);
@@ -581,7 +583,7 @@ private:
     log_serializer_t::metablock_t mb_buffer;
 };
 
-perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_ticks(2));
+perfmon_sampler_t pm_serializer_write_size("serializer_write_size", secs_to_ticks(2), false);
 
 bool log_serializer_t::do_write(write_t *writes, int num_writes, file_t::account_t *io_account, write_txn_callback_t *callback, write_tid_callback_t *tid_callback, bool main_mutex_has_been_acquired) {
     // Even if state != state_ready we might get a do_write from the
@@ -643,7 +645,7 @@ bool log_serializer_t::write_gcs(data_block_manager_t::gc_write_t *gc_writes, in
     }
 }
 
-perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1));
+perfmon_duration_sampler_t pm_serializer_reads("serializer_reads", secs_to_ticks(1), false);
 
 struct ls_read_fsm_t :
     private iocallback_t,
@@ -651,11 +653,11 @@ struct ls_read_fsm_t :
 {
     ticks_t start_time;
     log_serializer_t *ser;
-    ser_block_id_t block_id;
+    block_id_t block_id;
     void *buf;
     file_t::account_t *io_account;
     
-    ls_read_fsm_t(log_serializer_t *ser, ser_block_id_t block_id, void *buf)
+    ls_read_fsm_t(log_serializer_t *ser, block_id_t block_id, void *buf)
         : ser(ser), block_id(block_id), buf(buf), io_account(DEFAULT_DISK_ACCOUNT)
     {
         pm_serializer_reads.begin(&start_time);
@@ -688,9 +690,9 @@ struct ls_read_fsm_t :
     }
 
     void on_io_complete() {
-        buf_data_t *data = ptr_cast<buf_data_t>(buf);
+        buf_data_t *data = reinterpret_cast<buf_data_t *>(buf);
         --data;
-        guarantee(data->block_id == block_id, "Got wrong block when reading from disk (id %u instead of %u).\n", data->block_id.value, block_id.value);
+        guarantee(data->block_id == block_id, "Got wrong block when reading from disk (id %u instead of %u).\n", data->block_id, block_id);
 
         done = true;
 
@@ -701,7 +703,7 @@ struct ls_read_fsm_t :
     }
 };
 
-bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback) {
+bool log_serializer_t::do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback) {
     rassert(state == state_ready);
     assert_thread();
     
@@ -720,7 +722,7 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, file_t::accou
 // The block_id is there to keep the interface independent from the serializer
 // implementation. The interface should be ok even for serializers which don't
 // have a transaction id in buf.
-ser_transaction_id_t log_serializer_t::get_current_transaction_id(UNUSED ser_block_id_t block_id, const void* buf) {
+ser_transaction_id_t log_serializer_t::get_current_transaction_id(UNUSED block_id_t block_id, const void* buf) {
     const buf_data_t *ser_data = reinterpret_cast<const buf_data_t *>(buf);
     ser_data--;
     rassert(block_id == ser_data->block_id);
@@ -731,14 +733,14 @@ block_size_t log_serializer_t::get_block_size() {
     return static_config.block_size();
 }
 
-ser_block_id_t log_serializer_t::max_block_id() {
+block_id_t log_serializer_t::max_block_id() {
     rassert(state == state_ready);
     assert_thread();
     
     return lba_index->max_block_id();
 }
 
-bool log_serializer_t::block_in_use(ser_block_id_t id) {
+bool log_serializer_t::block_in_use(block_id_t id) {
     
     // State is state_shutting_down if we're called from the data block manager during a GC
     // during shutdown.
@@ -749,7 +751,7 @@ bool log_serializer_t::block_in_use(ser_block_id_t id) {
     return !(lba_index->get_block_offset(id).parts.is_delete);
 }
 
-repli_timestamp log_serializer_t::get_recency(ser_block_id_t id) {
+repli_timestamp log_serializer_t::get_recency(block_id_t id) {
     return lba_index->get_block_recency(id);
 }
 
@@ -862,8 +864,8 @@ void log_serializer_t::enable_gc() {
 }
 
 void log_serializer_t::register_read_ahead_cb(read_ahead_callback_t *cb) {
-    if (get_thread_id() != home_thread) {
-        do_on_thread(home_thread, boost::bind(&log_serializer_t::register_read_ahead_cb, this, cb));
+    if (get_thread_id() != home_thread()) {
+        do_on_thread(home_thread(), boost::bind(&log_serializer_t::register_read_ahead_cb, this, cb));
         return;
     }
 
@@ -871,8 +873,8 @@ void log_serializer_t::register_read_ahead_cb(read_ahead_callback_t *cb) {
 }
 
 void log_serializer_t::unregister_read_ahead_cb(read_ahead_callback_t *cb) {
-    if (get_thread_id() != home_thread) {
-        do_on_thread(home_thread, boost::bind(&log_serializer_t::unregister_read_ahead_cb, this, cb));
+    if (get_thread_id() != home_thread()) {
+        do_on_thread(home_thread(), boost::bind(&log_serializer_t::unregister_read_ahead_cb, this, cb));
         return;
     }
 
@@ -884,7 +886,7 @@ void log_serializer_t::unregister_read_ahead_cb(read_ahead_callback_t *cb) {
     }
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
         if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, recency_timestamp)) {
             return true;

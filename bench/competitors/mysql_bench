@@ -59,7 +59,7 @@ while ! /usr/local/mysql/bin/mysqladmin shutdown -u root --port=9874 2> /dev/nul
     sleep 5
 done
 
-sudo set-corecount 12
+#sudo set-corecount 12
 
 
 # Run workloads

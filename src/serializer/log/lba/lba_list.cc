@@ -1,10 +1,10 @@
-
 #include <vector>
 #include "utils.hpp"
 #include "disk_format.hpp"
 #include "lba_list.hpp"
 #include "arch/arch.hpp"
 #include "logger.hpp"
+#include "perfmon.hpp"
 
 perfmon_counter_t pm_serializer_lba_gcs("serializer_lba_gcs");
 
@@ -25,10 +25,11 @@ void lba_list_t::prepare_initial_metablock(metablock_mixin_t *mb) {
     }
 }
 
-struct lba_start_fsm_t :
+class lba_start_fsm_t :
     private lba_disk_structure_t::load_callback_t,
     private lba_disk_structure_t::read_callback_t
 {
+public:
     int cbs_out;
     lba_list_t *owner;
     lba_list_t::ready_callback_t *callback;
@@ -84,26 +85,26 @@ bool lba_list_t::start_existing(direct_file_t *file, metablock_mixin_t *last_met
     }
 }
 
-ser_block_id_t lba_list_t::max_block_id() {
+block_id_t lba_list_t::max_block_id() {
     rassert(state == state_ready);
     
     return in_memory_index.max_block_id();
 }
 
-flagged_off64_t lba_list_t::get_block_offset(ser_block_id_t block) {
+flagged_off64_t lba_list_t::get_block_offset(block_id_t block) {
     rassert(state == state_ready);
     
     return in_memory_index.get_block_info(block).offset;
 }
 
-repli_timestamp lba_list_t::get_block_recency(ser_block_id_t block) {
+repli_timestamp lba_list_t::get_block_recency(block_id_t block) {
     rassert(state == state_ready);
 
     return in_memory_index.get_block_info(block).recency;
 }
 
 // TODO rename to set_block_info
-void lba_list_t::set_block_offset(ser_block_id_t block, repli_timestamp recency, flagged_off64_t offset, file_t::account_t *io_account) {
+void lba_list_t::set_block_offset(block_id_t block, repli_timestamp recency, flagged_off64_t offset, file_t::account_t *io_account) {
     rassert(state == state_ready);
 
     in_memory_index.set_block_info(block, recency, offset);
@@ -113,12 +114,13 @@ void lba_list_t::set_block_offset(ser_block_id_t block, repli_timestamp recency,
     current disk_structure, so it's meaningless but harmless to call add_entry(). However,
     since our changes are also being put into the in_memory_index, they will be
     incorporated into the new disk_structure that the GC creates, so they won't get lost. */
-    disk_structures[block.value % LBA_SHARD_FACTOR]->add_entry(block, recency, offset, io_account);
+    disk_structures[block % LBA_SHARD_FACTOR]->add_entry(block, recency, offset, io_account);
 }
 
-struct lba_syncer_t :
+class lba_syncer_t :
     public lba_disk_structure_t::sync_callback_t
 {
+public:
     lba_list_t *owner;
     bool done, should_delete_self;
     int structures_unsynced;
@@ -170,9 +172,10 @@ void lba_list_t::consider_gc(file_t::account_t *io_account) {
     }
 }
 
-struct gc_fsm_t :
+class gc_fsm_t :
     public lba_disk_structure_t::sync_callback_t
 {
+public:
     lba_list_t *owner;
     int i;
     
@@ -192,10 +195,10 @@ struct gc_fsm_t :
         
         /* Put entries in the new empty LBA */
 
-        for (ser_block_id_t::number_t id = i, end_id = owner->max_block_id().value;
+        for (block_id_t id = i, end_id = owner->max_block_id();
              id < end_id;
              id += LBA_SHARD_FACTOR) {
-            ser_block_id_t block_id = ser_block_id_t::make(id);
+            block_id_t block_id = id;
             flagged_off64_t off = owner->get_block_offset(block_id);
             if (flagged_off64_t::has_value(off)) {
                 owner->disk_structures[i]->add_entry(block_id, owner->get_block_recency(block_id), off, io_account);
@@ -237,7 +240,7 @@ bool lba_list_t::we_want_to_gc(int i) {
     // If we are not using more than N times the amount of space that we need, don't GC
     int entries_per_extent = disk_structures[i]->num_entries_that_can_fit_in_an_extent();
     int64_t entries_total = disk_structures[i]->extents_in_superblock.size() * entries_per_extent;
-    int64_t entries_live = max_block_id().value / LBA_SHARD_FACTOR;
+    int64_t entries_live = max_block_id() / LBA_SHARD_FACTOR;
     if ((entries_live / (float)entries_total) > LBA_MIN_UNGARBAGE_FRACTION) {
         return false;
     }

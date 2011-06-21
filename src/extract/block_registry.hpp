@@ -12,7 +12,7 @@ public:
     // Tells the block_registry about some new block that has been read.
     void tell_block(off64_t offset, const buf_data_t& buf_data);
 
-    bool has_block(ser_block_id_t block_id, off64_t offset);
+    bool has_block(block_id_t block_id, off64_t offset);
   
     // Destroys transaction_ids, we don't need them any more and we'd
     // like to free up memory.

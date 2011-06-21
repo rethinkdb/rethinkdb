@@ -4,11 +4,11 @@
 #include "concurrency/promise.hpp"
 #include "btree/btree_data_provider.hpp"
 
-// TODO: Use a shared_ptr to the transactor instead of a death_signalling_data_provider_t.
+// TODO: Use a shared_ptr to the transaction instead of a death_signalling_data_provider_t.
 
 struct death_signalling_data_provider_t : public data_provider_t {
 
-    death_signalling_data_provider_t(unique_ptr_t<data_provider_t> dp, cond_t *c) :
+    death_signalling_data_provider_t(boost::shared_ptr<data_provider_t> dp, cond_t *c) :
         dp(dp), pulse_on_death(c) { }
     ~death_signalling_data_provider_t() {
         pulse_on_death->pulse();
@@ -17,15 +17,15 @@ struct death_signalling_data_provider_t : public data_provider_t {
     size_t get_size() const {
         return dp->get_size();
     }
-    const const_buffer_group_t *get_data_as_buffers() throw (data_provider_failed_exc_t) {
+    const const_buffer_group_t *get_data_as_buffers() {
         return dp->get_data_as_buffers();
     }
-    void get_data_into_buffers(const buffer_group_t *bg) throw (data_provider_failed_exc_t) {
+    void get_data_into_buffers(const buffer_group_t *bg) {
         dp->get_data_into_buffers(bg);
     }
 
 private:
-    unique_ptr_t<data_provider_t> dp;
+    boost::shared_ptr<data_provider_t> dp;
     cond_t *pulse_on_death;
 };
 
@@ -39,7 +39,7 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
-    bool operate(const boost::shared_ptr<transactor_t>& txor, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
+    bool operate(const boost::shared_ptr<transaction_t>& txn, btree_value *old_value, boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) {
         if (!old_value) {
             /* If not found, there's nothing to do */
             res->pulse(get_result_t());
@@ -61,13 +61,13 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
             cas_to_report = proposed_cas;
         }
 
-        // Need to block on the caller so we don't free the large value before it's done
         // Deliver the value to the client via the promise_t we got
-        unique_ptr_t<value_data_provider_t> dp(value_data_provider_t::create(&value, txor));
+        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(&value, txn));
         if (value.is_large()) {
-            // When dp2 is destroyed, it will signal to_signal_when_done.
+            // Need to block on the caller so we don't free the large value before it's done
+            // When `dp2` is destroyed, it will signal `to_signal_when_done`.
             cond_t to_signal_when_done;
-            unique_ptr_t<death_signalling_data_provider_t> dp2(
+            boost::shared_ptr<death_signalling_data_provider_t> dp2(
                 new death_signalling_data_provider_t(dp, &to_signal_when_done));
             res->pulse(get_result_t(dp2, value.mcflags(), cas_to_report));
             to_signal_when_done.wait();
@@ -100,13 +100,13 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
 };
 
 void co_btree_get_cas(const store_key_t &key, castime_t castime, btree_slice_t *slice,
-        promise_t<get_result_t> *res) {
+                      promise_t<get_result_t> *res, order_token_t token) {
     btree_get_cas_oper_t oper(castime.proposed_cas, res);
-    run_btree_modify_oper(&oper, slice, key, castime);
+    run_btree_modify_oper(&oper, slice, key, castime, token);
 }
 
-get_result_t btree_get_cas(const store_key_t &key, btree_slice_t *slice, castime_t castime) {
+get_result_t btree_get_cas(const store_key_t &key, btree_slice_t *slice, castime_t castime, order_token_t token) {
     promise_t<get_result_t> res;
-    coro_t::spawn_now(boost::bind(co_btree_get_cas, key, castime, slice, &res));
+    coro_t::spawn_now(boost::bind(co_btree_get_cas, key, castime, slice, &res, token));
     return res.wait();
 }

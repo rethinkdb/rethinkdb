@@ -11,8 +11,6 @@
 
 namespace replication {
 
-// TODO unit test offsets
-
 slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t replication_config,
         failover_config_t failover_config, failover_t *failover) :
     failover_(failover),
@@ -26,7 +24,7 @@ slave_t::slave_t(btree_key_value_store_t *internal_store, replication_config_t r
     { }
 
 void slave_t::failover_reset() {
-    on_thread_t thread_switch(home_thread);
+    on_thread_t thread_switch(home_thread());
     give_up_.reset();
     timeout_ = INITIAL_TIMEOUT;
 
@@ -37,7 +35,7 @@ void slave_t::failover_reset() {
 }
 
 void slave_t::new_master(std::string host, int port) {
-    on_thread_t thread_switcher(home_thread);
+    on_thread_t thread_switcher(home_thread());
 
     /* redo the replication_config info */
     strcpy(replication_config_.hostname, host.c_str());
@@ -87,6 +85,8 @@ void slave_t::run(signal_t *shutdown_signal) {
         failover_->on_failure();
     }
 
+    backfill_receiver_order_source_t slave_order_source;
+
     while (!shutdown_signal->is_pulsed()) {
         try {
 
@@ -95,43 +95,50 @@ void slave_t::run(signal_t *shutdown_signal) {
             logINF("Attempting to connect as slave to: %s:%d\n",
                 replication_config_.hostname, replication_config_.port);
 
-            boost::scoped_ptr<tcp_conn_t> conn(
-                new tcp_conn_t(replication_config_.hostname, replication_config_.port));
-            slave_stream_manager_t stream_mgr(&conn, internal_store_, &slave_cond);
+            /* These brackets are so that the `slave_stream_manager_t` gets destroyed before we
+            go on to the phase of incrementing the replication clock. This is important, or else
+            it might have operations left in the `backfill_storer_t`'s queue that are not performed
+            until after we have incremented the replication clock, and that would cause corruption.
+            */
+            {
+                boost::scoped_ptr<tcp_conn_t> conn(
+                    new tcp_conn_t(replication_config_.hostname, replication_config_.port));
+                slave_stream_manager_t stream_mgr(&conn, internal_store_, &slave_cond, &slave_order_source, replication_config_.heartbeat_timeout);
 
-            // No exception was thrown; it must have worked.
-            timeout_ = INITIAL_TIMEOUT;
-            give_up_.on_reconnect();
-            failover_->on_resume();
-            logINF("Connected as slave to: %s:%d\n", replication_config_.hostname, replication_config_.port);
+                // No exception was thrown; it must have worked.
+                timeout_ = INITIAL_TIMEOUT;
+                give_up_.on_reconnect();
+                failover_->on_resume();
+                logINF("Connected as slave to: %s:%d\n", replication_config_.hostname, replication_config_.port);
 
-            // This makes it so that if we get a reset command, the connection
-            // will get closed.
-            pulse_to_reset_failover_.watch(&slave_cond);
+                // This makes it so that if we get a reset command, the connection
+                // will get closed.
+                pulse_to_reset_failover_.watch(&slave_cond);
 
-            // This makes it so that if we get a shutdown command, the connection gets closed.
-            cond_link_t close_connection_on_shutdown(shutdown_signal, &slave_cond);
+                // This makes it so that if we get a shutdown command, the connection gets closed.
+                cond_link_t close_connection_on_shutdown(shutdown_signal, &slave_cond);
 
-            // last_sync is the latest timestamp that we didn't get all the master's changes for
-            repli_timestamp last_sync = internal_store_->get_last_sync();
-            debugf("Last sync: %d\n", last_sync.time);
+                // last_sync is the latest timestamp that we didn't get all the master's changes for
+                repli_timestamp last_sync = internal_store_->get_last_sync();
+                debugf("Last sync: %d\n", last_sync.time);
 
-            if (!were_connected_before) {
-                failover_->on_reverse_backfill_begin();
-                // We use last_sync.next() so that we don't send any of the master's own changes back
-                // to it. This makes sense in conjunction with incrementing the replication clock when
-                // we lose contact with the master.
-                stream_mgr.reverse_side_backfill(last_sync.next());
-                failover_->on_reverse_backfill_end();
+                if (!were_connected_before) {
+                    failover_->on_reverse_backfill_begin();
+                    // We use last_sync.next() so that we don't send any of the master's own changes back
+                    // to it. This makes sense in conjunction with incrementing the replication clock when
+                    // we lose contact with the master.
+                    stream_mgr.reverse_side_backfill(last_sync.next());
+                    failover_->on_reverse_backfill_end();
+                }
+
+                failover_->on_backfill_begin();
+                stream_mgr.backfill(last_sync);
+                failover_->on_backfill_end();
+
+                debugf("slave_t: Waiting for things to fail...\n");
+                slave_cond.wait();
+                debugf("slave_t: Things failed.\n");
             }
-
-            failover_->on_backfill_begin();
-            stream_mgr.backfill(last_sync);
-            failover_->on_backfill_end();
-
-            debugf("slave_t: Waiting for things to fail...\n");
-            slave_cond.wait();
-            debugf("slave_t: Things failed.\n");
 
             if (shutdown_signal->is_pulsed()) {
                 break;
@@ -139,21 +146,22 @@ void slave_t::run(signal_t *shutdown_signal) {
 
             /* Make sure that any sets we run are assigned a timestamp later than the latest
             timestamp we got from the master. */
-            repli_timestamp_t rc = internal_store_->get_replication_clock();
-            debugf("Incrementing clock from %d to %d\n", rc.time, rc.time+1);
-            internal_store_->set_replication_clock(rc.next());
+            repli_timestamp_t rc = internal_store_->get_replication_clock().next();
+            debugf("Incrementing clock from %d to %d\n", rc.time - 1, rc.time);
+            internal_store_->set_timestampers(rc);
+            internal_store_->set_replication_clock(rc, order_token_t::ignore);
 
             failover_->on_failure();
 
             were_connected_before = false;
 
         } catch (tcp_conn_t::connect_failed_exc_t& e) {
+	    (void)e;
             // If the master was down when we last shut down, it's not so remarkable that it
             // would still be down when we come back up. But if that's not the case and it's
             // our first time connecting, we blame the failure to connect on user error.
             if (were_connected_before) {
-                crash("Master at %s:%d is not responding :(. Perhaps you haven't brought it up "
-                    "yet. But what do I know, I'm just a database.\n",
+                fail_due_to_user_error("Master at %s:%d is not responding. Perhaps you haven't brought it up yet?\n",
                     replication_config_.hostname, replication_config_.port);
             }
         }
@@ -164,7 +172,8 @@ void slave_t::run(signal_t *shutdown_signal) {
             timeout_ = std::min(timeout_ * TIMEOUT_GROWTH_FACTOR, (long)TIMEOUT_CAP);
 
             cond_t c;
-            call_with_delay(timeout, boost::bind(&cond_t::pulse, &c), &c);
+            signal_timer_t retry_timer(timeout);
+            cond_link_t proceed_when_delay_is_over(&retry_timer, &c);
             pulse_to_reset_failover_.watch(&c);
             cond_link_t abort_delay_on_shutdown(shutdown_signal, &c);
             c.wait();

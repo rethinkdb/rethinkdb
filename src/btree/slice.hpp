@@ -3,7 +3,7 @@
 
 #include "store.hpp"
 #include "buffer_cache/buffer_cache.hpp"
-#include "serializer/translator.hpp"
+#include "serializer/serializer.hpp"
 
 class backfill_callback_t;
 
@@ -18,37 +18,37 @@ class btree_slice_t :
 {
 public:
     // Blocks
-    static void create(translator_serializer_t *serializer,
+    static void create(serializer_t *serializer,
                        mirrored_cache_static_config_t *static_config);
 
     // Blocks
-    btree_slice_t(translator_serializer_t *serializer,
+    btree_slice_t(serializer_t *serializer,
                   mirrored_cache_config_t *dynamic_config,
                   int64_t delete_queue_limit);
 
     // Blocks
     ~btree_slice_t();
 
-    /* get_store_t interface. */
+    /* get_store_t interface */
 
-    get_result_t get(const store_key_t &key);
-    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key);
+    get_result_t get(const store_key_t &key, order_token_t token);
+    rget_result_t rget(rget_bound_mode_t left_mode, const store_key_t &left_key, rget_bound_mode_t right_mode, const store_key_t &right_key, order_token_t token);
 
     /* set_store_t interface */
 
-    mutation_result_t change(const mutation_t &m, castime_t castime);
+    mutation_result_t change(const mutation_t &m, castime_t castime, order_token_t token);
 
     /* btree_slice_t interface */
 
-    void delete_all_keys_for_backfill();
+    void delete_all_keys_for_backfill(order_token_t token);
 
-    void backfill(repli_timestamp since_when, backfill_callback_t *callback);
+    void backfill(repli_timestamp since_when, backfill_callback_t *callback, order_token_t token);
 
     /* These store metadata for replication. There must be a better way to store this information,
     since it really doesn't belong on the btree_slice_t! TODO: Move them elsewhere. */
-    void set_replication_clock(repli_timestamp_t t);
+    void set_replication_clock(repli_timestamp_t t, order_token_t token);
     repli_timestamp get_replication_clock();
-    void set_last_sync(repli_timestamp_t t);
+    void set_last_sync(repli_timestamp_t t, order_token_t token);
     repli_timestamp get_last_sync();
     void set_replication_master_id(uint32_t t);
     uint32_t get_replication_master_id();
@@ -58,9 +58,30 @@ public:
     cache_t *cache() { return &cache_; }
     int64_t delete_queue_limit() { return delete_queue_limit_; }
 
+    plain_sink_t pre_begin_transaction_sink_;
+
+    // read and write operations are in different buckets for when
+    // they go through throttling.
+    order_source_t pre_begin_transaction_read_mode_source_; // bucket 0
+    order_source_t pre_begin_transaction_write_mode_source_; // bucket 1
+
+    enum { PRE_BEGIN_TRANSACTION_READ_MODE_BUCKET = 0, PRE_BEGIN_TRANSACTION_WRITE_MODE_BUCKET = 1 };
+
+    order_sink_t post_begin_transaction_sink_;
+    order_source_t post_begin_transaction_source_;
 private:
     cache_t cache_;
     int64_t delete_queue_limit_;
+
+    /* We serialize all `order_token_t`s through here. This way we can use `plain_sink_t` for
+    the order sinks on the individual blocks in the buffer cache. */
+    order_checkpoint_t order_checkpoint_;
+
+    // Cache account to be used when backfilling.
+    boost::shared_ptr<cache_account_t> backfill_account;
+
+    // TODO: Check that we use this variable.
+    plain_sink_t order_sink_;
 
     DISABLE_COPYING(btree_slice_t);
 };

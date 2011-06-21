@@ -2,10 +2,10 @@
 #ifndef __EPOLL_EVENT_QUEUE_HPP__
 #define __EPOLL_EVENT_QUEUE_HPP__
 
-#include <queue>
+#include <map>
+#include <queue>                // TODO is this necessary?
 #include <sys/epoll.h>
 #include "config/args.hpp"
-#include "perfmon.hpp"
 
 /* This file must only be included from event_queue.hpp, because it needs
 event_queue_base_t. */

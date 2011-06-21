@@ -2,11 +2,8 @@
 #define __ERRORS_HPP__
 
 #include <errno.h>
-#include <stdio.h>
-#include <cstdlib>
-#include <signal.h>
-#include <stdexcept>
-#include <string.h>
+#include <stdlib.h>
+#include <string>
 
 #include "debug.hpp"
 
@@ -58,8 +55,8 @@
         BREAKPOINT;                                                 \
     } while (0)
 
-void report_fatal_error(const char*, int, const char*, ...);
-void report_user_error(const char*, ...);
+void report_fatal_error(const char*, int, const char*, ...) __attribute__((format (printf, 3, 4)));
+void report_user_error(const char*, ...) __attribute__((format (printf, 1, 2)));
 
 #define stringify(x) #x
 
@@ -72,7 +69,7 @@ void report_user_error(const char*, ...);
 #define guarantee_xerr(cond, err, msg, args...) do {                            \
         if (!(cond)) {                                                          \
             if (err == 0) {                                                     \
-                crash_or_trap(format_assert_message("Guarantee", cond) msg);    \
+                crash_or_trap(format_assert_message("Guarantee", cond) msg, ##args); \
             } else {                                                            \
                 crash_or_trap(format_assert_message("Guarantee", cond) " (errno %d - %s) " msg, err, strerror(err), ##args);  \
             }                                                                   \
@@ -90,7 +87,7 @@ void report_user_error(const char*, ...);
 #define rassert(cond, msg...) do {                                        \
         if (!(cond)) {                                                    \
             crash_or_trap(format_assert_message("Assertion", cond) msg);  \
-        }                           \
+        }                                                                 \
     } while (0)
 #define rassert_err(cond, msg, args...) do {                                \
         if (!(cond)) {                                                      \
@@ -103,8 +100,15 @@ void report_user_error(const char*, ...);
     } while (0)
 #endif
 
-void print_backtrace(FILE *out = stderr, bool use_addr2line = true);
-char *demangle_cpp_name(const char *mangled_name);
+/* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
+succeeds, it returns the result as a `std::string`. If it fails, it throws
+`demangle_failed_exc_t`. */
+struct demangle_failed_exc_t : public std::exception {
+    const char *what() const throw () {
+        return "Could not demangle C++ name.";
+    }
+};
+std::string demangle_cpp_name(const char *mangled_name);
 
 void install_generic_crash_handler();
 

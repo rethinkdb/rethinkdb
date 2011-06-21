@@ -8,6 +8,7 @@
 #include <ucontext.h>
 #include <arch/arch.hpp>
 
+#include "perfmon.hpp"
 #include "utils.hpp"
 
 #ifdef VALGRIND
@@ -35,21 +36,29 @@ extern "C" {
         /* Start at the beginning. */
         sp = (uint64_t *) ((uintptr_t) stack + stack_size);
 
-        /* Align stack. TODO: Is this necessary? */
+        /* Align stack. The x86-64 ABI requires the stack pointer to
+           always be 16-byte-aligned at function calls.  That is,
+           "(%rsp - 8) is always a multiple of 16 when control is
+           transferred to the function entry point". */
         sp = (uint64_t *) (((uintptr_t) sp) & -16L);
 
-        /* TODO: Figure out why some things (e.g. stats) break without this. */
-        sp--;
+        // Currently sp is 16-byte aligned.
 
         /* Set up the instruction pointer; this will be popped off the stack by
          * ret in swapcontext once all the other registers have been "restored". */
         sp--;
+        sp--;
+
+        // Subtracted 2*sizeof(int64_t), so sp is still 16-byte aligned.
+
         *sp = (uint64_t) func;
 
         /* These registers (r12, r13, r14, r15, rbx, rbp) are going to be
          * popped off the stack by swapcontext; they're callee-saved, so
          * whatever happens to be in them will be ignored. */
         sp -= 6;
+
+        // Subtracted 6*sizeof(int64_t), so sp is still 16-byte aligned.
 
         /* Set up stack pointer. */
         *ucp = sp;
@@ -126,11 +135,17 @@ static __thread coro_t *prev_coro = NULL;
 /* A list of coro_context_t objects that are not in use. */
 static __thread intrusive_list_t<coro_context_t> *free_contexts = NULL;
 
-/* An array of ints counting the number of coros on each thread */
+#ifndef NDEBUG
+
+/* An integer counting the number of coros on this thread */
 static __thread int coro_context_count = 0;
 
-#ifndef NDEBUG
-__thread int coro_no_waiting = 0;
+/* These variables are used in the implementation of `ASSERT_NO_CORO_WAITING` and
+`ASSERT_FINITE_CORO_WAITING`. They record the number of things that are currently
+preventing us from `wait()`ing or `notify_now()`ing or whatever. */
+__thread int assert_no_coro_waiting_counter = 0;
+__thread int assert_finite_coro_waiting_counter = 0;
+
 #endif  // NDEBUG
 
 /* coro_globals_t */
@@ -159,7 +174,11 @@ coro_globals_t::~coro_globals_t() {
 
 coro_context_t::coro_context_t() {
     pm_allocated_coroutines++;
+
+#ifndef NDEBUG
     coro_context_count++;
+#endif
+
     rassert(coro_context_count < MAX_COROS_PER_THREAD, "Too many coroutines "
             "allocated on this thread. This is problem due to a misuse of the "
             "coroutines\n");
@@ -211,7 +230,10 @@ coro_context_t::~coro_context_t() {
     free(stack);
 
     pm_allocated_coroutines--;
+
+#ifndef NDEBUG
     coro_context_count--;
+#endif
 }
 
 /* coro_t */
@@ -263,7 +285,9 @@ coro_t *coro_t::self() {   /* class method */
 
 void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
-    rassert(coro_no_waiting == 0, "This code path is not supposed to use waiting.");
+    rassert(assert_no_coro_waiting_counter == 0 &&
+            assert_finite_coro_waiting_counter == 0,
+        "This code path is not supposed to use coro_t::wait().");
 
 #ifndef NDEBUG
     /* It's not safe to wait() in a catch clause of an exception handler. We use the non-standard
@@ -290,7 +314,7 @@ void coro_t::wait() {   /* class method */
 
 void coro_t::yield() {  /* class method */
     rassert(self(), "Not in a coroutine context");
-    self()->notify();
+    self()->notify_later();
     self()->wait();
 }
 
@@ -298,6 +322,17 @@ void coro_t::notify_now() {
     rassert(waiting_);
     rassert(!notified_);
     rassert(current_thread_ == linux_thread_pool_t::thread_id);
+
+#ifndef NDEBUG
+    rassert(assert_no_coro_waiting_counter == 0,
+        "This code path is not supposed to use notify_now() or spawn_now().");
+
+    /* Record old value of `assert_finite_coro_waiting_counter`. It must be legal to call
+    `coro_t::wait()` within the coro we are going to jump to, or else we would never jump
+    back. */
+    int old_assert_finite_coro_waiting_counter = assert_finite_coro_waiting_counter;
+    assert_finite_coro_waiting_counter = 0;
+#endif
 
 #ifndef NDEBUG
     /* It's not safe to notify_now() in the catch-clause of an exception handler for the same
@@ -318,13 +353,18 @@ void coro_t::notify_now() {
     rassert(current_coro == this);
     current_coro = prev_coro;
     prev_coro = prev_prev_coro;
+
+#ifndef NDEBUG
+    /* Restore old value of `assert_finite_coro_waiting_counter`. */
+    assert_finite_coro_waiting_counter = old_assert_finite_coro_waiting_counter;
+#endif
 }
 
-void coro_t::notify() {
+void coro_t::notify_later() {
     rassert(!notified_);
     notified_ = true;
 
-    /* notify() doesn't switch to the coroutine immediately; instead, it just pushes
+    /* notify_later() doesn't switch to the coroutine immediately; instead, it just pushes
     the coroutine onto the event queue. */
 
     /* current_thread is the thread that the coroutine lives on, which may or may not be the
@@ -334,12 +374,14 @@ void coro_t::notify() {
 
 void coro_t::move_to_thread(int thread) {   /* class method */
     assert_good_thread_id(thread);
-    if (thread == self()->current_thread_) {
+    if (thread == linux_thread_pool_t::thread_id) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
+    rassert(coro_t::self(), "coro_t::move_to_thread() called when not in a coroutine, and the "
+        "desired thread isn't the one we're already on.");
     self()->current_thread_ = thread;
-    self()->notify();
+    self()->notify_later();
     wait();
 }
 
@@ -363,7 +405,7 @@ bool is_coroutine_stack_overflow(void *addr) {
     return current_coro && current_coro->context->stack == base;
 }
 
-void coro_t::spawn(const boost::function<void()>& deed) {
+void coro_t::spawn_later(const boost::function<void()>& deed) {
     spawn_on_thread(linux_thread_pool_t::thread_id, deed);
 }
 
@@ -372,6 +414,24 @@ void coro_t::spawn_now(const boost::function<void()> &deed) {
 }
 
 void coro_t::spawn_on_thread(int thread, const boost::function<void()>& deed) {
-    (new coro_t(deed, thread))->notify();
+    (new coro_t(deed, thread))->notify_later();
 }
 
+#ifndef NDEBUG
+
+/* These are used in the implementation of `ASSERT_NO_CORO_WAITING` and
+`ASSERT_FINITE_CORO_WAITING` */
+assert_no_coro_waiting_t::assert_no_coro_waiting_t() {
+    assert_no_coro_waiting_counter++;
+}
+assert_no_coro_waiting_t::~assert_no_coro_waiting_t() {
+    assert_no_coro_waiting_counter--;
+}
+assert_finite_coro_waiting_t::assert_finite_coro_waiting_t() {
+    assert_finite_coro_waiting_counter++;
+}
+assert_finite_coro_waiting_t::~assert_finite_coro_waiting_t() {
+    assert_finite_coro_waiting_counter--;
+}
+
+#endif /* NDEBUG */

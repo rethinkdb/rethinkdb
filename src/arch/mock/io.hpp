@@ -4,6 +4,7 @@
 
 #include "containers/segmented_vector.hpp"
 #include "utils2.hpp"
+#include "arch/random_delay.hpp"
 #include <stdlib.h>
 
 struct mock_iocallback_t {
@@ -26,7 +27,7 @@ public:
     };
 
     struct account_t {
-        account_t(UNUSED mock_file_t *f, UNUSED int p) { }
+        account_t(UNUSED mock_file_t *f, UNUSED int p, UNUSED int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS) { }
     };
 
 protected:
@@ -71,7 +72,12 @@ protected:
     }
     
     void set_size(size_t size) {
-        rassert(size % DEVICE_BLOCK_SIZE == 0);
+#ifndef NDEBUG
+        {
+            bool modcmp = size % DEVICE_BLOCK_SIZE == 0;
+            rassert(modcmp);
+        }
+#endif
         blocks.set_size(size / DEVICE_BLOCK_SIZE);
     }
     
@@ -150,11 +156,16 @@ private:
     segmented_vector_t<block_t, 10*GIGABYTE/DEVICE_BLOCK_SIZE> blocks;
     
     void verify(UNUSED size_t offset, UNUSED size_t length, UNUSED const void *buf) {
+#ifndef NDEBUG
         rassert(buf);
         rassert(offset + length <= get_size());
-        rassert((intptr_t)buf % DEVICE_BLOCK_SIZE == 0);
-        rassert(offset % DEVICE_BLOCK_SIZE == 0);
-        rassert(length % DEVICE_BLOCK_SIZE == 0);
+        bool modbuf = (intptr_t)buf % DEVICE_BLOCK_SIZE == 0;
+        rassert(modbuf);
+        bool modoff = offset % DEVICE_BLOCK_SIZE == 0;
+        rassert(modoff);
+        bool modlength = length % DEVICE_BLOCK_SIZE == 0;
+        rassert(modlength);
+#endif
     }
 
     DISABLE_COPYING(mock_file_t);

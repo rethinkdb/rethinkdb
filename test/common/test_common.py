@@ -48,15 +48,16 @@ def make_option_parser():
     o["stress"] = StringFlag("--stress", "")
     o["sigint-timeout"] = IntFlag("--sigint-timeout", 60)
     o["no-timeout"] = BoolFlag("--no-timeout", invert = False)
-    o["ssds"] = AllArgsAfterFlag("--ssds", default = [])
+    o["ssds"] = StringFlag("--ssds", default = [])
+    o["num-files"] = IntFlag("--num-files", default = 1)
     o["mem-cap"] = IntFlag("--mem-cap", None)
     o["min-qps"] = IntFlag("--min-qps", None)
     o["garbage-range"] = MultiValueFlag("--garbage-range", [float_converter, float_converter], default = None)
     o["failover"] = BoolFlag("--failover")
-    o["kill_failover_server_prob"] = FloatFlag("--kill-failover-server-prob", .01)
-    o["resurrect_failover_server_prob"] = FloatFlag("--resurrect-failover-server-prob", .01)
-    o["elb"] = BoolFlag("--elb")
+    o["kill_failover_server_prob"] = FloatFlag("--kill-failover-server-prob", .002)
+    o["resurrect_failover_server_prob"] = FloatFlag("--resurrect-failover-server-prob", .002)
     o["failover-script"] = StringFlag("--failover-script", "")
+    o["timeout"] = IntFlag("--timeout", None)
     return o
 
 # Choose a random port at which to start searching to reduce the probability of collisions
@@ -131,7 +132,7 @@ class NetRecord(object):
 
 num_stress_clients = 0
 
-def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64, extra_flags=[], keys_prefix=None):
+def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "inserts":1}, duration="10000q", clients=64, extra_flags=[], keys_prefix=None, run_in_background=False):
     global num_stress_clients
     num_stress_clients += 1
     
@@ -142,9 +143,9 @@ def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "in
     command_line = [executable_path,
         "-s", "%s:%d" % (host, port),
         "-d", duration,
-        "-w", "%d/%d/%d/%d/%d/%d/%d" % (workload.get("deletes", 0), workload.get("updates", 0),
+        "-w", "%d/%d/%d/%d/%d/%d/%d/%d" % (workload.get("deletes", 0), workload.get("updates", 0),
             workload.get("inserts", 0), workload.get("gets", 0), workload.get("appends", 0),
-            workload.get("prepends", 0), workload.get("verifies", 0)),
+            workload.get("prepends", 0), workload.get("verifies", 0), workload.get("rgets", 0)),
         "-c", str(clients),
         ] + extra_flags
     
@@ -155,12 +156,21 @@ def stress_client(test_dir, port=8080, host="localhost", workload={"gets":1, "in
     command_line.extend(["-o", key_file])
     if os.path.exists(key_file): command_line.extend(["-i", key_file])
     
-    run_executable(command_line, "stress_client/output", timeout=None, test_dir=test_dir)
+    if run_in_background:
+        stress_client_process = SubProcess(
+            command_line,
+            "stress_client/output",
+            test_dir,
+            valgrind_tool = None,
+            interactive = False)
+        return stress_client_process
+    else:
+        run_executable(command_line, "stress_client/output", timeout=None, test_dir=test_dir)
 
 def rdb_stats(port=8080, host="localhost"):
     sock = socket.socket()
     sock.connect((host, port))
-    sock.send("stats\r\n")
+    sock.send("rdb stats\r\n")
     
     buffer = ""
     while "END\r\n" not in buffer:
@@ -202,15 +212,26 @@ class DataFiles(object):
         if self.opts["ssds"]:
             self.files = [ssd.replace(' ','') for ssd in self.opts["ssds"]]
         else:
+            num_files = self.opts["num-files"]
             db_data_dir = test_dir.p("db_data")
             if not os.path.isdir(db_data_dir): os.mkdir(db_data_dir)
-            db_data_path = os.path.join(db_data_dir, "data_file")
             tries = 0
-            while os.path.exists(db_data_path):
+            while True:
                 tries += 1
-                db_data_path = os.path.join(db_data_dir, "data_file_%d" % tries)
-            self.files = [db_data_path]
-        
+                paths = []
+                failure = False
+                for filenum in range(1, 1 + num_files):
+                    db_data_path = os.path.join(db_data_dir, "data" + ("" if num_files <= 1 else str(filenum)) + "_file_" + str(tries))
+                    failure = os.path.exists(db_data_path)
+                    if failure: break
+                    paths.append(db_data_path)
+                if failure: continue
+                db_metadata_path = os.path.join(db_data_dir, "metadata_file_" + str(tries))
+                if not os.path.exists(db_metadata_path):
+                    self.files = paths
+                    self.metadata_file = db_metadata_path
+                    break
+
         run_executable([
             get_executable_path(opts, "rethinkdb"), "create", "--force",
             "-s", str(self.opts["slices"]),
@@ -226,8 +247,8 @@ class DataFiles(object):
     def rethinkdb_flags(self):
         flags = []
         for file in self.files:
-            flags.append("-f")
-            flags.append(file)
+            flags.extend(["-f", file])
+        flags.extend(["--metadata-file", self.metadata_file])
         return flags
     
     def fsck(self):
@@ -296,7 +317,7 @@ class Server(object):
                 s.connect(("localhost", self.internal_server_port))
             except Exception, e:
                 if "Connection refused" in str(e):
-                    time.sleep(0.1)
+                    time.sleep(0.5)
                 else:
                     raise
             else:
@@ -313,7 +334,7 @@ class Server(object):
                 if line.startswith("VALUE") or line == "END\r\n":
                     break
                 elif line.startswith("CLIENT_ERROR"):
-                    time.sleep(0.1)
+                    time.sleep(0.5)
                 else:
                     raise RuntimeError("Unexpected response from server: %r" % line)
             else:
@@ -384,6 +405,12 @@ class Server(object):
         if self.opts["netrecord"]: self.nrc.stop()
         print "%s shut down successfully." % self.name.capitalize()
         if self.opts["fsck"]: self.data_files.fsck()
+
+    def shutdown_or_just_fsck(self):
+        if self.running:
+            self.shutdown()
+        elif self.opts["fsck"]:
+            self.data_files.fsck()
 
     def kill(self):
         if self.opts["interactive"]:
@@ -487,20 +514,21 @@ class FailoverMemcachedWrapper(object):
         print "Waiting for slave to assume masterhood..."
         if self.opts["mclib"] == "pylibmc":
             import pylibmc
-            exc_class = pylibmc.ClientError
+            def test():
+                # pylibmc throws ClientError when it gets a CLIENT_ERROR
+                try: self.mc["slave"].set("are_you_accepting_sets", "yes")
+                except pylibmc.ClientError: return False
+                else: return True
         else:
-            # What kind of exception does python-memcache throw in this situation?
-            raise NotImplementedError()
+            def test():
+                ret = self.mc["slave"].set("are_you_accepting_sets", "yes")
+                assert (ret is True or ret is False)
+                return ret
         n_tries = 30
         try_interval = 1
         for i in xrange(n_tries):
             time.sleep(try_interval)
-            try:
-                self.mc["slave"].set("are_you_accepting_sets", "yes")
-            except exc_class:
-                pass
-            else:
-                break
+            if test(): break
         else:
             raise ValueError("Slave hasn't realized master is down after %d seconds." % \
                 n_tries * try_interval)
@@ -508,6 +536,9 @@ class FailoverMemcachedWrapper(object):
 
     def kill_server(self, victim):
 
+        # To avoid spurious failures, give the server some seconds to dump
+        # its realtime operations to the slave.
+        time.sleep(5)
         self.print_and_reset_ops()
 
         assert not self.down[victim]
@@ -525,7 +556,11 @@ class FailoverMemcachedWrapper(object):
 
         assert self.down[jesus]
         print "Resurrecting %s..." % jesus
+
+        # Bring up the other server, and make sure that _both_ can
+        # accept gets, so that we know backfilling is complete.
         self.server[jesus].start()
+        self.server["master" if jesus == "slave" else "slave"].block_until_up()
         self.mc[jesus] = self.mc_maker[jesus]()
         self.down[jesus] = False
 
@@ -554,6 +589,8 @@ def connect_to_server(opts, server, test_dir):
 def adjust_timeout(opts, timeout):
     if not timeout or opts["interactive"] or opts["no-timeout"]:
         return None
+    elif opts["timeout"]:
+        return opts["timeout"]
     else:
         return timeout + 15
 #make a dictionary of stat limits
@@ -650,7 +687,7 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
                 if stat_checker: stat_checker.stop()
 
             for server in servers:
-                if server.running: server.shutdown()
+                server.shutdown_or_just_fsck()
 
             if test_failure: raise test_failure
 
@@ -683,43 +720,33 @@ def simple_test_main(test_function, opts, timeout = 30, extra_flags = [], test_d
     
     sys.exit(0)
 
-def start_master_slave_pair(opts, extra_flags, test_dir):
-    repli_port = find_unused_port()
-    if opts["elb"]:
-        elb_ports = (find_unused_port(), find_unused_port())
-
-    m_flags = ["--master", "%d" % repli_port] 
-    if opts["elb"]:
-        m_flags += ["--run-behind-elb", "%d" % elb_ports[0]]
-
-    server = Server(opts, extra_flags=extra_flags + m_flags, name="master", test_dir=test_dir)
-    server.master_port = repli_port
-
-    if opts["elb"]:
-        server.elb_port = elb_ports[0]
-    server.start(False)
-
+def wait_till_socket_connectible(server, port):
     while 1:
         try:
-            print "Trying to connect to: %d" % repli_port
-            s = socket.create_connection(('localhost', repli_port))
+            print "Trying to connect to: %s:%d" % (server, port)
+            s = socket.create_connection((server, port))
         except:
             time.sleep(2)
             continue
         s.close()
         break
 
-    s_flags = ["--slave-of", "localhost:%d" % repli_port, "--no-rogue"]
+def start_master_slave_pair(opts, extra_flags, test_dir):
+    repli_port = find_unused_port()
+    m_flags = ["--master", "%d" % repli_port] 
+    server = Server(opts, extra_flags=extra_flags + m_flags, name="master", test_dir=test_dir)
+    server.master_port = repli_port
 
-    if opts["elb"]:
-        s_flags += ["--run-behind-elb", "%d" % elb_ports[1]]
+    server.start(False)
+
+    wait_till_socket_connectible('localhost', repli_port)
+
+    s_flags = ["--slave-of", "localhost:%d" % repli_port, "--no-rogue"]
 
     if opts["failover-script"]:
         s_flags += ["--failover-script", opts["failover-script"]]
 
     repli_server = Server(opts, extra_flags=extra_flags + s_flags, name="slave", test_dir=test_dir)
-    if opts["elb"]:
-        repli_server.elb_port = elb_ports[1]
     repli_server.start()
 
     return (server, repli_server)
@@ -735,12 +762,8 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
             mc = connect_to_server(opts, server, test_dir=test_dir)
             repli_mc = connect_to_server(opts, server, test_dir=test_dir)
 
-            if opts["elb"]:
-                mc.elb_port = elb_ports[0]
-                repli_mc.elb_port = elb_ports[1]
-            else:
-                mc.elb_port = None
-                repli_mc.elb_port = None
+            mc.elb_port = None
+            repli_mc.elb_port = None
 
             try:
                 run_with_timeout(test_function, args=(opts,mc,repli_mc), timeout = adjust_timeout(opts, timeout), test_dir=test_dir)
@@ -754,8 +777,8 @@ def replication_test_main(test_function, opts, timeout = 30, extra_flags = [], t
             if stat_checker:
                 stat_checker.stop()
 
-            if server.running: server.shutdown()
-            if repli_server.running: repli_server.shutdown()
+            server.shutdown_or_just_fsck()
+            repli_server.shutdown_or_just_fsck()
     
             if test_failure: raise test_failure
 
@@ -784,9 +807,9 @@ def master_slave_main(test_function, opts, timeout = 30, extra_flags = [], test_
             if stat_checker:
                 stat_checker.stop()
 
-            if server.running: server.shutdown()
-            if repli_server.running: repli_server.shutdown()
-    
+            server.shutdown_or_just_fsck()
+            repli_server.shutdown_or_just_fsck()
+
             if test_failure: raise test_failure
 
     except ValueError, e:

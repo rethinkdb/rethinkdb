@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include <vector>
+#include <set>
 
 // This is a combination of a list with holes in it and a free list.
 // Tokens are "alive" when you add values with add() and dead when you
@@ -43,12 +44,19 @@ public:
         if (free_.empty()) {
             token_t ret = values_.size();
             values_.push_back(value);
+#ifndef NDEBUG
+            is_free_.push_back(false);
+#endif
             return ret;
         } else {
             token_t ret = free_.back();
-            rassert(values_[ret] != T());
+            rassert(values_[ret] == T());
+            rassert(is_free_[ret]);
             free_.pop_back();
             values_[ret] = value;
+#ifndef NDEBUG
+            is_free_[ret] = false;
+#endif
             return ret;
         }
     }
@@ -60,12 +68,13 @@ public:
     // available, it must be the smallest unused token.  You'll get
     // good performance if you never choose a bad token and use the
     // most recently dropped token.
-
-    // TODO: Consider throwing an exception, instead of returning false.
     bool add(token_type known_token, T const& value) {
         if (free_.empty()) {
             if (known_token == values_.size()) {
                 values_.push_back(value);
+#ifndef NDEBUG
+                is_free_.push_back(false);
+#endif
                 return true;
             } else {
                 return false;
@@ -80,14 +89,24 @@ public:
                 return false;
             }
 
-            free_.erase(p.base());
-            return true;
+            if (values_.size() > known_token) {
+                free_.erase(p.base() - 1);
+                values_[known_token] = value;
+                rassert(is_free_[known_token]);
+#ifndef NDEBUG
+                is_free_[known_token] = false;
+#endif
+
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 
     // Returns a value for the given token, or T() if the token is not
     // alive.
-    T operator[](token_type token) {
+    T operator[](token_type token) const {
         if (token < values_.size()) {
             return values_[token];
         } else {
@@ -95,20 +114,32 @@ public:
         }
     }
 
+    // We can use operator[] with any value x where 0 <= x < end_index().
+    token_type end_index() const {
+        return values_.size();
+    }
+
     // Drops a value for the given token.
     void drop(token_type token) {
         rassert(token < values_.size());
-        rassert(free_.end() == std::find(free_.begin(), free_.end(), token));
+        rassert(!is_free_[token]);
 
         values_[token] = T();
         free_.push_back(token);
+#ifndef NDEBUG
+        is_free_[token] = true;
+#endif
     }
 
 private:
-    DISABLE_COPYING(thick_list);  // Copying is stupid.
-
     std::vector<T> values_;
     std::vector<token_t> free_;
+
+#ifndef NDEBUG
+    std::vector<bool> is_free_;
+#endif
+
+    DISABLE_COPYING(thick_list);  // Copying is stupid.
 };
 
 

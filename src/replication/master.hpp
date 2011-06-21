@@ -9,10 +9,8 @@
 #include "replication/backfill_receiver.hpp"
 #include "replication/backfill_in.hpp"
 #include "concurrency/mutex.hpp"
-#include "containers/thick_list.hpp"
 #include "replication/net_structs.hpp"
 #include "replication/protocol.hpp"
-#include "replication/queueing_store.hpp"
 
 class btree_key_value_store_t;
 
@@ -24,12 +22,13 @@ class master_t :
     public backfill_sender_t,
     public backfill_receiver_t {
 public:
-    master_t(int port, btree_key_value_store_t *kv_store, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate) :
+    master_t(int port, btree_key_value_store_t *kv_store, replication_config_t replication_config, gated_get_store_t *get_gate, gated_set_store_interface_t *set_gate, backfill_receiver_order_source_t *master_order_source) :
         backfill_sender_t(&stream_),
-        backfill_receiver_t(&backfill_storer_),
+        backfill_receiver_t(&backfill_storer_, master_order_source),
         stream_(NULL),
         listener_port_(port),
         kvs_(kv_store),
+        replication_config_(replication_config),
         get_gate_(get_gate),
         set_gate_(set_gate),
         backfill_storer_(kv_store),
@@ -86,8 +85,12 @@ public:
         kvs_->set_replication_slave_id(message->database_creation_timestamp);
     }
 
-    void send(UNUSED scoped_malloc<net_backfill_t>& message) {
+    void send(scoped_malloc<net_backfill_t>& message) {
         coro_t::spawn_now(boost::bind(&master_t::do_backfill_and_realtime_stream, this, message->timestamp));
+    }
+
+    void send(scoped_malloc<net_timebarrier_t>& message) {
+        timebarrier_helper(*message);
     }
 
     void conn_closed() {
@@ -105,9 +108,17 @@ public:
 
         stream_exists_cond_.pulse();    // If anything was waiting for stream to close, signal it
         interrupt_streaming_cond_.pulse_if_non_null();   // Will interrupt any running backfill/stream operation
+
+        // TODO: This might fail for future versions of the order source, which
+        // require a backfill to have begun before it can be done.
+        order_source->backfill_done();
     }
 
     void do_backfill_and_realtime_stream(repli_timestamp since_when);
+
+#ifndef NDEBUG
+    static bool inside_backfill_done_or_backfill;
+#endif
 
 private:
 
@@ -122,6 +133,8 @@ private:
 
     // The key value store.
     btree_key_value_store_t *const kvs_;
+
+    replication_config_t replication_config_;
 
     // Pointers to the gates we use to allow/disallow gets and sets
     gated_get_store_t *const get_gate_;

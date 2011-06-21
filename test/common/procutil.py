@@ -32,9 +32,7 @@ def wait_with_timeout(process, timeout):
 valgrind_error_code = 100
 
 class SubProcess(object):
-
     def __init__(self, command_line, output_path, test_dir, valgrind_tool=None, interactive=False):
-
         if not os.path.exists(command_line[0]):
             raise RuntimeError("Bad executable: %r does not exist." % command_line[0])
 
@@ -69,7 +67,6 @@ class SubProcess(object):
             stdout=subprocess_stdout, stderr=subprocess.STDOUT)
 
     def verify(self):
-
         res = self.sub.poll()
         if res is None:
             return   # All is well
@@ -88,7 +85,6 @@ class SubProcess(object):
                 (self.summary, signal_with_number(-res), self.output_path))
 
     def interrupt(self, timeout = 5):
-
         self.verify()
 
         try: self.sub.send_signal(signal.SIGINT)
@@ -104,7 +100,6 @@ class SubProcess(object):
         self.wait(timeout)
 
     def wait(self, timeout):
-
         try:
             res = wait_with_timeout(self.sub, timeout)
         finally:
@@ -125,7 +120,6 @@ class SubProcess(object):
                 (self.summary, signal_with_number(-res), self.output_path))
 
     def kill(self):
-
         self.verify()
         try: self.sub.terminate()
         except: pass

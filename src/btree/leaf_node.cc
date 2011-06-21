@@ -245,7 +245,7 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
     int sibling_size = block_size.value() - sibling->frontmost_offset;
 
     if (sibling_size < node_size + 2) {
-        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<const buf_data_t *>(reinterpret_cast<const char *>(node) - sizeof(buf_data_t))->block_id.value);
+        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<const buf_data_t *>(reinterpret_cast<const char *>(node) - sizeof(buf_data_t))->block_id);
         return false;
     }
 
@@ -505,7 +505,9 @@ repli_timestamp get_timestamp_value(const leaf_node_t *node, uint16_t offset) {
     if (toff == -1) {
         return node->times.last_modified;
     } else {
-        return repli_time(node->times.last_modified.time - node->times.earlier[std::min(toff, NUM_LEAF_NODE_EARLIER_TIMES - 1)]);
+        repli_timestamp tmp;
+        tmp.time = node->times.last_modified.time - node->times.earlier[std::min(toff, NUM_LEAF_NODE_EARLIER_TIMES - 1)];
+        return tmp;
     }
 }
 
