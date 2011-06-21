@@ -1392,7 +1392,7 @@ bool check_interfile(knowledge_t *knog, interfile_errors *errs) {
         errs->all_have_same_num_files &= (cb.n_files == zeroth.n_files);
         errs->all_have_same_num_slices &= (cb.n_proxies == zeroth.n_proxies);
         errs->all_have_same_creation_timestamp &= (cb.creation_timestamp == zeroth.creation_timestamp);
-        errs->out_of_order_serializers |= (i == cb.this_serializer);
+        errs->out_of_order_serializers |= !(i == cb.this_serializer);
         errs->bad_this_serializer_values |= (cb.this_serializer < 0 || cb.this_serializer >= cb.n_files);
         if (cb.this_serializer < num_files && cb.this_serializer >= 0) {
             counts[cb.this_serializer] += 1;
@@ -1435,11 +1435,13 @@ void *do_check_slice(void *slice_param) {
     return NULL;
 }
 
-void launch_check_slice(pthread_t *thread, slicecx_t *cx, slice_errors *errs) {
+void launch_check_slice(std::vector<pthread_t>& threads, slicecx_t *cx, slice_errors *errs) {
+    // add another thread.
+    threads.resize(threads.size() + 1);
     slice_parameter_t *param = new slice_parameter_t;
     param->cx = cx;
     param->errs = errs;
-    guarantee_err(!pthread_create(thread, NULL, do_check_slice, param), "pthread_create not working");
+    guarantee_err(!pthread_create(&threads[threads.size() - 1], NULL, do_check_slice, param), "pthread_create not working");
 }
 
 void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread_t>& threads, file_knowledge_t *knog, all_slices_errors *errs, const config_t *cfg) {
@@ -1447,7 +1449,7 @@ void launch_check_after_config_block(nondirect_file_t *file, std::vector<pthread
     for (int i = knog->config_block->this_serializer; i < errs->n_slices; i += step) {
         errs->slice[i].global_slice_number = i;
         errs->slice[i].home_filename = knog->filename;
-        launch_check_slice(&threads[i], new multiplexed_slicecx_t(file, knog, i, cfg), &errs->slice[i]);
+        launch_check_slice(threads, new multiplexed_slicecx_t(file, knog, i, cfg), &errs->slice[i]);
     }
 }
 
@@ -1806,8 +1808,10 @@ bool check_files(const config_t *cfg) {
 
 
     interfile_errors errs;
-    if (!check_interfile(&knog, &errs)) {
-        report_interfile_errors(errs);
+    bool no_critical_interfile_err = check_interfile(&knog, &errs);
+    report_interfile_errors(errs);  // We report interfile errors regardless of whether
+                                    // any of them are critical or not (some might be just warnings)
+    if (!no_critical_interfile_err) {
         return false;
     }
 
@@ -1824,7 +1828,7 @@ bool check_files(const config_t *cfg) {
 
     // A thread for every slice.
     int n_slices = knog.file_knog[0]->config_block->n_proxies;
-    std::vector<pthread_t> threads(n_slices + (knog.metadata_file ? 1 : 0));
+    std::vector<pthread_t> threads;
     all_slices_errors slices_errs(n_slices, knog.metadata_file != NULL);
     for (int i = 0; i < num_files; ++i) {
         launch_check_after_config_block(knog.files[i], threads, knog.file_knog[i], &slices_errs, cfg);
@@ -1832,7 +1836,7 @@ bool check_files(const config_t *cfg) {
 
     // ... and one for the metadata slice
     if (knog.metadata_file)
-        launch_check_slice(&threads[n_slices], new raw_slicecx_t(knog.metadata_file, knog.metadata_file_knog, cfg),
+        launch_check_slice(threads, new raw_slicecx_t(knog.metadata_file, knog.metadata_file_knog, cfg),
                            slices_errs.metadata_slice);
 
     // Wait for all threads to finish.
