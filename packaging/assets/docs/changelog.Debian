@@ -1,6 +1,7 @@
 rethinkdb (PACKAGING_VERSION) unstable; urgency=medium
 
-  * Debianized RethinkDB 0.1
+  * RethinkDB 1.1 - new upstream version
+  * RethinkDB 1.0 - initial release
 
- -- Package Maintainer <package-maintainer@rethinkdb.com>  Mon, 17 Jan 2011 19:30:24 -0800
+ -- Package Maintainer <support@rethinkdb.com>  Mon, 17 Jan 2011 19:30:24 -0800
 
