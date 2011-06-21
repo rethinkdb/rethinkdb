@@ -271,18 +271,46 @@ void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, i
 }
 
 void blob_t::append_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
-    crash("not yet implemented.");
+    block_size_t block_size = txn->get_cache()->get_block_size();
+    int levels = ref_info(block_size, ref_, maxreflen_).second;
+    while (!allocate_to_dimensions(txn, levels, ref_value_offset(ref_, maxreflen_), valuesize() + size)) {
+        levels = add_level(txn, levels);
+    }
+
+    rassert(ref_info(block_size, ref_, maxreflen_).second == levels);
 }
 
 void blob_t::prepend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
-    crash("not yet implemented.");
+    block_size_t block_size = txn->get_cache()->get_block_size();
+    int levels = ref_info(block_size, ref_, maxreflen_).second;
+    for (;;) {
+        if (!shift_at_least(txn, levels, std::max<int64_t>(0, - (ref_value_offset(ref_, maxreflen_) - size)))) {
+            levels = add_level(txn, levels);
+        } else if (!allocate_to_dimensions(txn, levels, ref_value_offset(ref_, maxreflen_) - size, valuesize() + size)) {
+            levels = add_level(txn, levels);
+        }
+    }
+
+    rassert(ref_info(block_size, ref_, maxreflen_).second == levels);
 }
 
 void blob_t::unappend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
-    crash("not yet implemented.");
+    block_size_t block_size = txn->get_cache()->get_block_size();
+    int levels = ref_info(block_size, ref_, maxreflen_).second;
+    deallocate_to_dimensions(txn, ref_value_offset(ref_, maxreflen_), valuesize() - size);
+    while (remove_level(txn, &levels)) { }
 }
 
 void blob_t::unprepend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
-    crash("not yet implemented.");
+    block_size_t block_size = txn->get_cache()->get_block_size();
+    int levels = ref_info(block_size, ref_, maxreflen_).second;
+    deallocate_to_dimensions(txn, ref_value_offset(ref_, maxreflen_) + size, valuesize() - size);
+    for (;;) {
+        if (!remove_level(txn, &levels)) {
+            break;
+        } else {
+            shift_at_least(txn, levels, - ref_value_offset(ref_, maxreflen_));
+        }
+    }
 }
 
