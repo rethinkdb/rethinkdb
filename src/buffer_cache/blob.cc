@@ -71,6 +71,10 @@ const block_id_t *internal_node_block_ids(const void *buf) {
     return reinterpret_cast<const block_id_t *>(reinterpret_cast<const char *>(buf) + sizeof(block_magic_t));
 }
 
+block_id_t *internal_node_block_ids(void *buf) {
+    return reinterpret_cast<block_id_t *>(reinterpret_cast<char *>(buf) + sizeof(block_magic_t));
+}
+
 std::pair<size_t, int> big_ref_info(block_size_t block_size, int64_t offset, int64_t size, size_t maxreflen) {
     rassert(size > int64_t(maxreflen - BIG_SIZE_OFFSET(maxreflen)));
     int64_t max_blockid_count = (maxreflen - BLOCK_IDS_OFFSET(maxreflen)) / sizeof(block_id_t);
@@ -111,13 +115,27 @@ int64_t stepsize(block_size_t block_size, int levels) {
     return step;
 }
 
+int64_t max_end_offset(block_size_t block_size, int levels, size_t maxreflen) {
+    if (levels == 0) {
+        return maxreflen - BIG_SIZE_OFFSET(maxreflen);
+    } else {
+        size_t ref_block_ids = (maxreflen - BLOCK_IDS_OFFSET(maxreflen)) / sizeof(block_id_t);
+        return stepsize(block_size, levels) * ref_block_ids;
+    }
+}
+
+int64_t clamp(int64_t x, int64_t lo, int64_t hi) {
+    return x < lo ? lo : x > hi ? hi : x;
+}
+
 void shrink(block_size_t block_size, int levels, int64_t offset, int64_t size, int index, int64_t *suboffset_out, int64_t *subsize_out) {
     int64_t step = stepsize(block_size, levels);
 
     int64_t clamp_low = index * step;
     int64_t clamp_high = clamp_low + step;
-    int64_t suboffset = (offset < clamp_low ? clamp_low : offset) - clamp_low;
-    int64_t subsize = (offset + size > clamp_high ? clamp_high : offset + size) - suboffset;
+
+    int64_t suboffset = clamp(offset, clamp_low, clamp_high);
+    int64_t subsize = clamp(offset + size, clamp_low, clamp_high) - suboffset;
 
     *suboffset_out = suboffset;
     *subsize_out = subsize;
@@ -314,3 +332,70 @@ void blob_t::unprepend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
     }
 }
 
+void allocate_recursively(transaction_t *txn, int levels, block_id_t *block_ids, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size);
+
+void allocate_index(transaction_t *txn, int levels, block_id_t *block_ids, int index, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size) {
+    block_size_t block_size = txn->get_cache()->get_block_size();
+    int64_t sub_old_offset, sub_old_size, sub_new_offset, sub_new_size;
+    shrink(block_size, levels, old_offset, old_size, index, &sub_old_offset, &sub_old_size);
+    shrink(block_size, levels, new_offset, new_size, index, &sub_new_offset, &sub_new_size);
+
+    buf_lock_t lock;
+    void *b;
+    if (sub_old_size > 0) {
+        buf_lock_t tmp(txn, block_ids[index], rwi_write);
+        lock.swap(tmp);
+        b = lock->get_data_major_write();
+    } else {
+        lock.allocate(txn);
+        block_ids[index] = lock->get_block_id();
+        b = lock->get_data_major_write();
+        if (levels == 1) {
+            block_magic_t leafmagic = { { 'l', 'a', 'r', 'l' } };
+            *reinterpret_cast<block_magic_t *>(b) = leafmagic;
+        } else {
+            block_magic_t internalmagic = { { 'l', 'a', 'r', 'i' } };
+            *reinterpret_cast<block_magic_t *>(b) = internalmagic;
+        }
+    }
+
+    if (levels > 1) {
+        block_id_t *subids = internal_node_block_ids(b);
+        allocate_recursively(txn, levels - 1, subids, sub_old_offset, sub_old_size, sub_new_offset, sub_new_size);
+    }
+}
+
+void allocate_recursively(transaction_t *txn, int levels, block_id_t *block_ids, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size) {
+    block_size_t block_size = txn->get_cache()->get_block_size();
+    int old_lo, old_hi, new_lo, new_hi;
+    compute_acquisition_offsets(block_size, levels, old_offset, old_size, &old_lo, &old_hi);
+    compute_acquisition_offsets(block_size, levels, new_offset, new_size, &new_lo, &new_hi);
+    int64_t leafsize = leaf_size(block_size);
+    if (new_offset / leafsize < old_offset / leafsize) {
+        for (int i = new_lo; i <= old_lo; ++i) {
+            allocate_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size);
+        }
+    }
+    if (ceil_divide(new_offset + new_size, leafsize) > ceil_divide(old_offset + old_size, leafsize)) {
+        for (int i = std::max(old_lo + 1, old_hi - 1); i < new_hi; ++i) {
+            allocate_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size);
+        }
+    }
+}
+
+bool blob_t::allocate_to_dimensions(transaction_t *txn, int levels, int64_t new_offset, int64_t new_size) {
+    int64_t old_offset = ref_value_offset(ref_, maxreflen_);
+    int64_t old_size = valuesize();
+    int64_t old_end = old_offset + old_size;
+    int64_t new_end = new_offset + new_size;
+    rassert(new_offset <= old_offset && new_end >= old_end);
+    block_size_t block_size = txn->get_cache()->get_block_size();
+    if (new_offset >= 0 && new_end <= max_end_offset(block_size, levels, maxreflen_)) {
+        if (levels != 0) {
+            allocate_recursively(txn, levels, block_ids(ref_, maxreflen_), old_offset, old_size, new_offset, new_size);
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
