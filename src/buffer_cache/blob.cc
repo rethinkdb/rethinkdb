@@ -47,6 +47,10 @@ int64_t big_size(const char *ref, size_t maxreflen) {
     return *reinterpret_cast<const int64_t *>(ref + BIG_SIZE_OFFSET(maxreflen));
 }
 
+void set_big_size(char *ref, size_t maxreflen, int64_t new_size) {
+    *reinterpret_cast<int64_t *>(ref + BIG_SIZE_OFFSET(maxreflen)) = new_size;
+}
+
 void set_big_offset(char *ref, size_t maxreflen, int64_t new_offset) {
     *reinterpret_cast<int64_t *>(ref + BIG_OFFSET_OFFSET(maxreflen)) = new_offset;
 }
@@ -555,3 +559,57 @@ bool blob_t::shift_at_least(transaction_t *txn, int levels, int64_t min_shift) {
     return true;
 }
 
+// Always returns levels + 1.
+int blob_t::add_level(transaction_t *txn, int levels) {
+    buf_lock_t lock;
+    lock.allocate(txn);
+    void *b = lock->get_data_major_write();
+    if (levels == 0) {
+        block_magic_t leafmagic = { { 'l', 'a', 'r', 'l' } };
+        *reinterpret_cast<block_magic_t *>(b) = leafmagic;
+
+        size_t sz = small_size(ref_, maxreflen_);
+        rassert(sz < maxreflen_);
+
+        memcpy(leaf_node_data(b), small_buffer(ref_, maxreflen_), sz);
+
+        set_small_size(ref_, maxreflen_, maxreflen_);
+        set_big_offset(ref_, maxreflen_, 0);
+        set_big_size(ref_, maxreflen_, sz);
+        block_ids(ref_, maxreflen_)[0] = lock->get_block_id();
+    } else {
+        block_magic_t internalmagic = { { 'l', 'a', 'r', 'i' } };
+        *reinterpret_cast<block_magic_t *>(b) = internalmagic;
+
+        // We don't know how many block ids there could be, so we'll
+        // just copy as many as there can be.
+        size_t sz = maxreflen_ - BLOCK_IDS_OFFSET(maxreflen_);
+
+        memcpy(internal_node_block_ids(b), block_ids(ref_, maxreflen_), sz);
+        block_ids(ref_, maxreflen_)[0] = lock->get_block_id();
+    }
+
+    return levels + 1;
+}
+
+
+bool blob_t::remove_level(transaction_t *txn, int *levels_ref) {
+    int levels = *levels_ref;
+    if (levels == 0) {
+        return false;
+    }
+
+    int64_t end_offset = big_offset(ref_, maxreflen_) + big_size(ref_, maxreflen_);
+    if (end_offset > max_end_offset(txn->get_cache()->get_block_size(), levels - 1, maxreflen_)) {
+        return false;
+    }
+
+    buf_lock_t lock(txn, block_ids(ref_, maxreflen_)[0], rwi_write);
+    const block_id_t *b = internal_node_block_ids(lock->get_data_read());
+
+    memcpy(block_ids(ref_, maxreflen_), b, maxreflen_ - BLOCK_IDS_OFFSET(maxreflen_));
+    lock->mark_deleted();
+
+    *levels_ref = levels - 1;
+    return true;
+}
