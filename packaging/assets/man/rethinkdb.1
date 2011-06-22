@@ -24,9 +24,13 @@ rethinkdb \- the database for solid state drives
 [\-\-unsaved\-data\-limit \fImegabytes\fP]
 [\-\-gc\-range \fIlow\fP-\fIhigh\fP]
 [\-\-active\-data\-extents \fIcount\fP]
+[\-\-io\-backend \fItype\fP]
+[\-\-read\-ahead \fIvalue\fP]
+[\-\-master \fIport\fP]
 [\-\-slave\-of \fIhost\fP:\fIport\fP]
+[\-\-heartbeat\-timeout \fIseconds\fP]
 [\-\-failover\-script \fIpath\fP]
-[\-\-run\-behind\-elb]
+[\-\-no\-rogue]
 .TP
 \fI\fBrethinkdb\fR create <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
 [<-s | \-\-slices> \fIcount\fP] 
@@ -46,6 +50,10 @@ rethinkdb \- the database for solid state drives
 .TP
 \fI\fBrethinkdb\fR fsck <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
 [<\-l | \-\-log\-file> \fIfile\fP]
+.TP
+\fI\fBrethinkdb\fR migrate <\-\-in> <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
+<\-\-out> <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
+[\-\-intermediate] [\-\-force]
 .TP
 \fI\fBrethinkdb\fR help [rethinkdb_command]
 .TP
@@ -95,6 +103,13 @@ Serve:
 .B \-\-active\-data\-extents
     How many places in the file to write to at once.
 
+.B \-\-io\-backend
+    Possible options are 'native' and 'pool'.
+
+.B \-\-read\-ahead
+    Possible options are y' and 'n'. Enables and disables readahead
+    when warming up the cache.
+
 .B \-\-diff\-log\-size
     The size which is allocated for the differential log.
 
@@ -106,14 +121,25 @@ Serve:
 .B \-\-log\-file
     A file to log to (otherwise messages are logged to stderr.)
 
+.B \-\-master
+    The port to listen for a slave on, or OFF or ON.
+
 .B \-\-slave\-of
     Act as a slave another RethinkDB server replicating its
     data and responding to gets. When the master fails the
     slave will become a full fledged server.
 
+.B \-\-heartbeat\-timeout
+    If master is inaccessible after this amount of time, the
+    slave will promote itself to master.
+
 .B \-\-failover\-script
     Script to be executed when master fails and resumes.
     See manual for example.
+
+.B \-\-no\-rogue
+    Do not automatically promote slave to master if the master
+    disconnects too often.
 
 .B \-\-run\-behind\-elb
     Be compatible with Amazon ELB (with TCP protocol health checks).
