@@ -15,7 +15,7 @@ for mode in ["debug", "release"]:
             for mock_cache in [True, False]:
                 for poll_mode in ["poll", "epoll"]:
                     # Build our targets
-                    do_test("cd ../src/; make -j",
+                    do_test("cd ../src/; make -j 9",
                             { "DEBUG"            : 1 if mode    == "debug"    else 0,
                               "VALGRIND"         : 1 if checker == "valgrind" else 0,
                               "MOCK_IO_LAYER"    : 1 if mock_io               else 0,
@@ -24,10 +24,10 @@ for mode in ["debug", "release"]:
                             cmd_format="make", timeout=180)
 
 # Make sure auxillary tools compile
-do_test("cd ../bench/stress-client/; make clean; make -j MYSQL=0 LIBMEMCACHED=0 LIBGSL=0 stress libstress.so",
+do_test("cd ../bench/stress-client/; make clean; make -j 9 MYSQL=0 LIBMEMCACHED=0 LIBGSL=0 stress libstress.so",
         {},
         cmd_format="make")
-do_test("cd ../bench/serializer-bench/; make clean; make -j",
+do_test("cd ../bench/serializer-bench/; make clean; make -j 9",
         {},
         cmd_format="make")
 

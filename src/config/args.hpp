@@ -102,7 +102,7 @@
 // If --diff-log-size is not specified, then the patch log size will default to the
 // smaller of DEFAULT_PATCH_LOG_SIZE and (DEFAULT_PATCH_LOG_FRACTION * cache size).
 #ifdef NDEBUG
-#define DEFAULT_PATCH_LOG_SIZE                     (512 * MEGABYTE)
+#define DEFAULT_PATCH_LOG_SIZE                     (0 * MEGABYTE)
 #else
 #define DEFAULT_PATCH_LOG_SIZE                     (4 * MEGABYTE)
 #endif
