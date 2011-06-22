@@ -320,14 +320,14 @@ void blob_t::prepend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
 void blob_t::unappend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = ref_info(block_size, ref_, maxreflen_).second;
-    deallocate_to_dimensions(txn, ref_value_offset(ref_, maxreflen_), valuesize() - size);
+    deallocate_to_dimensions(txn, levels, ref_value_offset(ref_, maxreflen_), valuesize() - size);
     while (remove_level(txn, &levels)) { }
 }
 
 void blob_t::unprepend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = ref_info(block_size, ref_, maxreflen_).second;
-    deallocate_to_dimensions(txn, ref_value_offset(ref_, maxreflen_) + size, valuesize() - size);
+    deallocate_to_dimensions(txn, levels, ref_value_offset(ref_, maxreflen_) + size, valuesize() - size);
     for (;;) {
         if (!remove_level(txn, &levels)) {
             break;
@@ -337,24 +337,81 @@ void blob_t::unprepend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
     }
 }
 
-void allocate_recursively(transaction_t *txn, int levels, block_id_t *block_ids, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size);
+struct traverse_helper_t {
+    virtual void preprocess(transaction_t *txn, int levels, buf_lock_t& lock, block_id_t *block_id) = 0;
+    virtual void postprocess(buf_lock_t& lock) = 0;
+    virtual ~traverse_helper_t() { }
+};
 
-void allocate_index(transaction_t *txn, int levels, block_id_t *block_ids, int index, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size) {
+void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, traverse_helper_t *helper);
+
+void traverse_index(transaction_t *txn, int levels, block_id_t *block_ids, int index, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, traverse_helper_t *helper) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int64_t sub_old_offset, sub_old_size, sub_new_offset, sub_new_size;
     shrink(block_size, levels, old_offset, old_size, index, &sub_old_offset, &sub_old_size);
     shrink(block_size, levels, new_offset, new_size, index, &sub_new_offset, &sub_new_size);
 
-    buf_lock_t lock;
-    void *b;
     if (sub_old_size > 0) {
-        buf_lock_t tmp(txn, block_ids[index], rwi_write);
-        lock.swap(tmp);
-        b = lock->get_data_major_write();
+        if (levels > 1) {
+            buf_lock_t lock(txn, block_ids[index], rwi_write);
+            void *b = lock->get_data_major_write();
+
+            block_id_t *subids = internal_node_block_ids(b);
+            traverse_recursively(txn, levels - 1, subids, sub_old_offset, sub_old_size, sub_new_offset, sub_new_size, helper);
+        }
+
     } else {
+        buf_lock_t lock;
+        helper->preprocess(txn, levels, lock, &block_ids[index]);
+
+        if (levels > 1) {
+            void *b = lock->get_data_major_write();
+            block_id_t *subids = internal_node_block_ids(b);
+            traverse_recursively(txn, levels - 1, subids, sub_old_offset, sub_old_size, sub_new_offset, sub_new_size, helper);
+        }
+
+        helper->postprocess(lock);
+    }
+}
+
+void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, traverse_helper_t *helper) {
+    block_size_t block_size = txn->get_cache()->get_block_size();
+    int old_lo, old_hi, new_lo, new_hi;
+    compute_acquisition_offsets(block_size, levels, old_offset, old_size, &old_lo, &old_hi);
+    compute_acquisition_offsets(block_size, levels, new_offset, new_size, &new_lo, &new_hi);
+    int64_t leafsize = leaf_size(block_size);
+    if (new_offset / leafsize < old_offset / leafsize) {
+        for (int i = new_lo; i <= old_lo; ++i) {
+            traverse_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size, helper);
+        }
+    }
+    if (ceil_divide(new_offset + new_size, leafsize) > ceil_divide(old_offset + old_size, leafsize)) {
+        for (int i = std::max(old_lo + 1, old_hi - 1); i < new_hi; ++i) {
+            traverse_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size, helper);
+        }
+    }
+}
+
+bool blob_t::traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, traverse_helper_t *helper) {
+    int64_t old_end = old_offset + old_size;
+    int64_t new_end = new_offset + new_size;
+    rassert(new_offset <= old_offset && new_end >= old_end);
+    block_size_t block_size = txn->get_cache()->get_block_size();
+    if (new_offset >= 0 && new_end <= max_end_offset(block_size, levels, maxreflen_)) {
+        if (levels != 0) {
+            traverse_recursively(txn, levels, block_ids(ref_, maxreflen_), old_offset, old_size, new_offset, new_size, helper);
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+struct allocate_helper_t : public traverse_helper_t {
+    void preprocess(transaction_t *txn, int levels, buf_lock_t& lock, block_id_t *block_id) {
         lock.allocate(txn);
-        block_ids[index] = lock->get_block_id();
-        b = lock->get_data_major_write();
+        *block_id = lock->get_block_id();
+        void *b = lock->get_data_major_write();
         if (levels == 1) {
             block_magic_t leafmagic = { { 'l', 'a', 'r', 'l' } };
             *reinterpret_cast<block_magic_t *>(b) = leafmagic;
@@ -363,46 +420,29 @@ void allocate_index(transaction_t *txn, int levels, block_id_t *block_ids, int i
             *reinterpret_cast<block_magic_t *>(b) = internalmagic;
         }
     }
-
-    if (levels > 1) {
-        block_id_t *subids = internal_node_block_ids(b);
-        allocate_recursively(txn, levels - 1, subids, sub_old_offset, sub_old_size, sub_new_offset, sub_new_size);
-    }
-}
-
-void allocate_recursively(transaction_t *txn, int levels, block_id_t *block_ids, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size) {
-    block_size_t block_size = txn->get_cache()->get_block_size();
-    int old_lo, old_hi, new_lo, new_hi;
-    compute_acquisition_offsets(block_size, levels, old_offset, old_size, &old_lo, &old_hi);
-    compute_acquisition_offsets(block_size, levels, new_offset, new_size, &new_lo, &new_hi);
-    int64_t leafsize = leaf_size(block_size);
-    if (new_offset / leafsize < old_offset / leafsize) {
-        for (int i = new_lo; i <= old_lo; ++i) {
-            allocate_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size);
-        }
-    }
-    if (ceil_divide(new_offset + new_size, leafsize) > ceil_divide(old_offset + old_size, leafsize)) {
-        for (int i = std::max(old_lo + 1, old_hi - 1); i < new_hi; ++i) {
-            allocate_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size);
-        }
-    }
-}
+    void postprocess(UNUSED buf_lock_t& lock) { }
+};
 
 bool blob_t::allocate_to_dimensions(transaction_t *txn, int levels, int64_t new_offset, int64_t new_size) {
-    int64_t old_offset = ref_value_offset(ref_, maxreflen_);
-    int64_t old_size = valuesize();
-    int64_t old_end = old_offset + old_size;
-    int64_t new_end = new_offset + new_size;
-    rassert(new_offset <= old_offset && new_end >= old_end);
-    block_size_t block_size = txn->get_cache()->get_block_size();
-    if (new_offset >= 0 && new_end <= max_end_offset(block_size, levels, maxreflen_)) {
-        if (levels != 0) {
-            allocate_recursively(txn, levels, block_ids(ref_, maxreflen_), old_offset, old_size, new_offset, new_size);
-        }
-        return true;
-    } else {
-        return false;
+    allocate_helper_t helper;
+    return traverse_to_dimensions(txn, levels, ref_value_offset(ref_, maxreflen_), valuesize(), new_offset, new_size, &helper);
+}
+
+struct deallocate_helper_t : public traverse_helper_t {
+    void preprocess(transaction_t *txn, UNUSED int levels, buf_lock_t& lock, block_id_t *block_id) {
+        buf_lock_t tmp(txn, *block_id, rwi_write);
+        lock.swap(tmp);
     }
+
+    void postprocess(buf_lock_t& lock) {
+        lock->mark_deleted();
+    }
+};
+
+void blob_t::deallocate_to_dimensions(transaction_t *txn, int levels, int64_t new_offset, int64_t new_size) {
+    deallocate_helper_t helper;
+    UNUSED bool res = traverse_to_dimensions(txn, levels, new_offset, new_size, ref_value_offset(ref_, maxreflen_), valuesize(), &helper);
+    rassert(res);
 }
 
 
