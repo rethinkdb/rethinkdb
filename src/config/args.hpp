@@ -12,7 +12,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define VERSION_STRING "0.2"
+#define VERSION_STRING "0.3"
 
 /**
  * Basic configuration parameters.
@@ -102,7 +102,7 @@
 // If --diff-log-size is not specified, then the patch log size will default to the
 // smaller of DEFAULT_PATCH_LOG_SIZE and (DEFAULT_PATCH_LOG_FRACTION * cache size).
 #ifdef NDEBUG
-#define DEFAULT_PATCH_LOG_SIZE                     (512 * MEGABYTE)
+#define DEFAULT_PATCH_LOG_SIZE                     (0 * MEGABYTE)
 #else
 #define DEFAULT_PATCH_LOG_SIZE                     (4 * MEGABYTE)
 #endif
@@ -208,11 +208,11 @@
 
 //filenames for the database
 #define DEFAULT_DB_FILE_NAME                      "rethinkdb_data"
+#define DEFAULT_DB_METADATA_FILE_NAME             "rethinkdb_metadata"
 
 // We assume there will never be more than this many blocks. The value
 // is computed by dividing 1 TB by the smallest reasonable block size.
-// This value currently fits in 32 bits, and so block_id_t and
-// ser_block_id_t is a uint32_t.
+// This value currently fits in 32 bits, and so block_id_t is a uint32_t.
 #define MAX_BLOCK_ID                              (TERABYTE / KILOBYTE)
 
 // We assume that there will never be more than this many blocks held in memory by the cache at
@@ -286,6 +286,14 @@
 
 // Size of a cache line (used in cache_line_padded_t).
 #define CACHE_LINE_SIZE                           64
+
+// What fraction of a normal slice's resources we reserve for the metadata shard
+// TODO (rntz) this should be runtime controllable
+// TODO (rntz) should there be a more fine-grained way to specify the metadata shard's resources?
+#define METADATA_SHARD_RESOURCE_QUOTIENT          0.1f
+
+// The frequency (in ms) with which statistics are persisted to disk (see stat/persist.hpp)
+#define STAT_PERSIST_FREQUENCY_MS                 1000
 
 #endif // __CONFIG_ARGS_H__
 

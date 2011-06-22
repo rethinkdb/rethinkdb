@@ -1,5 +1,6 @@
 #include "extent_manager.hpp"
 #include "print_backtrace.hpp"
+#include "perfmon.hpp"
 
 #define EXTENT_UNRESERVED (off64_t(-2))
 #define EXTENT_IN_USE (off64_t(-3))

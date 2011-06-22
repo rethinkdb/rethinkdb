@@ -1,10 +1,13 @@
 #ifndef __BTREE_KEY_VALUE_STORE_HPP__
 #define __BTREE_KEY_VALUE_STORE_HPP__
 
+#include <boost/scoped_ptr.hpp>
+
 #include "btree/slice.hpp"
 #include "btree/node.hpp"
 #include "utils.hpp"
 #include "concurrency/access.hpp"
+#include "concurrency/signal.hpp"
 #include "server/cmd_args.hpp"
 #include "server/control.hpp"
 #include "server/dispatching_store.hpp"
@@ -12,6 +15,7 @@
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "store.hpp"
+#include "stats/persist.hpp"
 
 namespace replication {
     class backfill_and_streaming_manager_t;
@@ -32,7 +36,7 @@ struct shard_store_t :
     public get_store_t
 {
     shard_store_t(
-        translator_serializer_t *translator_serializer,
+        serializer_t *serializer,
         mirrored_cache_config_t *dynamic_config,
         int64_t delete_queue_limit);
 
@@ -55,7 +59,8 @@ class btree_key_value_store_t :
     castimes if they are coming from a replication slave; it takes changes without castimes if they
     are coming directly from a memcached handler. This is kind of hacky. */
     public set_store_interface_t,
-    public set_store_t
+    public set_store_t,
+    public metadata_store_t
 {
 public:
     // Blocks
@@ -91,6 +96,11 @@ public:
     /* btree_key_value_store_t interface */
 
     void delete_all_keys_for_backfill(order_token_t token);
+
+    /* metadata_store_t interface */
+    // NOTE: key cannot be longer than MAX_KEY_SIZE. currently enforced by guarantee().
+    bool get_meta(const std::string &key, std::string *out);
+    void set_meta(const std::string &key, const std::string &value);
 
     /* The value passed to `set_timestampers()` is the value that will be used as the
     timestamp for all new operations. When the key-value store starts up, it is
@@ -141,6 +151,11 @@ private:
 
     shard_store_t *shards[MAX_SLICES];
     uint32_t slice_num(const store_key_t &key);
+
+    standard_serializer_t *metadata_serializer;
+    shard_store_t *metadata_shard;
+    // Used for persisting stats; see stats/persist.hpp
+    side_coro_handler_t *stat_persistence_side_coro_ptr;
 
     /* slice debug control_t which allows us to see slice and hash for a key */
     class hash_control_t :

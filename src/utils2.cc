@@ -41,6 +41,7 @@ void *malloc_aligned(size_t size, size_t alignment) {
     return ptr;
 }
 
+#ifndef NDEBUG
 void debugf(const char *msg, ...) {
     flockfile(stderr);
     precise_time_t t = get_time_now();
@@ -54,6 +55,7 @@ void debugf(const char *msg, ...) {
     va_end(args);
     funlockfile(stderr);
 }
+#endif
 
 /* This object exists only to call srand(time(NULL)) in its constructor, before main() runs. */
 struct rand_initter_t {

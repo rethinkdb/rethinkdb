@@ -111,8 +111,8 @@ struct ls_start_existing_fsm_t :
         
         if (state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
-            for (ser_block_id_t::number_t id = 0; id < ser->lba_index->max_block_id().value; id++) {
-                flagged_off64_t offset = ser->lba_index->get_block_offset(ser_block_id_t::make(id));
+            for (block_id_t id = 0; id < ser->lba_index->max_block_id(); id++) {
+                flagged_off64_t offset = ser->lba_index->get_block_offset(id);
                 if (flagged_off64_t::can_be_gced(offset)) {
                     ser->data_block_manager->mark_live(offset.parts.value);
                 }
@@ -653,11 +653,11 @@ struct ls_read_fsm_t :
 {
     ticks_t start_time;
     log_serializer_t *ser;
-    ser_block_id_t block_id;
+    block_id_t block_id;
     void *buf;
     file_t::account_t *io_account;
     
-    ls_read_fsm_t(log_serializer_t *ser, ser_block_id_t block_id, void *buf)
+    ls_read_fsm_t(log_serializer_t *ser, block_id_t block_id, void *buf)
         : ser(ser), block_id(block_id), buf(buf), io_account(DEFAULT_DISK_ACCOUNT)
     {
         pm_serializer_reads.begin(&start_time);
@@ -692,7 +692,7 @@ struct ls_read_fsm_t :
     void on_io_complete() {
         buf_data_t *data = reinterpret_cast<buf_data_t *>(buf);
         --data;
-        guarantee(data->block_id == block_id, "Got wrong block when reading from disk (id %u instead of %u).\n", data->block_id.value, block_id.value);
+        guarantee(data->block_id == block_id, "Got wrong block when reading from disk (id %u instead of %u).\n", data->block_id, block_id);
 
         done = true;
 
@@ -703,7 +703,7 @@ struct ls_read_fsm_t :
     }
 };
 
-bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback) {
+bool log_serializer_t::do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, read_callback_t *callback) {
     rassert(state == state_ready);
     assert_thread();
     
@@ -722,7 +722,7 @@ bool log_serializer_t::do_read(ser_block_id_t block_id, void *buf, file_t::accou
 // The block_id is there to keep the interface independent from the serializer
 // implementation. The interface should be ok even for serializers which don't
 // have a transaction id in buf.
-ser_transaction_id_t log_serializer_t::get_current_transaction_id(UNUSED ser_block_id_t block_id, const void* buf) {
+ser_transaction_id_t log_serializer_t::get_current_transaction_id(UNUSED block_id_t block_id, const void* buf) {
     const buf_data_t *ser_data = reinterpret_cast<const buf_data_t *>(buf);
     ser_data--;
     rassert(block_id == ser_data->block_id);
@@ -733,14 +733,14 @@ block_size_t log_serializer_t::get_block_size() {
     return static_config.block_size();
 }
 
-ser_block_id_t log_serializer_t::max_block_id() {
+block_id_t log_serializer_t::max_block_id() {
     rassert(state == state_ready);
     assert_thread();
     
     return lba_index->max_block_id();
 }
 
-bool log_serializer_t::block_in_use(ser_block_id_t id) {
+bool log_serializer_t::block_in_use(block_id_t id) {
     
     // State is state_shutting_down if we're called from the data block manager during a GC
     // during shutdown.
@@ -751,7 +751,7 @@ bool log_serializer_t::block_in_use(ser_block_id_t id) {
     return !(lba_index->get_block_offset(id).parts.is_delete);
 }
 
-repli_timestamp log_serializer_t::get_recency(ser_block_id_t id) {
+repli_timestamp log_serializer_t::get_recency(block_id_t id) {
     return lba_index->get_block_recency(id);
 }
 
@@ -886,7 +886,7 @@ void log_serializer_t::unregister_read_ahead_cb(read_ahead_callback_t *cb) {
     }
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
         if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, recency_timestamp)) {
             return true;

@@ -8,6 +8,8 @@
 #include "logger.hpp"
 #include "btree/buf_patches.hpp"
 
+#include "perfmon.hpp"          // for format(), oddly enough
+
 namespace unittest {
 
 #include "btree/leaf_node.cc" // Build a local variant which uses test_buf_t!

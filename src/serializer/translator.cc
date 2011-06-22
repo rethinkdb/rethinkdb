@@ -168,25 +168,25 @@ int serializer_multiplexer_t::compute_mod_count(int32_t file_number, int32_t n_f
 
 /* translator_serializer_t */
 
-ser_block_id_t translator_serializer_t::translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid) {
-    return ser_block_id_t::make(id * mod_count + mod_id + cfgid.subsequent_ser_id().value);
+block_id_t translator_serializer_t::translate_block_id(block_id_t id, int mod_count, int mod_id, config_block_id_t cfgid) {
+    return id * mod_count + mod_id + cfgid.subsequent_ser_id();
 }
 
-int translator_serializer_t::untranslate_block_id_to_mod_id(ser_block_id_t inner_id, int mod_count, config_block_id_t cfgid) {
+int translator_serializer_t::untranslate_block_id_to_mod_id(block_id_t inner_id, int mod_count, config_block_id_t cfgid) {
     // We know that inner_id == id * mod_count + mod_id + min.
     // Thus inner_id - min == id * mod_count + mod_id.
     // It follows that inner_id - min === mod_id (modulo mod_count).
     // So (inner_id - min) % mod_count == mod_id (since 0 <= mod_id < mod_count).
     // (And inner_id - min >= 0, so '%' works as expected.)
-    return (inner_id.value - cfgid.subsequent_ser_id().value) % mod_count;
+    return (inner_id - cfgid.subsequent_ser_id()) % mod_count;
 }
 
-block_id_t translator_serializer_t::untranslate_block_id_to_id(ser_block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid) {
+block_id_t translator_serializer_t::untranslate_block_id_to_id(block_id_t inner_id, int mod_count, int mod_id, config_block_id_t cfgid) {
     // (simply dividing by mod_count should be sufficient, but this is cleaner)
-    return (inner_id.value - cfgid.subsequent_ser_id().value - mod_id) / mod_count;
+    return (inner_id - cfgid.subsequent_ser_id() - mod_id) / mod_count;
 }
 
-ser_block_id_t translator_serializer_t::translate_block_id(block_id_t id) {
+block_id_t translator_serializer_t::translate_block_id(block_id_t id) {
     return translate_block_id(id, mod_count, mod_id, cfgid);
 }
 
@@ -258,14 +258,14 @@ block_size_t translator_serializer_t::get_block_size() {
 }
 
 block_id_t translator_serializer_t::max_block_id() {
-    int64_t x = inner->max_block_id().value - cfgid.subsequent_ser_id().value;
+    int64_t x = inner->max_block_id() - cfgid.subsequent_ser_id();
     if (x <= 0) {
         x = 0;
     } else {
         while (x % mod_count != mod_id) x++;
         x /= mod_count;
     }
-    rassert(translate_block_id(x).value >= inner->max_block_id().value);
+    rassert(translate_block_id(x) >= inner->max_block_id());
 
     while (x > 0) {
         --x;
@@ -286,7 +286,7 @@ repli_timestamp translator_serializer_t::get_recency(block_id_t id) {
     return inner->get_recency(translate_block_id(id));
 }
 
-bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     inner->assert_thread();
 
     // Offer the buffer if we are the correct shard
@@ -298,7 +298,9 @@ bool translator_serializer_t::offer_read_ahead_buf(ser_block_id_t block_id, void
 
     if (read_ahead_callback) {
         const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
-        read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, recency_timestamp);
+        if (!read_ahead_callback->offer_read_ahead_buf(inner_block_id, buf, recency_timestamp))
+            // They aren't going to free the buffer, so we do.
+            inner->free(buf);
     } else {
         // Discard the buffer
         inner->free(buf);

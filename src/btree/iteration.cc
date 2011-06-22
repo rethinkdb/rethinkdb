@@ -1,5 +1,6 @@
 #include "btree/iteration.hpp"
 #include "btree/btree_data_provider.hpp"
+#include "perfmon.hpp"
 
 perfmon_counter_t
     leaf_iterators("leaf_iterators"),

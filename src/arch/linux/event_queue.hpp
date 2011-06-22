@@ -7,7 +7,7 @@
 #include <boost/function.hpp>
 #include <boost/scoped_ptr.hpp>
 
-#include "perfmon.hpp"
+#include "perfmon_types.hpp"
 #include "linux_utils.hpp"
 
 

@@ -48,9 +48,9 @@ public:
     typedef data_block_manager_gc_write_callback_t gc_write_callback_t;
     
     struct gc_write_t {
-        ser_block_id_t block_id;
+        block_id_t block_id;
         const void *buf;
-        gc_write_t(ser_block_id_t i, const void *b) : block_id(i), buf(b) { }
+        gc_write_t(block_id_t i, const void *b) : block_id(i), buf(b) { }
     };
     
     struct gc_writer_t {
@@ -89,7 +89,7 @@ public:
 public:
 
         
-    static buf_data_t make_buf_data_t(ser_block_id_t block_id, ser_transaction_id_t transaction_id) {
+    static buf_data_t make_buf_data_t(block_id_t block_id, ser_transaction_id_t transaction_id) {
         buf_data_t ret;
         ret.block_id = block_id;
         ret.transaction_id = transaction_id;
@@ -108,7 +108,7 @@ public:
     /* The offset that the data block manager chose will be left in off_out as soon as write()
     returns. The callback will be called when the data is actually on disk and it is safe to reuse
     the buffer. */
-    bool write(const void *buf_in, ser_block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, file_t::account_t *io_account, iocallback_t *cb);
+    bool write(const void *buf_in, block_id_t block_id, ser_transaction_id_t transaction_id, off64_t *off_out, file_t::account_t *io_account, iocallback_t *cb);
 
 public:
     /* exposed gc api */

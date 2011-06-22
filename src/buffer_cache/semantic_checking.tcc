@@ -165,7 +165,7 @@ void scc_transaction_t<inner_cache_t>::get_subtree_recencies(block_id_t *block_i
 
 template<class inner_cache_t>
 void scc_cache_t<inner_cache_t>::create(
-        translator_serializer_t *serializer,
+        serializer_t *serializer,
         mirrored_cache_static_config_t *static_config)
 {
     inner_cache_t::create(serializer, static_config);
@@ -173,7 +173,7 @@ void scc_cache_t<inner_cache_t>::create(
 
 template<class inner_cache_t>
 scc_cache_t<inner_cache_t>::scc_cache_t(
-        translator_serializer_t *serializer,
+        serializer_t *serializer,
         mirrored_cache_config_t *dynamic_config)
     : inner_cache(serializer, dynamic_config) {
 }
@@ -189,8 +189,8 @@ boost::shared_ptr<typename inner_cache_t::cache_account_t> scc_cache_t<inner_cac
 }
 
 template<class inner_cache_t>
-void scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
-    inner_cache.offer_read_ahead_buf(block_id, buf, recency_timestamp);
+bool scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+    return inner_cache.offer_read_ahead_buf(block_id, buf, recency_timestamp);
 }
 
 template<class inner_cache_t>

@@ -3,7 +3,7 @@
 
 #include "store.hpp"
 #include "buffer_cache/buffer_cache.hpp"
-#include "serializer/translator.hpp"
+#include "serializer/serializer.hpp"
 
 class backfill_callback_t;
 
@@ -18,11 +18,11 @@ class btree_slice_t :
 {
 public:
     // Blocks
-    static void create(translator_serializer_t *serializer,
+    static void create(serializer_t *serializer,
                        mirrored_cache_static_config_t *static_config);
 
     // Blocks
-    btree_slice_t(translator_serializer_t *serializer,
+    btree_slice_t(serializer_t *serializer,
                   mirrored_cache_config_t *dynamic_config,
                   int64_t delete_queue_limit);
 

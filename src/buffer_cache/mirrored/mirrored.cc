@@ -2,6 +2,8 @@
 #include "buffer_cache/stats.hpp"
 #include "mirrored.hpp"
 
+#include "stats/persist.hpp"
+
 /**
  * Buffer implementation.
  */
@@ -9,6 +11,8 @@
 perfmon_counter_t pm_registered_snapshots("registered_snapshots"),
                   pm_registered_snapshot_blocks("registered_snapshot_blocks");
 perfmon_sampler_t pm_snapshots_per_transaction("snapshots_per_transaction", secs_to_ticks(1));
+
+perfmon_persistent_counter_t pm_cache_hits("cache_hits"), pm_cache_misses("cache_misses");
 
 // This loads a block from the serializer and stores it into buf.
 void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_account) {
@@ -815,7 +819,7 @@ file_t::account_t *mc_transaction_t::get_io_account() const {
     return (cache_account_.get() == NULL ? cache->reads_io_account.get() : cache_account_->io_account_.get());
 }
 
-void get_subtree_recencies_helper(int slice_home_thread, translator_serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
+void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb) {
     serializer->assert_thread();
 
     for (size_t i = 0; i < num_block_ids; ++i) {
@@ -851,7 +855,7 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
  * Cache implementation.
  */
 
-void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_static_config_t *config) {
+void mc_cache_t::create(serializer_t *serializer, mirrored_cache_static_config_t *config) {
     /* Initialize config block and differential log */
 
     patch_disk_storage_t::create(serializer, MC_CONFIGBLOCK_ID, config);
@@ -862,7 +866,7 @@ void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_stat
 
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
-    translator_serializer_t::write_t write = translator_serializer_t::write_t::make(
+    serializer_t::write_t write = serializer_t::write_t::make(
         SUPERBLOCK_ID, repli_timestamp::invalid, superblock, false, NULL);
 
     struct : public serializer_t::write_txn_callback_t, public cond_t {
@@ -874,7 +878,7 @@ void mc_cache_t::create(translator_serializer_t *serializer, mirrored_cache_stat
 }
 
 mc_cache_t::mc_cache_t(
-            translator_serializer_t *serializer,
+            serializer_t *serializer,
             mirrored_cache_config_t *dynamic_config) :
 
     dynamic_config(*dynamic_config),
@@ -933,6 +937,8 @@ mc_cache_t::~mc_cache_t() {
      unregister_read_ahead_cb_home_thread() on the message queue. We must make
      sure that this message gets processed before we continue destructing
      ourselves, thus the yield here. */
+
+    // TODO: Use a semaphore.
     coro_t::yield();
 
     /* Wait for all transactions to commit before shutting down */
@@ -1002,7 +1008,10 @@ size_t mc_cache_t::register_snapshotted_block(mc_inner_buf_t *inner_buf, void *d
 }
 
 mc_cache_t::inner_buf_t *mc_cache_t::find_buf(block_id_t block_id) {
-    return page_map.find(block_id);
+    inner_buf_t *buf = page_map.find(block_id);
+    if (buf) pm_cache_hits++;
+    else pm_cache_misses++;
+    return buf;
 }
 
 bool mc_cache_t::contains_block(block_id_t block_id) {
@@ -1038,11 +1047,13 @@ void mc_cache_t::on_transaction_commit(transaction_t *txn) {
     }
 }
 
-void mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
+bool mc_cache_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     // Note that the offered block might get deleted between the point where the serializer offers it and the message gets delivered!
     do_on_thread(home_thread(), boost::bind(&mc_cache_t::offer_read_ahead_buf_home_thread, this, block_id, buf, recency_timestamp));
+    return true;
 }
 
+// TODO (rntz) why does this return a bool? no-one will ever see it!
 bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {
     assert_thread();
 
@@ -1057,7 +1068,7 @@ bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf
     // Check if we want to unregister ourselves
     if (page_repl.is_full(5)) {
         // unregister_read_ahead_cb requires a coro context, but we might not be in any
-        coro_t::spawn_now(boost::bind(&translator_serializer_t::unregister_read_ahead_cb, serializer, this));
+        coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
 
     return true;

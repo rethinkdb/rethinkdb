@@ -48,6 +48,7 @@ namespace fsck {
 
 struct config_t {
     std::vector<std::string> input_filenames;
+    std::string metadata_filename;
     std::string log_file_name;
     bool ignore_diff_log;
 

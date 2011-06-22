@@ -127,6 +127,7 @@ struct btree_key_value_store_dynamic_config_t {
 
     /* Vector of per-serializer database information structures */
     std::vector<log_serializer_private_dynamic_config_t> serializer_private;
+    log_serializer_private_dynamic_config_t metadata_serializer_private;
 
     mirrored_cache_config_t cache;
 
@@ -257,6 +258,7 @@ public:
     void set_failover_file(const char* value);
     void set_io_backend(const char* value);
     void push_private_config(const char* value);
+    void set_metadata_file(const char *value);
 
     long long parse_diff_log_size(const char* value);
     

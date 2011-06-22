@@ -174,12 +174,12 @@ mock_transaction_t::~mock_transaction_t() {
 // TODO: Why do we take a static_config if we don't use it?
 // (I.i.r.c. we have a similar situation in the mirrored cache.)
 
-void mock_cache_t::create( translator_serializer_t *serializer, UNUSED mirrored_cache_static_config_t *static_config) {
+void mock_cache_t::create( serializer_t *serializer, UNUSED mirrored_cache_static_config_t *static_config) {
     on_thread_t switcher(serializer->home_thread());
 
     void *superblock = serializer->malloc();
     bzero(superblock, serializer->get_block_size().value());
-    translator_serializer_t::write_t write = translator_serializer_t::write_t::make(
+    serializer_t::write_t write = serializer_t::write_t::make(
         SUPERBLOCK_ID, repli_timestamp::invalid, superblock, false, NULL);
 
     struct : public serializer_t::write_txn_callback_t, public cond_t {
@@ -192,7 +192,7 @@ void mock_cache_t::create( translator_serializer_t *serializer, UNUSED mirrored_
 
 // dynamic_config is unused because this is a mock cache and the
 // configuration parameters don't apply.
-mock_cache_t::mock_cache_t( translator_serializer_t *serializer, UNUSED mirrored_cache_config_t *dynamic_config)
+mock_cache_t::mock_cache_t( serializer_t *serializer, UNUSED mirrored_cache_config_t *dynamic_config)
     : serializer(serializer), block_size(serializer->get_block_size())
 {
     on_thread_t switcher(serializer->home_thread());
@@ -222,9 +222,9 @@ mock_cache_t::~mock_cache_t() {
     {
         on_thread_t thread_switcher(serializer->home_thread());
 
-        std::vector<translator_serializer_t::write_t> writes;
+        std::vector<serializer_t::write_t> writes;
         for (block_id_t i = 0; i < bufs.get_size(); i++) {
-            writes.push_back(translator_serializer_t::write_t::make(
+            writes.push_back(serializer_t::write_t::make(
                 i, bufs[i] ? bufs[i]->subtree_recency : repli_timestamp::invalid,
                 bufs[i] ? bufs[i]->data : NULL,
                 true, NULL));
@@ -245,8 +245,9 @@ block_size_t mock_cache_t::get_block_size() {
     return block_size;
 }
 
-void mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, void *buf, UNUSED repli_timestamp recency_timestamp) {
-    serializer->free(buf);
+bool mock_cache_t::offer_read_ahead_buf(UNUSED block_id_t block_id, UNUSED void *buf, UNUSED repli_timestamp recency_timestamp) {
+    // We never use read-ahead.
+    return false;
 }
 
 bool mock_cache_t::contains_block(UNUSED block_id_t id) {

@@ -6,7 +6,7 @@
 .\"    Source: RethinkDB 0.1
 .\"  Language: English
 .\"
-.TH "RETHINKDB" "1" "1/10/2011" "RethinkDB 0\&.1" "RethinkDB Manual"
+.TH "RETHINKDB" "1" "CURRENT_DATE" "RethinkDB SHORT_VERSION" "RethinkDB Manual"
 .SH "NAME"
 rethinkdb \- the database for solid state drives
 .SH "SYNOPSIS"
@@ -24,9 +24,13 @@ rethinkdb \- the database for solid state drives
 [\-\-unsaved\-data\-limit \fImegabytes\fP]
 [\-\-gc\-range \fIlow\fP-\fIhigh\fP]
 [\-\-active\-data\-extents \fIcount\fP]
+[\-\-io\-backend \fItype\fP]
+[\-\-read\-ahead \fIvalue\fP]
+[\-\-master \fIport\fP]
 [\-\-slave\-of \fIhost\fP:\fIport\fP]
+[\-\-heartbeat\-timeout \fIseconds\fP]
 [\-\-failover\-script \fIpath\fP]
-[\-\-run\-behind\-elb]
+[\-\-no\-rogue]
 .TP
 \fI\fBrethinkdb\fR create <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
 [<-s | \-\-slices> \fIcount\fP] 
@@ -47,6 +51,10 @@ rethinkdb \- the database for solid state drives
 \fI\fBrethinkdb\fR fsck <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
 [<\-l | \-\-log\-file> \fIfile\fP]
 .TP
+\fI\fBrethinkdb\fR migrate <\-\-in> <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
+<\-\-out> <\-f | \-\-file> <file_1> [<\-f | \-\-file> <file_2 ...>] 
+[\-\-intermediate] [\-\-force]
+.TP
 \fI\fBrethinkdb\fR help [rethinkdb_command]
 .TP
 \fI\fBrethinkdb\fR --version
@@ -54,7 +62,7 @@ rethinkdb \- the database for solid state drives
 .sp
 .SH "DESCRIPTION"
 .sp
-RethinkDB is a key value store designed for solid state drives\&.
+RethinkDB is a powerful key\-value store optimized for modern hardware that is reliable, fast, persistent, and easy to deploy\&.
 .SH "OPTIONS"
 .TP
 
@@ -77,7 +85,7 @@ Serve:
     Do not respond to commands until changes are on disk.
 
 .B \-\-flush\-timer     
-    Time between changes are flushed to disk.
+    Time between when changes are flushed to disk.
     
 .B \-\-flush\-threshold 
     Trigger a flush to disk as soon as the given number of
@@ -95,6 +103,13 @@ Serve:
 .B \-\-active\-data\-extents
     How many places in the file to write to at once.
 
+.B \-\-io\-backend
+    Possible options are 'native' and 'pool'.
+
+.B \-\-read\-ahead
+    Possible options are 'y' and 'n'. Enables and disables readahead
+    when warming up the cache.
+
 .B \-\-diff\-log\-size
     The size which is allocated for the differential log.
 
@@ -104,16 +119,27 @@ Serve:
 
 .B \-l, 
 .B \-\-log\-file
-    A file to log to (otherwise messages are logged to stderr.)
+    A file to log to (otherwise messages are logged to stderr).
+
+.B \-\-master
+    The port to listen for a slave on, or OFF or ON.
 
 .B \-\-slave\-of
-    Act as a slave another RethinkDB server replicating its
+    Act as a slave of another RethinkDB server replicating its
     data and responding to gets. When the master fails the
     slave will become a full fledged server.
+
+.B \-\-heartbeat\-timeout
+    If the master is inaccessible after this amount of time, the
+    slave will promote itself to master.
 
 .B \-\-failover\-script
     Script to be executed when master fails and resumes.
     See manual for example.
+
+.B \-\-no\-rogue
+    Do not automatically promote a slave to master if the master
+    disconnects too often.
 
 .B \-\-run\-behind\-elb
     Be compatible with Amazon ELB (with TCP protocol health checks).
@@ -131,14 +157,14 @@ Create:
     The total number of slices across all devices.
 
 .B \-\-block\-size
-    The size (in MB) of a serialized block, (must be divisable by 4096.)
+    The size (in MB) of a serialized block (must be divisable by 4096).
 
 .B \-\-extent\-size,
-    The size (in MB) of the disk extents.
+    The size (in MB) of disk extents.
 
 .B \-l,
 .B \-\-log\-file
-    A file to log to (otherwise messages are logged to stderr.)
+    A file to log to (otherwise messages are logged to stderr).
 
 .B \-\-force
     Create a database even though it will destroy an existing one.
@@ -151,25 +177,25 @@ Extract:
     A file or block device to read from.
 
 .B \-\-force\-block\-size    
-    Specifies block size, overriding file headers
+    Specifies block size, overriding file headers.
 
 .B \-\-force\-extent\-size   
-    Specifies extent size, overriding file headers
+    Specifies extent size, overriding file headers.
 
 .B \-\-force\-slice\-count     
     Specifies number of slices in *this* file, overriding file headers.
 
 .B \-\-ignore\-diff\-log     
-    Do not apply patches from the differential log. This allows to extract
+    Do not apply patches from the differential log. This allows extracting 
     (potentially outdated) data even if the differential log is corrupted.
 
 .B \-l, 
 .B \-\-log\-file
-    A file to log to (otherwise messages are logged to stderr.)
+    A file to log to (otherwise messages are logged to stderr).
 
 .B \-o, 
 .B \-\-output\-file
-    A file to put output in (otherwise output goes to memcached_dump_file_out.)
+    A file to put output in (otherwise output goes to memcached_dump_file_out).
 
 .TP
 Fsck:
@@ -180,7 +206,7 @@ Fsck:
 
 .B \-l, 
 .B \-\-log\-file
-    A file to log to (otherwise messages are logged to stderr.)
+    A file to log to (otherwise messages are logged to stderr).
 
 .SH "KNOWN ISSUES"
 RethinkDB is known to give choppy performance when disk throughput is saturated.
