@@ -84,9 +84,11 @@ double ticks_to_secs(ticks_t ticks);
 // HEY: Maybe debugf and log_call and TRACEPOINT should be placed in
 // debug.hpp (and debug.cc).
 /* Debugging printing API (prints current thread in addition to message) */
-
+#ifndef NDEBUG
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
-
+#else
+#define debugf(...) ((void)0)
+#endif
 
 // Returns a random number in [0, n).  Is not perfectly uniform; the
 // bias tends to get worse when RAND_MAX is far from a multiple of n.

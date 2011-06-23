@@ -7,7 +7,7 @@
 #else   /* not x86/amd64 */
 #define BREAKPOINT raise(SIGTRAP)
 #endif  /* x86/amd64 */
- #endif /* __linux__ */
+#endif /* __linux__ */
 
 
 #ifndef NDEBUG

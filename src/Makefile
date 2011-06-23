@@ -330,7 +330,10 @@ endif
 install-manpages: $(ASSETS_DIR)/man/rethinkdb.1
 	$(QUIET) install -m755 -d $(DESTDIR)$(man1_dir)
 # TODO: support other man pages
-	$(QUIET) gzip -9 < $(ASSETS_DIR)/man/rethinkdb.1 | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz;
+	$(QUIET) m4 \
+			-D "SHORT_VERSION=$(RETHINKDB_SHORT_VERSION)" \
+			-D "CURRENT_DATE=$(shell date +%F)" \
+			< $(ASSETS_DIR)/man/rethinkdb.1 | gzip -9 | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$(VERSIONED_PACKAGE_NAME).1.gz;
 #	$(QUIET) for manpage in $(MAN_PAGES); do \
 #			gzip -9 < $$manpage | install -m644 -T /dev/stdin $(DESTDIR)$(man1_dir)/$$(basename $$manpage).gz; \
 #		done
