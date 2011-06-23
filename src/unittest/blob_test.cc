@@ -45,6 +45,7 @@ public:
     }
 
     void append(transaction_t *txn, const std::string& x) {
+        SCOPED_TRACE("append " + x);
         int64_t n = x.size();
 
         blob_.append_region(txn, n);
@@ -70,6 +71,7 @@ public:
     }
 
     void prepend(transaction_t *txn, const std::string& x) {
+        SCOPED_TRACE("prepend " + x);
         int64_t n = x.size();
 
         blob_.prepend_region(txn, n);
@@ -95,6 +97,7 @@ public:
     }
 
     void unprepend(transaction_t *txn, int64_t n) {
+        SCOPED_TRACE("unprepend " + strprintf("%ld", n));
         ASSERT_LE(n, expected_.size());
 
         blob_.unprepend_region(txn, n);
@@ -104,6 +107,7 @@ public:
     }
 
     void unappend(transaction_t *txn, int64_t n) {
+        SCOPED_TRACE("unappend " + strprintf("%ld", n));
         ASSERT_LE(n, expected_.size());
 
         blob_.unappend_region(txn, n);
@@ -135,6 +139,7 @@ private:
         tk.append(&txn, "a");
         tk.append(&txn, "b");
         tk.prepend(&txn, "c");
+        tk.unappend(&txn, 1);
     }
 };
 
