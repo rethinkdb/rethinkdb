@@ -34,7 +34,9 @@ private:
 
 union temporary_acq_tree_node_t;
 
+namespace blob {
 struct traverse_helper_t;
+}  // namespace blob
 
 class blob_t {
 public:
@@ -54,7 +56,7 @@ public:
     void unprepend_region(transaction_t *txn, int64_t size);
 
 private:
-    bool traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, traverse_helper_t *helper);
+    bool traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, blob::traverse_helper_t *helper);
     bool allocate_to_dimensions(transaction_t *txn, int levels, int64_t new_offset, int64_t new_size);
     bool shift_at_least(transaction_t *txn, int levels, int64_t min_shift);
     void deallocate_to_dimensions(transaction_t *txn, int levels, int64_t new_offset, int64_t new_size);
