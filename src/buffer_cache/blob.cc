@@ -332,6 +332,15 @@ void blob_t::append_region(transaction_t *txn, int64_t size) {
 void blob_t::prepend_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).second;
+
+    size_t small_size = blob::small_size(ref_, maxreflen_);
+    if (levels == 0 && small_size + size <= maxreflen_ - blob::big_size_offset(maxreflen_)) {
+        char *buf = blob::small_buffer(ref_, maxreflen_);
+        memmove(buf + size, buf, small_size);
+        blob::set_small_size(ref_, maxreflen_, small_size + size);
+        return;
+    }
+
     for (;;) {
         if (!shift_at_least(txn, levels, std::max<int64_t>(0, - (blob::ref_value_offset(ref_, maxreflen_) - size)))) {
             levels = add_level(txn, levels);
