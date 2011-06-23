@@ -338,7 +338,6 @@ struct mysql_protocol_t : public protocol_t {
     }
 
     virtual void range_read(char* lkey, size_t lkey_size, char* rkey, size_t rkey_size, int count_limit, payload_t *values = NULL) {
-        // TODO: The following is completely untested!
         // Bind the data
         MYSQL_BIND bind[3];
         memset(bind, 0, sizeof(bind));
@@ -356,11 +355,11 @@ struct mysql_protocol_t : public protocol_t {
         bind[1].length = &rkey_size;
 
         bind[2].buffer_type = MYSQL_TYPE_LONG;
-        bind[2].buffer = &count_limit;
-        bind[2].buffer_length = sizeof(count_limit);
+        bind[2].buffer = (void*)&count_limit;
+        bind[2].buffer_length = 0;
         bind[2].is_null = 0;
+        bind[2].length = 0;
 
-        MYSQL_STMT *range_read_stmt = range_read_stmt;
         int res = mysql_stmt_bind_param(range_read_stmt, bind);
         if(res != 0) {
             fprintf(stderr, "Could not bind range read statement\n");
