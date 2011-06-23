@@ -36,7 +36,7 @@ bool size_would_be_small(size_t proposed_size, size_t maxreflen) {
     return proposed_size <= maxreflen - big_size_offset(maxreflen);
 }
 
-void set_small_size(char *ref, size_t size, size_t maxreflen) {
+void set_small_size(char *ref, size_t maxreflen, size_t size) {
     rassert(size_would_be_small(size, maxreflen));
     if (maxreflen <= 255) {
         *reinterpret_cast<uint8_t *>(ref) = size;
@@ -229,9 +229,6 @@ void blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, in
         // Exposing and writing to the buffer group is done serially.
         blob::expose_tree_from_block_ids(txn, mode, levels, offset, size, tree, buffer_group_out, acq_group_out);
     }
-
-
-    crash("not yet implemented.");
 }
 
 namespace blob {
@@ -313,17 +310,26 @@ void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, i
 
 }  // namespace blob
 
-void blob_t::append_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
+void blob_t::append_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).second;
     while (!allocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_), valuesize() + size)) {
         levels = add_level(txn, levels);
     }
 
+    if (levels == 0) {
+        rassert(blob::is_small(ref_, maxreflen_));
+        size_t new_size = size + blob::small_size(ref_, maxreflen_);
+        rassert(blob::size_would_be_small(new_size, maxreflen_));
+        blob::set_small_size(ref_, maxreflen_, new_size);
+    } else {
+        blob::set_big_size(ref_, maxreflen_, blob::big_size(ref_, maxreflen_) + size);
+    }
+
     rassert(blob::ref_info(block_size, ref_, maxreflen_).second == levels);
 }
 
-void blob_t::prepend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
+void blob_t::prepend_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).second;
     for (;;) {
@@ -337,14 +343,14 @@ void blob_t::prepend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
     rassert(blob::ref_info(block_size, ref_, maxreflen_).second == levels);
 }
 
-void blob_t::unappend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
+void blob_t::unappend_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).second;
     deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_), valuesize() - size);
     while (remove_level(txn, &levels)) { }
 }
 
-void blob_t::unprepend_region(UNUSED transaction_t *txn, UNUSED int64_t size) {
+void blob_t::unprepend_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).second;
     deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_) + size, valuesize() - size);
