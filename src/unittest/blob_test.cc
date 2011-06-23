@@ -79,7 +79,7 @@ public:
         {
             buffer_group_t bg;
             blob_acq_t bacq;
-            blob_.expose_region(txn, rwi_write, expected_.size(), n, &bg, &bacq);
+            blob_.expose_region(txn, rwi_write, 0, n, &bg, &bacq);
 
             ASSERT_EQ(n, bg.get_size());
 
