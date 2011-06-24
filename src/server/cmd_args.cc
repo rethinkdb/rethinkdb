@@ -46,7 +46,8 @@ void usage_serve() {
                 "                        combination with --wait-for-flush this option can be used\n"
                 "                        to optimize the write latency for concurrent strong\n"
                 "                        durability workloads. Defaults to %d\n"
-                "      --flush-concurrency   Maximal number of concurrently active flushes per\n"
+                "      --flush-concurrency\n"
+                "                        Maximal number of concurrently active flushes per\n"
                 "                        slice. Defaults to %d\n",
                                 DEFAULT_FLUSH_WAITING_THRESHOLD, DEFAULT_MAX_CONCURRENT_FLUSHES);
     help->pagef("      --unsaved-data-limit\n" 
@@ -69,7 +70,12 @@ void usage_serve() {
                 "      --io-backend      Possible options are 'native' (the default) and 'pool'.\n"
                 "                        The native backend is most efficient, but may have\n"
                 "                        performance problems in some environments.\n"
-                "      --read-ahead      Enable or disable read ahead during cache warmup. Read\n"
+                "      --io-batch-factor The number of disk operations in an i/o scheduler batch.\n"
+                "                        A higher value can increase the sequentiality of i/o\n"
+                "                        requests, increasing i/o throughput on drives that have\n"
+                "                        high random seek times. A lower value improves latency.\n"
+                "                        Defaults to %d\n", DEFAULT_IO_BATCH_FACTOR);
+    help->pagef("      --read-ahead      Enable or disable read ahead during cache warmup. Read\n"
                 "                        ahead can significantly speed up the cache warmup time\n"
                 "                        for disks which have high costs for random access.\n"
                 "                        Expects 'y' or 'n'.\n"
@@ -188,6 +194,7 @@ enum {
     gc_range,
     active_data_extents,
     io_backend,
+    io_batch_factor,
     block_size,
     extent_size,
     read_ahead,
@@ -257,6 +264,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"diff-log-size",        required_argument, 0, diff_log_size},
                 {"active-data-extents",  required_argument, 0, active_data_extents},
                 {"io-backend",           required_argument, 0, io_backend},
+                {"io-batch-factor",      required_argument, 0, io_batch_factor},
                 {"coroutine-stack-size", required_argument, 0, coroutine_stack_size},
                 {"cores",                required_argument, 0, 'c'},
                 {"slices",               required_argument, 0, 's'},
@@ -339,6 +347,8 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_active_data_extents(optarg); break;
             case io_backend:
                 config.set_io_backend(optarg); break;
+            case io_batch_factor:
+                config.set_io_batch_factor(optarg); break;
             case block_size:
                 config.set_block_size(optarg); break;
             case extent_size:
@@ -772,6 +782,16 @@ void parsing_cmd_config_t::set_io_backend(const char* value) {
     /* #endif */
 }
 
+void parsing_cmd_config_t::set_io_batch_factor(const char* value) {
+    int& target = store_dynamic_config.serializer.io_batch_factor;
+    const int minimum_value = 1;
+    const int maximum_value = 128;
+
+    target = parse_int(value);
+    if (parsing_failed || !is_in_range(target, minimum_value, maximum_value))
+        fail_due_to_user_error("The io batch factor must be a number from %d to %d.", minimum_value, maximum_value);
+}
+
 long long int parsing_cmd_config_t::parse_longlong(const char* value) {
     char* endptr;
     const long long int result = strtoll(value, &endptr, 10);
@@ -900,6 +920,7 @@ cmd_config_t::cmd_config_t() {
     /* #if WE_ARE_ON_LINUX */
     store_dynamic_config.serializer.io_backend = aio_native;
     /* #endif */
+    store_dynamic_config.serializer.io_batch_factor = DEFAULT_IO_BATCH_FACTOR;
     
     store_dynamic_config.cache.max_size = (long long int)(DEFAULT_MAX_CACHE_RATIO * get_available_ram());
     store_dynamic_config.cache.wait_for_flush = false;

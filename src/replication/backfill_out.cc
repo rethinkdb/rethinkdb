@@ -345,11 +345,14 @@ public:
         all_delete_queues_so_far_can_send_keys_(true),
         internal_store_(kvs),
         handler_(handler),
+        combined_job_queue(1),
         /* Every job that goes through the job queue will try to acquire the same lock, so
         there is no point in having more than one coroutine. Also, there is empirical
         evidence that having extra coroutines just waiting for the lock hurts performance.
         So the "pool" really just has one thing in it. */
         coro_pool(1, &combined_job_queue),
+        backfill_job_queue(1),
+        realtime_job_queue(1),
         backfill_job_account(&combined_job_queue, &backfill_job_queue, 1),
         realtime_job_account(&combined_job_queue, &realtime_job_queue, 1)
     {

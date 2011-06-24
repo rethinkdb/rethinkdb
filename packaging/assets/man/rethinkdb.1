@@ -25,6 +25,7 @@ rethinkdb \- the database for solid state drives
 [\-\-gc\-range \fIlow\fP-\fIhigh\fP]
 [\-\-active\-data\-extents \fIcount\fP]
 [\-\-io\-backend \fItype\fP]
+[\-\-io\-batch\-factor \fIoperations\fP]
 [\-\-read\-ahead \fIvalue\fP]
 [\-\-master \fIport\fP]
 [\-\-slave\-of \fIhost\fP:\fIport\fP]
@@ -105,6 +106,9 @@ Serve:
 
 .B \-\-io\-backend
     Possible options are 'native' and 'pool'.
+
+.B \-\-io\-batch\-factor
+    The number of disk operations in an i/o scheduler batch.
 
 .B \-\-read\-ahead
     Possible options are 'y' and 'n'. Enables and disables readahead

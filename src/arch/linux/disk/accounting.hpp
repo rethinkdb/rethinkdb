@@ -32,8 +32,9 @@ number of different "accounts". */
 template<class payload_t>
 struct accounting_diskmgr_t {
 
-    accounting_diskmgr_t() :
+    accounting_diskmgr_t(int batch_factor) :
         producer(&caster),
+        queue(batch_factor),
         caster(&queue)
         { }
 

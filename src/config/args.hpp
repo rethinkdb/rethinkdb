@@ -30,6 +30,15 @@
 // decrease concurrency
 #define MAX_IO_EVENT_PROCESSING_BATCH_SIZE        50
 
+// The io batch factor ensures a minimum number of i/o operations
+// which are picked from any specific i/o account consequtively.
+// A higher value might be advantageous for throughput if seek times
+// matter on the underlying i/o system. A low value improves latency.
+// The advantage only holds as long as each account as a tendentially
+// sequential set of i/o operations though, as it is usually the case
+// for our serializer writes.
+#define DEFAULT_IO_BATCH_FACTOR                   8
+
 // Currently, each cache uses two IO accounts:
 // one account for writes, and one account for reads.
 // By adjusting the priorities of these accounts, reads
@@ -38,8 +47,8 @@
 // This is a one-per-serializer/file priority.
 // The per-cache priorities are dynamically derived by dividing these priorities
 // by the number of slices on a specific file.
-#define CACHE_READS_IO_PRIORITY                   2048
-#define CACHE_WRITES_IO_PRIORITY                  128
+#define CACHE_READS_IO_PRIORITY                   512
+#define CACHE_WRITES_IO_PRIORITY                  64
 
 // Garbage Colletion uses its own two IO accounts.
 // There is one low-priority account that is meant to guarantee
@@ -51,7 +60,7 @@
 // doesn't grow indefinitely.
 //
 // This is a one-per-serializer/file priority.
-#define GC_IO_PRIORITY_NICE                       16
+#define GC_IO_PRIORITY_NICE                       8
 #define GC_IO_PRIORITY_HIGH                       (2 * CACHE_WRITES_IO_PRIORITY)
 
 // Size of the buffer used to perform IO operations (in bytes).
