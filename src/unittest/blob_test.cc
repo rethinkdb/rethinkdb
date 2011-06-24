@@ -184,7 +184,6 @@ private:
 
         tk.prepend(&txn, "c");
         ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
-        /*
         tk.unappend(&txn, 1);
         ASSERT_EQ(251, tk.refsize(block_size));
         tk.append(&txn, "d");
@@ -199,7 +198,6 @@ private:
         ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
         tk.unprepend(&txn, 254);
         ASSERT_EQ(1, tk.refsize(block_size));
-        */
     }
 };
 
