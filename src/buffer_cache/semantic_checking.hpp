@@ -82,6 +82,7 @@ public:
     buf_t *allocate();
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out, get_subtree_recencies_callback_t *cb);
 
+    scc_cache_t<inner_cache_t> *get_cache() const { return cache; }
     scc_cache_t<inner_cache_t> *cache;
 
     order_token_t order_token;
