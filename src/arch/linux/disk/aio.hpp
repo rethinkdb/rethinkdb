@@ -48,6 +48,7 @@ public:
         fd_t get_fd() const { return this->aio_fildes; }
         void *get_buf() const { return this->u.c.buf; }
         bool get_is_read() const { return (this->aio_lio_opcode == IO_CMD_PREAD); }
+        bool get_is_write() const { return !get_is_read(); }
         off_t get_offset() const { return this->u.c.offset; }
         size_t get_count() const { return this->u.c.nbytes; }
     private:
