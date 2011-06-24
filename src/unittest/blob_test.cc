@@ -15,6 +15,7 @@ public:
     }
 
     void check_region(transaction_t *txn, int64_t offset, int64_t size) {
+        SCOPED_TRACE("check_region");
         ASSERT_LE(0, offset);
         ASSERT_LE(offset, expected_.size());
         ASSERT_LE(0, size);
@@ -31,6 +32,7 @@ public:
         std::string::iterator p_orig = expected_.begin() + offset, p = p_orig, e = p + size;
         for (size_t i = 0, n = bg.num_buffers(); i < n; ++i) {
             buffer_group_t::buffer_t buffer = bg.get_buffer(i);
+            SCOPED_TRACE(strprintf("buffer %zu/%zu (size %zu)", i, n, buffer.size));
             ASSERT_LE(buffer.size, e - p);
             char *data = reinterpret_cast<char *>(buffer.data);
             ASSERT_TRUE(std::equal(data, data + buffer.size, p));
@@ -116,6 +118,9 @@ public:
         check(txn);
     }
 
+    size_t refsize(block_size_t block_size) const {
+        return blob_.refsize(block_size);
+    }
 
 private:
     std::string expected_;
@@ -173,6 +178,28 @@ private:
 
         tk.append(&txn, std::string(250, 'a'));
         tk.append(&txn, "b");
+        ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
+        tk.unappend(&txn, 1);
+        ASSERT_EQ(251, tk.refsize(block_size));
+
+        tk.prepend(&txn, "c");
+        /*
+        ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
+        tk.unappend(&txn, 1);
+        ASSERT_EQ(251, tk.refsize(block_size));
+        tk.append(&txn, "d");
+        ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
+        tk.unprepend(&txn, 1);
+        ASSERT_EQ(251, tk.refsize(block_size));
+        tk.append(&txn, "e");
+        ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
+        tk.unprepend(&txn, 2);
+        ASSERT_EQ(250, tk.refsize(block_size));
+        tk.prepend(&txn, "fffff");
+        ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
+        tk.unprepend(&txn, 254);
+        ASSERT_EQ(1, tk.refsize(block_size));
+        */
     }
 };
 

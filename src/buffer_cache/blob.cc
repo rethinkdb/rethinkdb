@@ -85,6 +85,10 @@ char *leaf_node_data(void *buf) {
     return reinterpret_cast<char *>(buf) + sizeof(block_magic_t);
 }
 
+const char *leaf_node_data(const void *buf) {
+    return reinterpret_cast<const char *>(buf) + sizeof(block_magic_t);
+}
+
 int64_t internal_node_count(block_size_t block_size) {
     return (block_size.value() - sizeof(block_magic_t)) / sizeof(block_id_t);
 }
@@ -160,7 +164,7 @@ void shrink(block_size_t block_size, int levels, int64_t offset, int64_t size, i
     int64_t suboffset = clamp(offset, clamp_low, clamp_high);
     int64_t subsize = clamp(offset + size, clamp_low, clamp_high) - suboffset;
 
-    *suboffset_out = suboffset;
+    *suboffset_out = suboffset - clamp_low;
     *subsize_out = subsize;
 }
 
@@ -227,11 +231,13 @@ void blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, in
 
         int levels = blob::ref_info(txn->get_cache()->get_block_size(), ref_, maxreflen_).second;
 
+        int64_t real_offset = blob::big_offset(ref_, maxreflen_) + offset;
+
         // Acquiring is done recursively in parallel,
-        temporary_acq_tree_node_t *tree = blob::make_tree_from_block_ids(txn, mode, levels, offset, size, blob::block_ids(ref_, maxreflen_));
+        temporary_acq_tree_node_t *tree = blob::make_tree_from_block_ids(txn, mode, levels, real_offset, size, blob::block_ids(ref_, maxreflen_));
 
         // Exposing and writing to the buffer group is done serially.
-        blob::expose_tree_from_block_ids(txn, mode, levels, offset, size, tree, buffer_group_out, acq_group_out);
+        blob::expose_tree_from_block_ids(txn, mode, levels, real_offset, size, tree, buffer_group_out, acq_group_out);
     }
 }
 
@@ -350,8 +356,16 @@ void blob_t::prepend_region(transaction_t *txn, int64_t size) {
             levels = add_level(txn, levels);
         } else if (!allocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_) - size, valuesize() + size)) {
             levels = add_level(txn, levels);
+        } else {
+            break;
         }
     }
+
+    rassert(levels > 0);
+    int64_t final_offset = blob::big_offset(ref_, maxreflen_) - size;
+    rassert(final_offset >= 0);
+    blob::set_big_offset(ref_, maxreflen_, final_offset);
+    blob::set_big_size(ref_, maxreflen_, blob::big_size(ref_, maxreflen_) + size);
 
     rassert(blob::ref_info(block_size, ref_, maxreflen_).second == levels);
 }
@@ -653,15 +667,27 @@ bool blob_t::remove_level(transaction_t *txn, int *levels_ref) {
         return false;
     }
 
-    int64_t end_offset = blob::big_offset(ref_, maxreflen_) + blob::big_size(ref_, maxreflen_);
+    int64_t bigoffset = blob::big_offset(ref_, maxreflen_);
+    int64_t bigsize = blob::big_size(ref_, maxreflen_);
+    rassert(0 <= bigsize);
+    int64_t end_offset = bigoffset + bigsize;
     if (end_offset > blob::max_end_offset(txn->get_cache()->get_block_size(), levels - 1, maxreflen_)) {
         return false;
     }
 
     buf_lock_t lock(txn, blob::block_ids(ref_, maxreflen_)[0], rwi_write);
-    const block_id_t *b = blob::internal_node_block_ids(lock->get_data_read());
+    if (levels == 1) {
+        // We should tried shifting before removing a level.
+        rassert(bigoffset == 0);
 
-    memcpy(blob::block_ids(ref_, maxreflen_), b, maxreflen_ - blob::block_ids_offset(maxreflen_));
+        const char *b = blob::leaf_node_data(lock->get_data_read());
+        memcpy(blob::small_buffer(ref_, maxreflen_), b, maxreflen_ - blob::big_size_offset(maxreflen_));
+        blob::set_small_size(ref_, maxreflen_, bigsize);
+    } else {
+        const block_id_t *b = blob::internal_node_block_ids(lock->get_data_read());
+        memcpy(blob::block_ids(ref_, maxreflen_), b, maxreflen_ - blob::block_ids_offset(maxreflen_));
+    }
+
     lock->mark_deleted();
 
     *levels_ref = levels - 1;
