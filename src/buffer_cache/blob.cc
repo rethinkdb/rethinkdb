@@ -356,7 +356,13 @@ void blob_t::unappend_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).second;
     deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_), valuesize() - size);
-    while (remove_level(txn, &levels)) { }
+    for (;;) {
+        shift_at_least(txn, levels, - blob::ref_value_offset(ref_, maxreflen_));
+
+        if (!remove_level(txn, &levels)) {
+            break;
+        }
+    }
 }
 
 void blob_t::unprepend_region(transaction_t *txn, int64_t size) {
@@ -364,10 +370,9 @@ void blob_t::unprepend_region(transaction_t *txn, int64_t size) {
     int levels = blob::ref_info(block_size, ref_, maxreflen_).second;
     deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_) + size, valuesize() - size);
     for (;;) {
+        shift_at_least(txn, levels, - blob::ref_value_offset(ref_, maxreflen_));
         if (!remove_level(txn, &levels)) {
             break;
-        } else {
-            shift_at_least(txn, levels, - blob::ref_value_offset(ref_, maxreflen_));
         }
     }
 }
@@ -480,8 +485,18 @@ struct deallocate_helper_t : public blob::traverse_helper_t {
 
 void blob_t::deallocate_to_dimensions(transaction_t *txn, int levels, int64_t new_offset, int64_t new_size) {
     deallocate_helper_t helper;
-    UNUSED bool res = traverse_to_dimensions(txn, levels, new_offset, new_size, blob::ref_value_offset(ref_, maxreflen_), valuesize(), &helper);
-    rassert(res);
+    if (levels == 0) {
+        rassert(0 <= new_offset && 0 <= new_size);
+        rassert(new_offset + new_size <= int64_t(blob::small_size(ref_, maxreflen_)));
+        char *buf = blob::small_buffer(ref_, maxreflen_);
+        memmove(buf, buf + new_offset, new_size);
+        blob::set_small_size(ref_, maxreflen_, new_size);
+    } else {
+        UNUSED bool res = traverse_to_dimensions(txn, levels, new_offset, new_size, blob::ref_value_offset(ref_, maxreflen_), valuesize(), &helper);
+        blob::set_big_offset(ref_, maxreflen_, new_offset);
+        blob::set_big_size(ref_, maxreflen_, new_size);
+        rassert(res);
+    }
 }
 
 

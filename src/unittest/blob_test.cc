@@ -140,6 +140,25 @@ private:
         tk.append(&txn, "b");
         tk.prepend(&txn, "c");
         tk.unappend(&txn, 1);
+        tk.unappend(&txn, 2);
+        tk.append(&txn, std::string(250, 'd'));
+        for (int i = 0; i < 250; ++i) {
+            tk.unappend(&txn, 1);
+        }
+        tk.prepend(&txn, std::string(250, 'e'));
+        for (int i = 0; i < 125; ++i) {
+            tk.unprepend(&txn, 2);
+        }
+
+        tk.append(&txn, std::string(125, 'f'));
+        tk.prepend(&txn, std::string(125, 'g'));
+        tk.unprepend(&txn, 0);
+        tk.unappend(&txn, 0);
+        tk.unprepend(&txn, 250);
+        tk.unappend(&txn, 0);
+        tk.unprepend(&txn, 0);
+        tk.append(&txn, "");
+        tk.prepend(&txn, "");
     }
 };
 
