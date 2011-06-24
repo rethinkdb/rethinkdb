@@ -124,6 +124,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
     cache->page_repl.make_space(1);
+    cache->maybe_unregister_read_ahead_callback();
 
     refcount--;
 }
@@ -149,6 +150,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
     cache->page_repl.make_space(1);
+    cache->maybe_unregister_read_ahead_callback();
     refcount--;
 
     // Read the transaction id
@@ -225,6 +227,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
     cache->page_repl.make_space(1);
+    cache->maybe_unregister_read_ahead_callback();
 
     refcount--;
 }
@@ -903,6 +906,7 @@ mc_cache_t::mc_cache_t(
     num_live_transactions(0),
     to_pulse_when_last_transaction_commits(NULL),
     max_patches_size_ratio(dynamic_config->wait_for_flush ? MAX_PATCHES_SIZE_RATIO_DURABILITY : MAX_PATCHES_SIZE_RATIO_MIN),
+    read_ahead_registered(false),
     next_snapshot_version(mc_inner_buf_t::faux_version_id+1)
 {
 #ifndef NDEBUG
@@ -921,6 +925,7 @@ mc_cache_t::mc_cache_t(
 
     // Register us for read ahead to warm up faster
     serializer->register_read_ahead_cb(this);
+    read_ahead_registered = true;
 
     /* We may have made a lot of blocks dirty by initializing the patch log. We need to start
     a sync explicitly because it bypassed transaction_t. */
@@ -1065,12 +1070,6 @@ bool mc_cache_t::offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf
         serializer->free(buf);
     }
 
-    // Check if we want to unregister ourselves
-    if (page_repl.is_full(5)) {
-        // unregister_read_ahead_cb requires a coro context, but we might not be in any
-        coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
-    }
-
     return true;
 }
 
@@ -1085,4 +1084,14 @@ bool mc_cache_t::can_read_ahead_block_be_accepted(block_id_t block_id) {
     const bool writeback_has_no_objections = writeback.can_read_ahead_block_be_accepted(block_id);
 
     return !we_already_have_the_block && writeback_has_no_objections;
+}
+
+void mc_cache_t::maybe_unregister_read_ahead_callback() {
+    // Unregister when three fourth of the cache are filled up.
+    if (read_ahead_registered && page_repl.is_full(dynamic_config.max_size / serializer->get_block_size().ser_value() / 4 + 1)) {
+        read_ahead_registered = false;
+        fprintf(stderr, "Unregistering\n");
+        // unregister_read_ahead_cb requires a coro context, but we might not be in any
+        coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
+    }
 }
