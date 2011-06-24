@@ -198,6 +198,25 @@ private:
         ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
         tk.unprepend(&txn, 254);
         ASSERT_EQ(1, tk.refsize(block_size));
+
+        tk.append(&txn, std::string(251, 'g'));
+        ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
+        tk.unappend(&txn, 251);
+        ASSERT_EQ(1, tk.refsize(block_size));
+        tk.prepend(&txn, std::string(251, 'h'));
+        ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
+        tk.unappend(&txn, 250);
+        ASSERT_EQ(2, tk.refsize(block_size));
+        tk.prepend(&txn, std::string(250, 'i'));
+        ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
+        tk.unprepend(&txn, 250);
+        ASSERT_EQ(2, tk.refsize(block_size));
+        tk.append(&txn, std::string(250, 'j'));
+        ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
+        tk.unappend(&txn, 250);
+        ASSERT_EQ(2, tk.refsize(block_size));
+        tk.unappend(&txn, 1);
+        ASSERT_EQ(1, tk.refsize(block_size));
     }
 };
 
