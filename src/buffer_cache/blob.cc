@@ -36,13 +36,17 @@ bool size_would_be_small(size_t proposed_size, size_t maxreflen) {
     return proposed_size <= maxreflen - big_size_offset(maxreflen);
 }
 
-void set_small_size(char *ref, size_t maxreflen, size_t size) {
-    rassert(size_would_be_small(size, maxreflen));
+void set_small_size_field(char *ref, size_t maxreflen, size_t size) {
     if (maxreflen <= 255) {
         *reinterpret_cast<uint8_t *>(ref) = size;
     } else {
         *reinterpret_cast<uint16_t *>(ref) = size;
     }
+}
+
+void set_small_size(char *ref, size_t maxreflen, size_t size) {
+    rassert(size_would_be_small(size, maxreflen));
+    set_small_size_field(ref, maxreflen, size);
 }
 
 bool is_small(const char *ref, size_t maxreflen) {
@@ -623,7 +627,7 @@ int blob_t::add_level(transaction_t *txn, int levels) {
 
         memcpy(blob::leaf_node_data(b), blob::small_buffer(ref_, maxreflen_), sz);
 
-        blob::set_small_size(ref_, maxreflen_, maxreflen_);
+        blob::set_small_size_field(ref_, maxreflen_, maxreflen_);
         blob::set_big_offset(ref_, maxreflen_, 0);
         blob::set_big_size(ref_, maxreflen_, sz);
         blob::block_ids(ref_, maxreflen_)[0] = lock->get_block_id();
