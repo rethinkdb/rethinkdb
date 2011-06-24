@@ -431,6 +431,8 @@ public:
 private:
     bool offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, repli_timestamp recency_timestamp);
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
+    void maybe_unregister_read_ahead_callback();
+    bool read_ahead_registered;
 
     typedef std::map<mc_inner_buf_t::version_id_t, mc_transaction_t*> snapshots_map_t;
     snapshots_map_t active_snapshots;
