@@ -518,113 +518,84 @@ void blob_t::deallocate_to_dimensions(transaction_t *txn, int levels, int64_t ne
 }
 
 
-// This function changes the value of ref_value_offset(ref_,
-// maxreflen_) while keeping valuesize() constant.  It either adds
-// min_shift or more to said value and returns true, or it does
-// nothing and returns false.  For example, if min_shift is 1, it
-// might add 4080 to the offset.  If min_shift is -3, it might do
-// nothing and return true (since 0 is greater than -3).  If min_shift
-// is -4100, it might add -4080 to the offset.  Or it might add 0 to
-// the offset, doing nothing and returning true.  (The number 4080
-// pops up because it's a possible return value of stepsize.)
 bool blob_t::shift_at_least(transaction_t *txn, int levels, int64_t min_shift) {
     if (levels == 0) {
         // Can't change offset if there are zero levels.  Deal with it.
         return false;
     }
 
+    int64_t shift = min_shift;
+    consider_small_shift(txn, levels, &shift);
+    consider_big_shift(txn, levels, &shift);
+    consider_small_shift(txn, levels, &shift);
+    return shift <= 0;
+}
+
+void blob_t::consider_big_shift(transaction_t *txn, int levels, int64_t *min_shift) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int64_t step = blob::stepsize(block_size, levels);
 
-    int64_t remaining_shift = 0;
-    {
-        // First consider a "classic" shift.
-        int64_t offset = blob::big_offset(ref_, maxreflen_);
-        rassert(offset >= 0);
-        int64_t max_left_shift_amount = floor_aligned(offset, step);
-        int64_t end_offset = offset + blob::big_size(ref_, maxreflen_);
-        int64_t max_right_shift_amount = ((maxreflen_ - blob::block_ids_offset(maxreflen_)) / sizeof(block_id_t)) * step - ceil_aligned(end_offset, step);
+    int64_t offset = blob::big_offset(ref_, maxreflen_);
+    int64_t size = blob::big_size(ref_, maxreflen_);
 
-        int64_t appropriate_shift;
-        if (min_shift < 0) {
-            appropriate_shift = std::max(- max_left_shift_amount, (min_shift / step) * step);
-        } else {
-            rassert(max_right_shift_amount >= 0 && floor_aligned(max_right_shift_amount, step) == max_right_shift_amount);
-            if (max_right_shift_amount < min_shift) {
-                return false;
-            } else {
-                appropriate_shift = ceil_aligned(min_shift, step);
-            }
-        }
+    int64_t practical_offset = floor_aligned(offset, step);
+    int64_t practical_end_offset = ceil_aligned(offset + size, step);
 
-        int64_t block_id_shift = appropriate_shift / step;
-
-        if (block_id_shift < 0) {
+    int64_t min_conceivable_shift = std::max(- practical_offset, ceil_modulo(*min_shift, step));
+    if (min_conceivable_shift != 0) {
+        if (practical_end_offset + min_conceivable_shift <= blob::max_end_offset(block_size, levels, maxreflen_)) {
             block_id_t *ids = blob::block_ids(ref_, maxreflen_);
-            memmove(ids, ids + (- block_id_shift), block_id_shift * sizeof(block_id_t));
-            blob::set_big_offset(ref_, maxreflen_, offset + appropriate_shift);
-        } else if (block_id_shift > 0) {
-            block_id_t *ids = blob::block_ids(ref_, maxreflen_);
-            memmove(ids + block_id_shift, ids, block_id_shift * sizeof(block_id_t));
-            blob::set_big_offset(ref_, maxreflen_, offset + appropriate_shift);
-        }
 
-        if (min_shift >= 0) {
-            rassert(blob::big_offset(ref_, maxreflen_) >= 0);
-            return true;
-        } else {
-            remaining_shift = min_shift - appropriate_shift;
-            rassert(remaining_shift <= 0);
+            size_t steps_to_shift = min_conceivable_shift / step;
+            size_t beg = practical_offset / step;
+            size_t end = practical_end_offset / step;
+            memmove(ids + beg, ids + beg + steps_to_shift, (end - beg) * sizeof(block_id_t));
+
+            blob::set_big_offset(ref_, maxreflen_, offset + min_conceivable_shift);
+            *min_shift -= min_conceivable_shift;
         }
     }
+}
 
-    // Now consider shifting the first two blocks.
-    if (remaining_shift < 0) {
-        int64_t offset = blob::big_offset(ref_, maxreflen_);
-        rassert(offset >= 0);
-        int64_t size = blob::big_size(ref_, maxreflen_);
-        int64_t end_offset = offset + size;
-        int64_t substep = levels == 1 ? 1 : (step / blob::internal_node_count(block_size));
-        int64_t floor_offset = floor_aligned(offset, substep);
-        int64_t ceil_end_offset = ceil_aligned(end_offset, substep);
-        if (offset < step && ceil_end_offset - floor_offset <= step) {
-            if (- remaining_shift >= ceil_end_offset - step) {
+void blob_t::consider_small_shift(transaction_t *txn, int levels, int64_t *min_shift) {
+    block_size_t block_size = txn->get_cache()->get_block_size();
+    int64_t step = blob::stepsize(block_size, levels);
+    int64_t substep = levels == 1 ? 1 : blob::stepsize(block_size, levels - 1);
+
+    int64_t offset = blob::big_offset(ref_, maxreflen_);
+    int64_t size = blob::big_size(ref_, maxreflen_);
+
+    int64_t practical_offset = floor_aligned(offset, substep);
+    int64_t practical_end_offset = ceil_aligned(offset + size, substep);
+
+    int64_t min_conceivable_shift = std::max(- practical_offset, ceil_modulo(*min_shift, substep));
+    if (min_conceivable_shift != 0) {
+        if (practical_end_offset + min_conceivable_shift <= step) {
+            if (practical_offset < step && practical_end_offset <= 2 * step) {
                 block_id_t *ids = blob::block_ids(ref_, maxreflen_);
-                if (levels == 1) {
-                    buf_lock_t lobuf(txn, ids[0], rwi_write);
-                    char *lodata = blob::leaf_node_data(lobuf->get_data_major_write());
-                    int64_t shift_amount = std::min(- remaining_shift, offset);
-                    memmove(lodata + offset - shift_amount, lodata + offset, (blob::leaf_size(block_size) - offset) - shift_amount);
+                buf_lock_t lobuf(txn, ids[0], rwi_write);
 
-                    if (end_offset > step) {
-                        buf_lock_t hibuf(txn, ids[1], rwi_write);
-                        char *hidata = blob::leaf_node_data(hibuf->get_data_major_write());
-                        memmove(lodata + blob::leaf_size(block_size) - shift_amount, hidata, std::min(shift_amount, end_offset - step));
-                        hibuf->mark_deleted();
-                    }
+                size_t physical_shift = (min_conceivable_shift / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
+                size_t physical_offset = (practical_offset / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
+                size_t physical_end_offset = (practical_end_offset / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
 
-                    blob::set_big_offset(ref_, maxreflen_, offset - shift_amount);
-                } else {
-                    buf_lock_t lobuf(txn, ids[0], rwi_write);
-                    block_id_t *lodata = blob::internal_node_block_ids(lobuf->get_data_major_write());
-                    int64_t shift_amount = std::min(- remaining_shift, offset) / substep;
-                    memmove(lodata + (floor_offset / substep - shift_amount), lodata + floor_offset / substep, (blob::internal_node_count(block_size) - floor_offset / substep) * sizeof(block_id_t));
+                char *data = blob::leaf_node_data(lobuf->get_data_major_write());
+                size_t low_copycount = std::min(physical_end_offset, size_t(blob::leaf_size(block_size))) - physical_offset;
+                memmove(data + physical_offset + physical_shift, data + physical_offset, low_copycount);
 
-                    if (end_offset > step) {
-                        buf_lock_t hibuf(txn, ids[1], rwi_write);
-                        block_id_t *hidata = blob::internal_node_block_ids(hibuf->get_data_major_write());
+                if (physical_end_offset > size_t(blob::leaf_size(block_size))) {
+                    buf_lock_t hibuf(txn, ids[1], rwi_write);
+                    const char *data2 = blob::leaf_node_data(hibuf->get_data_read());
 
-                        memmove(lodata + (blob::internal_node_count(block_size) - shift_amount), hidata, std::min(shift_amount, (end_offset - step) / substep) * sizeof(block_id_t));
-                        hibuf->mark_deleted();
-                    }
-
-                    blob::set_big_offset(ref_, maxreflen_, offset - shift_amount * substep);
+                    memmove(data + physical_offset + physical_shift + low_copycount, data2, physical_end_offset - blob::leaf_size(block_size));
+                    hibuf->mark_deleted();
                 }
+
+                blob::set_big_offset(ref_, maxreflen_, offset + min_conceivable_shift);
+                *min_shift -= min_conceivable_shift;
             }
         }
     }
-
-    return true;
 }
 
 // Always returns levels + 1.

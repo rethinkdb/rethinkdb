@@ -75,6 +75,12 @@ T1 floor_aligned(T1 value, T2 alignment) {
     return value - (value % alignment);
 }
 
+template <class T1, class T2>
+T1 ceil_modulo(T1 value, T2 alignment) {
+    T1 x = (value + alignment - 1) % alignment;
+    return value + alignment - ((x < 0 ? x + alignment : x) + 1);
+}
+
 typedef unsigned long long ticks_t;
 ticks_t secs_to_ticks(float secs);
 ticks_t get_ticks();
