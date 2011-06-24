@@ -42,8 +42,31 @@ public:
         ASSERT_EQ(e - p_orig, p - p_orig);
     }
 
+    void check_normalization(transaction_t *txn) {
+	int64_t size = expected_.size();
+	size_t rs = blob_.refsize(txn->get_cache()->get_block_size());
+	if (size < 251) {
+	    ASSERT_EQ(1 + size, rs);
+	} else if (size <= 4080) {
+	    ASSERT_EQ(1 + 8 + 8 + 4, rs);
+	} else if (size <= int64_t(4080 * ((250 - 8 - 8) / sizeof(block_id_t)))) {
+	    if (rs != 1 + 8 + 8 + 4) {
+		ASSERT_LE(1 + 8 + 8 + 4 * ceil_divide(size, 4080), rs);
+		ASSERT_GE(1 + 8 + 8 + 4 * (1 + ceil_divide(size - 1, 4080)), rs);
+	    } else {
+		ASSERT_GT(size, 4080 * ((250 - 8 - 8) / sizeof(block_id_t)) - 4080 + 1);
+	    }
+	} else if (size <= int64_t(4080 * (4080 / 4) * ((250 - 8 - 8) / sizeof(block_id_t)))) {
+	    ASSERT_LE(1 + 8 + 8 + 4 * ceil_divide(size, 4080 * (4080 / 4)), rs);
+	    ASSERT_GE(1 + 8 + 8 + 4 * (1 + ceil_divide(size - 1, 4080 * (4080 / 4))), rs);
+	} else {
+	    ASSERT_GT(0, size);
+	}
+    }
+
     void check(transaction_t *txn) {
         check_region(txn, 0, expected_.size());
+	check_normalization(txn);
     }
 
     void append(transaction_t *txn, const std::string& x) {
@@ -132,6 +155,7 @@ protected:
     void run_tests(cache_t *cache) {
         small_value_test(cache);
         small_value_boundary_test(cache);
+	permutations_test(cache);
     }
 
 private:
@@ -217,6 +241,60 @@ private:
         ASSERT_EQ(2, tk.refsize(block_size));
         tk.unappend(&txn, 1);
         ASSERT_EQ(1, tk.refsize(block_size));
+    }
+
+    struct step_t {
+        int64_t size;
+        bool prepend;
+	step_t(int64_t _size, bool _prepend) : size(_size), prepend(_prepend) { }
+    };
+
+    void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
+	block_size_t block_size = cache->get_block_size();
+	transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+	blob_tracker_t tk(block_size, 251);
+
+	char v = 'A';
+	int64_t size = 0;
+        for (int i = 0, n = steps.size(); i < n; ++i) {
+	    if (steps[i].prepend) {
+		if (steps[i].size <= size) {
+		    tk.unprepend(&txn, size - steps[i].size);
+		} else {
+		    tk.append(&txn, std::string(steps[i].size - size, v));
+		}
+	    } else {
+		if (steps[i].size <= size) {
+		    tk.unappend(&txn, size - steps[i].size);
+		} else {
+		    tk.append(&txn, std::string(steps[i].size - size, v));
+		}
+	    }
+
+	    v = (v == 'z' ? 'A' : v == 'Z' ? 'a' : v + 1);
+	}
+    }
+
+    void permutations_test(cache_t *cache) {
+	SCOPED_TRACE("permutations_test");
+	int64_t szs[] = { 1, 251, 4080, 4081, 8160, 8161, 4080 * (4080 / 4) - 2000, 4080 * (4080 / 4), 4080LL * (4080 / 4) * (4080 / 4 - 3) };
+
+	int n = sizeof(szs) / sizeof(szs[0]);
+
+	int64_t perm_number = 0;
+	do {
+	    SCOPED_TRACE(perm_number);
+	    ++perm_number;
+	    std::vector<step_t> aps, preps;
+	    for (int i = 0; i < n; ++i) {
+		aps.push_back(step_t(szs[i], false));
+		preps.push_back(step_t(szs[i], true));
+	    }
+	    general_journey_test(cache, aps);
+	    general_journey_test(cache, preps);
+
+
+	} while (std::next_permutation(szs, szs + n));
     }
 };
 

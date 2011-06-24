@@ -101,7 +101,12 @@ block_id_t *internal_node_block_ids(void *buf) {
     return reinterpret_cast<block_id_t *>(reinterpret_cast<char *>(buf) + sizeof(block_magic_t));
 }
 
-std::pair<size_t, int> big_ref_info(block_size_t block_size, int64_t offset, int64_t size, size_t maxreflen) {
+struct ref_info_t {
+    size_t refsize;
+    int levels;
+};
+
+ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size, size_t maxreflen) {
     rassert(size > int64_t(maxreflen - big_size_offset(maxreflen)));
     int64_t max_blockid_count = (maxreflen - block_ids_offset(maxreflen)) / sizeof(block_id_t);
 
@@ -113,20 +118,26 @@ std::pair<size_t, int> big_ref_info(block_size_t block_size, int64_t offset, int
         ++levels;
     }
 
-    return std::pair<size_t, int>(block_ids_offset(maxreflen) + sizeof(block_id_t) * block_count, levels);
+    ref_info_t info;
+    info.refsize = block_ids_offset(maxreflen) + sizeof(block_id_t) * block_count;
+    info.levels = levels;
+    return info;
 }
 
-std::pair<size_t, int> ref_info(block_size_t block_size, const char *ref, size_t maxreflen) {
+ref_info_t ref_info(block_size_t block_size, const char *ref, size_t maxreflen) {
     size_t smallsize = small_size(ref, maxreflen);
     if (smallsize <= maxreflen - big_size_offset(maxreflen)) {
-        return std::pair<size_t, int>(big_size_offset(maxreflen) + smallsize, 0);
+        ref_info_t info;
+	info.refsize = big_size_offset(maxreflen) + smallsize;
+	info.levels = 0;
+        return info;
     } else {
         return big_ref_info(block_size, big_offset(ref, maxreflen), big_size(ref, maxreflen), maxreflen);
     }
 }
 
 size_t ref_size(block_size_t block_size, const char *ref, size_t maxreflen) {
-    return ref_info(block_size, ref, maxreflen).first;
+    return ref_info(block_size, ref, maxreflen).refsize;
 }
 
 size_t ref_value_offset(const char *ref, size_t maxreflen) {
@@ -180,8 +191,7 @@ void compute_acquisition_offsets(block_size_t block_size, int levels, int64_t of
 blob_t::blob_t(block_size_t block_size, const char *ref, size_t maxreflen)
     : ref_(reinterpret_cast<char *>(malloc(maxreflen))), maxreflen_(maxreflen) {
     rassert(maxreflen >= blob::block_ids_offset(maxreflen) + sizeof(block_id_t));
-    std::pair<size_t, int> pair = blob::ref_info(block_size, ref, maxreflen);
-    memcpy(ref_, ref, pair.first);
+    memcpy(ref_, ref, blob::ref_size(block_size, ref, maxreflen));
 }
 
 void blob_t::dump_ref(block_size_t block_size, char *ref_out, size_t confirm_maxreflen) {
@@ -229,7 +239,7 @@ void blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, in
     } else {
         // It's large.
 
-        int levels = blob::ref_info(txn->get_cache()->get_block_size(), ref_, maxreflen_).second;
+        int levels = blob::ref_info(txn->get_cache()->get_block_size(), ref_, maxreflen_).levels;
 
         int64_t real_offset = blob::big_offset(ref_, maxreflen_) + offset;
 
@@ -322,7 +332,7 @@ void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, i
 
 void blob_t::append_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
-    int levels = blob::ref_info(block_size, ref_, maxreflen_).second;
+    int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
     while (!allocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_), valuesize() + size)) {
         levels = add_level(txn, levels);
     }
@@ -336,12 +346,12 @@ void blob_t::append_region(transaction_t *txn, int64_t size) {
         blob::set_big_size(ref_, maxreflen_, blob::big_size(ref_, maxreflen_) + size);
     }
 
-    rassert(blob::ref_info(block_size, ref_, maxreflen_).second == levels);
+    rassert(blob::ref_info(block_size, ref_, maxreflen_).levels == levels);
 }
 
 void blob_t::prepend_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
-    int levels = blob::ref_info(block_size, ref_, maxreflen_).second;
+    int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
     size_t small_size = blob::small_size(ref_, maxreflen_);
     if (levels == 0 && small_size + size <= maxreflen_ - blob::big_size_offset(maxreflen_)) {
@@ -367,12 +377,12 @@ void blob_t::prepend_region(transaction_t *txn, int64_t size) {
     blob::set_big_offset(ref_, maxreflen_, final_offset);
     blob::set_big_size(ref_, maxreflen_, blob::big_size(ref_, maxreflen_) + size);
 
-    rassert(blob::ref_info(block_size, ref_, maxreflen_).second == levels);
+    rassert(blob::ref_info(block_size, ref_, maxreflen_).levels == levels);
 }
 
 void blob_t::unappend_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
-    int levels = blob::ref_info(block_size, ref_, maxreflen_).second;
+    int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
     deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_), valuesize() - size);
     for (;;) {
         shift_at_least(txn, levels, - blob::ref_value_offset(ref_, maxreflen_));
@@ -385,7 +395,7 @@ void blob_t::unappend_region(transaction_t *txn, int64_t size) {
 
 void blob_t::unprepend_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
-    int levels = blob::ref_info(block_size, ref_, maxreflen_).second;
+    int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
     deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_) + size, valuesize() - size);
     for (;;) {
         shift_at_least(txn, levels, - blob::ref_value_offset(ref_, maxreflen_));
