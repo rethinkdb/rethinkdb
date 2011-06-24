@@ -126,10 +126,12 @@ struct blob_tester_t : public server_test_helper_t {
 protected:
     void run_tests(cache_t *cache) {
         small_value_test(cache);
+        small_value_boundary_test(cache);
     }
 
 private:
     void small_value_test(cache_t *cache) {
+        SCOPED_TRACE("small_value_test");
         block_size_t block_size = cache->get_block_size();
 
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
@@ -159,6 +161,18 @@ private:
         tk.unprepend(&txn, 0);
         tk.append(&txn, "");
         tk.prepend(&txn, "");
+    }
+
+    void small_value_boundary_test(cache_t *cache) {
+        SCOPED_TRACE("small_value_boundary_test");
+        block_size_t block_size = cache->get_block_size();
+
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+
+        blob_tracker_t tk(block_size, 251);
+
+        tk.append(&txn, std::string(250, 'a'));
+        tk.append(&txn, "b");
     }
 };
 
