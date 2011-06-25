@@ -1087,8 +1087,8 @@ bool mc_cache_t::can_read_ahead_block_be_accepted(block_id_t block_id) {
 }
 
 void mc_cache_t::maybe_unregister_read_ahead_callback() {
-    // Unregister when three fourth of the cache are filled up.
-    if (read_ahead_registered && page_repl.is_full(dynamic_config.max_size / serializer->get_block_size().ser_value() / 4 + 1)) {
+    // Unregister when 90 % of the cache are filled up.
+    if (read_ahead_registered && page_repl.is_full(dynamic_config.max_size / serializer->get_block_size().ser_value() / 10 + 1)) {
         read_ahead_registered = false;
         // unregister_read_ahead_cb requires a coro context, but we might not be in any
         coro_t::spawn_now(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
