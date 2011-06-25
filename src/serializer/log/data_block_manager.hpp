@@ -243,7 +243,8 @@ private:
             : parent(parent),
               offset(offset),
               g_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_microtime())
+              timestamp(current_microtime()),
+              was_written(false) 
         {
             parent->extent_manager->reserve_extent(offset);
             rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
