@@ -116,6 +116,7 @@ public:
     // Call shutdown() when you want the repli_stream to stop. shutdown() causes
     // the connection to be closed and conn_closed() to be called.
     void shutdown() {
+        drain_semaphore_t::lock_t keep_us_alive(&drain_semaphore_);
         unwatch_heartbeat();
         stop_sending_heartbeats();
         try {
