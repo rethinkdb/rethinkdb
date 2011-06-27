@@ -609,7 +609,7 @@ void blob_t::consider_big_shift(transaction_t *txn, int levels, int64_t *min_shi
             size_t steps_to_shift = min_conceivable_shift / step;
             size_t beg = practical_offset / step;
             size_t end = practical_end_offset / step;
-            memmove(ids + beg, ids + beg + steps_to_shift, (end - beg) * sizeof(block_id_t));
+            memmove(ids + beg + steps_to_shift, ids + beg, (end - beg) * sizeof(block_id_t));
 
             blob::set_big_offset(ref_, maxreflen_, offset + min_conceivable_shift);
             *min_shift -= min_conceivable_shift;

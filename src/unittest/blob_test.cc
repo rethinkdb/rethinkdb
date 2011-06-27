@@ -96,7 +96,7 @@ public:
     }
 
     void prepend(transaction_t *txn, const std::string& x) {
-        SCOPED_TRACE("prepend " + x);
+        SCOPED_TRACE(strprintf("prepend (%zu) ", x.size()) + std::string(x.begin(), x.begin() + std::min<size_t>(x.size(), 50)));
         int64_t n = x.size();
 
         blob_.prepend_region(txn, n);
@@ -155,6 +155,7 @@ protected:
     void run_tests(cache_t *cache) {
         small_value_test(cache);
         small_value_boundary_test(cache);
+        special_4080_prepend_4081_test(cache);
 	permutations_test(cache);
     }
 
@@ -242,6 +243,22 @@ private:
         ASSERT_EQ(2, tk.refsize(block_size));
         tk.unappend(&txn, 1);
         ASSERT_EQ(1, tk.refsize(block_size));
+    }
+
+    void special_4080_prepend_4081_test(cache_t *cache) {
+        SCOPED_TRACE("special_4080_prepend_4081_test");
+        block_size_t block_size = cache->get_block_size();
+
+        ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
+
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+
+        blob_tracker_t tk(block_size, 251);
+
+        tk.append(&txn, std::string(4080, 'a'));
+        BREAKPOINT;
+        tk.prepend(&txn, "b");
+        tk.unappend(&txn, 4081);
     }
 
     struct step_t {
