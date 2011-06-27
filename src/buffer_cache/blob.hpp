@@ -40,8 +40,9 @@ struct traverse_helper_t;
 
 class blob_t {
 public:
+    // maxreflen should be less than the block size minus 4 bytes.
     blob_t(block_size_t block_size, const char *ref, size_t maxreflen);
-    void dump_ref(block_size_t block_size, char *ref_out, size_t confirm_maxreflen);
+    void dump_ref(block_size_t block_size, char *ref_out);
     ~blob_t();
 
 

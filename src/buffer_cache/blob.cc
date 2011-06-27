@@ -194,8 +194,7 @@ blob_t::blob_t(block_size_t block_size, const char *ref, size_t maxreflen)
     memcpy(ref_, ref, blob::ref_size(block_size, ref, maxreflen));
 }
 
-void blob_t::dump_ref(block_size_t block_size, char *ref_out, size_t confirm_maxreflen) {
-    guarantee(maxreflen_ == confirm_maxreflen);
+void blob_t::dump_ref(block_size_t block_size, char *ref_out) {
     memcpy(ref_out, ref_, blob::ref_size(block_size, ref_, maxreflen_));
 }
 
