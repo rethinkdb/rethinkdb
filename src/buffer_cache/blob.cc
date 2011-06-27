@@ -450,13 +450,15 @@ void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids,
     compute_acquisition_offsets(block_size, levels, old_offset, old_size, &old_lo, &old_hi);
     compute_acquisition_offsets(block_size, levels, new_offset, new_size, &new_lo, &new_hi);
     int64_t leafsize = leaf_size(block_size);
+    int highest_i = -1;
     if (new_offset / leafsize < old_offset / leafsize) {
         for (int i = new_lo; i <= old_lo; ++i) {
             traverse_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size, helper);
+            highest_i = i;
         }
     }
     if (ceil_divide(new_offset + new_size, leafsize) > ceil_divide(old_offset + old_size, leafsize)) {
-        for (int i = std::max(old_lo + 1, old_hi - 1); i < new_hi; ++i) {
+        for (int i = std::max(highest_i + 1, old_hi - 1); i < new_hi; ++i) {
             traverse_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size, helper);
         }
     }

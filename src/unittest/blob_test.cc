@@ -259,17 +259,23 @@ private:
         for (int i = 0, n = steps.size(); i < n; ++i) {
 	    if (steps[i].prepend) {
 		if (steps[i].size <= size) {
+                    debugf("unprepending from %ld to %ld\n", size, steps[i].size);
 		    tk.unprepend(&txn, size - steps[i].size);
 		} else {
-		    tk.append(&txn, std::string(steps[i].size - size, v));
+                    debugf("prepending from %ld to %ld\n", size, steps[i].size);
+		    tk.prepend(&txn, std::string(steps[i].size - size, v));
 		}
 	    } else {
 		if (steps[i].size <= size) {
+                    debugf("unappending from %ld to %ld\n", size, steps[i].size);
 		    tk.unappend(&txn, size - steps[i].size);
 		} else {
+                    debugf("appending from %ld to %ld\n", size, steps[i].size);
 		    tk.append(&txn, std::string(steps[i].size - size, v));
 		}
 	    }
+
+            size = steps[i].size;
 
 	    v = (v == 'z' ? 'A' : v == 'Z' ? 'a' : v + 1);
 	}
@@ -283,6 +289,7 @@ private:
 
 	int64_t perm_number = 0;
 	do {
+            debugf("perm_number = %ld\n", perm_number);
 	    SCOPED_TRACE(perm_number);
 	    ++perm_number;
 	    std::vector<step_t> aps, preps;
