@@ -156,7 +156,8 @@ protected:
         small_value_test(cache);
         small_value_boundary_test(cache);
         special_4080_prepend_4081_test(cache);
-	permutations_test(cache);
+        special_4161600_prepend_12484801_test(cache);
+        //	permutations_test(cache);
     }
 
 private:
@@ -256,9 +257,25 @@ private:
         blob_tracker_t tk(block_size, 251);
 
         tk.append(&txn, std::string(4080, 'a'));
-        BREAKPOINT;
         tk.prepend(&txn, "b");
         tk.unappend(&txn, 4081);
+    }
+
+    void special_4161600_prepend_12484801_test(cache_t *cache) {
+        SCOPED_TRACE("special_4080_prepend_4081_test");
+        block_size_t block_size = cache->get_block_size();
+
+        ASSERT_EQ(4080, block_size.value() - sizeof(block_magic_t));
+
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
+
+        blob_tracker_t tk(block_size, 251);
+
+        int64_t lo_size = 4161600;
+        int64_t hi_size = 12484801;
+        tk.append(&txn, std::string(lo_size, 'a'));
+        tk.prepend(&txn, std::string(hi_size - lo_size, 'b'));
+        tk.unappend(&txn, hi_size);
     }
 
     struct step_t {

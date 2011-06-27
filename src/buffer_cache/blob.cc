@@ -480,6 +480,7 @@ void traverse_index(transaction_t *txn, int levels, block_id_t *block_ids, int i
 
     } else {
         buf_lock_t lock;
+        //        debugf("preprocess levels = %d, index = %d\n", levels, index);
         helper->preprocess(txn, levels, lock, &block_ids[index]);
 
         if (levels > 1) {
@@ -494,22 +495,43 @@ void traverse_index(transaction_t *txn, int levels, block_id_t *block_ids, int i
 
 void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, traverse_helper_t *helper) {
     block_size_t block_size = txn->get_cache()->get_block_size();
+
     int old_lo, old_hi, new_lo, new_hi;
     compute_acquisition_offsets(block_size, levels, old_offset, old_size, &old_lo, &old_hi);
     compute_acquisition_offsets(block_size, levels, new_offset, new_size, &new_lo, &new_hi);
+
     int64_t leafsize = leaf_size(block_size);
+
+    // This highest_i variable makes sure, rigorously, that the two
+    // for loops don't trace the same subtree twice.
     int highest_i = -1;
+
+    //    debugf("at levels=%d, old_lo=%d, old_hi=%d, new_lo=%d, new_hi=%d\n", levels, old_lo, old_hi, new_lo, new_hi);
     if (new_offset / leafsize < old_offset / leafsize) {
-        for (int i = new_lo; i <= old_lo; ++i) {
+        // See comment [1] below.
+        for (int i = new_lo; i <= old_lo && i < new_hi; ++i) {
+            //            debugf("calling traverse_index (lo) levels=%d, i=%d, %ld %ld %ld %ld\n", levels, i, old_offset, old_size, new_offset, new_size);
             traverse_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size, helper);
             highest_i = i;
         }
     }
     if (ceil_divide(new_offset + new_size, leafsize) > ceil_divide(old_offset + old_size, leafsize)) {
         for (int i = std::max(highest_i + 1, old_hi - 1); i < new_hi; ++i) {
+            //            debugf("calling traverse_index (hi) levels=%d, i=%d, %ld %ld %ld %ld\n", levels, i, old_offset, old_size, new_offset, new_size);
             traverse_index(txn, levels, block_ids, i, old_offset, old_size, new_offset, new_size, helper);
         }
     }
+
+    // [1] We have a problem that if old_offset is on a multiple of
+    // the step size, we'll visit the left edge of the completely
+    // acquired branch.  However, when old_lo = 1020, we'd actually be
+    // walking past the end of the value.  We make the mistake in the
+    // design of this function of allowing old_size to be zero and
+    // trying to handle such cases.  The check that i < new_hi
+    // prevents us from walking off the edge when old_lo = 1020,
+    // because new_hi cannot be more than 1020.
+    //
+    // Really, we should require that old_size be greater than zero.
 }
 
 }  // namespace
