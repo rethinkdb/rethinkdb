@@ -22,10 +22,14 @@ class accounting_queue_t :
     public home_thread_mixin_t
 {
 public:
-    accounting_queue_t() :
+    accounting_queue_t(int batch_factor) :
         passive_producer_t<value_t>(&available_var),
         total_shares(0),
-        selector(0) { }
+        selector(0),
+        batch_factor(batch_factor) {
+
+            rassert(batch_factor > 0);
+    }
 
     ~accounting_queue_t() {
         rassert(active_accounts.empty());
@@ -93,23 +97,26 @@ private:
 
     intrusive_list_t<account_t> active_accounts, inactive_accounts;
 
-    int total_shares, selector;
+    int total_shares, selector, batch_factor;
 
     watchable_var_t<bool> available_var;
     value_t produce_next_value() {
         assert_thread();
 
-        selector %= total_shares;
+        selector %= total_shares * batch_factor;
         // TODO: Maybe that line should be like this instead?
         // It would be very fair, but there might be some issues with that (like
-        // less sequential access patterns, maybe other problems)
+        // less sequential access patterns (<-- definitely a problem on rotational drives!),
+        // maybe other problems)
         //selector = randint(total_shares);
+
+        int batch_selector = selector / batch_factor;
 
         typename intrusive_list_t<account_t>::iterator it = active_accounts.begin();
         int count = 0;
         while (true) {
             count += (*it)->shares;
-            if (count > selector) break;
+            if (count > batch_selector) break;
             it++;
         }
         selector++;

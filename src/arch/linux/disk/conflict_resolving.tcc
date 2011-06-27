@@ -1,3 +1,5 @@
+#include "perfmon.hpp"
+
 template<class payload_t>
 conflict_resolving_diskmgr_t<payload_t>::conflict_resolving_diskmgr_t() { }
 
@@ -5,9 +7,11 @@ template<class payload_t>
 conflict_resolving_diskmgr_t<payload_t>::~conflict_resolving_diskmgr_t() {
 
     /* Make sure there are no requests still out. */
-    rassert(active_chunks.count() == 0);
-    rassert(waiters.empty());
+    rassert(chunk_queues.empty());
 }
+
+// Must be defined in some specific .cc file!
+extern perfmon_sampler_t pm_io_disk_stack_conflicts;
 
 template<class payload_t>
 void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
@@ -16,37 +20,118 @@ void conflict_resolving_diskmgr_t<payload_t>::submit(action_t *action) {
     int start, end;
     get_range(action, &start, &end);
 
-    /* Expand the bit-vector if necessary */
-    if (end > (int)active_chunks.size()) active_chunks.resize(end);
+    /* If this is a read, we check whether there is a write from which we
+    can "steal" data to satisfy the read immediately. We currently only
+    do this if there is a single write operation that provides all the data
+    that we need, we don't combine multiple writes that affect different parts
+    of the read request. */
+    if (action->get_is_read()) {
+        /* The logic here is a bit tricky. What we do is the following:
+        First we check the queue for the first chunk. If there is a write that
+        can satisfy us, it must span all chunks and therefore be on the first
+        chunk's queue. We pick the latest write that exists on that queue, so
+        we get the most recent version of the data. We then check the other
+        chunks and make sure that the same write is also the latest write on
+        these queues. If there is another more recent write, we cannot take
+        the data from our initial write, because a subrange of it will be
+        overwritten by that other write. As an optimization, we could
+        still use the data from the initial write and just replace that part of
+        it, using the data from the other write. We leave this extension as an
+        exercise to the reader. */
 
-    /* Determine if there are conflicts */
-    action->conflict_count = 0;
-    for (int block = start; block < end; block++) {
+        action_t *latest_write = NULL;
 
-        if (active_chunks[block]) {
-            /* We conflict on this block. */
-            action->conflict_count++;
+        typename std::map<int, std::deque<action_t*> >::iterator it;
+        it = chunk_queues.find(start);
+        if (it != chunk_queues.end()) {
+            std::deque<action_t*> &queue = it->second;
 
-            /* Put ourself on the wait list. */
-            typename std::map<int, std::deque<action_t*> >::iterator it;
-            it = waiters.lower_bound(block);
-            if (it == waiters.end() || it->first != block) {
-                /* Start a queue because there isn't one already */
-                it = waiters.insert(it, std::make_pair(block, std::deque<action_t*>()));
+            /* Locate the latest write on the queue */
+            typename std::deque<action_t*>::reverse_iterator qrit;
+            for (qrit = queue.rbegin(); qrit != queue.rend(); ++qrit) {
+                if ((*qrit)->get_is_write()) {
+                    /* We found it! Check if it's of any use to us...
+                    If the range it was supposed to write is a superrange of
+                    our range, then it's a valid candidate. */
+                    if ((*qrit)->get_offset() <= action->get_offset() &&
+                            (*qrit)->get_offset() + (*qrit)->get_count() >= action->get_offset() + action->get_count() ) {
+
+                        latest_write = *qrit;
+                    }
+
+                    /* No other write on the queue can be the latest one. Stop looking. */
+                    break;
+                }
             }
-            rassert(it->first == block);
-            it->second.push_back(action);
+        }
 
-        } else {
-            /* Nothing else is using this block at the moment. Claim it for ourselves. */
-            active_chunks.set(block, true);
+        /* Now check that latest_write is also latest for all other chunks.
+        Keep on validating as long as we have a latest_write candidate. */
+        for (int block = start; latest_write && block < end; block++) {
+            
+            it = chunk_queues.find(start);
+            rassert(it != chunk_queues.end()); // Note: At least latest_write should be there!
+            std::deque<action_t*> &queue = it->second;
+
+            /* Locate the latest write on the queue */
+            typename std::deque<action_t*>::reverse_iterator qrit;
+            for (qrit = queue.rbegin(); qrit != queue.rend(); ++qrit) {
+                if ((*qrit)->get_is_write()) {
+
+                    if (*qrit != latest_write) {
+                        /* This write is more recent than latest_write, so latest_write
+                        isn't actually the latest one over the whole range,
+                        This renders it unusable for us. */
+                        latest_write = NULL;
+                    }
+
+                    /* No other write on the queue can be the latest one. Stop looking. */
+                    break;
+                }
+            }
+        }
+
+        if (latest_write) {
+
+            /* We can use the data from latest_write to fulfil the read immediately. */
+            memcpy(action->get_buf(),
+                (const char*)latest_write->get_buf() + action->get_offset() - latest_write->get_offset(),
+                action->get_count());
+
+            done_fun(action);
+            return;
         }
     }
 
-    /* If we are no conflicts, we can start right away. */
+    /* Determine if there are conflicts and put ourself on the queues */
+    action->conflict_count = 0;
+    for (int block = start; block < end; block++) {
+
+        typename std::map<int, std::deque<action_t*> >::iterator it;
+        it = chunk_queues.find(block);
+
+        if (it != chunk_queues.end()) {
+            /* We conflict on this block. */
+            action->conflict_count++;
+        }
+
+        /* Put ourself on the queue for this chunk */
+        if (it == chunk_queues.end()) {
+            /* Start a queue because there isn't one already */
+            it = chunk_queues.insert(it, std::make_pair(block, std::deque<action_t*>()));
+        }
+        rassert(it->first == block);
+        it->second.push_back(action);
+    }
+
+    /* If there are no conflicts, we can start right away. */
     if (action->conflict_count == 0) {
         payload_t *payload = action;
         submit_fun(payload);
+    } else {
+        // TODO: Refine the perfmon such that it measures the actual time that ops spend
+        // in a waiting state
+        pm_io_disk_stack_conflicts.record(1);
     }
 }
 
@@ -59,27 +144,30 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
 
     int start, end;
     get_range(action, &start, &end);
-    rassert(end <= (int)active_chunks.size());   // act() should have expanded the bitset if necessary
 
     /* Visit every block and see if anything is blocking on us. As we iterate
     over block indices, we iterate through the corresponding entries in the map. */
 
-    typename std::map<int, std::deque<action_t*> >::iterator it = waiters.lower_bound(start);
+    typename std::map<int, std::deque<action_t*> >::iterator it = chunk_queues.find(start);
     for (int block = start; block < end; block++) {
 
-        rassert(it == waiters.end() || it->first >= block);
+        /* We can assert this because at lest we must still be on the queue */
+        rassert(it != chunk_queues.end() && it->first == block);
 
-        if (it != waiters.end() && it->first == block) {
+        std::deque<action_t*> &queue = it->second;
 
-            /* Something was blocking on us for this block. Pop the first waiter from the queue. */
-            std::deque<action_t*> &queue = it->second;
-            rassert(!queue.empty());
+        /* Remove ourselves from the queue */
+        rassert(queue.front() == action);
+        queue.pop_front();
+
+        if (!queue.empty()) {
+            /* Continue with the next chunk queue.
+            We have to move on now, because we might call done() recursively and that might
+            invalidate the iterator. */
+            ++it;
+
+            /* Something was blocking on us for this block. Get the first waiter from the queue. */
             action_t *waiter = queue.front();
-            queue.pop_front();
-
-            /* If there are no other waiters, remove the queue; else move past it. */
-            if (queue.empty()) waiters.erase(it++);
-            else it++;
 
             rassert(waiter->conflict_count > 0);
             waiter->conflict_count--;
@@ -101,7 +189,12 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
                     our current location, or else its conflict_count would still be nonzero.
                     Therefore it will not touch any part of the multimap that we have not
                     yet gotten to. If it touches the queue that we popped it from, that's
-                    also safe, because we've already moved our iterator past it. */
+                    also safe, because we've already moved our iterator past it.
+                    Note that we can potentially lose some short-circuit opportunities,
+                    because we might be able to provide a larger range than the request
+                    that we just provided a subset of our data to. So that request might
+                    not be able to short-circuit another watier, while we might have
+                    been able. This should be more of an academic concern though. */
                     done(waiter);
 
                 } else {
@@ -110,11 +203,9 @@ void conflict_resolving_diskmgr_t<payload_t>::done(payload_t *payload) {
                     submit_fun(waiter_payload);
                 }
             }
-
         } else {
-
-            /* Nothing was waiting for this particular part of the file */
-            active_chunks.set(block, false);
+            /* The queue is empty, erase it. */
+            chunk_queues.erase(it++);
         }
     }
 

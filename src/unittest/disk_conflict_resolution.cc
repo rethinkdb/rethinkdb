@@ -11,6 +11,7 @@ namespace unittest {
 struct test_driver_t {
 
     struct core_action_t : public intrusive_list_node_t<core_action_t> {
+        bool get_is_write() const { return !is_read; }
         bool get_is_read() const { return is_read; }
         void *get_buf() const { return buf; }
         size_t get_count() const { return count; }

@@ -29,6 +29,7 @@ struct pool_diskmgr_t :
             offset = o;
         }
 
+        bool get_is_write() const { return !is_read; }
         bool get_is_read() const { return is_read; }
         fd_t get_fd() const { return fd; }
         void *get_buf() const { return buf; }

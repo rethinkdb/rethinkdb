@@ -42,6 +42,11 @@ struct log_serializer_dynamic_config_t {
     /* Which i/o backend should the log serializer use for accessing files? */
     platform_io_config_t::io_backend_t io_backend;
 
+    /* The (minimal) batch size of i/o requests being taken from a single i/o account.
+    It is a factor because the actual batch size is this factor multiplied by the
+    i/o priority of the account. */
+    int io_batch_factor;
+
     /* Enable reading more data than requested to let the cache warmup more quickly esp. on rotational drives */
     bool read_ahead;
 };
@@ -257,6 +262,7 @@ public:
     void set_total_delete_queue_limit(const char *value);
     void set_failover_file(const char* value);
     void set_io_backend(const char* value);
+    void set_io_batch_factor(const char* value);
     void push_private_config(const char* value);
     void set_metadata_file(const char *value);
 

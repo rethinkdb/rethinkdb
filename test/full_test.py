@@ -393,7 +393,7 @@ def run_all_tests(mode, checker, protocol, cores, slices):
                     "failover"    : True,
                     "kill-failover-server-prob": 0.1,
                     "resurrect-failover-server-prob": 0.1,
-                    "timeout"     : 120},
+                    "timeout"     : 240},
                           repeat=5, timeout=800)
     
     do_test_cloud("integration/append_prepend.py",

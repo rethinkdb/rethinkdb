@@ -19,6 +19,11 @@ elif [ $DATABASE == "mysql" ]; then
         {server}mysql:"$MYSQL_COMMON_FLAGS $MYSQL_BUFFER_FLAGS $MYSQL_DURABILITY_FLAGS $MYSQL_SSD_FLAGS"              \
         {client}mysqlstress[$RGET_STRESS_CLIENT]:"-w special_rget_workload" \
         iostat:1 vmstat:1
+        
+    mkdir -p "$BENCH_DIR/bench_output/Canonical_plus_small_rgets_canonical_only/1/client"
+    cp "$BENCH_DIR/bench_output/Canonical_plus_small_rgets/1/client/qps.txt.canonical" "$BENCH_DIR/bench_output/Canonical_plus_small_rgets_canonical_only/1/client/qps.txt"
+    mkdir -p "$BENCH_DIR/bench_output/Canonical_plus_small_rgets_rgets_only/1/client"
+    cp "$BENCH_DIR/bench_output/Canonical_plus_small_rgets/1/client/qps.txt.rget" "$BENCH_DIR/bench_output/Canonical_plus_small_rgets_rgets_only/1/client/qps.txt"
 else
     echo "No workload configuration for $DATABASE"
 fi
