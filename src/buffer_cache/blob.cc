@@ -333,6 +333,16 @@ void expose_tree_from_block_ids(transaction_t *txn, access_t mode, int levels, i
 void blob_t::append_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
+
+    // Avoid the empty blob effect.
+    if (levels == 0 && blob::small_size(ref_, maxreflen_) == 0 && size > 0) {
+        blob::set_small_size(ref_, maxreflen_, 1);
+        size -= 1;
+    }
+    if (size == 0) {
+        return;
+    }
+
     while (!allocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_), valuesize() + size)) {
         levels = add_level(txn, levels);
     }
@@ -353,12 +363,20 @@ void blob_t::prepend_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
-    size_t small_size = blob::small_size(ref_, maxreflen_);
-    if (levels == 0 && small_size + size <= maxreflen_ - blob::big_size_offset(maxreflen_)) {
-        char *buf = blob::small_buffer(ref_, maxreflen_);
-        memmove(buf + size, buf, small_size);
-        blob::set_small_size(ref_, maxreflen_, small_size + size);
-        return;
+    if (levels == 0) {
+        size_t small_size = blob::small_size(ref_, maxreflen_);
+        if (small_size + size <= maxreflen_ - blob::big_size_offset(maxreflen_)) {
+            char *buf = blob::small_buffer(ref_, maxreflen_);
+            memmove(buf + size, buf, small_size);
+            blob::set_small_size(ref_, maxreflen_, small_size + size);
+            return;
+        }
+    }
+
+    // Avoid the empty blob effect.
+    if (levels == 0 && blob::small_size(ref_, maxreflen_) == 0 && size > 0) {
+        blob::set_small_size(ref_, maxreflen_, 1);
+        size -= 1;
     }
 
     for (;;) {
@@ -383,25 +401,55 @@ void blob_t::prepend_region(transaction_t *txn, int64_t size) {
 void blob_t::unappend_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
-    deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_), valuesize() - size);
-    for (;;) {
-        shift_at_least(txn, levels, - blob::ref_value_offset(ref_, maxreflen_));
 
-        if (!remove_level(txn, &levels)) {
-            break;
+    bool emptying = false;
+    if (valuesize() == size && size > 0) {
+        emptying = true;
+        size -= 1;
+    }
+
+    if (size != 0) {
+        deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_), valuesize() - size);
+        for (;;) {
+            shift_at_least(txn, levels, - blob::ref_value_offset(ref_, maxreflen_));
+
+            if (!remove_level(txn, &levels)) {
+                break;
+            }
         }
+    }
+
+    if (emptying) {
+        rassert(blob::is_small(ref_, maxreflen_));
+        rassert(blob::small_size(ref_, maxreflen_) == 1);
+        blob::set_small_size(ref_, maxreflen_, 0);
     }
 }
 
 void blob_t::unprepend_region(transaction_t *txn, int64_t size) {
     block_size_t block_size = txn->get_cache()->get_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
-    deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_) + size, valuesize() - size);
-    for (;;) {
-        shift_at_least(txn, levels, - blob::ref_value_offset(ref_, maxreflen_));
-        if (!remove_level(txn, &levels)) {
-            break;
+
+    bool emptying = false;
+    if (valuesize() == size && size > 0) {
+        emptying = true;
+        size -= 1;
+    }
+
+    if (size != 0) {
+        deallocate_to_dimensions(txn, levels, blob::ref_value_offset(ref_, maxreflen_) + size, valuesize() - size);
+        for (;;) {
+            shift_at_least(txn, levels, - blob::ref_value_offset(ref_, maxreflen_));
+            if (!remove_level(txn, &levels)) {
+                break;
+            }
         }
+    }
+
+    if (emptying) {
+        rassert(blob::is_small(ref_, maxreflen_));
+        rassert(blob::small_size(ref_, maxreflen_) == 1);
+        blob::set_small_size(ref_, maxreflen_, 0);
     }
 }
 
@@ -658,20 +706,25 @@ bool blob_t::remove_level(transaction_t *txn, int *levels_ref) {
         return false;
     }
 
-    buf_lock_t lock(txn, blob::block_ids(ref_, maxreflen_)[0], rwi_write);
-    if (levels == 1) {
-        // We should tried shifting before removing a level.
-        rassert(bigoffset == 0);
+    // If the size is zero and the offset is zero, the entire tree will have already been deallocated.
+    rassert(!(bigoffset == end_offset && end_offset == blob::stepsize(txn->get_cache()->get_block_size(), levels)));
+    if (!(bigoffset == end_offset && end_offset == 0)) {
 
-        const char *b = blob::leaf_node_data(lock->get_data_read());
-        memcpy(blob::small_buffer(ref_, maxreflen_), b, maxreflen_ - blob::big_size_offset(maxreflen_));
-        blob::set_small_size(ref_, maxreflen_, bigsize);
-    } else {
-        const block_id_t *b = blob::internal_node_block_ids(lock->get_data_read());
-        memcpy(blob::block_ids(ref_, maxreflen_), b, maxreflen_ - blob::block_ids_offset(maxreflen_));
+        buf_lock_t lock(txn, blob::block_ids(ref_, maxreflen_)[0], rwi_write);
+        if (levels == 1) {
+            // We should tried shifting before removing a level.
+            rassert(bigoffset == 0);
+
+            const char *b = blob::leaf_node_data(lock->get_data_read());
+            memcpy(blob::small_buffer(ref_, maxreflen_), b, maxreflen_ - blob::big_size_offset(maxreflen_));
+            blob::set_small_size(ref_, maxreflen_, bigsize);
+        } else {
+            const block_id_t *b = blob::internal_node_block_ids(lock->get_data_read());
+            memcpy(blob::block_ids(ref_, maxreflen_), b, maxreflen_ - blob::block_ids_offset(maxreflen_));
+        }
+
+        lock->mark_deleted();
     }
-
-    lock->mark_deleted();
 
     *levels_ref = levels - 1;
     return true;

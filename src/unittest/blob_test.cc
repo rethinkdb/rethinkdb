@@ -225,6 +225,7 @@ private:
 
         tk.append(&txn, std::string(251, 'g'));
         ASSERT_EQ(1 + 8 + 8 + 4, tk.refsize(block_size));
+
         tk.unappend(&txn, 251);
         ASSERT_EQ(1, tk.refsize(block_size));
         tk.prepend(&txn, std::string(251, 'h'));
@@ -283,7 +284,7 @@ private:
 
     void permutations_test(cache_t *cache) {
 	SCOPED_TRACE("permutations_test");
-	int64_t szs[] = { 1, 251, 4080, 4081, 8160, 8161, 4080 * (4080 / 4) - 2000, 4080 * (4080 / 4), 4080LL * (4080 / 4) * (4080 / 4 - 3) };
+	int64_t szs[] = { 1, 251, 4080, 4081, 8160, 8161, 4080 * (4080 / 4) - 2000, 4080 * (4080 / 4), 4080 * (4080 / 4) * 3 + 1 };
 
 	int n = sizeof(szs) / sizeof(szs[0]);
 
