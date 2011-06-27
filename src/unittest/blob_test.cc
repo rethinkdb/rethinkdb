@@ -157,7 +157,7 @@ protected:
         small_value_boundary_test(cache);
         special_4080_prepend_4081_test(cache);
         special_4161600_prepend_12484801_test(cache);
-        //	permutations_test(cache);
+        combinations_test(cache);
     }
 
 private:
@@ -294,18 +294,18 @@ private:
         for (int i = 0, n = steps.size(); i < n; ++i) {
 	    if (steps[i].prepend) {
 		if (steps[i].size <= size) {
-                    debugf("unprepending from %ld to %ld\n", size, steps[i].size);
+                    SCOPED_TRACE(strprintf("unprepending from %ld to %ld\n", size, steps[i].size));
 		    tk.unprepend(&txn, size - steps[i].size);
 		} else {
-                    debugf("prepending from %ld to %ld\n", size, steps[i].size);
+                    SCOPED_TRACE(strprintf("prepending from %ld to %ld\n", size, steps[i].size));
 		    tk.prepend(&txn, std::string(steps[i].size - size, v));
 		}
 	    } else {
 		if (steps[i].size <= size) {
-                    debugf("unappending from %ld to %ld\n", size, steps[i].size);
+                    SCOPED_TRACE(strprintf("unappending from %ld to %ld\n", size, steps[i].size));
 		    tk.unappend(&txn, size - steps[i].size);
 		} else {
-                    debugf("appending from %ld to %ld\n", size, steps[i].size);
+                    SCOPED_TRACE(strprintf("appending from %ld to %ld\n", size, steps[i].size));
 		    tk.append(&txn, std::string(steps[i].size - size, v));
 		}
 	    }
@@ -314,29 +314,44 @@ private:
 
 	    v = (v == 'z' ? 'A' : v == 'Z' ? 'a' : v + 1);
 	}
+        tk.unappend(&txn, size);
     }
 
-    void permutations_test(cache_t *cache) {
-	SCOPED_TRACE("permutations_test");
-	int64_t szs[] = { 1, 251, 4080, 4081, 8160, 8161, 4080 * (4080 / 4) - 2000, 4080 * (4080 / 4), 4080 * (4080 / 4) * 3 + 1 };
+    void combinations_test(cache_t *cache) {
+        SCOPED_TRACE("combinations_test");
+        int64_t inline_sz = 4080 * ((250 - 1 - 8 - 8) / 4);
+        int64_t l2_sz = 4080 * (4080 / 4);
+	int64_t szs[] = { 0, 251, 4080, 4081, inline_sz - 300, inline_sz, inline_sz + 1, l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
 
-	int n = sizeof(szs) / sizeof(szs[0]);
+        int n = sizeof(szs) / sizeof(szs[0]);
 
-	int64_t perm_number = 0;
-	do {
-            debugf("perm_number = %ld\n", perm_number);
-	    SCOPED_TRACE(perm_number);
-	    ++perm_number;
-	    std::vector<step_t> aps, preps;
-	    for (int i = 0; i < n; ++i) {
-		aps.push_back(step_t(szs[i], false));
-		preps.push_back(step_t(szs[i], true));
-	    }
-	    general_journey_test(cache, aps);
-	    general_journey_test(cache, preps);
-
-
-	} while (std::next_permutation(szs, szs + n));
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                SCOPED_TRACE(strprintf("i,j = %d,%d", i, j));
+                std::vector<step_t> steps;
+                steps.push_back(step_t(szs[i], false));
+                steps.push_back(step_t(szs[j], false));
+                {
+                    SCOPED_TRACE("ap ap");
+                    general_journey_test(cache, steps);
+                }
+                steps[1].prepend = true;
+                {
+                    SCOPED_TRACE("ap prep");
+                    general_journey_test(cache, steps);
+                }
+                steps[0].prepend = true;
+                {
+                    SCOPED_TRACE("prep prep");
+                    general_journey_test(cache, steps);
+                }
+                steps[1].prepend = false;
+                {
+                    SCOPED_TRACE("prep ap");
+                    general_journey_test(cache, steps);
+                }
+            }
+        }
     }
 };
 
