@@ -205,6 +205,7 @@ private:
         bitset_t g_array; /* !< bit array for whether or not each block is garbage */
         microtime_t timestamp; /* !< when we started writing to the extent */
         priority_queue_t<gc_entry*, Less>::entry_t *our_pq_entry; /* !< The PQ entry pointing to us */
+        bool was_written; /* true iff the extent has been written to after starting up the serializer */
         
         enum state_t {
             // It has been, or is being, reconstructed from data on disk.
@@ -226,7 +227,8 @@ private:
             : parent(parent),
               offset(parent->extent_manager->gen_extent()),
               g_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_microtime())
+              timestamp(current_microtime()),
+              was_written(false)
         {
             rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
             parent->entries.set(offset / parent->extent_manager->extent_size, this);
@@ -241,7 +243,8 @@ private:
             : parent(parent),
               offset(offset),
               g_array(parent->static_config->blocks_per_extent()),
-              timestamp(current_microtime())
+              timestamp(current_microtime()),
+              was_written(false) 
         {
             parent->extent_manager->reserve_extent(offset);
             rassert(parent->entries.get(offset / parent->extent_manager->extent_size) == NULL);
@@ -305,6 +308,8 @@ private:
     void remove_last_unyoung_entry();
 
 private:
+    bool should_perform_read_ahead(off64_t offset);
+
     /* internal garbage collection structures */
     struct gc_read_callback_t : public iocallback_t {
         data_block_manager_t *parent;

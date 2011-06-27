@@ -37,6 +37,7 @@ function that you provide.
 needs in order to complete the disk request. It must expose the following member
 functions:
     bool get_is_read() const;
+    bool get_is_write() const;
     off_t get_offset() const;
     size_t get_count() const;
     void *get_buf() const;
@@ -80,17 +81,15 @@ private:
     }
 
     /* For each chunk "B" in the file:
-
-    active_chunks[B] is true if there is at least one operation that is operating on
-    or is waiting to operate on that chunk.
-
-    waiters[B] contains a deque of things that are waiting to operate on that chunk
-    but cannot because something else is currently operating on that chunk. It could be
-    a multimap instead, but that would mean depending on properties of multimaps that
+    chunk_queues[B] contains a deque of things that are either (a) waiting to operate on that chunk
+    but cannot because something else is currently operating on that chunk, or (b)
+    which are currently operating on that chunk. In case (b), that operation
+    is always the first one on the deque and there can just be one such operation.
+    If no operation is active on B, chunk_queues does not have an entry for B.
+    It could be a multimap instead, but that would mean depending on properties of multimaps that
     are not guaranteed by the C++ standard. */
 
-    bitset_t active_chunks;
-    std::map<int, std::deque<action_t*> > waiters;
+    std::map<int, std::deque<action_t*> > chunk_queues;
 };
 
 #include "arch/linux/disk/conflict_resolving.tcc"
