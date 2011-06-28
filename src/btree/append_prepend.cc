@@ -34,6 +34,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         }
 
         data->get_data_into_buffers(&buffer_group);
+        b.dump_ref(txn->get_cache()->get_block_size(), value->value_ref());
         result = apr_success;
         return true;
     }
