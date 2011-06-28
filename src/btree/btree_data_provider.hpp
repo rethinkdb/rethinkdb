@@ -10,8 +10,7 @@
 #include "buffer_cache/blob.hpp"
 
 class value_data_provider_t : public auto_copying_data_provider_t {
-    value_data_provider_t(transaction_t *txn, btree_value_t *value);
-    blob_t blob;
+    value_data_provider_t(transaction_t *txn, const btree_value_t *value);
     buffer_group_t buffers;
     boost::scoped_array<char> buf;
 public:
