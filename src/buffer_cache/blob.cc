@@ -141,12 +141,12 @@ size_t ref_size(block_size_t block_size, const char *ref, size_t maxreflen) {
 }
 
 int64_t value_size(const char *ref, size_t maxreflen) {
-    size_t smallsize = blob::small_size(ref_, maxreflen_);
-    if (smallsize <= maxreflen_ - 1) {
+    size_t smallsize = blob::small_size(ref, maxreflen);
+    if (smallsize <= maxreflen - big_size_offset(maxreflen)) {
         return smallsize;
     } else {
-        rassert(smallsize == maxreflen_);
-        return blob::big_size(ref_, maxreflen_);
+        rassert(smallsize == maxreflen);
+        return blob::big_size(ref, maxreflen);
     }
     return 0;
 }
