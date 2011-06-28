@@ -153,11 +153,17 @@ private:
 struct blob_tester_t : public server_test_helper_t {
 protected:
     void run_tests(cache_t *cache) {
+        debugf("small_value_test...\n");
         small_value_test(cache);
+        debugf("small_value_boundary_test...\n");
         small_value_boundary_test(cache);
+        debugf("special_4080_prepend_4081_test...\n");
         special_4080_prepend_4081_test(cache);
+        debugf("special_4161...\n");
         special_4161600_prepend_12484801_test(cache);
+        debugf("combinations_test...\n");
         combinations_test(cache);
+        debugf("finished...\n");
     }
 
 private:
@@ -326,6 +332,7 @@ private:
         int n = sizeof(szs) / sizeof(szs[0]);
 
         for (int i = 0; i < n; ++i) {
+            debugf("combinations_test: i = %d\n", i);
             for (int j = 0; j < n; ++j) {
                 SCOPED_TRACE(strprintf("i,j = %d,%d", i, j));
                 std::vector<step_t> steps;
