@@ -6,7 +6,7 @@
 #include "buffer_cache/buf_patch.hpp"
 #include "store.hpp"
 
-class btree_value_t;
+struct btree_value_t;
 
 /* Btree leaf node logical patches */
 
