@@ -254,7 +254,7 @@ void blob_t::expose_region(transaction_t *txn, access_t mode, int64_t offset, in
 
     if (blob::is_small(ref_, maxreflen_)) {
         char *b = blob::small_buffer(ref_, maxreflen_);
-        size_t n = blob::small_size(ref_, maxreflen_);
+        UNUSED size_t n = blob::small_size(ref_, maxreflen_);
         rassert(0 <= offset && size_t(offset) <= n);
         rassert(0 <= size && size_t(size) <= n && size_t(offset + size) <= n);
         buffer_group_out->add_buffer(size, b + offset);
@@ -559,7 +559,7 @@ void traverse_recursively(transaction_t *txn, int levels, block_id_t *block_ids,
 }  // namespace
 
 bool blob_t::traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, blob::traverse_helper_t *helper) {
-    int64_t old_end = old_offset + old_size;
+    UNUSED int64_t old_end = old_offset + old_size;
     int64_t new_end = new_offset + new_size;
     rassert(new_offset <= old_offset && new_end >= old_end);
     block_size_t block_size = txn->get_cache()->get_block_size();
