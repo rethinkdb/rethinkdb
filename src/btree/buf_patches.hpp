@@ -49,6 +49,7 @@ protected:
     virtual uint16_t get_data_size() const;
 
 private:
+    block_size_t block_size;
     char *value_buf;
     char *key_buf;
 };

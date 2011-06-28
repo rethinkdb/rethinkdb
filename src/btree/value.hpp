@@ -43,7 +43,6 @@ char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, expt
 char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, exptime_t exptime, cas_t cas);
 void metadata_set_large_value_bit(metadata_flags_t *mf, bool bit);
 
-
 struct btree_value_t {
     metadata_flags_t metadata_flags;
     char contents[];
@@ -94,6 +93,8 @@ public:
         set_cas(bs, 0xCA5ADDED);
     }
 };
+
+bool btree_value_fits(int data_length, const btree_value_t *value);
 
 
 
