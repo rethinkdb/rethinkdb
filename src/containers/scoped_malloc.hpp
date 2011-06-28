@@ -20,10 +20,19 @@ public:
     T *operator->() { return ptr_; }
     T& operator*() { return *ptr_; }
 
+    void reset() {
+        scoped_malloc tmp;
+        swap(tmp);
+    }
+
     void swap(scoped_malloc& other) {
         T *tmp = ptr_;
         ptr_ = other.ptr_;
         other.ptr_ = tmp;
+    }
+
+    operator bool() const {
+        return ptr_ != NULL;
     }
 
 private:

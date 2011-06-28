@@ -10,10 +10,12 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
     delete_result_t result;
     bool dont_put_in_delete_queue;
 
-    bool operate(UNUSED const boost::shared_ptr<transaction_t>& txn, btree_value *old_value, UNUSED boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, UNUSED boost::scoped_ptr<large_buf_t>& new_large_buflock) {
-        if (old_value) {
+    bool operate(const boost::shared_ptr<transaction_t>& txn, scoped_malloc<btree_value_t>& value) {
+        if (value) {
             result = dr_deleted;
-            *new_value = NULL;
+            blob_t b(txn->get_cache()->get_block_size(), value->value_ref(), blob::btree_maxreflen);
+            b.unappend_region(txn.get(), b.valuesize());
+            value.reset();
             return true;
         } else {
             result = dr_not_found;

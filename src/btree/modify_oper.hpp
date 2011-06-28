@@ -7,8 +7,9 @@
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/buf_lock.hpp"
-#include "buffer_cache/large_buf.hpp"
+#include "buffer_cache/blob.hpp"
 #include "buffer_cache/co_functions.hpp"
+#include "containers/scoped_malloc.hpp"
 
 #define BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS 0
 
@@ -19,17 +20,15 @@ public:
 
     virtual ~btree_modify_oper_t() { }
 
-    /* run_btree_modify_oper() calls operate() when it reaches the leaf node.
-     * 'old_value' is the previous value or NULL if the key was not present
-     * before. 'old_large_buf' is the large buf for the old value, if the old
-     * value is a large value. operate()'s return value indicates whether the
-     * leaf should be updated. If it returns true, it's responsible for setting
-     * *new_value and *new_large_buf to the correct new values (note that these
-     * must match up). If *new_value is NULL, the value will be deleted (and
-     * similarly for *new_large_buf).
-     */
-    virtual bool operate(const boost::shared_ptr<transaction_t>& txn, btree_value *old_value,
-        boost::scoped_ptr<large_buf_t>& old_large_buflock, btree_value **new_value, boost::scoped_ptr<large_buf_t>& new_large_buflock) = 0;
+    // run_btree_modify_oper() calls operate() when it reaches the
+    // leaf node.  It modifies the value of (or the existence of
+    // `value` in some way.  For example, if value contains a NULL
+    // pointer, that means no such key-value pair exists.  Setting the
+    // value to NULL would mean to delete the key-value pair (but if
+    // you do so make sure to wipe out the blob, too).  The return
+    // value is true if the leaf node needs to be updated.
+    virtual bool operate(const boost::shared_ptr<transaction_t>& txn, scoped_malloc<btree_value_t>& value) = 0;
+
 
     virtual int compute_expected_change_count(const size_t block_size) = 0;
 
@@ -40,6 +39,7 @@ public:
     // Acquires the old large value; this exists because some
     // btree_modify_opers need to acquire it in a particular way.
 
+    // TODO BLOB: Get rid of this obsolete function.
     virtual void actually_acquire_large_value(large_buf_t *lb) {
         co_acquire_large_buf(lb);
     }
@@ -60,7 +60,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 buf_t *get_root(transaction_t *txn, buf_t **sb_buf, block_size_t block_size);
 void insert_root(block_id_t root_id, buf_t **sb_buf);
 void check_and_handle_split(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
-    const btree_key_t *key, btree_value *new_value, block_size_t block_size);
+    const btree_key_t *key, btree_value_t *new_value, block_size_t block_size);
 void check_and_handle_underfull(transaction_t *txn, buf_t **buf, buf_t **last_buf, buf_t **sb_buf,
     const btree_key_t *key, block_size_t block_size);
 

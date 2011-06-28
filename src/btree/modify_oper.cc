@@ -5,7 +5,6 @@
 #include <boost/shared_ptr.hpp>
 #include "buffer_cache/buf_lock.hpp"
 #include "buffer_cache/co_functions.hpp"
-#include "buffer_cache/large_buf.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
 
@@ -34,7 +33,7 @@ void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
 void check_and_handle_split(transaction_t& txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
-                            const btree_key_t *key, btree_value *new_value, block_size_t block_size) {
+                            const btree_key_t *key, btree_value_t *new_value, block_size_t block_size) {
     txn.assert_thread();
 
     const node_t *node = ptr_cast<node_t>(buf->get_data_read());
@@ -42,7 +41,7 @@ void check_and_handle_split(transaction_t& txn, buf_lock_t& buf, buf_lock_t& las
     // If the node isn't full, we don't need to split, so we're done.
     if (node::is_leaf(node)) { // This should only be called when update_needed.
         rassert(new_value);
-        if (!leaf::is_full(ptr_cast<leaf_node_t>(node), key, new_value)) return;
+        if (!leaf::is_full(txn->get_cache()->get_block_size(), ptr_cast<leaf_node_t>(node), key, new_value)) return;
     } else {
         rassert(!new_value);
         if (!internal_node::is_full(ptr_cast<internal_node_t>(node))) return;
