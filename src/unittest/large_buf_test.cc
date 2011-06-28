@@ -13,24 +13,15 @@ protected:
 
     void run_tests(cache_t *cache) {
         {
-#ifndef NDEBUG
-            TRACEPOINT;
-#endif
             // This is expected to pass.
             run_unprepend_shift_babytest(cache, 4 * leaf_bytes(cache), leaf_bytes(cache) - 1);
         }
         {
-#ifndef NDEBUG
-            TRACEPOINT;
-#endif
             // This is expected to fail (because our code is expected
             // to be broken), at the time of writing the test.
             run_unprepend_shift_babytest(cache, 4 * leaf_bytes(cache), leaf_bytes(cache));
         }
         {
-#ifndef NDEBUG
-            TRACEPOINT;
-#endif
             run_pend_grind_test(cache);
         }
     }
@@ -125,13 +116,12 @@ private:
         }
 
         for (int i = 0; i < 10000; i++) {
-            debugf("%d\n", i);
+            SCOPED_TRACE(i);
             {
                 large_buf_t lb(txn, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
                 co_acquire_large_buf_for_unprepend(&lb, 100);
                 int refsize_adjustment_out;
                 lb.unprepend(100, &refsize_adjustment_out);
-                debugf("unprepend: %d\n", refsize_adjustment_out);
             }
             {
                 large_buf_t lb(txn, &ref, lbref_limit_t(sizeof(ref_bytes)), rwi_write);
@@ -140,7 +130,6 @@ private:
                 cond.wait();
                 int refsize_adjustment_out;
                 lb.append(100, &refsize_adjustment_out);
-                debugf("append: %d\n", refsize_adjustment_out);
             }
         }
     }

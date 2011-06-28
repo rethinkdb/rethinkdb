@@ -47,6 +47,7 @@ struct shard_store_t :
     void delete_all_keys_for_backfill(order_token_t token);
     void set_replication_clock(repli_timestamp_t t, order_token_t token);
 
+    cache_t cache;
     btree_slice_t btree;
     dispatching_store_t dispatching_store;   // For replication
     timestamping_set_store_interface_t timestamper;

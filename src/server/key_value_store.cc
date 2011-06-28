@@ -23,7 +23,8 @@ shard_store_t::shard_store_t(
     serializer_t *serializer,
     mirrored_cache_config_t *dynamic_config,
     int64_t delete_queue_limit) :
-    btree(serializer, dynamic_config, delete_queue_limit),
+    cache(serializer, dynamic_config),
+    btree(&cache, delete_queue_limit),
     dispatching_store(&btree),
     timestamper(&dispatching_store)
     { }
@@ -94,8 +95,33 @@ void prep_serializer(
         serializer_t *serializer,
         mirrored_cache_static_config_t *static_config,
         int i) {
+
     on_thread_t thread_switcher(i % get_num_db_threads());
-    btree_slice_t::create(serializer, static_config);
+
+    /* Prepare the serializer to hold a cache */
+    cache_t::create(serializer, static_config);\
+
+    /* Construct a cache so that the btree code can write its superblock */
+
+    /* The values we pass here are almost totally irrelevant. The cache-size parameter must
+    be big enough to hold the patch log so we don't trip an assert, though. */
+    mirrored_cache_config_t startup_dynamic_config;
+    int size = static_config->n_patch_log_blocks * serializer->get_block_size().ser_value() + MEGABYTE;
+    startup_dynamic_config.max_size = size * 2;
+    startup_dynamic_config.wait_for_flush = false;
+    startup_dynamic_config.flush_timer_ms = NEVER_FLUSH;
+    startup_dynamic_config.max_dirty_size = size;
+    startup_dynamic_config.flush_dirty_size = size;
+    startup_dynamic_config.flush_waiting_threshold = INT_MAX;
+    startup_dynamic_config.max_concurrent_flushes = 1;
+    startup_dynamic_config.io_priority_reads = 100;
+    startup_dynamic_config.io_priority_writes = 100;
+
+    /* Cache is in a scoped pointer because it may be too big to allocate on the coroutine stack */
+    boost::scoped_ptr<cache_t> cache(new cache_t(serializer, &startup_dynamic_config));
+
+    /* Ask the btree code to write its superblock */
+    btree_slice_t::create(cache.get());
 }
 
 void prep_serializer_for_shard(

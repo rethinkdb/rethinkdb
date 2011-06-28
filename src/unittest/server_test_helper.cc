@@ -45,14 +45,12 @@ void server_test_helper_t::setup_server_and_run_tests() {
         serializer_multiplexer_t multiplexer(serializers);
 
         this->serializer = multiplexer.proxies[0];
-        btree_slice_t::create(this->serializer, &config.store_static_config.cache);
-        btree_slice_t slice(this->serializer, &config.store_dynamic_config.cache, MEGABYTE);
-
-        cache_t *cache = slice.cache();
+        cache_t::create(this->serializer, &config.store_static_config.cache);
+        cache_t cache(this->serializer, &config.store_dynamic_config.cache);
 
         nap(200);   // to let patch_disk_storage do writeback.sync();
 
-        run_tests(cache);
+        run_tests(&cache);
     }
     trace_call(thread_pool.shutdown);
 }
