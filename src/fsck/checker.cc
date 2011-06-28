@@ -802,7 +802,7 @@ void check_and_load_diff_log(slicecx_t& cx, diff_log_errors *errs) {
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cx.block_size().value()) {
                     buf_patch_t *patch;
                     try {
-                        patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
+                        patch = buf_patch_t::load_patch(cx.block_size(), reinterpret_cast<const char *>(buf_data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
 			(void)e;
                         ++errs->corrupted_patch_blocks;

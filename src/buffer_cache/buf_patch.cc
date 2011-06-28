@@ -8,7 +8,7 @@
 #include "logger.hpp"
 #include "buf_patch.hpp"
 
-buf_patch_t* buf_patch_t::load_patch(const char* source) {
+buf_patch_t* buf_patch_t::load_patch(block_size_t bs, const char* source) {
     try {
         uint16_t remaining_length = *reinterpret_cast<const uint16_t *>(source);
         source += sizeof(remaining_length);
@@ -39,7 +39,7 @@ buf_patch_t* buf_patch_t::load_patch(const char* source) {
             case (OPER_LEAF_SHIFT_PAIRS):
                 result = new leaf_shift_pairs_patch_t(block_id, patch_counter, source, remaining_length); break;
             case (OPER_LEAF_INSERT_PAIR):
-                result = new leaf_insert_pair_patch_t(block_id, patch_counter, source, remaining_length); break;
+                result = new leaf_insert_pair_patch_t(bs, block_id, patch_counter, source, remaining_length); break;
             case (OPER_LEAF_INSERT):
                 result = new leaf_insert_patch_t(block_id, patch_counter, source, remaining_length); break;
             case (OPER_LEAF_REMOVE):

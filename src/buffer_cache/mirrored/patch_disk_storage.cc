@@ -133,7 +133,7 @@ void patch_disk_storage_t::load_patches(patch_memory_storage_t &in_memory_storag
         guarantee(strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
         uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
         while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
-            buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
+            buf_patch_t *patch = buf_patch_t::load_patch(cache.get_block_size(), reinterpret_cast<const char *>(buf_data) + current_offset);
             if (!patch) {
                 break;
             }
@@ -302,7 +302,7 @@ void patch_disk_storage_t::compress_block(const block_id_t log_block_id) {
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
     bool log_block_changed = false;
     while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
-        buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<char *>(buf_data) + current_offset);
+        buf_patch_t *patch = buf_patch_t::load_patch(cache.get_block_size(), reinterpret_cast<char *>(buf_data) + current_offset);
         if (!patch) {
             break;
         }
@@ -350,7 +350,7 @@ void patch_disk_storage_t::clear_block(const block_id_t log_block_id, coro_t* no
     guarantee(strncmp(reinterpret_cast<const char *>(buf_data), LOG_BLOCK_MAGIC, sizeof(LOG_BLOCK_MAGIC)) == 0);
     uint16_t current_offset = sizeof(LOG_BLOCK_MAGIC);
     while (current_offset + buf_patch_t::get_min_serialized_size() < cache.get_block_size().value()) {
-        buf_patch_t *patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(buf_data) + current_offset);
+        buf_patch_t *patch = buf_patch_t::load_patch(cache.get_block_size(), reinterpret_cast<const char *>(buf_data) + current_offset);
         if (!patch) {
             break;
         }
