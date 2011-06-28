@@ -159,6 +159,7 @@ void get_root(transaction_t& txn, buf_lock_t& sb_buf, block_size_t block_size, b
 // Runs a btree_modify_oper_t.
 void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime, order_token_t token) {
     scoped_malloc<btree_value_t> the_value(MAX_BTREE_VALUE_SIZE);
+    memset(the_value.get(), 0, MAX_BTREE_VALUE_SIZE);
 
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
