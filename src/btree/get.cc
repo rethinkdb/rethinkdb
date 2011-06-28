@@ -55,7 +55,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
         return get_result_t();
     }
 
-    const btree_value *value = leaf::get_pair_by_index(leaf, key_index)->value();
+    const btree_value_t *value = leaf::get_pair_by_index(leaf, key_index)->value();
 
     if (value->expired()) {
         // If the value is expired, delete it in the background
