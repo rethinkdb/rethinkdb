@@ -13,6 +13,7 @@
 #include "concurrency/semaphore.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "perfmon_types.hpp"
+#include <boost/iterator/iterator_facade.hpp>
 
 /* linux_tcp_conn_t provides a nice wrapper around a TCP network connection. */
 
@@ -108,6 +109,38 @@ public:
     /* Note that is_read_open() and is_write_open() must both be false1 before the socket is
     destroyed. */
     ~linux_tcp_conn_t();
+
+public:
+    /* iterator always you to handle the stream of data off the
+     * socket with iterators, the iterator handles all of the buffering itself. The
+     * impetus for this class comes from wanting to use network connection's with
+     * Boost's spirit parser */
+
+    class iterator 
+        : public boost::iterator_facade<iterator, const char, boost::forward_traversal_tag>
+    {
+    friend class linux_tcp_conn_t;
+    private:
+        linux_tcp_conn_t *source;
+        bool end;
+    private:
+    // boost iterator interface
+        void increment();
+        bool equal(iterator const& other);
+        const char &dereference();
+    public:
+        iterator(linux_tcp_conn_t *source)
+            : source(source), end(false)
+        {}
+        char operator*();
+        iterator operator++();
+        iterator operator++(int);
+        bool operator==(iterator const &);
+        bool operator!=(iterator const &);
+    };
+
+    iterator begin();
+    iterator end();
 
 private:
     explicit linux_tcp_conn_t(fd_t sock);   // Used by tcp_listener_t
