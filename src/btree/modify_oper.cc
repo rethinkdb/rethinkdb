@@ -41,7 +41,7 @@ void check_and_handle_split(transaction_t& txn, buf_lock_t& buf, buf_lock_t& las
     // If the node isn't full, we don't need to split, so we're done.
     if (node::is_leaf(node)) { // This should only be called when update_needed.
         rassert(new_value);
-        if (!leaf::is_full(txn->get_cache()->get_block_size(), ptr_cast<leaf_node_t>(node), key, new_value)) return;
+        if (!leaf::is_full(txn.get_cache()->get_block_size(), ptr_cast<leaf_node_t>(node), key, new_value)) return;
     } else {
         rassert(!new_value);
         if (!internal_node::is_full(ptr_cast<internal_node_t>(node))) return;
@@ -158,11 +158,7 @@ void get_root(transaction_t& txn, buf_lock_t& sb_buf, block_size_t block_size, b
 
 // Runs a btree_modify_oper_t.
 void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime, order_token_t token) {
-    union {
-        char old_value_memory[MAX_BTREE_VALUE_SIZE];
-        btree_value old_value;
-    };
-    (void) old_value_memory;
+    scoped_malloc<btree_value_t> the_value(MAX_BTREE_VALUE_SIZE);
 
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
@@ -223,77 +219,49 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         }
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
-        bool key_found = leaf::lookup(ptr_cast<leaf_node_t>(buf->get_data_read()), key, &old_value);
+        bool key_found = leaf::lookup(block_size, ptr_cast<leaf_node_t>(buf->get_data_read()), key, the_value.get());
 
-        // If there's a large value, acquire that too.
-        boost::scoped_ptr<large_buf_t> old_large_buflock;
-
-        if (key_found && old_value.is_large()) {
-            old_large_buflock.reset(new large_buf_t(txn, old_value.lb_ref(), btree_value::lbref_limit, rwi_write));
-            // We don't know whether we want to acquire all of the large value or
-            // just part of it, so we let the oper acquire it for us.
-            // TIED old_large_buflock TO old_value
-            oper->actually_acquire_large_value(old_large_buflock.get());
-            rassert(old_large_buflock->state == large_buf_t::loaded);
-        }
-
-        // Check whether the value is expired. If it is, we tell operate() that
-        // the value wasn't found. Then, if it tells us to make a change, we'll
-        // replace/delete the value as usual; if it tells us to do nothing,
-        // we'll silently delete the key.
-        bool expired = key_found && old_value.expired();
+        bool expired = key_found && the_value->expired();
         if (expired) key_found = false;
 
-        // Now we actually run the operation to compute the new value.
-        btree_value *new_value;
-        boost::scoped_ptr<large_buf_t> new_large_buflock;
-        bool update_needed = oper->operate(txn, key_found ? &old_value : NULL, old_large_buflock, &new_value, new_large_buflock);
-
-        // Make sure that the new_value and new_large_buf returned by operate() are consistent.
-#ifndef NDEBUG
-        if (update_needed) {
-            if (new_value && new_value->is_large()) {
-                rassert(new_large_buflock);
-                rassert(new_large_buflock->root_ref_is(new_value->lb_ref()));
-            } else {
-                rassert(!new_large_buflock);
-            }
-        } else {
-            rassert(!new_large_buflock);
+        // If the value's expired, delet it.
+        if (expired) {
+            blob_t b(block_size, the_value->value_ref(), blob::btree_maxreflen);
+            b.unappend_region(txn.get(), b.valuesize());
+            the_value.reset();
         }
-#endif
+        bool update_needed = oper->operate(txn, the_value);
 
         // If the value is expired and operate() decided not to make any
         // change, we'll silently delete the key.
         if (!update_needed && expired) {
-            new_value = NULL;
+            rassert(!the_value);
             update_needed = true;
         }
 
         // Actually update the leaf, if needed.
         if (update_needed) {
-            // TODO make sure we're updating leaf node timestamps.
-            if (new_value) { // We have a value to insert.
+            if (the_value) { // We have a value to insert.
                 // Split the node if necessary, to make sure that we have room
                 // for the value; This isn't necessary when we're deleting,
                 // because the node isn't going to grow.
-                check_and_handle_split(*txn, buf, last_buf, sb_buf, key, new_value, block_size);
+                check_and_handle_split(*txn, buf, last_buf, sb_buf, key, the_value.get(), block_size);
 
                 // Add a CAS to the value if necessary (this won't change its size).
-                if (new_value->has_cas()) {
+                if (the_value->has_cas()) {
                     rassert(castime.proposed_cas != BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
-                    new_value->set_cas(castime.proposed_cas);
+                    the_value->set_cas(block_size, castime.proposed_cas);
                 }
 
                 repli_timestamp new_value_timestamp = castime.timestamp;
 
-                bool success = leaf::insert(block_size, *buf.buf(), key, new_value, new_value_timestamp);
+                bool success = leaf::insert(block_size, *buf.buf(), key, the_value.get(), new_value_timestamp);
                 guarantee(success, "could not insert leaf btree node");
             } else { // Delete the value if it's there.
                 if (key_found || expired) {
                     leaf::remove(block_size, *buf.buf(), key);
                 } else {
-                     // operate() told us to delete a value (update_needed && !new_value), but the
+                     // operate() told us to delete a value (update_needed && !the_value), but the
                      // key wasn't in the node (!key_found && !expired), so we do nothing.
                 }
             }
@@ -312,17 +280,6 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         rassert(buf.is_acquired());
         buf.release();
         last_buf.release_if_acquired();
-
-        // Release all the large bufs that we used.
-        if (update_needed) {
-            if (old_large_buflock && new_large_buflock.get() != old_large_buflock.get()) {
-                // operate() switched to a new large buf, so we need to delete the old one.
-                rassert(old_value.is_large());
-                rassert(old_large_buflock->root_ref_is(old_value.lb_ref()));
-
-                old_large_buflock->mark_deleted();
-            }
-        }
 
         // Committing the transaction and moving back to the home thread are
         // handled automatically with RAII.
