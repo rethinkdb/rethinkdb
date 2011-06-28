@@ -1,9 +1,5 @@
 #include "value.hpp"
 
-const lbref_limit_t btree_value::lbref_limit(MAX_IN_NODE_VALUE_SIZE);
-
-
-
 int metadata_size(metadata_flags_t mf) {
     return ((mf.flags & MEMCACHED_FLAGS) ? sizeof(mcflags_t) : 0)
         + ((mf.flags & MEMCACHED_CAS) ? sizeof(cas_t) : 0)

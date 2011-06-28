@@ -967,6 +967,7 @@ void check_large_buf_subtree(slicecx_t& cx, int levels, int64_t offset, int64_t 
     }
 }
 
+// Commented out because we have blobs now, not large bufs.
 void check_large_buf(slicecx_t& cx, const large_buf_ref *ref, int ref_size_bytes, largebuf_error *errs) {
     if (ref_size_bytes >= (int)sizeof(large_buf_ref)
         && ref->size >= 0
@@ -977,12 +978,12 @@ void check_large_buf(slicecx_t& cx, const large_buf_ref *ref, int ref_size_bytes
         // overflow, and four is overkill.
         if (std::numeric_limits<int64_t>::max() / 4 - ref->offset > ref->size) {
 
-            int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
+            int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cx.block_size(), ref->offset + ref->size, lbref_limit_t(ref_size_bytes));
 
             // The part before '&&' ensures no overflow in the part after.
             if (1 <= inlined && inlined <= int((ref_size_bytes - sizeof(large_buf_ref)) / sizeof(block_id_t))) {
 
-                int sublevels = large_buf_t::compute_num_sublevels(cx.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
+                int sublevels = large_buf_t::compute_num_sublevels(cx.block_size(), ref->offset + ref->size, lbref_limit_t(ref_size_bytes));
 
                 if (ref->offset >= large_buf_t::compute_max_offset(cx.block_size(), sublevels)
                     || (inlined == 1 && sublevels > 1 && ref->offset >= large_buf_t::compute_max_offset(cx.block_size(), sublevels - 1))
@@ -1001,9 +1002,12 @@ void check_large_buf(slicecx_t& cx, const large_buf_ref *ref, int ref_size_bytes
     errs->bogus_ref = true;
 }
 
-void check_value(slicecx_t& cx, const btree_value *value, value_error *errs) {
-    errs->bad_metadata_flags = !!(value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
+void check_value(UNUSED slicecx_t& cx, const btree_value_t *value, value_error *errs) {
+    errs->bad_metadata_flags = !!(value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
 
+    // Commented out because we have blobs now, not large bufs.
+    // TODO BLOB: check blobs
+    /*
     size_t size = value->value_size();
     if (!value->is_large()) {
         errs->too_big = (size > MAX_IN_NODE_VALUE_SIZE);
@@ -1012,6 +1016,7 @@ void check_value(slicecx_t& cx, const btree_value *value, value_error *errs) {
 
         check_large_buf(cx, value->lb_ref(), value->size, &errs->largebuf_errs);
     }
+    */
 }
 
 bool leaf_node_inspect_range(const slicecx_t& cx, const leaf_node_t *buf, uint16_t offset) {
@@ -1020,11 +1025,11 @@ bool leaf_node_inspect_range(const slicecx_t& cx, const leaf_node_t *buf, uint16
     if (cx.block_size().value() - 3 >= offset
         && offset >= buf->frontmost_offset) {
         const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
-        const btree_value *value = pair->value();
+        const btree_value_t *value = pair->value();
         uint32_t value_offset = (reinterpret_cast<const char *>(value) - reinterpret_cast<const char *>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
         if (value_offset <= cx.block_size().value() - 2) {
-            uint32_t tot_offset = value_offset + value->full_size();
+            uint32_t tot_offset = value_offset + value->inline_size(cx.block_size());
             return (cx.block_size().value() >= tot_offset);
         }
     }
@@ -1043,7 +1048,7 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_
                 errs->value_out_of_buf = true;
                 return;
             }
-            expected_offset += leaf::pair_size(leaf::get_pair(buf, sorted_offsets[i]));
+            expected_offset += leaf::pair_size(cx.block_size(), leaf::get_pair(buf, sorted_offsets[i]));
         }
         errs->noncontiguous_offsets |= (expected_offset != cx.block_size().value());
 
