@@ -21,15 +21,8 @@ struct delete_all_keys_traversal_helper_t : public btree_traversal_helper_t {
             uint16_t offset = data->pair_offsets[i];
             btree_leaf_pair *pair = leaf::get_pair(data, offset);
 
-            if (pair->value()->is_large()) {
-                large_buf_t lb(txn, pair->value()->lb_ref(), btree_value::lbref_limit, rwi_write);
-
-                // TODO: We could use a callback, and not block the
-                // coroutine.  (OTOH it's not as if we're blocking the
-                // entire tree traversal).
-                co_acquire_large_buf_for_delete(&lb);
-                lb.mark_deleted();
-            }
+            blob_t b(txn->get_cache()->get_block_size(), pair->value()->value_ref(), blob::btree_maxreflen);
+            b.unappend_region(txn.get(), b.valuesize());
         }
     }
 
