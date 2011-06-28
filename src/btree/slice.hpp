@@ -18,13 +18,10 @@ class btree_slice_t :
 {
 public:
     // Blocks
-    static void create(serializer_t *serializer,
-                       mirrored_cache_static_config_t *static_config);
+    static void create(cache_t *cache);
 
     // Blocks
-    btree_slice_t(serializer_t *serializer,
-                  mirrored_cache_config_t *dynamic_config,
-                  int64_t delete_queue_limit);
+    btree_slice_t(cache_t *cache, int64_t delete_queue_limit);
 
     // Blocks
     ~btree_slice_t();
@@ -55,7 +52,7 @@ public:
     void set_replication_slave_id(uint32_t t);
     uint32_t get_replication_slave_id();
 
-    cache_t *cache() { return &cache_; }
+    cache_t *cache() { return cache_; }
     int64_t delete_queue_limit() { return delete_queue_limit_; }
 
     plain_sink_t pre_begin_transaction_sink_;
@@ -70,7 +67,7 @@ public:
     order_sink_t post_begin_transaction_sink_;
     order_source_t post_begin_transaction_source_;
 private:
-    cache_t cache_;
+    cache_t *cache_;
     int64_t delete_queue_limit_;
 
     /* We serialize all `order_token_t`s through here. This way we can use `plain_sink_t` for

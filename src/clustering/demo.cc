@@ -130,8 +130,11 @@ void serve(int id, demo_delegate_t *delegate) {
     serializer_multiplexer_t::create(serializers, 1);
     serializer_multiplexer_t multiplexer(serializers);
 
-    btree_slice_t::create(multiplexer.proxies[0], &config.store_static_config.cache);
-    btree_slice_t slice(multiplexer.proxies[0], &config.store_dynamic_config.cache, 1000);
+    cache_t::create(multiplexer.proxies[0], &config.store_static_config.cache);
+    cache_t cache(multiplexer.proxies[0], &config.store_dynamic_config.cache);
+
+    btree_slice_t::create(&cache);
+    btree_slice_t slice(&cache, 1000);
 
     set_store_mailbox_t change_mailbox(&slice);
     get_store_mailbox_t get_mailbox(&slice);
