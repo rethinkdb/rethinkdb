@@ -1,7 +1,7 @@
 #ifndef __BTREE_VALUE_HPP__
 #define __BTREE_VALUE_HPP__
 
-#include "buffer_cache/large_buf.hpp"
+#include "buffer_cache/blob.hpp"
 
 
 // Note: The metadata values are stored in the order
@@ -15,8 +15,6 @@ enum metadata_flags_enum_t {
     // currently not implemented.
     // DELETE_QUEUE   = 0x08,
 
-
-    LARGE_VALUE       = 0x80
 };
 
 typedef uint32_t mcflags_t;
@@ -46,71 +44,26 @@ char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, expt
 void metadata_set_large_value_bit(metadata_flags_t *mf, bool bit);
 
 
-
-// Note: This struct is stored directly on disk.
-struct btree_value {
-    uint8_t size;
+struct btree_value_t {
     metadata_flags_t metadata_flags;
     char contents[];
 
 public:
-    static const lbref_limit_t lbref_limit;
-
-    uint16_t full_size() const {
-        return sizeof(btree_value) + metadata_size(metadata_flags) + size;
+    int inline_size(block_size_t bs) const {
+        int msize = metadata_size(metadata_flags);
+        return offsetof(btree_value_t, contents) + msize + blob::ref_size(bs, contents + msize, blob::btree_maxreflen);
     }
 
-    // The size of the actual value, which might be the size of the large buf.
     int64_t value_size() const {
-        if (is_large()) {
-            int64_t ret = lb_ref()->size;
-            rassert(ret > MAX_IN_NODE_VALUE_SIZE);
-            return ret;
-        } else {
-            return size;
-        }
+        return blob::value_size(contents + metadata_size(metadata_flags), blob::btree_maxreflen);
     }
 
-    // Sets the size of the actual value, but it doesn't really create
-    // a large buf.
-
-    void value_size(int64_t new_size, block_size_t block_size) {
-        if (new_size <= MAX_IN_NODE_VALUE_SIZE) {
-            metadata_set_large_value_bit(&metadata_flags, false);
-            size = new_size;
-        } else {
-            metadata_set_large_value_bit(&metadata_flags, true);
-
-            size = large_buf_ref::refsize(block_size, new_size, 0, lbref_limit);
-            lb_ref()->size = new_size;
-        }
-    }
-
-    bool is_large() const { return metadata_flags.flags & LARGE_VALUE; }
-
-    char *value() { return contents + metadata_size(metadata_flags); }
-    const char *value() const { return contents + metadata_size(metadata_flags); }
-
-#ifndef NDEBUG
-    void large_buf_assertions() const {
-        rassert(is_large());
-        rassert(size >= sizeof(large_buf_ref));
-        bool modcmp = (size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0;
-        rassert(modcmp);
-    }
-#endif
-
-    large_buf_ref *lb_ref() {
-        DEBUG_ONLY(large_buf_assertions());
-        return reinterpret_cast<large_buf_ref *>(value());
-    }
-
-    const large_buf_ref *lb_ref() const {
-        DEBUG_ONLY(large_buf_assertions());
-        return reinterpret_cast<const large_buf_ref *>(value());
+    char *value_ref() {
+        return contents + metadata_size(metadata_flags);
     }
 
     mcflags_t mcflags() const { return metadata_memcached_flags(metadata_flags, contents); }
+
     exptime_t exptime() const { return metadata_memcached_exptime(metadata_flags, contents); }
     bool has_cas() const {
         return metadata_flags.flags & MEMCACHED_CAS;
@@ -131,20 +84,18 @@ public:
     // CAS is treated differently from the other fields. Values initially don't
     // have a CAS; once it's added, though, we assume it's there for good. An
     // existing CAS should never be set to 0.
-    void set_cas(cas_t new_cas) {
-        cas_t *ptr = metadata_force_memcached_casptr(&metadata_flags, contents, contents + full_size());
+    void set_cas(block_size_t bs, cas_t new_cas) {
+        cas_t *ptr = metadata_force_memcached_casptr(&metadata_flags, contents, contents + inline_size(bs));
         *ptr = new_cas;
     }
-    void add_cas() {
+
+    void add_cas(block_size_t bs) {
         /* Create a cas, but its initial value is undefined. TODO: This is implemented
         in a kind of hacky way. */
-        set_cas(0xCA5ADDED);
-    }
-
-    void print() const {
-        fprintf(stderr, "%*.*s", size, size, value());
+        set_cas(bs, 0xCA5ADDED);
     }
 };
+
 
 
 

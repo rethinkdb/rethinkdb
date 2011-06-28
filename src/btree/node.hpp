@@ -162,8 +162,8 @@ inline void keycpy(btree_key_t *dest, const btree_key_t *src) {
     memcpy(dest, src, sizeof(btree_key_t) + src->size);
 }
 
-inline void valuecpy(btree_value *dest, const btree_value *src) {
-    memcpy(dest, src, src->full_size());
+inline void valuecpy(block_size_t bs, btree_value_t *dest, const btree_value_t *src) {
+    memcpy(dest, src, src->inline_size(bs));
 }
 
 #endif // __BTREE_NODE_HPP__

@@ -140,6 +140,20 @@ size_t ref_size(block_size_t block_size, const char *ref, size_t maxreflen) {
     return ref_info(block_size, ref, maxreflen).refsize;
 }
 
+int64_t value_size(const char *ref, size_t maxreflen) {
+    size_t smallsize = blob::small_size(ref_, maxreflen_);
+    if (smallsize <= maxreflen_ - 1) {
+        return smallsize;
+    } else {
+        rassert(smallsize == maxreflen_);
+        return blob::big_size(ref_, maxreflen_);
+    }
+    return 0;
+}
+
+
+size_t btree_maxreflen = 251;
+
 size_t ref_value_offset(const char *ref, size_t maxreflen) {
     return is_small(ref, maxreflen) ? 0 : big_offset(ref, maxreflen);
 }
@@ -209,14 +223,7 @@ size_t blob_t::refsize(block_size_t block_size) const {
 }
 
 int64_t blob_t::valuesize() const {
-    size_t smallsize = blob::small_size(ref_, maxreflen_);
-    if (smallsize <= maxreflen_ - 1) {
-        return smallsize;
-    } else {
-        rassert(smallsize == maxreflen_);
-        return blob::big_size(ref_, maxreflen_);
-    }
-    return 0;
+    return blob::value_size(ref_, maxreflen_);
 }
 
 union temporary_acq_tree_node_t {
