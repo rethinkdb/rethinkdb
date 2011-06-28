@@ -61,3 +61,14 @@ char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, expt
     return p;
 }
 
+bool btree_value_fits(block_size_t block_size, int data_length, const btree_value_t *value) {
+    if (data_length < 1) {
+        return false;
+    }
+    int msize = metadata_size(value->metadata_flags);
+    if (data_length < 1 + msize) {
+        return false;
+    }
+
+    return blob::ref_fits(block_size ,data_length - (1 + msize), value->value_ref(), blob::btree_maxreflen);
+}

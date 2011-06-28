@@ -218,7 +218,7 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
                 while (current_offset + buf_patch_t::get_min_serialized_size() < cfg.block_size_ - sizeof(buf_data_t)) {
                     buf_patch_t *patch;
                     try {
-                        patch = buf_patch_t::load_patch(reinterpret_cast<const char *>(data) + current_offset);
+                        patch = buf_patch_t::load_patch(cfg.block_size(), reinterpret_cast<const char *>(data) + current_offset);
                     } catch (patch_deserialization_error_t &e) {
 			(void)e;
                         logERR("Corrupted patch. Ignoring the rest of the log block.\n");
@@ -269,7 +269,7 @@ bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
         if (unsigned(pair_offsets_back_offset) < cfg.block_size().value()) {
             for (int j = 0; j < num_pairs; ++j) {
                 uint16_t pair_offset = leaf->pair_offsets[j];
-                if (!(pair_offset >= pair_offsets_back_offset && pair_offset + sizeof(btree_leaf_pair) + sizeof(btree_value) <= cfg.block_size().value())) {
+                if (!(pair_offset >= pair_offsets_back_offset && pair_offset + sizeof(btree_leaf_pair) + sizeof(btree_value_t) + 1 <= cfg.block_size().value())) {
                     // Illegal pair offset
                     // Recover...
                     logERR("Recovering from a corrupted leaf node block. Data might be lost.\n");
@@ -283,10 +283,10 @@ bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
             for (int j = 0; j < num_pairs; ++j) {
                 uint16_t pair_offset = leaf->pair_offsets[j];
                 btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
-                if (!leaf_pair_fits(pair, (signed int)cfg.block_size().value() - (signed int)pair_offset)) {
+                if (!leaf_pair_fits(cfg.block_size(), pair, (signed int)cfg.block_size().value() - (signed int)pair_offset)) {
                     logERR("A pair juts off the end of the block. Truncating pair.\n");
                     pair->key.size = 0;
-                    pair->value()->size = 0;
+                    memset(pair->value(), 0, 2);
                 }
             }
         } else {
@@ -461,13 +461,13 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
                 // max_offset(sublevels))
                 if (std::numeric_limits<int64_t>::max() / 4 - ref->offset > ref->size) {
 
-                    int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cfg.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
+                    int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cfg.block_size(), ref->offset + ref->size, lbref_limit_t(ref_size_bytes));
 
                     // The part before '&&' ensures no overflow in the part after.
                     if (inlined < int((INT_MAX - sizeof(large_buf_ref)) / sizeof(block_id_t))
                         && int(sizeof(large_buf_ref) + inlined * sizeof(block_id_t)) == ref_size_bytes) {
 
-                        int sublevels = large_buf_t::compute_num_sublevels(cfg.block_size(), ref->offset + ref->size, btree_value::lbref_limit);
+                        int sublevels = large_buf_t::compute_num_sublevels(cfg.block_size(), ref->offset + ref->size, lbref_limit_t(ref_size_bytes));
 
                         // We aren't interested in making sure that
                         // the buffer is properly left-shifted because
@@ -486,20 +486,20 @@ bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, cons
 
 
 // Dumps the values for a given pair.
-void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg, const std::map<size_t, off64_t>& offsets, const btree_leaf_pair *pair, block_id_t this_block, int pair_size_limiter) {
-    if (pair_size_limiter < 0 || !leaf_pair_fits(pair, pair_size_limiter)) {
+void dump_pair_value(dumper_t &dumper, UNUSED nondirect_file_t& file, const cfg_t& cfg, UNUSED const std::map<size_t, off64_t>& offsets, const btree_leaf_pair *pair, block_id_t this_block, int pair_size_limiter) {
+    if (pair_size_limiter < 0 || !leaf_pair_fits(cfg.block_size(), pair, pair_size_limiter)) {
         logERR("(In block %u) A pair juts off the end of the block.\n", this_block);
         return;
     }
 
     const btree_key_t *key = &pair->key;
-    const btree_value *value = pair->value();
+    const btree_value_t *value = pair->value();
 
     mcflags_t flags = value->mcflags();
     exptime_t exptime = value->exptime();
     // We can't save the cas right now.
 
-    const char *valuebuf = value->value();
+    const char *valuebuf = value->value_ref();
 
     // We're going to write the value, split into pieces, into this set of pieces.
     std::vector<charslice_t> pieces;
@@ -510,7 +510,9 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
            key->size, key->contents);
 
 
-    if (value->is_large()) {
+    if (*reinterpret_cast<const uint8_t *>(valuebuf) > 250) {
+        crash("Can't handle large values.\n");
+              /*
         if (value->size >= sizeof(large_buf_ref) && ((value->size - sizeof(large_buf_ref)) % sizeof(block_id_t) == 0)) {
 
             int mod_id = translator_serializer_t::untranslate_block_id_to_mod_id(this_block, cfg.mod_count, CONFIG_BLOCK_ID);
@@ -535,10 +537,11 @@ void dump_pair_value(dumper_t &dumper, nondirect_file_t& file, const cfg_t& cfg,
             logERR("(In block %u) Value for key '%.*s' is corrupted.\n", this_block, int(key->size), key->contents);
             return;
         }
+              */
     } else {
         pieces.resize(1);
-        pieces[0].buf = valuebuf;
-        pieces[0].len = value->value_size();
+        pieces[0].buf = valuebuf + 1;
+        pieces[0].len = *reinterpret_cast<const uint8_t *>(valuebuf);
     }
 
     // So now we have a key, and a value split into one or more pieces.

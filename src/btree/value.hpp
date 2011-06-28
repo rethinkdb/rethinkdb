@@ -94,7 +94,7 @@ public:
     }
 };
 
-bool btree_value_fits(int data_length, const btree_value_t *value);
+bool btree_value_fits(block_size_t bs, int data_length, const btree_value_t *value);
 
 
 

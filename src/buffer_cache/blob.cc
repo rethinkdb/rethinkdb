@@ -140,6 +140,22 @@ size_t ref_size(block_size_t block_size, const char *ref, size_t maxreflen) {
     return ref_info(block_size, ref, maxreflen).refsize;
 }
 
+bool ref_fits(block_size_t block_size, int data_length, const char *ref, size_t maxreflen) {
+    if (data_length <= 0) {
+        return false;
+    }
+    size_t smallsize = small_size(ref, maxreflen);
+    if (smallsize <= maxreflen - big_size_offset(maxreflen)) {
+        return big_size_offset(maxreflen) + smallsize <= size_t(data_length);
+    } else {
+        if (size_t(data_length) < block_ids_offset(maxreflen)) {
+            return false;
+        }
+
+        return size_t(data_length) >= ref_size(block_size, ref, maxreflen);
+    }
+}
+
 int64_t value_size(const char *ref, size_t maxreflen) {
     size_t smallsize = blob::small_size(ref, maxreflen);
     if (smallsize <= maxreflen - big_size_offset(maxreflen)) {
