@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/scoped_array.hpp>
 
 #include "btree/value.hpp"
 #include "data_provider.hpp"
@@ -12,7 +13,7 @@ class value_data_provider_t : public auto_copying_data_provider_t {
     value_data_provider_t(transaction_t *txn, btree_value_t *value);
     blob_t blob;
     buffer_group_t buffers;
-    blob_acq_t acqs;
+    boost::scoped_array<char> buf;
 public:
     size_t get_size() const;
     const const_buffer_group_t *get_data_as_buffers();

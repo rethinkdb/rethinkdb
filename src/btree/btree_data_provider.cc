@@ -3,7 +3,13 @@
 
 value_data_provider_t::value_data_provider_t(transaction_t *txn, btree_value_t *value)
     : blob(txn->get_cache()->get_block_size(), value->value_ref(), 251) {
-    blob.expose_region(txn, rwi_read_outdated_ok, 0, blob.valuesize(), &buffers, &acqs);
+    buffer_group_t group;
+    blob_acq_t acqs;
+    blob.expose_region(txn, rwi_read_outdated_ok, 0, blob.valuesize(), &group, &acqs);
+    size_t sz = group.get_size();
+    buf.reset(new char[sz]);
+    buffers.add_buffer(sz, buf.get());
+    buffer_group_copy_data(buffers, const_view(group));
 }
 
 size_t value_data_provider_t::get_size() const {
