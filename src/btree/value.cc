@@ -37,18 +37,6 @@ cas_t *metadata_force_memcached_casptr(metadata_flags_t *mf, char *buf, char *bu
     return reinterpret_cast<cas_t*>(cas_pos);
 }
 
-bool metadata_large_value_bit(metadata_flags_t mf) {
-    return (mf.flags & LARGE_VALUE) != 0;
-}
-
-void metadata_set_large_value_bit(metadata_flags_t *mf, bool bit) {
-    if (bit) {
-        mf->flags |= LARGE_VALUE;
-    } else {
-        mf->flags &= ~LARGE_VALUE;
-    }
-}
-
 char *metadata_write(metadata_flags_t *mf_out, char *to, mcflags_t mcflags, exptime_t exptime) {
     mf_out->flags = 0;
     char *p = to;
