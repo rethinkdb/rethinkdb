@@ -18,18 +18,19 @@ repli_timestamp fake_timestamp = { -2 };
 
 // TODO: Sperg out and make these tests much more brutal.
 
-void expect_valid_value_shallowly(const btree_value *value) {
-    EXPECT_EQ(0, value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME | LARGE_VALUE));
+void expect_valid_value_shallowly(const btree_value_t *value) {
+    EXPECT_EQ(0, value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
 
-    size_t size = value->value_size();
+    // size_t size = value->value_size();
 
-    if (value->is_large()) {
-        EXPECT_GT(size, MAX_IN_NODE_VALUE_SIZE);
+    // TODO BLOB: Implement something equivalent for blobs.
+    // if (value->is_large()) {
+    //     EXPECT_GT(size, MAX_IN_NODE_VALUE_SIZE);
 
-        // This isn't fsck, we can't follow large buf pointers.
-    } else {
-        EXPECT_LE(size, MAX_IN_NODE_VALUE_SIZE);
-    }
+    //     // This isn't fsck, we can't follow large buf pointers.
+    // } else {
+    //     EXPECT_LE(size, MAX_IN_NODE_VALUE_SIZE);
+    // }
 }
 
 void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_space) {
@@ -47,7 +48,7 @@ void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_s
     for (std::vector<uint16_t>::const_iterator p = offsets.begin(), e = offsets.end(); p < e; ++p) {
         ASSERT_LE(expected, block_size.value());
         ASSERT_EQ(expected, *p);
-        expected += leaf::pair_size(leaf::get_pair(buf, *p));
+        expected += leaf::pair_size(block_size, leaf::get_pair(buf, *p));
     }
     ASSERT_EQ(block_size.value(), expected);
 
@@ -94,7 +95,7 @@ TEST(LeafNodeTest, Offsets) {
 
     EXPECT_EQ(1, sizeof(btree_key_t));
     EXPECT_EQ(1, offsetof(btree_key_t, contents));
-    EXPECT_EQ(2, sizeof(btree_value));
+    EXPECT_EQ(1, sizeof(btree_value_t));
 
     EXPECT_EQ(1, sizeof(metadata_flags_t));
 
@@ -112,8 +113,7 @@ public:
         EXPECT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
     }
 
-    void WriteBtreeValue(btree_value *out, block_size_t block_size) const {
-        out->size = 0;
+    void WriteBtreeValue(btree_value_t *out, UNUSED block_size_t block_size) const {
         out->metadata_flags.flags = 0;
 
         ASSERT_LE(data_.size(), MAX_IN_NODE_VALUE_SIZE);
@@ -123,13 +123,13 @@ public:
             metadata_write(&out->metadata_flags, out->contents, mcflags_, exptime_);
         }
 
-        out->value_size(data_.size(), block_size);
-        memcpy(out->value(), data_.c_str(), data_.size());
+        *reinterpret_cast<uint8_t *>(out->value_ref()) = data_.size();
+        memcpy(out->value_ref() + 1, data_.data(), data_.size());
     }
 
-    static Value Make(const btree_value *v) {
-        EXPECT_FALSE(v->is_large());
-        return Value(std::string(v->value(), v->value() + v->value_size()),
+    static Value Make(const btree_value_t *v) {
+        EXPECT_LE(*reinterpret_cast<const uint8_t *>(v->value_ref()), 250);
+        return Value(std::string(v->value_ref() + 1, v->value_ref() + 1 + v->value_size()),
                      v->mcflags(), v->has_cas() ? v->cas() : 0, v->has_cas(), v->exptime());
     }
 
@@ -142,8 +142,8 @@ public:
     }
 
     int full_size() const {
-        return sizeof(btree_value) + (mcflags_ ? sizeof(mcflags_t) : 0) + (has_cas_ ? sizeof(cas_t) : 0)
-            + (exptime_ ? sizeof(exptime_t) : 0) + data_.size();
+        return sizeof(btree_value_t) + (mcflags_ ? sizeof(mcflags_t) : 0) + (has_cas_ ? sizeof(cas_t) : 0)
+            + (exptime_ ? sizeof(exptime_t) : 0) + 1 + data_.size();
     }
 
     friend std::ostream& operator<<(std::ostream&, const Value&);
@@ -203,16 +203,16 @@ public:
     StackValue(const Value& value, block_size_t block_size) {
         value.WriteBtreeValue(&val, block_size);
     }
-    const btree_value *look() const {
+    const btree_value_t *look() const {
         return &val;
     }
-    btree_value *look_write() {
+    btree_value_t *look_write() {
         return &val;
     }
 private:
     union {
         char val_padding[MAX_BTREE_VALUE_SIZE];
-        btree_value val;
+        btree_value_t val;
     };
 };
 
@@ -307,11 +307,11 @@ public:
         StackKey skey(k);
         StackValue sval;
 
-        ASSERT_TRUE(leaf::lookup(node, skey.look(), sval.look_write()));
+        ASSERT_TRUE(leaf::lookup(bs, node, skey.look(), sval.look_write()));
 
-        leaf::remove(node, skey.look());
+        leaf::remove(bs, node, skey.look());
         expected.erase(p);
-        expected_frontmost_offset += (1 + k.size()) + sval.look()->full_size();
+        expected_frontmost_offset += (1 + k.size()) + sval.look()->inline_size(bs);
         -- expected_npairs;
     }
 
@@ -479,7 +479,7 @@ private:
     void lookup(const std::string& k, const Value& expected) const {
         StackKey skey(k);
         StackValue sval;
-        ASSERT_TRUE(leaf::lookup(node, skey.look(), sval.look_write()));
+        ASSERT_TRUE(leaf::lookup(bs, node, skey.look(), sval.look_write()));
         ASSERT_EQ(expected, Value::Make(sval.look()));
     }
 
@@ -510,16 +510,16 @@ btree_key_t *malloc_key(const char *s) {
     return k;
 }
 
-btree_value *malloc_value(const char *s) {
+btree_value_t *malloc_value(const char *s) {
     size_t origlen = strlen(s);
     EXPECT_LE(origlen, MAX_IN_NODE_VALUE_SIZE);
 
     size_t len = std::min<size_t>(origlen, MAX_IN_NODE_VALUE_SIZE);
 
-    btree_value *v = reinterpret_cast<btree_value *>(malloc(sizeof(btree_value) + len));
-    v->size = len;
+    btree_value_t *v = reinterpret_cast<btree_value_t *>(malloc(sizeof(btree_value_t) + 1 + len));
     v->metadata_flags.flags = 0;
-    memcpy(v->value(), s, len);
+    *reinterpret_cast<uint8_t *>(v->value_ref()) = len;
+    memcpy(v->value_ref() + 1, s, len);
     return v;
 }
 

@@ -58,9 +58,8 @@ public:
         return blob::value_size(contents + metadata_size(metadata_flags), blob::btree_maxreflen);
     }
 
-    char *value_ref() {
-        return contents + metadata_size(metadata_flags);
-    }
+    const char *value_ref() const { return contents + metadata_size(metadata_flags); }
+    char *value_ref() { return contents + metadata_size(metadata_flags); }
 
     mcflags_t mcflags() const { return metadata_memcached_flags(metadata_flags, contents); }
 
