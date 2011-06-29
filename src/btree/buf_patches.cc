@@ -11,9 +11,9 @@ leaf_shift_pairs_patch_t::leaf_shift_pairs_patch_t(const block_id_t block_id, co
 leaf_shift_pairs_patch_t::leaf_shift_pairs_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_SHIFT_PAIRS) {
     guarantee_patch_format(data_length == get_data_size());
-    offset = *((uint16_t*)(data));
+    offset = *(reinterpret_cast<const uint16_t *>(data));
     data += sizeof(offset);
-    shift = *((uint16_t*)(data));
+    shift = *(reinterpret_cast<const uint16_t *>(data));
     data += sizeof(shift);
 }
 
@@ -52,7 +52,7 @@ leaf_insert_pair_patch_t::leaf_insert_pair_patch_t(block_size_t bs, const block_
     value_buf = new char[inline_size];
     valuecpy(bs, reinterpret_cast<btree_value_t *>(value_buf), reinterpret_cast<const btree_value_t *>(data));
     data += inline_size;
-    uint8_t key_size = *((uint8_t*)(data));
+    uint8_t key_size = *(reinterpret_cast<const uint8_t *>(data));
     data += sizeof(key_size);
     key_buf = new char[sizeof(btree_key_t) + key_size];
     try {
@@ -122,9 +122,9 @@ leaf_insert_patch_t::leaf_insert_patch_t(const block_id_t block_id, const patch_
             block_size(block_size_t::unsafe_make(0)) {
     guarantee_patch_format(data_length >= sizeof(block_size) + sizeof(insertion_time) + sizeof(uint8_t) + sizeof(uint8_t));
     // TODO: Don't serialize block size, what is this.
-    block_size = *((block_size_t*)(data));
+    block_size = *(reinterpret_cast<const block_size_t *>(data));
     data += sizeof(block_size);
-    insertion_time = *((repli_timestamp*)(data));
+    insertion_time = *(reinterpret_cast<const repli_timestamp_t *>(data));
     data += sizeof(insertion_time);
 
     guarantee_patch_format(btree_value_fits(block_size, data_length - sizeof(block_size) - sizeof(insertion_time), reinterpret_cast<const btree_value_t *>(data)));
@@ -133,7 +133,7 @@ leaf_insert_patch_t::leaf_insert_patch_t(const block_id_t block_id, const patch_
     valuecpy(block_size, reinterpret_cast<btree_value_t *>(value_buf), reinterpret_cast<const btree_value_t *>(data));
     data += inline_size;
 
-    uint8_t key_size = *((uint8_t*)(data));
+    uint8_t key_size = *(reinterpret_cast<const uint8_t *>(data));
     data += sizeof(key_size);
     key_buf = new char[sizeof(btree_key_t) + key_size];
     try {
@@ -204,10 +204,10 @@ leaf_remove_patch_t::leaf_remove_patch_t(const block_id_t block_id, const patch_
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_REMOVE),
             block_size(block_size_t::unsafe_make(0)) {
     guarantee_patch_format(data_length >= sizeof(block_size) + sizeof(uint8_t));
-    block_size = *((block_size_t*)(data));
+    block_size = *(reinterpret_cast<const block_size_t *>(data));
     data += sizeof(block_size);
 
-    uint8_t key_size = *((uint8_t*)(data));
+    uint8_t key_size = *(reinterpret_cast<const uint8_t *>(data));
     data += sizeof(key_size);
     key_buf = new char[sizeof(btree_key_t) + key_size];
     try {
