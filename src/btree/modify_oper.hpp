@@ -15,8 +15,6 @@
 /* Stats */
 class btree_modify_oper_t {
 public:
-    btree_modify_oper_t() : slice(NULL) { }
-
     virtual ~btree_modify_oper_t() { }
 
     // run_btree_modify_oper() calls operate() when it reaches the
@@ -30,10 +28,6 @@ public:
 
 
     virtual int compute_expected_change_count(const size_t block_size) = 0;
-
-    // These two variables are only used by the get_cas_oper; there should be a
-    // nicer way to handle this.
-    btree_slice_t *slice;
 
     // This is a dorky name.  This function shall be called
     // immediately after the superblock has been acquired.  The delete

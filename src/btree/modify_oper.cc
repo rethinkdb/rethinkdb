@@ -164,7 +164,6 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
     btree_key_buffer_t kbuffer(store_key);
     btree_key_t *key = kbuffer.key();
 
-    oper->slice = slice; // TODO: Figure out a way to do this more nicely -- it's only used for generating a CAS value.
     block_size_t block_size = slice->cache()->get_block_size();
 
     {
