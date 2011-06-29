@@ -8,7 +8,7 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         : data(_data), append(_append)
     { }
 
-    bool operate(const boost::shared_ptr<transaction_t>& txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
         if (!value) {
             result = apr_not_found;
             return false;
@@ -26,11 +26,11 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
 
         size_t old_size = b.valuesize();
         if (append) {
-            b.append_region(txn.get(), data->get_size());
-            b.expose_region(txn.get(), rwi_write, old_size, data->get_size(), &buffer_group, &acqs);
+            b.append_region(txn, data->get_size());
+            b.expose_region(txn, rwi_write, old_size, data->get_size(), &buffer_group, &acqs);
         } else {
-            b.prepend_region(txn.get(), data->get_size());
-            b.expose_region(txn.get(), rwi_write, 0, data->get_size(), &buffer_group, &acqs);
+            b.prepend_region(txn, data->get_size());
+            b.expose_region(txn, rwi_write, 0, data->get_size(), &buffer_group, &acqs);
         }
 
         data->get_data_into_buffers(&buffer_group);

@@ -10,12 +10,12 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
     delete_result_t result;
     bool dont_put_in_delete_queue;
 
-    bool operate(const boost::shared_ptr<transaction_t>& txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
         if (value) {
             result = dr_deleted;
             {
                 blob_t b(value->value_ref(), blob::btree_maxreflen);
-                b.unappend_region(txn.get(), b.valuesize());
+                b.unappend_region(txn, b.valuesize());
             }
             value.reset();
             return true;
@@ -29,7 +29,7 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
         return 1;
     }
 
-    void do_superblock_sidequest(boost::shared_ptr<transaction_t>& txn,
+    void do_superblock_sidequest(transaction_t *txn,
                                  buf_lock_t& superblock,
                                  repli_timestamp recency,
                                  const store_key_t *key) {
@@ -38,7 +38,7 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
             slice->assert_thread();
             const btree_superblock_t *sb = reinterpret_cast<const btree_superblock_t *>(superblock->get_data_read());
 
-            replication::add_key_to_delete_queue(slice->delete_queue_limit(), txn.get(), sb->delete_queue_block, recency, key);
+            replication::add_key_to_delete_queue(slice->delete_queue_limit(), txn, sb->delete_queue_block, recency, key);
         }
     }
 };

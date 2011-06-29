@@ -2,7 +2,6 @@
 #define __BTREE_MODIFY_OPER_HPP__
 
 #include "utils.hpp"
-#include <boost/shared_ptr.hpp>
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
@@ -27,7 +26,7 @@ public:
     // value to NULL would mean to delete the key-value pair (but if
     // you do so make sure to wipe out the blob, too).  The return
     // value is true if the leaf node needs to be updated.
-    virtual bool operate(const boost::shared_ptr<transaction_t>& txn, scoped_malloc<btree_value_t>& value) = 0;
+    virtual bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) = 0;
 
 
     virtual int compute_expected_change_count(const size_t block_size) = 0;
@@ -40,7 +39,7 @@ public:
     // immediately after the superblock has been acquired.  The delete
     // queue is a child of the superblock, when it comes to
     // transactional ordering.
-    virtual void do_superblock_sidequest(UNUSED boost::shared_ptr<transaction_t>& txn,
+    virtual void do_superblock_sidequest(UNUSED transaction_t *txn,
                                          UNUSED buf_lock_t& superblock,
                                          UNUSED repli_timestamp recency,
                                          UNUSED const store_key_t *key) { }

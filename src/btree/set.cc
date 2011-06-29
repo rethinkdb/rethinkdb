@@ -15,7 +15,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
     ~btree_set_oper_t() {
     }
 
-    bool operate(const boost::shared_ptr<transaction_t>& txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
         // We may be instructed to abort, depending on the old value.
         if (value) {
             switch (replace_policy) {
@@ -53,7 +53,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
 
         // Whatever the case, shrink the old value.
         blob_t b(value->value_ref(), blob::btree_maxreflen);
-        b.unappend_region(txn.get(), b.valuesize());
+        b.unappend_region(txn, b.valuesize());
 
         if (data->get_size() > MAX_VALUE_SIZE) {
             result = sr_too_large;
@@ -68,17 +68,17 @@ struct btree_set_oper_t : public btree_modify_oper_t {
             metadata_write(&value->metadata_flags, value->contents, mcflags, exptime);
         }
 
-        b.append_region(txn.get(), data->get_size());
+        b.append_region(txn, data->get_size());
         buffer_group_t bg;
         boost::scoped_ptr<blob_acq_t> acq(new blob_acq_t);
-        b.expose_region(txn.get(), rwi_write, 0, data->get_size(), &bg, acq.get());
+        b.expose_region(txn, rwi_write, 0, data->get_size(), &bg, acq.get());
 
         try {
             data->get_data_into_buffers(&bg);
         } catch (...) {
             // Gotta release ownership of all those bufs first.
             acq.reset();
-            b.unappend_region(txn.get(), b.valuesize());
+            b.unappend_region(txn, b.valuesize());
             throw;
         }
 

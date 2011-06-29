@@ -8,7 +8,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         : increment(increment), delta(delta)
     { }
 
-    bool operate(const boost::shared_ptr<transaction_t>& txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
         // If the key didn't exist before, we fail.
         if (!value) {
             result.res = incr_decr_result_t::idr_not_found;
@@ -24,7 +24,7 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         if (b.valuesize() < 50) {
             buffer_group_t buffergroup;
             blob_acq_t acqs;
-            b.expose_region(txn.get(), rwi_read, 0, b.valuesize(), &buffergroup, &acqs);
+            b.expose_region(txn, rwi_read, 0, b.valuesize(), &buffergroup, &acqs);
             rassert(buffergroup.num_buffers() == 1);
 
             char buffer[50];
@@ -67,11 +67,11 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         char tmp[50];
         int chars_written = sprintf(tmp, "%llu", (long long unsigned)number);
         rassert(chars_written <= 49);
-        b.unappend_region(txn.get(), 0);
-        b.append_region(txn.get(), chars_written);
+        b.unappend_region(txn, 0);
+        b.append_region(txn, chars_written);
         buffer_group_t group;
         blob_acq_t acqs;
-        b.expose_region(txn.get(), rwi_write, 0, b.valuesize(), &group, &acqs);
+        b.expose_region(txn, rwi_write, 0, b.valuesize(), &group, &acqs);
         rassert(group.num_buffers() == 1);
         rassert(group.get_buffer(0).size == chars_written);
         memcpy(group.get_buffer(0).data, tmp, chars_written);

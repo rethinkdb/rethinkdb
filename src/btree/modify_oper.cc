@@ -186,7 +186,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         // to be, but when you fix this, make sure the superblock
         // sidequest is done using the superblock before the
         // superblock gets released.
-        oper->do_superblock_sidequest(txn, sb_buf, castime.timestamp, &store_key);
+        oper->do_superblock_sidequest(txn.get(), sb_buf, castime.timestamp, &store_key);
 
         buf_lock_t last_buf;
         buf_lock_t buf;
@@ -231,7 +231,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             b.unappend_region(txn.get(), b.valuesize());
             the_value.reset();
         }
-        bool update_needed = oper->operate(txn, the_value);
+        bool update_needed = oper->operate(txn.get(), the_value);
 
         // If the value is expired and operate() decided not to make any
         // change, we'll silently delete the key.
