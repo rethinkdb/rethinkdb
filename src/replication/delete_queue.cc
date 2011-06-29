@@ -48,8 +48,8 @@ void add_key_to_delete_queue(int64_t delete_queue_limit, transaction_t *txn, blo
 
 #ifndef NDEBUG
     {
-        bool modcmp = keys_blob.valuesize() % sizeof(delete_queue::t_and_o) == 0;
-        rassert(modcmp);
+        bool modcmp = t_o_blob.valuesize() % sizeof(delete_queue::t_and_o) == 0;
+        rassert(modcmp, "valuesize = %ld", keys_blob.valuesize());
     }
 #endif
 
