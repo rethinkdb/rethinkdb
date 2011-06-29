@@ -20,13 +20,13 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     // We can use repli_timestamp::invalid here because it's the timestamp for a read-only transaction.
     slice->pre_begin_transaction_sink_.check_out(token);
     order_token_t begin_transaction_token = slice->pre_begin_transaction_read_mode_source_.check_in(token.tag() + "+begin_transaction_token").with_read_mode();
-    boost::shared_ptr<transaction_t> transaction(new transaction_t(slice->cache(), rwi_read));
+    transaction_t txn(slice->cache(), rwi_read);
     slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
 
-    transaction->set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post").with_read_mode());
+    txn.set_token(slice->post_begin_transaction_source_.check_in(token.tag() + "+post").with_read_mode());
 
     // Acquire the superblock
-    buf_lock_t buf(transaction.get(), SUPERBLOCK_ID, rwi_read);
+    buf_lock_t buf(&txn, SUPERBLOCK_ID, rwi_read);
     block_id_t node_id = ptr_cast<btree_superblock_t>(buf->get_data_read())->root_block;
     rassert(node_id != SUPERBLOCK_ID);
 
@@ -35,7 +35,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     }
 
     // Acquire the root
-    acquire_and_swap_buf(&buf, transaction.get(), node_id, rwi_read);
+    acquire_and_swap_buf(&buf, &txn, node_id, rwi_read);
     DEBUG_ONLY(node::validate(slice->cache()->get_block_size(), ptr_cast<node_t>(buf->get_data_read())));
 
     // Go down the tree to the leaf
@@ -43,7 +43,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
         node_id = internal_node::lookup(ptr_cast<internal_node_t>(buf->get_data_read()), key);
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
-        acquire_and_swap_buf(&buf, transaction.get(), node_id, rwi_read);
+        acquire_and_swap_buf(&buf, &txn, node_id, rwi_read);
         DEBUG_ONLY(node::validate(slice->cache()->get_block_size(), ptr_cast<node_t>(buf->get_data_read())));
     }
 
@@ -64,7 +64,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     }
 
     /* Construct a data-provider to hold the result */
-    boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value, transaction.get()));
+    boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value, &txn));
 
     return get_result_t(dp, value->mcflags(), 0);
 }
