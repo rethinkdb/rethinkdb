@@ -25,7 +25,7 @@ struct http_msg_t {
     http_method_t method;
     std::string resource;
     std::string version;
-    std::vector<std::string> header_lines;
+    std::vector<header_line_t> header_lines;
     std::string body;
 };
 
@@ -34,7 +34,7 @@ BOOST_FUSION_ADAPT_STRUCT(
      (http_method_t, method)
      (std::string, resource)
      (std::string, version)
-     (std::vector<std::string>, header_lines)
+     (std::vector<header_line_t>, header_lines)
      (std::string, body)
 )
 
@@ -53,8 +53,8 @@ struct http_msg_parser_t : qi::grammar<Iterator, http_msg_t()> {
         method %= (lit("GET")[_val = GET] || lit("POST")[_val = POST]);
         resource %= (+(char_ - space));
         version %= (+(char_ - space));
-        //key_val_pair %= ((+(char_ - space)) >> just_space >> (+(char_ - space)));
-        key_val_pair %= (+(char_ - CRLF));
+        key_val_pair %= ((+(char_ - ":")) >>":" >> just_space >> (+(char_ - CRLF)));
+        //key_val_pair %= (+(char_ - CRLF));
         body %= (+char_);
         CRLF %= lit("\r\n") || lit("\n");
 
@@ -62,13 +62,12 @@ struct http_msg_parser_t : qi::grammar<Iterator, http_msg_t()> {
                  (key_val_pair % CRLF) >>
                  CRLF >>
                  body;
-        //start %= method >> just_space >> resource >> version >> *(key_val_pair) >> body;
     }
     qi::rule<Iterator> just_space;
     qi::rule<Iterator, http_method_t()> method;
     qi::rule<Iterator, std::string()> resource;
     qi::rule<Iterator, std::string()> version;
-    qi::rule<Iterator, std::string()> key_val_pair;
+    qi::rule<Iterator, header_line_t()> key_val_pair;
     qi::rule<Iterator, std::string()> body;
     qi::rule<Iterator> CRLF;
     qi::rule<Iterator, http_msg_t()> start;
