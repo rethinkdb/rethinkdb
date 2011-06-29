@@ -653,9 +653,6 @@ perfmon_duration_sampler_t
 
 mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expected_change_count, repli_timestamp _recency_timestamp)
     : cache(_cache),
-#ifndef NDEBUG
-      order_token(order_token_t::ignore),
-#endif
       expected_change_count(_expected_change_count),
       access(_access),
       recency_timestamp(_recency_timestamp),
@@ -676,9 +673,6 @@ mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access, int _expec
 /* This version is only for read transactions. */
 mc_transaction_t::mc_transaction_t(cache_t *_cache, access_t _access) :
     cache(_cache),
-#ifndef NDEBUG
-    order_token(order_token_t::ignore),
-#endif
     expected_change_count(0),
     access(_access),
     recency_timestamp(repli_timestamp_t::distant_past),

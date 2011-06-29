@@ -251,17 +251,10 @@ public:
 
     void set_account(boost::shared_ptr<cache_account_t> cache_account);
 
-    void set_token(UNUSED  order_token_t token) {
-#ifndef NDEBUG
-        order_token = token;
-#endif
-    }
+    // Order tokens are only actually stored by semantic checking and mock caches.
+    void set_token(UNUSED order_token_t token) { }
 
     cache_t *cache;
-
-#ifndef NDEBUG
-    order_token_t order_token;
-#endif
 
 private:
     void register_snapshotted_block(mc_inner_buf_t *inner_buf, void *data);
