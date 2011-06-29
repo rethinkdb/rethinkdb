@@ -2,6 +2,7 @@
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "buffer_cache/blob.hpp"
+#include "containers/buffer_group.hpp"
 
 namespace unittest {
 

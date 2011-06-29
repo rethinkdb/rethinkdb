@@ -36,14 +36,6 @@ public:
     // nicer way to handle this.
     btree_slice_t *slice;
 
-    // Acquires the old large value; this exists because some
-    // btree_modify_opers need to acquire it in a particular way.
-
-    // TODO BLOB: Get rid of this obsolete function.
-    virtual void actually_acquire_large_value(large_buf_t *lb) {
-        co_acquire_large_buf(lb);
-    }
-
     // This is a dorky name.  This function shall be called
     // immediately after the superblock has been acquired.  The delete
     // queue is a child of the superblock, when it comes to

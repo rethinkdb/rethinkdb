@@ -96,10 +96,6 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
     }
 
-    virtual void actually_acquire_large_value(large_buf_t *lb) {
-        co_acquire_large_buf_for_delete(lb);
-    }
-
     ticks_t start_time;
 
     boost::shared_ptr<data_provider_t> data;

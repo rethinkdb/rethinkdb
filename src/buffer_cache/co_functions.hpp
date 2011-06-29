@@ -2,26 +2,9 @@
 #define __BUFFER_CACHE_CO_FUNCTIONS_HPP__
 
 #include "buffer_cache/buffer_cache.hpp"
-#include "buffer_cache/large_buf.hpp"
 
 // TODO: `co_acquire_block()` is redundant; get rid of it.
 buf_t *co_acquire_block(transaction_t *transaction, block_id_t block_id, access_t mode, threadsafe_cond_t *acquisition_cond = NULL);
-
-// TODO: Make acquisition_cond not take a default value, because I bet
-// we should use it everywhere.  And put it on all of these functions.
-//
-// acquisition_cond gets pulsed immediately after a large buf
-// acquisition was requested.  Its pulsing means that we could release
-// the leaf node that owns it (assuming the large_buf isn't tied to
-// the ref stored directly within the node.  But that would be
-// improper).
-
-void co_acquire_large_buf_for_unprepend(large_buf_t *lb, int64_t length);
-void co_acquire_large_buf_slice(large_buf_t *lb, int64_t offset, int64_t size, threadsafe_cond_t *acquisition_cond = NULL);
-void co_acquire_large_buf(large_buf_t *large_value, threadsafe_cond_t *acquisition_cond = NULL);
-void co_acquire_large_buf_lhs(large_buf_t *large_value);
-void co_acquire_large_buf_rhs(large_buf_t *large_value);
-void co_acquire_large_buf_for_delete(large_buf_t *large_value);
 
 void co_get_subtree_recencies(transaction_t *transaction, block_id_t *block_ids, size_t num_block_ids, repli_timestamp *recencies_out);
 

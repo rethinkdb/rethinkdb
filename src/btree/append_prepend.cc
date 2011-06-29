@@ -48,14 +48,6 @@ struct btree_append_prepend_oper_t : public btree_modify_oper_t {
         }
     }
 
-    void actually_acquire_large_value(large_buf_t *lb) {
-        if (append) {
-            co_acquire_large_buf_rhs(lb);
-        } else {
-            co_acquire_large_buf_lhs(lb);
-        }
-    }
-
     append_prepend_result_t result;
 
     boost::shared_ptr<data_provider_t> data;
