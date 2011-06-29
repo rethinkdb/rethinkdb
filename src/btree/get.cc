@@ -27,7 +27,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
 
     // Acquire the superblock
     buf_lock_t buf(&txn, SUPERBLOCK_ID, rwi_read);
-    block_id_t node_id = ptr_cast<btree_superblock_t>(buf->get_data_read())->root_block;
+    block_id_t node_id = reinterpret_cast<const btree_superblock_t *>(buf->get_data_read())->root_block;
     rassert(node_id != SUPERBLOCK_ID);
 
     if (node_id == NULL_BLOCK_ID) { // No root, so the tree is empty
@@ -36,19 +36,19 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
 
     // Acquire the root
     acquire_and_swap_buf(&buf, &txn, node_id, rwi_read);
-    DEBUG_ONLY(node::validate(slice->cache()->get_block_size(), ptr_cast<node_t>(buf->get_data_read())));
+    DEBUG_ONLY(node::validate(slice->cache()->get_block_size(), reinterpret_cast<const node_t *>(buf->get_data_read())));
 
     // Go down the tree to the leaf
-    while (node::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
-        node_id = internal_node::lookup(ptr_cast<internal_node_t>(buf->get_data_read()), key);
+    while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
+        node_id = internal_node::lookup(reinterpret_cast<const internal_node_t *>(buf->get_data_read()), key);
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
         acquire_and_swap_buf(&buf, &txn, node_id, rwi_read);
-        DEBUG_ONLY(node::validate(slice->cache()->get_block_size(), ptr_cast<node_t>(buf->get_data_read())));
+        DEBUG_ONLY(node::validate(slice->cache()->get_block_size(), reinterpret_cast<const node_t *>(buf->get_data_read())));
     }
 
     // Got down to the leaf, now examine it
-    const leaf_node_t *leaf = ptr_cast<leaf_node_t>(buf->get_data_read());
+    const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(buf->get_data_read());
     int key_index = leaf::impl::find_key(leaf, key);
 
     if (key_index == leaf::impl::key_not_found) { // Key not found

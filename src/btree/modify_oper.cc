@@ -24,7 +24,8 @@
 
 void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
     rassert(sb_buf.is_acquired());
-    sb_buf->set_data(const_cast<block_id_t *>(&ptr_cast<btree_superblock_t>(sb_buf->get_data_read())->root_block), &root_id, sizeof(root_id));
+    // TODO: WTF is up with this const cast?  This makes NO SENSE.  gtfo.
+    sb_buf->set_data(const_cast<block_id_t *>(&reinterpret_cast<const btree_superblock_t *>(sb_buf->get_data_read())->root_block), &root_id, sizeof(root_id));
 
     sb_buf.release();
 }
@@ -36,15 +37,15 @@ void check_and_handle_split(transaction_t *txn, buf_lock_t& buf, buf_lock_t& las
                             const btree_key_t *key, btree_value_t *new_value, block_size_t block_size) {
     txn->assert_thread();
 
-    const node_t *node = ptr_cast<node_t>(buf->get_data_read());
+    const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
 
     // If the node isn't full, we don't need to split, so we're done.
     if (node::is_leaf(node)) { // This should only be called when update_needed.
         rassert(new_value);
-        if (!leaf::is_full(txn->get_cache()->get_block_size(), ptr_cast<leaf_node_t>(node), key, new_value)) return;
+        if (!leaf::is_full(txn->get_cache()->get_block_size(), reinterpret_cast<const leaf_node_t *>(node), key, new_value)) return;
     } else {
         rassert(!new_value);
-        if (!internal_node::is_full(ptr_cast<internal_node_t>(node))) return;
+        if (!internal_node::is_full(reinterpret_cast<const internal_node_t *>(node))) return;
     }
 
     // Allocate a new node to split into, and some temporary memory to keep
@@ -83,10 +84,10 @@ void check_and_handle_split(transaction_t *txn, buf_lock_t& buf, buf_lock_t& las
 // Merge or level the node if necessary.
 void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
                                 const btree_key_t *key, block_size_t block_size) {
-    const node_t *node = ptr_cast<node_t>(buf->get_data_read());
+    const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
     if (last_buf.is_acquired() && node::is_underfull(block_size, node)) { // The root node is never underfull.
 
-        const internal_node_t *parent_node = ptr_cast<internal_node_t>(last_buf->get_data_read());
+        const internal_node_t *parent_node = reinterpret_cast<const internal_node_t *>(last_buf->get_data_read());
 
         // Acquire a sibling to merge or level with.
         block_id_t sib_node_id;
@@ -94,7 +95,7 @@ void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_lock_t&
 
         // Now decide whether to merge or level.
         buf_lock_t sib_buf(txn, sib_node_id, rwi_write);
-        const node_t *sib_node = ptr_cast<node_t>(sib_buf->get_data_read());
+        const node_t *sib_node = reinterpret_cast<const node_t *>(sib_buf->get_data_read());
 
 #ifndef NDEBUG
         node::validate(block_size, sib_node);
@@ -191,7 +192,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         get_root(&txn, sb_buf, block_size, &buf, castime.timestamp);
 
         // Walk down the tree to the leaf.
-        while (node::is_internal(ptr_cast<node_t>(buf->get_data_read()))) {
+        while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
             // Check if the node is overfull and proactively split it if it is (since this is an internal node).
             check_and_handle_split(&txn, buf, last_buf, sb_buf, key, NULL, block_size);
             // Check if the node is underfull, and merge/level if it is.
@@ -209,7 +210,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             // the next previous node (which is the current node).
 
             // Look up and acquire the next node.
-            block_id_t node_id = internal_node::lookup(ptr_cast<internal_node_t>(buf->get_data_read()), key);
+            block_id_t node_id = internal_node::lookup(reinterpret_cast<const internal_node_t *>(buf->get_data_read()), key);
             rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
             buf_lock_t tmp(&txn, node_id, rwi_write);
@@ -218,7 +219,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         }
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
-        bool key_found = leaf::lookup(block_size, ptr_cast<leaf_node_t>(buf->get_data_read()), key, the_value.get());
+        bool key_found = leaf::lookup(block_size, reinterpret_cast<const leaf_node_t *>(buf->get_data_read()), key, the_value.get());
 
         bool expired = key_found && the_value->expired();
         if (expired) key_found = false;

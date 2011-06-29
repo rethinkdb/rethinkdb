@@ -93,7 +93,7 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
     started = true;
     // TODO: Why is this a buf_lock_t pointer?  That's not how buf_lock_t should be used.
     buf_lock_t *buf_lock = new buf_lock_t(transaction.get(), block_id_t(SUPERBLOCK_ID), rwi_read);
-    block_id_t root_id = ptr_cast<btree_superblock_t>(buf_lock->buf()->get_data_read())->root_block;
+    block_id_t root_id = reinterpret_cast<const btree_superblock_t *>(buf_lock->buf()->get_data_read())->root_block;
     rassert(root_id != SUPERBLOCK_ID);
 
     if (root_id == NULL_BLOCK_ID) {
@@ -113,11 +113,11 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
     }
 
     // read root node
-    const node_t *node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
+    const node_t *node = reinterpret_cast<const node_t *>(buf_lock->buf()->get_data_read());
     rassert(node != NULL);
 
     while (node::is_internal(node)) {
-        const internal_node_t *i_node = ptr_cast<internal_node_t>(node);
+        const internal_node_t *i_node = reinterpret_cast<const internal_node_t *>(node);
 
         // push the i_node onto the traversal_state stack
         int index = internal_node::impl::get_offset_index(i_node, left_key);
@@ -132,14 +132,14 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_first_leaf() {
         block_id_t child_id = get_child_id(i_node, index);
 
         buf_lock = new buf_lock_t(transaction.get(), child_id, rwi_read);
-        node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
+        node = reinterpret_cast<const node_t *>(buf_lock->buf()->get_data_read());
     }
 
     rassert(node != NULL);
     rassert(node::is_leaf(node));
     rassert(buf_lock != NULL);
 
-    const leaf_node_t *l_node = ptr_cast<leaf_node_t>(node);
+    const leaf_node_t *l_node = reinterpret_cast<const leaf_node_t *>(node);
     int index = leaf::impl::get_offset_index(l_node, left_key);
 
     if (index < l_node->npairs) {
@@ -177,10 +177,10 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(blo
     // TODO: Why is there a buf_lock_t pointer?  This is not how
     // buf_lock_t works.  Just use a buf_t pointer then.
     buf_lock_t *buf_lock = new buf_lock_t(transaction.get(), node_id, rwi_read);
-    const node_t *node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
+    const node_t *node = reinterpret_cast<const node_t *>(buf_lock->buf()->get_data_read());
 
     while (node::is_internal(node)) {
-        const internal_node_t *i_node = ptr_cast<internal_node_t>(node);
+        const internal_node_t *i_node = reinterpret_cast<const internal_node_t *>(node);
         rassert(i_node->npairs > 0);
 
         // push the i_node onto the traversal_state stack
@@ -190,13 +190,13 @@ boost::optional<leaf_iterator_t*> slice_leaves_iterator_t::get_leftmost_leaf(blo
         block_id_t child_id = get_child_id(i_node, leftmost_child_index);
 
         buf_lock = new buf_lock_t(transaction.get(), child_id, rwi_read);
-        node = ptr_cast<node_t>(buf_lock->buf()->get_data_read());
+        node = reinterpret_cast<const node_t *>(buf_lock->buf()->get_data_read());
     }
     rassert(node != NULL);
     rassert(node::is_leaf(node));
     rassert(buf_lock != NULL);
 
-    const leaf_node_t *l_node = ptr_cast<leaf_node_t>(node);
+    const leaf_node_t *l_node = reinterpret_cast<const leaf_node_t *>(node);
     return boost::make_optional(new leaf_iterator_t(l_node, 0, buf_lock, transaction));
 }
 

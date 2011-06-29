@@ -10,17 +10,6 @@
 #include "buffer_cache/types.hpp"
 #include "store.hpp"
 
-// The existence of these functions does not constitute an endorsement
-// for casts.  These constitute an endorsement for the use of
-// reinterpret_cast, rather than C-style casts.  The latter can break
-// const correctness.
-template <class T>
-inline const T* ptr_cast(const void *p) { return reinterpret_cast<const T*>(p); }
-
-template <class T>
-inline T* ptr_cast(void *p) { return reinterpret_cast<T*>(p); }
-
-
 struct btree_superblock_t {
     block_magic_t magic;
     block_id_t root_block;

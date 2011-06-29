@@ -11,7 +11,7 @@ namespace internal_node {
 using namespace impl;
 
 void init(block_size_t block_size, buf_t &node_buf) {
-    internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_major_write());
+    internal_node_t *node = reinterpret_cast<internal_node_t *>(node_buf.get_data_major_write());
 
     node->magic = internal_node_t::expected_magic;
     node->npairs = 0;
@@ -19,7 +19,7 @@ void init(block_size_t block_size, buf_t &node_buf) {
 }
 
 void init(block_size_t block_size, buf_t &node_buf, const internal_node_t *lnode, const uint16_t *offsets, int numpairs) {
-    internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_major_write());
+    internal_node_t *node = reinterpret_cast<internal_node_t *>(node_buf.get_data_major_write());
 
     init(block_size, node_buf);
     for (int i = 0; i < numpairs; i++) {
@@ -58,7 +58,7 @@ block_id_t lookup(const internal_node_t *node, const btree_key_t *key) {
 
 // TODO: If it's unused, let's get rid of it.
 bool insert(UNUSED block_size_t block_size, buf_t& node_buf, const btree_key_t *key, block_id_t lnode, block_id_t rnode) {
-    const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
 
     //TODO: write a unit test for this
     rassert(key->size <= MAX_KEY_SIZE, "key too large");
@@ -82,7 +82,7 @@ bool insert(UNUSED block_size_t block_size, buf_t& node_buf, const btree_key_t *
 }
 
 bool remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
-    const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
 #ifdef BTREE_DEBUG
     printf("removing key\n");
     internal_node::print(node);
@@ -103,8 +103,8 @@ bool remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
 }
 
 void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key_t *median) {
-    const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
-    const internal_node_t *rnode = ptr_cast<internal_node_t>(rnode_buf.get_data_read());
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
+    const internal_node_t *rnode = reinterpret_cast<const internal_node_t *>(rnode_buf.get_data_read());
 
 #ifdef BTREE_DEBUG
     printf("splitting key\n");
@@ -144,7 +144,7 @@ void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key
 }
 
 void merge(block_size_t block_size, const internal_node_t *node, buf_t &rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent) {
-    const internal_node_t *rnode = ptr_cast<internal_node_t>(rnode_buf.get_data_read());
+    const internal_node_t *rnode = reinterpret_cast<const internal_node_t *>(rnode_buf.get_data_read());
 
 #ifdef BTREE_DEBUG
     printf("merging\n");
@@ -186,8 +186,8 @@ void merge(block_size_t block_size, const internal_node_t *node, buf_t &rnode_bu
 }
 
 bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent) {
-    const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
-    const internal_node_t *sibling = ptr_cast<internal_node_t>(sibling_buf.get_data_read());
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
+    const internal_node_t *sibling = reinterpret_cast<const internal_node_t *>(sibling_buf.get_data_read());
 
     validate(block_size, node);
     validate(block_size, sibling);
@@ -308,7 +308,7 @@ bool is_sorted(ForwardIterator first, ForwardIterator last,
 }
 
 void update_key(buf_t &node_buf, const btree_key_t *key_to_replace, const btree_key_t *replacement_key) {
-    const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
 #ifdef BTREE_DEBUG
     printf("updating key\n");
     internal_node::print(node);
@@ -352,7 +352,7 @@ bool change_unsafe(const internal_node_t *node) {
 
 void validate(UNUSED block_size_t block_size, UNUSED const internal_node_t *node) {
 #ifndef NDEBUG
-    rassert(ptr_cast<char>(&(node->pair_offsets[node->npairs])) <= ptr_cast<char>(get_pair(node, node->frontmost_offset)));
+    rassert(reinterpret_cast<const char *>(&(node->pair_offsets[node->npairs])) <= reinterpret_cast<const char *>(get_pair(node, node->frontmost_offset)));
     rassert(node->frontmost_offset > 0);
     rassert(node->frontmost_offset <= block_size.value());
     for (int i = 0; i < node->npairs; i++) {
@@ -406,11 +406,11 @@ size_t pair_size(const btree_internal_pair *pair) {
 }
 
 const btree_internal_pair *get_pair(const internal_node_t *node, uint16_t offset) {
-    return ptr_cast<btree_internal_pair>(ptr_cast<char>(node) + offset);
+    return reinterpret_cast<const btree_internal_pair *>(reinterpret_cast<const char *>(node) + offset);
 }
 
 btree_internal_pair *get_pair(internal_node_t *node, uint16_t offset) {
-    return ptr_cast<btree_internal_pair>(ptr_cast<char>(node) + offset);
+    return reinterpret_cast<btree_internal_pair *>(reinterpret_cast<char *>(node) + offset);
 }
 
 const btree_internal_pair *get_pair_by_index(const internal_node_t *node, int index) {
@@ -456,14 +456,14 @@ size_t pair_size_with_key_size(uint8_t size) {
 }
 
 void delete_pair(buf_t &node_buf, uint16_t offset) {
-    const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
     const btree_internal_pair *pair_to_delete = get_pair(node, offset);
     const btree_internal_pair *front_pair = get_pair(node, node->frontmost_offset);
     size_t shift = pair_size(pair_to_delete);
     size_t size = offset - node->frontmost_offset;
 
     rassert(check_magic<node_t>(node->magic));
-    node_buf.move_data(const_cast<char *>(ptr_cast<char>(front_pair)+shift), front_pair, size);
+    node_buf.move_data(const_cast<char *>(reinterpret_cast<const char *>(front_pair)+shift), front_pair, size);
     rassert(check_magic<node_t>(node->magic));
 
 
@@ -480,7 +480,7 @@ void delete_pair(buf_t &node_buf, uint16_t offset) {
 }
 
 uint16_t insert_pair(buf_t &node_buf, const btree_internal_pair *pair) {
-    const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
     uint16_t frontmost_offset = node->frontmost_offset - pair_size(pair);
     node_buf.set_data(const_cast<uint16_t *>(&node->frontmost_offset), &frontmost_offset, sizeof(frontmost_offset));
     // insert contents
@@ -490,7 +490,7 @@ uint16_t insert_pair(buf_t &node_buf, const btree_internal_pair *pair) {
 }
 
 uint16_t insert_pair(buf_t &node_buf, block_id_t lnode, const btree_key_t *key) {
-    const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
     uint16_t frontmost_offset = node->frontmost_offset - pair_size_with_key(key);
     node_buf.set_data(const_cast<uint16_t *>(&node->frontmost_offset), &frontmost_offset, sizeof(frontmost_offset));
     const btree_internal_pair *new_pair = get_pair(node, frontmost_offset);
@@ -515,7 +515,7 @@ int get_offset_index(const internal_node_t *node, const btree_key_t *key) {
 }
 
 void delete_offset(buf_t &node_buf, int index) {
-    const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
     const uint16_t *pair_offsets = node->pair_offsets;
     if (node->npairs > 1) {
         node_buf.move_data(const_cast<uint16_t *>(pair_offsets+index), pair_offsets+index+1, (node->npairs-index-1) * sizeof(uint16_t));
@@ -525,7 +525,7 @@ void delete_offset(buf_t &node_buf, int index) {
 }
 
 void insert_offset(buf_t &node_buf, uint16_t offset, int index) {
-    const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
     const uint16_t *pair_offsets = node->pair_offsets;
     node_buf.move_data(const_cast<uint16_t *>(pair_offsets+index+1), pair_offsets+index, (node->npairs-index) * sizeof(uint16_t));
     node_buf.set_data(const_cast<uint16_t *>(&pair_offsets[index]), &offset, sizeof(uint16_t));
@@ -534,7 +534,7 @@ void insert_offset(buf_t &node_buf, uint16_t offset, int index) {
 }
 
 void make_last_pair_special(buf_t &node_buf) {
-    const internal_node_t *node = ptr_cast<internal_node_t>(node_buf.get_data_read());
+    const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
     int index = node->npairs-1;
     uint16_t old_offset = node->pair_offsets[index];
     btree_key_t tmp;
