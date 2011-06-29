@@ -270,7 +270,7 @@ void mc_inner_buf_t::replay_patches() {
 
 bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     cache->assert_thread();
-    rassert(snapshots.size() == 0 || snapshots.front().snapshotted_version <= version_id);  // you can get snapshotted_version == version_id due to copy-on-write doing the snapshotting
+    rassert(snapshots.empty() || snapshots.front().snapshotted_version <= version_id);  // you can get snapshotted_version == version_id due to copy-on-write doing the snapshotting
 
     // all snapshot txns such that
     //   inner_version <= snapshot_txn->version_id < new_version
@@ -320,7 +320,7 @@ void mc_inner_buf_t::release_snapshot(void *data) {
 }
 
 bool mc_inner_buf_t::safe_to_unload() {
-    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.size() == 0;
+    return !lock.locked() && writeback_buf.safe_to_unload() && refcount == 0 && cow_refcount == 0 && snapshots.empty();
 }
 
 perfmon_duration_sampler_t
