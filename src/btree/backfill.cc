@@ -21,7 +21,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
     // newer sets)
     void preprocess_btree_superblock(boost::shared_ptr<transaction_t>& txn, const btree_superblock_t *superblock) {
         assert_thread();
-        if (!dump_keys_from_delete_queue(txn, superblock->delete_queue_block, since_when_, callback_)) {
+        if (!dump_keys_from_delete_queue(txn.get(), superblock->delete_queue_block, since_when_, callback_)) {
             // Set since_when_ to the minimum timestamp, so that we backfill everything.
             since_when_.time = 0;
         }

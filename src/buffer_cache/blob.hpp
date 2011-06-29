@@ -38,6 +38,7 @@ namespace blob {
 struct traverse_helper_t;
 size_t ref_size(block_size_t block_size, const char *ref, size_t maxreflen);
 bool ref_fits(block_size_t block_size, int data_length, const char *ref, size_t maxreflen);
+int maxreflen_from_blockid_count(int count);
 extern size_t btree_maxreflen;
 int64_t value_size(const char *ref, size_t maxreflen);
 }  // namespace blob

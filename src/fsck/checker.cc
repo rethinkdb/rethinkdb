@@ -1275,7 +1275,10 @@ struct delete_queue_errors {
     }
 };
 
-void check_delete_queue(slicecx_t& cx, block_id_t block_id, delete_queue_errors *errs) {
+void check_delete_queue(UNUSED slicecx_t& cx, UNUSED block_id_t block_id, UNUSED delete_queue_errors *errs) {
+    // Temporarily disabled because the delete queue now uses blob_t.
+
+    /*
     btree_block_t dq_block;
     if (!dq_block.init(cx, block_id)) {
         errs->dq_block_code = dq_block.err;
@@ -1302,6 +1305,7 @@ void check_delete_queue(slicecx_t& cx, block_id_t block_id, delete_queue_errors 
         check_large_buf(cx, keys_ref, keys_ref_size, &errs->keys_buf);
     }
 
+    */
     // TODO: Analyze key alignment and make sure keys have valid sizes (> 0 and <= MAX_KEY_SIZE).
 }
 

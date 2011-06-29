@@ -156,6 +156,14 @@ bool ref_fits(block_size_t block_size, int data_length, const char *ref, size_t 
     }
 }
 
+int maxreflen_from_blockid_count(int count) {
+    // The block ids offset is either 17 or 18 depending on whether
+    // the return value would be <= 255.
+    int sz = block_ids_offset(1) + count * sizeof(block_id_t);
+    int diff = block_ids_offset(sz) - block_ids_offset(1);
+    return diff + sz;
+}
+
 int64_t value_size(const char *ref, size_t maxreflen) {
     size_t smallsize = blob::small_size(ref, maxreflen);
     if (smallsize <= maxreflen - big_size_offset(maxreflen)) {
