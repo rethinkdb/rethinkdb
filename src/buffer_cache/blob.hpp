@@ -41,6 +41,8 @@ bool ref_fits(block_size_t block_size, int data_length, const char *ref, size_t 
 int maxreflen_from_blockid_count(int count);
 extern size_t btree_maxreflen;
 int64_t value_size(const char *ref, size_t maxreflen);
+extern block_magic_t internal_node_magic;
+extern block_magic_t leaf_node_magic;
 }  // namespace blob
 
 class blob_t {

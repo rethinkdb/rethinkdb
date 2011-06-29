@@ -177,6 +177,9 @@ int64_t value_size(const char *ref, size_t maxreflen) {
 
 
 size_t btree_maxreflen = 251;
+block_magic_t internal_node_magic = { { 'l', 'a', 'r', 'i' } };
+block_magic_t leaf_node_magic = { { 'l', 'a', 'r', 'l' } };
+
 
 size_t ref_value_offset(const char *ref, size_t maxreflen) {
     return is_small(ref, maxreflen) ? 0 : big_offset(ref, maxreflen);
@@ -578,11 +581,9 @@ struct allocate_helper_t : public blob::traverse_helper_t {
         *block_id = lock->get_block_id();
         void *b = lock->get_data_major_write();
         if (levels == 1) {
-            block_magic_t leafmagic = { { 'l', 'a', 'r', 'l' } };
-            *reinterpret_cast<block_magic_t *>(b) = leafmagic;
+            *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;
         } else {
-            block_magic_t internalmagic = { { 'l', 'a', 'r', 'i' } };
-            *reinterpret_cast<block_magic_t *>(b) = internalmagic;
+            *reinterpret_cast<block_magic_t *>(b) = blob::internal_node_magic;
         }
     }
     void postprocess(UNUSED buf_lock_t& lock) { }
@@ -707,8 +708,7 @@ int blob_t::add_level(transaction_t *txn, int levels) {
     lock.allocate(txn);
     void *b = lock->get_data_major_write();
     if (levels == 0) {
-        block_magic_t leafmagic = { { 'l', 'a', 'r', 'l' } };
-        *reinterpret_cast<block_magic_t *>(b) = leafmagic;
+        *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;
 
         size_t sz = blob::small_size(ref_, maxreflen_);
         rassert(sz < maxreflen_);
@@ -720,8 +720,7 @@ int blob_t::add_level(transaction_t *txn, int levels) {
         blob::set_big_size(ref_, maxreflen_, sz);
         blob::block_ids(ref_, maxreflen_)[0] = lock->get_block_id();
     } else {
-        block_magic_t internalmagic = { { 'l', 'a', 'r', 'i' } };
-        *reinterpret_cast<block_magic_t *>(b) = internalmagic;
+        *reinterpret_cast<block_magic_t *>(b) = blob::internal_node_magic;
 
         // We don't know how many block ids there could be, so we'll
         // just copy as many as there can be.

@@ -6,7 +6,6 @@
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/large_buf.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "utils.hpp"
@@ -179,8 +178,8 @@ bool check_all_known_magic(block_magic_t magic) {
     return check_magic<leaf_node_t>(magic)
         || check_magic<internal_node_t>(magic)
         || check_magic<btree_superblock_t>(magic)
-        || check_magic<large_buf_internal>(magic)
-        || check_magic<large_buf_leaf>(magic)
+        || magic == blob::internal_node_magic
+        || magic == blob::leaf_node_magic
         || check_magic<multiplexer_config_block_t>(magic)
         || magic == log_serializer_t::zerobuf_magic;
 }
@@ -386,103 +385,7 @@ private:
 };
 
 
-bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks);
 
-bool get_large_buf_segments_from_children(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks) {
-
-    int64_t step = large_buf_t::compute_max_offset(cfg.block_size(), sublevels);
-
-    for (int64_t i = floor_aligned(offset, step), e = ceil_aligned(offset + size, step); i < e; i += step) {
-        int64_t beg = std::max(offset, i) - i;
-        int64_t end = std::min(offset + size, i + step) - i;
-
-        if (!get_large_buf_segments_from_subtree(cfg, key, file, sublevels, beg, end - beg, block_ids[i / step], mod_id, offsets, segblocks)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool get_large_buf_segments_from_subtree(const cfg_t& cfg, const btree_key_t *key, nondirect_file_t& file, int levels, int64_t offset, int64_t size, block_id_t block_id, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks) {
-
-    block_id_t trans = translator_serializer_t::translate_block_id(block_id, cfg.mod_count, mod_id, CONFIG_BLOCK_ID);
-
-    std::map<size_t, off64_t>::const_iterator offset_it = offsets.find(trans);
-
-    if (offset_it == offsets.end()) {
-        logERR("With key '%.*s': no blocks seen with block id: %u\n",
-               key->size, key->contents, trans);
-        return false;
-    }
-
-    if (levels == 1) {
-        block_t *b = new block_t();
-        segblocks->bs.push_back(b);
-        
-        b->init(cfg.block_size(), &file, offset_it->second, trans);
-
-        const large_buf_leaf *leafbuf = reinterpret_cast<const large_buf_leaf *>(b->buf);
-
-        if (!check_magic<large_buf_leaf>(leafbuf->magic)) {
-            logERR("With key '%.*s': large_buf_leaf (offset %lu) has invalid magic: '%.*s'\n",
-                   key->size, key->contents, offset_it->second, (int)sizeof(leafbuf->magic), leafbuf->magic.bytes);
-            return false;
-        }
-
-        return true;
-    } else {
-        block_t internal;
-        internal.init(cfg.block_size(), &file, offset_it->second, trans);
-
-        const large_buf_internal *buf = reinterpret_cast<const large_buf_internal *>(internal.buf);
-
-        if (!check_magic<large_buf_internal>(buf->magic)) {
-            logERR("With key '%.*s': large_buf_internal (offset %lu) has invalid magic: '%.*s'\n",
-                   key->size, key->contents, offset_it->second, (int)sizeof(buf->magic), buf->magic.bytes);
-            return false;
-        }
-
-        return get_large_buf_segments_from_children(cfg, key, file, levels - 1, offset, size, buf->kids, mod_id, offsets, segblocks);
-    }
-}
-
-bool get_large_buf_segments(const btree_key_t *key, nondirect_file_t& file, const large_buf_ref *ref, int ref_size_bytes, const cfg_t& cfg, int mod_id, const std::map<size_t, off64_t>& offsets, blocks_t *segblocks) {
-
-    // This is copied and pasted from fsck's check_large_buf in checker.cc.
-
-    if (ref_size_bytes >= (int)sizeof(large_buf_ref)) {
-
-        // We check that ref->size > MAX_IN_NODE_VALUE_SIZE in check_value.
-        if (ref->size >= 0) {
-            if (ref->offset >= 0) {
-                // ensure no overflow for ref->offset + ref->size or
-                // for ceil_aligned(ref->offset + ref->size,
-                // max_offset(sublevels))
-                if (std::numeric_limits<int64_t>::max() / 4 - ref->offset > ref->size) {
-
-                    int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cfg.block_size(), ref->offset + ref->size, lbref_limit_t(ref_size_bytes));
-
-                    // The part before '&&' ensures no overflow in the part after.
-                    if (inlined < int((INT_MAX - sizeof(large_buf_ref)) / sizeof(block_id_t))
-                        && int(sizeof(large_buf_ref) + inlined * sizeof(block_id_t)) == ref_size_bytes) {
-
-                        int sublevels = large_buf_t::compute_num_sublevels(cfg.block_size(), ref->offset + ref->size, lbref_limit_t(ref_size_bytes));
-
-                        // We aren't interested in making sure that
-                        // the buffer is properly left-shifted because
-                        // this is extract and we can be forgiving.
-
-                        return get_large_buf_segments_from_children(cfg, key, file, sublevels, ref->offset, ref->size, ref->block_ids, mod_id, offsets, segblocks);
-                    }
-                }
-            }
-        }
-    }
-
-    logERR("With key '%.*s': invalid large_buf_ref or just a corrupted value\n", key->size, key->contents);
-    return false;
-}
 
 
 // Dumps the values for a given pair.
