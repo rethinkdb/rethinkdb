@@ -975,6 +975,8 @@ void check_blob(slicecx_t& cx, const char *ref, int maxreflen, largebuf_error *e
 
             check_blob_children(cx, levels, blob::block_ids(ref, maxreflen), offset, value_size, errs);
         }
+
+        return;
     }
 
     errs->bogus_ref = true;
@@ -985,19 +987,6 @@ void check_value(UNUSED slicecx_t& cx, const btree_value_t *value, value_error *
     errs->bad_metadata_flags = !!(value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
 
     check_blob(cx, value->value_ref(), blob::btree_maxreflen, &errs->largebuf_errs);
-
-    // Commented out because we have blobs now, not large bufs.
-    // TODO BLOB: check blobs
-    /*
-    size_t size = value->value_size();
-    if (!value->is_large()) {
-        errs->too_big = (size > MAX_IN_NODE_VALUE_SIZE);
-    } else {
-        errs->lv_too_small = (size <= MAX_IN_NODE_VALUE_SIZE);
-
-        check_large_buf(cx, value->lb_ref(), value->size, &errs->largebuf_errs);
-    }
-    */
 }
 
 bool leaf_node_inspect_range(const slicecx_t& cx, const leaf_node_t *buf, uint16_t offset) {
@@ -1257,9 +1246,6 @@ struct delete_queue_errors {
 };
 
 void check_delete_queue(UNUSED slicecx_t& cx, UNUSED block_id_t block_id, UNUSED delete_queue_errors *errs) {
-    // Temporarily disabled because the delete queue now uses blob_t.
-
-    /*
     btree_block_t dq_block;
     if (!dq_block.init(cx, block_id)) {
         errs->dq_block_code = dq_block.err;
@@ -1274,19 +1260,13 @@ void check_delete_queue(UNUSED slicecx_t& cx, UNUSED block_id_t block_id, UNUSED
     }
 
     errs->primal_offset = *replication::delete_queue::primal_offset(buf);
-    large_buf_ref *t_and_o = replication::delete_queue::timestamps_and_offsets_largebuf(buf);
-    large_buf_ref *keys_ref = replication::delete_queue::keys_largebuf(buf);
-    int keys_ref_size = replication::delete_queue::keys_largebuf_ref_size(cx.block_size());
+    char *t_o_ref = replication::delete_queue::timestamps_and_offsets_blob_ref(buf);
+    char *keys_ref = replication::delete_queue::keys_blob_ref(buf);
+    int keys_ref_size = replication::delete_queue::keys_blob_ref_size(cx.block_size());
 
-    if (t_and_o->size != 0) {
-        check_large_buf(cx, t_and_o, replication::delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE, &errs->timestamp_buf);
-    }
+    check_blob(cx, t_o_ref, replication::delete_queue::TIMESTAMPS_AND_OFFSETS_SIZE, &errs->timestamp_buf);
+    check_blob(cx, keys_ref, keys_ref_size, &errs->keys_buf);
 
-    if (keys_ref->size != 0) {
-        check_large_buf(cx, keys_ref, keys_ref_size, &errs->keys_buf);
-    }
-
-    */
     // TODO: Analyze key alignment and make sure keys have valid sizes (> 0 and <= MAX_KEY_SIZE).
 }
 

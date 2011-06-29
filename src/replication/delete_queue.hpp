@@ -66,6 +66,12 @@ namespace replication {
 
 namespace delete_queue {
 
+extern const int TIMESTAMPS_AND_OFFSETS_SIZE;
+
+off64_t *primal_offset(void *root_buffer);
+char *timestamps_and_offsets_blob_ref(void *root_buffer);
+char *keys_blob_ref(void *root_buffer);
+int keys_blob_ref_size(block_size_t block_size);
 
 struct t_and_o {
     repli_timestamp timestamp;
