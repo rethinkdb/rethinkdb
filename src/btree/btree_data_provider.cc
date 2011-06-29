@@ -24,9 +24,9 @@ const const_buffer_group_t *value_data_provider_t::get_data_as_buffers() {
 
 /* Choose the appropriate specialization */
 
-value_data_provider_t *value_data_provider_t::create(const btree_value_t *value, const boost::shared_ptr<transaction_t>& transaction) {
+value_data_provider_t *value_data_provider_t::create(const btree_value_t *value, transaction_t *transaction) {
     transaction->assert_thread();
-    return new value_data_provider_t(transaction.get(), value);
+    return new value_data_provider_t(transaction, value);
 }
 
 

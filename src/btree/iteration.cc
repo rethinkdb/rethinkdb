@@ -47,7 +47,7 @@ void leaf_iterator_t::done() {
 
 key_with_data_provider_t leaf_iterator_t::pair_to_key_with_data_provider(const btree_leaf_pair* pair) {
     on_thread_t th(transaction->home_thread());
-    value_data_provider_t *data_provider = value_data_provider_t::create(pair->value(), transaction);
+    value_data_provider_t *data_provider = value_data_provider_t::create(pair->value(), transaction.get());
     return key_with_data_provider_t(key_to_str(&pair->key), pair->value()->mcflags(),
         boost::shared_ptr<data_provider_t>(data_provider));
 }

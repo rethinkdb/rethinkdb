@@ -64,7 +64,7 @@ get_result_t btree_get(const store_key_t &store_key, btree_slice_t *slice, order
     }
 
     /* Construct a data-provider to hold the result */
-    boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value, transaction));
+    boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value, transaction.get()));
 
     return get_result_t(dp, value->mcflags(), 0);
 }

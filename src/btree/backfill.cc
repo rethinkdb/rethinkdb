@@ -42,7 +42,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
             if (recency.time >= since_when_.time) {
                 const btree_value_t *value = pair->value();
-                boost::shared_ptr<value_data_provider_t> data_provider(value_data_provider_t::create(value, txn));
+                boost::shared_ptr<value_data_provider_t> data_provider(value_data_provider_t::create(value, txn.get()));
                 backfill_atom_t atom;
                 atom.key.assign(pair->key.size, pair->key.contents);
                 atom.value = data_provider;
