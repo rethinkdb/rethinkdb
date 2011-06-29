@@ -52,7 +52,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
 
         // Whatever the case, shrink the old value.
-        blob_t b(txn->get_cache()->get_block_size(), value->value_ref(), blob::btree_maxreflen);
+        blob_t b(value->value_ref(), blob::btree_maxreflen);
         b.unappend_region(txn.get(), b.valuesize());
 
         if (data->get_size() > MAX_VALUE_SIZE) {
@@ -83,7 +83,6 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
 
         result = sr_stored;
-        b.dump_ref(txn->get_cache()->get_block_size(), value->value_ref());
         return true;
     }
 

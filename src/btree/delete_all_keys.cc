@@ -21,7 +21,7 @@ struct delete_all_keys_traversal_helper_t : public btree_traversal_helper_t {
             uint16_t offset = data->pair_offsets[i];
             btree_leaf_pair *pair = leaf::get_pair(data, offset);
 
-            blob_t b(txn->get_cache()->get_block_size(), pair->value()->value_ref(), blob::btree_maxreflen);
+            blob_t b(pair->value()->value_ref(), blob::btree_maxreflen);
             b.unappend_region(txn.get(), b.valuesize());
         }
     }

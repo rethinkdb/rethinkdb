@@ -2,7 +2,7 @@
 #include "buffer_cache/co_functions.hpp"
 
 value_data_provider_t::value_data_provider_t(transaction_t *txn, const btree_value_t *value) {
-    blob_t blob(txn->get_cache()->get_block_size(), value->value_ref(), 251);
+    blob_t blob(const_cast<btree_value_t *>(value)->value_ref(), blob::btree_maxreflen);
     buffer_group_t group;
     blob_acq_t acqs;
     blob.expose_region(txn, rwi_read_outdated_ok, 0, blob.valuesize(), &group, &acqs);

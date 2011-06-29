@@ -218,18 +218,9 @@ void compute_acquisition_offsets(block_size_t block_size, int levels, int64_t of
 
 }  // namespace blob
 
-blob_t::blob_t(block_size_t block_size, const char *ref, size_t maxreflen)
-    : ref_(reinterpret_cast<char *>(malloc(maxreflen))), maxreflen_(maxreflen) {
+blob_t::blob_t(char *ref, size_t maxreflen)
+    : ref_(ref), maxreflen_(maxreflen) {
     rassert(maxreflen >= blob::block_ids_offset(maxreflen) + sizeof(block_id_t));
-    memcpy(ref_, ref, blob::ref_size(block_size, ref, maxreflen));
-}
-
-void blob_t::dump_ref(block_size_t block_size, char *ref_out) {
-    memcpy(ref_out, ref_, blob::ref_size(block_size, ref_, maxreflen_));
-}
-
-blob_t::~blob_t() {
-    free(ref_);
 }
 
 

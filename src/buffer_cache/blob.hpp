@@ -45,10 +45,7 @@ int64_t value_size(const char *ref, size_t maxreflen);
 class blob_t {
 public:
     // maxreflen should be less than the block size minus 4 bytes.
-    blob_t(block_size_t block_size, const char *ref, size_t maxreflen);
-    void dump_ref(block_size_t block_size, char *ref_out);
-    ~blob_t();
-
+    blob_t(char *ref, size_t maxreflen);
 
     size_t refsize(block_size_t block_size) const;
     int64_t valuesize() const;

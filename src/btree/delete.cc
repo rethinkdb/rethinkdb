@@ -13,8 +13,10 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
     bool operate(const boost::shared_ptr<transaction_t>& txn, scoped_malloc<btree_value_t>& value) {
         if (value) {
             result = dr_deleted;
-            blob_t b(txn->get_cache()->get_block_size(), value->value_ref(), blob::btree_maxreflen);
-            b.unappend_region(txn.get(), b.valuesize());
+            {
+                blob_t b(value->value_ref(), blob::btree_maxreflen);
+                b.unappend_region(txn.get(), b.valuesize());
+            }
             value.reset();
             return true;
         } else {

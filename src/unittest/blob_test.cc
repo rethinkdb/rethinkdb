@@ -7,11 +7,15 @@ namespace unittest {
 
 class blob_tracker_t {
 public:
-    blob_tracker_t(block_size_t block_size, size_t maxreflen)
-        : expected_("\0"), blob_(block_size, expected_.c_str(), maxreflen) {
+    blob_tracker_t(size_t maxreflen)
+        : buf_(new char[maxreflen]), blob_(buf_, maxreflen) {
         // That's a bit of a hack, because blob_ will only read the
         // first byte or first two bytes if they are zero.
         expected_.clear();
+    }
+
+    ~blob_tracker_t() {
+        delete[] buf_;
     }
 
     void check_region(transaction_t *txn, int64_t offset, int64_t size) {
@@ -147,6 +151,7 @@ public:
 
 private:
     std::string expected_;
+    char *buf_;
     blob_t blob_;
 };
 
@@ -173,7 +178,7 @@ private:
 
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
-        blob_tracker_t tk(block_size, 251);
+        blob_tracker_t tk(251);
 
         tk.append(&txn, "a");
         tk.append(&txn, "b");
@@ -206,7 +211,7 @@ private:
 
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
-        blob_tracker_t tk(block_size, 251);
+        blob_tracker_t tk(251);
 
         tk.append(&txn, std::string(250, 'a'));
         tk.append(&txn, "b");
@@ -260,7 +265,7 @@ private:
 
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
-        blob_tracker_t tk(block_size, 251);
+        blob_tracker_t tk(251);
 
         tk.append(&txn, std::string(4080, 'a'));
         tk.prepend(&txn, "b");
@@ -275,7 +280,7 @@ private:
 
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
 
-        blob_tracker_t tk(block_size, 251);
+        blob_tracker_t tk(251);
 
         int64_t lo_size = 4161600;
         int64_t hi_size = 12484801;
@@ -293,7 +298,7 @@ private:
     void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
 	block_size_t block_size = cache->get_block_size();
 	transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past);
-	blob_tracker_t tk(block_size, 251);
+	blob_tracker_t tk(251);
 
 	char v = 'A';
 	int64_t size = 0;

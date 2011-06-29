@@ -18,7 +18,8 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         // If we can't parse the value as a number, we fail.
         bool valid;
         uint64_t number;
-        blob_t b(txn->get_cache()->get_block_size(), value->value_ref(), blob::btree_maxreflen);
+
+        blob_t b(value->value_ref(), blob::btree_maxreflen);
         rassert(50 <= blob::btree_maxreflen);
         if (b.valuesize() < 50) {
             buffer_group_t buffergroup;
@@ -74,7 +75,6 @@ struct btree_incr_decr_oper_t : public btree_modify_oper_t {
         rassert(group.num_buffers() == 1);
         rassert(group.get_buffer(0).size == chars_written);
         memcpy(group.get_buffer(0).data, tmp, chars_written);
-        b.dump_ref(txn->get_cache()->get_block_size(), newvalue->value_ref());
 
         value.swap(newvalue);
         return true;
