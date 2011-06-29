@@ -808,7 +808,7 @@ void mc_transaction_t::snapshot() {
     snapshotted = true;
 }
 
-void mc_transaction_t::set_account(boost::shared_ptr<mc_cache_account_t> cache_account) {
+void mc_transaction_t::set_account(const boost::shared_ptr<mc_cache_account_t>& cache_account) {
     cache_account_ = cache_account;
 }
 

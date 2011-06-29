@@ -75,7 +75,7 @@ public:
         inner_transaction.snapshot();
     }
 
-    void set_account(boost::shared_ptr<typename inner_cache_t::cache_account_t> cache_account);
+    void set_account(const boost::shared_ptr<typename inner_cache_t::cache_account_t>& cache_account);
 
     buf_t *acquire(block_id_t block_id, access_t mode,
                    boost::function<void()> call_when_in_line = 0, bool should_load = true);

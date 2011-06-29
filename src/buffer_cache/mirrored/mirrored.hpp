@@ -249,7 +249,7 @@ public:
     // This just sets the snapshotted flag, we finalize the snapshot as soon as the first block has been acquired (see finalize_version() )
     void snapshot();
 
-    void set_account(boost::shared_ptr<cache_account_t> cache_account);
+    void set_account(const boost::shared_ptr<cache_account_t>& cache_account);
 
     // Order tokens are only actually stored by semantic checking and mock caches.
     void set_token(UNUSED order_token_t token) { }

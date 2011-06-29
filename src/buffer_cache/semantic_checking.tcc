@@ -121,7 +121,7 @@ scc_transaction_t<inner_cache_t>::~scc_transaction_t() {
 }
 
 template<class inner_cache_t>
-void scc_transaction_t<inner_cache_t>::set_account(boost::shared_ptr<typename inner_cache_t::cache_account_t> cache_account) {
+void scc_transaction_t<inner_cache_t>::set_account(const boost::shared_ptr<typename inner_cache_t::cache_account_t>& cache_account) {
     inner_transaction.set_account(cache_account);
 }
 

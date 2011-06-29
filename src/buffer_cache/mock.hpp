@@ -71,7 +71,7 @@ public:
 
     void snapshot() { }
 
-    void set_account(UNUSED boost::shared_ptr<mock_cache_account_t> cache_account) { }
+    void set_account(UNUSED const boost::shared_ptr<mock_cache_account_t>& cache_account) { }
 
     buf_t *acquire(block_id_t block_id, access_t mode, boost::function<void()> call_when_in_line = 0, bool should_load = true);
     buf_t *allocate();
