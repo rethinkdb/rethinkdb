@@ -7,12 +7,14 @@ namespace unittest {
 
 class blob_tracker_t {
 public:
-    blob_tracker_t(size_t maxreflen)
-        : buf_(new char[maxreflen]), blob_(buf_, maxreflen) {
-        // That's a bit of a hack, because blob_ will only read the
-        // first byte or first two bytes if they are zero.
-        expected_.clear();
+    static char *alloc_emptybuf(size_t n) {
+        char *ret = new char[n];
+        memset(ret, 0, n);
+        return ret;
     }
+
+    blob_tracker_t(size_t maxreflen)
+        : buf_(alloc_emptybuf(maxreflen)), blob_(buf_, maxreflen) { }
 
     ~blob_tracker_t() {
         delete[] buf_;
@@ -74,7 +76,7 @@ public:
     }
 
     void append(transaction_t *txn, const std::string& x) {
-        SCOPED_TRACE("append " + x);
+        SCOPED_TRACE(strprintf("append (%zu) ", x.size()) + std::string(x.begin(), x.begin() + std::min<size_t>(x.size(), 50)));
         int64_t n = x.size();
 
         blob_.append_region(txn, n);
