@@ -262,7 +262,7 @@ bool dump_keys_from_delete_queue(transaction_t *txn, block_id_t queue_root_id, r
     return true;
 }
 
-void initialize_empty_delete_queue(boost::shared_ptr<transaction_t>& txn, delete_queue_block_t *dqb, block_size_t block_size) {
+void initialize_empty_delete_queue(transaction_t *txn, delete_queue_block_t *dqb, block_size_t block_size) {
     memset(dqb, 0, block_size.value());
     dqb->magic = delete_queue_block_t::expected_magic;
 
@@ -274,8 +274,8 @@ void initialize_empty_delete_queue(boost::shared_ptr<transaction_t>& txn, delete
 
     blob_acq_t acqs;
     buffer_group_t bg;
-    t_o_blob.append_region(txn.get(), sizeof(zerotime));
-    t_o_blob.expose_region(txn.get(), rwi_write, 0, sizeof(zerotime), &bg, &acqs);
+    t_o_blob.append_region(txn, sizeof(zerotime));
+    t_o_blob.expose_region(txn, rwi_write, 0, sizeof(zerotime), &bg, &acqs);
     buffer_group_copy_data(&bg, const_view(&bg_zerotime));
 }
 

@@ -1,5 +1,3 @@
-#include <boost/scoped_ptr.hpp>
-
 #include "errors.hpp"
 #include "btree/backfill.hpp"
 #include "btree/delete_all_keys.hpp"
@@ -20,9 +18,9 @@
 void btree_slice_t::create(cache_t *cache) {
 
     /* Initialize the btree superblock and the delete queue */
-    boost::shared_ptr<transaction_t> txn(new transaction_t(cache, rwi_write, 1, repli_timestamp_t::distant_past));
+    transaction_t txn(cache, rwi_write, 1, repli_timestamp_t::distant_past);
 
-    buf_lock_t superblock(txn.get(), SUPERBLOCK_ID, rwi_write);
+    buf_lock_t superblock(&txn, SUPERBLOCK_ID, rwi_write);
 
     // Initialize replication time barrier to 0 so that if we are a slave, we will begin by pulling
     // ALL updates from master.
@@ -36,9 +34,9 @@ void btree_slice_t::create(cache_t *cache) {
 
     // Allocate sb->delete_queue_block like an ordinary block.
     buf_lock_t delete_queue_block;
-    delete_queue_block.allocate(txn.get());
+    delete_queue_block.allocate(&txn);
     replication::delete_queue_block_t *dqb = reinterpret_cast<replication::delete_queue_block_t *>(delete_queue_block->get_data_major_write());
-    initialize_empty_delete_queue(txn, dqb, cache->get_block_size());
+    initialize_empty_delete_queue(&txn, dqb, cache->get_block_size());
     sb->delete_queue_block = delete_queue_block->get_block_id();
 
     sb->replication_clock = sb->last_sync = repli_timestamp_t::distant_past;
