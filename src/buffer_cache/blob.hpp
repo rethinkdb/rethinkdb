@@ -39,8 +39,18 @@ struct traverse_helper_t;
 size_t ref_size(block_size_t block_size, const char *ref, size_t maxreflen);
 bool ref_fits(block_size_t block_size, int data_length, const char *ref, size_t maxreflen);
 int maxreflen_from_blockid_count(int count);
+int64_t stepsize(block_size_t block_size, int levels);
+const block_id_t *internal_node_block_ids(const void *buf);
+void shrink(block_size_t block_size, int levels, int64_t offset, int64_t size, int index, int64_t *suboffset_out, int64_t *subsize_out);
 extern size_t btree_maxreflen;
 int64_t value_size(const char *ref, size_t maxreflen);
+struct ref_info_t {
+    size_t refsize;
+    int levels;
+};
+ref_info_t ref_info(block_size_t block_size, const char *ref, size_t maxreflen);
+const block_id_t *block_ids(const char *ref, size_t maxreflen);
+size_t ref_value_offset(const char *ref, size_t maxreflen);
 extern block_magic_t internal_node_magic;
 extern block_magic_t leaf_node_magic;
 }  // namespace blob

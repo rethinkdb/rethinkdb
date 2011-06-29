@@ -73,6 +73,10 @@ int64_t big_offset(const char *ref, size_t maxreflen) {
     return *reinterpret_cast<const int64_t *>(ref + big_offset_offset(maxreflen));
 }
 
+const block_id_t *block_ids(const char *ref, size_t maxreflen) {
+    return reinterpret_cast<const block_id_t *>(ref + block_ids_offset(maxreflen));
+}
+
 block_id_t *block_ids(char *ref, size_t maxreflen) {
     return reinterpret_cast<block_id_t *>(ref + block_ids_offset(maxreflen));
 }
@@ -100,11 +104,6 @@ const block_id_t *internal_node_block_ids(const void *buf) {
 block_id_t *internal_node_block_ids(void *buf) {
     return reinterpret_cast<block_id_t *>(reinterpret_cast<char *>(buf) + sizeof(block_magic_t));
 }
-
-struct ref_info_t {
-    size_t refsize;
-    int levels;
-};
 
 ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size, size_t maxreflen) {
     rassert(size > int64_t(maxreflen - big_size_offset(maxreflen)));
