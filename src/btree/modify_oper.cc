@@ -223,7 +223,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
         bool expired = key_found && the_value->expired();
         if (expired) key_found = false;
 
-        // If the value's expired, delet it.
+        // If the value's expired, delete it.
         if (expired) {
             blob_t b(the_value->value_ref(), blob::btree_maxreflen);
             b.unappend_region(&txn, b.valuesize());
