@@ -8,7 +8,6 @@
 #include "btree/node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/internal_node.hpp"
-#include "buffer_cache/large_buf.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "fsck/raw_block.hpp"
 #include "replication/delete_queue.hpp"
@@ -929,78 +928,6 @@ private:
     DISABLE_COPYING(subtree_errors);
 };
 
-void check_large_buf_subtree(slicecx_t& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, largebuf_error *errs);
-
-void check_large_buf_children(slicecx_t& cx, int sublevels, int64_t offset, int64_t size, const block_id_t *block_ids, largebuf_error *errs) {
-    int64_t step = large_buf_t::compute_max_offset(cx.block_size(), sublevels);
-
-    for (int64_t i = floor_aligned(offset, step), e = ceil_aligned(offset + size, step); i < e; i += step) {
-        int64_t beg = std::max(offset, i) - i;
-        int64_t end = std::min(offset + size, i + step) - i;
-
-        check_large_buf_subtree(cx, sublevels, beg, end - beg, block_ids[i / step], errs);
-    }
-}
-
-void check_large_buf_subtree(slicecx_t& cx, int levels, int64_t offset, int64_t size, block_id_t block_id, largebuf_error *errs) {
-    btree_block_t b;
-    if (!b.init(cx, block_id)) {
-        largebuf_error::segment_error err;
-        err.block_id = block_id;
-        err.block_code = b.err;
-        err.bad_magic = false;
-        errs->segment_errors.push_back(err);
-    } else {
-        if ((levels == 1 && !check_magic<large_buf_leaf>(reinterpret_cast<large_buf_leaf *>(b.buf)->magic))
-            || (levels > 1 && !check_magic<large_buf_internal>(reinterpret_cast<large_buf_internal *>(b.buf)->magic))) {
-            largebuf_error::segment_error err;
-            err.block_id = block_id;
-            err.block_code = btree_block_t::none;
-            err.bad_magic = true;
-            errs->segment_errors.push_back(err);
-            return;
-        }
-
-        if (levels > 1) {
-            check_large_buf_children(cx, levels - 1, offset, size, reinterpret_cast<large_buf_internal *>(b.buf)->kids, errs);
-        }
-    }
-}
-
-// Commented out because we have blobs now, not large bufs.
-void check_large_buf(slicecx_t& cx, const large_buf_ref *ref, int ref_size_bytes, largebuf_error *errs) {
-    if (ref_size_bytes >= (int)sizeof(large_buf_ref)
-        && ref->size >= 0
-        && ref->offset >= 0) {
-        // ensure no overflow for ceil_aligned(ref->offset +
-        // ref->size, max_offset(sublevels)).  Dividing
-        // INT64_MAX by four ensures that ceil_aligned won't
-        // overflow, and four is overkill.
-        if (std::numeric_limits<int64_t>::max() / 4 - ref->offset > ref->size) {
-
-            int inlined = large_buf_t::compute_large_buf_ref_num_inlined(cx.block_size(), ref->offset + ref->size, lbref_limit_t(ref_size_bytes));
-
-            // The part before '&&' ensures no overflow in the part after.
-            if (1 <= inlined && inlined <= int((ref_size_bytes - sizeof(large_buf_ref)) / sizeof(block_id_t))) {
-
-                int sublevels = large_buf_t::compute_num_sublevels(cx.block_size(), ref->offset + ref->size, lbref_limit_t(ref_size_bytes));
-
-                if (ref->offset >= large_buf_t::compute_max_offset(cx.block_size(), sublevels)
-                    || (inlined == 1 && sublevels > 1 && ref->offset >= large_buf_t::compute_max_offset(cx.block_size(), sublevels - 1))
-                    || (inlined == 1 && sublevels == 1 && ref->offset > 0)) {
-
-                    errs->not_left_shifted = true;
-                }
-
-                check_large_buf_children(cx, sublevels, ref->offset, ref->size, ref->block_ids, errs);
-
-                return;
-            }
-        }
-    }
-
-    errs->bogus_ref = true;
-}
 
 void check_value(UNUSED slicecx_t& cx, const btree_value_t *value, value_error *errs) {
     errs->bad_metadata_flags = !!(value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
