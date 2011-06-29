@@ -70,7 +70,7 @@ protected:
 
 class traversal_state_t {
 public:
-    traversal_state_t(boost::shared_ptr<transaction_t>& txn, btree_slice_t *_slice, btree_traversal_helper_t *_helper)
+    traversal_state_t(transaction_t *txn, btree_slice_t *_slice, btree_traversal_helper_t *_helper)
         : slice(_slice),
           /* We can't compute the expected change count (we're either
              doing nothing or deleting the entire tree or something),
@@ -82,7 +82,7 @@ public:
     // The slice whose btree we're traversing
     btree_slice_t *const slice;
 
-    boost::shared_ptr<transaction_t> transaction_ptr;
+    transaction_t *transaction_ptr;
 
     // The helper.
     btree_traversal_helper_t *helper;
@@ -249,9 +249,9 @@ struct internal_node_releaser_t : public parent_releaser_t {
     virtual ~internal_node_releaser_t() { }
 };
 
-void btree_parallel_traversal(boost::shared_ptr<transaction_t>& txn, btree_slice_t *slice, btree_traversal_helper_t *helper) {
+void btree_parallel_traversal(transaction_t *txn, btree_slice_t *slice, btree_traversal_helper_t *helper) {
     traversal_state_t state(txn, slice, helper);
-    buf_lock_t superblock_buf(state.transaction_ptr.get(), SUPERBLOCK_ID, helper->btree_superblock_mode());
+    buf_lock_t superblock_buf(state.transaction_ptr, SUPERBLOCK_ID, helper->btree_superblock_mode());
 
     const btree_superblock_t *superblock = reinterpret_cast<const btree_superblock_t *>(superblock_buf->get_data_read());
 
