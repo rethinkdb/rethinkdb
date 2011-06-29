@@ -56,28 +56,3 @@ void do_on_thread(int thread, const callable_t &callable) {
     thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
     fsm->run();
 }
-
-template<class callable_t>
-struct later_doer_t :
-    public thread_message_t
-{
-    callable_t callable;
-    
-    later_doer_t(const callable_t &_callable)
-        : callable(_callable) {
-        call_later_on_this_thread(this);
-    }
-    
-    void on_thread_switch() {
-        callable_t local = callable;
-        delete this;
-        local();
-    }
-};
-
-
-template<class callable_t>
-void do_later(const callable_t &callable) {
-    new later_doer_t<callable_t>(callable);
-}
-

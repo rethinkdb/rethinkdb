@@ -117,9 +117,6 @@ the current thread, returns the method's return value. Otherwise, returns false.
 template<class callable_t>
 void do_on_thread(int thread, const callable_t& callable);
 
-template<class callable_t>
-void do_later(const callable_t &callable);
-
 #include "utils.tcc"
 
 #endif // __UTILS_HPP__
