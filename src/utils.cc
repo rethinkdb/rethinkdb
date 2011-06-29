@@ -171,5 +171,3 @@ home_thread_mixin_t::rethread_t::~rethread_t() {
 }
 
 home_thread_mixin_t::home_thread_mixin_t() : real_home_thread(get_thread_id()) { }
-
-home_thread_mixin_t::~home_thread_mixin_t() { }
