@@ -9,7 +9,8 @@
 #include "server/cmd_args.hpp"
 #include "store.hpp"
 #include "concurrency/cond_var.hpp"
-#include "memcached/tcp_conn.hpp"
+//#include "protocol/memcached/tcp_conn.hpp"
+#include "protocol/protocol.hpp"
 #include "logger.hpp"
 #include "utils.hpp"
 #include "serializer/log/log_serializer.hpp"
@@ -147,7 +148,7 @@ void serve(int id, demo_delegate_t *delegate) {
     }
 
     int serve_port = 31400 + id;
-    memcache_listener_t conn_acceptor(serve_port, &delegate->master_get_store, &delegate->master_store);
+    protocol_listener_t conn_acceptor(serve_port, &delegate->master_get_store, &delegate->master_store);
     logINF("Accepting connections on port %d\n", serve_port);
 
     wait_for_sigint();
