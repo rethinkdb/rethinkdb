@@ -52,8 +52,10 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
 
         // Whatever the case, shrink the old value.
-        blob_t b(value->value_ref(), blob::btree_maxreflen);
-        b.unappend_region(txn, b.valuesize());
+        {
+            blob_t b(value->value_ref(), blob::btree_maxreflen);
+            b.unappend_region(txn, b.valuesize());
+        }
 
         if (data->get_size() > MAX_VALUE_SIZE) {
             result = sr_too_large;
@@ -67,6 +69,8 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         } else {
             metadata_write(&value->metadata_flags, value->contents, mcflags, exptime);
         }
+
+        blob_t b(value->value_ref(), blob::btree_maxreflen);
 
         b.append_region(txn, data->get_size());
         buffer_group_t bg;
