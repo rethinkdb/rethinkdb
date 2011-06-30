@@ -19,12 +19,11 @@ struct block_magic_t {
 
         return u.n == v.n;
     }
-};
 
-template <class block_value_t>
-bool check_magic(block_magic_t magic) {
-    return magic == block_value_t::expected_magic;
-}
+    bool operator!=(const block_magic_t& other) const {
+        return !(operator==(other));
+    }
+};
 
 // HEY: put this somewhere else.
 class get_subtree_recencies_callback_t {

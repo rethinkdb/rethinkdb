@@ -462,9 +462,9 @@ void delete_pair(buf_t &node_buf, uint16_t offset) {
     size_t shift = pair_size(pair_to_delete);
     size_t size = offset - node->frontmost_offset;
 
-    rassert(check_magic<node_t>(node->magic));
+    rassert(node->magic == internal_node_t::expected_magic);
     node_buf.move_data(const_cast<char *>(reinterpret_cast<const char *>(front_pair)+shift), front_pair, size);
-    rassert(check_magic<node_t>(node->magic));
+    rassert(node->magic == internal_node_t::expected_magic);
 
 
     uint16_t frontmost_offset = node->frontmost_offset + shift;

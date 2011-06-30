@@ -150,7 +150,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
         serblock.init(cfg.block_size(), &file, off, CONFIG_BLOCK_ID.ser_id);
         multiplexer_config_block_t *serbuf = reinterpret_cast<multiplexer_config_block_t *>(serblock.buf);
 
-        if (!check_magic<multiplexer_config_block_t>(serbuf->magic)) {
+        if (serbuf->magic != multiplexer_config_block_t::expected_magic) {
             logERR("Config block has invalid magic (offset = %lu, magic = %.*s)\n",
                    off, int(sizeof(serbuf->magic)), serbuf->magic.bytes);
             return;
@@ -175,12 +175,12 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
 }
 
 bool check_all_known_magic(block_magic_t magic) {
-    return check_magic<leaf_node_t>(magic)
-        || check_magic<internal_node_t>(magic)
-        || check_magic<btree_superblock_t>(magic)
+    return magic == leaf_node_t::expected_magic
+        || magic == internal_node_t::expected_magic
+        || magic == btree_superblock_t::expected_magic
         || magic == blob::internal_node_magic
         || magic == blob::leaf_node_magic
-        || check_magic<multiplexer_config_block_t>(magic)
+        || magic == multiplexer_config_block_t::expected_magic
         || magic == log_serializer_t::zerobuf_magic;
 }
 
@@ -261,7 +261,7 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
  outstanding patches and only then writes the block to disk, so it's consistent again. */
 bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
     leaf_node_t *leaf = reinterpret_cast<leaf_node_t *>(buf);
-    if (check_magic<leaf_node_t>(leaf->magic)) {
+    if (leaf->magic == leaf_node_t::expected_magic) {
         // Check that the number of pairs is not too high and that the offsets are fine
         int num_pairs = leaf->npairs;
         int pair_offsets_back_offset = offsetof(leaf_node_t, pair_offsets) + sizeof(*leaf->pair_offsets) * num_pairs;
@@ -344,7 +344,7 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
                 } else {
                     const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(b.buf);
                     // If the block is not considered consistent, but still is a leaf, something is wrong with the block.
-                    if (check_magic<leaf_node_t>(leaf->magic)) {
+                    if (leaf->magic == leaf_node_t::expected_magic) {
                         logERR("Not replaying patches for block %u. The block seems to be corrupted.\n", block_id);
                     }
                 }
@@ -352,7 +352,7 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
 
             const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(b.buf);
 
-            if (check_magic<leaf_node_t>(leaf->magic)) {
+            if (leaf->magic == leaf_node_t::expected_magic) {
                 int num_pairs = leaf->npairs;
                 logDBG("We have a leaf node with %d pairs.\n", num_pairs);
 
