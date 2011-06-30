@@ -1,0 +1,78 @@
+#include "memcached.hpp"
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/phoenix.hpp>
+#include <string>
+#include <vector>
+
+namespace qi = boost::spirit::qi;
+namespace ascii = boost::spirit::ascii;
+namespace px = boost::phoenix;
+
+/*
+void serve_memcache2(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store) {
+
+}
+*/
+
+void do_get(std::vector<char>& str) {
+    for(int i = 0; i < str.size(); i++) {
+        std::cout << str[i];
+    }
+    std::cout << std::endl;
+}
+
+void do_set(std::vector<char> &str, unsigned flags, unsigned expiration, std::vector<char> &data) {
+    for(int i = 0; i < str.size(); i++) {
+        std::cout << str[i];
+    }
+    std::cout << std::endl;
+
+    flags += expiration;
+    data[0] = data[0];
+}
+
+template <typename Iterator>
+struct memcached_grammar : qi::grammar<Iterator> {
+    memcached_grammar() : memcached_grammar::base_type(start) {
+        
+        just_space = *qi::char_(' ');
+        eol = qi::lit("\r\n");
+        key %= qi::repeat(1, 250)[qi::char_ - ascii::space];
+        flags %= qi::uint_;
+        expiration %= qi::uint_;
+        data %= qi::repeat(qi::_r1)[qi::char_];
+
+        //Commands
+        get = (ascii::no_case["GET"] >> just_space >> key >> eol)[px::bind(do_get, qi::_1)];
+        set = (ascii::no_case["SET"] >> just_space
+                >> key >> just_space
+                >> flags >> just_space
+                >> expiration >> just_space
+                >> qi::uint_[qi::_a = qi::_1] >> just_space
+                >> eol
+                >> data(qi::_a)
+                >> eol
+              )[px::bind(do_set, qi::_1, qi::_2, qi::_3, qi::_5)];
+
+        start = get | set;
+    }
+
+    qi::rule<Iterator> just_space;
+    qi::rule<Iterator> eol;
+    qi::rule<Iterator, std::vector<char>() > key;
+    qi::rule<Iterator, unsigned()> flags;
+    qi::rule<Iterator, unsigned()> expiration;
+    qi::rule<Iterator, std::vector<char>(unsigned) > data;
+    
+    qi::rule<Iterator> get;
+    qi::rule<Iterator, qi::locals<unsigned> > set;
+
+    qi::rule<Iterator> start;
+};
+
+int main() {
+    std::string str = "SET keyname 0 0 3\r\nbob\r\n";
+    //memcached_grammar<std::string::iterator> mg();
+    std::cout << "RESULT " << qi::parse(str.begin(), str.end(), memcached_grammar<std::string::iterator>()) << std::endl;
+    return 0;
+}
