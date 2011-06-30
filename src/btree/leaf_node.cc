@@ -4,13 +4,11 @@
 #include "logger.hpp"
 #include "btree/buf_patches.hpp"
 
-// #define DEBUG_MAX_LEAF 10
-
 bool leaf_pair_fits(block_size_t bs, const btree_leaf_pair *pair, size_t size) {
     if (size <= 0) {
         return false;
     }
-    int key_size = pair->key.size;
+    size_t key_size = pair->key.size;
     if (size <= 1 + key_size) {
         return false;
     }
@@ -98,19 +96,8 @@ void insert(block_size_t bs, leaf_node_t *node, const btree_key_t *key, const bt
 // unnecessary binary search.
 void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
     const leaf_node_t *node = reinterpret_cast<const leaf_node_t *>(node_buf.get_data_read());
-#ifdef BTREE_DEBUG
-    printf("removing key: ");
-    key->print();
-    printf("\n");
-    print(node);
-#endif
 
     node_buf.apply_patch(new leaf_remove_patch_t(node_buf.get_block_id(), node_buf.get_next_patch_counter(), block_size, key->size, key->contents));
-
-#ifdef BTREE_DEBUG
-    printf("\t|\n\t|\n\t|\n\tV\n");
-    leaf::print(node);
-#endif
 
     // TODO: Currently this will error incorrectly on root
     // guarantee(node->npairs != 0, "leaf became zero size!");
@@ -193,14 +180,6 @@ void merge(block_size_t block_size, const leaf_node_t *node, buf_t &rnode_buf, b
 
     rassert(node != rnode);
 
-#ifdef BTREE_DEBUG
-    printf("merging\n");
-    printf("node:\n");
-    leaf::print(node);
-    printf("rnode:\n");
-    leaf::print(rnode);
-#endif
-
     guarantee(sizeof(leaf_node_t) + (node->npairs + rnode->npairs)*sizeof(*node->pair_offsets) +
               (block_size.value() - node->frontmost_offset) + (block_size.value() - rnode->frontmost_offset) <= block_size.value(),
               "leaf nodes too full to merge");
@@ -219,14 +198,6 @@ void merge(block_size_t block_size, const leaf_node_t *node, buf_t &rnode_buf, b
 
     keycpy(key_to_remove_out, &get_pair_by_index(rnode, 0)->key);
 
-#ifdef BTREE_DEBUG
-    printf("\t|\n\t|\n\t|\n\tV\n");
-    printf("node:\n");
-    leaf::print(node);
-    printf("rnode:\n");
-    leaf::print(rnode);
-#endif
-
 #ifndef NDEBUG
     validate(block_size, rnode);
 #endif
@@ -238,15 +209,7 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
 
     rassert(node != sibling);
 
-#ifdef BTREE_DEBUG
-    printf("leveling\n");
-    printf("node:\n");
-    leaf::print(node);
-    printf("sibling:\n");
-    leaf::print(sibling);
-#endif
 
-#ifndef DEBUG_MAX_LEAF
     //Note: size does not take into account offsets
     int node_size = block_size.value() - node->frontmost_offset;
     int sibling_size = block_size.value() - sibling->frontmost_offset;
@@ -258,14 +221,8 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
 
     // optimal_adjustment > 0.
     int optimal_adjustment = (sibling_size - node_size) / 2;
-#else
-    if (sibling->npairs < node->npairs) {
-        return false;
-    }
-#endif
 
     if (nodecmp(node, sibling) < 0) {
-#ifndef DEBUG_MAX_LEAF
         int index;
         {
             // Assumes optimal_adjustment > 0.
@@ -275,9 +232,6 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
                 adjustment -= pair_size(block_size, get_pair_by_index(sibling, ++index));
             }
         }
-#else
-        int index = (sibling->npairs - node->npairs) / 2;
-#endif
 
         // Since optimal_adjustment > 0, we know that index >= 0.
 
@@ -323,7 +277,6 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
 
     } else {
 
-#ifndef DEBUG_MAX_LEAF
         // The first index in the sibling to copy
         int index;
         {
@@ -333,9 +286,6 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
                 adjustment -= pair_size(block_size, get_pair_by_index(sibling, --index));
             }
         }
-#else
-        int index = sibling->npairs - (sibling->npairs - node->npairs) / 2;
-#endif
 
         // If optimal_adjustment > 0, we know index < sibling->npairs.
 
@@ -378,14 +328,6 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
         keycpy(replacement_key_out, &get_pair_by_index(sibling, sibling->npairs-1)->key);
     }
 
-#ifdef BTREE_DEBUG
-    printf("\t|\n\t|\n\t|\n\tV\n");
-    printf("node:\n");
-    leaf::print(node);
-    printf("sibling:\n");
-    leaf::print(sibling);
-#endif
-
 #ifndef NDEBUG
     validate(block_size, node);
     validate(block_size, sibling);
@@ -399,16 +341,10 @@ bool is_empty(const leaf_node_t *node) {
 }
 
 bool is_full(block_size_t bs, const leaf_node_t *node, const btree_key_t *key, const btree_value_t *value) {
-#ifdef DEBUG_MAX_LEAF
-    return node->npairs >= DEBUG_MAX_LEAF;
-#endif
     // Can the key/value pair fit?  We assume (conservatively) the
     // key/value pair is not already part of the node.
 
     rassert(value);
-#ifdef BTREE_DEBUG
-    printf("sizeof(leaf_node_t): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets):%ld, key->size: %d, value->full_size(): %d, node->frontmost_offset: %d\n", sizeof(leaf_node_t), (node->npairs + 1), sizeof(*node->pair_offsets), key->size, value->full_size(), node->frontmost_offset);
-#endif
 
     return sizeof(leaf_node_t) + (node->npairs + 1)*sizeof(*node->pair_offsets) +
         key->full_size() + value->inline_size(bs) >=
@@ -431,9 +367,6 @@ void validate(block_size_t block_size, const leaf_node_t *node) {
 }
 
 bool is_mergable(block_size_t block_size, const leaf_node_t *node, const leaf_node_t *sibling) {
-#ifdef DEBUG_MAX_INTERNAL
-    return node->npairs + sibling->npairs < DEBUG_MAX_LEAF;
-#endif
     return sizeof(leaf_node_t) +
         (node->npairs + sibling->npairs)*sizeof(*node->pair_offsets) +
         (block_size.value() - node->frontmost_offset) +
@@ -446,9 +379,6 @@ bool has_sensible_offsets(block_size_t block_size, const leaf_node_t *node) {
 }
 
 bool is_underfull(block_size_t block_size, const leaf_node_t *node) {
-#ifdef DEBUG_MAX_LEAF
-    return node->npairs < (DEBUG_MAX_LEAF + 1) / 2;
-#endif
     return (sizeof(leaf_node_t) + 1) / 2 +
         node->npairs*sizeof(*node->pair_offsets) +
         (block_size.value() - node->frontmost_offset) +

@@ -2,8 +2,6 @@
 #include <algorithm>
 #include "utils.hpp"
 
-//#define DEBUG_MAX_INTERNAL 10
-
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
 namespace internal_node {
@@ -39,20 +37,6 @@ void get_children_ids(const internal_node_t *node, boost::scoped_array<block_id_
 
 block_id_t lookup(const internal_node_t *node, const btree_key_t *key) {
     int index = get_offset_index(node, key);
-#ifdef BTREE_DEBUG
-    printf("Look up:");
-    key->print();
-    printf("\n");
-    internal_node::print(node);
-    printf("\t");
-    for (int i = 0; i < index; i++)
-        printf("\t\t");
-    printf("|\n");
-    printf("\t");
-    for (int i = 0; i < index; i++)
-        printf("\t\t");
-    printf("V\n");
-#endif
     return get_pair_by_index(node, index)->lnode;
 }
 
@@ -83,20 +67,13 @@ bool insert(UNUSED block_size_t block_size, buf_t& node_buf, const btree_key_t *
 
 bool remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
-#ifdef BTREE_DEBUG
-    printf("removing key\n");
-    internal_node::print(node);
-#endif
     int index = get_offset_index(node, key);
     delete_pair(node_buf, node->pair_offsets[index]);
     delete_offset(node_buf, index);
 
-    if (index == node->npairs)
+    if (index == node->npairs) {
         make_last_pair_special(node_buf);
-#ifdef BTREE_DEBUG
-    printf("\t|\n\t|\n\t|\n\tV\n");
-    internal_node::print(node);
-#endif
+    }
 
     validate(block_size, node);
     return true;
@@ -106,10 +83,6 @@ void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
     const internal_node_t *rnode = reinterpret_cast<const internal_node_t *>(rnode_buf.get_data_read());
 
-#ifdef BTREE_DEBUG
-    printf("splitting key\n");
-    internal_node::print(node);
-#endif
     uint16_t total_pairs = block_size.value() - node->frontmost_offset;
     uint16_t first_pairs = 0;
     int index = 0;
@@ -135,10 +108,7 @@ void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key
     node_buf.set_data(const_cast<uint16_t *>(&node->npairs), &new_npairs, sizeof(new_npairs));
     //make last pair special
     make_last_pair_special(node_buf);
-#ifdef BTREE_DEBUG
-    printf("\t|\n\t|\n\t|\n\tV\n");
-    internal_node::print(node);
-#endif
+
     validate(block_size, node);
     validate(block_size, rnode);
 }
@@ -146,13 +116,6 @@ void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key
 void merge(block_size_t block_size, const internal_node_t *node, buf_t &rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent) {
     const internal_node_t *rnode = reinterpret_cast<const internal_node_t *>(rnode_buf.get_data_read());
 
-#ifdef BTREE_DEBUG
-    printf("merging\n");
-    printf("node:\n");
-    internal_node::print(node);
-    printf("rnode:\n");
-    internal_node::print(rnode);
-#endif
     validate(block_size, node);
     validate(block_size, rnode);
     // get the key in parent which points to node
@@ -175,13 +138,7 @@ void merge(block_size_t block_size, const internal_node_t *node, buf_t &rnode_bu
     rnode_buf.set_data(const_cast<uint16_t *>(&rnode->npairs), &new_npairs, sizeof(new_npairs));
 
     keycpy(key_to_remove, &get_pair_by_index(rnode, 0)->key);
-#ifdef BTREE_DEBUG
-    printf("\t|\n\t|\n\t|\n\tV\n");
-    printf("node:\n");
-    internal_node::print(node);
-    printf("rnode:\n");
-    internal_node::print(rnode);
-#endif
+
     validate(block_size, rnode);
 }
 
@@ -191,13 +148,6 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
 
     validate(block_size, node);
     validate(block_size, sibling);
-#ifdef BTREE_DEBUG
-    printf("levelling\n");
-    printf("node:\n");
-    internal_node::print(node);
-    printf("sibling:\n");
-    internal_node::print(sibling);
-#endif
 
     if (nodecmp(node, sibling) < 0) {
         const btree_key_t *key_from_parent = &get_pair_by_index(parent, get_offset_index(parent, &get_pair_by_index(node, 0)->key))->key;
@@ -265,13 +215,6 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
         make_last_pair_special(sibling_buf);
     }
 
-#ifdef BTREE_DEBUG
-    printf("\t|\n\t|\n\t|\n\tV\n");
-    printf("node:\n");
-    internal_node::print(node);
-    printf("sibling:\n");
-    internal_node::print(sibling);
-#endif
     validate(block_size, node);
     validate(block_size, sibling);
     guarantee(!change_unsafe(node), "level made internal node dangerously full");
@@ -309,10 +252,7 @@ bool is_sorted(ForwardIterator first, ForwardIterator last,
 
 void update_key(buf_t &node_buf, const btree_key_t *key_to_replace, const btree_key_t *replacement_key) {
     const internal_node_t *node = reinterpret_cast<const internal_node_t *>(node_buf.get_data_read());
-#ifdef BTREE_DEBUG
-    printf("updating key\n");
-    internal_node::print(node);
-#endif
+
     int index = get_offset_index(node, key_to_replace);
     block_id_t tmp_lnode = get_pair_by_index(node, index)->lnode;
     delete_pair(node_buf, node->pair_offsets[index]);
@@ -322,31 +262,16 @@ void update_key(buf_t &node_buf, const btree_key_t *key_to_replace, const btree_
 
     uint16_t new_offset = insert_pair(node_buf, tmp_lnode, replacement_key);
     node_buf.set_data(const_cast<uint16_t *>(&node->pair_offsets[index]), &new_offset, sizeof(new_offset));
-#ifdef BTREE_DEBUG
-    printf("\t|\n\t|\n\t|\n\tV\n");
-    internal_node::print(node);
-#endif
 
     rassert(is_sorted(node->pair_offsets, node->pair_offsets+node->npairs, internal_key_comp(node)),
             "Invalid key given to update_key: offsets no longer in sorted order");
 }
 
 bool is_full(const internal_node_t *node) {
-#ifdef DEBUG_MAX_INTERNAL
-    if (node->npairs-1 >= DEBUG_MAX_INTERNAL)
-        return true;
-#endif
-#ifdef BTREE_DEBUG
-    printf("sizeof(internal_node_t): %ld, (node->npairs + 1): %d, sizeof(*node->pair_offsets): %ld, sizeof(internal_node_t): %ld, MAX_KEY_SIZE: %d, node->frontmost_offset: %d\n", sizeof(internal_node_t), (node->npairs + 1), sizeof(*node->pair_offsets), sizeof(btree_internal_pair), MAX_KEY_SIZE, node->frontmost_offset);
-#endif
     return sizeof(internal_node_t) + (node->npairs + 1) * sizeof(*node->pair_offsets) + pair_size_with_key_size(MAX_KEY_SIZE) >=  node->frontmost_offset;
 }
 
 bool change_unsafe(const internal_node_t *node) {
-#ifdef DEBUG_MAX_INTERNAL
-    if (node->npairs-1 >= DEBUG_MAX_INTERNAL)
-        return true;
-#endif
     return sizeof(internal_node_t) + node->npairs * sizeof(*node->pair_offsets) + MAX_KEY_SIZE >= node->frontmost_offset;
 }
 
@@ -369,9 +294,6 @@ bool has_sensible_offsets(block_size_t block_size, const internal_node_t *node) 
 }
 
 bool is_underfull(block_size_t block_size, const internal_node_t *node) {
-#ifdef DEBUG_MAX_INTERNAL
-    return node->npairs < (DEBUG_MAX_INTERNAL + 1) / 2;
-#endif
     return (sizeof(internal_node_t) + 1) / 2 +
         node->npairs*sizeof(*node->pair_offsets) +
         (block_size.value() - node->frontmost_offset) +
@@ -380,9 +302,6 @@ bool is_underfull(block_size_t block_size, const internal_node_t *node) {
 }
 
 bool is_mergable(block_size_t block_size, const internal_node_t *node, const internal_node_t *sibling, const internal_node_t *parent) {
-#ifdef DEBUG_MAX_INTERNAL
-    return node->npairs + sibling->npairs < DEBUG_MAX_INTERNAL;
-#endif
     const btree_key_t *key_from_parent;
     if (nodecmp(node, sibling) < 0) {
         key_from_parent = &get_pair_by_index(parent, get_offset_index(parent, &get_pair_by_index(node, 0)->key))->key;
