@@ -213,7 +213,9 @@ enum {
     full_perfmon,
     total_delete_queue_limit,
     memcache_file,
-    metadata_file
+    metadata_file,
+    verbose,
+    no_rogue
 };
 
 cmd_config_t parse_cmd_args(int argc, char *argv[]) {
@@ -280,7 +282,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"max-cache-size",       required_argument, 0, 'm'},
                 {"log-file",             required_argument, 0, 'l'},
                 {"port",                 required_argument, 0, 'p'},
-                {"verbose",              no_argument, (int*)&config.verbose, 1},
+                {"verbose",              no_argument, 0, verbose},
                 {"force",                no_argument, &do_force_create, 1},
                 {"force-unslavify",      no_argument, &do_force_unslavify, 1},
                 {"help",                 no_argument, &do_help, 1},
@@ -288,7 +290,7 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 {"slave-of",             required_argument, 0, slave_of},
                 {"failover-script",      required_argument, 0, failover_script},
                 {"heartbeat-timeout",    required_argument, 0, heartbeat_timeout},
-                {"no-rogue",             no_argument, (int*)&config.failover_config.no_rogue, 1},
+                {"no-rogue",             no_argument, 0, no_rogue},
                 {"full-perfmon",         no_argument, &do_full_perfmon, 1},
                 {"total-delete-queue-limit", required_argument, 0, total_delete_queue_limit},
                 {"memcached-file", required_argument, 0, memcache_file},
@@ -384,6 +386,10 @@ cmd_config_t parse_cmd_args(int argc, char *argv[]) {
                 config.set_total_delete_queue_limit(optarg); break;
             case memcache_file:
                 config.import_config.add_import_file(optarg); break;
+            case verbose:
+                config.verbose = true; break;
+            case no_rogue:
+                config.failover_config.no_rogue = true; break;
             case 'h':
             default:
                 /* getopt_long already printed an error message. */

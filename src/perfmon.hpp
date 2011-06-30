@@ -108,12 +108,12 @@ struct perfmon_perthread_t
         return new thread_stat_t[get_num_threads()];
     }
     void visit_stats(void *data) {
-        get_thread_stat(&((thread_stat_t *) data)[get_thread_id()]);
+        get_thread_stat(&(reinterpret_cast<thread_stat_t *>(data))[get_thread_id()]);
     }
     void end_stats(void *data, perfmon_stats_t *dest) {
-        combined_stat_t combined = combine_stats((thread_stat_t *) data);
+        combined_stat_t combined = combine_stats(reinterpret_cast<thread_stat_t *>(data));
         output_stat(combined, dest);
-        delete[] (thread_stat_t*) data;
+        delete[] reinterpret_cast<thread_stat_t *>(data);
     }
 
   protected:

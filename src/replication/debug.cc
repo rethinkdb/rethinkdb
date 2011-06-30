@@ -65,7 +65,7 @@ std::string debug_format(const net_sarc_t *msg, const void *real_data) {
             (msg->replace_policy == replace_policy_no) ? "no" : "if_cas_matches",
         msg->old_cas,
         debug_format(msg->key_size, msg->keyvalue).c_str(),
-        debug_format(msg->value_size, real_data ? (const char*)real_data : msg->keyvalue + msg->key_size).c_str()
+                     debug_format(msg->value_size, real_data ? reinterpret_cast<const char *>(real_data) : msg->keyvalue + msg->key_size).c_str()
         );
 }
 
@@ -74,7 +74,7 @@ std::string debug_format(const net_backfill_set_t *msg, const void *real_data) {
             "cas_or_zero = %lu; key = %s; value = %s; }",
         msg->timestamp.time, msg->flags, msg->exptime, msg->cas_or_zero,
         debug_format(msg->key_size, msg->keyvalue).c_str(),
-        debug_format(msg->value_size, real_data ? (const char*)real_data : msg->keyvalue + msg->key_size).c_str()
+                     debug_format(msg->value_size, real_data ? reinterpret_cast<const char *>(real_data) : msg->keyvalue + msg->key_size).c_str()
         );
 }
 
@@ -94,7 +94,7 @@ std::string debug_format(const net_append_t *msg, const void *real_data) {
     return strprintf("net_append_t { timestamp = %u; proposed_cas = %lu; key = %s; value = %s; }",
         msg->timestamp.time, msg->proposed_cas,
         debug_format(msg->key_size, msg->keyvalue).c_str(),
-        debug_format(msg->value_size, real_data ? (const char*)real_data : msg->keyvalue + msg->key_size).c_str()
+                     debug_format(msg->value_size, real_data ? reinterpret_cast<const char *>(real_data) : msg->keyvalue + msg->key_size).c_str()
         );
 }
 
@@ -102,7 +102,7 @@ std::string debug_format(const net_prepend_t *msg, const void *real_data) {
     return strprintf("net_prepend_t { timestamp = %u; proposed_cas = %lu; key = %s; value = %s; }",
         msg->timestamp.time, msg->proposed_cas,
         debug_format(msg->key_size, msg->keyvalue).c_str(),
-        debug_format(msg->value_size, real_data ? (const char*)real_data : msg->keyvalue + msg->key_size).c_str()
+                     debug_format(msg->value_size, real_data ? reinterpret_cast<const char *>(real_data) : msg->keyvalue + msg->key_size).c_str()
         );
 }
 

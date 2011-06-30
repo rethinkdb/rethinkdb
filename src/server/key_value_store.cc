@@ -372,8 +372,7 @@ uint32_t btree_key_value_store_t::get_replication_slave_id() {
  * is taken from <http://www.azillionmonkeys.com/qed/hash.html>.
  * According to the site, the source is licensed under LGPL 2.1.
  */
-#define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
-                       +(uint32_t)(((const uint8_t *)(d))[0]) )
+#define get16bits(d) (uint32_t(*reinterpret_cast<const uint16_t *>(d)))
 
 uint32_t btree_key_value_store_t::hash(const store_key_t &key) {
     const char *data = key.contents;
@@ -491,7 +490,7 @@ bool btree_key_value_store_t::get_meta(const std::string &key, std::string *out)
     size_t nbufs = bufs->num_buffers();
     for (unsigned i = 0; i < nbufs; ++i) {
         const_buffer_group_t::buffer_t buf = bufs->get_buffer(i);
-        out->append((const char *) buf.data, (size_t) buf.size);
+        out->append(reinterpret_cast<const char *>(buf.data), buf.size);
     }
     return true;
 }
@@ -499,7 +498,7 @@ bool btree_key_value_store_t::get_meta(const std::string &key, std::string *out)
 void btree_key_value_store_t::set_meta(const std::string &key, const std::string &value) {
     store_key_t sk = key_from_string(key);
     boost::shared_ptr<buffered_data_provider_t>
-        datap(new buffered_data_provider_t((const void*) value.data(), value.size()));
+        datap(new buffered_data_provider_t(value.data(), value.size()));
 
     // TODO (rntz) code dup with run_storage_command :/
     mcflags_t mcflags = 0;      // default, no flags

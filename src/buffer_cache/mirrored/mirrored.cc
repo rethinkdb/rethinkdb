@@ -440,7 +440,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
     rassert(patch->get_block_id() == inner_buf->block_id);
 
-    patch->apply_to_buf((char*)data);
+    patch->apply_to_buf(reinterpret_cast<char *>(data));
     inner_buf->writeback_buf.set_dirty();
 
     // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks)

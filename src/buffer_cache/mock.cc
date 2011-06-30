@@ -51,7 +51,7 @@ void *mock_buf_t::get_data_major_write() {
 void mock_buf_t::apply_patch(buf_patch_t *patch) {
     rassert(access == rwi_write);
 
-    patch->apply_to_buf((char*)internal_buf->data);
+    patch->apply_to_buf(reinterpret_cast<char *>(internal_buf->data));
     dirty = true;
 
     delete patch;

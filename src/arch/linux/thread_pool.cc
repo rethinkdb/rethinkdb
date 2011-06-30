@@ -74,7 +74,7 @@ void *linux_thread_pool_t::start_thread(void *arg) {
         guarantee_err(res == 0, "Could not block signal");
     }
 
-    thread_data_t *tdata = (thread_data_t*)arg;
+    thread_data_t *tdata = reinterpret_cast<thread_data_t *>(arg);
     
     // Set thread-local variables
     linux_thread_pool_t::thread_pool = tdata->thread_pool;
@@ -159,7 +159,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
         // get_num_db_threads() (see it for more details).
         tdata->initial_message = (i == n_threads - 1) ? initial_message : NULL;
         
-        res = pthread_create(&pthreads[i], NULL, &start_thread, (void*)tdata);
+        res = pthread_create(&pthreads[i], NULL, &start_thread, tdata);
         guarantee(res == 0, "Could not create thread");
         
         // Distribute threads evenly among CPUs
@@ -184,7 +184,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     linux_thread_pool_t::thread_pool = this;   // So signal handlers can find us
     {
         struct sigaction sa;
-        bzero((char*)&sa, sizeof(struct sigaction));
+        memset(&sa, 0, sizeof(struct sigaction));
         sa.sa_handler = &linux_thread_pool_t::interrupt_handler;
     
         res = sigaction(SIGTERM, &sa, NULL);
@@ -211,7 +211,7 @@ void linux_thread_pool_t::run(linux_thread_message_t *initial_message) {
     
     {
         struct sigaction sa;
-        bzero((char*)&sa, sizeof(struct sigaction));
+        memset(&sa, 0, sizeof(struct sigaction));
         sa.sa_handler = SIG_IGN;
     
         res = sigaction(SIGTERM, &sa, NULL);

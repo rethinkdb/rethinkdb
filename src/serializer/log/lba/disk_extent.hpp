@@ -91,7 +91,7 @@ public:
     }
     
     void read_step_2(read_info_t *info, in_memory_index_t *index) {
-        lba_extent_t *extent = (lba_extent_t *)info->buffer;
+        lba_extent_t *extent = reinterpret_cast<lba_extent_t *>(info->buffer);
         rassert(memcmp(extent->header.magic, lba_magic, LBA_MAGIC_SIZE) == 0);
 
         for (int i = 0; i < info->count; i++) {

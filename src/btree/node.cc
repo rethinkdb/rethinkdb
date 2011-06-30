@@ -73,7 +73,7 @@ void validate(UNUSED block_size_t block_size, UNUSED const node_t *node) {
     if (check_magic<leaf_node_t>(node->magic)) {
         leaf::validate(block_size, reinterpret_cast<const leaf_node_t *>(node));
     } else if (check_magic<internal_node_t>(node->magic)) {
-        internal_node::validate(block_size, (internal_node_t *)node);
+        internal_node::validate(block_size, reinterpret_cast<const internal_node_t *>(node));
     } else {
         unreachable("Invalid leaf node type.");
     }

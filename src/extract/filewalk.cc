@@ -148,7 +148,7 @@ void walk_extents(dumper_t &dumper, nondirect_file_t &file, cfg_t cfg) {
 
         block_t serblock;
         serblock.init(cfg.block_size(), &file, off, CONFIG_BLOCK_ID.ser_id);
-        multiplexer_config_block_t *serbuf = (multiplexer_config_block_t *)serblock.buf;
+        multiplexer_config_block_t *serbuf = reinterpret_cast<multiplexer_config_block_t *>(serblock.buf);
 
         if (!check_magic<multiplexer_config_block_t>(serbuf->magic)) {
             logERR("Config block has invalid magic (offset = %lu, magic = %.*s)\n",
@@ -190,7 +190,7 @@ void observe_blocks(block_registry& registry, nondirect_file_t& file, const cfg_
          offset += cfg.block_size().ser_value()) {
         block_t b;
         if (b.init(cfg.block_size().ser_value(), &file, offset)) {
-            if (check_all_known_magic(*(block_magic_t *)b.buf) || memcmp((char*)b.buf, "LOGB00", 6) == 0) { // TODO: Refactor
+            if (check_all_known_magic(*reinterpret_cast<block_magic_t *>(b.buf)) || memcmp(b.buf, "LOGB00", 6) == 0) { // TODO: Refactor
                 registry.tell_block(offset, b.buf_data());
             }
         }
@@ -260,7 +260,7 @@ void load_diff_log(const std::map<size_t, off64_t>& offsets, nondirect_file_t& f
  flushes *only* patches, but does not touch the existing block, or applies *all*
  outstanding patches and only then writes the block to disk, so it's consistent again. */
 bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
-    leaf_node_t *leaf = (leaf_node_t *)buf;
+    leaf_node_t *leaf = reinterpret_cast<leaf_node_t *>(buf);
     if (check_magic<leaf_node_t>(leaf->magic)) {
         // Check that the number of pairs is not too high and that the offsets are fine
         int num_pairs = leaf->npairs;
@@ -337,12 +337,12 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
                         // details of the cache and serializer though)
                         for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
                             if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
-                                (*patch)->apply_to_buf((char*)b.buf);
+                                (*patch)->apply_to_buf(reinterpret_cast<char *>(b.buf));
                             }
                         }
                     }
                 } else {
-                    const leaf_node_t *leaf = (leaf_node_t *)b.buf;
+                    const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(b.buf);
                     // If the block is not considered consistent, but still is a leaf, something is wrong with the block.
                     if (check_magic<leaf_node_t>(leaf->magic)) {
                         logERR("Not replaying patches for block %u. The block seems to be corrupted.\n", block_id);
@@ -350,7 +350,7 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
                 }
             }
 
-            const leaf_node_t *leaf = (leaf_node_t *)b.buf;
+            const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(b.buf);
 
             if (check_magic<leaf_node_t>(leaf->magic)) {
                 int num_pairs = leaf->npairs;
@@ -468,7 +468,7 @@ void walkfile(dumper_t& dumper, const std::string& db_file, cfg_t overrides) {
         logINF("Could not even read header block from file %s\n", db_file.c_str());
     }
 
-    static_header_t *header = (static_header_t *)headerblock.realbuf;
+    static_header_t *header = reinterpret_cast<static_header_t *>(headerblock.realbuf);
 
     logINF("software_name: %s\n", header->software_name);
     logINF("version: %s\n", header->version);

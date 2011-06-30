@@ -70,10 +70,10 @@ public:
     }
 
     node_t *next(node_t *elem) {
-        return ((intrusive_list_node_t<node_t>*)elem)->next;
+        return static_cast<intrusive_list_node_t<node_t> *>(elem)->next;
     }
     node_t *prev(node_t *elem) {
-        return ((intrusive_list_node_t<node_t>*)elem)->prev;
+        return static_cast<intrusive_list_node_t<node_t> *>(elem)->prev;
     }
 
     void push_front(node_t *_value) {
@@ -86,7 +86,7 @@ public:
         value->next = _head;
         value->prev = NULL;
         if(_head) {
-            ((intrusive_list_node_t<node_t>*)_head)->prev = _value;
+            static_cast<intrusive_list_node_t<node_t> *>(_head)->prev = _value;
         }
         _head = _value;
         if(_tail == NULL) {
@@ -105,7 +105,7 @@ public:
         value->prev = _tail;
         value->next = NULL;
         if(_tail) {
-            ((intrusive_list_node_t<node_t>*)_tail)->next = _value;
+            static_cast<intrusive_list_node_t<node_t> *>(_tail)->next = _value;
         }
         _tail = _value;
         if(_head == NULL) {
@@ -124,12 +124,12 @@ public:
 #endif
 
         if(value->next) {
-            ((intrusive_list_node_t<node_t>*)(value->next))->prev = value->prev;
+            static_cast<intrusive_list_node_t<node_t> *>(value->next)->prev = value->prev;
         } else {
             _tail = value->prev;
         }
         if(value->prev) {
-            ((intrusive_list_node_t<node_t>*)(value->prev))->next = value->next;
+            static_cast<intrusive_list_node_t<node_t> *>(value->prev)->next = value->next;
         } else {
             _head = value->next;
         }
@@ -153,8 +153,8 @@ public:
 
 #ifndef NDEBUG
         for (node_t *x = list->head(); x; x = list->next(x)) {
-            rassert(((intrusive_list_node_t<node_t>*)x)->parent_list == list);
-            ((intrusive_list_node_t<node_t>*)x)->parent_list = this;
+            rassert(static_cast<intrusive_list_node_t<node_t> *>(x)->parent_list == list);
+            static_cast<intrusive_list_node_t<node_t> *>(x)->parent_list = this;
         }
 #endif
         
@@ -164,8 +164,8 @@ public:
             _tail = list->tail();
         } else {
             // Just continue to new list
-            ((intrusive_list_node_t<node_t>*)_tail)->next = list->head();
-            ((intrusive_list_node_t<node_t>*)list->head())->prev = _tail;
+            static_cast<intrusive_list_node_t<node_t> *>(_tail)->next = list->head();
+            static_cast<intrusive_list_node_t<node_t> *>(list->head())->prev = _tail;
             _tail = list->tail();
         }
         // Note, we can't do appends without clear because we'd break
@@ -182,10 +182,10 @@ public:
     void validate() {
         node_t *last_node = NULL;
         unsigned int count = 0;
-        for (node_t *node = _head; node; node=((intrusive_list_node_t<node_t>*)node)->next) {
+        for (node_t *node = _head; node; node = static_cast<intrusive_list_node_t<node_t> *>(node)->next) {
             count++;
-            rassert(((intrusive_list_node_t<node_t>*)node)->parent_list == this);
-            rassert(((intrusive_list_node_t<node_t>*)node)->prev == last_node);
+            rassert(static_cast<intrusive_list_node_t<node_t> *>(node)->parent_list == this);
+            rassert(static_cast<intrusive_list_node_t<node_t> *>(node)->prev == last_node);
             last_node = node;
         }
         rassert(_tail == last_node);
@@ -210,13 +210,13 @@ public:
         
         iterator operator++() {   // Prefix version
             rassert(_node);
-            _node = ((intrusive_list_node_t<node_t>*)_node)->next;
+            _node = static_cast<intrusive_list_node_t<node_t> *>(_node)->next;
             return this;
         }
         iterator operator++(int) {   // Postfix version
             rassert(_node);
             iterator last(_node);
-            _node = ((intrusive_list_node_t<node_t>*)_node)->next;
+            _node = static_cast<intrusive_list_node_t<node_t> *>(_node)->next;
             return last;
         }
         
@@ -225,13 +225,13 @@ public:
         
         iterator operator--() {   // Prefix version
             rassert(_node);
-            _node = ((intrusive_list_node_t<node_t>*)_node)->prev;
+            _node = static_cast<intrusive_list_node_t<node_t> *>(_node)->prev;
             return this;
         }
         iterator operator--(int) {   // Postfix version
             rassert(_node);
             iterator last(_node);
-            _node = ((intrusive_list_node_t<node_t>*)_node)->prev;
+            _node = static_cast<intrusive_list_node_t<node_t> *>(_node)->prev;
             return last;
         }
         
