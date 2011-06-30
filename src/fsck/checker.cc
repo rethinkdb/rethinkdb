@@ -708,7 +708,7 @@ check_mc_config_block(nondirect_file_t *file, file_knowledge_t *knog, config_blo
     }
 
     const mc_config_block_t *buf = reinterpret_cast<mc_config_block_t *>(block->buf);
-    if (!check_magic<mc_config_block_t>(buf->magic)) {
+    if (buf->magic != mc_config_block_t::expected_magic) {
         errs->mc_bad_magic = true;
         return NULL;
     }
@@ -723,7 +723,7 @@ bool check_multiplexed_config_block(nondirect_file_t *file, file_knowledge_t *kn
     }
     const multiplexer_config_block_t *buf = reinterpret_cast<multiplexer_config_block_t *>(config_block.buf);
 
-    if (!check_magic<multiplexer_config_block_t>(buf->magic)) {
+    if (buf->magic != multiplexer_config_block_t::expected_magic) {
         errs->bad_magic = true;
         return false;
     }
@@ -1128,9 +1128,9 @@ void check_subtree(slicecx_t& cx, block_id_t id, const btree_key_t *lo, const bt
             }
         }
 
-        if (check_magic<leaf_node_t>(reinterpret_cast<leaf_node_t *>(node.buf)->magic)) {
+        if (reinterpret_cast<leaf_node_t *>(node.buf)->magic == leaf_node_t::expected_magic) {
             check_subtree_leaf_node(cx, reinterpret_cast<leaf_node_t *>(node.buf), lo, hi, errs, &node_err);
-        } else if (check_magic<internal_node_t>(reinterpret_cast<internal_node_t *>(node.buf)->magic)) {
+        } else if (reinterpret_cast<internal_node_t *>(node.buf)->magic == internal_node_t::expected_magic) {
             check_subtree_internal_node(cx, reinterpret_cast<internal_node_t *>(node.buf), lo, hi, errs, &node_err);
         } else {
             node_err.bad_magic = true;
@@ -1254,7 +1254,7 @@ void check_delete_queue(UNUSED slicecx_t& cx, UNUSED block_id_t block_id, UNUSED
 
     replication::delete_queue_block_t *buf = const_cast<replication::delete_queue_block_t *>(reinterpret_cast<const replication::delete_queue_block_t *>(dq_block.buf));
 
-    if (!check_magic<replication::delete_queue_block_t>(buf->magic)) {
+    if (buf->magic != replication::delete_queue_block_t::expected_magic) {
         errs->dq_block_bad_magic = true;
         return;
     }
@@ -1304,7 +1304,7 @@ void check_slice(slicecx_t &cx, slice_errors *errs) {
             return;
         }
         const btree_superblock_t *buf = reinterpret_cast<btree_superblock_t *>(btree_superblock.buf);
-        if (!check_magic<btree_superblock_t>(buf->magic)) {
+        if (buf->magic != btree_superblock_t::expected_magic) {
             errs->superblock_bad_magic = true;
             return;
         }

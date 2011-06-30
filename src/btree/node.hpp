@@ -118,19 +118,22 @@ struct node_t {
     block_magic_t magic;
 };
 
-template <>
-bool check_magic<node_t>(block_magic_t magic);
-
 namespace node {
 
 inline bool is_leaf(const node_t *node) {
-    rassert(check_magic<node_t>(node->magic));
-    return check_magic<leaf_node_t>(node->magic);
+    if (node->magic == leaf_node_t::expected_magic) {
+        return true;
+    }
+    rassert(node->magic == internal_node_t::expected_magic);
+    return false;
 }
 
 inline bool is_internal(const node_t *node) {
-    rassert(check_magic<node_t>(node->magic));
-    return check_magic<internal_node_t>(node->magic);
+    if (node->magic == internal_node_t::expected_magic) {
+        return true;
+    }
+    rassert(node->magic == leaf_node_t::expected_magic);
+    return false;
 }
 
 bool has_sensible_offsets(block_size_t block_size, const node_t *node);

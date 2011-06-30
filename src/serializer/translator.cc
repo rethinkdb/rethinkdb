@@ -75,7 +75,7 @@ void create_proxies(const std::vector<serializer_t *> &underlying,
         read_cb.wait();
 
     /* Verify that stuff is sane */
-    if (!check_magic<multiplexer_config_block_t>(c->magic)) {
+    if (c->magic != multiplexer_config_block_t::expected_magic) {
         fail_due_to_user_error("File did not come from 'rethinkdb create'.");
     }
     if (c->creation_timestamp != creation_timestamp) {
@@ -135,7 +135,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         } read_cb;
         if (!underlying[0]->do_read(CONFIG_BLOCK_ID.ser_id, c, DEFAULT_DISK_ACCOUNT, &read_cb)) read_cb.wait();
 
-        rassert(check_magic<multiplexer_config_block_t>(c->magic));
+        rassert(c->magic == multiplexer_config_block_t::expected_magic);
         creation_timestamp = c->creation_timestamp;
         proxies.resize(c->n_proxies);
 

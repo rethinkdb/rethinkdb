@@ -70,9 +70,9 @@ void print(const node_t *node) {
 
 void validate(UNUSED block_size_t block_size, UNUSED const node_t *node) {
 #ifndef NDEBUG
-    if (check_magic<leaf_node_t>(node->magic)) {
+    if (node->magic == leaf_node_t::expected_magic) {
         leaf::validate(block_size, reinterpret_cast<const leaf_node_t *>(node));
-    } else if (check_magic<internal_node_t>(node->magic)) {
+    } else if (node->magic == internal_node_t::expected_magic) {
         internal_node::validate(block_size, reinterpret_cast<const internal_node_t *>(node));
     } else {
         unreachable("Invalid leaf node type.");
@@ -81,9 +81,3 @@ void validate(UNUSED block_size_t block_size, UNUSED const node_t *node) {
 }
 
 }  // namespace node
-
-template <>
-bool check_magic<node_t>(block_magic_t magic) {
-    return check_magic<leaf_node_t>(magic) || check_magic<internal_node_t>(magic);
-}
-
