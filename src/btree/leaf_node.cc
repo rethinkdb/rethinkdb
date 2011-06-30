@@ -6,10 +6,15 @@
 
 // #define DEBUG_MAX_LEAF 10
 
-// TODO BLOB: this is buggy, we need a blob_fits function.
 bool leaf_pair_fits(block_size_t bs, const btree_leaf_pair *pair, size_t size) {
-    crash("unimplemented");
-    return 3 < size && 1 + size_t(pair->key.size) + 2 <= size && size_t(1 + pair->key.size + pair->value()->inline_size(bs)) <= size;
+    if (size <= 0) {
+        return false;
+    }
+    int key_size = pair->key.size;
+    if (size <= 1 + key_size) {
+        return false;
+    }
+    return btree_value_fits(bs, size - (1 + key_size), pair->value());
 }
 
 namespace leaf {
