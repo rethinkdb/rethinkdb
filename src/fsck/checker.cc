@@ -182,6 +182,7 @@ struct slicecx_t {
     file_knowledge_t *knog;
     std::map<block_id_t, std::list<buf_patch_t*> > patch_map;
     const config_t *cfg;
+    memcached_value_sizer_t sizer;
 
     void clear_buf_patches() {
         for (std::map<block_id_t, std::list<buf_patch_t*> >::iterator patches = patch_map.begin(); patches != patch_map.end(); ++patches)
@@ -195,11 +196,13 @@ struct slicecx_t {
         return knog->static_config->block_size();
     }
 
+    memcached_value_sizer_t *mc_sizer() { return &sizer; }
+
     virtual block_id_t to_ser_block_id(block_id_t id) const = 0;
     virtual bool is_valid_key(const btree_key_t &key) const = 0;
 
     slicecx_t(nondirect_file_t *_file, file_knowledge_t *_knog, const config_t *_cfg)
-        : file(_file), knog(_knog), cfg(_cfg) { }
+        : file(_file), knog(_knog), cfg(_cfg), sizer(knog->static_config->block_size()) { }
 
     virtual ~slicecx_t() { }
 
@@ -995,7 +998,7 @@ bool leaf_node_inspect_range(const slicecx_t& cx, const leaf_node_t *buf, uint16
     if (cx.block_size().value() - 3 >= offset
         && offset >= buf->frontmost_offset) {
         const btree_leaf_pair *pair = leaf::get_pair(buf, offset);
-        const btree_value_t *value = pair->value();
+        const btree_value_t *value = reinterpret_cast<const btree_value_t *>(pair->value());
         uint32_t value_offset = (reinterpret_cast<const char *>(value) - reinterpret_cast<const char *>(pair)) + offset;
         // The other HACK: We subtract 2 for value->size, value->metadata_flags.
         if (value_offset <= cx.block_size().value() - 2) {
@@ -1018,7 +1021,7 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_
                 errs->value_out_of_buf = true;
                 return;
             }
-            expected_offset += leaf::pair_size(cx.block_size(), leaf::get_pair(buf, sorted_offsets[i]));
+            expected_offset += leaf::pair_size(cx.mc_sizer(), leaf::get_pair(buf, sorted_offsets[i]));
         }
         errs->noncontiguous_offsets |= (expected_offset != cx.block_size().value());
 
@@ -1034,7 +1037,7 @@ void check_subtree_leaf_node(slicecx_t& cx, const leaf_node_t *buf, const btree_
         errs->out_of_order |= !(prev_key == NULL || leaf_key_comp::compare(prev_key, &pair->key) < 0);
 
         value_error valerr(errs->block_id);
-        check_value(cx, pair->value(), &valerr);
+        check_value(cx, reinterpret_cast<const btree_value_t *>(pair->value()), &valerr);
 
         if (valerr.is_bad()) {
             valerr.key = std::string(pair->key.contents, pair->key.contents + pair->key.size);

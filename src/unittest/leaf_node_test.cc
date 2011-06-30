@@ -18,8 +18,9 @@ repli_timestamp fake_timestamp = { -2 };
 
 // TODO: Sperg out and make these tests much more brutal.
 
-void expect_valid_value_shallowly(const btree_value_t *value) {
-    EXPECT_EQ(0, value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
+void expect_valid_value_shallowly(const value_type_t *value) {
+    const btree_value_t *btree_value = reinterpret_cast<const btree_value_t *>(value);
+    EXPECT_EQ(0, btree_value->metadata_flags.flags & ~(MEMCACHED_FLAGS | MEMCACHED_CAS | MEMCACHED_EXPTIME));
 
     // size_t size = value->value_size();
 
@@ -33,12 +34,12 @@ void expect_valid_value_shallowly(const btree_value_t *value) {
     // }
 }
 
-void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_space) {
+void verify(value_sizer_t *sizer, const leaf_node_t *buf, int expected_free_space) {
 
     int end_of_pair_offsets = offsetof(leaf_node_t, pair_offsets) + buf->npairs * 2;
     EXPECT_TRUE(buf->magic == leaf_node_t::expected_magic);
     ASSERT_LE(end_of_pair_offsets, buf->frontmost_offset);
-    ASSERT_LE(buf->frontmost_offset, block_size.value());
+    ASSERT_LE(buf->frontmost_offset, sizer->block_size().value());
     ASSERT_EQ(expected_free_space, buf->frontmost_offset - end_of_pair_offsets);
 
     std::vector<uint16_t> offsets(buf->pair_offsets, buf->pair_offsets + buf->npairs);
@@ -46,11 +47,11 @@ void verify(block_size_t block_size, const leaf_node_t *buf, int expected_free_s
 
     uint16_t expected = buf->frontmost_offset;
     for (std::vector<uint16_t>::const_iterator p = offsets.begin(), e = offsets.end(); p < e; ++p) {
-        ASSERT_LE(expected, block_size.value());
+        ASSERT_LE(expected, sizer->block_size().value());
         ASSERT_EQ(expected, *p);
-        expected += leaf::pair_size(block_size, leaf::get_pair(buf, *p));
+        expected += leaf::pair_size(sizer, leaf::get_pair(buf, *p));
     }
-    ASSERT_EQ(block_size.value(), expected);
+    ASSERT_EQ(sizer->block_size().value(), expected);
 
     const btree_key_t *last_key = NULL;
     for (const uint16_t *p = buf->pair_offsets, *e = p + buf->npairs; p < e; ++p) {
@@ -203,6 +204,14 @@ public:
     StackValue(const Value& value, block_size_t block_size) {
         value.WriteBtreeValue(&val, block_size);
     }
+
+    const value_type_t *lookv() const {
+        return reinterpret_cast<const value_type_t *>(&val);
+    }
+    value_type_t *lookv_write() {
+        return reinterpret_cast<value_type_t *>(&val);
+    }
+
     const btree_value_t *look() const {
         return &val;
     }
@@ -218,7 +227,7 @@ private:
 
 class LeafNodeGrinder {
 public:
-    LeafNodeGrinder(int block_size) : bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node_buf(new test_buf_t(bs, 1)), initialized(false) {
+    LeafNodeGrinder(int block_size) : sizer(block_size_t::unsafe_make(block_size)), bs(block_size_t::unsafe_make(block_size)), expected(), expected_frontmost_offset(bs.value()), expected_npairs(0), node_buf(new test_buf_t(bs, 1)), initialized(false) {
         node = reinterpret_cast<leaf_node_t *>(node_buf->get_data_major_write());
     }
 
@@ -240,7 +249,7 @@ public:
 
     void init() {
         SCOPED_TRACE("init");
-        leaf::init(bs, *node_buf, fake_timestamp);
+        leaf::init(&sizer, *node_buf, fake_timestamp);
         initialized = true;
         validate();
     }
@@ -262,9 +271,9 @@ public:
         StackValue sval(v, bs);
 
         if (expected_space() < int((1 + k.size()) + v.full_size() + sizeof(*node->pair_offsets))) {
-            ASSERT_FALSE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), fake_timestamp));
+            ASSERT_FALSE(leaf::insert(&sizer, *node_buf, skey.look(), sval.lookv(), fake_timestamp));
         } else {
-            ASSERT_TRUE(leaf::insert(bs, *node_buf, skey.look(), sval.look(), fake_timestamp));
+            ASSERT_TRUE(leaf::insert(&sizer, *node_buf, skey.look(), sval.lookv(), fake_timestamp));
 
             std::pair<expected_t::iterator, bool> res = expected.insert(std::make_pair(k, v));
             if (res.second) {
@@ -307,21 +316,21 @@ public:
         StackKey skey(k);
         StackValue sval;
 
-        ASSERT_TRUE(leaf::lookup(bs, node, skey.look(), sval.look_write()));
+        ASSERT_TRUE(leaf::lookup(&sizer, node, skey.look(), sval.lookv_write()));
 
-        leaf::remove(bs, node, skey.look());
+        leaf::remove(&sizer, node, skey.look());
         expected.erase(p);
-        expected_frontmost_offset += (1 + k.size()) + sval.look()->inline_size(bs);
+        expected_frontmost_offset += (1 + k.size()) + sizer.size(sval.lookv());
         -- expected_npairs;
     }
 
-    void validate() const {
+    void validate() {
         SCOPED_TRACE("validate");
         ASSERT_TRUE(initialized);
         ASSERT_EQ(expected_npairs, node->npairs);
         ASSERT_EQ(expected_frontmost_offset, node->frontmost_offset);
 
-        verify(bs, node, expected_space());
+        verify(&sizer, node, expected_space());
 
         for (expected_t::const_iterator p = expected.begin(), e = expected.end(); p != e; ++p) {
             SCOPED_TRACE("lookup '" + p->first + "'");
@@ -370,7 +379,7 @@ public:
             // in two mutually exclusive intervals.
 
             StackKey skey;
-            leaf::merge(bs, lnode.node, *node_buf, skey.look_write());
+            leaf::merge(&sizer, lnode.node, *node_buf, skey.look_write());
 
             for (expected_t::const_iterator p = lnode.expected.begin(), e = lnode.expected.end();
                  p != e;
@@ -399,7 +408,7 @@ public:
         int fo_sum = expected_frontmost_offset + sibling.expected_frontmost_offset;
         int npair_sum = expected_npairs + sibling.expected_npairs;
 
-        leaf::level(bs, *node_buf, *sibling.node_buf, key_to_replace.look_write(), replacement_key.look_write());
+        leaf::level(&sizer, *node_buf, *sibling.node_buf, key_to_replace.look_write(), replacement_key.look_write());
 
         // Sanity check that npairs and frontmost_offset are in sane ranges.
 
@@ -466,6 +475,7 @@ public:
         sibling.validate();
     }
 
+    memcached_value_sizer_t sizer;
     block_size_t bs;
     typedef std::map<std::string, Value> expected_t;
     expected_t expected;
@@ -476,10 +486,10 @@ public:
     bool initialized;
 
 private:
-    void lookup(const std::string& k, const Value& expected) const {
+    void lookup(const std::string& k, const Value& expected) {
         StackKey skey(k);
         StackValue sval;
-        ASSERT_TRUE(leaf::lookup(bs, node, skey.look(), sval.look_write()));
+        ASSERT_TRUE(leaf::lookup(&sizer, node, skey.look(), sval.lookv_write()));
         ASSERT_EQ(expected, Value::Make(sval.look()));
     }
 
