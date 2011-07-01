@@ -222,18 +222,14 @@ void translator_serializer_t::index_write(const std::vector<index_write_op_t>& w
     inner->index_write(translated_ops, io_account);
 }
 
-// XXX (rntz) implement this!
 boost::shared_ptr<serializer_t::block_token_t>
 translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) {
-    not_implemented(""); (void) buf; (void) block_id; (void) io_account; (void) cb;
-    return boost::shared_ptr<block_token_t>();
+    return inner->block_write(buf, translate_block_id(block_id), io_account, cb);
 }
 
-// XXX (rntz) implement this!
 boost::shared_ptr<serializer_t::block_token_t>
 translator_serializer_t::block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb) {
-    not_implemented(""); (void) buf; (void) io_account; (void) cb;
-    return boost::shared_ptr<block_token_t>();
+    return inner->block_write(buf, io_account, cb);
 }
 
 void translator_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account) {
