@@ -23,7 +23,7 @@ boost::optional<key_with_data_provider_t> leaf_iterator_t::next() {
             return boost::none;
         }
         pair = leaf::get_pair_by_index(leaf, index++);
-    } while (pair->value()->expired());
+    } while (reinterpret_cast<const btree_value_t *>pair->value())->expired());
 
     return boost::make_optional(pair_to_key_with_data_provider(pair));
 }
@@ -47,8 +47,8 @@ void leaf_iterator_t::done() {
 
 key_with_data_provider_t leaf_iterator_t::pair_to_key_with_data_provider(const btree_leaf_pair* pair) {
     on_thread_t th(transaction->home_thread());
-    value_data_provider_t *data_provider = value_data_provider_t::create(pair->value(), transaction.get());
-    return key_with_data_provider_t(key_to_str(&pair->key), pair->value()->mcflags(),
+    value_data_provider_t *data_provider = value_data_provider_t::create(reinterpret_cast<const btree_value_t *>(pair->value()), transaction.get());
+    return key_with_data_provider_t(key_to_str(&pair->key), reinterpret_cast<const btree_value_t *>(pair->value())->mcflags(),
         boost::shared_ptr<data_provider_t>(data_provider));
 }
 
