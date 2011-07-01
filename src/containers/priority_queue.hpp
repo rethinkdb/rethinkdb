@@ -24,7 +24,7 @@ public:
             int index;                         /* the index withing the priority queue */
 
         public:
-            /* \brief update() should be called after an change is made to the data
+            /* \brief update() should be called after a change is made to the data
              * to preserve the order in the queue
              */
             void update();

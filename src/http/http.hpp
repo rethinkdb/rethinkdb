@@ -5,6 +5,7 @@
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/fusion/include/io.hpp>
 
+
 enum http_method_t {
     GET = 0,
     POST
@@ -52,9 +53,8 @@ struct http_msg_parser_t : qi::grammar<Iterator, http_msg_t()> {
         just_space %= ' ';
         method %= (lit("GET")[_val = GET] || lit("POST")[_val = POST]);
         resource %= (+(char_ - space));
-        version %= (+(char_ - space));
+        version %= lit("HTTP/") >> (+(char_ - space));
         key_val_pair %= ((+(char_ - ":")) >>":" >> just_space >> (+(char_ - CRLF)));
-        //key_val_pair %= (+(char_ - CRLF));
         body %= (+char_);
         CRLF %= lit("\r\n") || lit("\n");
 
@@ -62,6 +62,15 @@ struct http_msg_parser_t : qi::grammar<Iterator, http_msg_t()> {
                  (key_val_pair % CRLF) >>
                  CRLF >>
                  body;
+
+        //just_space.name("just_space"); debug(just_space);
+        //method.name("method"); debug(method);
+        //resource.name("resource"); debug(resource);
+        //version.name("version"); debug(version);
+        //key_val_pair.name("key_val_pair"); debug(key_val_pair);
+        //body.name("body"); debug(body);
+        //CRLF.name("CRLF"); debug(CRLF);
+        //start.name("start"); debug(start);
     }
     qi::rule<Iterator> just_space;
     qi::rule<Iterator, http_method_t()> method;
@@ -73,5 +82,30 @@ struct http_msg_parser_t : qi::grammar<Iterator, http_msg_t()> {
     qi::rule<Iterator, http_msg_t()> start;
 };
 
+
 void test_header_parser();
+
+/* creating an http server will bind to the specified port and listen for http
+ * connections, the data from incoming connections will be parsed into
+ * http_msg_ts and passed to the handle function which must then return an http
+ * msg that's a meaningful response */
+class http_server_t {
+private:
+    boost::scoped_ptr<tcp_listener_t> tcp_listener;
+public:
+    http_server_t(int);
+    virtual ~http_server_t() {}
+private:
+    virtual http_msg_t handle(const http_msg_t &) = 0;
+protected:
+    void handle_conn(boost::scoped_ptr<tcp_conn_t> &conn);
+};
+
+class test_server_t : public http_server_t {
+public:
+    test_server_t(int);
+private:
+    http_msg_t handle(const http_msg_t &);
+};
+
 #endif

@@ -507,12 +507,11 @@ linux_tcp_conn_t::~linux_tcp_conn_t() {
 }
 
 linux_tcp_conn_t::iterator linux_tcp_conn_t::begin() {
-    return iterator(this);
+    return iterator(this, (size_t) 0);
 }
 
 linux_tcp_conn_t::iterator linux_tcp_conn_t::end() {
-    linux_tcp_conn_t::iterator res = iterator(this);
-    res.end = true;
+    linux_tcp_conn_t::iterator res = iterator(this, true);
     return res;
 }
 
@@ -597,54 +596,75 @@ void linux_tcp_conn_t::on_event(int events) {
 }
 
 void linux_tcp_conn_t::iterator::increment() {
-    source->pop(1);
+    pos++;
+}
+
+/* compare ourselves to another iterator:
+ * Returns:
+ * -1 -> *this < other
+ *  0 -> *this == other
+ *  1 -> *this > other */
+int linux_tcp_conn_t::iterator::compare(iterator const& other) const {
+    rassert(source == other.source, "Comparing iterators from different connections\n");
+
+    if (!end && other.end) return -1;
+    if (end && other.end) return 0;
+    if (end && !other.end) return 1;
+
+    //compare the positions
+    if (pos < other.pos) return -1;
+    if (pos == other.pos) return 0;
+    if (pos > other.pos) return 1;
+
+    unreachable();
+    return -2; //happify gcc
 }
 
 bool linux_tcp_conn_t::iterator::equal(iterator const& other) {
-    if (source != other.source)
-        return false;
-
-    /* if both iterators are "end" iterators then they're clearly equal, since
-     * conn iterators have no state (except for the source and whether or not
-     * they're end iterators if then non iterators from the same source compare
-     * equal too */
-    if (end == other.end)
-        return true;
-
-    /* an end iterator is equivalent to an iterator in which the reading side
-     * has been closed */
-    if (other.end == true && !source->is_read_open())
-        return true;
-    if (end == true && !(other.source->is_read_open()))
-        return true;
-
-    return false;
+    return compare(other) == 0;
 }
 
 const char &linux_tcp_conn_t::iterator::dereference() {
-    const_charslice slc = source->peek();
+    const_charslice slc = source->peek(pos + 1);
 
     /* check to make sure we at least got some data */
-    if (slc.beg == slc.end) {
+    /* rassert(slc.end >= slc.beg);
+    while ((size_t) (slc.end - slc.beg) <= (pos - source->pos)) {
         source->read_more_buffered();
         slc = source->peek();
-    }
+    } */
 
-    return *(slc.beg);
+    return *(slc.beg + pos);
 }
+
+linux_tcp_conn_t::iterator::iterator() {
+    not_implemented();
+}
+
+linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *source, size_t pos)
+    : source(source), end(false), pos(pos)
+{ }
+
+linux_tcp_conn_t::iterator::iterator(linux_tcp_conn_t *source, bool)
+    : source(source), end(true), pos(-1)
+{ }
+
+linux_tcp_conn_t::iterator::iterator(iterator const& other) 
+    : source(other.source), end(other.end), pos(other.pos)
+{ }
+
+linux_tcp_conn_t::iterator::~iterator() { }
 
 char linux_tcp_conn_t::iterator::operator*() {
     return dereference();
 }
 
-linux_tcp_conn_t::iterator linux_tcp_conn_t::iterator::operator++() {
+void linux_tcp_conn_t::iterator::operator++() {
     increment();
-    return *this;
 }
 
-linux_tcp_conn_t::iterator linux_tcp_conn_t::iterator::operator++(int) {
+void linux_tcp_conn_t::iterator::operator++(int) {
     increment();
-    return *this;
 }
 
 bool linux_tcp_conn_t::iterator::operator==(linux_tcp_conn_t::iterator const &other) {

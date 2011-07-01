@@ -1,7 +1,11 @@
 #include "http/http.hpp"
+#include <iostream>
 
-typedef std::string::const_iterator iterator_type;
-typedef http_msg_parser_t<iterator_type> str_http_msg_parser_t;
+typedef std::string::const_iterator str_iterator_type;
+typedef http_msg_parser_t<str_iterator_type> str_http_msg_parser_t;
+
+typedef tcp_conn_t::iterator tcp_iterator_type;
+typedef http_msg_parser_t<tcp_iterator_type> tcp_http_msg_parser_t;
 
 void test_header_parser() {
     http_msg_t res;
@@ -25,6 +29,35 @@ void test_header_parser() {
     success = true;
 }
 
-void f_break() {
-    BREAKPOINT;
+http_server_t::http_server_t(int port) {
+    tcp_listener.reset(new tcp_listener_t(port, boost::bind(&http_server_t::handle_conn, this, _1)));
+}
+
+void write_http_msg(boost::scoped_ptr<tcp_conn_t> &, http_msg_t &) {
+    not_implemented();
+}
+
+void http_server_t::handle_conn(boost::scoped_ptr<tcp_conn_t> &conn) {
+    http_msg_t req;
+    tcp_http_msg_parser_t http_msg_parser;
+
+    //debug(http_msg_parser);
+
+    tcp_iterator_type iter = conn->begin();
+    tcp_iterator_type end = conn->end();
+
+    /* parse the request */
+    printf("BOOST_SPIRIT_DEBUG_PRINT_SOME = %d\n", BOOST_SPIRIT_DEBUG_PRINT_SOME);
+    parse(iter, end, http_msg_parser, req);
+
+    http_msg_t res = handle(req);
+    write_http_msg(conn, res);
+}
+
+test_server_t::test_server_t(int port) 
+    : http_server_t(port)
+{ }
+
+http_msg_t test_server_t::handle(const http_msg_t &msg) {
+    return msg;
 }
