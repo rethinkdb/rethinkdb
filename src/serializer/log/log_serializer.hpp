@@ -132,7 +132,7 @@ public:
 
     void block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account);
 
-    void index_write(const std::vector<index_write_op_t*>& write_ops, file_t::account_t *io_account);
+    void index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account);
 
     boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb);
     boost::shared_ptr<block_token_t> block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb);

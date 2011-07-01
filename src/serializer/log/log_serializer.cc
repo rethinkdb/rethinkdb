@@ -3,6 +3,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/variant/static_visitor.hpp>
+#include <boost/variant/apply_visitor.hpp>
 
 #include "buffer_cache/types.hpp"
 
@@ -290,7 +292,7 @@ void log_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *
     pm_serializer_block_reads.end(&pm_time);
 }
 
-void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_ops, file_t::account_t *io_account) {
+void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account) {
     ticks_t pm_time;
     pm_serializer_index_writes.begin(&pm_time);
     pm_serializer_index_writes_size.record(write_ops.size());
@@ -298,64 +300,41 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t*>& write_o
     index_write_context_t context;
     index_write_prepare(context);
 
-    for (std::vector<index_write_op_t*>::const_iterator write_op_it = write_ops.begin();
-            write_op_it != write_ops.end(); ++write_op_it) {
+    for (std::vector<index_write_op_t>::const_iterator write_op_it = write_ops.begin();
+         write_op_it != write_ops.end();
+         ++write_op_it)
+    {
+        const index_write_op_t& op = *write_op_it;
+        flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
 
-        /*
-          struct index_write_delete_t : public index_write_op_t
-          struct index_write_recency_t : public index_write_op_t
-          struct index_write_block_t : public index_write_op_t
-         */
-        // Use RTTI to find out what we have... (we don't have many options, so performance should be fine)
-        if (dynamic_cast<const index_write_delete_bit_t*>(*write_op_it)) {
-            // deletion
-            const index_write_delete_bit_t &delete_op = dynamic_cast<const index_write_delete_bit_t&>(**write_op_it);
+        if (op.token) {
+            // Update the offset pointed to, and mark garbage/liveness as necessary.
+            boost::shared_ptr<block_token_t> token = op.token.get();
 
-            flagged_off64_t offset = lba_index->get_block_offset(delete_op.block_id);
-            /* Keep recency intact. If a new recency should be set, a separate write_recency_op is required */
-            const repli_timestamp recency = lba_index->get_block_recency(delete_op.block_id);
-
-            // Update the delete bit according to the op
-            offset.set_delete_bit(delete_op.delete_bit);
-
-            lba_index->set_block_info(delete_op.block_id, recency, offset, io_account);
-
-        } else if (dynamic_cast<const index_write_recency_t*>(*write_op_it)) {
-            // write recency
-            const index_write_recency_t &recency_op = dynamic_cast<const index_write_recency_t&>(**write_op_it);
-
-            lba_index->set_block_info(recency_op.block_id, recency_op.recency, lba_index->get_block_offset(recency_op.block_id),
-                                      io_account);
-
-        } else if (dynamic_cast<const index_write_block_t*>(*write_op_it)) {
-            // update the offset or add a new index for the block
-            const index_write_block_t &block_op = dynamic_cast<const index_write_block_t&>(**write_op_it);
-
-            /* Keep recency intact. If a new recency should be set, a separate write_recency_op is required */
-            const repli_timestamp recency = lba_index->get_block_recency(block_op.block_id);
-
-            /* mark the garbage */
-            flagged_off64_t offset = lba_index->get_block_offset(block_op.block_id);
-            if (offset.has_value()) {
+            // Mark old offset as garbage
+            if (offset.has_value())
                 data_block_manager->mark_garbage(offset.get_value());
-            }
 
-            if (block_op.token) {
-                ls_block_token_t *ls_token = dynamic_cast<ls_block_token_t*>(block_op.token.get());
+            // Write new token to index, or remove from index as appropriate.
+            if (token) {
+                ls_block_token_t *ls_token = dynamic_cast<ls_block_token_t*>(token.get());
                 rassert(ls_token);
                 rassert(token_offsets.find(ls_token) != token_offsets.end());
                 offset.set_value(token_offsets[ls_token]);
 
                 /* mark the life */
                 data_block_manager->mark_live(offset.get_value());
-            } else {
-                offset.remove_value();
             }
-            lba_index->set_block_info(block_op.block_id, recency, offset, io_account);
-
-        } else {
-            unreachable("Unhandled write operation supplied to index_write()");
+            else
+                offset.remove_value();
         }
+
+        // Update block info (delete bit, recency)
+        if (op.delete_bit) offset.set_delete_bit(op.delete_bit.get());
+        repli_timestamp recency = op.recency ? op.recency.get()
+                                : lba_index->get_block_recency(op.block_id);
+
+        lba_index->set_block_info(op.block_id, recency, offset, io_account);
     }
 
     index_write_finish(context);

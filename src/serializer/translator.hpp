@@ -120,7 +120,7 @@ public:
     /* Allocates a new io account for the underlying file */
     file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
 
-    void index_write(const std::vector<index_write_op_t*>& write_ops, file_t::account_t *io_account);
+    void index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account);
 
     /* Non-blocking variant */
     boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb);

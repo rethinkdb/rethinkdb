@@ -5,6 +5,7 @@
 #include "serializer/types.hpp"
 #include "server/cmd_args.hpp"
 
+#include <boost/optional.hpp>
 #include <boost/smart_ptr.hpp>
 #include "utils2.hpp"
 #include "utils.hpp"
@@ -79,38 +80,23 @@ struct serializer_t :
     /* Reads the block's actual data */
     virtual boost::shared_ptr<block_token_t> index_read(block_id_t block_id) = 0; // TODO (rntz) should this take an io account?
 
-    /* The serializer uses RTTI to identify which operation is to be performed */
     struct index_write_op_t {
-        virtual ~index_write_op_t() { }
-        // Data
         block_id_t block_id;
-    protected:
-        index_write_op_t(const block_id_t &block_id) : block_id(block_id) { }
-    };
+        // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
+        boost::optional<boost::shared_ptr<block_token_t> > token;
+        boost::optional<bool> delete_bit;         // Delete bit, if it should be modified.
+        boost::optional<repli_timestamp> recency; // Recency, if it should be modified.
 
-    struct index_write_delete_bit_t : public index_write_op_t {
-        index_write_delete_bit_t(const block_id_t &block_id, bool delete_bit) : index_write_op_t(block_id), delete_bit(delete_bit) { }
-        // Data
-        bool delete_bit;
-    };
-    struct index_write_recency_t : public index_write_op_t {
-        index_write_recency_t(const block_id_t &block_id, const repli_timestamp &recency) : index_write_op_t(block_id), recency(recency) { }
-        // Data
-        repli_timestamp recency;
-    };
-    struct index_write_block_t : public index_write_op_t {
-        /* TODO: Right now, Bad Things happen if the token that you pass to
-         index_write_block_t() has not been completely flushed to disk at the
-         time that you call index_write(). In the future, index_write() should
-         work properly and just wait for the block write to finish before it
-         writes the metablock. */
-        index_write_block_t(const block_id_t &block_id, const boost::shared_ptr<block_token_t> &token) : index_write_op_t(block_id), token(token) { }
-        // Data
-        boost::shared_ptr<block_token_t> token;
+        index_write_op_t(block_id_t block_id) : block_id(block_id) {}
+        index_write_op_t(block_id_t block_id, boost::shared_ptr<block_token_t> token)
+            : block_id(block_id), token(token) {}
+        index_write_op_t(block_id_t block_id, boost::optional<boost::shared_ptr<block_token_t> > token,
+                         boost::optional<bool> delete_bit, boost::optional<repli_timestamp> recency)
+            : block_id(block_id), token(token), delete_bit(delete_bit), recency(recency) {}
     };
 
     /* index_write() applies all given index operations in an atomic way */
-    virtual void index_write(const std::vector<index_write_op_t*>& write_ops, file_t::account_t *io_account) = 0;
+    virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account) = 0;
 
     /* Non-blocking variant */
     virtual boost::shared_ptr<block_token_t> block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) = 0;
@@ -238,7 +224,7 @@ private:
         std::vector<block_write_cond_t*> block_write_conds;
         block_write_conds.reserve(num_writes);
 
-        std::vector<index_write_op_t*> index_write_ops;
+        std::vector<index_write_op_t> index_write_ops;
         // Prepare a zero buf for deletions
         void *zerobuf = serializer->malloc();
         bzero(zerobuf, serializer->get_block_size().value());
@@ -246,44 +232,41 @@ private:
 
         // Step 1: Write buffers to disk and assemble index operations
         for (size_t i = 0; i < (size_t)num_writes; ++i) {
-            // Buffer writes:
-            if (writes[i].buf_specified) {
-                if (writes[i].buf) {
-                    block_write_conds.push_back(new block_write_cond_t(writes[i].callback));
-                    boost::shared_ptr<block_token_t> token = serializer->block_write(
-                        writes[i].buf, writes[i].block_id, io_account, block_write_conds.back());
+            const write_t& write = writes[i];
+            index_write_op_t op(write.block_id);
+            if (write.recency_specified) op.recency = write.recency;
 
-                    // ... also generate the corresponding index ops
-                    index_write_ops.push_back(new index_write_block_t(writes[i].block_id, token));
-                    index_write_ops.push_back(new index_write_delete_bit_t(writes[i].block_id, false));
-                    if (writes[i].recency_specified) {
-                        index_write_ops.push_back(new index_write_recency_t(writes[i].block_id, writes[i].recency));
-                    }
+            // Buffer writes:
+            if (write.buf_specified) {
+                if (write.buf) {
+                    block_write_conds.push_back(new block_write_cond_t(write.callback));
+                    boost::shared_ptr<block_token_t> token = serializer->block_write(
+                        write.buf, write.block_id, io_account, block_write_conds.back());
+
+                    // also generate the corresponding index op
+                    op.token = token;
+                    op.delete_bit = false;
+                    if (write.recency_specified) op.recency = write.recency;
                 } else {
                     // Deletion:
-
                     boost::shared_ptr<block_token_t> token;
-                    if (writes[i].write_empty_deleted_block) {
-                        /* Extract might get confused if we delete a block, because
-                         it doesn't search the LBA for deletion entries. We clear
-                         things up for extract by writing a block with the block ID
-                         of the block to be deleted but zero contents. All that
-                         matters is that this block is on disk somewhere. */
-                        block_write_conds.push_back(new block_write_cond_t(writes[i].callback));
-                        token = serializer->block_write(zerobuf, writes[i].block_id, io_account, block_write_conds.back());
+                    if (write.write_empty_deleted_block) {
+                        /* Extract might get confused if we delete a block, because it doesn't
+                         * search the LBA for deletion entries. We clear things up for extract by
+                         * writing a block with the block ID of the block to be deleted but zero
+                         * contents. All that matters is that this block is on disk somewhere. */
+                        block_write_conds.push_back(new block_write_cond_t(write.callback));
+                        token = serializer->block_write(zerobuf, write.block_id, io_account, block_write_conds.back());
                     }
 
-                    if (writes[i].recency_specified) {
-                        index_write_ops.push_back(new index_write_recency_t(writes[i].block_id, writes[i].recency));
-                    }
-                    index_write_ops.push_back(new index_write_block_t(writes[i].block_id, token));
-                    index_write_ops.push_back(new index_write_delete_bit_t(writes[i].block_id, true));
+                    op.token = token;
+                    op.delete_bit = true;
                 }
-            } else {
-                // Recency update:
-                rassert(writes[i].recency_specified);
-                index_write_ops.push_back(new index_write_recency_t(writes[i].block_id, writes[i].recency));
+            } else { // Recency update
+                rassert(write.recency_specified);
             }
+
+            index_write_ops.push_back(op);
         }
 
         // Step 2: At the point where all writes have been started, we can call tid_callback
@@ -301,13 +284,9 @@ private:
 
         // Step 4: Commit the transaction to the serializer
         serializer->index_write(index_write_ops, io_account);
+        index_write_ops.clear(); // clean up index_write_ops; not strictly necessary
 
-        // Step 5: Cleanup index_write_ops
-        for (size_t i = 0; i < index_write_ops.size(); ++i) {
-            delete index_write_ops[i];
-        }
-
-        // Step 6: Call callback
+        // Step 5: Call callback
         callback->on_serializer_write_txn();
     }
 

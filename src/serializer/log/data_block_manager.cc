@@ -399,21 +399,22 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
     std::vector<block_write_cond_t*> block_write_conds;
     block_write_conds.reserve(num_writes);
 
-    std::vector<serializer_t::index_write_op_t*> index_write_ops;
+    std::vector<serializer_t::index_write_op_t> index_write_ops;
 
     extent_manager_t::transaction_t *em_trx = parent->serializer->extent_manager->begin_transaction();
     // Step 1: Write buffers to disk and assemble index operations
     for (size_t i = 0; i < (size_t)num_writes; ++i) {
         block_write_conds.push_back(new block_write_cond_t());
         // the "false' argument indicates that we do not with to assign a new block sequence id
-        // FIXME (rntz) should this really use DEFAULT_DISK_ACCOUNT
+        // FIXME (rntz) should this really use DEFAULT_DISK_ACCOUNT?
+        // (I think we should use choose_gc_io_account())
         const off64_t offset = parent->write(writes[i].buf, writes[i].block_id, false, DEFAULT_DISK_ACCOUNT, block_write_conds.back());
         writes[i].new_offset = offset;
         boost::shared_ptr<serializer_t::block_token_t> token = parent->serializer->generate_block_token(offset);
 
         // ... also generate the corresponding index op
         if (writes[i].block_id != NULL_BLOCK_ID) {
-            index_write_ops.push_back(new serializer_t::index_write_block_t(writes[i].block_id, token));
+            index_write_ops.push_back(serializer_t::index_write_op_t(writes[i].block_id, token));
         }
         // (if we don't have a block id, the block is referenced by tokens only. These get remapped later)
     }
@@ -429,17 +430,13 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t* writes, int num_wr
     // Step 3: Commit the transaction to the serializer
     // FIXME (rntz) should this be using DEFAULT_DISK_ACCOUNT?
     parent->serializer->index_write(index_write_ops, DEFAULT_DISK_ACCOUNT);
+    index_write_ops.clear(); // cleanup index_write_ops
 
-    // Step 4: Cleanup index_write_ops
-    for (size_t i = 0; i < index_write_ops.size(); ++i) {
-        delete index_write_ops[i];
-    }
-
-    // Step 5: Call parent
+    // Step 4: Call parent
     done = true;
     parent->on_gc_write_done();
 
-    // Step 6: Delete us
+    // Step 5: Delete us
     delete this;
 }
 

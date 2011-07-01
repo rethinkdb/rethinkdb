@@ -216,7 +216,7 @@ file_t::account_t *translator_serializer_t::make_io_account(int priority, int ou
 }
 
 // XXX (rntz) implement this!
-void translator_serializer_t::index_write(const std::vector<index_write_op_t*>& write_ops, file_t::account_t *io_account) {
+void translator_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account) {
     not_implemented(""); (void) write_ops; (void) io_account;
 }
 
