@@ -23,7 +23,7 @@ boost::optional<key_with_data_provider_t> leaf_iterator_t::next() {
             return boost::none;
         }
         pair = leaf::get_pair_by_index(leaf, index++);
-    } while (reinterpret_cast<const btree_value_t *>pair->value())->expired());
+    } while (reinterpret_cast<const btree_value_t *>(pair->value())->expired());
 
     return boost::make_optional(pair_to_key_with_data_provider(pair));
 }
