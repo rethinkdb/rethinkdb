@@ -123,22 +123,29 @@ public:
     private:
         linux_tcp_conn_t *source;
         bool end;
+        size_t pos;
+    private:
+        int compare(iterator const& other) const;
     private:
     // boost iterator interface
         void increment();
         bool equal(iterator const& other);
         const char &dereference();
     public:
-        iterator(linux_tcp_conn_t *source)
-            : source(source), end(false)
-        {}
+        iterator();
+        iterator(linux_tcp_conn_t *, size_t);
+        iterator(linux_tcp_conn_t *, bool);
+        iterator(iterator const& );
+        ~iterator();
         char operator*();
-        iterator operator++();
-        iterator operator++(int);
+        void operator++();
+        void operator++(int);
         bool operator==(iterator const &);
         bool operator!=(iterator const &);
+        bool operator<(iterator const &);
     };
 
+public:
     iterator begin();
     iterator end();
 

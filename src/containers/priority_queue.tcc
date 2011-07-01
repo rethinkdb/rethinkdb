@@ -135,6 +135,8 @@ T priority_queue_t<T, Less>::pop() {
 
 template<class T, class Less>
 void priority_queue_t<T, Less>::update(int index) {
+    rassert(index > 0);
+    rassert((unsigned) index < size());
     int i = index;
     bubble_up(&i);
     bubble_down(&i);
