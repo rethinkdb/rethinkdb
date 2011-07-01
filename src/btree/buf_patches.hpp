@@ -13,14 +13,13 @@ struct btree_value_t;
 
 /* Btree leaf node logical patches */
 
-
 /* Shift key/value pairs in a leaf node by a give offset */
 class leaf_shift_pairs_patch_t : public buf_patch_t {
 public:
     leaf_shift_pairs_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t offset, const uint16_t shift);
     leaf_shift_pairs_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length);
 
-    virtual void apply_to_buf(char* buf_data);
+    virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
     virtual size_t get_affected_data_size() const {
         return 16; // TODO
@@ -43,7 +42,7 @@ public:
 
     virtual ~leaf_insert_pair_patch_t();
 
-    virtual void apply_to_buf(char* buf_data);
+    virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
     virtual size_t get_affected_data_size() const;
 
@@ -65,7 +64,7 @@ public:
 
     virtual ~leaf_insert_patch_t();
 
-    virtual void apply_to_buf(char* buf_data);
+    virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
     virtual size_t get_affected_data_size() const;
 
@@ -88,7 +87,7 @@ public:
 
     virtual ~leaf_remove_patch_t();
 
-    virtual void apply_to_buf(char* buf_data);
+    virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
     virtual size_t get_affected_data_size() const;
 

@@ -95,7 +95,7 @@ public:
     virtual size_t get_affected_data_size() const = 0;
 
     // This is called from buf_t
-    virtual void apply_to_buf(char* buf_data) = 0;
+    virtual void apply_to_buf(char* buf_data, block_size_t block_size) = 0;
 
     bool operator<(const buf_patch_t& p) const;
     
@@ -137,7 +137,7 @@ public:
 
     virtual ~memcpy_patch_t();
 
-    virtual void apply_to_buf(char* buf_data);
+    virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
     virtual size_t get_affected_data_size() const;
 
@@ -157,7 +157,7 @@ public:
     memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t dest_offset, const uint16_t src_offset, const uint16_t n);
     memmove_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const char* data, const uint16_t data_length);
 
-    virtual void apply_to_buf(char* buf_data);
+    virtual void apply_to_buf(char* buf_data, block_size_t bs);
 
     virtual size_t get_affected_data_size() const;
 

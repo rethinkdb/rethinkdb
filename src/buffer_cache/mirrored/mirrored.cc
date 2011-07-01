@@ -262,7 +262,7 @@ void mc_inner_buf_t::replay_patches() {
     writeback_buf.last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id);
 
     // Apply outstanding patches
-    cache->patch_memory_storage.apply_patches(block_id, reinterpret_cast<char *>(data));
+    cache->patch_memory_storage.apply_patches(block_id, reinterpret_cast<char *>(data), cache->get_block_size());
 
     // Set next_patch_counter such that the next patches get values consistent with the existing patches
     next_patch_counter = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id) + 1;
@@ -440,7 +440,7 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
     rassert(patch->get_block_id() == inner_buf->block_id);
 
-    patch->apply_to_buf(reinterpret_cast<char *>(data));
+    patch->apply_to_buf(reinterpret_cast<char *>(data), inner_buf->cache->get_block_size());
     inner_buf->writeback_buf.set_dirty();
 
     // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks)

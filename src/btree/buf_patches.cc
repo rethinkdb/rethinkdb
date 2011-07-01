@@ -2,6 +2,8 @@
 
 #include "btree/leaf_node.hpp"
 
+
+
 leaf_shift_pairs_patch_t::leaf_shift_pairs_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t offset, const uint16_t shift) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_SHIFT_PAIRS),
             offset(offset),
@@ -17,7 +19,7 @@ leaf_shift_pairs_patch_t::leaf_shift_pairs_patch_t(const block_id_t block_id, co
     data += sizeof(shift);
 }
 
-void leaf_shift_pairs_patch_t::apply_to_buf(char *buf_data) {
+void leaf_shift_pairs_patch_t::apply_to_buf(char *buf_data, UNUSED block_size_t bs) {
     leaf::impl::shift_pairs(reinterpret_cast<leaf_node_t *>(buf_data), offset, shift);
 }
 
@@ -109,9 +111,8 @@ size_t leaf_insert_pair_patch_t::get_affected_data_size() const {
     return value_size + sizeof(uint8_t) + key->size;
 }
 
-void leaf_insert_pair_patch_t::apply_to_buf(char* buf_data) {
-    // TODO BLOB holy crap this needs to be fixed.
-    memcached_value_sizer_t sizer(block_size_t::unsafe_make(4096));
+void leaf_insert_pair_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
+    memcached_value_sizer_t sizer(bs);
     leaf::impl::insert_pair(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<const value_type_t *>(value_buf), reinterpret_cast<btree_key_t *>(key_buf));
 }
 
@@ -192,9 +193,8 @@ size_t leaf_insert_patch_t::get_affected_data_size() const {
     return value_size + sizeof(uint8_t) + key->size + sizeof(insertion_time);
 }
 
-void leaf_insert_patch_t::apply_to_buf(char* buf_data) {
-    // TODO BLOB holy crap this needs to be fixed.
-    memcached_value_sizer_t sizer(block_size_t::unsafe_make(4096));
+void leaf_insert_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
+    memcached_value_sizer_t sizer(bs);
     leaf::insert(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf), reinterpret_cast<value_type_t *>(value_buf), insertion_time);
 }
 
@@ -257,9 +257,8 @@ size_t leaf_remove_patch_t::get_affected_data_size() const {
     return key->size + sizeof(key->size);
 }
 
-void leaf_remove_patch_t::apply_to_buf(char* buf_data) {
-    // TODO BLOB holy crap this needs to be fixed.
-    memcached_value_sizer_t sizer(block_size_t::unsafe_make(4096));
+void leaf_remove_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
+    memcached_value_sizer_t sizer(bs);
     leaf::remove(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf));
 }
 

@@ -308,7 +308,7 @@ public:
                         err = patch_transaction_id_mismatch;
                         return false;
                     }
-                    (*patch)->apply_to_buf(reinterpret_cast<char *>(buf));
+                    (*patch)->apply_to_buf(reinterpret_cast<char *>(buf), knog->static_config->block_size());
                 }
             }
         }

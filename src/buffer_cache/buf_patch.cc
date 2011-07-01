@@ -126,7 +126,7 @@ size_t memcpy_patch_t::get_affected_data_size() const {
     return n;
 }
 
-void memcpy_patch_t::apply_to_buf(char* buf_data) {
+void memcpy_patch_t::apply_to_buf(char* buf_data, UNUSED block_size_t bs) {
     memcpy(buf_data + dest_offset, src_buf, n);
 }
 
@@ -163,7 +163,7 @@ size_t memmove_patch_t::get_affected_data_size() const {
     return n;
 }
 
-void memmove_patch_t::apply_to_buf(char* buf_data) {
+void memmove_patch_t::apply_to_buf(char* buf_data, UNUSED block_size_t bs) {
     memmove(buf_data + dest_offset, buf_data + src_offset, n);
 }
 

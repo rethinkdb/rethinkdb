@@ -338,7 +338,7 @@ void get_all_values(dumper_t& dumper, const std::map<size_t, off64_t>& offsets, 
                         // details of the cache and serializer though)
                         for (std::list<buf_patch_t*>::iterator patch = patches->second.begin(); patch != patches->second.end(); ++patch) {
                             if ((*patch)->get_transaction_id() == b.buf_data().transaction_id) {
-                                (*patch)->apply_to_buf(reinterpret_cast<char *>(b.buf));
+                                (*patch)->apply_to_buf(reinterpret_cast<char *>(b.buf), cfg.block_size());
                             }
                         }
                     }

@@ -15,8 +15,8 @@ namespace unittest {
 class test_buf_t
 {
 public:
-    test_buf_t(block_size_t bs, block_id_t _block_id) :
-            block_id(_block_id) {
+    test_buf_t(block_size_t bs, block_id_t _block_id)
+        : block_size(bs), block_id(_block_id) {
         data.resize(bs.value(), '\0');
         dirty = false;
         next_patch_counter = 1;
@@ -44,7 +44,7 @@ public:
     }
 
     void apply_patch(buf_patch_t *patch) {
-        patch->apply_to_buf(reinterpret_cast<char *>(get_data_major_write()));
+        patch->apply_to_buf(reinterpret_cast<char *>(get_data_major_write()), block_size);
         delete patch;
     }
 
@@ -64,6 +64,7 @@ public:
     }
 
 private:
+    block_size_t block_size;
     block_id_t block_id;
     patch_counter_t next_patch_counter;
     bool dirty;
