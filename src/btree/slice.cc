@@ -79,7 +79,8 @@ struct btree_slice_change_visitor_t : public boost::static_visitor<mutation_resu
         return btree_append_prepend(m.key, parent, m.data, (m.kind == append_prepend_APPEND), ct, order_token);
     }
     mutation_result_t operator()(const delete_mutation_t &m) {
-        return btree_delete(m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token);
+        memcached_value_sizer_t sizer(parent->cache()->get_block_size());
+        return btree_delete(&sizer, m.key, m.dont_put_in_delete_queue, parent, ct.timestamp, order_token);
     }
 
     btree_slice_change_visitor_t(btree_slice_t *_parent, castime_t _ct, order_token_t _order_token)

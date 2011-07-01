@@ -33,10 +33,8 @@ void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
 // Split the node if necessary. If the node is a leaf_node, provide the new
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
-void check_and_handle_split(transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
+void check_and_handle_split(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
                             const btree_key_t *key, btree_value_t *new_value, block_size_t block_size) {
-    memcached_value_sizer_t sizer(block_size);
-
     txn->assert_thread();
 
     const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
@@ -44,7 +42,7 @@ void check_and_handle_split(transaction_t *txn, buf_lock_t& buf, buf_lock_t& las
     // If the node isn't full, we don't need to split, so we're done.
     if (node::is_leaf(node)) { // This should only be called when update_needed.
         rassert(new_value);
-        if (!leaf::is_full(&sizer, reinterpret_cast<const leaf_node_t *>(node), key, reinterpret_cast<value_type_t *>(new_value))) return;
+        if (!leaf::is_full(sizer, reinterpret_cast<const leaf_node_t *>(node), key, reinterpret_cast<value_type_t *>(new_value))) return;
     } else {
         rassert(!new_value);
         if (!internal_node::is_full(reinterpret_cast<const internal_node_t *>(node))) return;
@@ -144,7 +142,7 @@ void check_and_handle_underfull(transaction_t *txn, buf_lock_t& buf, buf_lock_t&
 }
 
 // Get a root block given a superblock, or make a new root if there isn't one.
-void get_root(transaction_t *txn, buf_lock_t& sb_buf, block_size_t block_size, buf_lock_t *buf_out, repli_timestamp timestamp) {
+void get_root(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& sb_buf, buf_lock_t *buf_out, repli_timestamp timestamp) {
     rassert(!buf_out->is_acquired());
 
     block_id_t node_id = reinterpret_cast<const btree_superblock_t*>(sb_buf->get_data_read())->root_block;
@@ -154,14 +152,13 @@ void get_root(transaction_t *txn, buf_lock_t& sb_buf, block_size_t block_size, b
         buf_out->swap(tmp);
     } else {
         buf_out->allocate(txn);
-        memcached_value_sizer_t sizer(block_size);
-        leaf::init(&sizer, *buf_out->buf(), timestamp);
+        leaf::init(sizer, *buf_out->buf(), timestamp);
         insert_root(buf_out->buf()->get_block_id(), sb_buf);
     }
 }
 
 // Runs a btree_modify_oper_t.
-void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime, order_token_t token) {
+void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime, order_token_t token) {
     scoped_malloc<btree_value_t> the_value(MAX_BTREE_VALUE_SIZE);
     memset(the_value.get(), 0, MAX_BTREE_VALUE_SIZE);
 
@@ -192,12 +189,12 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
         buf_lock_t last_buf;
         buf_lock_t buf;
-        get_root(&txn, sb_buf, block_size, &buf, castime.timestamp);
+        get_root(sizer, &txn, sb_buf, &buf, castime.timestamp);
 
         // Walk down the tree to the leaf.
         while (node::is_internal(reinterpret_cast<const node_t *>(buf->get_data_read()))) {
             // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-            check_and_handle_split(&txn, buf, last_buf, sb_buf, key, NULL, block_size);
+            check_and_handle_split(sizer, &txn, buf, last_buf, sb_buf, key, NULL, block_size);
             // Check if the node is underfull, and merge/level if it is.
             check_and_handle_underfull(&txn, buf, last_buf, sb_buf, key, block_size);
 
@@ -221,9 +218,8 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             buf.swap(last_buf);
         }
 
-        memcached_value_sizer_t sizer(block_size);
         // We've gone down the tree and gotten to a leaf. Now look up the key.
-        bool key_found = leaf::lookup(&sizer, reinterpret_cast<const leaf_node_t *>(buf->get_data_read()), key, reinterpret_cast<value_type_t *>(the_value.get()));
+        bool key_found = leaf::lookup(sizer, reinterpret_cast<const leaf_node_t *>(buf->get_data_read()), key, reinterpret_cast<value_type_t *>(the_value.get()));
 
         bool expired = key_found && the_value->expired();
         if (expired) key_found = false;
@@ -249,7 +245,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
                 // Split the node if necessary, to make sure that we have room
                 // for the value; This isn't necessary when we're deleting,
                 // because the node isn't going to grow.
-                check_and_handle_split(&txn, buf, last_buf, sb_buf, key, the_value.get(), block_size);
+                check_and_handle_split(sizer, &txn, buf, last_buf, sb_buf, key, the_value.get(), block_size);
 
                 // Add a CAS to the value if necessary (this won't change its size).
                 if (the_value->has_cas()) {
@@ -259,11 +255,11 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
                 repli_timestamp new_value_timestamp = castime.timestamp;
 
-                bool success = leaf::insert(&sizer, *buf.buf(), key, reinterpret_cast<value_type_t *>(the_value.get()), new_value_timestamp);
+                bool success = leaf::insert(sizer, *buf.buf(), key, reinterpret_cast<value_type_t *>(the_value.get()), new_value_timestamp);
                 guarantee(success, "could not insert leaf btree node");
             } else { // Delete the value if it's there.
                 if (key_found || expired) {
-                    leaf::remove(&sizer, *buf.buf(), key);
+                    leaf::remove(sizer, *buf.buf(), key);
                 } else {
                      // operate() told us to delete a value (update_needed && !the_value), but the
                      // key wasn't in the node (!key_found && !expired), so we do nothing.
