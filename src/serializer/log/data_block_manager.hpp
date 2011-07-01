@@ -165,7 +165,6 @@ private:
     log_serializer_t *serializer;
 
     direct_file_t* dbfile;
-    // XXX (rntz) are these necessary/used?
     boost::scoped_ptr<file_t::account_t> gc_io_account_nice;
     boost::scoped_ptr<file_t::account_t> gc_io_account_high;
     file_t::account_t *choose_gc_io_account();
@@ -320,9 +319,6 @@ private:
     };
 
     void on_gc_write_done();
-
-    // XXX (rntz) is this necessary/used?
-    void on_lock_available();
 
     enum gc_step {
         gc_reconstruct, /* reconstructing on startup */

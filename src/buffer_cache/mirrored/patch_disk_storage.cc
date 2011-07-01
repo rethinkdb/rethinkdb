@@ -59,7 +59,7 @@ patch_disk_storage_t::patch_disk_storage_t(mc_cache_t &_cache, block_id_t start_
             return;
 
         // Determine which blocks are alive
-        block_is_empty.resize(number_of_blocks); // XXX (rntz) check for additional argument (should be false)
+        block_is_empty.resize(number_of_blocks, false);
         for (block_id_t current_block = first_block; current_block < first_block + number_of_blocks; ++current_block) {
             block_is_empty[current_block - first_block] = cache.serializer->get_delete_bit(current_block);
         }

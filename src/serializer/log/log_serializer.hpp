@@ -62,7 +62,6 @@ class log_serializer_t :
     private lba_index_t::shutdown_callback_t
 {
     friend struct ls_block_writer_t;
-    // friend struct ls_write_fsm_t; // XXX (rntz) remove if unnecessary
     friend struct ls_read_fsm_t;
     friend struct ls_start_new_fsm_t;
     friend struct ls_start_existing_fsm_t;
@@ -127,7 +126,6 @@ public:
     void unregister_read_ahead_cb(read_ahead_callback_t *cb);
     block_id_t max_block_id();
     repli_timestamp get_recency(block_id_t id);
-    // bool block_in_use(block_id_t id); // XXX (rntz) remove if unused
 
     bool get_delete_bit(block_id_t id);
     boost::shared_ptr<block_token_t> index_read(block_id_t block_id);

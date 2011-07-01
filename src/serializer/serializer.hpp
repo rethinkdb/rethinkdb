@@ -212,15 +212,7 @@ public:
             return write_t(block_id_, true, recency_, true, buf_, write_empty_deleted_block_, callback_);
         }
 
-        friend class translator_serializer_t; // XXX (rntz) is this necessary?
-
     private:
-        // XXX (rntz) remove this, it should be unnecessary
-        // static write_t make_internal(block_id_t block_id_, const void *buf_, write_block_callback_t *callback_) {
-        //     // The recency_specified field is false, hence the repli_timestamp::invalid value.
-        //     return write_t(block_id_, false, repli_timestamp::invalid, true, buf_, true, callback_, false);
-        // }
-
         write_t(block_id_t block_id_, bool recency_specified_, repli_timestamp recency_, bool buf_specified_,
                 const void *buf_, bool write_empty_deleted_block_, write_block_callback_t *callback_)
             : block_id(block_id_), recency_specified(recency_specified_), buf_specified(buf_specified_)

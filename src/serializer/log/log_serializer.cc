@@ -545,15 +545,6 @@ block_id_t log_serializer_t::max_block_id() {
     
     return lba_index->end_block_id();
 }
-
-// XXX (rntz) remove if unused
-// bool log_serializer_t::block_in_use(block_id_t id) {
-//     // State is state_shutting_down if we're called from the data block manager during a GC
-//     // during shutdown.
-//     rassert(state == state_ready || state == state_shutting_down);
-//     assert_thread();
-//     return !(lba_index->get_block_offset(id).parts.is_delete);
-// }
     
 boost::shared_ptr<serializer_t::block_token_t> log_serializer_t::index_read(block_id_t block_id) {
     pm_serializer_index_reads++;

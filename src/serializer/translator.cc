@@ -234,11 +234,6 @@ translator_serializer_t::block_write(const void *buf, file_t::account_t *io_acco
     return boost::shared_ptr<block_token_t>();
 }
 
-// XXX (rntz) necessary?
-// bool translator_serializer_t::do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, serializer_t::read_callback_t *callback) {
-//     return inner->do_read(translate_block_id(block_id), buf, io_account, callback);
-// }
-
 void translator_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account) {
     return inner->block_read(token, buf, io_account);
 }
@@ -265,28 +260,6 @@ struct write_fsm_t : public serializer_t::write_txn_callback_t, public serialize
         }
     }
 };
-
-// XXX (rntz) necessary?
-// bool translator_serializer_t::do_write(write_t *writes, int num_writes, file_t::account_t *io_account, serializer_t::write_txn_callback_t *callback, serializer_t::write_tid_callback_t *tid_callback) {
-//     write_fsm_t *fsm = new write_fsm_t();
-//     fsm->cb = callback;
-//     fsm->tid_cb = tid_callback;
-//     for (int i = 0; i < num_writes; i++) {
-// <<<<<<< HEAD
-//         fsm->writes.push_back(serializer_t::write_t(translate_block_id(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
-//                                                 writes[i].buf_specified, writes[i].buf, writes[i].write_empty_deleted_block, writes[i].callback, writes[i].assign_transaction_id));
-// =======
-//         fsm->writes.push_back(serializer_t::write_t(xlate(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
-//                                                 writes[i].buf_specified, writes[i].buf, writes[i].write_empty_deleted_block, writes[i].callback));
-// >>>>>>> daniel_serializer_snapshots
-//     }
-//     if (inner->do_write(fsm->writes.data(), num_writes, io_account, fsm, fsm)) {
-//         delete fsm;
-//         return true;
-//     } else {
-//         return false;
-//     }
-// }
 
 block_size_t translator_serializer_t::get_block_size() {
     return inner->get_block_size();

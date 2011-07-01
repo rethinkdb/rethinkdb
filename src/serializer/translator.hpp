@@ -117,7 +117,6 @@ public:
     void *clone(void*);
     void free(void *ptr);
 
-    // XXX (rntz) remove if unused, but it's probably not
     /* Allocates a new io account for the underlying file */
     file_t::account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
 
