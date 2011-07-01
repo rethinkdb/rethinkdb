@@ -1,6 +1,7 @@
 #include "protocol/protocol.hpp"
 #include "protocol/memcached/tcp_conn.hpp"
 #include "protocol/memcached2/memcached_proto.hpp"
+#include "protocol/redis/redis_proto.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "db_thread_info.hpp"
 #include "perfmon.hpp"
@@ -16,6 +17,7 @@ protocol_listener_t::protocol_listener_t(int port, get_store_t *get_store, set_s
         serve_func = serve_memcache;
         break;
     case 6379: // Default redis port
+        serve_func = serve_redis;
         break;
     default: // Default to memcached
         serve_func = serve_memcache2;

@@ -9,8 +9,8 @@ struct memcached_interface_t {
     memcached_interface_t(tcp_conn_t *conn, get_store_t *get_store, set_store_interface_t *set_store);
     ~memcached_interface_t();
 
-    void do_get(std::string &key);
-    void do_set(std::string &key, unsigned flags, unsigned expiration, std::vector<char> &data);
+    void do_get(std::vector<char> &key);
+    void do_set(std::vector<char> &key, unsigned flags, unsigned expiration, std::vector<char> &data);
  
 private:
     get_store_t *get_store;
