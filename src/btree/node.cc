@@ -38,7 +38,8 @@ int nodecmp(const node_t *node1, const node_t *node2) {
 
 void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key_t *median) {
     if (is_leaf(reinterpret_cast<const node_t *>(node_buf.get_data_read()))) {
-        leaf::split(block_size, node_buf, rnode_buf, median);
+        memcached_value_sizer_t sizer(block_size);
+        leaf::split(&sizer, node_buf, rnode_buf, median);
     } else {
         internal_node::split(block_size, node_buf, rnode_buf, median);
     }
@@ -46,7 +47,8 @@ void split(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key
 
 void merge(block_size_t block_size, const node_t *node, buf_t &rnode_buf, btree_key_t *key_to_remove, const internal_node_t *parent) {
     if (is_leaf(node)) {
-        leaf::merge(block_size, reinterpret_cast<const leaf_node_t *>(node), rnode_buf, key_to_remove);
+        memcached_value_sizer_t sizer(block_size);
+        leaf::merge(&sizer, reinterpret_cast<const leaf_node_t *>(node), rnode_buf, key_to_remove);
     } else {
         internal_node::merge(block_size, reinterpret_cast<const internal_node_t *>(node), rnode_buf, key_to_remove, parent);
     }
@@ -54,7 +56,8 @@ void merge(block_size_t block_size, const node_t *node, buf_t &rnode_buf, btree_
 
 bool level(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key_t *key_to_replace, btree_key_t *replacement_key, const internal_node_t *parent) {
     if (is_leaf(reinterpret_cast<const node_t *>(node_buf.get_data_read()))) {
-        return leaf::level(block_size, node_buf, rnode_buf, key_to_replace, replacement_key);
+        memcached_value_sizer_t sizer(block_size);
+        return leaf::level(&sizer, node_buf, rnode_buf, key_to_replace, replacement_key);
     } else {
         return internal_node::level(block_size, node_buf, rnode_buf, key_to_replace, replacement_key, parent);
     }
@@ -71,7 +74,8 @@ void print(const node_t *node) {
 void validate(UNUSED block_size_t block_size, UNUSED const node_t *node) {
 #ifndef NDEBUG
     if (node->magic == leaf_node_t::expected_magic) {
-        leaf::validate(block_size, reinterpret_cast<const leaf_node_t *>(node));
+        memcached_value_sizer_t sizer(block_size);
+        leaf::validate(&sizer, reinterpret_cast<const leaf_node_t *>(node));
     } else if (node->magic == internal_node_t::expected_magic) {
         internal_node::validate(block_size, reinterpret_cast<const internal_node_t *>(node));
     } else {
