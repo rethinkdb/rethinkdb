@@ -35,6 +35,8 @@ void insert_root(block_id_t root_id, buf_lock_t& sb_buf) {
 // split internal nodes proactively).
 void check_and_handle_split(transaction_t *txn, buf_lock_t& buf, buf_lock_t& last_buf, buf_lock_t& sb_buf,
                             const btree_key_t *key, btree_value_t *new_value, block_size_t block_size) {
+    memcached_value_sizer_t sizer(block_size);
+
     txn->assert_thread();
 
     const node_t *node = reinterpret_cast<const node_t *>(buf->get_data_read());
@@ -42,7 +44,7 @@ void check_and_handle_split(transaction_t *txn, buf_lock_t& buf, buf_lock_t& las
     // If the node isn't full, we don't need to split, so we're done.
     if (node::is_leaf(node)) { // This should only be called when update_needed.
         rassert(new_value);
-        if (!leaf::is_full(txn->get_cache()->get_block_size(), reinterpret_cast<const leaf_node_t *>(node), key, new_value)) return;
+        if (!leaf::is_full(&sizer, reinterpret_cast<const leaf_node_t *>(node), key, reinterpret_cast<value_type_t *>(new_value))) return;
     } else {
         rassert(!new_value);
         if (!internal_node::is_full(reinterpret_cast<const internal_node_t *>(node))) return;
@@ -152,7 +154,8 @@ void get_root(transaction_t *txn, buf_lock_t& sb_buf, block_size_t block_size, b
         buf_out->swap(tmp);
     } else {
         buf_out->allocate(txn);
-        leaf::init(block_size, *buf_out->buf(), timestamp);
+        memcached_value_sizer_t sizer(block_size);
+        leaf::init(&sizer, *buf_out->buf(), timestamp);
         insert_root(buf_out->buf()->get_block_id(), sb_buf);
     }
 }
@@ -218,8 +221,9 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
             buf.swap(last_buf);
         }
 
+        memcached_value_sizer_t sizer(block_size);
         // We've gone down the tree and gotten to a leaf. Now look up the key.
-        bool key_found = leaf::lookup(block_size, reinterpret_cast<const leaf_node_t *>(buf->get_data_read()), key, the_value.get());
+        bool key_found = leaf::lookup(&sizer, reinterpret_cast<const leaf_node_t *>(buf->get_data_read()), key, reinterpret_cast<value_type_t *>(the_value.get()));
 
         bool expired = key_found && the_value->expired();
         if (expired) key_found = false;
@@ -255,7 +259,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
 
                 repli_timestamp new_value_timestamp = castime.timestamp;
 
-                bool success = leaf::insert(block_size, *buf.buf(), key, the_value.get(), new_value_timestamp);
+                bool success = leaf::insert(&sizer, *buf.buf(), key, reinterpret_cast<value_type_t *>(the_value.get()), new_value_timestamp);
                 guarantee(success, "could not insert leaf btree node");
             } else { // Delete the value if it's there.
                 if (key_found || expired) {
