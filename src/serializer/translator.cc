@@ -215,9 +215,11 @@ file_t::account_t *translator_serializer_t::make_io_account(int priority, int ou
     return inner->make_io_account(priority, outstanding_requests_limit);
 }
 
-// XXX (rntz) implement this!
 void translator_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_t::account_t *io_account) {
-    not_implemented(""); (void) write_ops; (void) io_account;
+    std::vector<index_write_op_t> translated_ops(write_ops);
+    for (std::vector<index_write_op_t>::iterator it = translated_ops.begin(); it < translated_ops.end(); ++it)
+        it->block_id = translate_block_id(it->block_id);
+    inner->index_write(translated_ops, io_account);
 }
 
 // XXX (rntz) implement this!
