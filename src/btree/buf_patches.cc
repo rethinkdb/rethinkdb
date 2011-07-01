@@ -4,6 +4,10 @@
 
 
 
+
+
+
+
 leaf_shift_pairs_patch_t::leaf_shift_pairs_patch_t(const block_id_t block_id, const patch_counter_t patch_counter, const uint16_t offset, const uint16_t shift) :
             buf_patch_t(block_id, patch_counter, buf_patch_t::OPER_LEAF_SHIFT_PAIRS),
             offset(offset),
@@ -112,7 +116,11 @@ size_t leaf_insert_pair_patch_t::get_affected_data_size() const {
 }
 
 void leaf_insert_pair_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
+    // When we have more than one kind of leaf node sizer, we can look
+    // at the leaf buf's magic value to decide what kind of sizer to
+    // create.
     memcached_value_sizer_t sizer(bs);
+
     leaf::impl::insert_pair(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<const value_type_t *>(value_buf), reinterpret_cast<btree_key_t *>(key_buf));
 }
 
@@ -194,6 +202,9 @@ size_t leaf_insert_patch_t::get_affected_data_size() const {
 }
 
 void leaf_insert_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
+    // When we have more than one kind of leaf node sizer, we can look
+    // at the leaf buf's magic value to decide what kind of sizer to
+    // create.
     memcached_value_sizer_t sizer(bs);
     leaf::insert(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf), reinterpret_cast<value_type_t *>(value_buf), insertion_time);
 }
@@ -258,6 +269,9 @@ size_t leaf_remove_patch_t::get_affected_data_size() const {
 }
 
 void leaf_remove_patch_t::apply_to_buf(char* buf_data, block_size_t bs) {
+    // When we have more than one kind of leaf node sizer, we can look
+    // at the leaf buf's magic value to decide what kind of sizer to
+    // create.
     memcached_value_sizer_t sizer(bs);
     leaf::remove(&sizer, reinterpret_cast<leaf_node_t *>(buf_data), reinterpret_cast<btree_key_t *>(key_buf));
 }
