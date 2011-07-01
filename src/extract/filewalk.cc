@@ -282,7 +282,8 @@ bool recover_basic_block_consistency(const cfg_t cfg, void *buf) {
             for (int j = 0; j < num_pairs; ++j) {
                 uint16_t pair_offset = leaf->pair_offsets[j];
                 btree_leaf_pair *pair = leaf::get_pair_by_index(leaf, j);
-                if (!leaf_pair_fits(cfg.block_size(), pair, (signed int)cfg.block_size().value() - (signed int)pair_offset)) {
+                memcached_value_sizer_t sizer(cfg.block_size());
+                if (!leaf_pair_fits(&sizer, pair, (signed int)cfg.block_size().value() - (signed int)pair_offset)) {
                     logERR("A pair juts off the end of the block. Truncating pair.\n");
                     pair->key.size = 0;
                     memset(pair->value(), 0, 2);
@@ -390,13 +391,14 @@ private:
 
 // Dumps the values for a given pair.
 void dump_pair_value(dumper_t &dumper, UNUSED nondirect_file_t& file, const cfg_t& cfg, UNUSED const std::map<size_t, off64_t>& offsets, const btree_leaf_pair *pair, block_id_t this_block, int pair_size_limiter) {
-    if (pair_size_limiter < 0 || !leaf_pair_fits(cfg.block_size(), pair, pair_size_limiter)) {
+    memcached_value_sizer_t sizer(cfg.block_size());
+    if (pair_size_limiter < 0 || !leaf_pair_fits(&sizer, pair, pair_size_limiter)) {
         logERR("(In block %u) A pair juts off the end of the block.\n", this_block);
         return;
     }
 
     const btree_key_t *key = &pair->key;
-    const btree_value_t *value = pair->value();
+    const btree_value_t *value = reinterpret_cast<const btree_value_t *>(pair->value());
 
     mcflags_t flags = value->mcflags();
     exptime_t exptime = value->exptime();

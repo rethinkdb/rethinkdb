@@ -351,13 +351,13 @@ bool is_full(value_sizer_t *sizer, const leaf_node_t *node, const btree_key_t *k
         node->frontmost_offset;
 }
 
-void validate(block_size_t block_size, const leaf_node_t *node) {
+void validate(value_sizer_t *sizer, const leaf_node_t *node) {
 #ifndef NDEBUG
     rassert(reinterpret_cast<const char *>(&(node->pair_offsets[node->npairs])) <= reinterpret_cast<const char *>(get_pair(node, node->frontmost_offset)));
     rassert(node->frontmost_offset > 0);
-    rassert(node->frontmost_offset <= block_size.value());
+    rassert(node->frontmost_offset <= sizer->block_size().value());
     for (int i = 0; i < node->npairs; i++) {
-        rassert(node->pair_offsets[i] < block_size.value());
+        rassert(node->pair_offsets[i] < sizer->block_size().value());
         rassert(node->pair_offsets[i] >= node->frontmost_offset);
     }
 #else

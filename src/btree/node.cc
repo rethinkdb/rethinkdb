@@ -65,7 +65,8 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &rnode_buf, btree_key
 
 void print(const node_t *node) {
     if (is_leaf(node)) {
-        leaf::print(reinterpret_cast<const leaf_node_t *>(node));
+        // No such function exists.
+        //        leaf::print(reinterpret_cast<const leaf_node_t *>(node));
     } else {
         internal_node::print(reinterpret_cast<const internal_node_t *>(node));
     }

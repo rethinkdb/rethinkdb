@@ -28,7 +28,7 @@ struct btree_leaf_pair {
     }
 };
 
-bool leaf_pair_fits(block_size_t bs, const btree_leaf_pair *pair, size_t size);
+bool leaf_pair_fits(value_sizer_t *sizer, const btree_leaf_pair *pair, size_t size);
 
 class leaf_key_comp;
 
@@ -46,7 +46,7 @@ bool insert(value_sizer_t *sizer, buf_t &node_buf, const btree_key_t *key, const
 void insert(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, const value_type_t *value, repli_timestamp insertion_time); // For use by the corresponding patch
 
 // Assumes key is contained inside the node.
-void remove(block_size_t block_size, buf_t &node_buf, const btree_key_t *key);
+void remove(value_sizer_t *block_size, buf_t &node_buf, const btree_key_t *key);
 void remove(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key); // For use by the corresponding patch
 
 // Initializes rnode with the greater half of node, copying the

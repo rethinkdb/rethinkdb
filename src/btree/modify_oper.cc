@@ -263,7 +263,7 @@ void run_btree_modify_oper(btree_modify_oper_t *oper, btree_slice_t *slice, cons
                 guarantee(success, "could not insert leaf btree node");
             } else { // Delete the value if it's there.
                 if (key_found || expired) {
-                    leaf::remove(block_size, *buf.buf(), key);
+                    leaf::remove(&sizer, *buf.buf(), key);
                 } else {
                      // operate() told us to delete a value (update_needed && !the_value), but the
                      // key wasn't in the node (!key_found && !expired), so we do nothing.
