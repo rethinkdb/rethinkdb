@@ -1,9 +1,10 @@
 #include "serializer/log/lba/in_memory_index.hpp"
+#include "disk_format.hpp"
+#include "in_memory_index.hpp"
 
 in_memory_index_t::in_memory_index_t() { }
 
-
-block_id_t in_memory_index_t::max_block_id() {
+block_id_t in_memory_index_t::end_block_id() {
     return blocks.get_size();
 }
 

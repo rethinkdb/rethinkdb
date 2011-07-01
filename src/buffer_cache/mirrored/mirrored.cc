@@ -1,3 +1,5 @@
+#include <boost/smart_ptr/shared_ptr.hpp>
+
 #include "buffer_cache/mirrored/mirrored.hpp"
 #include "buffer_cache/stats.hpp"
 #include "mirrored.hpp"
@@ -38,7 +40,7 @@ void mc_inner_buf_t::load_inner_buf(bool should_lock, file_t::account_t *io_acco
     }
 
     // Read the transaction id
-    transaction_id = cache->serializer->get_current_transaction_id(block_id, data);
+    block_sequence_id = cache->serializer->get_block_sequence_id(block_id, data);
 
     replay_patches();
 
@@ -66,11 +68,13 @@ struct load_buf_fsm_t : public thread_message_t, serializer_t::read_callback_t {
     void on_thread_switch() {
         if (!have_loaded) {
             inner_buf->subtree_recency = inner_buf->cache->serializer->get_recency(inner_buf->block_id);
+            // TODO! Actually setting data_token currently makes stuff crash :-(
+            //inner_buf->data_token = inner_buf->cache->serializer->index_read(inner_buf->block_id); // TODO: Merge this initialization with the read itself eventually
             if (inner_buf->cache->serializer->do_read(inner_buf->block_id, inner_buf->data, io_account_, this))
                 on_serializer_read();
         } else {
-            // Read the transaction id
-            inner_buf->transaction_id = inner_buf->cache->serializer->get_current_transaction_id(inner_buf->block_id, inner_buf->data);
+            // Read the block sequence id
+            inner_buf->block_sequence_id = inner_buf->cache->serializer->get_block_sequence_id(inner_buf->block_id, inner_buf->data);
 
             inner_buf->replay_patches();
 
@@ -102,7 +106,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
-      transaction_id(NULL_SER_TRANSACTION_ID) {
+      block_sequence_id(NULL_SER_BLOCK_SEQUENCE_ID) {
 
     rassert(version_id != faux_version_id);
 
@@ -120,6 +124,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, bool should_
     // pm_n_blocks_in_memory gets incremented in cases where
     // should_load == false, because currently we're still mallocing
     // the buffer.
+    // TODO: ^this appears to be false (see data(should_load ? cache->serializer->mallc() : NULL) above)
     pm_n_blocks_in_memory++;
     refcount++; // Make the refcount nonzero so this block won't be considered safe to unload.
 
@@ -142,7 +147,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
-      transaction_id(NULL_SER_TRANSACTION_ID) {
+      block_sequence_id(NULL_SER_BLOCK_SEQUENCE_ID) {
 
     rassert(version_id != faux_version_id);
 
@@ -151,10 +156,12 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, void *buf, r
     cache->page_repl.make_space(1);
     refcount--;
 
-    // Read the transaction id
-    transaction_id = cache->serializer->get_current_transaction_id(block_id, data);
-
+    // Read the block sequence id
+    block_sequence_id = cache->serializer->get_block_sequence_id(block_id, data);
+    
     replay_patches();
+
+    // TODO: This should initialize data_token at some point. That however requires switching to the serializer thread and we cannot afford that here, except if we lock. Maybe read ahead should pass the token through to here.
 }
 
 mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_version, repli_timestamp recency_timestamp) {
@@ -186,7 +193,8 @@ mc_inner_buf_t *mc_inner_buf_t::allocate(cache_t *cache, version_id_t snapshot_v
         inner_buf->next_patch_counter = 1;
         inner_buf->write_empty_deleted_block = false;
         inner_buf->cow_refcount = 0;
-        inner_buf->transaction_id = NULL_SER_TRANSACTION_ID;
+        inner_buf->block_sequence_id = NULL_SER_BLOCK_SEQUENCE_ID;
+        inner_buf->data_token.reset();
 
         return inner_buf;
     }
@@ -210,7 +218,7 @@ mc_inner_buf_t::mc_inner_buf_t(cache_t *cache, block_id_t block_id, version_id_t
       writeback_buf(this),
       page_repl_buf(this),
       page_map_buf(this),
-      transaction_id(NULL_SER_TRANSACTION_ID)
+      block_sequence_id(NULL_SER_BLOCK_SEQUENCE_ID)
 {
     rassert(version_id != faux_version_id);
     cache->assert_thread();
@@ -253,7 +261,7 @@ void mc_inner_buf_t::replay_patches() {
         // TODO: Perhaps there is a problem if the question of whether
         // we can call filter_applied_patches depends on whether the
         // block id is already in the patch_memory_storage.
-        cache->patch_memory_storage.filter_applied_patches(block_id, transaction_id);
+        cache->patch_memory_storage.filter_applied_patches(block_id, block_sequence_id);
     }
     // All patches that currently exist must have been materialized out of core...
     writeback_buf.last_patch_materialized = cache->patch_memory_storage.last_patch_materialized_or_zero(block_id);
@@ -267,7 +275,8 @@ void mc_inner_buf_t::replay_patches() {
 
 bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
     cache->assert_thread();
-    rassert(snapshots.size() == 0 || snapshots.front().snapshotted_version <= version_id);  // you can get snapshotted_version == version_id due to copy-on-write doing the snapshotting
+    // we can get snapshotted_version == version_id due to copy-on-write doing the snapshotting
+    rassert(snapshots.size() == 0 || snapshots.front()->snapshotted_version <= version_id);
 
     // all snapshot txns such that
     //   inner_version <= snapshot_txn->version_id < new_version
@@ -292,22 +301,31 @@ bool mc_inner_buf_t::snapshot_if_needed(version_id_t new_version) {
         num_snapshots_affected = cache->register_snapshotted_block(this, data, version_id, new_version);
     }
 
-    size_t refcount = num_snapshots_affected + cow_refcount;
-    if (refcount > 0) {
-        snapshots.push_front(buf_snapshot_info_t(data, version_id, refcount));
-        cow_refcount = 0;
-        return true;
+    // check whether snapshot refcount is > 0
+    if (0 == num_snapshots_affected + cow_refcount)
+        return false;           // no snapshot necessary
+
+    // Pick a snapshotting strategy
+    if (data_token) {
+        // We have an up-to-date token, so we can later read the snapshot from disk
+        snapshots.push_front(new on_disk_snapshot_t(version_id, num_snapshots_affected, cache->serializer, data_token));
     } else {
-        return false;
+        // Ok, let's just keep it in memory for now
+        // TODO: Maybe write it to disk instead and then delete the old in-memory buffer?
+        snapshots.push_front(new in_memory_snapshot_t(version_id, num_snapshots_affected, cache->serializer, data));
     }
+    cow_refcount = 0;
+    return true;
 }
 
 void mc_inner_buf_t::release_snapshot(void *data) {
     for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); ++it) {
-        buf_snapshot_info_t& snap = *it;
-        if (snap.data == data) {
-            if (--snap.refcount == 0) {
-                cache->serializer->free(data);
+        buf_snapshot_info_t* snap = *it;
+        // !TODO (rntz) is this guaranteed to release the snapshot if it is appropriate?
+        // what if data == NULL?
+        if (snap->get_data_if_available() == data) {
+            if (--snap->refcount == 0) {
+                delete snap;
                 snapshots.erase(it);
             }
             return;
@@ -328,20 +346,21 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
     : mode(mode), non_locking_access(false), inner_buf(inner_buf), data(NULL)
 {
     inner_buf->cache->assert_thread();
+    inner_buf->refcount++;
     patches_affected_data_size_at_start = -1;
+
+    if (snapshotted) rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
 
     // If the top version is less or equal to version_to_access, then we need to acquire
     // a read lock first (otherwise we may get the data of the unfinished write on top).
     if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
-        rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
-        inner_buf->refcount++;
+        // we're accessing a snapshotted block, no need to lock
         acquire_block(false, version_to_access, snapshotted);
+        // we never needed to get in line, so just call the function straight-up to ensure it gets called.
         if (call_when_in_line) call_when_in_line();
 
     } else {
-        // the top version is the right one for us
-        inner_buf->refcount++;
-
+        // the top version is the right one for us; acquire a lock of the appropriate type first
         pm_bufs_acquiring.begin(&start_time);
         inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
         pm_bufs_acquiring.end(&start_time);
@@ -353,8 +372,8 @@ mc_buf_t::mc_buf_t(mc_inner_buf_t *inner_buf, access_t mode, mc_inner_buf_t::ver
 void *mc_inner_buf_t::get_snapshot_data(version_id_t version_to_access) {
     rassert(version_to_access != mc_inner_buf_t::faux_version_id);
     for (snapshot_data_list_t::iterator it = snapshots.begin(); it != snapshots.end(); it++) {
-        if ((*it).snapshotted_version <= version_to_access) {
-            return (*it).data;
+        if ((*it)->snapshotted_version <= version_to_access) {
+            return (*it)->get_data();
         }
     }
     return NULL;
@@ -366,9 +385,11 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
     mc_inner_buf_t::version_id_t inner_version = inner_buf->version_id;
     // In case we don't have received a version yet (i.e. this is the first block we are acquiring, just access the most recent version)
     if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id) {
+        // FIXME (rntz) needs to be updated for written-to-disk snapshotted blocks
         data = inner_version <= version_to_access ? inner_buf->data : inner_buf->get_snapshot_data(version_to_access);
         guarantee(data != NULL);
     } else {
+        // we want the most recent version
         rassert(!inner_buf->do_delete);
 
         switch (mode) {
@@ -382,16 +403,23 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
                 ++inner_buf->cow_refcount;
                 data = inner_buf->data;
                 rassert(data != NULL);
+                // unlock the buffer now that we have established a COW reference to it so that
+                // writers can overwrite it. we know we have locked the buffer because !(snapshotted
+                // && version_to_access != faux_version_id) and therefore mc_buf_t() locked it
+                // before calling us.
                 inner_buf->lock.unlock();
                 break;
             }
             case rwi_write: {
+                // FIXME (rntz) is it valid for version_to_access to be anything /other/ than
+                // faux_version_id? it looks like it might happen if called from
+                // transaction_t::allocate()
                 if (version_to_access == mc_inner_buf_t::faux_version_id)
                     version_to_access = inner_buf->cache->get_current_version_id();
-
                 rassert(inner_version <= version_to_access);
 
                 bool snapshotted = inner_buf->snapshot_if_needed(version_to_access);
+                // XXX (rntz) why are we doing this instead of inner_buf doing it itself?
                 if (snapshotted)
                     inner_buf->data = inner_buf->cache->serializer->clone(inner_buf->data);
 
@@ -418,7 +446,7 @@ void mc_buf_t::acquire_block(bool locked, mc_inner_buf_t::version_id_t version_t
         }
     }
 
-    version_to_access = mc_inner_buf_t::faux_version_id;
+    version_to_access = mc_inner_buf_t::faux_version_id; // FIXME (rntz) this is a nop
 
     pm_bufs_held.begin(&start_time);
 
@@ -439,9 +467,11 @@ void mc_buf_t::apply_patch(buf_patch_t *patch) {
 
     patch->apply_to_buf((char*)data);
     inner_buf->writeback_buf.set_dirty();
+    // Invalidate the token
+    inner_buf->data_token.reset();
 
-    // We cannot accept patches for blocks without a valid transaction id (newly allocated blocks)
-    if (inner_buf->transaction_id == NULL_SER_TRANSACTION_ID) {
+    // We cannot accept patches for blocks without a valid block sequence id (namely newly allocated blocks, they have to be written to disk at least once)
+    if (inner_buf->block_sequence_id == NULL_SER_BLOCK_SEQUENCE_ID) {
         ensure_flush();
     }
 
@@ -474,6 +504,9 @@ void *mc_buf_t::get_data_major_write() {
     rassert(data, "Probably tried to write to a buffer acquired with !should_load.");
 
     inner_buf->assert_thread();
+
+    // Invalidate the token
+    inner_buf->data_token.reset();
 
     ensure_flush();
 
@@ -542,7 +575,7 @@ void mc_buf_t::set_data(void *dest, const void *src, size_t n) {
         memcpy(dest, src, n);
     } else {
         size_t offset = reinterpret_cast<uint8_t *>(dest) - reinterpret_cast<uint8_t *>(data);
-        // transaction ID will be set later...
+        // block_sequence ID will be set later...
         apply_patch(new memcpy_patch_t(inner_buf->block_id, get_next_patch_counter(), offset, reinterpret_cast<const char *>(src), n));
     }
 }
@@ -563,7 +596,7 @@ void mc_buf_t::move_data(void *dest, const void *src, const size_t n) {
     } else {
         size_t dest_offset = reinterpret_cast<uint8_t *>(dest) - reinterpret_cast<uint8_t *>(data);
         size_t src_offset = reinterpret_cast<const uint8_t *>(src) - reinterpret_cast<uint8_t *>(data);
-        // transaction ID will be set later...
+        // tblock_sequence ID will be set later...
         apply_patch(new memmove_patch_t(inner_buf->block_id, get_next_patch_counter(), dest_offset, src_offset, n));
     }
 }
@@ -756,6 +789,7 @@ mc_buf_t *mc_transaction_t::allocate() {
 mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
                                     boost::function<void()> call_when_in_line, bool should_load) {
     rassert(block_id != NULL_BLOCK_ID);
+    // XXX (rntz) this assert is always true; remove it.
     rassert(is_read_mode(mode) || access != rwi_read); // TODO: What is the meaning of this assert?!?
     rassert(should_load || access == rwi_write);
     assert_thread();
@@ -763,10 +797,16 @@ mc_buf_t *mc_transaction_t::acquire(block_id_t block_id, access_t mode,
     inner_buf_t *inner_buf = cache->find_buf(block_id);
     if (!inner_buf) {
         /* The buf isn't in the cache and must be loaded from disk */
+        // We are either not snapshotted or our snapshot is consistent with the latest version;
+        // otherwise, the inner buf would be around to keep track of the snapshotted version. Thus,
+        // it is not wasteful to load the latest version if should_load is true.
         inner_buf = new inner_buf_t(cache, block_id, should_load, get_io_account());
     } else {
+        // TODO (rntz) this seems like something that should be handled by buf_t.
         rassert(!inner_buf->do_delete || snapshotted);
 
+        // ensures the inner buf's data is loaded if should_load is true
+        // FIXME (rntz) this overeagerly loads the latest version when we need a snapshotted version
         if (!inner_buf->data && should_load && !inner_buf->do_delete) {
             // The inner_buf doesn't have any data currently. We need the data though,
             // so load it!

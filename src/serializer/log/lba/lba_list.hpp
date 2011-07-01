@@ -38,10 +38,10 @@ public:
 public:
     flagged_off64_t get_block_offset(block_id_t block);
     repli_timestamp get_block_recency(block_id_t block);
-    
+
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
     that block ID. */
-    block_id_t max_block_id();
+    block_id_t end_block_id();
     
 #ifndef NDEBUG
     bool is_extent_referenced(off64_t offset);
@@ -50,8 +50,8 @@ public:
 #endif
     
 public:
-    void set_block_offset(block_id_t block, repli_timestamp recency,
-                          flagged_off64_t offset, file_t::account_t *io_account);
+    void set_block_info(block_id_t block, repli_timestamp recency,
+                        flagged_off64_t offset, file_t::account_t *io_account);
 
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;

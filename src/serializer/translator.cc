@@ -12,6 +12,8 @@
     (proxy_id / n_files))).
 */
 
+// FIXME (rntz) does not appear to contain index_write() or block_write() implementations
+
 const block_magic_t multiplexer_config_block_t::expected_magic = { { 'c','f','g','_' } };
 
 void prep_serializer(
@@ -213,12 +215,40 @@ file_t::account_t *translator_serializer_t::make_io_account(int priority, int ou
     return inner->make_io_account(priority, outstanding_requests_limit);
 }
 
-bool translator_serializer_t::do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, serializer_t::read_callback_t *callback) {
-    return inner->do_read(translate_block_id(block_id), buf, io_account, callback);
+// XXX (rntz) implement this!
+void translator_serializer_t::index_write(const std::vector<index_write_op_t*>& write_ops, file_t::account_t *io_account) {
+    not_implemented(""); (void) write_ops; (void) io_account;
 }
 
-ser_transaction_id_t translator_serializer_t::get_current_transaction_id(block_id_t block_id, const void* buf) {
-    return inner->get_current_transaction_id(translate_block_id(block_id), buf);
+// XXX (rntz) implement this!
+boost::shared_ptr<serializer_t::block_token_t>
+translator_serializer_t::block_write(const void *buf, block_id_t block_id, file_t::account_t *io_account, iocallback_t *cb) {
+    not_implemented(""); (void) buf; (void) block_id; (void) io_account; (void) cb;
+    return boost::shared_ptr<block_token_t>();
+}
+
+// XXX (rntz) implement this!
+boost::shared_ptr<serializer_t::block_token_t>
+translator_serializer_t::block_write(const void *buf, file_t::account_t *io_account, iocallback_t *cb) {
+    not_implemented(""); (void) buf; (void) io_account; (void) cb;
+    return boost::shared_ptr<block_token_t>();
+}
+
+// XXX (rntz) necessary?
+// bool translator_serializer_t::do_read(block_id_t block_id, void *buf, file_t::account_t *io_account, serializer_t::read_callback_t *callback) {
+//     return inner->do_read(translate_block_id(block_id), buf, io_account, callback);
+// }
+
+void translator_serializer_t::block_read(boost::shared_ptr<block_token_t> token, void *buf, file_t::account_t *io_account) {
+    return inner->block_read(token, buf, io_account);
+}
+
+boost::shared_ptr<serializer_t::block_token_t> translator_serializer_t::index_read(block_id_t block_id) {
+    return inner->index_read(translate_block_id(block_id));
+}
+
+ser_block_sequence_id_t translator_serializer_t::get_block_sequence_id(block_id_t block_id, const void* buf) {
+    return inner->get_block_sequence_id(translate_block_id(block_id), buf);
 }
 
 struct write_fsm_t : public serializer_t::write_txn_callback_t, public serializer_t::write_tid_callback_t {
@@ -236,22 +266,27 @@ struct write_fsm_t : public serializer_t::write_txn_callback_t, public serialize
     }
 };
 
-bool translator_serializer_t::do_write(write_t *writes, int num_writes, file_t::account_t *io_account, serializer_t::write_txn_callback_t *callback, serializer_t::write_tid_callback_t *tid_callback) {
-    write_fsm_t *fsm = new write_fsm_t();
-    fsm->cb = callback;
-    fsm->tid_cb = tid_callback;
-    for (int i = 0; i < num_writes; i++) {
-        fsm->writes.push_back(serializer_t::write_t(translate_block_id(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
-                                                writes[i].buf_specified, writes[i].buf, writes[i].write_empty_deleted_block, writes[i].callback, writes[i].assign_transaction_id));
-    }
-    if (inner->do_write(fsm->writes.data(), num_writes, io_account, fsm, fsm)) {
-        delete fsm;
-        return true;
-    } else {
-        return false;
-    }
-}
-
+// XXX (rntz) necessary?
+// bool translator_serializer_t::do_write(write_t *writes, int num_writes, file_t::account_t *io_account, serializer_t::write_txn_callback_t *callback, serializer_t::write_tid_callback_t *tid_callback) {
+//     write_fsm_t *fsm = new write_fsm_t();
+//     fsm->cb = callback;
+//     fsm->tid_cb = tid_callback;
+//     for (int i = 0; i < num_writes; i++) {
+// <<<<<<< HEAD
+//         fsm->writes.push_back(serializer_t::write_t(translate_block_id(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
+//                                                 writes[i].buf_specified, writes[i].buf, writes[i].write_empty_deleted_block, writes[i].callback, writes[i].assign_transaction_id));
+// =======
+//         fsm->writes.push_back(serializer_t::write_t(xlate(writes[i].block_id), writes[i].recency_specified, writes[i].recency,
+//                                                 writes[i].buf_specified, writes[i].buf, writes[i].write_empty_deleted_block, writes[i].callback));
+// >>>>>>> daniel_serializer_snapshots
+//     }
+//     if (inner->do_write(fsm->writes.data(), num_writes, io_account, fsm, fsm)) {
+//         delete fsm;
+//         return true;
+//     } else {
+//         return false;
+//     }
+// }
 
 block_size_t translator_serializer_t::get_block_size() {
     return inner->get_block_size();
@@ -269,7 +304,7 @@ block_id_t translator_serializer_t::max_block_id() {
 
     while (x > 0) {
         --x;
-        if (block_in_use(x)) {
+        if (!get_delete_bit(x)) {
             ++x;
             break;
         }
@@ -277,13 +312,12 @@ block_id_t translator_serializer_t::max_block_id() {
     return x;
 }
 
-
-bool translator_serializer_t::block_in_use(block_id_t id) {
-    return inner->block_in_use(translate_block_id(id));
-}
-
 repli_timestamp translator_serializer_t::get_recency(block_id_t id) {
     return inner->get_recency(translate_block_id(id));
+}
+
+bool translator_serializer_t::get_delete_bit(block_id_t id) {
+    return inner->get_delete_bit(translate_block_id(id));
 }
 
 bool translator_serializer_t::offer_read_ahead_buf(block_id_t block_id, void *buf, repli_timestamp recency_timestamp) {

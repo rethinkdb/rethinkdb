@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "logger.hpp"
 #include "btree/buf_patches.hpp"
+#include "serializer/log/log_serializer.hpp" // for ls_buf_data_t
 
 // #define DEBUG_MAX_LEAF 10
 
@@ -27,7 +28,7 @@ void init(block_size_t block_size, buf_t& node_buf, repli_timestamp modification
 // TODO: maybe lnode should just supply the modification time.
 void init(block_size_t block_size, buf_t& node_buf, const leaf_node_t *lnode, const uint16_t *offsets, int numpairs, repli_timestamp modification_time) {
     leaf_node_t *node = ptr_cast<leaf_node_t>(node_buf.get_data_major_write());
-    
+
     init(block_size, node_buf, modification_time);
     for (int i = 0; i < numpairs; i++) {
         node->pair_offsets[i] = impl::insert_pair(node_buf, get_pair(lnode, offsets[i]));
@@ -245,7 +246,8 @@ bool level(block_size_t block_size, buf_t &node_buf, buf_t &sibling_buf, btree_k
     int sibling_size = block_size.value() - sibling->frontmost_offset;
 
     if (sibling_size < node_size + 2) {
-        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n", node_size, sibling_size, reinterpret_cast<const buf_data_t *>(reinterpret_cast<const char *>(node) - sizeof(buf_data_t))->block_id);
+        logWRN("leaf::level called with bad node_size %d and sibling_size %d on block id %u\n",
+               node_size, sibling_size, (reinterpret_cast<const ls_buf_data_t *>(node) - 1)->block_id);
         return false;
     }
 

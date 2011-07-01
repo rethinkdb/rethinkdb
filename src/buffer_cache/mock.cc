@@ -204,7 +204,7 @@ mock_cache_t::mock_cache_t( serializer_t *serializer, UNUSED mirrored_cache_conf
     block_id_t end_block_id = serializer->max_block_id();
     bufs.set_size(end_block_id, NULL);
     for (block_id_t i = 0; i < end_block_id; i++) {
-        if (serializer->block_in_use(i)) {
+        if (!serializer->get_delete_bit(i)) {
             internal_buf_t *internal_buf = new internal_buf_t(this, i, serializer->get_recency(i));
             bufs[i] = internal_buf;
             if (!serializer->do_read(i, internal_buf->data, DEFAULT_DISK_ACCOUNT, &read_cb)) read_cb.acquire();

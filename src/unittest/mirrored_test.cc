@@ -2,6 +2,7 @@
 #include "unittest/gtest.hpp"
 #include "unittest/server_test_helper.hpp"
 #include "unittest/unittest_utils.hpp"
+#include "serializer/log/log_serializer.hpp" // for ls_buf_data_t
 
 namespace unittest {
 
@@ -39,10 +40,10 @@ private:
 
         // create a fake buffer (be careful with populating it with data
         void *fake_buf = serializer->malloc();
-        buf_data_t *ser_data = reinterpret_cast<buf_data_t *>(fake_buf);
+        ls_buf_data_t *ser_data = reinterpret_cast<ls_buf_data_t *>(fake_buf);
         ser_data--;
         ser_data->block_id = serializer->translate_block_id(block_A);
-        ser_data->transaction_id = 1;
+        ser_data->block_sequence_id = 1;
 
         EXPECT_FALSE(cache->contains_block(block_A));
         cache->offer_read_ahead_buf(block_A, ser_data + 1, repli_timestamp_t::distant_past);

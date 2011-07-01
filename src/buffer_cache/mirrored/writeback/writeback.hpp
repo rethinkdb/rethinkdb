@@ -190,10 +190,10 @@ public:
         bool do_write();       // Called on serializer thread
         virtual void on_serializer_write_tid();   // Called on serializer thread
         virtual void on_serializer_write_txn();   // Called on serializer thread
-        void update_transaction_ids();  // Called on cache thread
+        void update_block_sequence_ids();  // Called on cache thread
         bool do_cleanup();   // Called on cache thread
 
-        bool transaction_ids_have_been_updated;
+        bool block_sequence_ids_have_been_updated;
         struct buf_writer_t;
         std::vector<buf_writer_t *> buf_writers;
 
