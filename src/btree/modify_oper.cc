@@ -157,6 +157,10 @@ void get_root(value_sizer_t *sizer, transaction_t *txn, buf_lock_t& sb_buf, buf_
     }
 }
 
+
+
+
+
 // Runs a btree_modify_oper_t.
 void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btree_slice_t *slice, const store_key_t &store_key, castime_t castime, order_token_t token) {
     scoped_malloc<btree_value_t> the_value(MAX_BTREE_VALUE_SIZE);
@@ -173,7 +177,7 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
         slice->pre_begin_transaction_sink_.check_out(token);
         order_token_t begin_transaction_token = slice->pre_begin_transaction_write_mode_source_.check_in(token.tag() + "+begin_transaction_token");
 
-        transaction_t txn(slice->cache(), rwi_write, oper->compute_expected_change_count(slice->cache()->get_block_size().value()),  castime.timestamp);
+        transaction_t txn(slice->cache(), rwi_write, oper->compute_expected_change_count(block_size),  castime.timestamp);
 
         slice->post_begin_transaction_sink_.check_out(begin_transaction_token);
 

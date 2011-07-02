@@ -27,7 +27,7 @@ public:
     virtual bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) = 0;
 
 
-    virtual int compute_expected_change_count(const size_t block_size) = 0;
+    virtual int compute_expected_change_count(block_size_t block_size) = 0;
 
     // This is a dorky name.  This function shall be called
     // immediately after the superblock has been acquired.  The delete

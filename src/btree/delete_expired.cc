@@ -12,7 +12,7 @@ public:
         return false;
     }
 
-    int compute_expected_change_count(UNUSED const size_t block_size) {
+    int compute_expected_change_count(UNUSED block_size_t block_size) {
         return 1;
     }
 };
