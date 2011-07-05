@@ -11,11 +11,11 @@ struct btree_delete_oper_t : public btree_modify_oper_t {
     bool dont_put_in_delete_queue;
     btree_slice_t *slice;
 
-    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<value_type_t>& value) {
         if (value) {
             result = dr_deleted;
             {
-                blob_t b(value->value_ref(), blob::btree_maxreflen);
+                blob_t b(value.as<btree_value_t>()->value_ref(), blob::btree_maxreflen);
                 b.unappend_region(txn, b.valuesize());
             }
             value.reset();

@@ -208,22 +208,7 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
             the_value.reset();
         }
 
-        scoped_malloc<btree_value_t> tmp_ugly;
-        if (the_value) {
-            scoped_malloc<btree_value_t> tmp(MAX_BTREE_VALUE_SIZE);
-            memcpy(tmp.get(), the_value.get(), MAX_BTREE_VALUE_SIZE);
-            tmp_ugly.swap(tmp);
-        }
-        bool update_needed = oper->operate(&txn, tmp_ugly);
-        {
-            if (tmp_ugly) {
-                scoped_malloc<value_type_t> tmp(MAX_BTREE_VALUE_SIZE);
-                memcpy(tmp.get(), tmp_ugly.get(), MAX_BTREE_VALUE_SIZE);
-                the_value.swap(tmp);
-            } else {
-                the_value.reset();
-            }
-        }
+        bool update_needed = oper->operate(&txn, the_value);
 
         // If the value is expired and operate() decided not to make any
         // change, we'll silently delete the key.

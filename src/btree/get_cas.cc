@@ -39,28 +39,28 @@ struct btree_get_cas_oper_t : public btree_modify_oper_t, public home_thread_mix
     btree_get_cas_oper_t(cas_t proposed_cas_, promise_t<get_result_t> *res_)
         : proposed_cas(proposed_cas_), res(res_) { }
 
-    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<value_type_t>& value) {
         if (!value) {
             // If not found, there's nothing to do.
             res->pulse(get_result_t());
             return false;
         }
 
-        bool there_was_cas_before = value->has_cas();
+        bool there_was_cas_before = value.as<btree_value_t>()->has_cas();
         cas_t cas_to_report;
-        if (value->has_cas()) {
+        if (there_was_cas_before) {
             // How convenient, there already was a CAS.
-            cas_to_report = value->cas();
+            cas_to_report = value.as<btree_value_t>()->cas();
         } else {
             // This doesn't set the CAS -- it just makes room for the
             // CAS, and run_btree_modify_oper() sets the CAS.
-            value->add_cas(txn->get_cache()->get_block_size());
+            value.as<btree_value_t>()->add_cas(txn->get_cache()->get_block_size());
             cas_to_report = proposed_cas;
         }
 
         // Deliver the value to the client via the promise_t we got.
-        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value.get(), txn));
-        res->pulse(get_result_t(dp, value->mcflags(), cas_to_report));
+        boost::shared_ptr<value_data_provider_t> dp(value_data_provider_t::create(value.as<btree_value_t>(), txn));
+        res->pulse(get_result_t(dp, value.as<btree_value_t>()->mcflags(), cas_to_report));
 
         // Return whether we made a change to the value.
         return !there_was_cas_before;

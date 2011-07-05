@@ -15,7 +15,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
     ~btree_set_oper_t() {
     }
 
-    bool operate(transaction_t *txn, scoped_malloc<btree_value_t>& value) {
+    bool operate(transaction_t *txn, scoped_malloc<value_type_t>& value) {
         // We may be instructed to abort, depending on the old value.
         if (value) {
             switch (replace_policy) {
@@ -25,7 +25,7 @@ struct btree_set_oper_t : public btree_modify_oper_t {
                 result = sr_didnt_replace;
                 return false;
             case replace_policy_if_cas_matches:
-                if (!value->has_cas() || value->cas() != req_cas) {
+                if (!value.as<btree_value_t>()->has_cas() || value.as<btree_value_t>()->cas() != req_cas) {
                     result = sr_didnt_replace;
                     return false;
                 }
@@ -46,14 +46,14 @@ struct btree_set_oper_t : public btree_modify_oper_t {
         }
 
         if (!value) {
-            scoped_malloc<btree_value_t> tmp(MAX_BTREE_VALUE_SIZE);
+            scoped_malloc<value_type_t> tmp(MAX_BTREE_VALUE_SIZE);
             value.swap(tmp);
             memset(value.get(), 0, MAX_BTREE_VALUE_SIZE);
         }
 
         // Whatever the case, shrink the old value.
         {
-            blob_t b(value->value_ref(), blob::btree_maxreflen);
+            blob_t b(value.as<btree_value_t>()->value_ref(), blob::btree_maxreflen);
             b.unappend_region(txn, b.valuesize());
         }
 
@@ -63,14 +63,14 @@ struct btree_set_oper_t : public btree_modify_oper_t {
             return true;
         }
 
-        if (value && value->has_cas()) {
+        if (value && value.as<btree_value_t>()->has_cas()) {
             // run_btree_modify_oper will set an actual CAS later.
-            metadata_write(&value->metadata_flags, value->contents, mcflags, exptime, 0xCA5ADDED);
+            metadata_write(&value.as<btree_value_t>()->metadata_flags, value.as<btree_value_t>()->contents, mcflags, exptime, 0xCA5ADDED);
         } else {
-            metadata_write(&value->metadata_flags, value->contents, mcflags, exptime);
+            metadata_write(&value.as<btree_value_t>()->metadata_flags, value.as<btree_value_t>()->contents, mcflags, exptime);
         }
 
-        blob_t b(value->value_ref(), blob::btree_maxreflen);
+        blob_t b(value.as<btree_value_t>()->value_ref(), blob::btree_maxreflen);
 
         b.append_region(txn, data->get_size());
         buffer_group_t bg;
