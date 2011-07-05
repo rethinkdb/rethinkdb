@@ -195,38 +195,37 @@ void run_btree_modify_oper(value_sizer_t *sizer, btree_modify_oper_t *oper, btre
 
         bool key_found = kv_location.value;
 
-        scoped_malloc<value_type_t> the_value;
-        the_value.swap(kv_location.value);
-
-        bool expired = key_found && the_value.as<btree_value_t>()->expired();
+        bool expired = key_found && kv_location.value.as<btree_value_t>()->expired();
 
         // If the value's expired, delete it.
         if (expired) {
-            blob_t b(the_value.as<btree_value_t>()->value_ref(), blob::btree_maxreflen);
+            blob_t b(kv_location.value.as<btree_value_t>()->value_ref(), blob::btree_maxreflen);
             b.unappend_region(&txn, b.valuesize());
-            the_value.reset();
+            kv_location.value.reset();
         }
 
-        bool update_needed = oper->operate(&txn, the_value);
+        bool update_needed = oper->operate(&txn, kv_location.value);
         update_needed = update_needed || expired;
+
+        // Add a CAS to the value if necessary
+        if (kv_location.value) {
+            if (kv_location.value.as<btree_value_t>()->has_cas()) {
+                rassert(castime.proposed_cas != BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
+                kv_location.value.as<btree_value_t>()->set_cas(block_size, castime.proposed_cas);
+            }
+        }
 
         // Actually update the leaf, if needed.
         if (update_needed) {
-            if (the_value) { // We have a value to insert.
+            if (kv_location.value) { // We have a value to insert.
                 // Split the node if necessary, to make sure that we have room
                 // for the value; This isn't necessary when we're deleting,
                 // because the node isn't going to grow.
-                check_and_handle_split(sizer, &txn, kv_location.buf, kv_location.last_buf, sb_buf, key, the_value.get(), block_size);
-
-                // Add a CAS to the value if necessary (this won't change its size).
-                if (the_value.as<btree_value_t>()->has_cas()) {
-                    rassert(castime.proposed_cas != BTREE_MODIFY_OPER_DUMMY_PROPOSED_CAS);
-                    the_value.as<btree_value_t>()->set_cas(block_size, castime.proposed_cas);
-                }
+                check_and_handle_split(sizer, &txn, kv_location.buf, kv_location.last_buf, sb_buf, key, kv_location.value.get(), block_size);
 
                 repli_timestamp new_value_timestamp = castime.timestamp;
 
-                bool success = leaf::insert(sizer, *kv_location.buf.buf(), key, the_value.get(), new_value_timestamp);
+                bool success = leaf::insert(sizer, *kv_location.buf.buf(), key, kv_location.value.get(), new_value_timestamp);
                 guarantee(success, "could not insert leaf btree node");
             } else { // Delete the value if it's there.
                 if (key_found) {
