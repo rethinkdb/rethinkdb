@@ -62,6 +62,7 @@ union flagged_off64_t {
 
     static inline flagged_off64_t unused() {
         flagged_off64_t ret;
+        ret.whole_value = 0;
         ret.set_delete_bit(true);
         ret.remove_value();
         return ret;
